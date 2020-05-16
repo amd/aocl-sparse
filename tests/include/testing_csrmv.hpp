@@ -1,0 +1,148 @@
+/* ************************************************************************
+ * Copyright (c) 2018 Advanced Micro Devices, Inc.
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ * 
+ * ************************************************************************ */
+
+#pragma once
+#ifndef TESTING_CSRMV_HPP
+#define TESTING_CSRMV_HPP
+
+#include <aoclsparse.h>
+#include "flops.hpp"
+#include "gbyte.hpp"
+#include "aoclsparse_arguments.hpp"
+#include "aoclsparse_init.hpp"
+#include "aoclsparse_test.hpp"
+#include "aoclsparse_check.hpp"
+#include "utility.hpp"
+#include "aoclsparse_random.hpp"
+template <typename T>
+void testing_csrmv(const Arguments& arg)
+{
+    aoclsparse_int         M         = arg.M;
+    aoclsparse_int         N         = arg.N;
+    aoclsparse_matrix_init mat       = arg.matrix;
+    aoclsparse_index_base  base      = aoclsparse_index_base_zero;
+    std::string           filename = arg.filename; 
+
+    T h_alpha = static_cast<T>(1);
+    T h_beta  = static_cast<T>(0);
+
+    // Allocate memory for matrix
+    std::vector<aoclsparse_int> hcsr_row_ptr;
+    std::vector<aoclsparse_int> hcsr_col_ind;
+    std::vector<T>             hcsr_val;
+
+    aoclsparse_seedrand();
+
+    // Sample matrix
+    aoclsparse_int nnz;
+    aoclsparse_init_csr_matrix(hcsr_row_ptr,
+                              hcsr_col_ind,
+                              hcsr_val,
+                              M,
+                              N,
+                              nnz,
+                              base,
+                              mat,
+                              filename.c_str(),
+                              false,
+                              false);
+
+    // Allocate memory for vectors
+    std::vector<T> hx(N);
+    std::vector<T> hy(M);
+    std::vector<T> hy_gold(M);
+
+    // Initialize data
+    aoclsparse_init<T>(hx, 1, N, 1);
+    aoclsparse_init<T>(hy, 1, M, 1);
+    hy_gold = hy; 
+    if(arg.unit_check)
+    {
+        CHECK_AOCLSPARSE_ERROR(aoclsparse_dcsrmv(M,
+                                                 N,
+                                                 nnz,
+                                                 &h_alpha,
+                                                 hcsr_val.data(),
+                                                 hcsr_row_ptr.data(),
+                                                 hcsr_col_ind.data(),
+                                                 hx.data(),
+                                                 &h_beta,
+                                                 hy.data()));
+	// Reference SPMV CSR implementation
+        for(int i = 0; i < M; i++)
+        {
+            for(int j = hcsr_row_ptr[i] ; j < hcsr_row_ptr[i+1] ; j++)
+	    {
+                hy_gold[i] += hcsr_val[j] * hx[hcsr_col_ind[j]];
+	    }
+        }
+        near_check_general<T>(1, M, 1, hy_gold.data(), hy.data());
+	
+    }
+    int number_hot_calls  = arg.iters;
+
+    double cpu_time_used = 1e9;
+
+    // Performance run
+    for(int iter = 0; iter < number_hot_calls; ++iter)
+    {
+        double cpu_time_start = get_time_us();
+        CHECK_AOCLSPARSE_ERROR(aoclsparse_dcsrmv(M,
+                                                 N,
+                                                 nnz,
+                                                 &h_alpha,
+                                                 hcsr_val.data(),
+                                                 hcsr_row_ptr.data(),
+                                                 hcsr_col_ind.data(),
+                                                 hx.data(),
+                                                 &h_beta,
+                                                 hy.data()));
+        double cpu_time_stop = get_time_us();
+        cpu_time_used = std::min(cpu_time_used , (cpu_time_stop - cpu_time_start) );
+    }
+
+
+    double cpu_gflops
+        = spmv_gflop_count<T>(M, nnz, h_beta != static_cast<T>(0)) / cpu_time_used * 1e6;
+    double cpu_gbyte
+        = csrmv_gbyte_count<T>(M, N, nnz, h_beta != static_cast<T>(0)) / cpu_time_used * 1e6;
+
+    std::cout.precision(2);
+    std::cout.setf(std::ios::fixed);
+    std::cout.setf(std::ios::left);
+
+    std::cout << std::setw(12) << "M" << std::setw(12) << "N" << std::setw(12) << "nnz"
+              << std::setw(12) << "alpha" << std::setw(12) << "beta" << std::setw(12)
+              << "GFlop/s" << std::setw(12) << "GB/s"
+              << std::setw(12) << "msec" << std::setw(12) << "iter" << std::setw(12)
+              << "verified" << std::endl;
+
+    std::cout << std::setw(12) << M << std::setw(12) << N << std::setw(12) << nnz
+              << std::setw(12) << h_alpha << std::setw(12) << h_beta << std::setw(12)
+              << cpu_gflops
+              << std::setw(12) << cpu_gbyte << std::setw(12) << cpu_time_used / 1e3
+              << std::setw(12) << number_hot_calls << std::setw(12)
+              << (arg.unit_check ? "yes" : "no") << std::endl;
+} 
+
+#endif // TESTING_CSRMV_HPP
