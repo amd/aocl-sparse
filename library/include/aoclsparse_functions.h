@@ -21,13 +21,13 @@
  * 
  * ************************************************************************ */
 /*! \file
- *  \brief aoclsparse-functions.h provides Sparse Linear Algebra Subprograms
+ *  \brief aoclsparse_functions.h provides Sparse Linear Algebra Subprograms
  *  of Level 1, 2 and 3, for AMD CPU hardware.
  */
 #ifndef AOCLSPARSE_FUNCTIONS_H_
 #define AOCLSPARSE_FUNCTIONS_H_
 
-#include "aoclsparse-types.h"
+#include "aoclsparse_types.h"
 
 #ifdef __cplusplus
 extern "C" {

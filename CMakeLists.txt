@@ -1,5 +1,5 @@
 # ########################################################################
-# Copyright (c) 2018 Advanced Micro Devices, Inc.
+# Copyright (c) 2020 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -64,7 +64,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 option(BUILD_SHARED_LIBS "Build aocl-sparse as a shared library" ON)
 option(BUILD_CLIENTS_TESTS "Build tests (requires googletest)" OFF)
 option(BUILD_CLIENTS_BENCHMARKS "Build benchmarks (requires boost)" ON)
-option(BUILD_CLIENTS_SAMPLES "Build examples" ON)
+option(BUILD_CLIENTS_SAMPLES "Build examples" OFF)
 option(BUILD_VERBOSE "Output additional build information" ON)
 
 # Dependencies
@@ -72,6 +72,27 @@ include(cmake/Dependencies.cmake)
 
 # Setup version
 #aoclsparse_setup_version(VERSION 1.0.0)
+# Define a version for the code
+if( NOT DEFINED AOCLSPARSE_VERSION_MAJOR )
+	set( AOCLSPARSE_VERSION_MAJOR 1 )
+endif( )
+
+if( NOT DEFINED AOCLSPARSE_VERSION_MINOR )
+	set( AOCLSPARSE_VERSION_MINOR 0 )
+endif( )
+
+if( NOT DEFINED AOCLSPARSE_VERSION_PATCH )
+	set( AOCLSPARSE_VERSION_PATCH 0 )
+endif( )
+
+if( NOT DEFINED AOCLSPARSE_VERSION_TWEAK )
+	set( AOCLSPARSE_VERSION_TWEAK 0 )
+endif( )
+
+	set( AOCLSPARSE_VERSION "${AOCLSPARSE_VERSION_MAJOR}.${AOCLSPARSE_VERSION_MINOR}.${AOCLSPARSE_VERSION_PATCH}.${AOCLSPARSE_VERSION_TWEAK}")
+
+message( STATUS "AOCLSPARSE_VERSION= ${AOCLSPARSE_VERSION}" )
+message( STATUS "CMAKE_BUILD_TYPE= ${CMAKE_BUILD_TYPE}" )
 set(aoclsparse_SOVERSION 0.1)
 
 # AMD targets
@@ -81,7 +102,6 @@ add_compile_options ( -shared -march=native -fpermissive )
 # aoclsparse library
 add_subdirectory(library)
 
-add_subdirectory(tests)
 if(BUILD_CLIENTS_SAMPLES OR BUILD_CLIENTS_BENCHMARKS OR BUILD_CLIENTS_TESTS)
-#  add_subdirectory(tests)
+add_subdirectory(tests)
 endif()

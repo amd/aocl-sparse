@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2018 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,24 +21,19 @@
  *
  * ************************************************************************ */
 
-/*! \file
- *  \brief aoclsparse-complex-types.h defines complex data types used in aoclsparse
+/*!\file
+ * \brief aoclsparse-version.h provides the configured version and settings
  */
 
 #pragma once
-#ifndef _AOCLSPARSE_COMPLEX_TYPES_H_
-#define _AOCLSPARSE_COMPLEX_TYPES_H_
+#ifndef _AOCLSPARSE_VERSION_H_
+#define _AOCLSPARSE_VERSION_H_
 
-typedef struct
-{
-    float x, y;
-} aoclsparse_float_complex;
+/* clang-format off */
+#define AOCLSPARSE_VERSION_MAJOR     @AOCLSPARSE_VERSION_MAJOR@
+#define AOCLSPARSE_VERSION_MINOR     @AOCLSPARSE_VERSION_MINOR@
+#define AOCLSPARSE_VERSION_PATCH     @AOCLSPARSE_VERSION_PATCH@
+#define AOCLSPARSE_VERSION_TWEAK     @AOCLSPARSE_VERSION_TWEAK@
+/* clang-format on */
 
-typedef struct
-{
-    double x, y;
-} aoclsparse_double_complex;
-
-
-
-#endif /* _AOCLSPARSE_COMPLEX_TYPES_H_ */
+#endif /* _AOCLSPARSE_VERSION_H_ */

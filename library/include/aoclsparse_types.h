@@ -21,7 +21,7 @@
  * 
  * ************************************************************************ */
 /*! \file
- * \brief aoclsparse-types.h defines data types used by aoclsparse
+ * \brief aoclsparse_types.h defines data types used by aoclsparse
  */
 #ifndef AOCLSPARSE_TYPES_H_
 #define AOCLSPARSE_TYPES_H_
@@ -36,6 +36,16 @@ typedef int64_t aoclsparse_int;
 #else
 typedef int32_t aoclsparse_int;
 #endif
+
+typedef struct
+{
+    float x, y;
+} aoclsparse_float_complex;
+
+typedef struct
+{
+    double x, y;
+} aoclsparse_double_complex;
 
 #ifdef __cplusplus
 extern "C" {

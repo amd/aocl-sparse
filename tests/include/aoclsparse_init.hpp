@@ -26,7 +26,6 @@
 #define AOCLSPARSE_INIT_HPP
 
 #include "aoclsparse_datatype2string.hpp"
-//#include "aoclsparse_host.hpp"
 #include "aoclsparse_test.hpp"
 #include "aoclsparse_random.hpp"
 

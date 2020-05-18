@@ -39,15 +39,6 @@ aoclsparse_status aoclsparse_csrmv(aoclsparse_int             m,
                                    T*                   y
 )
 {
-#if 0
-    for(int i = 0; i < m; i++)
-    {
-        for(int j = csr_row_ptr[i] ; j < csr_row_ptr[i+1] ; j++)
-        {
-            y[i] += csr_val[j] * x[csr_col_ind[j]];
-        }
-   }
-#else
     __m256d vec_vals , vec_x , vec_y;
     __m128i vec_idx;
     for(int i = 0; i < m; i++)
@@ -90,9 +81,8 @@ aoclsparse_status aoclsparse_csrmv(aoclsparse_int             m,
         {
             result += *matValPtr++ * x[*colIndPtr++];
         }
-        y[i] += result ;
+        y[i] = result ;
     } 
-#endif
     return aoclsparse_status_success;
 }
 #endif // AOCLSPARSE_CSRMV_HPP

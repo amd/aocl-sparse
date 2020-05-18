@@ -1,5 +1,5 @@
 # ########################################################################
-# Copyright (c) 2018 Advanced Micro Devices, Inc.
+# Copyright (c) 2020 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -58,15 +58,12 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # If OpenMP is available, we can use it to speed up some tests
 find_package(OpenMP QUIET)
 
- # add_subdirectory(benchmarks)
-  #enable_testing()
-  #add_subdirectory(tests)
 if(BUILD_CLIENTS_BENCHMARKS)
   add_subdirectory(benchmarks)
 endif()
 
-if(BUILD_CLIENTS_TESTS)
-  enable_testing()
-  add_subdirectory(tests)
-endif()
+#if(BUILD_CLIENTS_TESTS)
+#  enable_testing()
+#  add_subdirectory(tests)
+#endif()
 

@@ -23,9 +23,8 @@
 #ifndef AOCLSPARSE_H_
 #define AOCLSPARSE_H_
 
-#include "aoclsparse-functions.h"
-#include "aoclsparse-types.h"
-#include "aoclsparse-complex-types.h"
+#include "aoclsparse_functions.h"
+#include "aoclsparse_types.h"
 #include "aoclsparse_version.h"
 
 #endif // AOCLSPARSE_H_

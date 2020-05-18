@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2018 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020 Advanced Micro Devices, Inc.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -91,13 +91,14 @@ void testing_csrmv(const Arguments& arg)
 	// Reference SPMV CSR implementation
         for(int i = 0; i < M; i++)
         {
+            double result = 0.0;
             for(int j = hcsr_row_ptr[i] ; j < hcsr_row_ptr[i+1] ; j++)
 	    {
-                hy_gold[i] += hcsr_val[j] * hx[hcsr_col_ind[j]];
+                result += hcsr_val[j] * hx[hcsr_col_ind[j]];
 	    }
+            hy_gold[i] = result;
         }
         near_check_general<T>(1, M, 1, hy_gold.data(), hy.data());
-	
     }
     int number_hot_calls  = arg.iters;
 

@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2018 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020 Advanced Micro Devices, Inc.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -92,7 +92,7 @@ int main(int argc, char* argv[])
     po::store(po::parse_command_line(argc, argv, desc), vm);
     po::notify(vm);
 
-    if(vm.count("help"))
+    if(vm.count("help") || (argc == 1))
     {
         std::cout << desc << std::endl;
         return 0;
@@ -103,7 +103,6 @@ int main(int argc, char* argv[])
         std::cerr << "Invalid value for --precision" << std::endl;
         return -1;
     }
-    // rocALUTION parameter overrides filename parameter
     if(csrbin != "")
     {
         strcpy(arg.filename, csrbin.c_str());

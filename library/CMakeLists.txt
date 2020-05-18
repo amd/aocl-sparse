@@ -1,5 +1,5 @@
 # ########################################################################
-# Copyright (c) 2018 Advanced Micro Devices, Inc.
+# Copyright (c) 2020 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -31,14 +31,14 @@ if(BUILD_VERBOSE)
 endif()
 
 # Configure a header file to pass the aoclsparse version
-configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/aoclsparse_version.h"
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/aoclsparse_version.h.in"
                "${PROJECT_BINARY_DIR}/include/aoclsparse_version.h"
 )
 
 # Public aoclsparse headers
 set(PUBLIC_HEADERS
-    include/aoclsparse-types.h
-    include/aoclsparse-functions.h
+    include/aoclsparse_types.h
+    include/aoclsparse_functions.h
     include/aoclsparse.h
     ${PROJECT_BINARY_DIR}/include/aoclsparse_version.h
 )
@@ -95,6 +95,8 @@ if(SUPPORT_MPI)
 endif()
 
 # Target properties
+set_target_properties(aoclsparse PROPERTIES SOVERSION ${aoclsparse_SOVERSION} )
+set_target_properties(aoclsparse PROPERTIES VERSION ${aoclsparse_SOVERSION})
 set_target_properties(aoclsparse PROPERTIES CXX_VISIBILITY_PRESET "hidden" VISIBILITY_INLINES_HIDDEN ON)
 set_target_properties(aoclsparse PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/staging")
 set_target_properties(aoclsparse PROPERTIES DEBUG_POSTFIX "-d")
