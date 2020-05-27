@@ -33,6 +33,70 @@
 extern "C" {
 #endif
 
+/*! \ingroup level2_module
+ *  \brief Double Precision Sparse matrix vector multiplication using CSR storage format
+ *
+ *  \details
+ *  \p aoclsparse_dcsrmv multiplies the scalar \f$\alpha\f$ with a sparse \f$m \times n\f$
+ *  matrix, defined in CSR storage format, and the dense vector \f$x\f$ and adds the
+ *  result to the dense vector \f$y\f$ that is multiplied by the scalar \f$\beta\f$,
+ *  such that
+ *  \f[
+ *    y := \alpha \cdot op(A) \cdot x + \beta \cdot y,
+ *  \f]
+ *
+ *  \note
+ *  This function is non blocking and executed asynchronously with respect to the host.
+ *  It may return before the actual computation has finished.
+ *
+ *  \note
+ *  Currently, only \p trans == \ref aoclsparse_operation_none is supported.
+ *
+ *  @param[in]
+ *  m           number of rows of the sparse CSR matrix.
+ *  @param[in]
+ *  n           number of columns of the sparse CSR matrix.
+ *  @param[in]
+ *  nnz         number of non-zero entries of the sparse CSR matrix.
+ *  @param[in]
+ *  alpha       scalar \f$\alpha\f$.
+ *  @param[in]
+ *  csr_val     array of \p nnz elements of the sparse CSR matrix.
+ *  @param[in]
+ *  csr_row_ptr array of \p m+1 elements that point to the start
+ *              of every row of the sparse CSR matrix.
+ *  @param[in]
+ *  csr_col_ind array of \p nnz elements containing the column indices of the sparse
+ *              CSR matrix.
+ *  @param[in]
+ *  x           array of \p n elements (\f$op(A) == A\f$) or \p m elements
+ *              (\f$op(A) == A^T\f$ or \f$op(A) == A^H\f$).
+ *  @param[in]
+ *  beta        scalar \f$\beta\f$.
+ *  @param[inout]
+ *  y           array of \p m elements (\f$op(A) == A\f$) or \p n elements
+ *              (\f$op(A) == A^T\f$ or \f$op(A) == A^H\f$).
+ *
+ *  \retval     aoclsparse_status_success the operation completed successfully.
+ *
+ *  \par Example
+ *  This example performs a sparse matrix vector multiplication in CSR format
+ *  using additional meta data to improve performance.
+ *
+ *  \Code{.c}
+ *      aoclsparse_dcsrmv(m,
+ *                       n,
+ *                       nnz,
+ *                       &alpha,
+ *                       csr_val,
+ *                       csr_row_ptr,
+ *                       csr_col_ind,
+ *                       x,
+ *                       &beta,
+ *                       y);
+ *  \endcode
+ */
+/**@{*/
 __attribute__((__visibility__("default"))) aoclsparse_status aoclsparse_dcsrmv(aoclsparse_int             m,
                                   aoclsparse_int             n,
                                   aoclsparse_int             nnz,
@@ -44,6 +108,70 @@ __attribute__((__visibility__("default"))) aoclsparse_status aoclsparse_dcsrmv(a
                                   const double*             beta,
                                   double*                   y);
 
+/*! \ingroup level2_module
+ *  \brief Single Precision Sparse matrix vector multiplication using CSR storage format
+ *
+ *  \details
+ *  \p aoclsparse_scsrmv multiplies the scalar \f$\alpha\f$ with a sparse \f$m \times n\f$
+ *  matrix, defined in CSR storage format, and the sparse vector \f$x\f$ and adds the
+ *  result to the sparse vector \f$y\f$ that is multiplied by the scalar \f$\beta\f$,
+ *  such that
+ *  \f[
+ *    y := \alpha \cdot op(A) \cdot x + \beta \cdot y,
+ *  \f]
+ *
+ *  \note
+ *  This function is non blocking and executed asynchronously with respect to the host.
+ *  It may return before the actual computation has finished.
+ *
+ *  \note
+ *  Currently, only \p trans == \ref aoclsparse_operation_none is supported.
+ *
+ *  @param[in]
+ *  m           number of rows of the sparse CSR matrix.
+ *  @param[in]
+ *  n           number of columns of the sparse CSR matrix.
+ *  @param[in]
+ *  nnz         number of non-zero entries of the sparse CSR matrix.
+ *  @param[in]
+ *  alpha       scalar \f$\alpha\f$.
+ *  @param[in]
+ *  csr_val     array of \p nnz elements of the sparse CSR matrix.
+ *  @param[in]
+ *  csr_row_ptr array of \p m+1 elements that point to the start
+ *              of every row of the sparse CSR matrix.
+ *  @param[in]
+ *  csr_col_ind array of \p nnz elements containing the column indices of the sparse
+ *              CSR matrix.
+ *  @param[in]
+ *  x           array of \p n elements (\f$op(A) == A\f$) or \p m elements
+ *              (\f$op(A) == A^T\f$ or \f$op(A) == A^H\f$).
+ *  @param[in]
+ *  beta        scalar \f$\beta\f$.
+ *  @param[inout]
+ *  y           array of \p m elements (\f$op(A) == A\f$) or \p n elements
+ *              (\f$op(A) == A^T\f$ or \f$op(A) == A^H\f$).
+ *
+ *  \retval     aoclsparse_status_success the operation completed successfully.
+ *
+ *  \par Example
+ *  This example performs a sparse matrix vector multiplication in CSR format
+ *  using additional meta data to improve performance.
+ *
+ *  \Code{.c}
+ *      aoclsparse_scsrmv(m,
+ *                       n,
+ *                       nnz,
+ *                       &alpha,
+ *                       csr_val,
+ *                       csr_row_ptr,
+ *                       csr_col_ind,
+ *                       x,
+ *                       &beta,
+ *                       y);
+ *  \endcode
+ */
+/**@{*/
 __attribute__((__visibility__("default"))) aoclsparse_status aoclsparse_scsrmv(aoclsparse_int             m,
                                   aoclsparse_int             n,
                                   aoclsparse_int             nnz,
@@ -54,6 +182,15 @@ __attribute__((__visibility__("default"))) aoclsparse_status aoclsparse_scsrmv(a
                                   const float*             x,
                                   const float*             beta,
                                   float*                   y);
+
+/******************************************************************************** 
+* \brief Get aoclsparse version 
+* version % 100        = patch level 
+* version / 100 % 1000 = minor version 
+* version / 100000     = major version 
+*******************************************************************************/ 
+__attribute__((__visibility__("default"))) aoclsparse_status aoclsparse_get_version(int* version);
+
 #ifdef __cplusplus
 }
 #endif

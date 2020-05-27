@@ -103,19 +103,6 @@ inline T random_generator(int a = 1, int b = 10)
 {
     return std::uniform_int_distribution<int>(a, b)(aoclsparse_rng);
 }
-#if 0
-template <>
-inline aoclsparse_float_complex random_generator<aoclsparse_float_complex>(int a, int b)
-{
-    return aoclsparse_float_complex(random_generator<float>(a, b), random_generator<float>(a, b));
-}
-
-template <>
-inline aoclsparse_double_complex random_generator<aoclsparse_double_complex>(int a, int b)
-{
-    return aoclsparse_double_complex(random_generator<double>(a, b), random_generator<double>(a, b));
-}
-#endif
 /*! \brief generate a random normally distributed number around 0 with stddev 1 */
 template <typename T>
 inline T random_generator_normal()

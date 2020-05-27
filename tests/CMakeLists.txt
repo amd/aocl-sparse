@@ -61,9 +61,3 @@ find_package(OpenMP QUIET)
 if(BUILD_CLIENTS_BENCHMARKS)
   add_subdirectory(benchmarks)
 endif()
-
-#if(BUILD_CLIENTS_TESTS)
-#  enable_testing()
-#  add_subdirectory(tests)
-#endif()
-

@@ -51,7 +51,6 @@ endif()
 # aocl-sparse project
 project(aoclsparse LANGUAGES CXX)
 
-
 # Force library install path to lib (CentOS 7 defaults to lib64)
 set(CMAKE_INSTALL_LIBDIR "lib" CACHE INTERNAL "Installation directory for libraries" FORCE)
 
@@ -70,15 +69,13 @@ option(BUILD_VERBOSE "Output additional build information" ON)
 # Dependencies
 include(cmake/Dependencies.cmake)
 
-# Setup version
-#aoclsparse_setup_version(VERSION 1.0.0)
-# Define a version for the code
+# Define a version for the aocl-sparse code.
 if( NOT DEFINED AOCLSPARSE_VERSION_MAJOR )
-	set( AOCLSPARSE_VERSION_MAJOR 1 )
+	set( AOCLSPARSE_VERSION_MAJOR 2 )
 endif( )
 
 if( NOT DEFINED AOCLSPARSE_VERSION_MINOR )
-	set( AOCLSPARSE_VERSION_MINOR 0 )
+	set( AOCLSPARSE_VERSION_MINOR 2 )
 endif( )
 
 if( NOT DEFINED AOCLSPARSE_VERSION_PATCH )
@@ -89,7 +86,7 @@ if( NOT DEFINED AOCLSPARSE_VERSION_TWEAK )
 	set( AOCLSPARSE_VERSION_TWEAK 0 )
 endif( )
 
-	set( AOCLSPARSE_VERSION "${AOCLSPARSE_VERSION_MAJOR}.${AOCLSPARSE_VERSION_MINOR}.${AOCLSPARSE_VERSION_PATCH}.${AOCLSPARSE_VERSION_TWEAK}")
+set( AOCLSPARSE_VERSION "${AOCLSPARSE_VERSION_MAJOR}.${AOCLSPARSE_VERSION_MINOR}.${AOCLSPARSE_VERSION_PATCH}.${AOCLSPARSE_VERSION_TWEAK}")
 
 message( STATUS "AOCLSPARSE_VERSION= ${AOCLSPARSE_VERSION}" )
 message( STATUS "CMAKE_BUILD_TYPE= ${CMAKE_BUILD_TYPE}" )
