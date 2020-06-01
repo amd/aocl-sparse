@@ -1,5 +1,5 @@
 # ########################################################################
-# Copyright (c) 2018 Advanced Micro Devices, Inc.
+# Copyright (c) 2020 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,29 +26,12 @@
 # Git
 find_package(Git REQUIRED)
 
-# Workaround until hcc & hip cmake modules fixes symlink logic in their config files.
-# (Thanks to rocBLAS devs for finding workaround for this problem!)
-list(APPEND CMAKE_PREFIX_PATH /opt/aoclsparse)
-
 # Find OpenMP package
 find_package(OpenMP)
 if (NOT OPENMP_FOUND)
-  message("-- OpenMP not found. Compiling WITHOUT OpenMP support.")
+#message("-- OpenMP not found. Compiling WITHOUT OpenMP support.")
+  message("-- OpenMP not found.")
 else()
   option(SUPPORT_OMP "Compile WITH OpenMP support." ON)
 endif()
 
-# MPI
-find_package(MPI)
-if (NOT MPI_FOUND)
-  message("-- MPI not found. Compiling WITHOUT MPI support.")
-  if (SUPPORT_MPI)
-    message(FATAL_ERROR "Cannot build with MPI support.")
-  endif()
-else()
-  option(SUPPORT_MPI "Compile WITH MPI support." OFF)
-  if (SUPPORT_MPI)
-    set(CMAKE_C_COMPILER ${MPI_COMPILER})
-    set(CMAKE_CXX_COMPILER ${MPI_COMPILER})
-  endif()
-endif()

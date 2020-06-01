@@ -15,14 +15,18 @@ All compiler specifications are determined automatically.
 
 # After cloning aocl-sparse source to aocl-sparse directory.
 # Go to aocl-sparse directory, create and go to the build directory
-cd aocl-sparse; mkdir -p build/release; cd build/release
+cd aocl-sparse 
+mkdir -p build/release 
+cd build/release
 
 # Configure aocl-sparse
 # Build options:
 #   BUILD_CLIENTS_BENCHMARKS - build benchmarks (OFF)
 #   BUILD_VERBOSE            - verbose output (OFF)
 #   BUILD_SHARED_LIBS        - build aocl-sparse as a shared library (ON)
-cmake -DBUILD_CLIENTS_BENCHMARKS=ON ../..
+
+# Build shared library (default)
+cmake ../..
 
 # Build
 make
@@ -30,11 +34,18 @@ make
 # Install
 make install
 
+# Build static library as well
+cmake -DBUILD_SHARED_LIBS=OFF ../../
+make install
+
 ## Benchmarks
 To run benchmarks, aocl-sparse has to be built with option -DBUILD_CLIENTS_BENCHMARKS=ON.
 
+cmake -DBUILD_CLIENTS_BENCHMARKS=ON ../../
+make install
+
 # Go to aocl-sparse build directory
-cd aocl-sparse/build/
+cd aocl-sparse/build/release
 
 # Get the scircuit.mtx file, e.g.
 wget https://sparse.tamu.edu/MM/Hamm/scircuit.tar.gz
