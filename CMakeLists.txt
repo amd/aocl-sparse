@@ -25,10 +25,12 @@ cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 
 # Consider removing this in the future
 # This should appear before the project command, because it does not use FORCE
+if(NOT CMAKE_INSTALL_PREFIX)
 if(WIN32)
   set(CMAKE_INSTALL_PREFIX "${PROJECT_BINARY_DIR}/package" CACHE PATH "Install path prefix, prepended onto install directories")
 else()
   set(CMAKE_INSTALL_PREFIX "/opt/aoclsparse" CACHE PATH "Install path prefix, prepended onto install directories")
+endif()
 endif()
 
 # CMake modules

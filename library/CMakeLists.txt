@@ -25,11 +25,6 @@
 # This tells cmake to create a compile_commands.json file that can be used with clang tooling or vim
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Print verbose compiler flags
-if(BUILD_VERBOSE)
-#  include(../cmake/Verbose.cmake)
-endif()
-
 # Configure a header file to pass the aoclsparse version
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/aoclsparse_version.h.in"
                "${PROJECT_BINARY_DIR}/include/aoclsparse_version.h"
@@ -76,9 +71,6 @@ target_include_directories(aoclsparse
                                    $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
                                    $<INSTALL_INTERFACE:include>
 )
-#if(SUPPORT_MPI)
-#  target_include_directories(aoclsparse PUBLIC ${MPI_CXX_INCLUDE_PATH})
-#endif()
 
 # Target compile definitions
 if(SUPPORT_MPI)
@@ -102,8 +94,8 @@ set_target_properties(aoclsparse PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_
 set_target_properties(aoclsparse PROPERTIES DEBUG_POSTFIX "-d")
 
 
-install(TARGETS aoclsparse DESTINATION ${CMAKE_BINARY_DIR}/lib)
-install(FILES ${PUBLIC_HEADERS} DESTINATION ${CMAKE_BINARY_DIR}/include)
+install(TARGETS aoclsparse DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+install(FILES ${PUBLIC_HEADERS} DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/../LICENSE.md")
 
@@ -117,11 +109,3 @@ set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION "\${CPACK_PACKAGING_INSTALL_PR
 set(package_name aoclsparse)
 
 set(AOCLSPARSE_CONFIG_DIR "\${CPACK_PACKAGING_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}" CACHE PATH "Path placed into ldconfig file")
-
-#create_package(
-#  NAME ${package_name}
-#  DESCRIPTION "AMD CPU library for sparse linear systems"
-#  MAINTAINER "AMD"
-#  LDCONFIG
-#  LDCONFIG_DIR ${AOCLSPARSE_CONFIG_DIR}
-#)

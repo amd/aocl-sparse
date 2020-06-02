@@ -26,13 +26,15 @@ cd build/release
 #   BUILD_SHARED_LIBS        - build aocl-sparse as a shared library (ON)
 
 # Build shared library (default)
-cmake ../..
+# if CMAKE_INSTALL_PREFIX is not provided then /opt/aoclsparse/ is the default location
+# which contains lib/ and include/ directory files.
+cmake ../.. -DCMAKE_INSTALL_PREFIX="<Directory_path>"
 
 # Build
 make
 
 # Install
-make install
+[sudo] make install
 
 # Build static library as well
 cmake -DBUILD_SHARED_LIBS=OFF ../../
