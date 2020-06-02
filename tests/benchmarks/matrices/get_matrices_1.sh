@@ -10,8 +10,6 @@ matrices=(pdb1HYS
           mac_econ_fwd500
           mc2depi
           scircuit
-          webbase-1M
-          rail4284
 )
 
 url=(https://sparse.tamu.edu/MM/Williams
@@ -23,11 +21,9 @@ url=(https://sparse.tamu.edu/MM/Williams
      https://sparse.tamu.edu/MM/Williams
      https://sparse.tamu.edu/MM/Williams
      https://sparse.tamu.edu/MM/Hamm
-     https://sparse.tamu.edu/MM/Williams
-     https://sparse.tamu.edu/MM/Mittelmann
 )
 
-for i in {0..10}; do
+for i in {0..9}; do
     m=${matrices[${i}]}
     u=${url[${i}]}
     if [ ! -f ${m}.csr ]; then
@@ -39,8 +35,5 @@ for i in {0..10}; do
             echo "Extracting ${m}.tar.gz ..."
             tar xf ${m}.tar.gz && mv ${m}/${m}.mtx . && rm -rf ${m}.tar.gz ${m}
         fi
-        echo "Converting ${m}.mtx ..."
-        ./convert ${m}.mtx ${m}.csr
-#        rm ${m}.mtx
     fi
 done

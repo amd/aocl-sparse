@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Author: Nico Trost
 
 # Helper function
 function display_help()
@@ -64,11 +63,8 @@ fi
 logname=dcsrmv_$(date +'%Y%m%d%H%M%S').csv
 truncate -s 0 $logname
 
-# Run csrmv for all matrices available
-for filename in ./matrices/*.mtx; do
-    $bench -f csrmv --precision d --alpha 1 --beta 0 --iters 1000 --mtx $filename --verify 0 2>&1 | tee -a $logname
-done
-# Run csrmv for all matrices available
-#for filename in ./matrices/*.csr; do
-#    $bench -f csrmv --precision d --alpha 1 --beta 0 --iters 1000 --csr $filename 2>&1 | tee -a $logname
-#done
+# Run csrmv for all matrices in ./matrices/matrixlist
+while IFS= read -r filename; do
+    echo "numactl --physcpubind=4 $bench -f csrmv --precision d --alpha 1 --beta 0 --iters 1 --mtx $filename --verify 1"
+    numactl --physcpubind=4 $bench -f csrmv --precision d --alpha 1 --beta 0 --iters 1 --mtx $filename --verify 1 2>&1 | tee -a $logname
+done < ./matrices/matrixlist

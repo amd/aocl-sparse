@@ -21,7 +21,7 @@ url=(https://sparse.tamu.edu/MM/GHS_indef
      https://sparse.tamu.edu/MM/PARSEC
 )
 
-for i in {0..10}; do
+for i in {0..8}; do
     m=${matrices[${i}]}
     u=${url[${i}]}
     if [ ! -f ${m}.csr ]; then
@@ -33,8 +33,5 @@ for i in {0..10}; do
             echo "Extracting ${m}.tar.gz ..."
             tar xf ${m}.tar.gz && mv ${m}/${m}.mtx . && rm -rf ${m}.tar.gz ${m}
         fi
-        echo "Converting ${m}.mtx ..."
-        ./convert ${m}.mtx ${m}.csr
-#        rm ${m}.mtx
     fi
 done

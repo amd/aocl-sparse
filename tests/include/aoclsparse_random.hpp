@@ -107,7 +107,7 @@ inline T random_generator(int a = 1, int b = 10)
 template <typename T>
 inline T random_generator_normal()
 {
-    return std::normal_distribution<T>(0.0, 1.0)(aoclsparse_rng);
+    return std::normal_distribution<T>(-1.0, 1.0)(aoclsparse_rng);
 }
 
 #endif // AOCLSPARSE_RANDOM_HPP

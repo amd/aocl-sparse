@@ -1,16 +1,16 @@
 /* ************************************************************************
  * Copyright (c) 2020 Advanced Micro Devices, Inc.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,16 +18,17 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
- * 
+ *
  * ************************************************************************ */
+
 /*! \file
- *  \brief gbyte.hpp provides data transfer counts of Sparse Linear Algebra Subprograms
- *  of Level 1, 2 and 3.
+ *  \brief rocsparse.hpp exposes C++ templated Sparse Linear Algebra interface
+ *  with only the precision templated.
  */
 
 #pragma once
-#ifndef GBYTE_HPP
-#define GBYTE_HPP
+#ifndef AOCLSPARSE_HPP
+#define AOCLSPARSE_HPP
 
 #include <aoclsparse.h>
 
@@ -37,17 +38,28 @@
  * ===========================================================================
  */
 template <typename T>
-constexpr double
-    csrmv_gbyte_count(aoclsparse_int M, aoclsparse_int N, aoclsparse_int nnz, bool beta = false)
-{
-    return ((M + 1 + nnz) * sizeof(aoclsparse_int) + (M + N + nnz + (beta ? M : 0)) * sizeof(T))
-           / 1e9;
-}
+aoclsparse_status aoclsparse_csrmv(aoclsparse_int             m,
+                                 aoclsparse_int             n,
+                                 aoclsparse_int             nnz,
+                                 const T*             alpha,
+                                 const T*             csr_val,
+                                 const aoclsparse_int*      csr_row_ptr,
+                                 const aoclsparse_int*      csr_col_ind,
+                                 const T*             x,
+                                 const T*             beta,
+                                 T*                   y);
 
 template <typename T>
-constexpr double
-    ellmv_gbyte_count(aoclsparse_int M, aoclsparse_int N, aoclsparse_int nnz, bool beta = false)
-{
-    return (nnz * sizeof(aoclsparse_int) + (M + N + nnz + (beta ? M : 0)) * sizeof(T)) / 1e9;
-}
-#endif // GBYTE_HPP
+aoclsparse_status aoclsparse_ellmv(aoclsparse_int             m,
+                                 aoclsparse_int             n,
+                                 aoclsparse_int             nnz,
+                                 const T*             alpha,
+                                 const T*             ell_val,
+                                 const aoclsparse_int*      ell_col_ind,
+                                 const aoclsparse_int      ell_width,
+                                 const T*             x,
+                                 const T*             beta,
+                                 T*                   y);
+
+
+#endif // AOCLSPARSE_HPP

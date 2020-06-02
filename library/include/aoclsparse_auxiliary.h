@@ -20,13 +20,37 @@
  * THE SOFTWARE.
  * 
  * ************************************************************************ */
-#ifndef AOCLSPARSE_H_
-#define AOCLSPARSE_H_
+/*! \file
+ *  \brief aoclsparse_auxiliary.h provides auxilary functions in aoclsparse
+ */
+#ifndef AOCLSPARSE_AUXILIARY_H_
+#define AOCLSPARSE_AUXILIARY_H_
 
-#include "aoclsparse_auxiliary.h"
-#include "aoclsparse_functions.h"
 #include "aoclsparse_types.h"
-#include "aoclsparse_version.h"
 
-#endif // AOCLSPARSE_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/*! \ingroup aux_module
+ *  \brief Get aoclsparse version
+ *
+ *  \details
+ *  \p aoclsparse_get_version gets the aoclsparse library version number.
+ *  - patch = version % 100
+ *  - minor = version / 100 % 1000
+ *  - major = version / 100000
+ *
+ *  @param[out]
+ *  version the version number of the aoclsparse library.
+ *
+ *  \retval aoclsparse_status_success the operation completed successfully.
+ *  \retval aoclsparse_status_invalid_pointer \p version is invalid.
+ */
+__attribute__((__visibility__("default"))) aoclsparse_status aoclsparse_get_version(aoclsparse_int* version);
+
+#ifdef __cplusplus
+}
+#endif
+#endif // AOCLSPARSE_AUXILIARY_H_
 

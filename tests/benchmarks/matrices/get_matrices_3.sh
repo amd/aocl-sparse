@@ -4,23 +4,21 @@
 matrices=(ldoor
           bone010
           Rucci1
-          cage15
           rajat31
-          12month1
-          spal_004
           crankseg_2
-          torso1
+          bibd_22_8
+          sls
+          Chebyshev4
 )
 
 url=(https://sparse.tamu.edu/MM/GHS_psdef
      https://sparse.tamu.edu/MM/Oberwolfach
      https://sparse.tamu.edu/MM/Rucci
-     https://sparse.tamu.edu/MM/vanHeukelum
      https://sparse.tamu.edu/MM/Rajat
-     https://sparse.tamu.edu/MM/Buss
-     https://sparse.tamu.edu/MM/Mittelmann
      https://sparse.tamu.edu/MM/GHS_psdef
-     https://sparse.tamu.edu/MM/Norris
+     https://sparse.tamu.edu/MM/JGD_BIBD
+     https://sparse.tamu.edu/MM/Bates
+     https://sparse.tamu.edu/MM/Muite
 )
 
 for i in {0..8}; do
@@ -35,8 +33,5 @@ for i in {0..8}; do
             echo "Extracting ${m}.tar.gz ..."
             tar xf ${m}.tar.gz && mv ${m}/${m}.mtx . && rm -rf ${m}.tar.gz ${m}
         fi
-        echo "Converting ${m}.mtx ..."
-        ./convert ${m}.mtx ${m}.csr
-#        rm ${m}.mtx
     fi
 done

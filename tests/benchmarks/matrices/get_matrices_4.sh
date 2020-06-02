@@ -1,10 +1,7 @@
 #!/usr/bin/env bash
 # Author: Nico Trost
 
-matrices=(bibd_22_8
-          sls
-          Chebyshev4
-          sme3Dc
+matrices=(sme3Dc
           ASIC_320k
           nd24k
           bmw3_2
@@ -14,10 +11,7 @@ matrices=(bibd_22_8
           s3dkq4m2
 )
 
-url=(https://sparse.tamu.edu/MM/JGD_BIBD
-     https://sparse.tamu.edu/MM/Bates
-     https://sparse.tamu.edu/MM/Muite
-     https://sparse.tamu.edu/MM/FEMLAB
+url=(https://sparse.tamu.edu/MM/FEMLAB
      https://sparse.tamu.edu/MM/Sandia
      https://sparse.tamu.edu/MM/ND
      https://sparse.tamu.edu/MM/GHS_indef
@@ -27,7 +21,7 @@ url=(https://sparse.tamu.edu/MM/JGD_BIBD
      https://sparse.tamu.edu/MM/GHS_psdef
 )
 
-for i in {0..10}; do
+for i in {0..8}; do
     m=${matrices[${i}]}
     u=${url[${i}]}
     if [ ! -f ${m}.csr ]; then
@@ -39,8 +33,5 @@ for i in {0..10}; do
             echo "Extracting ${m}.tar.gz ..."
             tar xf ${m}.tar.gz && mv ${m}/${m}.mtx . && rm -rf ${m}.tar.gz ${m}
         fi
-        echo "Converting ${m}.mtx ..."
-        ./convert ${m}.mtx ${m}.csr
-#        rm ${m}.mtx
     fi
 done

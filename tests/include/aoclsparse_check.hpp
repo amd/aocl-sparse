@@ -27,7 +27,6 @@
 
 #include <aoclsparse.h>
 
-#define TOLERANCE 1e-06
 
 template <typename T>
 void near_check_general(aoclsparse_int M, aoclsparse_int N, aoclsparse_int lda, T* refOut, T* actOut);
@@ -40,8 +39,9 @@ inline void near_check_general(
     {
         for(aoclsparse_int i = 0; i < M; ++i)
         {
-            float compare_val = TOLERANCE;
-            if(std::abs(refOut[i + j * lda] - actOut[i + j * lda]) >= compare_val)
+            float compare_val = std::max(std::abs(refOut[i + j * lda] * 1e-3f),
+                                         10 * std::numeric_limits<float>::epsilon());
+            if(std::abs(refOut[i + j * lda] - actOut[i + j * lda]) > compare_val)
             {
                 std::cerr.precision(12);
                 std::cerr << "ASSERT_NEAR(" << refOut[i + j * lda] << ", " << actOut[i + j * lda]
@@ -61,8 +61,10 @@ inline void near_check_general(
     {
         for(aoclsparse_int i = 0; i < M; ++i)
         {
-            double compare_val = TOLERANCE;
-            if(std::abs(refOut[i + j * lda] - actOut[i + j * lda]) >= compare_val)
+            double compare_val = std::max(std::abs(refOut[i + j * lda] * 1e-06),
+                                          10 * std::numeric_limits<double>::epsilon());
+                                          
+            if(std::abs(refOut[i + j * lda] - actOut[i + j * lda]) > compare_val)
             {
                 std::cerr.precision(16);
                 std::cerr << "ASSERT_NEAR(" << refOut[i + j * lda] << ", " << actOut[i + j * lda]

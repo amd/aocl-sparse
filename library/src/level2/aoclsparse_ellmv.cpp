@@ -22,58 +22,57 @@
  * ************************************************************************ */
 
 #include "aoclsparse.h"
-#include "aoclsparse_csrmv.hpp"
+#include "aoclsparse_ellmv.hpp"
 
 /*
  *===========================================================================
  *   C wrapper
  * ===========================================================================
  */
-extern "C" aoclsparse_status aoclsparse_dcsrmv(aoclsparse_int             m,
+extern "C" aoclsparse_status aoclsparse_sellmv(aoclsparse_int             m,
                                    aoclsparse_int             n,
                                    aoclsparse_int             nnz,
-				   const double*              alpha,
-                                   const double*              csr_val,
-                                   const aoclsparse_int*      csr_row_ptr,
-                                   const aoclsparse_int*      csr_col_ind,
-                                   const double*             x,
-                                   const double*             beta,
-                                   double*                   y
-)
-{
-    return aoclsparse_csrmv(m,
-                            n,
-                            nnz,
-                            *alpha,
-                            csr_val,
-                            csr_row_ptr,
-                            csr_col_ind,
-                            x,
-                            *beta,
-                            y);
-}
-
-extern "C" aoclsparse_status aoclsparse_scsrmv(aoclsparse_int             m,
-                                   aoclsparse_int             n,
-                                   aoclsparse_int             nnz,
-				   const float*              alpha,
-                                   const float*              csr_val,
-                                   const aoclsparse_int*      csr_row_ptr,
-                                   const aoclsparse_int*      csr_col_ind,
+                                   const float*              alpha,
+                                   const float*              ell_val,
+                                   const aoclsparse_int*      ell_col_ind,
+                                   aoclsparse_int      ell_width,
                                    const float*             x,
-                                   const float*             beta,
+                                   const float*            beta,
                                    float*                   y
 )
 {
-    return aoclsparse_csrmv(m,
+    return aoclsparse_ellmv(m,
                             n,
                             nnz,
                             *alpha,
-                            csr_val,
-                            csr_row_ptr,
-                            csr_col_ind,
+                            ell_val,
+                            ell_col_ind,
+                            ell_width,
                             x,
                             *beta,
                             y);
 }
 
+extern "C" aoclsparse_status aoclsparse_dellmv(aoclsparse_int             m,
+                                   aoclsparse_int             n,
+                                   aoclsparse_int             nnz,
+				                   const double*              alpha,
+                                   const double*              ell_val,
+                                   const aoclsparse_int*      ell_col_ind,
+                                   aoclsparse_int      ell_width,
+                                   const double*             x,
+                                   const double*            beta,
+                                   double*                   y
+)
+{
+    return aoclsparse_ellmv(m,
+                            n,
+                            nnz,
+                            *alpha,
+                            ell_val,
+                            ell_col_ind,
+                            ell_width,
+                            x,
+                            *beta,
+                            y);
+}

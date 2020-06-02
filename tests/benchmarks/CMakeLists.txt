@@ -46,7 +46,7 @@ set(ROCSPARSE_BENCHMARK_SOURCES
 
 set(ROCSPARSE_CLIENTS_COMMON
   ../common/utility.cpp
-  #../common/aoclsparse_template_specialization.cpp
+  ../common/aoclsparse_template_specialization.cpp
 )
 
 add_executable(aoclsparse-bench ${ROCSPARSE_BENCHMARK_SOURCES} ${ROCSPARSE_CLIENTS_COMMON})
@@ -71,7 +71,6 @@ if(NOT TARGET aoclsparse)
   target_link_libraries(aoclsparse-bench PRIVATE ${AOCLSPARSE_LIBRARIES})
 else()
   target_link_libraries(aoclsparse-bench PRIVATE aocl::aoclsparse ${Boost_PROGRAM_OPTIONS_LIBRARY})
-  #target_link_libraries(aoclsparse-bench PRIVATE /home/amd/chithra/aocl-sparse/build/library/libaoclsparse.so ${Boost_PROGRAM_OPTIONS_LIBRARY})
 endif()
 
 

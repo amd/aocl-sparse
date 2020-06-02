@@ -97,7 +97,7 @@ set(aoclsparse_SOVERSION ${AOCLSPARSE_VERSION})
 # AMD targets
 set(AMDCPU_TARGETS  CACHE STRING "List of specific machine types for library to target")
 
-add_compile_options ( -shared -march=native -fpermissive )
+add_compile_options ( -shared -fpermissive )
 # aoclsparse library
 add_subdirectory(library)
 

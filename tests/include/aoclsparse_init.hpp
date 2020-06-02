@@ -50,7 +50,7 @@ inline void aoclsparse_init(
     for(size_t i_batch = 0; i_batch < batch_count; i_batch++)
         for(size_t i = 0; i < M; ++i)
             for(size_t j = 0; j < N; ++j)
-                A[i + j * lda + i_batch * stride] = random_generator<T>();
+                A[i + j * lda + i_batch * stride] = random_generator_normal<T>();
 }
 // Initializes sparse index vector with nnz entries ranging from start to end
 inline void
@@ -301,200 +301,6 @@ inline void aoclsparse_init_coo_matrix(std::vector<aoclsparse_int>& row_ind,
     }
 }
 
-/* ==================================================================================== */
-/*! \brief  Generate 2D 9pt laplacian on unit square in CSR format */
-template <typename T>
-inline void aoclsparse_init_csr_laplace2d(std::vector<aoclsparse_int>& row_ptr,
-                                         std::vector<aoclsparse_int>& col_ind,
-                                         std::vector<T>&             val,
-                                         aoclsparse_int               dim_x,
-                                         aoclsparse_int               dim_y,
-                                         aoclsparse_int&              M,
-                                         aoclsparse_int&              N,
-                                         aoclsparse_int&              nnz,
-                                         aoclsparse_index_base        base)
-{
-    // Do nothing
-    if(dim_x == 0 || dim_y == 0)
-    {
-        return;
-    }
-
-    M = dim_x * dim_y;
-    N = dim_x * dim_y;
-
-    // Approximate 9pt stencil
-    aoclsparse_int nnz_mat = 9 * M;
-
-    row_ptr.resize(M + 1);
-    col_ind.resize(nnz_mat);
-    val.resize(nnz_mat);
-
-    nnz        = base;
-    row_ptr[0] = base;
-
-    // Fill local arrays
-#ifdef _OPENMP
-#pragma omp parallel for schedule(dynamic, 1024)
-#endif
-    for(aoclsparse_int iy = 0; iy < dim_y; ++iy)
-    {
-        for(aoclsparse_int ix = 0; ix < dim_x; ++ix)
-        {
-            aoclsparse_int row = iy * dim_x + ix;
-
-            for(int sy = -1; sy <= 1; ++sy)
-            {
-                if(iy + sy > -1 && iy + sy < dim_y)
-                {
-                    for(int sx = -1; sx <= 1; ++sx)
-                    {
-                        if(ix + sx > -1 && ix + sx < dim_x)
-                        {
-                            aoclsparse_int col = row + sy * dim_x + sx;
-
-                            col_ind[nnz - base] = col + base;
-                            val[nnz - base]     = (col == row) ? 8.0 : -1.0;
-
-                            ++nnz;
-                        }
-                    }
-                }
-            }
-
-            row_ptr[row + 1] = nnz;
-        }
-    }
-
-    // Adjust nnz by index base
-    nnz -= base;
-}
-
-/* ==================================================================================== */
-/*! \brief  Generate 2D 9pt laplacian on unit square in COO format */
-template <typename T>
-inline void aoclsparse_init_coo_laplace2d(std::vector<aoclsparse_int>& row_ind,
-                                         std::vector<aoclsparse_int>& col_ind,
-                                         std::vector<T>&             val,
-                                         aoclsparse_int               dim_x,
-                                         aoclsparse_int               dim_y,
-                                         aoclsparse_int&              M,
-                                         aoclsparse_int&              N,
-                                         aoclsparse_int&              nnz,
-                                         aoclsparse_index_base        base)
-{
-    std::vector<aoclsparse_int> row_ptr(M + 1);
-
-    // Sample CSR matrix
-    aoclsparse_init_csr_laplace2d(row_ptr, col_ind, val, dim_x, dim_y, M, N, nnz, base);
-
-    // Convert to COO
-    csr_to_coo(M, nnz, row_ptr, row_ind, base);
-}
-
-/* ==================================================================================== */
-/*! \brief  Generate 3D 27pt laplacian on unit square in CSR format */
-template <typename T>
-inline void aoclsparse_init_csr_laplace3d(std::vector<aoclsparse_int>& row_ptr,
-                                         std::vector<aoclsparse_int>& col_ind,
-                                         std::vector<T>&             val,
-                                         aoclsparse_int               dim_x,
-                                         aoclsparse_int               dim_y,
-                                         aoclsparse_int               dim_z,
-                                         aoclsparse_int&              M,
-                                         aoclsparse_int&              N,
-                                         aoclsparse_int&              nnz,
-                                         aoclsparse_index_base        base)
-{
-    // Do nothing
-    if(dim_x == 0 || dim_y == 0 || dim_z == 0)
-    {
-        return;
-    }
-
-    M = dim_x * dim_y * dim_z;
-    N = dim_x * dim_y * dim_z;
-
-    // Approximate 27pt stencil
-    aoclsparse_int nnz_mat = 27 * M;
-
-    row_ptr.resize(M + 1);
-    col_ind.resize(nnz_mat);
-    val.resize(nnz_mat);
-
-    nnz        = base;
-    row_ptr[0] = base;
-
-    // Fill local arrays
-#ifdef _OPENMP
-#pragma omp parallel for schedule(dynamic, 1024)
-#endif
-    for(aoclsparse_int iz = 0; iz < dim_z; ++iz)
-    {
-        for(aoclsparse_int iy = 0; iy < dim_y; ++iy)
-        {
-            for(aoclsparse_int ix = 0; ix < dim_x; ++ix)
-            {
-                aoclsparse_int row = iz * dim_x * dim_y + iy * dim_x + ix;
-
-                for(int sz = -1; sz <= 1; ++sz)
-                {
-                    if(iz + sz > -1 && iz + sz < dim_z)
-                    {
-                        for(int sy = -1; sy <= 1; ++sy)
-                        {
-                            if(iy + sy > -1 && iy + sy < dim_y)
-                            {
-                                for(int sx = -1; sx <= 1; ++sx)
-                                {
-                                    if(ix + sx > -1 && ix + sx < dim_x)
-                                    {
-                                        aoclsparse_int col
-                                            = row + sz * dim_x * dim_y + sy * dim_x + sx;
-
-                                        col_ind[nnz - base] = col + base;
-                                        val[nnz - base]     = (col == row) ? 26.0 : -1.0;
-
-                                        ++nnz;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                row_ptr[row + 1] = nnz;
-            }
-        }
-    }
-
-    // Adjust nnz by index base
-    nnz -= base;
-}
-
-/* ==================================================================================== */
-/*! \brief  Generate 3D 27pt laplacian on unit square in COO format */
-template <typename T>
-inline void aoclsparse_init_coo_laplace3d(std::vector<aoclsparse_int>& row_ind,
-                                         std::vector<aoclsparse_int>& col_ind,
-                                         std::vector<T>&             val,
-                                         aoclsparse_int               dim_x,
-                                         aoclsparse_int               dim_y,
-                                         aoclsparse_int               dim_z,
-                                         aoclsparse_int&              M,
-                                         aoclsparse_int&              N,
-                                         aoclsparse_int&              nnz,
-                                         aoclsparse_index_base        base)
-{
-    std::vector<aoclsparse_int> row_ptr(M + 1);
-
-    // Sample CSR matrix
-    aoclsparse_init_csr_laplace3d(row_ptr, col_ind, val, dim_x, dim_y, dim_z, M, N, nnz, base);
-
-    // Convert to COO
-    csr_to_coo(M, nnz, row_ptr, row_ind, base);
-}
-
 /* ============================================================================================ */
 /*! \brief  Read matrix from mtx file in COO format */
 static inline void
@@ -643,7 +449,8 @@ inline void aoclsparse_init_coo_mtx(const char*                 filename,
     N    = static_cast<aoclsparse_int>(incol);
     snnz = static_cast<aoclsparse_int>(innz);
 
-    nnz = symm ? (snnz - M) * 2 + M : snnz;
+//    nnz = symm ? (snnz - M) * 2 + M : snnz;
+    nnz = symm ? snnz  * 2 : snnz;
 
     std::vector<aoclsparse_int> unsorted_row(nnz);
     std::vector<aoclsparse_int> unsorted_col(nnz);
@@ -700,7 +507,7 @@ inline void aoclsparse_init_coo_mtx(const char*                 filename,
         }
     }
     fclose(f);
-
+    nnz = idx;
     coo_row_ind.resize(nnz);
     coo_col_ind.resize(nnz);
     coo_val.resize(nnz);
@@ -800,166 +607,6 @@ static inline void read_csr_values(std::ifstream& in, aoclsparse_int nnz, double
         }
     }
 }
-#if 0
-static inline void read_csr_values(std::ifstream&           in,
-                                   aoclsparse_int            nnz,
-                                   aoclsparse_float_complex* csr_val,
-                                   bool                     mod)
-{
-    // Temporary array to convert from double to float complex
-    std::vector<aoclsparse_double_complex> tmp(nnz);
-
-    // Read in double complex values
-    in.read((char*)tmp.data(), sizeof(aoclsparse_double_complex) * nnz);
-
-#ifdef _OPENMP
-#pragma omp parallel for schedule(dynamic, 1024)
-#endif
-    for(aoclsparse_int i = 0; i < nnz; ++i)
-    {
-        if(mod)
-        {
-            csr_val[i] = aoclsparse_float_complex(std::abs(static_cast<float>(std::real(tmp[i]))),
-                                                 std::abs(static_cast<float>(std::imag(tmp[i]))));
-        }
-        else
-        {
-            csr_val[i] = aoclsparse_float_complex(static_cast<float>(std::real(tmp[i])),
-                                                 static_cast<float>(std::imag(tmp[i])));
-        }
-    }
-}
-static inline void read_csr_values(std::ifstream&            in,
-                                   aoclsparse_int             nnz,
-                                   aoclsparse_double_complex* csr_val,
-                                   bool                      mod)
-{
-    in.read((char*)csr_val, sizeof(aoclsparse_double_complex) * nnz);
-
-    if(mod)
-    {
-        for(aoclsparse_int i = 0; i < nnz; ++i)
-        {
-            csr_val[i] = aoclsparse_double_complex(std::abs(std::real(csr_val[i])),
-                                                  std::abs(std::imag(csr_val[i])));
-        }
-    }
-}
-#endif
-template <typename T>
-inline void aoclsparse_init_csr_bin(const char*                 filename,
-                                          std::vector<aoclsparse_int>& row_ptr,
-                                          std::vector<aoclsparse_int>& col_ind,
-                                          std::vector<T>&             val,
-                                          aoclsparse_int&              M,
-                                          aoclsparse_int&              N,
-                                          aoclsparse_int&              nnz,
-                                          aoclsparse_index_base        base,
-                                          bool                        toint)
-{
-    const char* env = getenv("GTEST_LISTENER");
-    if(!env || strcmp(env, "NO_PASS_LINE_IN_LOG"))
-    {
-        std::cout << "Reading matrix " << filename << " ... ";
-    }
-
-    std::ifstream in(filename, std::ios::in | std::ios::binary);
-    if(!in.is_open())
-    {
-        CHECK_AOCLSPARSE_ERROR(aoclsparse_status_internal_error);
-    }
-    std::string header;
-    std::getline(in, header);
-
-    int version;
-    in.read((char*)&version, sizeof(int));
-
-    int iM;
-    int iN;
-    int innz;
-
-    in.read((char*)&iM, sizeof(int));
-    in.read((char*)&iN, sizeof(int));
-    in.read((char*)&innz, sizeof(int));
-
-    M   = iM;
-    N   = iN;
-    nnz = innz;
-
-    // Allocate memory
-    row_ptr.resize(M + 1);
-    col_ind.resize(nnz);
-    val.resize(nnz);
-
-    std::vector<int> iptr(M + 1);
-    std::vector<int> icol(nnz);
-
-    in.read((char*)iptr.data(), sizeof(int) * (M + 1));
-    in.read((char*)icol.data(), sizeof(int) * nnz);
-
-    read_csr_values(in, nnz, val.data(), toint);
-
-    in.close();
-
-#ifdef _OPENMP
-#pragma omp parallel for schedule(dynamic, 1024)
-#endif
-    for(aoclsparse_int i = 0; i < M + 1; ++i)
-    {
-        row_ptr[i] = static_cast<aoclsparse_int>(iptr[i]);
-    }
-
-#ifdef _OPENMP
-#pragma omp parallel for schedule(dynamic, 1024)
-#endif
-    for(aoclsparse_int i = 0; i < nnz; ++i)
-    {
-        col_ind[i] = static_cast<aoclsparse_int>(icol[i]);
-    }
-    if(base == aoclsparse_index_base_one)
-    {
-#ifdef _OPENMP
-#pragma omp parallel for schedule(dynamic, 1024)
-#endif
-        for(aoclsparse_int i = 0; i < M + 1; ++i)
-        {
-            ++row_ptr[i];
-        }
-
-#ifdef _OPENMP
-#pragma omp parallel for schedule(dynamic, 1024)
-#endif
-        for(aoclsparse_int i = 0; i < nnz; ++i)
-        {
-            ++col_ind[i];
-        }
-    }
-    if(!env || strcmp(env, "NO_PASS_LINE_IN_LOG"))
-    {
-        std::cout << "done." << std::endl;
-    }
-}
-/* ==================================================================================== */
-/*! \brief  Read matrix from binary file in aoclALUTION format */
-template <typename T>
-inline void aoclsparse_init_coo_bin(const char*                 filename,
-                                          std::vector<aoclsparse_int>& row_ind,
-                                          std::vector<aoclsparse_int>& col_ind,
-                                          std::vector<T>&             val,
-                                          aoclsparse_int&              M,
-                                          aoclsparse_int&              N,
-                                          aoclsparse_int&              nnz,
-                                          aoclsparse_index_base        base,
-                                          bool                        toint)
-{
-    std::vector<aoclsparse_int> row_ptr(M + 1);
-
-    // Sample CSR matrix
-    aoclsparse_init_csr_bin(filename, row_ptr, col_ind, val, M, N, nnz, base, toint);
-
-    // Convert to COO
-    csr_to_coo(M, nnz, row_ptr, row_ind, base);
-}
 /* ==================================================================================== */
 /*! \brief  Generate a random sparse matrix in CSR format */
 template <typename T>
@@ -973,7 +620,8 @@ inline void aoclsparse_init_csr_random(std::vector<aoclsparse_int>& row_ptr,
                                       bool                        full_rank = false)
 {
     // Compute non-zero entries of the matrix
-    nnz = M * ((M > 1000 || N > 1000) ? 2.0 / std::max(M, N) : 0.02) * N;
+    if(!nnz)
+        nnz = M * ((M > 1000 || N > 1000) ? 2.0 / std::max(M, N) : 0.02) * N;
 
     // Sample random matrix
     std::vector<aoclsparse_int> row_ind(nnz);
@@ -997,7 +645,8 @@ inline void aoclsparse_init_coo_random(std::vector<aoclsparse_int>& row_ind,
                                       bool                        full_rank = false)
 {
     // Compute non-zero entries of the matrix
-    nnz = M * ((M > 1000 || N > 1000) ? 2.0 / std::max(M, N) : 0.02) * N;
+    if(!nnz)
+        nnz = M * ((M > 1000 || N > 1000) ? 2.0 / std::max(M, N) : 0.02) * N;
 
     // Sample random matrix
     aoclsparse_init_coo_matrix(row_ind, col_ind, val, M, N, nnz, base, full_rank);
@@ -1021,10 +670,6 @@ inline void aoclsparse_init_csr_matrix(std::vector<aoclsparse_int>& csr_row_ptr,
     if(matrix == aoclsparse_matrix_random)
     {
         aoclsparse_init_csr_random(csr_row_ptr, csr_col_ind, csr_val, M, N, nnz, base, full_rank);
-    }
-    else if(matrix == aoclsparse_matrix_file_bin)
-    {
-        aoclsparse_init_csr_bin(filename, csr_row_ptr, csr_col_ind, csr_val, M, N, nnz, base, toint);
     }
     else if(matrix == aoclsparse_matrix_file_mtx)
     {
@@ -1050,11 +695,6 @@ inline void aoclsparse_init_coo_matrix(std::vector<aoclsparse_int>& coo_row_ind,
     if(matrix == aoclsparse_matrix_random)
     {
         aoclsparse_init_coo_random(coo_row_ind, coo_col_ind, coo_val, M, N, nnz, base, full_rank);
-    }
-    else if(matrix == aoclsparse_matrix_file_bin)
-    {
-        aoclsparse_init_coo_bin(
-            filename, coo_row_ind, coo_col_ind, coo_val, M, N, nnz, base, toint);
     }
     else if(matrix == aoclsparse_matrix_file_mtx)
     {

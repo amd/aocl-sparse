@@ -183,13 +183,28 @@ __attribute__((__visibility__("default"))) aoclsparse_status aoclsparse_scsrmv(a
                                   const float*             beta,
                                   float*                   y);
 
-/******************************************************************************** 
-* \brief Get aoclsparse version 
-* version % 100        = patch level 
-* version / 100 % 1000 = minor version 
-* version / 100000     = major version 
-*******************************************************************************/ 
-__attribute__((__visibility__("default"))) aoclsparse_status aoclsparse_get_version(int* version);
+__attribute__((__visibility__("default"))) aoclsparse_status aoclsparse_dellmv(aoclsparse_int             m,
+                                  aoclsparse_int             n,
+                                  aoclsparse_int             nnz,
+                                  const double*             alpha,
+                                  const double*             ell_val,
+                                  const aoclsparse_int*      csr_col_ind,
+                                  aoclsparse_int      ell_width,
+                                  const double*             x,
+                                  const double*             beta,
+                                  double*                   y);
+
+__attribute__((__visibility__("default"))) aoclsparse_status aoclsparse_sellmv(aoclsparse_int             m,
+                                  aoclsparse_int             n,
+                                  aoclsparse_int             nnz,
+                                  const float*             alpha,
+                                  const float*             ell_val,
+                                  const aoclsparse_int*      csr_col_ind,
+                                  aoclsparse_int      ell_width,
+                                  const float*             x,
+                                  const float*             beta,
+                                  float*                   y);
+
 
 #ifdef __cplusplus
 }

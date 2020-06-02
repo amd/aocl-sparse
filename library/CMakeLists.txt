@@ -34,6 +34,7 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/aoclsparse_version.h.in"
 set(PUBLIC_HEADERS
     include/aoclsparse_types.h
     include/aoclsparse_functions.h
+    include/aoclsparse_auxiliary.h
     include/aoclsparse.h
     ${PROJECT_BINARY_DIR}/include/aoclsparse_version.h
 )

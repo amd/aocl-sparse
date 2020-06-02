@@ -20,13 +20,33 @@
  * THE SOFTWARE.
  * 
  * ************************************************************************ */
-#ifndef AOCLSPARSE_H_
-#define AOCLSPARSE_H_
 
-#include "aoclsparse_auxiliary.h"
-#include "aoclsparse_functions.h"
-#include "aoclsparse_types.h"
-#include "aoclsparse_version.h"
+#include "aoclsparse.h"
 
-#endif // AOCLSPARSE_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
+/********************************************************************************
+* \brief Get aoclsparse version
+* version % 100        = patch level
+* version / 100 % 1000 = minor version
+* version / 100000     = major version
+*******************************************************************************/
+aoclsparse_status aoclsparse_get_version(aoclsparse_int* version)
+{
+    if (version == NULL)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+
+    *version = AOCLSPARSE_VERSION_MAJOR * 100000 + AOCLSPARSE_VERSION_MINOR * 100
+               + AOCLSPARSE_VERSION_PATCH;
+
+    return aoclsparse_status_success;
+}
+
+
+#ifdef __cplusplus
+}
+#endif

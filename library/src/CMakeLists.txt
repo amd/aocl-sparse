@@ -23,5 +23,9 @@
 
 set(AOCLSPARSE_SOURCES
   src/level2/aoclsparse_csrmv.cpp
+  src/level2/aoclsparse_ellmv.cpp  
+
+# Extra
+  src/extra/aoclsparse_auxiliary.cpp  
 )
 

@@ -22,8 +22,8 @@
  * ************************************************************************ */
 
 #pragma once
-#ifndef TESTING_CSRMV_HPP
-#define TESTING_CSRMV_HPP
+#ifndef TESTING_ELLMV_HPP
+#define TESTING_ELLMV_HPP
 
 #include "aoclsparse.hpp"
 #include "flops.hpp"
@@ -34,8 +34,9 @@
 #include "aoclsparse_check.hpp"
 #include "utility.hpp"
 #include "aoclsparse_random.hpp"
+#include "aoclsparse_convert.hpp"
 template <typename T>
-void testing_csrmv(const Arguments& arg)
+void testing_ellmv(const Arguments& arg)
 {
     aoclsparse_int         M         = arg.M;
     aoclsparse_int         N         = arg.N;
@@ -51,17 +52,11 @@ void testing_csrmv(const Arguments& arg)
     std::vector<aoclsparse_int> hcsr_row_ptr;
     std::vector<aoclsparse_int> hcsr_col_ind;
     std::vector<T>             hcsr_val;
-
+    std::vector<aoclsparse_int> hell_col_ind;
+    std::vector<T>             hell_val;
+    aoclsparse_int              ell_width;
     aoclsparse_seedrand();
-#if 0
-    // Print aoclsparse version
-    int  ver;
 
-    aoclsparse_get_version(&ver);
-
-    std::cout << "aocl-sparse version: " << ver / 100000 << "." << ver / 100 % 1000 << "."
-              << ver % 100 << std::endl;
-#endif
     // Sample matrix
     aoclsparse_init_csr_matrix(hcsr_row_ptr,
                               hcsr_col_ind,
@@ -84,15 +79,19 @@ void testing_csrmv(const Arguments& arg)
     aoclsparse_init<T>(hx, 1, N, 1);
     aoclsparse_init<T>(hy, 1, M, 1);
     hy_gold = hy; 
+
+    // Convert CSR matrix to ELL
+    csr_to_ell(
+            M, nnz, hcsr_row_ptr, hcsr_col_ind, hcsr_val, hell_col_ind, hell_val, ell_width );
     if(arg.unit_check)
     {
-        CHECK_AOCLSPARSE_ERROR(aoclsparse_csrmv(M,
+        CHECK_AOCLSPARSE_ERROR(aoclsparse_ellmv(M,
                                                  N,
                                                  nnz,
                                                  &h_alpha,
-                                                 hcsr_val.data(),
-                                                 hcsr_row_ptr.data(),
-                                                 hcsr_col_ind.data(),
+                                                 hell_val.data(),
+                                                 hell_col_ind.data(),
+                                                 ell_width,
                                                  hx.data(),
                                                  &h_beta,
                                                  hy.data()));
@@ -101,10 +100,11 @@ void testing_csrmv(const Arguments& arg)
         {
             T result = 0.0;
             for(int j = hcsr_row_ptr[i] ; j < hcsr_row_ptr[i+1] ; j++)
-     	    {
+	        {
                 result += h_alpha * hcsr_val[j] * hx[hcsr_col_ind[j]];
-	        }
+            }
             hy_gold[i] = (h_beta * hy_gold[i]) + result;
+
         }
         near_check_general<T>(1, M, 1, hy_gold.data(), hy.data());
     }
@@ -116,13 +116,13 @@ void testing_csrmv(const Arguments& arg)
     for(int iter = 0; iter < number_hot_calls; ++iter)
     {
         double cpu_time_start = get_time_us();
-        CHECK_AOCLSPARSE_ERROR(aoclsparse_csrmv(M,
+        CHECK_AOCLSPARSE_ERROR(aoclsparse_ellmv(M,
                                                  N,
                                                  nnz,
                                                  &h_alpha,
-                                                 hcsr_val.data(),
-                                                 hcsr_row_ptr.data(),
-                                                 hcsr_col_ind.data(),
+                                                 hell_val.data(),
+                                                 hell_col_ind.data(),
+                                                 ell_width,
                                                  hx.data(),
                                                  &h_beta,
                                                  hy.data()));
@@ -134,7 +134,7 @@ void testing_csrmv(const Arguments& arg)
     double cpu_gflops
         = spmv_gflop_count<T>(M, nnz, h_beta != static_cast<T>(0)) / cpu_time_used * 1e6;
     double cpu_gbyte
-        = csrmv_gbyte_count<T>(M, N, nnz, h_beta != static_cast<T>(0)) / cpu_time_used * 1e6;
+        = ellmv_gbyte_count<T>(M, N, nnz, h_beta != static_cast<T>(0)) / cpu_time_used * 1e6;
 
     std::cout.precision(2);
     std::cout.setf(std::ios::fixed);
@@ -154,4 +154,4 @@ void testing_csrmv(const Arguments& arg)
               << (arg.unit_check ? "yes" : "no") << std::endl;
 } 
 
-#endif // TESTING_CSRMV_HPP
+#endif // TESTING_ELLMV_HPP
