@@ -30,50 +30,68 @@
  * ===========================================================================
  */
 extern "C" aoclsparse_status aoclsparse_dcsrmv(aoclsparse_int             m,
-                                   aoclsparse_int             n,
-                                   aoclsparse_int             nnz,
-				   const double*              alpha,
-                                   const double*              csr_val,
-                                   const aoclsparse_int*      csr_row_ptr,
-                                   const aoclsparse_int*      csr_col_ind,
-                                   const double*             x,
-                                   const double*             beta,
-                                   double*                   y
-)
+        aoclsparse_int             n,
+        aoclsparse_int             nnz,
+        const double*              alpha,
+        const double*              csr_val,
+        const aoclsparse_int*      csr_row_ptr,
+        const aoclsparse_int*      csr_col_ind,
+        const double*             x,
+        const double*             beta,
+        double*                   y
+        )
 {
-    return aoclsparse_csrmv(m,
-                            n,
-                            nnz,
-                            *alpha,
-                            csr_val,
-                            csr_row_ptr,
-                            csr_col_ind,
-                            x,
-                            *beta,
-                            y);
+    // Sparse matrices with Mean nnz = nnz/m <10 have very few non-zeroes in most of the rows
+    // and few unevenly long rows . Loop unrolling and vectorization doesnt optimise performance
+    // for this category of matrices . Hence , we invoke the generic dcsrmv kernel without
+    // vectorization and innerloop unrolling . For the other category of sparse matrices
+    // (Mean nnz > 10) , we continue to invoke the vectorised version of csrmv , since
+    // it improves performance.
+    if(nnz/m <= 10)
+        return aoclsparse_csrmv_general(m,
+                n,
+                nnz,
+                *alpha,
+                csr_val,
+                csr_row_ptr,
+                csr_col_ind,
+                x,
+                *beta,
+                y);
+    else
+        return aoclsparse_csrmv_vectorized(m,
+                n,
+                nnz,
+                *alpha,
+                csr_val,
+                csr_row_ptr,
+                csr_col_ind,
+                x,
+                *beta,
+                y);
 }
 
 extern "C" aoclsparse_status aoclsparse_scsrmv(aoclsparse_int             m,
-                                   aoclsparse_int             n,
-                                   aoclsparse_int             nnz,
-				   const float*              alpha,
-                                   const float*              csr_val,
-                                   const aoclsparse_int*      csr_row_ptr,
-                                   const aoclsparse_int*      csr_col_ind,
-                                   const float*             x,
-                                   const float*             beta,
-                                   float*                   y
-)
+        aoclsparse_int             n,
+        aoclsparse_int             nnz,
+        const float*              alpha,
+        const float*              csr_val,
+        const aoclsparse_int*      csr_row_ptr,
+        const aoclsparse_int*      csr_col_ind,
+        const float*             x,
+        const float*             beta,
+        float*                   y
+        )
 {
     return aoclsparse_csrmv(m,
-                            n,
-                            nnz,
-                            *alpha,
-                            csr_val,
-                            csr_row_ptr,
-                            csr_col_ind,
-                            x,
-                            *beta,
-                            y);
+            n,
+            nnz,
+            *alpha,
+            csr_val,
+            csr_row_ptr,
+            csr_col_ind,
+            x,
+            *beta,
+            y);
 }
 
