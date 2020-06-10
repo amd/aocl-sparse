@@ -58,4 +58,4 @@ tar xf scircuit.tar.gz; mv scircuit ./scircuit.mtx && rm -rf scircuit.tar.gz sci
 ./tests/staging/aoclsparse-bench -f csrmv --precision d -m 1000 -n 1000 -z 4000 -v 1
 
 ## License
-The [license file][] can be found in the main repository.
+The [license file][LICENSE.md] can be found in the main repository.
