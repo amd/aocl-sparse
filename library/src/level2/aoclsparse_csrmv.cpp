@@ -29,18 +29,177 @@
  *   C wrapper
  * ===========================================================================
  */
-extern "C" aoclsparse_status aoclsparse_dcsrmv(aoclsparse_int             m,
+extern "C" aoclsparse_status aoclsparse_scsrmv(aoclsparse_operation       trans,
+        const float*              alpha,
+        aoclsparse_int             m,
         aoclsparse_int             n,
         aoclsparse_int             nnz,
-        const double*              alpha,
-        const double*              csr_val,
-        const aoclsparse_int*      csr_row_ptr,
+        const float*              csr_val,
         const aoclsparse_int*      csr_col_ind,
+        const aoclsparse_int*      csr_row_ptr,
+        const aoclsparse_mat_descr descr,
+        const float*             x,
+        const float*             beta,
+        float*                   y
+        )
+{
+    if(descr == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+
+    // Check index base
+    if(descr->base != aoclsparse_index_base_zero && descr->base != aoclsparse_index_base_one)
+    {
+        return aoclsparse_status_invalid_value;
+    }
+
+    if(descr->type != aoclsparse_matrix_type_general)
+    {
+        // TODO
+        return aoclsparse_status_not_implemented;
+    }
+
+    if(trans != aoclsparse_operation_none)
+    {
+        // TODO
+        return aoclsparse_status_not_implemented;
+    }
+
+    // Check sizes
+    if(m < 0)
+    {
+        return aoclsparse_status_invalid_size;
+    }
+    else if(n < 0)
+    {
+        return aoclsparse_status_invalid_size;
+    }
+    else if(nnz < 0)
+    {
+        return aoclsparse_status_invalid_size;
+    }
+
+    // Quick return if possible
+    if(m == 0 || n == 0 || nnz == 0)
+    {
+        return aoclsparse_status_success;
+    }
+
+    // Check pointer arguments
+    if(csr_val == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    else if(csr_row_ptr == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    else if(csr_col_ind == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    else if(x == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    else if(y == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    
+    return aoclsparse_csrmv(trans,
+                *alpha,
+                m,
+                n,
+                nnz,
+                csr_val,
+                csr_col_ind,
+                csr_row_ptr,
+                descr,
+                x,
+                *beta,
+                y);
+}
+
+extern "C" aoclsparse_status aoclsparse_dcsrmv(aoclsparse_operation       trans,
+        const double*              alpha,
+        aoclsparse_int             m,
+        aoclsparse_int             n,
+        aoclsparse_int             nnz,
+        const double*              csr_val,
+        const aoclsparse_int*      csr_col_ind,
+        const aoclsparse_int*      csr_row_ptr,
+        const aoclsparse_mat_descr descr,
         const double*             x,
         const double*             beta,
         double*                   y
         )
 {
+    if(descr == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+
+    // Check index base
+    if(descr->base != aoclsparse_index_base_zero && descr->base != aoclsparse_index_base_one)
+    {
+        return aoclsparse_status_invalid_value;
+    }
+
+    if(descr->type != aoclsparse_matrix_type_general)
+    {
+        // TODO
+        return aoclsparse_status_not_implemented;
+    }
+
+    if(trans != aoclsparse_operation_none)
+    {
+        // TODO
+        return aoclsparse_status_not_implemented;
+    }
+
+    // Check sizes
+    if(m < 0)
+    {
+        return aoclsparse_status_invalid_size;
+    }
+    else if(n < 0)
+    {
+        return aoclsparse_status_invalid_size;
+    }
+    else if(nnz < 0)
+    {
+        return aoclsparse_status_invalid_size;
+    }
+
+    // Quick return if possible
+    if(m == 0 || n == 0 || nnz == 0)
+    {
+        return aoclsparse_status_success;
+    }
+
+    // Check pointer arguments
+    if(csr_val == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    else if(csr_row_ptr == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    else if(csr_col_ind == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    else if(x == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    else if(y == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
     // Sparse matrices with Mean nnz = nnz/m <10 have very few non-zeroes in most of the rows
     // and few unevenly long rows . Loop unrolling and vectorization doesnt optimise performance
     // for this category of matrices . Hence , we invoke the generic dcsrmv kernel without
@@ -48,50 +207,30 @@ extern "C" aoclsparse_status aoclsparse_dcsrmv(aoclsparse_int             m,
     // (Mean nnz > 10) , we continue to invoke the vectorised version of csrmv , since
     // it improves performance.
     if(nnz/m <= 10)
-        return aoclsparse_csrmv_general(m,
+        return aoclsparse_csrmv_general(trans,
+                *alpha,
+                m,
                 n,
                 nnz,
-                *alpha,
                 csr_val,
-                csr_row_ptr,
                 csr_col_ind,
+                csr_row_ptr,
+                descr,
                 x,
                 *beta,
                 y);
     else
-        return aoclsparse_csrmv_vectorized(m,
+        return aoclsparse_csrmv_vectorized(trans,
+                *alpha,
+                m,
                 n,
                 nnz,
-                *alpha,
                 csr_val,
-                csr_row_ptr,
                 csr_col_ind,
+                csr_row_ptr,
+                descr,
                 x,
                 *beta,
                 y);
-}
-
-extern "C" aoclsparse_status aoclsparse_scsrmv(aoclsparse_int             m,
-        aoclsparse_int             n,
-        aoclsparse_int             nnz,
-        const float*              alpha,
-        const float*              csr_val,
-        const aoclsparse_int*      csr_row_ptr,
-        const aoclsparse_int*      csr_col_ind,
-        const float*             x,
-        const float*             beta,
-        float*                   y
-        )
-{
-    return aoclsparse_csrmv(m,
-            n,
-            nnz,
-            *alpha,
-            csr_val,
-            csr_row_ptr,
-            csr_col_ind,
-            x,
-            *beta,
-            y);
 }
 

@@ -21,6 +21,7 @@
  * 
  * ************************************************************************ */
 
+#include "aoclsparse_descr.h"
 #include "aoclsparse.h"
 
 #ifdef __cplusplus
@@ -46,6 +47,187 @@ aoclsparse_status aoclsparse_get_version(aoclsparse_int* version)
     return aoclsparse_status_success;
 }
 
+/********************************************************************************
+ * \brief aoclsparse_create_mat_descr_t is a structure holding the aoclsparse matrix
+ * descriptor. It must be initialized using aoclsparse_create_mat_descr()
+ * and the retured handle must be passed to all subsequent library function
+ * calls that involve the matrix.
+ * It should be destroyed at the end using aoclsparse_destroy_mat_descr().
+ *******************************************************************************/
+aoclsparse_status aoclsparse_create_mat_descr(aoclsparse_mat_descr* descr)
+{
+    if(descr == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    else
+    {
+        // Allocate
+        try
+        {
+            *descr = new _aoclsparse_mat_descr;
+        }
+        catch(const aoclsparse_status& status)
+        {
+            return status;
+        }
+        return aoclsparse_status_success;
+    }
+}
+
+/********************************************************************************
+ * \brief copy matrix descriptor
+ *******************************************************************************/
+aoclsparse_status aoclsparse_copy_mat_descr(aoclsparse_mat_descr dest, const aoclsparse_mat_descr src)
+{
+    if(dest == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    else if(src == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+
+    dest->type      = src->type;
+    dest->fill_mode = src->fill_mode;
+    dest->diag_type = src->diag_type;
+    dest->base      = src->base;
+
+    return aoclsparse_status_success;
+}
+
+/********************************************************************************
+ * \brief destroy matrix descriptor
+ *******************************************************************************/
+aoclsparse_status aoclsparse_destroy_mat_descr(aoclsparse_mat_descr descr)
+{
+    // Destruct
+    try
+    {
+        delete descr;
+    }
+    catch(const aoclsparse_status& status)
+    {
+        return status;
+    }
+    return aoclsparse_status_success;
+}
+
+/********************************************************************************
+ * \brief Set the index base of the matrix descriptor.
+ *******************************************************************************/
+aoclsparse_status aoclsparse_set_mat_index_base(aoclsparse_mat_descr descr, aoclsparse_index_base base)
+{
+    // Check if descriptor is valid
+    if(descr == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    if(base != aoclsparse_index_base_zero && base != aoclsparse_index_base_one)
+    {
+        return aoclsparse_status_invalid_value;
+    }
+    descr->base = base;
+    return aoclsparse_status_success;
+}
+
+/********************************************************************************
+ * \brief Returns the index base of the matrix descriptor.
+ *******************************************************************************/
+aoclsparse_index_base aoclsparse_get_mat_index_base(const aoclsparse_mat_descr descr)
+{
+    // If descriptor is invalid, default index base is returned
+    if(descr == nullptr)
+    {
+        return aoclsparse_index_base_zero;
+    }
+    return descr->base;
+}
+
+/********************************************************************************
+ * \brief Set the matrix type of the matrix descriptor.
+ *******************************************************************************/
+aoclsparse_status aoclsparse_set_mat_type(aoclsparse_mat_descr descr, aoclsparse_matrix_type type)
+{
+    // Check if descriptor is valid
+    if(descr == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    if(type != aoclsparse_matrix_type_general && type != aoclsparse_matrix_type_symmetric
+       && type != aoclsparse_matrix_type_hermitian && type != aoclsparse_matrix_type_triangular)
+    {
+        return aoclsparse_status_invalid_value;
+    }
+    descr->type = type;
+    return aoclsparse_status_success;
+}
+
+/********************************************************************************
+ * \brief Returns the matrix type of the matrix descriptor.
+ *******************************************************************************/
+aoclsparse_matrix_type aoclsparse_get_mat_type(const aoclsparse_mat_descr descr)
+{
+    // If descriptor is invalid, default matrix type is returned
+    if(descr == nullptr)
+    {
+        return aoclsparse_matrix_type_general;
+    }
+    return descr->type;
+}
+
+aoclsparse_status aoclsparse_set_mat_fill_mode(aoclsparse_mat_descr descr,
+                                             aoclsparse_fill_mode fill_mode)
+{
+    // Check if descriptor is valid
+    if(descr == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    if(fill_mode != aoclsparse_fill_mode_lower && fill_mode != aoclsparse_fill_mode_upper)
+    {
+        return aoclsparse_status_invalid_value;
+    }
+    descr->fill_mode = fill_mode;
+    return aoclsparse_status_success;
+}
+
+aoclsparse_fill_mode aoclsparse_get_mat_fill_mode(const aoclsparse_mat_descr descr)
+{
+    // If descriptor is invalid, default fill mode is returned
+    if(descr == nullptr)
+    {
+        return aoclsparse_fill_mode_lower;
+    }
+    return descr->fill_mode;
+}
+
+aoclsparse_status aoclsparse_set_mat_diag_type(aoclsparse_mat_descr descr,
+                                             aoclsparse_diag_type diag_type)
+{
+    // Check if descriptor is valid
+    if(descr == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    if(diag_type != aoclsparse_diag_type_unit && diag_type != aoclsparse_diag_type_non_unit)
+    {
+        return aoclsparse_status_invalid_value;
+    }
+    descr->diag_type = diag_type;
+    return aoclsparse_status_success;
+}
+
+aoclsparse_diag_type aoclsparse_get_mat_diag_type(const aoclsparse_mat_descr descr)
+{
+    // If descriptor is invalid, default diagonal type is returned
+    if(descr == nullptr)
+    {
+        return aoclsparse_diag_type_non_unit;
+    }
+    return descr->diag_type;
+}
 
 #ifdef __cplusplus
 }

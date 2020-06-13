@@ -24,274 +24,23 @@
 #define AOCLSPARSE_CSRMV_HPP
 
 #include "aoclsparse.h"
+#include "aoclsparse_descr.h"
 #include <immintrin.h>
 
 
-aoclsparse_status aoclsparse_csrmv_general(aoclsparse_int             m,
+aoclsparse_status aoclsparse_csrmv(aoclsparse_operation       trans,
+        const float               alpha,
+        aoclsparse_int             m,
         aoclsparse_int             n,
         aoclsparse_int             nnz,
-        const double              alpha,
-        const double* __restrict__ csr_val,
-        const aoclsparse_int* __restrict__ csr_row_ptr,
-        const aoclsparse_int* __restrict__ csr_col_ind,
-        const double* __restrict__ x,
-        const double             beta,
-        double* __restrict__        y)
-{
-    // Check sizes
-    if(m < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    else if(n < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    else if(nnz < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-
-    // Quick return if possible
-    if(m == 0 || n == 0 || nnz == 0)
-    {
-        return aoclsparse_status_success;
-    }
-
-    // Check pointer arguments
-    if(csr_val == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(csr_row_ptr == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(csr_col_ind == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(x == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(y == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-
-    const aoclsparse_int *colIndPtr;
-    const double *matValPtr;
-    matValPtr = &csr_val[csr_row_ptr[0]];
-    colIndPtr = &csr_col_ind[csr_row_ptr[0]];
-
-    // Iterate over each row of the input matrix and
-    // Perform matrix-vector product for each non-zero of the ith row
-    for(aoclsparse_int i = 0; i < m; i++)
-    {
-        double result = 0.0;
-        aoclsparse_int nnz = csr_row_ptr[i+1] - csr_row_ptr[i];
-
-        for(aoclsparse_int j =  0 ; j < nnz ; j++ )
-        {
-            result += *matValPtr++ * x[*colIndPtr++];
-        }
-
-        // Perform alpha * A * x
-        if(alpha != static_cast<double>(1))
-        {
-            result = alpha * result;
-        }
-
-        // Perform (beta * y) + (alpha * A * x)
-        if(beta != static_cast<double>(0))
-        {
-            result += beta * y[i];
-        }
-
-        y[i] = result ;
-    } 
-
-    return aoclsparse_status_success;
-}
-
-aoclsparse_status aoclsparse_csrmv_vectorized(aoclsparse_int             m,
-        aoclsparse_int             n,
-        aoclsparse_int             nnz,
-        const double              alpha,
-        const double* __restrict__ csr_val,
-        const aoclsparse_int* __restrict__ csr_row_ptr,
-        const aoclsparse_int* __restrict__ csr_col_ind,
-        const double* __restrict__ x,
-        const double             beta,
-        double* __restrict__        y)
-{
-    // Check sizes
-    if(m < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    else if(n < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    else if(nnz < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-
-    // Quick return if possible
-    if(m == 0 || n == 0 || nnz == 0)
-    {
-        return aoclsparse_status_success;
-    }
-
-    // Check pointer arguments
-    if(csr_val == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(csr_row_ptr == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(csr_col_ind == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(x == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(y == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-
-    __m256d vec_vals , vec_x , vec_y;
-    const aoclsparse_int *colIndPtr;
-    const double *matValPtr;
-    matValPtr = &csr_val[csr_row_ptr[0]];
-    colIndPtr = &csr_col_ind[csr_row_ptr[0]];
-
-    for(aoclsparse_int i = 0; i < m; i++)
-    {
-        aoclsparse_int j;
-        double result = 0.0;
-        vec_y = _mm256_setzero_pd();
-        aoclsparse_int nnz = csr_row_ptr[i+1] - csr_row_ptr[i]; 
-        aoclsparse_int k_iter = nnz/4;
-        aoclsparse_int k_rem = nnz%4;
-
-        //Loop in multiples of 4 non-zeroes
-        for(j =  0 ; j < k_iter ; j++ )		
-        {
-            //(csr_val[j] (csr_val[j+1] (csr_val[j+2] (csr_val[j+3]
-            vec_vals = _mm256_loadu_pd((double const *)matValPtr);
-
-            //Gather the x vector elements from the column indices
-            vec_x  = _mm256_set_pd(x[*(colIndPtr+3)],
-                    x[*(colIndPtr+2)],
-                    x[*(colIndPtr+1)],
-                    x[*(colIndPtr)]);
-
-            vec_y = _mm256_fmadd_pd(vec_vals, vec_x, vec_y);
-
-            matValPtr+=4;
-            colIndPtr+=4;
-        }
-
-        // Horizontal addition
-        if(k_iter){
-            // sum[0] += sum[1] ; sum[2] += sum[3]
-            vec_y = _mm256_hadd_pd(vec_y, vec_y);
-            // Cast avx_sum to 128 bit to obtain sum[0] and sum[1]
-            __m128d sum_lo = _mm256_castpd256_pd128(vec_y);
-            // Extract 128 bits to obtain sum[2] and sum[3]
-            __m128d sum_hi = _mm256_extractf128_pd(vec_y, 1);
-            // Add remaining two sums
-            __m128d sse_sum = _mm_add_pd(sum_lo, sum_hi);
-            // Store result
-            result = sse_sum[0];
-        }
-
-        //Remainder loop for nnz%4
-        for(j =  0 ; j < k_rem ; j++ )		
-        {
-            result += *matValPtr++ * x[*colIndPtr++];
-        }
-
-        // Perform alpha * A * x
-        if(alpha != static_cast<double>(1))
-        {
-            result = alpha * result;
-        }
-
-        // Perform (beta * y) + (alpha * A * x)
-        if(beta != static_cast<double>(0))
-        {
-            result += beta * y[i];
-        }
-
-        y[i] = result ;
-    } 
-
-    return aoclsparse_status_success;
-}
-
-aoclsparse_status aoclsparse_csrmv(aoclsparse_int           m,
-        aoclsparse_int             n,
-        aoclsparse_int             nnz,
-        const float              alpha,
         const float* __restrict__ csr_val,
-        const aoclsparse_int* __restrict__ csr_row_ptr,
         const aoclsparse_int* __restrict__ csr_col_ind,
+        const aoclsparse_int* __restrict__ csr_row_ptr,
+        const aoclsparse_mat_descr descr,
         const float* __restrict__ x,
         const float             beta,
         float* __restrict__        y)
 {
-    // Check sizes
-    if(m < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    else if(n < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    else if(nnz < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-
-    // Quick return if possible
-    if(m == 0 || n == 0 || nnz == 0)
-    {
-        return aoclsparse_status_success;
-    }
-
-    // Check pointer arguments
-    if(csr_val == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(csr_row_ptr == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(csr_col_ind == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(x == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(y == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-
     __m256 vec_vals , vec_x ,vec_y;
     const aoclsparse_int *colIndPtr;
     const float *matValPtr;
@@ -375,5 +124,138 @@ aoclsparse_status aoclsparse_csrmv(aoclsparse_int           m,
 
     return aoclsparse_status_success;
 }
+
+aoclsparse_status aoclsparse_csrmv_general(aoclsparse_operation       trans,
+        const double               alpha,
+        aoclsparse_int             m,
+        aoclsparse_int             n,
+        aoclsparse_int             nnz,
+        const double* __restrict__ csr_val,
+        const aoclsparse_int* __restrict__ csr_col_ind,
+        const aoclsparse_int* __restrict__ csr_row_ptr,
+        const aoclsparse_mat_descr descr,
+        const double* __restrict__ x,
+        const double             beta,
+        double* __restrict__        y)
+{
+    const aoclsparse_int *colIndPtr;
+    const double *matValPtr;
+    matValPtr = &csr_val[csr_row_ptr[0]];
+    colIndPtr = &csr_col_ind[csr_row_ptr[0]];
+
+    // Iterate over each row of the input matrix and
+    // Perform matrix-vector product for each non-zero of the ith row
+    for(aoclsparse_int i = 0; i < m; i++)
+    {
+        double result = 0.0;
+        aoclsparse_int nnz = csr_row_ptr[i+1] - csr_row_ptr[i];
+
+        for(aoclsparse_int j =  0 ; j < nnz ; j++ )
+        {
+            result += *matValPtr++ * x[*colIndPtr++];
+        }
+
+        // Perform alpha * A * x
+        if(alpha != static_cast<double>(1))
+        {
+            result = alpha * result;
+        }
+
+        // Perform (beta * y) + (alpha * A * x)
+        if(beta != static_cast<double>(0))
+        {
+            result += beta * y[i];
+        }
+
+        y[i] = result ;
+    } 
+
+    return aoclsparse_status_success;
+}
+
+aoclsparse_status aoclsparse_csrmv_vectorized(aoclsparse_operation       trans,
+        const double               alpha,
+        aoclsparse_int             m,
+        aoclsparse_int             n,
+        aoclsparse_int             nnz,
+        const double* __restrict__ csr_val,
+        const aoclsparse_int* __restrict__ csr_col_ind,
+        const aoclsparse_int* __restrict__ csr_row_ptr,
+        const aoclsparse_mat_descr descr,
+        const double* __restrict__ x,
+        const double             beta,
+        double* __restrict__        y)
+{
+    __m256d vec_vals , vec_x , vec_y;
+    const aoclsparse_int *colIndPtr;
+    const double *matValPtr;
+    matValPtr = &csr_val[csr_row_ptr[0]];
+    colIndPtr = &csr_col_ind[csr_row_ptr[0]];
+
+    for(aoclsparse_int i = 0; i < m; i++)
+    {
+        aoclsparse_int j;
+        double result = 0.0;
+        vec_y = _mm256_setzero_pd();
+        aoclsparse_int nnz = csr_row_ptr[i+1] - csr_row_ptr[i]; 
+        aoclsparse_int k_iter = nnz/4;
+        aoclsparse_int k_rem = nnz%4;
+
+        //Loop in multiples of 4 non-zeroes
+        for(j =  0 ; j < k_iter ; j++ )		
+        {
+            //(csr_val[j] (csr_val[j+1] (csr_val[j+2] (csr_val[j+3]
+            vec_vals = _mm256_loadu_pd((double const *)matValPtr);
+
+            //Gather the x vector elements from the column indices
+            vec_x  = _mm256_set_pd(x[*(colIndPtr+3)],
+                    x[*(colIndPtr+2)],
+                    x[*(colIndPtr+1)],
+                    x[*(colIndPtr)]);
+
+            vec_y = _mm256_fmadd_pd(vec_vals, vec_x, vec_y);
+
+            matValPtr+=4;
+            colIndPtr+=4;
+        }
+
+        // Horizontal addition
+        if(k_iter){
+            // sum[0] += sum[1] ; sum[2] += sum[3]
+            vec_y = _mm256_hadd_pd(vec_y, vec_y);
+            // Cast avx_sum to 128 bit to obtain sum[0] and sum[1]
+            __m128d sum_lo = _mm256_castpd256_pd128(vec_y);
+            // Extract 128 bits to obtain sum[2] and sum[3]
+            __m128d sum_hi = _mm256_extractf128_pd(vec_y, 1);
+            // Add remaining two sums
+            __m128d sse_sum = _mm_add_pd(sum_lo, sum_hi);
+            // Store result
+            result = sse_sum[0];
+        }
+
+        //Remainder loop for nnz%4
+        for(j =  0 ; j < k_rem ; j++ )		
+        {
+            result += *matValPtr++ * x[*colIndPtr++];
+        }
+
+        // Perform alpha * A * x
+        if(alpha != static_cast<double>(1))
+        {
+            result = alpha * result;
+        }
+
+        // Perform (beta * y) + (alpha * A * x)
+        if(beta != static_cast<double>(0))
+        {
+            result += beta * y[i];
+        }
+
+        y[i] = result ;
+    } 
+
+    return aoclsparse_status_success;
+}
+
 #endif // AOCLSPARSE_CSRMV_HPP
 

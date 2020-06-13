@@ -24,64 +24,22 @@
 #define AOCLSPARSE_ELLMV_HPP
 
 #include "aoclsparse.h"
+#include "aoclsparse_descr.h"
 #include <immintrin.h>
-#include <iostream>
 
-aoclsparse_status aoclsparse_ellmv(aoclsparse_int             m,
-                                    aoclsparse_int             n,
-                                    aoclsparse_int             nnz,
-                                    const float               alpha,
-                                    const float* __restrict__  ell_val,
-                                    const aoclsparse_int* __restrict__ ell_col_ind,
-                                    aoclsparse_int             ell_width,
-                                    const float* __restrict__  x,
-                                    const float               beta,
-                                    float* __restrict__        y )
+aoclsparse_status aoclsparse_ellmv(aoclsparse_operation      trans,
+                                   const float                alpha,
+                                   aoclsparse_int             m,
+                                   aoclsparse_int             n,
+                                   aoclsparse_int             nnz,
+                                   const float*              ell_val,
+                                   const aoclsparse_int*      ell_col_ind,
+                                   aoclsparse_int      ell_width,
+                                   const aoclsparse_mat_descr descr,
+                                   const float*             x,
+                                   const float              beta,
+                                   float*                   y )
 {
-    // Check sizes
-    if(m < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    else if(n < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    else if(ell_width < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-
-    // Sanity check
-    if((m == 0 || n == 0) && ell_width != 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-
-    // Quick return if possible
-    if(m == 0 || n == 0 || ell_width == 0)
-    {
-        return aoclsparse_status_success;
-    }
-
-    // Check pointer arguments
-    if(ell_val == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(ell_col_ind == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(x == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(y == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-
     //TODO: Optimisation for float to be done
     for(aoclsparse_int i = 0; i < m; ++i)
     {
@@ -118,61 +76,19 @@ aoclsparse_status aoclsparse_ellmv(aoclsparse_int             m,
     return aoclsparse_status_success;
 }
 
-aoclsparse_status aoclsparse_ellmv(aoclsparse_int             m,
-                                    aoclsparse_int             n,
-                                    aoclsparse_int             nnz,
-                                    const double              alpha,
-                                    const double* __restrict__ ell_val,
-                                    const aoclsparse_int* __restrict__ ell_col_ind,
-                                    aoclsparse_int             ell_width,
-                                    const double* __restrict__ x,
-                                    const double              beta,
-                                    double* __restrict__ y)
+aoclsparse_status aoclsparse_ellmv(aoclsparse_operation      trans,
+                                   const double               alpha,
+                                   aoclsparse_int             m,
+                                   aoclsparse_int             n,
+                                   aoclsparse_int             nnz,
+                                   const double*              ell_val,
+                                   const aoclsparse_int*      ell_col_ind,
+                                   aoclsparse_int      ell_width,
+                                   const aoclsparse_mat_descr descr,
+                                   const double*             x,
+                                   const double              beta,
+                                   double*                   y )
 {
-    // Check sizes
-    if(m < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    else if(n < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    else if(ell_width < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-
-    // Sanity check
-    if((m == 0 || n == 0) && ell_width != 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-
-    // Quick return if possible
-    if(m == 0 || n == 0 || ell_width == 0)
-    {
-        return aoclsparse_status_success;
-    }
-
-    // Check pointer arguments
-    if(ell_val == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(ell_col_ind == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(x == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(y == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-
     __m256d vec_vals , vec_x , vec_y;	
     aoclsparse_int k_iter = ell_width/4;
     aoclsparse_int k_rem = ell_width%4;

@@ -47,9 +47,98 @@ typedef struct
     double x, y;
 } aoclsparse_double_complex;
 
+/*! \ingroup types_module
+ *  \brief Descriptor of the matrix.
+ *
+ *  \details
+ *  The aoclSPARSE matrix descriptor is a structure holding all properties of a matrix.
+ *  It must be initialized using aoclsparse_create_mat_descr() and the returned
+ *  descriptor must be passed to all subsequent library calls that involve the matrix.
+ *  It should be destroyed at the end using aoclsparse_destroy_mat_descr().
+ */
+typedef struct _aoclsparse_mat_descr* aoclsparse_mat_descr;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+/*! \ingroup types_module
+ *  \brief Specify whether the matrix is to be transposed or not.
+ *
+ *  \details
+ *  The \ref aoclsparse_operation indicates the operation performed with the given matrix.
+ */
+typedef enum aoclsparse_operation_
+{
+    aoclsparse_operation_none                = 111, /**< Operate with matrix. */
+    aoclsparse_operation_transpose           = 112, /**< Operate with transpose. */
+    aoclsparse_operation_conjugate_transpose = 113 /**< Operate with conj. transpose. */
+} aoclsparse_operation;
+
+/*! \ingroup types_module
+ *  \brief Specify the matrix index base.
+ *
+ *  \details
+ *  The \ref aoclsparse_index_base indicates the index base of the indices. For a
+ *  given \ref aoclsparse_mat_descr, the \ref aoclsparse_index_base can be set using
+ *  aoclsparse_set_mat_index_base(). The current \ref aoclsparse_index_base of a matrix
+ *  can be obtained by aoclsparse_get_mat_index_base().
+ */
+typedef enum aoclsparse_index_base_
+{
+    aoclsparse_index_base_zero = 0, /**< zero based indexing. */
+    aoclsparse_index_base_one  = 1 /**< one based indexing. */
+} aoclsparse_index_base;
+
+/*! \ingroup types_module
+ *  \brief Specify the matrix type.
+ *
+ *  \details
+ *  The \ref aoclsparse_matrix_type indices the type of a matrix. For a given
+ *  \ref aoclsparse_mat_descr, the \ref aoclsparse_matrix_type can be set using
+ *  aoclsparse_set_mat_type(). The current \ref aoclsparse_matrix_type of a matrix can be
+ *  obtained by aoclsparse_get_mat_type().
+ */
+typedef enum aoclsparse_matrix_type_
+{
+    aoclsparse_matrix_type_general    = 0, /**< general matrix type. */
+    aoclsparse_matrix_type_symmetric  = 1, /**< symmetric matrix type. */
+    aoclsparse_matrix_type_hermitian  = 2, /**< hermitian matrix type. */
+    aoclsparse_matrix_type_triangular = 3 /**< triangular matrix type. */
+} aoclsparse_matrix_type;
+
+/*! \ingroup types_module
+ *  \brief Indicates if the diagonal entries are unity.
+ *
+ *  \details
+ *  The \ref aoclsparse_diag_type indicates whether the diagonal entries of a matrix are
+ *  unity or not. If \ref aoclsparse_diag_type_unit is specified, all present diagonal
+ *  values will be ignored. For a given \ref aoclsparse_mat_descr, the
+ *  \ref aoclsparse_diag_type can be set using aoclsparse_set_mat_diag_type(). The current
+ *  \ref aoclsparse_diag_type of a matrix can be obtained by
+ *  aoclsparse_get_mat_diag_type().
+ */
+typedef enum aoclsparse_diag_type_
+{
+    aoclsparse_diag_type_non_unit = 0, /**< diagonal entries are non-unity. */
+    aoclsparse_diag_type_unit     = 1 /**< diagonal entries are unity */
+} aoclsparse_diag_type;
+
+/*! \ingroup types_module
+ *  \brief Specify the matrix fill mode.
+ *
+ *  \details
+ *  The \ref aoclsparse_fill_mode indicates whether the lower or the upper part is stored
+ *  in a sparse triangular matrix. For a given \ref aoclsparse_mat_descr, the
+ *  \ref aoclsparse_fill_mode can be set using aoclsparse_set_mat_fill_mode(). The current
+ *  \ref aoclsparse_fill_mode of a matrix can be obtained by
+ *  aoclsparse_get_mat_fill_mode().
+ */
+typedef enum aoclsparse_fill_mode_
+{
+    aoclsparse_fill_mode_lower = 0, /**< lower triangular part is stored. */
+    aoclsparse_fill_mode_upper = 1 /**< upper triangular part is stored. */
+} aoclsparse_fill_mode;
+
 /*! \ingroup types_module
  *  \brief List of aoclsparse status codes definition.
  *
@@ -70,21 +159,6 @@ typedef enum aoclsparse_status_
     aoclsparse_status_arch_mismatch   = 8, /**< device arch is not supported. */
     aoclsparse_status_zero_pivot      = 9 /**< encountered zero pivot. */
 } aoclsparse_status;
-
-/*! \ingroup types_module
- *  \brief Specify the matrix index base.
- *
- *  \details
- *  The \ref aoclsparse_index_base indicates the index base of the indices. For a
- *  given \ref aoclsparse_mat_descr, the \ref aoclsparse_index_base can be set using
- *  aoclsparse_set_mat_index_base(). The current \ref aoclsparse_index_base of a matrix
- *  can be obtained by aoclsparse_get_mat_index_base().
- */
-typedef enum aoclsparse_index_base_
-{
-    aoclsparse_index_base_zero = 0, /**< zero based indexing. */
-    aoclsparse_index_base_one  = 1 /**< one based indexing. */
-} aoclsparse_index_base;
 
 #ifdef __cplusplus
 }

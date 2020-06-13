@@ -40,12 +40,19 @@ void testing_csrmv(const Arguments& arg)
     aoclsparse_int         M         = arg.M;
     aoclsparse_int         N         = arg.N;
     aoclsparse_int         nnz       = arg.nnz;
+    aoclsparse_operation   trans     = arg.transA;
+    aoclsparse_index_base  base      = arg.baseA;
     aoclsparse_matrix_init mat       = arg.matrix;
-    aoclsparse_index_base  base      = aoclsparse_index_base_zero;
     std::string           filename = arg.filename; 
 
     T h_alpha = static_cast<T>(arg.alpha);
     T h_beta  = static_cast<T>(arg.beta);
+
+    // Create matrix descriptor
+    aoclsparse_local_mat_descr descr;
+
+    // Set matrix index base
+    CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mat_index_base(descr, base));
 
     // Allocate memory for matrix
     std::vector<aoclsparse_int> hcsr_row_ptr;
@@ -86,13 +93,15 @@ void testing_csrmv(const Arguments& arg)
     hy_gold = hy; 
     if(arg.unit_check)
     {
-        CHECK_AOCLSPARSE_ERROR(aoclsparse_csrmv(M,
+        CHECK_AOCLSPARSE_ERROR(aoclsparse_csrmv(trans,
+                                                 &h_alpha,
+                                                 M,
                                                  N,
                                                  nnz,
-                                                 &h_alpha,
                                                  hcsr_val.data(),
-                                                 hcsr_row_ptr.data(),
                                                  hcsr_col_ind.data(),
+                                                 hcsr_row_ptr.data(),
+                                                 descr,
                                                  hx.data(),
                                                  &h_beta,
                                                  hy.data()));
@@ -116,13 +125,15 @@ void testing_csrmv(const Arguments& arg)
     for(int iter = 0; iter < number_hot_calls; ++iter)
     {
         double cpu_time_start = get_time_us();
-        CHECK_AOCLSPARSE_ERROR(aoclsparse_csrmv(M,
+        CHECK_AOCLSPARSE_ERROR(aoclsparse_csrmv(trans,
+                                                 &h_alpha,
+                                                 M,
                                                  N,
                                                  nnz,
-                                                 &h_alpha,
                                                  hcsr_val.data(),
-                                                 hcsr_row_ptr.data(),
                                                  hcsr_col_ind.data(),
+                                                 hcsr_row_ptr.data(),
+                                                 descr,
                                                  hx.data(),
                                                  &h_beta,
                                                  hy.data()));

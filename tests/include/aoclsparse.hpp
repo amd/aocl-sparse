@@ -38,25 +38,29 @@
  * ===========================================================================
  */
 template <typename T>
-aoclsparse_status aoclsparse_csrmv(aoclsparse_int             m,
+aoclsparse_status aoclsparse_csrmv(aoclsparse_operation       trans,
+                                 const T*             alpha,
+                                 aoclsparse_int             m,
                                  aoclsparse_int             n,
                                  aoclsparse_int             nnz,
-                                 const T*             alpha,
                                  const T*             csr_val,
-                                 const aoclsparse_int*      csr_row_ptr,
                                  const aoclsparse_int*      csr_col_ind,
+                                 const aoclsparse_int*      csr_row_ptr,
+                                 const aoclsparse_mat_descr descr,
                                  const T*             x,
                                  const T*             beta,
                                  T*                   y);
 
 template <typename T>
-aoclsparse_status aoclsparse_ellmv(aoclsparse_int             m,
+aoclsparse_status aoclsparse_ellmv(aoclsparse_operation       trans,
+                                 const T*             alpha,
+                                 aoclsparse_int             m,
                                  aoclsparse_int             n,
                                  aoclsparse_int             nnz,
-                                 const T*             alpha,
                                  const T*             ell_val,
                                  const aoclsparse_int*      ell_col_ind,
                                  const aoclsparse_int      ell_width,
+                                 const aoclsparse_mat_descr descr,
                                  const T*             x,
                                  const T*             beta,
                                  T*                   y);

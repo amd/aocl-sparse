@@ -34,24 +34,46 @@ extern "C" {
 #endif
 
 /*! \ingroup level2_module
- *  \brief Double Precision Sparse matrix vector multiplication using CSR storage format
+ *  \brief Single precision sparse matrix vector multiplication using CSR storage format
  *
  *  \details
- *  \p aoclsparse_dcsrmv multiplies the scalar \f$\alpha\f$ with a sparse \f$m \times n\f$
+ *  \p aoclsparse_csrmv multiplies the scalar \f$\alpha\f$ with a sparse \f$m \times n\f$
  *  matrix, defined in CSR storage format, and the dense vector \f$x\f$ and adds the
  *  result to the dense vector \f$y\f$ that is multiplied by the scalar \f$\beta\f$,
  *  such that
  *  \f[
  *    y := \alpha \cdot op(A) \cdot x + \beta \cdot y,
  *  \f]
+ *  with
+ *  \f[
+ *    op(A) = \left\{
+ *    \begin{array}{ll}
+ *        A,   & \text{if trans == aoclsparse_operation_none} \\
+ *        A^T, & \text{if trans == aoclsparse_operation_transpose} \\
+ *        A^H, & \text{if trans == aoclsparse_operation_conjugate_transpose}
+ *    \end{array}
+ *    \right.
+ *  \f]
  *
- *  \note
- *  This function is non blocking and executed asynchronously with respect to the host.
- *  It may return before the actual computation has finished.
+ *  \code{.c}
+ *      for(i = 0; i < m; ++i)
+ *      {
+ *          y[i] = beta * y[i];
+ *
+ *          for(j = csr_row_ptr[i]; j < csr_row_ptr[i + 1]; ++j)
+ *          {
+ *              y[i] = y[i] + alpha * csr_val[j] * x[csr_col_ind[j]];
+ *          }
+ *      }
+ *  \endcode
  *
  *  \note
  *  Currently, only \p trans == \ref aoclsparse_operation_none is supported.
  *
+ *  @param[in]
+ *  trans       matrix operation type.
+ *  @param[in]
+ *  alpha       scalar \f$\alpha\f$.
  *  @param[in]
  *  m           number of rows of the sparse CSR matrix.
  *  @param[in]
@@ -59,15 +81,15 @@ extern "C" {
  *  @param[in]
  *  nnz         number of non-zero entries of the sparse CSR matrix.
  *  @param[in]
- *  alpha       scalar \f$\alpha\f$.
- *  @param[in]
  *  csr_val     array of \p nnz elements of the sparse CSR matrix.
- *  @param[in]
- *  csr_row_ptr array of \p m+1 elements that point to the start
- *              of every row of the sparse CSR matrix.
  *  @param[in]
  *  csr_col_ind array of \p nnz elements containing the column indices of the sparse
  *              CSR matrix.
+ *  @param[in]
+ *  csr_row_ptr array of \p m+1 elements that point to the start
+ *              of every row of the sparse CSR matrix.
+ *  descr       descriptor of the sparse CSR matrix. Currently, only
+ *              \ref aoclsparse_matrix_type_general is supported.
  *  @param[in]
  *  x           array of \p n elements (\f$op(A) == A\f$) or \p m elements
  *              (\f$op(A) == A^T\f$ or \f$op(A) == A^H\f$).
@@ -78,55 +100,94 @@ extern "C" {
  *              (\f$op(A) == A^T\f$ or \f$op(A) == A^H\f$).
  *
  *  \retval     aoclsparse_status_success the operation completed successfully.
+ *  \retval     aoclsparse_status_invalid_size \p m, \p n or \p nnz is invalid.
+ *  \retval     aoclsparse_status_invalid_pointer \p descr, \p alpha, \p csr_val,
+ *              \p csr_row_ptr, \p csr_col_ind, \p x, \p beta or \p y pointer is
+ *              invalid.
+ *  \retval     aoclsparse_status_not_implemented
+ *              \p trans != \ref aoclsparse_operation_none or
+ *              \ref aoclsparse_matrix_type != \ref aoclsparse_matrix_type_general.
  *
  *  \par Example
  *  This example performs a sparse matrix vector multiplication in CSR format
  *  using additional meta data to improve performance.
- *
- *  \Code{.c}
- *      aoclsparse_dcsrmv(m,
+ *  \code{.c}
+ *      // Compute y = Ax
+ *      aoclsparse_scsrmv(aoclsparse_operation_none,
+ *                       &alpha,
+ *                       m,
  *                       n,
  *                       nnz,
- *                       &alpha,
  *                       csr_val,
- *                       csr_row_ptr,
  *                       csr_col_ind,
+ *                       csr_row_ptr,
+ *                       descr,
  *                       x,
  *                       &beta,
  *                       y);
+ *
+ *      // Do more work
+ *      // ...
+ *
  *  \endcode
  */
 /**@{*/
-__attribute__((__visibility__("default"))) aoclsparse_status aoclsparse_dcsrmv(aoclsparse_int             m,
+__attribute__((__visibility__("default")))
+aoclsparse_status aoclsparse_scsrmv(aoclsparse_operation       trans,
+                                  const float*              alpha,
+                                  aoclsparse_int             m,
                                   aoclsparse_int             n,
                                   aoclsparse_int             nnz,
-                                  const double*             alpha,
-                                  const double*             csr_val,
-                                  const aoclsparse_int*      csr_row_ptr,
+                                  const float*              csr_val,
                                   const aoclsparse_int*      csr_col_ind,
-                                  const double*             x,
-                                  const double*             beta,
-                                  double*                   y);
+                                  const aoclsparse_int*      csr_row_ptr,
+                                  const aoclsparse_mat_descr descr,
+                                  const float*             x,
+                                  const float*             beta,
+                                  float*                   y);
+/**@}*/
 
 /*! \ingroup level2_module
- *  \brief Single Precision Sparse matrix vector multiplication using CSR storage format
+ *  \brief Double precision sparse matrix vector multiplication using CSR storage format
  *
  *  \details
- *  \p aoclsparse_scsrmv multiplies the scalar \f$\alpha\f$ with a sparse \f$m \times n\f$
- *  matrix, defined in CSR storage format, and the sparse vector \f$x\f$ and adds the
- *  result to the sparse vector \f$y\f$ that is multiplied by the scalar \f$\beta\f$,
+ *  \p aoclsparse_csrmv multiplies the scalar \f$\alpha\f$ with a sparse \f$m \times n\f$
+ *  matrix, defined in CSR storage format, and the dense vector \f$x\f$ and adds the
+ *  result to the dense vector \f$y\f$ that is multiplied by the scalar \f$\beta\f$,
  *  such that
  *  \f[
  *    y := \alpha \cdot op(A) \cdot x + \beta \cdot y,
  *  \f]
+ *  with
+ *  \f[
+ *    op(A) = \left\{
+ *    \begin{array}{ll}
+ *        A,   & \text{if trans == aoclsparse_operation_none} \\
+ *        A^T, & \text{if trans == aoclsparse_operation_transpose} \\
+ *        A^H, & \text{if trans == aoclsparse_operation_conjugate_transpose}
+ *    \end{array}
+ *    \right.
+ *  \f]
  *
- *  \note
- *  This function is non blocking and executed asynchronously with respect to the host.
- *  It may return before the actual computation has finished.
+ *  \code{.c}
+ *      for(i = 0; i < m; ++i)
+ *      {
+ *          y[i] = beta * y[i];
+ *
+ *          for(j = csr_row_ptr[i]; j < csr_row_ptr[i + 1]; ++j)
+ *          {
+ *              y[i] = y[i] + alpha * csr_val[j] * x[csr_col_ind[j]];
+ *          }
+ *      }
+ *  \endcode
  *
  *  \note
  *  Currently, only \p trans == \ref aoclsparse_operation_none is supported.
  *
+ *  @param[in]
+ *  trans       matrix operation type.
+ *  @param[in]
+ *  alpha       scalar \f$\alpha\f$.
  *  @param[in]
  *  m           number of rows of the sparse CSR matrix.
  *  @param[in]
@@ -134,15 +195,15 @@ __attribute__((__visibility__("default"))) aoclsparse_status aoclsparse_dcsrmv(a
  *  @param[in]
  *  nnz         number of non-zero entries of the sparse CSR matrix.
  *  @param[in]
- *  alpha       scalar \f$\alpha\f$.
- *  @param[in]
  *  csr_val     array of \p nnz elements of the sparse CSR matrix.
- *  @param[in]
- *  csr_row_ptr array of \p m+1 elements that point to the start
- *              of every row of the sparse CSR matrix.
  *  @param[in]
  *  csr_col_ind array of \p nnz elements containing the column indices of the sparse
  *              CSR matrix.
+ *  @param[in]
+ *  csr_row_ptr array of \p m+1 elements that point to the start
+ *              of every row of the sparse CSR matrix.
+ *  descr       descriptor of the sparse CSR matrix. Currently, only
+ *              \ref aoclsparse_matrix_type_general is supported.
  *  @param[in]
  *  x           array of \p n elements (\f$op(A) == A\f$) or \p m elements
  *              (\f$op(A) == A^T\f$ or \f$op(A) == A^H\f$).
@@ -153,58 +214,244 @@ __attribute__((__visibility__("default"))) aoclsparse_status aoclsparse_dcsrmv(a
  *              (\f$op(A) == A^T\f$ or \f$op(A) == A^H\f$).
  *
  *  \retval     aoclsparse_status_success the operation completed successfully.
+ *  \retval     aoclsparse_status_invalid_size \p m, \p n or \p nnz is invalid.
+ *  \retval     aoclsparse_status_invalid_pointer \p descr, \p alpha, \p csr_val,
+ *              \p csr_row_ptr, \p csr_col_ind, \p x, \p beta or \p y pointer is
+ *              invalid.
+ *  \retval     aoclsparse_status_not_implemented
+ *              \p trans != \ref aoclsparse_operation_none or
+ *              \ref aoclsparse_matrix_type != \ref aoclsparse_matrix_type_general.
  *
  *  \par Example
  *  This example performs a sparse matrix vector multiplication in CSR format
  *  using additional meta data to improve performance.
- *
- *  \Code{.c}
- *      aoclsparse_scsrmv(m,
+ *  \code{.c}
+ *      // Compute y = Ax
+ *      aoclsparse_scsrmv(aoclsparse_operation_none,
+ *                       &alpha,
+ *                       m,
  *                       n,
  *                       nnz,
- *                       &alpha,
  *                       csr_val,
- *                       csr_row_ptr,
  *                       csr_col_ind,
+ *                       csr_row_ptr,
+ *                       descr,
  *                       x,
  *                       &beta,
  *                       y);
+ *
+ *      // Do more work
+ *      // ...
+ *
  *  \endcode
  */
 /**@{*/
-__attribute__((__visibility__("default"))) aoclsparse_status aoclsparse_scsrmv(aoclsparse_int             m,
+__attribute__((__visibility__("default"))) 
+aoclsparse_status aoclsparse_dcsrmv(aoclsparse_operation       trans,
+                                  const double*              alpha,
+                                  aoclsparse_int             m,
                                   aoclsparse_int             n,
                                   aoclsparse_int             nnz,
-                                  const float*             alpha,
-                                  const float*             csr_val,
+                                  const double*              csr_val,
+                                  const aoclsparse_int*      csr_col_ind,
                                   const aoclsparse_int*      csr_row_ptr,
-                                  const aoclsparse_int*      csr_col_ind,
-                                  const float*             x,
-                                  const float*             beta,
-                                  float*                   y);
-
-__attribute__((__visibility__("default"))) aoclsparse_status aoclsparse_dellmv(aoclsparse_int             m,
-                                  aoclsparse_int             n,
-                                  aoclsparse_int             nnz,
-                                  const double*             alpha,
-                                  const double*             ell_val,
-                                  const aoclsparse_int*      csr_col_ind,
-                                  aoclsparse_int      ell_width,
+                                  const aoclsparse_mat_descr descr,
                                   const double*             x,
                                   const double*             beta,
                                   double*                   y);
+/**@}*/
 
-__attribute__((__visibility__("default"))) aoclsparse_status aoclsparse_sellmv(aoclsparse_int             m,
-                                  aoclsparse_int             n,
-                                  aoclsparse_int             nnz,
-                                  const float*             alpha,
-                                  const float*             ell_val,
-                                  const aoclsparse_int*      csr_col_ind,
-                                  aoclsparse_int      ell_width,
-                                  const float*             x,
-                                  const float*             beta,
-                                  float*                   y);
+/*! \ingroup level2_module
+ *  \brief Single precision sparse matrix vector multiplication using ELL storage format
+ *
+ *  \details
+ *  \p aoclsparse_ellmv multiplies the scalar \f$\alpha\f$ with a sparse \f$m \times n\f$
+ *  matrix, defined in ELL storage format, and the dense vector \f$x\f$ and adds the
+ *  result to the dense vector \f$y\f$ that is multiplied by the scalar \f$\beta\f$,
+ *  such that
+ *  \f[
+ *    y := \alpha \cdot op(A) \cdot x + \beta \cdot y,
+ *  \f]
+ *  with
+ *  \f[
+ *    op(A) = \left\{
+ *    \begin{array}{ll}
+ *        A,   & \text{if trans == aoclsparse_operation_none} \\
+ *        A^T, & \text{if trans == aoclsparse_operation_transpose} \\
+ *        A^H, & \text{if trans == aoclsparse_operation_conjugate_transpose}
+ *    \end{array}
+ *    \right.
+ *  \f]
+ *
+ *  \code{.c}
+ *      for(i = 0; i < m; ++i)
+ *      {
+ *          y[i] = beta * y[i];
+ *
+ *          for(p = 0; p < ell_width; ++p)
+ *          {
+ *              idx = p * m + i;
+ *
+ *              if((ell_col_ind[idx] >= 0) && (ell_col_ind[idx] < n))
+ *              {
+ *                  y[i] = y[i] + alpha * ell_val[idx] * x[ell_col_ind[idx]];
+ *              }
+ *          }
+ *      }
+ *  \endcode
+ *
+ *  \note
+ *  Currently, only \p trans == \ref aoclsparse_operation_none is supported.
+ *
+ *  @param[in]
+ *  trans       matrix operation type.
+ *  @param[in]
+ *  alpha       scalar \f$\alpha\f$.
+ *  @param[in]
+ *  m           number of rows of the sparse ELL matrix.
+ *  @param[in]
+ *  n           number of columns of the sparse ELL matrix.
+ *  @param[in]
+ *  nnz         number of non-zero entries of the sparse ELL matrix.
+ *  @param[in]
+ *  descr       descriptor of the sparse ELL matrix. Currently, only
+ *              \ref aoclsparse_matrix_type_general is supported.
+ *  @param[in]
+ *  ell_val     array that contains the elements of the sparse ELL matrix. Padded
+ *              elements should be zero.
+ *  @param[in]
+ *  ell_col_ind array that contains the column indices of the sparse ELL matrix.
+ *              Padded column indices should be -1.
+ *  @param[in]
+ *  ell_width   number of non-zero elements per row of the sparse ELL matrix.
+ *  @param[in]
+ *  x           array of \p n elements (\f$op(A) == A\f$) or \p m elements
+ *              (\f$op(A) == A^T\f$ or \f$op(A) == A^H\f$).
+ *  @param[in]
+ *  beta        scalar \f$\beta\f$.
+ *  @param[inout]
+ *  y           array of \p m elements (\f$op(A) == A\f$) or \p n elements
+ *              (\f$op(A) == A^T\f$ or \f$op(A) == A^H\f$).
+ *
+ *  \retval     aoclsparse_status_success the operation completed successfully.
+ *  \retval     aoclsparse_status_invalid_size \p m, \p n or \p ell_width is invalid.
+ *  \retval     aoclsparse_status_invalid_pointer \p descr, \p alpha, \p ell_val,
+ *              \p ell_col_ind, \p x, \p beta or \p y pointer is invalid.
+ *  \retval     aoclsparse_status_not_implemented
+ *              \p trans != \ref aoclsparse_operation_none or
+ *              \ref aoclsparse_matrix_type != \ref aoclsparse_matrix_type_general.
+ */
+/**@{*/
+__attribute__((__visibility__("default")))
+aoclsparse_status aoclsparse_sellmv(aoclsparse_operation       trans,
+                                   const float*              alpha,
+                                   aoclsparse_int             m,
+                                   aoclsparse_int             n,
+                                   aoclsparse_int             nnz,
+                                   const float*              ell_val,
+                                   const aoclsparse_int*      ell_col_ind,
+                                   aoclsparse_int      ell_width,
+                                   const aoclsparse_mat_descr descr,
+                                   const float*             x,
+                                   const float*            beta,
+                                   float*                   y );
+/**@}*/
 
+/*! \ingroup level2_module
+ *  \brief Double precision sparse matrix vector multiplication using ELL storage format
+ *
+ *  \details
+ *  \p aoclsparse_ellmv multiplies the scalar \f$\alpha\f$ with a sparse \f$m \times n\f$
+ *  matrix, defined in ELL storage format, and the dense vector \f$x\f$ and adds the
+ *  result to the dense vector \f$y\f$ that is multiplied by the scalar \f$\beta\f$,
+ *  such that
+ *  \f[
+ *    y := \alpha \cdot op(A) \cdot x + \beta \cdot y,
+ *  \f]
+ *  with
+ *  \f[
+ *    op(A) = \left\{
+ *    \begin{array}{ll}
+ *        A,   & \text{if trans == aoclsparse_operation_none} \\
+ *        A^T, & \text{if trans == aoclsparse_operation_transpose} \\
+ *        A^H, & \text{if trans == aoclsparse_operation_conjugate_transpose}
+ *    \end{array}
+ *    \right.
+ *  \f]
+ *
+ *  \code{.c}
+ *      for(i = 0; i < m; ++i)
+ *      {
+ *          y[i] = beta * y[i];
+ *
+ *          for(p = 0; p < ell_width; ++p)
+ *          {
+ *              idx = p * m + i;
+ *
+ *              if((ell_col_ind[idx] >= 0) && (ell_col_ind[idx] < n))
+ *              {
+ *                  y[i] = y[i] + alpha * ell_val[idx] * x[ell_col_ind[idx]];
+ *              }
+ *          }
+ *      }
+ *  \endcode
+ *
+ *  \note
+ *  Currently, only \p trans == \ref aoclsparse_operation_none is supported.
+ *
+ *  @param[in]
+ *  trans       matrix operation type.
+ *  @param[in]
+ *  alpha       scalar \f$\alpha\f$.
+ *  @param[in]
+ *  m           number of rows of the sparse ELL matrix.
+ *  @param[in]
+ *  n           number of columns of the sparse ELL matrix.
+ *  @param[in]
+ *  nnz         number of non-zero entries of the sparse ELL matrix.
+ *  @param[in]
+ *  descr       descriptor of the sparse ELL matrix. Currently, only
+ *              \ref aoclsparse_matrix_type_general is supported.
+ *  @param[in]
+ *  ell_val     array that contains the elements of the sparse ELL matrix. Padded
+ *              elements should be zero.
+ *  @param[in]
+ *  ell_col_ind array that contains the column indices of the sparse ELL matrix.
+ *              Padded column indices should be -1.
+ *  @param[in]
+ *  ell_width   number of non-zero elements per row of the sparse ELL matrix.
+ *  @param[in]
+ *  x           array of \p n elements (\f$op(A) == A\f$) or \p m elements
+ *              (\f$op(A) == A^T\f$ or \f$op(A) == A^H\f$).
+ *  @param[in]
+ *  beta        scalar \f$\beta\f$.
+ *  @param[inout]
+ *  y           array of \p m elements (\f$op(A) == A\f$) or \p n elements
+ *              (\f$op(A) == A^T\f$ or \f$op(A) == A^H\f$).
+ *
+ *  \retval     aoclsparse_status_success the operation completed successfully.
+ *  \retval     aoclsparse_status_invalid_size \p m, \p n or \p ell_width is invalid.
+ *  \retval     aoclsparse_status_invalid_pointer \p descr, \p alpha, \p ell_val,
+ *              \p ell_col_ind, \p x, \p beta or \p y pointer is invalid.
+ *  \retval     aoclsparse_status_not_implemented
+ *              \p trans != \ref aoclsparse_operation_none or
+ *              \ref aoclsparse_matrix_type != \ref aoclsparse_matrix_type_general.
+ */
+/**@{*/
+__attribute__((__visibility__("default")))
+aoclsparse_status aoclsparse_dellmv(aoclsparse_operation       trans,
+                                   const double*              alpha,
+                                   aoclsparse_int             m,
+                                   aoclsparse_int             n,
+                                   aoclsparse_int             nnz,
+                                   const double*              ell_val,
+                                   const aoclsparse_int*      ell_col_ind,
+                                   aoclsparse_int      ell_width,
+                                   const aoclsparse_mat_descr descr,
+                                   const double*             x,
+                                   const double*            beta,
+                                   double*                   y );
+/**@}*/
 
 #ifdef __cplusplus
 }

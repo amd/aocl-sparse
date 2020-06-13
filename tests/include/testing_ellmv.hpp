@@ -42,11 +42,19 @@ void testing_ellmv(const Arguments& arg)
     aoclsparse_int         N         = arg.N;
     aoclsparse_int         nnz       = arg.nnz;
     aoclsparse_matrix_init mat       = arg.matrix;
-    aoclsparse_index_base  base      = aoclsparse_index_base_zero;
+    aoclsparse_operation   trans     = arg.transA;
+    aoclsparse_index_base  base      = arg.baseA;
+    
     std::string           filename = arg.filename; 
 
     T h_alpha = static_cast<T>(arg.alpha);
     T h_beta  = static_cast<T>(arg.beta);
+
+    // Create matrix descriptor
+    aoclsparse_local_mat_descr descr;
+
+    // Set matrix index base
+    CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mat_index_base(descr, base));
 
     // Allocate memory for matrix
     std::vector<aoclsparse_int> hcsr_row_ptr;
@@ -85,13 +93,15 @@ void testing_ellmv(const Arguments& arg)
             M, nnz, hcsr_row_ptr, hcsr_col_ind, hcsr_val, hell_col_ind, hell_val, ell_width );
     if(arg.unit_check)
     {
-        CHECK_AOCLSPARSE_ERROR(aoclsparse_ellmv(M,
+        CHECK_AOCLSPARSE_ERROR(aoclsparse_ellmv(trans,
+                                                 &h_alpha,
+                                                 M,
                                                  N,
                                                  nnz,
-                                                 &h_alpha,
                                                  hell_val.data(),
                                                  hell_col_ind.data(),
                                                  ell_width,
+                                                 descr,
                                                  hx.data(),
                                                  &h_beta,
                                                  hy.data()));
@@ -116,13 +126,15 @@ void testing_ellmv(const Arguments& arg)
     for(int iter = 0; iter < number_hot_calls; ++iter)
     {
         double cpu_time_start = get_time_us();
-        CHECK_AOCLSPARSE_ERROR(aoclsparse_ellmv(M,
+        CHECK_AOCLSPARSE_ERROR(aoclsparse_ellmv(trans,
+                                                 &h_alpha,
+                                                 M,
                                                  N,
                                                  nnz,
-                                                 &h_alpha,
                                                  hell_val.data(),
                                                  hell_col_ind.data(),
                                                  ell_width,
+                                                 descr,
                                                  hx.data(),
                                                  &h_beta,
                                                  hy.data()));

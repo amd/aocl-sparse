@@ -51,6 +51,11 @@ struct Arguments
     double alpha;
     double beta;
 
+    aoclsparse_operation       transA;
+    aoclsparse_index_base      baseA;
+    aoclsparse_diag_type       diag;
+    aoclsparse_fill_mode       uplo;
+
     aoclsparse_matrix_init matrix;
 
     aoclsparse_int unit_check;

@@ -40,7 +40,12 @@ int main(int argc, char* argv[])
     std::string   function;
     std::string   mtxfile;
     char          precision = 'd';
+    char          transA;
+    int           baseA;
+    char          diag;
+    char          uplo;
     aoclsparse_int dir;
+    char          apol;
     po::options_description desc("aoclsparse client command line options");
     desc.add_options()("help,h", "produces this help message")
         ("sizem,m",
@@ -67,6 +72,22 @@ int main(int argc, char* argv[])
 
         ("beta", 
           po::value<double>(&arg.beta)->default_value(0.0), "specifies the scalar beta")
+        
+        ("transposeA",
+          po::value<char>(&transA)->default_value('N'),
+          "N = no transpose, T = transpose")
+
+        ("indexbaseA",
+          po::value<int>(&baseA)->default_value(0),
+          "0 = zero-based indexing, 1 = one-based indexing, (default: 0)")
+
+//        ("diag",
+//          po::value<char>(&diag)->default_value('N'),
+//          "N = non-unit diagonal, U = unit diagonal, (default = N)")
+
+//        ("uplo",
+//          po::value<char>(&uplo)->default_value('L'),
+//          "L = lower fill, U = upper fill, (default = L)")
 
         ("function,f",
          po::value<std::string>(&function)->default_value("csrmv"),
@@ -94,12 +115,21 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    if(precision != 's' && precision != 'd' && precision != 'c' && precision != 'z')
+    if(precision != 's' && precision != 'd' )
     {
         std::cerr << "Invalid value for --precision" << std::endl;
         return -1;
     }
-    
+   
+    if(transA == 'N')
+    {
+        arg.transA = aoclsparse_operation_none;
+    }
+    else if(transA == 'T')
+    {
+        arg.transA = aoclsparse_operation_transpose;
+    }
+
     if(mtxfile != "")
     {
         strcpy(arg.filename, mtxfile.c_str());
