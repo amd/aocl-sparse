@@ -15,7 +15,7 @@ if [[ $? -ne 0 ]]; then
     exit 1;
 fi
 
-path=../../build/tests/staging
+path=../../build/release/tests/staging
 
 # Parse command line parameters
 getopt -T

@@ -208,9 +208,15 @@ inline void aoclsparse_init_coo_matrix(std::vector<aoclsparse_int>& row_ind,
     }
 
     // Uniform distributed row indices
+    aoclsparse_int occ_row_ind[M] ={0}, rand_row_ind;
     for(; i < nnz; ++i)
     {
-        row_ind[i] = random_generator<aoclsparse_int>(0, M - 1);
+        do
+        {
+            rand_row_ind = random_generator<aoclsparse_int>(0, M - 1);
+        }while(occ_row_ind[rand_row_ind] >= N);
+        row_ind[i] = rand_row_ind;
+        occ_row_ind[rand_row_ind]++;
     }
 
     // Sort row indices
@@ -623,6 +629,10 @@ inline void aoclsparse_init_csr_random(std::vector<aoclsparse_int>& row_ptr,
     if(!nnz)
         nnz = M * ((M > 1000 || N > 1000) ? 2.0 / std::max(M, N) : 0.02) * N;
 
+    // Exit with error if nnz is greater than size of matrix
+    if(nnz > M*N)
+        CHECK_AOCLSPARSE_ERROR(aoclsparse_status_invalid_size);
+    
     // Sample random matrix
     std::vector<aoclsparse_int> row_ind(nnz);
 
