@@ -109,9 +109,9 @@ void testing_csrmv(const Arguments& arg)
         for(int i = 0; i < M; i++)
         {
             T result = 0.0;
-            for(int j = hcsr_row_ptr[i] ; j < hcsr_row_ptr[i+1] ; j++)
+            for(int j = hcsr_row_ptr[i]-base ; j < hcsr_row_ptr[i+1]-base ; j++)
      	    {
-                result += h_alpha * hcsr_val[j] * hx[hcsr_col_ind[j]];
+                result += h_alpha * hcsr_val[j] * hx[hcsr_col_ind[j] - base];
 	        }
             hy_gold[i] = (h_beta * hy_gold[i]) + result;
         }

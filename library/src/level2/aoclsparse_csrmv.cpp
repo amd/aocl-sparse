@@ -49,9 +49,10 @@ extern "C" aoclsparse_status aoclsparse_scsrmv(aoclsparse_operation       trans,
     }
 
     // Check index base
-    if(descr->base != aoclsparse_index_base_zero && descr->base != aoclsparse_index_base_one)
+    if(descr->base != aoclsparse_index_base_zero)
     {
-        return aoclsparse_status_invalid_value;
+        // TODO
+        return aoclsparse_status_not_implemented;
     }
 
     if(descr->type != aoclsparse_matrix_type_general)
@@ -108,15 +109,13 @@ extern "C" aoclsparse_status aoclsparse_scsrmv(aoclsparse_operation       trans,
         return aoclsparse_status_invalid_pointer;
     }
     
-    return aoclsparse_csrmv(trans,
-                *alpha,
+    return aoclsparse_csrmv(*alpha,
                 m,
                 n,
                 nnz,
                 csr_val,
                 csr_col_ind,
                 csr_row_ptr,
-                descr,
                 x,
                 *beta,
                 y);
@@ -142,9 +141,10 @@ extern "C" aoclsparse_status aoclsparse_dcsrmv(aoclsparse_operation       trans,
     }
 
     // Check index base
-    if(descr->base != aoclsparse_index_base_zero && descr->base != aoclsparse_index_base_one)
+    if(descr->base != aoclsparse_index_base_zero)
     {
-        return aoclsparse_status_invalid_value;
+        // TODO
+        return aoclsparse_status_not_implemented;
     }
 
     if(descr->type != aoclsparse_matrix_type_general)
@@ -207,28 +207,24 @@ extern "C" aoclsparse_status aoclsparse_dcsrmv(aoclsparse_operation       trans,
     // (Mean nnz > 10) , we continue to invoke the vectorised version of csrmv , since
     // it improves performance.
     if(nnz/m <= 10)
-        return aoclsparse_csrmv_general(trans,
-                *alpha,
+        return aoclsparse_csrmv_general(*alpha,
                 m,
                 n,
                 nnz,
                 csr_val,
                 csr_col_ind,
                 csr_row_ptr,
-                descr,
                 x,
                 *beta,
                 y);
     else
-        return aoclsparse_csrmv_vectorized(trans,
-                *alpha,
+        return aoclsparse_csrmv_vectorized(*alpha,
                 m,
                 n,
                 nnz,
                 csr_val,
                 csr_col_ind,
                 csr_row_ptr,
-                descr,
                 x,
                 *beta,
                 y);

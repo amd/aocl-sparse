@@ -48,9 +48,10 @@ extern "C" aoclsparse_status aoclsparse_sellmv(aoclsparse_operation       trans,
     }
 
     // Check index base
-    if(descr->base != aoclsparse_index_base_zero && descr->base != aoclsparse_index_base_one)
+    if(descr->base != aoclsparse_index_base_zero)
     {
-        return aoclsparse_status_invalid_value;
+        // TODO
+        return aoclsparse_status_not_implemented;
     }
     if(descr->type != aoclsparse_matrix_type_general)
     {
@@ -108,15 +109,13 @@ extern "C" aoclsparse_status aoclsparse_sellmv(aoclsparse_operation       trans,
         return aoclsparse_status_invalid_pointer;
     }
     
-    return aoclsparse_ellmv(trans,
-                            *alpha,
+    return aoclsparse_ellmv(*alpha,
                             m,
                             n,
                             nnz,
                             ell_val,
                             ell_col_ind,
                             ell_width,
-                            descr,
                             x,
                             *beta,
                             y);
@@ -141,9 +140,10 @@ extern "C" aoclsparse_status aoclsparse_dellmv(aoclsparse_operation       trans,
     }
 
     // Check index base
-    if(descr->base != aoclsparse_index_base_zero && descr->base != aoclsparse_index_base_one)
+    if(descr->base != aoclsparse_index_base_zero)
     {
-        return aoclsparse_status_invalid_value;
+        // TODO
+        return aoclsparse_status_not_implemented;
     }
     if(descr->type != aoclsparse_matrix_type_general)
     {
@@ -201,15 +201,13 @@ extern "C" aoclsparse_status aoclsparse_dellmv(aoclsparse_operation       trans,
         return aoclsparse_status_invalid_pointer;
     }
     
-    return aoclsparse_ellmv(trans,
-                            *alpha,
+    return aoclsparse_ellmv(*alpha,
                             m,
                             n,
                             nnz,
                             ell_val,
                             ell_col_ind,
                             ell_width,
-                            descr,
                             x,
                             *beta,
                             y);

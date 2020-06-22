@@ -130,6 +130,8 @@ int main(int argc, char* argv[])
         arg.transA = aoclsparse_operation_transpose;
     }
 
+    arg.baseA = (baseA == 0) ? aoclsparse_index_base_zero : aoclsparse_index_base_one;
+    
     if(mtxfile != "")
     {
         strcpy(arg.filename, mtxfile.c_str());

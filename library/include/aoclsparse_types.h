@@ -149,15 +149,11 @@ typedef enum aoclsparse_fill_mode_
 typedef enum aoclsparse_status_
 {
     aoclsparse_status_success         = 0, /**< success. */
-    aoclsparse_status_invalid_handle  = 1, /**< handle not initialized, invalid or null. */
-    aoclsparse_status_not_implemented = 2, /**< function is not implemented. */
-    aoclsparse_status_invalid_pointer = 3, /**< invalid pointer parameter. */
-    aoclsparse_status_invalid_size    = 4, /**< invalid size parameter. */
-    aoclsparse_status_memory_error    = 5, /**< failed memory allocation, copy, dealloc. */
-    aoclsparse_status_internal_error  = 6, /**< other internal library failure. */
-    aoclsparse_status_invalid_value   = 7, /**< invalid value parameter. */
-    aoclsparse_status_arch_mismatch   = 8, /**< device arch is not supported. */
-    aoclsparse_status_zero_pivot      = 9 /**< encountered zero pivot. */
+    aoclsparse_status_not_implemented = 1, /**< function is not implemented. */
+    aoclsparse_status_invalid_pointer = 2, /**< invalid pointer parameter. */
+    aoclsparse_status_invalid_size    = 3, /**< invalid size parameter. */
+    aoclsparse_status_internal_error  = 4, /**< other internal library failure. */
+    aoclsparse_status_invalid_value   = 5, /**< invalid value parameter. */
 } aoclsparse_status;
 
 #ifdef __cplusplus

@@ -90,7 +90,7 @@ void testing_ellmv(const Arguments& arg)
 
     // Convert CSR matrix to ELL
     csr_to_ell(
-            M, nnz, hcsr_row_ptr, hcsr_col_ind, hcsr_val, hell_col_ind, hell_val, ell_width );
+            M, nnz, hcsr_row_ptr, hcsr_col_ind, hcsr_val, hell_col_ind, hell_val, ell_width, base, base);
     if(arg.unit_check)
     {
         CHECK_AOCLSPARSE_ERROR(aoclsparse_ellmv(trans,
@@ -109,9 +109,9 @@ void testing_ellmv(const Arguments& arg)
         for(int i = 0; i < M; i++)
         {
             T result = 0.0;
-            for(int j = hcsr_row_ptr[i] ; j < hcsr_row_ptr[i+1] ; j++)
+            for(int j = hcsr_row_ptr[i] - base; j < hcsr_row_ptr[i+1] - base; j++)
 	        {
-                result += h_alpha * hcsr_val[j] * hx[hcsr_col_ind[j]];
+                result += h_alpha * hcsr_val[j] * hx[hcsr_col_ind[j] - base];
             }
             hy_gold[i] = (h_beta * hy_gold[i]) + result;
 

@@ -28,15 +28,13 @@
 #include <immintrin.h>
 
 
-aoclsparse_status aoclsparse_csrmv(aoclsparse_operation       trans,
-        const float               alpha,
+aoclsparse_status aoclsparse_csrmv(const float               alpha,
         aoclsparse_int             m,
         aoclsparse_int             n,
         aoclsparse_int             nnz,
         const float* __restrict__ csr_val,
         const aoclsparse_int* __restrict__ csr_col_ind,
         const aoclsparse_int* __restrict__ csr_row_ptr,
-        const aoclsparse_mat_descr descr,
         const float* __restrict__ x,
         const float             beta,
         float* __restrict__        y)
@@ -125,15 +123,13 @@ aoclsparse_status aoclsparse_csrmv(aoclsparse_operation       trans,
     return aoclsparse_status_success;
 }
 
-aoclsparse_status aoclsparse_csrmv_general(aoclsparse_operation       trans,
-        const double               alpha,
+aoclsparse_status aoclsparse_csrmv_general(const double               alpha,
         aoclsparse_int             m,
         aoclsparse_int             n,
         aoclsparse_int             nnz,
         const double* __restrict__ csr_val,
         const aoclsparse_int* __restrict__ csr_col_ind,
         const aoclsparse_int* __restrict__ csr_row_ptr,
-        const aoclsparse_mat_descr descr,
         const double* __restrict__ x,
         const double             beta,
         double* __restrict__        y)
@@ -173,15 +169,13 @@ aoclsparse_status aoclsparse_csrmv_general(aoclsparse_operation       trans,
     return aoclsparse_status_success;
 }
 
-aoclsparse_status aoclsparse_csrmv_vectorized(aoclsparse_operation       trans,
-        const double               alpha,
+aoclsparse_status aoclsparse_csrmv_vectorized(const double               alpha,
         aoclsparse_int             m,
         aoclsparse_int             n,
         aoclsparse_int             nnz,
         const double* __restrict__ csr_val,
         const aoclsparse_int* __restrict__ csr_col_ind,
         const aoclsparse_int* __restrict__ csr_row_ptr,
-        const aoclsparse_mat_descr descr,
         const double* __restrict__ x,
         const double             beta,
         double* __restrict__        y)

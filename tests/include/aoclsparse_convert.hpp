@@ -43,7 +43,9 @@ inline void csr_to_ell(aoclsparse_int                     M,
                             const std::vector<T>&             csr_val,
                             std::vector<aoclsparse_int>&       ell_col_ind,
                             std::vector<T>&                   ell_val,
-                            aoclsparse_int&                    ell_width)
+                            aoclsparse_int&                    ell_width,
+                            aoclsparse_index_base              csr_base,
+                            aoclsparse_index_base              ell_base)
 {
     // Determine ELL width
     ell_width = 0;
@@ -71,14 +73,14 @@ inline void csr_to_ell(aoclsparse_int                     M,
     for(aoclsparse_int i = 0; i < M; ++i)
     {
         aoclsparse_int p = i * ell_width ;
-        aoclsparse_int row_begin = csr_row_ptr[i] ;
-        aoclsparse_int row_end   = csr_row_ptr[i + 1] ;
+        aoclsparse_int row_begin = csr_row_ptr[i] - csr_base;
+        aoclsparse_int row_end   = csr_row_ptr[i + 1] - csr_base;
         aoclsparse_int row_nnz   = row_end - row_begin;
 
         // Fill ELL matrix with data
         for(aoclsparse_int j = row_begin; j < row_end; ++j,++p)
         {
-            ell_col_ind[p] = csr_col_ind[j] ;
+            ell_col_ind[p] = csr_col_ind[j] - csr_base + ell_base;
             ell_val[p]     = csr_val[j];
         }
 

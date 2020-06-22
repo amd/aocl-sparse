@@ -44,16 +44,12 @@ inline const char* aoclsparse_status_to_string(aoclsparse_status status)
     {
     case aoclsparse_status_success:
         return "aoclsparse_status_success";
-    case aoclsparse_status_invalid_handle:
-        return "aoclsparse_status_invalid_handle";
     case aoclsparse_status_not_implemented:
         return "aoclsparse_status_not_implemented";
     case aoclsparse_status_invalid_pointer:
         return "aoclsparse_status_invalid_pointer";
     case aoclsparse_status_invalid_size:
         return "aoclsparse_status_invalid_size";
-    case aoclsparse_status_memory_error:
-        return "aoclsparse_status_memory_error";
     case aoclsparse_status_internal_error:
         return "aoclsparse_status_internal_error";
     default:
