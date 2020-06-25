@@ -23,7 +23,7 @@ url=(https://sparse.tamu.edu/MM/Williams
      https://sparse.tamu.edu/MM/Hamm
 )
 
-for i in {0..9}; do
+for i in {0..8}; do
     m=${matrices[${i}]}
     u=${url[${i}]}
     if [ ! -f ${m}.csr ]; then

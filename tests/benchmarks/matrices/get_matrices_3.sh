@@ -21,7 +21,7 @@ url=(https://sparse.tamu.edu/MM/GHS_psdef
      https://sparse.tamu.edu/MM/Muite
 )
 
-for i in {0..8}; do
+for i in {0..7}; do
     m=${matrices[${i}]}
     u=${url[${i}]}
     if [ ! -f ${m}.csr ]; then

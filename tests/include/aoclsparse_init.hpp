@@ -208,7 +208,8 @@ inline void aoclsparse_init_coo_matrix(std::vector<aoclsparse_int>& row_ind,
     }
 
     // Uniform distributed row indices
-    aoclsparse_int occ_row_ind[M] ={0}, rand_row_ind;
+    aoclsparse_int rand_row_ind;
+    std::vector<aoclsparse_int> occ_row_ind(M, 0);
     for(; i < nnz; ++i)
     {
         do
