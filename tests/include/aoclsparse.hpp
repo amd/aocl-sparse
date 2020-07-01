@@ -22,7 +22,7 @@
  * ************************************************************************ */
 
 /*! \file
- *  \brief rocsparse.hpp exposes C++ templated Sparse Linear Algebra interface
+ *  \brief aoclsparse.hpp exposes C++ templated Sparse Linear Algebra interface
  *  with only the precision templated.
  */
 

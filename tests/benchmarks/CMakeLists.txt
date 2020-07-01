@@ -40,16 +40,16 @@ if(NOT Boost_FOUND)
   endif()
 endif()
 
-set(ROCSPARSE_BENCHMARK_SOURCES
+set(AOCLSPARSE_BENCHMARK_SOURCES
   client.cpp
 )
 
-set(ROCSPARSE_CLIENTS_COMMON
+set(AOCLSPARSE_CLIENTS_COMMON
   ../common/utility.cpp
   ../common/aoclsparse_template_specialization.cpp
 )
 
-add_executable(aoclsparse-bench ${ROCSPARSE_BENCHMARK_SOURCES} ${ROCSPARSE_CLIENTS_COMMON})
+add_executable(aoclsparse-bench ${AOCLSPARSE_BENCHMARK_SOURCES} ${AOCLSPARSE_CLIENTS_COMMON})
 
 # Internal header includes
 target_include_directories(aoclsparse-bench
