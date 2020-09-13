@@ -45,6 +45,7 @@ struct Arguments
     aoclsparse_int N;
     aoclsparse_int K;
     aoclsparse_int nnz;
+    aoclsparse_int block_dim;
 
     aoclsparse_datatype compute_type;
 

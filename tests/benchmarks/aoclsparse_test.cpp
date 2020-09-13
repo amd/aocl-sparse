@@ -26,8 +26,10 @@
 // Level2
 #include "testing_diamv.hpp"
 #include "testing_sycsrmv.hpp"
+#include "testing_bsrmv.hpp"
 #include "testing_ellmv.hpp"
 #include "testing_csrmv.hpp"
+
 #include <boost/program_options.hpp>
 #include <iostream>
 
@@ -65,6 +67,10 @@ int main(int argc, char* argv[])
          "Specific vector size testing, LEVEL-1: the number of non-zero elements "
          "of the sparse vector.")
 
+        ("blockdim",
+         po::value<aoclsparse_int>(&arg.block_dim)->default_value(2),
+         "BSR block dimension (default: 2)")
+
         ("mtx",
          po::value<std::string>(&mtxfile)->default_value(""), "read from matrix "
          "market (.mtx) format. This will override parameters -m, -n, and -z.")
@@ -94,7 +100,7 @@ int main(int argc, char* argv[])
         ("function,f",
          po::value<std::string>(&function)->default_value("csrmv"),
          "SPARSE function to test. Options:\n"
-         "  Level2: csrmv ellmv diamv csrsymv")
+         "  Level2: csrmv ellmv diamv csrsymv bsrmv")
 
         ("precision,r",
          po::value<char>(&precision)->default_value('d'), "Options: s,d")
@@ -182,7 +188,13 @@ int main(int argc, char* argv[])
         else if(precision == 's')
             testing_csrmv<float>(arg);
     }
-
+    else if(function == "bsrmv")
+    {
+        if(precision == 's')
+            testing_bsrmv<float>(arg);
+        else if(precision == 'd')
+            testing_bsrmv<double>(arg);
+    }
     else
     {
         std::cerr << "Invalid value for --function" << std::endl;

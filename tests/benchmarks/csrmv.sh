@@ -65,6 +65,10 @@ truncate -s 0 $logname
 
 # Run csrmv for all matrices in ./matrices/matrixlist
 while IFS= read -r filename; do
-    echo "numactl --physcpubind=4 $bench -f csrmv --precision d --alpha 1 --beta 0 --iters 1 --mtx $filename --verify 1"
-    numactl --physcpubind=4 $bench -f csrmv --precision d --alpha 1 --beta 0 --iters 1 --mtx $filename --verify 1 2>&1 | tee -a $logname
+    echo "numactl --physcpubind=4 $bench -f bsrmv --precision d --alpha 1 --beta 0 --iters 1 --mtx $filename --verify 1"
+    numactl --physcpubind=4 $bench -f bsrmv --blockdim 2 --precision d --alpha 1 --beta 0 --iters 1 --mtx $filename --verify 1 2>&1 | tee -a $logname
+    numactl --physcpubind=4 $bench -f bsrmv --blockdim 3 --precision d --alpha 1 --beta 0 --iters 1 --mtx $filename --verify 1 2>&1 | tee -a $logname
+    numactl --physcpubind=4 $bench -f bsrmv --blockdim 4 --precision d --alpha 1 --beta 0 --iters 1 --mtx $filename --verify 1 2>&1 | tee -a $logname
+    numactl --physcpubind=4 $bench -f bsrmv --blockdim 5 --precision d --alpha 1 --beta 0 --iters 1 --mtx $filename --verify 1 2>&1 | tee -a $logname
+    numactl --physcpubind=4 $bench -f bsrmv --blockdim 6 --precision d --alpha 1 --beta 0 --iters 1 --mtx $filename --verify 1 2>&1 | tee -a $logname
 done < ./matrices/matrixlist

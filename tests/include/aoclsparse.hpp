@@ -79,5 +79,18 @@ aoclsparse_status aoclsparse_diamv(aoclsparse_operation       trans,
                                 const T*            beta,
                                 T*                   y );
 
+template <typename T>
+aoclsparse_status aoclsparse_bsrmv(aoclsparse_operation       trans,
+                                const T*              alpha,
+                                aoclsparse_int             mb,
+                                aoclsparse_int             nb,
+                                aoclsparse_int             bsr_dim,
+                                const T*              bsr_val,
+                                const aoclsparse_int*      bsr_col_ind,
+                                const aoclsparse_int*      bsr_row_ptr,
+                                const aoclsparse_mat_descr descr,
+                                const T*             x,
+                                const T*             beta,
+                                T*                   y);
 
 #endif // AOCLSPARSE_HPP

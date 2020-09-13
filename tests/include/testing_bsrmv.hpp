@@ -22,8 +22,8 @@
  * ************************************************************************ */
 
 #pragma once
-#ifndef TESTING_ELLMV_HPP
-#define TESTING_ELLMV_HPP
+#ifndef TESTING_BSRMV_HPP
+#define TESTING_BSRMV_HPP
 
 #include "aoclsparse.hpp"
 #include "aoclsparse_flops.hpp"
@@ -37,17 +37,17 @@
 #include "aoclsparse_convert.hpp"
 
 template <typename T>
-void testing_ellmv(const Arguments& arg)
+void testing_bsrmv(const Arguments& arg)
 {
     aoclsparse_int         M         = arg.M;
     aoclsparse_int         N         = arg.N;
     aoclsparse_int         nnz       = arg.nnz;
-    aoclsparse_matrix_init mat       = arg.matrix;
     aoclsparse_operation   trans     = arg.transA;
     aoclsparse_index_base  base      = arg.baseA;
-    bool issymm;
+    aoclsparse_matrix_init mat       = arg.matrix;
     std::string           filename = arg.filename;
-
+    aoclsparse_int bsr_dim = arg.block_dim;
+    bool issymm;
     T alpha = static_cast<T>(arg.alpha);
     T beta  = static_cast<T>(arg.beta);
 
@@ -61,11 +61,17 @@ void testing_ellmv(const Arguments& arg)
     std::vector<aoclsparse_int> csr_row_ptr;
     std::vector<aoclsparse_int> csr_col_ind;
     std::vector<T>             csr_val;
-    std::vector<aoclsparse_int> ell_col_ind;
-    std::vector<T>             ell_val;
-    aoclsparse_int              ell_width;
-    aoclsparse_seedrand();
 
+    aoclsparse_seedrand();
+#if 0
+    // Print aoclsparse version
+    int  ver;
+
+    aoclsparse_get_version(&ver);
+
+    std::cout << "aocl-sparse version: " << ver / 100000 << "." << ver / 100 % 1000 << "."
+        << ver % 100 << std::endl;
+#endif
     // Sample matrix
     aoclsparse_init_csr_matrix(csr_row_ptr,
             csr_col_ind,
@@ -89,19 +95,42 @@ void testing_ellmv(const Arguments& arg)
     aoclsparse_init<T>(y, 1, M, 1);
     y_gold = y;
 
-    // Convert CSR matrix to ELL
-    csr_to_ell(
-            M, nnz, csr_row_ptr, csr_col_ind, csr_val, ell_col_ind, ell_val, ell_width, base, base);
+    // Update BSR block dimensions from generated matrix
+    aoclsparse_int mb = (M + bsr_dim - 1) / bsr_dim;
+    aoclsparse_int nb = (N + bsr_dim - 1) / bsr_dim;
+    // Convert CSR to BSR
+    aoclsparse_int                nnzb;
+    std::vector<aoclsparse_int> bsr_row_ptr(mb + 1);
+
+    csr_to_bsr_nnz(
+            bsr_dim , M, N, mb , nb , base , csr_row_ptr.data(), csr_col_ind.data(), base, bsr_row_ptr.data(), &nnzb);
+
+    std::vector<aoclsparse_int> bsr_col_ind(nnzb);
+    std::vector<T>             bsr_val(nnzb * bsr_dim * bsr_dim);
+    csr_to_bsr<T >(M,
+            N,
+            mb,
+            nb,
+            bsr_dim,
+            base,
+            csr_val.data(),
+            csr_row_ptr.data(),
+            csr_col_ind.data(),
+            base,
+            bsr_val.data(),
+            bsr_row_ptr.data(),
+            bsr_col_ind.data());
+
     if(arg.unit_check)
     {
-        CHECK_AOCLSPARSE_ERROR(aoclsparse_ellmv(trans,
+        CHECK_AOCLSPARSE_ERROR(aoclsparse_bsrmv(trans,
                     &alpha,
-                    M,
-                    N,
-                    nnz,
-                    ell_val.data(),
-                    ell_col_ind.data(),
-                    ell_width,
+                    mb,
+                    nb,
+                    bsr_dim,
+                    bsr_val.data(),
+                    bsr_col_ind.data(),
+                    bsr_row_ptr.data(),
                     descr,
                     x.data(),
                     &beta,
@@ -110,12 +139,11 @@ void testing_ellmv(const Arguments& arg)
         for(int i = 0; i < M; i++)
         {
             T result = 0.0;
-            for(int j = csr_row_ptr[i] - base; j < csr_row_ptr[i+1] - base; j++)
+            for(int j = csr_row_ptr[i]-base ; j < csr_row_ptr[i+1]-base ; j++)
             {
                 result += alpha * csr_val[j] * x[csr_col_ind[j] - base];
             }
             y_gold[i] = (beta * y_gold[i]) + result;
-
         }
         near_check_general<T>(1, M, 1, y_gold.data(), y.data());
     }
@@ -127,26 +155,26 @@ void testing_ellmv(const Arguments& arg)
     for(int iter = 0; iter < number_hot_calls; ++iter)
     {
         double cpu_time_start = aoclsparse_clock();
-        CHECK_AOCLSPARSE_ERROR(aoclsparse_ellmv(trans,
+        CHECK_AOCLSPARSE_ERROR(aoclsparse_bsrmv(trans,
                     &alpha,
-                    M,
-                    N,
-                    nnz,
-                    ell_val.data(),
-                    ell_col_ind.data(),
-                    ell_width,
+                    mb,
+                    nb,
+                    bsr_dim,
+                    bsr_val.data(),
+                    bsr_col_ind.data(),
+                    bsr_row_ptr.data(),
                     descr,
                     x.data(),
                     &beta,
                     y.data()));
-        cpu_time_used = aoclsparse_clock_min_diff(cpu_time_used , cpu_time_start );
+        cpu_time_used = aoclsparse_clock_min_diff( cpu_time_used, cpu_time_start );
     }
 
 
     double cpu_gflops
         = spmv_gflop_count<T>(M, nnz, beta != static_cast<T>(0)) / cpu_time_used ;
     double cpu_gbyte
-        = ellmv_gbyte_count<T>(M, N, nnz, beta != static_cast<T>(0)) / cpu_time_used ;
+        = csrmv_gbyte_count<T>(M, N, nnz, beta != static_cast<T>(0)) / cpu_time_used ;
 
     std::cout.precision(2);
     std::cout.setf(std::ios::fixed);
@@ -166,4 +194,4 @@ void testing_ellmv(const Arguments& arg)
         << (arg.unit_check ? "yes" : "no") << std::endl;
 }
 
-#endif // TESTING_ELLMV_HPP
+#endif // TESTING_CSRMV_HPP
