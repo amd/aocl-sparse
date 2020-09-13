@@ -4,7 +4,7 @@
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sdia
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  * 
@@ -22,8 +22,8 @@
  * ************************************************************************ */
 
 #pragma once
-#ifndef TESTING_DIAMV_HPP
-#define TESTING_DIAMV_HPP
+#ifndef TESTING_SYCSRMV_HPP
+#define TESTING_SYCSRMV_HPP
 
 #include "aoclsparse.hpp"
 #include "aoclsparse_flops.hpp"
@@ -34,39 +34,70 @@
 #include "aoclsparse_check.hpp"
 #include "aoclsparse_utility.hpp"
 #include "aoclsparse_random.hpp"
-#include "aoclsparse_convert.hpp"
+
+/* ==================================================================================== */
+/*! \brief  Test function for symmetric CSR SPMV */
+// Reads General/Symmetric sparse matrices in matrix market format
+// Invokes aoclsparse_csrmv with descr set to symmetric/general according to input
+// Verifies againts reference output, captures time, displays gflops , bandwidth
 
 template <typename T>
-void testing_diamv(const Arguments& arg)
+void testing_sycsrmv(const Arguments& arg)
 {
     aoclsparse_int         M         = arg.M;
     aoclsparse_int         N         = arg.N;
+    aoclsparse_int         nnz_gen       = arg.nnz;
     aoclsparse_int         nnz       = arg.nnz;
-    aoclsparse_matrix_init mat       = arg.matrix;
     aoclsparse_operation   trans     = arg.transA;
     aoclsparse_index_base  base      = arg.baseA;
-    bool issymm;    
+    aoclsparse_matrix_init mat       = arg.matrix;
     std::string           filename = arg.filename; 
-
-    T alpha = static_cast<T>(arg.alpha);
-    T beta  = static_cast<T>(arg.beta);
+    bool issymm;
+    T h_alpha = static_cast<T>(arg.alpha);
+    T h_beta  = static_cast<T>(arg.beta);
 
     // Create matrix descriptor
     aoclsparse_local_mat_descr descr;
 
     // Set matrix index base
     CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mat_index_base(descr, base));
+    // Create matrix descriptor
+    aoclsparse_local_mat_descr rdescr;
+
+    // Set matrix index base
+    CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mat_index_base(rdescr, base));
 
     // Allocate memory for matrix
+    std::vector<aoclsparse_int> hcsr_row_ptr;
+    std::vector<aoclsparse_int> hcsr_col_ind;
+    std::vector<T>             hcsr_val;
     std::vector<aoclsparse_int> csr_row_ptr;
     std::vector<aoclsparse_int> csr_col_ind;
-    std::vector<T>              csr_val;
-    std::vector<aoclsparse_int> dia_offset;
-    std::vector<T>              dia_val;
-    aoclsparse_int              dia_num_diag;
-    aoclsparse_seedrand();
+    std::vector<T>             csr_val;
 
+    aoclsparse_seedrand();
+#if 0
+    // Print aoclsparse version
+    int  ver;
+
+    aoclsparse_get_version(&ver);
+
+    std::cout << "aocl-sparse version: " << ver / 100000 << "." << ver / 100 % 1000 << "."
+        << ver % 100 << std::endl;
+#endif
     // Sample matrix
+    aoclsparse_init_csr_matrix(hcsr_row_ptr,
+            hcsr_col_ind,
+            hcsr_val,
+            M,
+            N,
+            nnz_gen,
+            base,
+            mat,
+            filename.c_str(),
+            issymm,
+            true);
+
     aoclsparse_init_csr_matrix(csr_row_ptr,
             csr_col_ind,
             csr_val,
@@ -77,47 +108,45 @@ void testing_diamv(const Arguments& arg)
             mat,
             filename.c_str(),
             issymm,
-            true);
-
+            false);
+    if(issymm == true)
+        aoclsparse_set_mat_type(descr , aoclsparse_matrix_type_symmetric);
+    else
+        aoclsparse_set_mat_type(descr , aoclsparse_matrix_type_general);
     // Allocate memory for vectors
-    std::vector<T> x(N);
-    std::vector<T> y(M);
-    std::vector<T> y_gold(M);
+    std::vector<T> hx(N);
+    std::vector<T> hy(M);
+    std::vector<T> hy_gold(M);
 
     // Initialize data
-    aoclsparse_init<T>(x, 1, N, 1);
-    aoclsparse_init<T>(y, 1, M, 1);
-    y_gold = y; 
-
-    // Convert CSR matrix to DIA
-    csr_to_dia(
-            M, N, nnz, csr_row_ptr, csr_col_ind, csr_val, dia_offset, dia_val, dia_num_diag, base);
+    aoclsparse_init<T>(hx, 1, N, 1);
+    aoclsparse_init<T>(hy, 1, M, 1);
+    hy_gold = hy; 
     if(arg.unit_check)
     {
-        CHECK_AOCLSPARSE_ERROR(aoclsparse_diamv(trans,
-                    &alpha,
+        CHECK_AOCLSPARSE_ERROR(aoclsparse_csrmv(trans,
+                    &h_alpha,
                     M,
                     N,
                     nnz,
-                    dia_val.data(),
-                    dia_offset.data(),
-                    dia_num_diag,
+                    csr_val.data(),
+                    csr_col_ind.data(),
+                    csr_row_ptr.data(),
                     descr,
-                    x.data(),
-                    &beta,
-                    y.data()));
+                    hx.data(),
+                    &h_beta,
+                    hy.data()));
         // Reference SPMV CSR implementation
         for(int i = 0; i < M; i++)
         {
             T result = 0.0;
-            for(int j = csr_row_ptr[i] - base; j < csr_row_ptr[i+1] - base; j++)
+            for(int j = hcsr_row_ptr[i]-base ; j < hcsr_row_ptr[i+1]-base ; j++)
             {
-                result += alpha * csr_val[j] * x[csr_col_ind[j] - base];
+                result += h_alpha * hcsr_val[j] * hx[hcsr_col_ind[j] - base];
             }
-            y_gold[i] = (beta * y_gold[i]) + result;
-
+            hy_gold[i] = (h_beta * hy_gold[i]) + result;
         }
-        near_check_general<T>(1, M, 1, y_gold.data(), y.data());
+        near_check_general<T>(1, M, 1, hy_gold.data(), hy.data());
     }
     int number_hot_calls  = arg.iters;
 
@@ -127,26 +156,26 @@ void testing_diamv(const Arguments& arg)
     for(int iter = 0; iter < number_hot_calls; ++iter)
     {
         double cpu_time_start = aoclsparse_clock();
-        CHECK_AOCLSPARSE_ERROR(aoclsparse_diamv(trans,
-                    &alpha,
+        CHECK_AOCLSPARSE_ERROR(aoclsparse_csrmv(trans,
+                    &h_alpha,
                     M,
                     N,
                     nnz,
-                    dia_val.data(),
-                    dia_offset.data(),
-                    dia_num_diag,
+                    csr_val.data(),
+                    csr_col_ind.data(),
+                    csr_row_ptr.data(),
                     descr,
-                    x.data(),
-                    &beta,
-                    y.data()));
+                    hx.data(),
+                    &h_beta,
+                    hy.data()));
         cpu_time_used = aoclsparse_clock_min_diff(cpu_time_used , cpu_time_start );
     }
 
 
     double cpu_gflops
-        = spmv_gflop_count<T>(M, nnz, beta != static_cast<T>(0)) / cpu_time_used ;
+        = spmv_gflop_count<T>(M, nnz_gen, h_beta != static_cast<T>(0)) / cpu_time_used ;
     double cpu_gbyte
-        = csrmv_gbyte_count<T>(M, N, nnz, beta != static_cast<T>(0)) / cpu_time_used ;
+        = csrmv_gbyte_count<T>(M, N, nnz_gen, h_beta != static_cast<T>(0)) / cpu_time_used ;
 
     std::cout.precision(2);
     std::cout.setf(std::ios::fixed);
@@ -159,11 +188,11 @@ void testing_diamv(const Arguments& arg)
         << "verified" << std::endl;
 
     std::cout << std::setw(12) << M << std::setw(12) << N << std::setw(12) << nnz
-        << std::setw(12) << alpha << std::setw(12) << beta << std::setw(12)
+        << std::setw(12) << h_alpha << std::setw(12) << h_beta << std::setw(12)
         << cpu_gflops
         << std::setw(12) << cpu_gbyte << std::setw(12) << cpu_time_used * 1e3
         << std::setw(12) << number_hot_calls << std::setw(12)
         << (arg.unit_check ? "yes" : "no") << std::endl;
 } 
 
-#endif // TESTING_DIAMV_HPP
+#endif // TESTING_SYCSRMV_HPP

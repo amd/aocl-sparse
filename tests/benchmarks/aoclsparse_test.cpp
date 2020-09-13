@@ -1,16 +1,16 @@
 /* ************************************************************************
  * Copyright (c) 2020 Advanced Micro Devices, Inc.All rights reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,13 +18,14 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
- * 
+ *
  * ************************************************************************ */
 
 #include <aoclsparse.h>
 
 // Level2
 #include "testing_diamv.hpp"
+#include "testing_sycsrmv.hpp"
 #include "testing_ellmv.hpp"
 #include "testing_csrmv.hpp"
 #include <boost/program_options.hpp>
@@ -68,12 +69,12 @@ int main(int argc, char* argv[])
          po::value<std::string>(&mtxfile)->default_value(""), "read from matrix "
          "market (.mtx) format. This will override parameters -m, -n, and -z.")
 
-        ("alpha", 
+        ("alpha",
           po::value<double>(&arg.alpha)->default_value(1.0), "specifies the scalar alpha")
 
-        ("beta", 
+        ("beta",
           po::value<double>(&arg.beta)->default_value(0.0), "specifies the scalar beta")
-        
+
         ("transposeA",
           po::value<char>(&transA)->default_value('N'),
           "N = no transpose, T = transpose")
@@ -93,7 +94,7 @@ int main(int argc, char* argv[])
         ("function,f",
          po::value<std::string>(&function)->default_value("csrmv"),
          "SPARSE function to test. Options:\n"
-         "  Level2: csrmv ellmv diamv")
+         "  Level2: csrmv ellmv diamv csrsymv")
 
         ("precision,r",
          po::value<char>(&precision)->default_value('d'), "Options: s,d")
@@ -121,7 +122,7 @@ int main(int argc, char* argv[])
         std::cerr << "Invalid value for --precision" << std::endl;
         return -1;
     }
-   
+
     if(transA == 'N')
     {
         arg.transA = aoclsparse_operation_none;
@@ -132,7 +133,7 @@ int main(int argc, char* argv[])
     }
 
     arg.baseA = (baseA == 0) ? aoclsparse_index_base_zero : aoclsparse_index_base_one;
-    
+
     if(mtxfile != "")
     {
         strcpy(arg.filename, mtxfile.c_str());
@@ -172,6 +173,14 @@ int main(int argc, char* argv[])
             testing_diamv<float>(arg);
         else if(precision == 'd')
             testing_diamv<double>(arg);
+    }
+    else if(function == "csrsymv")
+    {
+        arg.algo = 1;
+        if(precision == 'd')
+            testing_csrmv<double>(arg);
+        else if(precision == 's')
+            testing_csrmv<float>(arg);
     }
 
     else

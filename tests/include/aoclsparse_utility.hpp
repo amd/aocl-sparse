@@ -30,6 +30,7 @@
 
 #include "aoclsparse.h"
 #include <string>
+#include <cfloat>
 
 
 /* ==================================================================================== */
@@ -65,9 +66,12 @@ std::string aoclsparse_exepath();
 
 /* ==================================================================================== */
 
-/*! \brief  CPU Timer(in microsecond): return wall time
- */
-double get_time_us(void);
+/*! \brief  CPU Timer(in second): return wall time
+*/
+double aoclsparse_clock( void );
+double aoclsparse_clock_min_diff( double time_min, double time_start );
+
+double aoclsparse_clock_helper( void );
 
 
 #endif // AOCLSPARSE_UTILITY_HPP

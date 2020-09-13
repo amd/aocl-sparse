@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -60,7 +60,7 @@ inline void csr_to_ell(aoclsparse_int                     M,
     aoclsparse_int ell_nnz = ell_width * M;
 
     // Limit ELL size to 5 times CSR nnz
-    if(ell_width > (5 * (nnz / M)))
+    if(ell_nnz > ( 5 * nnz ))
     {
         CHECK_AOCLSPARSE_ERROR(aoclsparse_status_internal_error);
     }
@@ -129,7 +129,7 @@ inline void csr_to_dia(aoclsparse_int                     M,
     aoclsparse_int size = (M > N) ? M : N;
     aoclsparse_int nnz_dia = size * dia_num_diag;
     // Conversion fails if DIA nnz exceeds 5 times CSR nnz
-    if(dia_num_diag > (5 * (nnz / size)))
+    if(nnz_dia > (5 * nnz))
     {
         CHECK_AOCLSPARSE_ERROR(aoclsparse_status_internal_error);
     }

@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020 Advanced Micro Devices, Inc. All rights reserved.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -66,20 +66,20 @@ void testing_csrmv(const Arguments& arg)
     aoclsparse_get_version(&ver);
 
     std::cout << "aocl-sparse version: " << ver / 100000 << "." << ver / 100 % 1000 << "."
-              << ver % 100 << std::endl;
+        << ver % 100 << std::endl;
 #endif
     // Sample matrix
     aoclsparse_init_csr_matrix(csr_row_ptr,
-                              csr_col_ind,
-                              csr_val,
-                              M,
-                              N,
-                              nnz,
-                              base,
-                              mat,
-                              filename.c_str(),
-			      issymm,
-                              true);
+            csr_col_ind,
+            csr_val,
+            M,
+            N,
+            nnz,
+            base,
+            mat,
+            filename.c_str(),
+            issymm,
+            true);
 
     // Allocate memory for vectors
     std::vector<T> x(N);
@@ -93,77 +93,73 @@ void testing_csrmv(const Arguments& arg)
     if(arg.unit_check)
     {
         CHECK_AOCLSPARSE_ERROR(aoclsparse_csrmv(trans,
-                                                 &alpha,
-                                                 M,
-                                                 N,
-                                                 nnz,
-                                                 csr_val.data(),
-                                                 csr_col_ind.data(),
-                                                 csr_row_ptr.data(),
-                                                 descr,
-                                                 x.data(),
-                                                 &beta,
-                                                 y.data()));
-	// Reference SPMV CSR implementation
+                    &alpha,
+                    M,
+                    N,
+                    nnz,
+                    csr_val.data(),
+                    csr_col_ind.data(),
+                    csr_row_ptr.data(),
+                    descr,
+                    x.data(),
+                    &beta,
+                    y.data()));
+        // Reference SPMV CSR implementation
         for(int i = 0; i < M; i++)
         {
             T result = 0.0;
             for(int j = csr_row_ptr[i]-base ; j < csr_row_ptr[i+1]-base ; j++)
-     	    {
+            {
                 result += alpha * csr_val[j] * x[csr_col_ind[j] - base];
-	        }
+            }
             y_gold[i] = (beta * y_gold[i]) + result;
         }
         near_check_general<T>(1, M, 1, y_gold.data(), y.data());
     }
-#if 1
     int number_hot_calls  = arg.iters;
 
-    double cpu_time_used = 1e9;
+    double cpu_time_used = DBL_MAX;
 
     // Performance run
     for(int iter = 0; iter < number_hot_calls; ++iter)
     {
-        double cpu_time_start = get_time_us();
+        double cpu_time_start = aoclsparse_clock();
         CHECK_AOCLSPARSE_ERROR(aoclsparse_csrmv(trans,
-                                                 &alpha,
-                                                 M,
-                                                 N,
-                                                 nnz,
-                                                 csr_val.data(),
-                                                 csr_col_ind.data(),
-                                                 csr_row_ptr.data(),
-                                                 descr,
-                                                 x.data(),
-                                                 &beta,
-                                                 y.data()));
-        double cpu_time_stop = get_time_us();
-        cpu_time_used = std::min(cpu_time_used , (cpu_time_stop - cpu_time_start) );
+                    &alpha,
+                    M,
+                    N,
+                    nnz,
+                    csr_val.data(),
+                    csr_col_ind.data(),
+                    csr_row_ptr.data(),
+                    descr,
+                    x.data(),
+                    &beta,
+                    y.data()));
+        cpu_time_used = aoclsparse_clock_min_diff( cpu_time_used, cpu_time_start );
     }
 
-
     double cpu_gflops
-        = spmv_gflop_count<T>(M, nnz, beta != static_cast<T>(0)) / cpu_time_used * 1e6;
+        = spmv_gflop_count<T>(M, nnz, beta != static_cast<T>(0)) / cpu_time_used ;
     double cpu_gbyte
-        = csrmv_gbyte_count<T>(M, N, nnz, beta != static_cast<T>(0)) / cpu_time_used * 1e6;
+        = csrmv_gbyte_count<T>(M, N, nnz, beta != static_cast<T>(0)) / cpu_time_used ;
 
     std::cout.precision(2);
     std::cout.setf(std::ios::fixed);
     std::cout.setf(std::ios::left);
 
     std::cout << std::setw(12) << "M" << std::setw(12) << "N" << std::setw(12) << "nnz"
-              << std::setw(12) << "alpha" << std::setw(12) << "beta" << std::setw(12)
-              << "GFlop/s" << std::setw(12) << "GB/s"
-              << std::setw(12) << "msec" << std::setw(12) << "iter" << std::setw(12)
-              << "verified" << std::endl;
+        << std::setw(12) << "alpha" << std::setw(12) << "beta" << std::setw(12)
+        << "GFlop/s" << std::setw(12) << "GB/s"
+        << std::setw(12) << "msec" << std::setw(12) << "iter" << std::setw(12)
+        << "verified" << std::endl;
 
     std::cout << std::setw(12) << M << std::setw(12) << N << std::setw(12) << nnz
-              << std::setw(12) << alpha << std::setw(12) << beta << std::setw(12)
-              << cpu_gflops
-              << std::setw(12) << cpu_gbyte << std::setw(12) << cpu_time_used / 1e3
-              << std::setw(12) << number_hot_calls << std::setw(12)
-              << (arg.unit_check ? "yes" : "no") << std::endl;
-#endif // TESTING_CSRMV_HPP
+        << std::setw(12) << alpha << std::setw(12) << beta << std::setw(12)
+        << cpu_gflops
+        << std::setw(12) << cpu_gbyte << std::setw(12) << cpu_time_used * 1e3
+        << std::setw(12) << number_hot_calls << std::setw(12)
+        << (arg.unit_check ? "yes" : "no") << std::endl;
 } 
 
 #endif // TESTING_CSRMV_HPP
