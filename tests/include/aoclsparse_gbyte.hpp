@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020 Advanced Micro Devices, Inc.All rights reserved.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,13 +21,13 @@
  * 
  * ************************************************************************ */
 /*! \file
- *  \brief gbyte.hpp provides data transfer counts of Sparse Linear Algebra Subprograms
- *  of Level 1, 2 and 3.
+ *  \brief aoclsparse_gbyte.hpp provides data transfer counts of Sparse 
+ * Linear Algebra Subprograms of Level 1, 2 and 3.
  */
 
 #pragma once
-#ifndef GBYTE_HPP
-#define GBYTE_HPP
+#ifndef AOCLSPARSE_GBYTE_HPP
+#define AOCLSPARSE_GBYTE_HPP
 
 #include <aoclsparse.h>
 
@@ -50,4 +50,4 @@ constexpr double
 {
     return (nnz * sizeof(aoclsparse_int) + (M + N + nnz + (beta ? M : 0)) * sizeof(T)) / 1e9;
 }
-#endif // GBYTE_HPP
+#endif // AOCLSPARSE_GBYTE_HPP

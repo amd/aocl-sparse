@@ -60,7 +60,7 @@ inline void csr_to_ell(aoclsparse_int                     M,
     aoclsparse_int ell_nnz = ell_width * M;
 
     // Limit ELL size to 5 times CSR nnz
-    if(ell_width > 5 * (nnz / M))
+    if(ell_width > (5 * (nnz / M)))
     {
         CHECK_AOCLSPARSE_ERROR(aoclsparse_status_internal_error);
     }
@@ -90,6 +90,75 @@ inline void csr_to_ell(aoclsparse_int                     M,
             ell_col_ind[p] = -1;
             ell_val[p]     = static_cast<T>(0);
 
+        }
+    }
+}
+
+template <typename T>
+inline void csr_to_dia(aoclsparse_int                     M,
+                       aoclsparse_int                     N,
+                       aoclsparse_int&                    nnz,
+                       const std::vector<aoclsparse_int>& csr_row_ptr,
+                       const std::vector<aoclsparse_int>& csr_col_ind,
+                       const std::vector<T>&              csr_val,
+                       std::vector<aoclsparse_int>&       dia_offset,
+                       std::vector<T>&                    dia_val,
+                       aoclsparse_int&                    dia_num_diag,
+                       aoclsparse_index_base              csr_base)
+{
+    // Determine number of populated diagonals
+    dia_num_diag = 0;
+
+    std::vector<aoclsparse_int> diag_idx(M + N, 0);
+
+    // Loop over rows and increment ndiag counter if diag offset has not been visited yet
+    for(aoclsparse_int i = 0; i < M; ++i)
+    {
+        for(aoclsparse_int j = csr_row_ptr[i]; j < csr_row_ptr[i + 1]; ++j)
+        {
+            // Diagonal offset the current entry belongs to
+            aoclsparse_int offset = csr_col_ind[j] - i + M;
+            if(diag_idx[offset] == 0)
+            {
+                diag_idx[offset] = 1;
+                ++dia_num_diag;
+            }
+        }
+    }
+
+    aoclsparse_int size = (M > N) ? M : N;
+    aoclsparse_int nnz_dia = size * dia_num_diag;
+    // Conversion fails if DIA nnz exceeds 5 times CSR nnz
+    if(dia_num_diag > (5 * (nnz / size)))
+    {
+        CHECK_AOCLSPARSE_ERROR(aoclsparse_status_internal_error);
+    }
+    // Allocate DIA matrix
+    dia_offset.resize(dia_num_diag);
+    dia_val.resize(nnz_dia);
+
+    for(aoclsparse_int i = 0, d = 0; i < (M + N); ++i)
+    {
+        // Fill DIA offset, if i-th diagonal is populated
+        if(diag_idx[i])
+        {
+            // Store offset index for reverse index access
+            diag_idx[i] = d;
+            // Store diagonals offset, where the diagonal is offset 0
+            // Left from diagonal offsets are decreasing
+            // Right from diagonal offsets are increasing
+            dia_offset[d++] = i - M;
+        }
+    }
+
+    for(aoclsparse_int i = 0; i < M; ++i)
+    {
+        for(aoclsparse_int j = csr_row_ptr[i]; j < csr_row_ptr[i + 1]; ++j)
+        {
+            // Diagonal offset the current entry belongs to
+            aoclsparse_int offset = csr_col_ind[j] - i + M;
+
+            dia_val[i + M * diag_idx[offset]] = csr_val[j];
         }
     }
 }

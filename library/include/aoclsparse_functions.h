@@ -453,6 +453,100 @@ aoclsparse_status aoclsparse_dellmv(aoclsparse_operation       trans,
                                    double*                   y );
 /**@}*/
 
+
+/*! \ingroup level2_module
+ *  \brief Single & Double precision sparse matrix vector multiplication using DIA storage format
+ *
+ *  \details
+ *  \p aoclsparse_diamv multiplies the scalar \f$\alpha\f$ with a sparse \f$m \times n\f$
+ *  matrix, defined in DIA storage format, and the dense vector \f$x\f$ and adds the
+ *  result to the dense vector \f$y\f$ that is multiplied by the scalar \f$\beta\f$,
+ *  such that
+ *  \f[
+ *    y := \alpha \cdot op(A) \cdot x + \beta \cdot y,
+ *  \f]
+ *  with
+ *  \f[
+ *    op(A) = \left\{
+ *    \begin{array}{ll}
+ *        A,   & \text{if trans == aoclsparse_operation_none} \\
+ *        A^T, & \text{if trans == aoclsparse_operation_transpose} \\
+ *        A^H, & \text{if trans == aoclsparse_operation_conjugate_transpose}
+ *    \end{array}
+ *    \right.
+ *  \f]
+ *
+ *  \note
+ *  Currently, only \p trans == \ref aoclsparse_operation_none is supported.
+ *
+ *  @param[in]
+ *  trans       matrix operation type.
+ *  @param[in]
+ *  alpha       scalar \f$\alpha\f$.
+ *  @param[in]
+ *  m           number of rows of the sparse DIA matrix.
+ *  @param[in]
+ *  n           number of columns of the sparse DIA matrix.
+ *  @param[in]
+ *  nnz         number of non-zero entries of the sparse DIA matrix.
+ *  @param[in]
+ *  descr       descriptor of the sparse DIA matrix. Currently, only
+ *              \ref aoclsparse_matrix_type_general is supported.
+ *  @param[in]
+ *  dia_val     array that contains the elements of the sparse DIA matrix. Padded
+ *              elements should be zero.
+ *  @param[in]
+ *  dia_offset  array that contains the offsets of each diagonal of the sparse DIAL matrix.
+ *
+ *  @param[in]
+ *  dia_num_diag  number of diagonals in the sparse DIA matrix.
+ *  @param[in]
+ *  x           array of \p n elements (\f$op(A) == A\f$) or \p m elements
+ *              (\f$op(A) == A^T\f$ or \f$op(A) == A^H\f$).
+ *  @param[in]
+ *  beta        scalar \f$\beta\f$.
+ *  @param[inout]
+ *  y           array of \p m elements (\f$op(A) == A\f$) or \p n elements
+ *              (\f$op(A) == A^T\f$ or \f$op(A) == A^H\f$).
+ *
+ *  \retval     aoclsparse_status_success the operation completed successfully.
+ *  \retval     aoclsparse_status_invalid_size \p m, \p n or \p ell_width is invalid.
+ *  \retval     aoclsparse_status_invalid_pointer \p descr, \p alpha, \p ell_val,
+ *              \p ell_col_ind, \p x, \p beta or \p y pointer is invalid.
+ *  \retval     aoclsparse_status_not_implemented
+ *              \p trans != \ref aoclsparse_operation_none or
+ *              \ref aoclsparse_matrix_type != \ref aoclsparse_matrix_type_general.
+ */
+/**@{*/
+__attribute__((__visibility__("default")))
+aoclsparse_status aoclsparse_sdiamv(aoclsparse_operation       trans,
+                                 const float*              alpha,
+                                 aoclsparse_int             m,
+                                 aoclsparse_int             n,
+                                 aoclsparse_int             nnz,
+                                 const float*              dia_val,
+                                 const aoclsparse_int*      dia_offset,
+                                 aoclsparse_int      dia_num_diag,
+                                 const aoclsparse_mat_descr descr,
+                                 const float*             x,
+                                 const float*            beta,
+                                 float*                   y );
+
+__attribute__((__visibility__("default")))
+aoclsparse_status aoclsparse_ddiamv(aoclsparse_operation       trans,
+                                 const double*              alpha,
+                                 aoclsparse_int             m,
+                                 aoclsparse_int             n,
+                                 aoclsparse_int             nnz,
+                                 const double*              dia_val,
+                                 const aoclsparse_int*      dia_offset,
+                                 aoclsparse_int      dia_num_diag,
+                                 const aoclsparse_mat_descr descr,
+                                 const double*             x,
+                                 const double*            beta,
+                                 double*                   y );
+/**@}*/
+
 #ifdef __cplusplus
 }
 #endif

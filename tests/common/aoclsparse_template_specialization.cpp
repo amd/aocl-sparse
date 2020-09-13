@@ -139,3 +139,62 @@ aoclsparse_status aoclsparse_ellmv(aoclsparse_operation       trans,
                             y);
 
 }
+
+template <>
+aoclsparse_status aoclsparse_diamv(aoclsparse_operation       trans,
+                                const float*              alpha,
+                                aoclsparse_int             m,
+                                aoclsparse_int             n,
+                                aoclsparse_int             nnz,
+                                const float*              dia_val,
+                                const aoclsparse_int*      dia_offset,
+                                aoclsparse_int      dia_num_diag,
+                                const aoclsparse_mat_descr descr,
+                                const float*             x,
+                                const float*            beta,
+                                float*                   y )
+{
+    return aoclsparse_sdiamv(trans,
+                            alpha,
+                            m,
+                            n,
+                            nnz,
+                            dia_val,
+                            dia_offset,
+                            dia_num_diag,
+                            descr,
+                            x,
+                            beta,
+                            y);
+
+}
+
+template <>
+aoclsparse_status aoclsparse_diamv(aoclsparse_operation       trans,
+                                const double*              alpha,
+                                aoclsparse_int             m,
+                                aoclsparse_int             n,
+                                aoclsparse_int             nnz,
+                                const double*              dia_val,
+                                const aoclsparse_int*      dia_offset,
+                                aoclsparse_int      dia_num_diag,
+                                const aoclsparse_mat_descr descr,
+                                const double*             x,
+                                const double*            beta,
+                                double*                   y )
+{
+    return aoclsparse_ddiamv(trans,
+                            alpha,
+                            m,
+                            n,
+                            nnz,
+                            dia_val,
+                            dia_offset,
+                            dia_num_diag,
+                            descr,
+                            x,
+                            beta,
+                            y);
+
+}
+

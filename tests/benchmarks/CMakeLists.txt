@@ -41,11 +41,11 @@ if(NOT Boost_FOUND)
 endif()
 
 set(AOCLSPARSE_BENCHMARK_SOURCES
-  client.cpp
+  aoclsparse_test.cpp
 )
 
 set(AOCLSPARSE_CLIENTS_COMMON
-  ../common/utility.cpp
+  ../common/aoclsparse_utility.cpp
   ../common/aoclsparse_template_specialization.cpp
 )
 

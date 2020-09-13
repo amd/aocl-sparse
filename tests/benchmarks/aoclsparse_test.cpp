@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020 Advanced Micro Devices, Inc.All rights reserved.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,6 +24,7 @@
 #include <aoclsparse.h>
 
 // Level2
+#include "testing_diamv.hpp"
 #include "testing_ellmv.hpp"
 #include "testing_csrmv.hpp"
 #include <boost/program_options.hpp>
@@ -46,7 +47,7 @@ int main(int argc, char* argv[])
     char          uplo;
     aoclsparse_int dir;
     char          apol;
-    po::options_description desc("aoclsparse client command line options");
+    po::options_description desc("aoclsparse test command line options");
     desc.add_options()("help,h", "produces this help message")
         ("sizem,m",
          po::value<aoclsparse_int>(&arg.M)->default_value(128),
@@ -92,7 +93,7 @@ int main(int argc, char* argv[])
         ("function,f",
          po::value<std::string>(&function)->default_value("csrmv"),
          "SPARSE function to test. Options:\n"
-         "  Level2: csrmv ellmv")
+         "  Level2: csrmv ellmv diamv")
 
         ("precision,r",
          po::value<char>(&precision)->default_value('d'), "Options: s,d")
@@ -164,6 +165,15 @@ int main(int argc, char* argv[])
         else if(precision == 'd')
             testing_ellmv<double>(arg);
     }
+    else if(function == "diamv")
+    {
+        arg.algo = 1;
+        if(precision == 's')
+            testing_diamv<float>(arg);
+        else if(precision == 'd')
+            testing_diamv<double>(arg);
+    }
+
     else
     {
         std::cerr << "Invalid value for --function" << std::endl;

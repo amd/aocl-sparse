@@ -4,7 +4,7 @@
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sdia
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  * 
@@ -22,8 +22,8 @@
  * ************************************************************************ */
 
 #pragma once
-#ifndef TESTING_CSRMV_HPP
-#define TESTING_CSRMV_HPP
+#ifndef TESTING_DIAMV_HPP
+#define TESTING_DIAMV_HPP
 
 #include "aoclsparse.hpp"
 #include "aoclsparse_flops.hpp"
@@ -34,17 +34,20 @@
 #include "aoclsparse_check.hpp"
 #include "aoclsparse_utility.hpp"
 #include "aoclsparse_random.hpp"
+#include "aoclsparse_convert.hpp"
+
 template <typename T>
-void testing_csrmv(const Arguments& arg)
+void testing_diamv(const Arguments& arg)
 {
     aoclsparse_int         M         = arg.M;
     aoclsparse_int         N         = arg.N;
     aoclsparse_int         nnz       = arg.nnz;
+    aoclsparse_matrix_init mat       = arg.matrix;
     aoclsparse_operation   trans     = arg.transA;
     aoclsparse_index_base  base      = arg.baseA;
-    aoclsparse_matrix_init mat       = arg.matrix;
+    bool issymm;    
     std::string           filename = arg.filename; 
-    bool issymm;
+
     T alpha = static_cast<T>(arg.alpha);
     T beta  = static_cast<T>(arg.beta);
 
@@ -54,20 +57,15 @@ void testing_csrmv(const Arguments& arg)
     // Set matrix index base
     CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mat_index_base(descr, base));
 
+    // Allocate memory for matrix
     std::vector<aoclsparse_int> csr_row_ptr;
     std::vector<aoclsparse_int> csr_col_ind;
-    std::vector<T>             csr_val;
-
+    std::vector<T>              csr_val;
+    std::vector<aoclsparse_int> dia_offset;
+    std::vector<T>              dia_val;
+    aoclsparse_int              dia_num_diag;
     aoclsparse_seedrand();
-#if 0
-    // Print aoclsparse version
-    int  ver;
 
-    aoclsparse_get_version(&ver);
-
-    std::cout << "aocl-sparse version: " << ver / 100000 << "." << ver / 100 % 1000 << "."
-              << ver % 100 << std::endl;
-#endif
     // Sample matrix
     aoclsparse_init_csr_matrix(csr_row_ptr,
                               csr_col_ind,
@@ -78,8 +76,8 @@ void testing_csrmv(const Arguments& arg)
                               base,
                               mat,
                               filename.c_str(),
-			      issymm,
-                              true);
+            			      issymm,
+            			      true);
 
     // Allocate memory for vectors
     std::vector<T> x(N);
@@ -90,16 +88,20 @@ void testing_csrmv(const Arguments& arg)
     aoclsparse_init<T>(x, 1, N, 1);
     aoclsparse_init<T>(y, 1, M, 1);
     y_gold = y; 
+
+    // Convert CSR matrix to DIA
+    csr_to_dia(
+            M, N, nnz, csr_row_ptr, csr_col_ind, csr_val, dia_offset, dia_val, dia_num_diag, base);
     if(arg.unit_check)
     {
-        CHECK_AOCLSPARSE_ERROR(aoclsparse_csrmv(trans,
+        CHECK_AOCLSPARSE_ERROR(aoclsparse_diamv(trans,
                                                  &alpha,
                                                  M,
                                                  N,
                                                  nnz,
-                                                 csr_val.data(),
-                                                 csr_col_ind.data(),
-                                                 csr_row_ptr.data(),
+                                                 dia_val.data(),
+                                                 dia_offset.data(),
+                                                 dia_num_diag,
                                                  descr,
                                                  x.data(),
                                                  &beta,
@@ -108,15 +110,15 @@ void testing_csrmv(const Arguments& arg)
         for(int i = 0; i < M; i++)
         {
             T result = 0.0;
-            for(int j = csr_row_ptr[i]-base ; j < csr_row_ptr[i+1]-base ; j++)
-     	    {
+            for(int j = csr_row_ptr[i] - base; j < csr_row_ptr[i+1] - base; j++)
+	        {
                 result += alpha * csr_val[j] * x[csr_col_ind[j] - base];
-	        }
+            }
             y_gold[i] = (beta * y_gold[i]) + result;
+
         }
         near_check_general<T>(1, M, 1, y_gold.data(), y.data());
     }
-#if 1
     int number_hot_calls  = arg.iters;
 
     double cpu_time_used = 1e9;
@@ -125,14 +127,14 @@ void testing_csrmv(const Arguments& arg)
     for(int iter = 0; iter < number_hot_calls; ++iter)
     {
         double cpu_time_start = get_time_us();
-        CHECK_AOCLSPARSE_ERROR(aoclsparse_csrmv(trans,
+        CHECK_AOCLSPARSE_ERROR(aoclsparse_diamv(trans,
                                                  &alpha,
                                                  M,
                                                  N,
                                                  nnz,
-                                                 csr_val.data(),
-                                                 csr_col_ind.data(),
-                                                 csr_row_ptr.data(),
+                                                 dia_val.data(),
+                                                 dia_offset.data(),
+                                                 dia_num_diag,
                                                  descr,
                                                  x.data(),
                                                  &beta,
@@ -163,7 +165,6 @@ void testing_csrmv(const Arguments& arg)
               << std::setw(12) << cpu_gbyte << std::setw(12) << cpu_time_used / 1e3
               << std::setw(12) << number_hot_calls << std::setw(12)
               << (arg.unit_check ? "yes" : "no") << std::endl;
-#endif // TESTING_CSRMV_HPP
 } 
 
-#endif // TESTING_CSRMV_HPP
+#endif // TESTING_DIAMV_HPP

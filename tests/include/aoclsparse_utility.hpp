@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020 Advanced Micro Devices, Inc.All rights reserved.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,46 +20,54 @@
  * THE SOFTWARE.
  * 
  * ************************************************************************ */
+/*! \file
+ *  \brief aoclsparse_utility.hpp provides common utilities
+ */
 
-#include "utility.hpp"
-#include "aoclsparse_random.hpp"
-#include <cstdlib>
-#include <cstring>
-#include <sys/time.h>
+#pragma once
+#ifndef AOCLSPARSE_UTILITY_HPP
+#define AOCLSPARSE_UTILITY_HPP
 
-// Random number generator
-// Note: We do not use random_device to initialize the RNG, because we want
-// repeatability in case of test failure. TODO: Add seed as an optional CLI
-// argument, and print the seed on output, to ensure repeatability.
-aoclsparse_rng_t aoclsparse_rng(69069);
-aoclsparse_rng_t aoclsparse_seed(aoclsparse_rng);
-/* ============================================================================================ */
-// Return path of this executable
-std::string aoclsparse_exepath()
+#include "aoclsparse.h"
+#include <string>
+
+
+/* ==================================================================================== */
+/*! \brief  local matrix descriptor which is automatically created and destroyed  */
+class aoclsparse_local_mat_descr
 {
-    std::string pathstr;
-    char*       path = realpath("/proc/self/exe", 0);
-    if(path)
+    aoclsparse_mat_descr descr;
+
+public:
+    aoclsparse_local_mat_descr()
     {
-        char* p = strrchr(path, '/');
-        if(p)
-        {
-            p[1]    = 0;
-            pathstr = path;
-        }
-        free(path);
+        aoclsparse_create_mat_descr(&descr);
     }
-    return pathstr;
-}
+    ~aoclsparse_local_mat_descr()
+    {
+        aoclsparse_destroy_mat_descr(descr);
+    }
 
-/* ============================================================================================ */
-/*  timing:*/
-
-/*! \brief  CPU Timer(in microsecond): synchronize with the default device and return wall time */
-double get_time_us(void)
-{
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    return (tv.tv_sec * 1000 * 1000) + tv.tv_usec;
+    // Allow aoclsparse_local_mat_descr to be used anywhere aoclsparse_mat_descr is expected
+    operator aoclsparse_mat_descr&()
+    {
+        return descr;
+    }
+    operator const aoclsparse_mat_descr&() const
+    {
+        return descr;
+    }
 };
 
+/* ============================================================================================ */
+// Return path of this executable
+std::string aoclsparse_exepath();
+
+/* ==================================================================================== */
+
+/*! \brief  CPU Timer(in microsecond): return wall time
+ */
+double get_time_us(void);
+
+
+#endif // AOCLSPARSE_UTILITY_HPP

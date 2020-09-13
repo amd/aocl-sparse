@@ -20,26 +20,46 @@
  * THE SOFTWARE.
  * 
  * ************************************************************************ */
-/*! \file
- *  \brief flops.hpp provides floating point counts of Sparse Linear Algebra Subprograms
- *  of Level 1, 2 and 3.
- */
 
-#pragma once
-#ifndef FLOPS_HPP
-#define FLOPS_HPP
+#include "aoclsparse_utility.hpp"
+#include "aoclsparse_random.hpp"
+#include <cstdlib>
+#include <cstring>
+#include <sys/time.h>
 
-#include <aoclsparse.h>
-
-/*
- *===========================================================================
- *    level 2 SPARSE
- * ===========================================================================
- */
-template <typename T>
-constexpr double spmv_gflop_count(aoclsparse_int M, aoclsparse_int nnz, bool beta = false)
+// Random number generator
+// Note: We do not use random_device to initialize the RNG, because we want
+// repeatability in case of test failure. TODO: Add seed as an optional CLI
+// argument, and print the seed on output, to ensure repeatability.
+aoclsparse_rng_t aoclsparse_rng(69069);
+aoclsparse_rng_t aoclsparse_seed(aoclsparse_rng);
+/* ============================================================================================ */
+// Return path of this executable
+std::string aoclsparse_exepath()
 {
-    return (2.0 * nnz + (beta ? M : 0)) / 1e9;
+    std::string pathstr;
+    char*       path = realpath("/proc/self/exe", 0);
+    if(path)
+    {
+        char* p = strrchr(path, '/');
+        if(p)
+        {
+            p[1]    = 0;
+            pathstr = path;
+        }
+        free(path);
+    }
+    return pathstr;
 }
 
-#endif // FLOPS_HPP
+/* ============================================================================================ */
+/*  timing:*/
+
+/*! \brief  CPU Timer(in microsecond): synchronize with the default device and return wall time */
+double get_time_us(void)
+{
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return (tv.tv_sec * 1000 * 1000) + tv.tv_usec;
+};
+

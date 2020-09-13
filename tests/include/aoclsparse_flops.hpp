@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020 Advanced Micro Devices, Inc.All rights reserved.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,53 +21,25 @@
  * 
  * ************************************************************************ */
 /*! \file
- *  \brief utility.hpp provides common utilities
+ *  \brief aoclsparse_flops.hpp provides floating point counts of Sparse 
+ *  Linear Algebra Subprograms of Level 1, 2 and 3.
  */
 
 #pragma once
-#ifndef UTILITY_HPP
-#define UTILITY_HPP
+#ifndef AOCLSPARSE_FLOPS_HPP
+#define AOCLSPARSE_FLOPS_HPP
 
-#include "aoclsparse.h"
-#include <string>
+#include <aoclsparse.h>
 
-
-/* ==================================================================================== */
-/*! \brief  local matrix descriptor which is automatically created and destroyed  */
-class aoclsparse_local_mat_descr
-{
-    aoclsparse_mat_descr descr;
-
-public:
-    aoclsparse_local_mat_descr()
-    {
-        aoclsparse_create_mat_descr(&descr);
-    }
-    ~aoclsparse_local_mat_descr()
-    {
-        aoclsparse_destroy_mat_descr(descr);
-    }
-
-    // Allow aoclsparse_local_mat_descr to be used anywhere aoclsparse_mat_descr is expected
-    operator aoclsparse_mat_descr&()
-    {
-        return descr;
-    }
-    operator const aoclsparse_mat_descr&() const
-    {
-        return descr;
-    }
-};
-
-/* ============================================================================================ */
-// Return path of this executable
-std::string aoclsparse_exepath();
-
-/* ==================================================================================== */
-
-/*! \brief  CPU Timer(in microsecond): return wall time
+/*
+ *===========================================================================
+ *    level 2 SPARSE
+ * ===========================================================================
  */
-double get_time_us(void);
+template <typename T>
+constexpr double spmv_gflop_count(aoclsparse_int M, aoclsparse_int nnz, bool beta = false)
+{
+    return (2.0 * nnz + (beta ? M : 0)) / 1e9;
+}
 
-
-#endif // UTILITY_HPP
+#endif // AOCLSPARSE_FLOPS_HPP
