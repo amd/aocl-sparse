@@ -20,7 +20,6 @@
  * THE SOFTWARE.
  *
  * ************************************************************************ */
-
 #include <aoclsparse.h>
 
 // Level2
@@ -76,26 +75,26 @@ int main(int argc, char* argv[])
          "market (.mtx) format. This will override parameters -m, -n, and -z.")
 
         ("alpha",
-          po::value<double>(&arg.alpha)->default_value(1.0), "specifies the scalar alpha")
+         po::value<double>(&arg.alpha)->default_value(1.0), "specifies the scalar alpha")
 
         ("beta",
-          po::value<double>(&arg.beta)->default_value(0.0), "specifies the scalar beta")
+         po::value<double>(&arg.beta)->default_value(0.0), "specifies the scalar beta")
 
         ("transposeA",
-          po::value<char>(&transA)->default_value('N'),
-          "N = no transpose, T = transpose")
+         po::value<char>(&transA)->default_value('N'),
+         "N = no transpose, T = transpose")
 
         ("indexbaseA",
-          po::value<int>(&baseA)->default_value(0),
-          "0 = zero-based indexing, 1 = one-based indexing, (default: 0)")
+         po::value<int>(&baseA)->default_value(0),
+         "0 = zero-based indexing, 1 = one-based indexing, (default: 0)")
 
-//        ("diag",
-//          po::value<char>(&diag)->default_value('N'),
-//          "N = non-unit diagonal, U = unit diagonal, (default = N)")
+        //        ("diag",
+        //          po::value<char>(&diag)->default_value('N'),
+        //          "N = non-unit diagonal, U = unit diagonal, (default = N)")
 
-//        ("uplo",
-//          po::value<char>(&uplo)->default_value('L'),
-//          "L = lower fill, U = upper fill, (default = L)")
+        //        ("uplo",
+        //          po::value<char>(&uplo)->default_value('L'),
+        //          "L = lower fill, U = upper fill, (default = L)")
 
         ("function,f",
          po::value<std::string>(&function)->default_value("csrmv"),
@@ -150,7 +149,7 @@ int main(int argc, char* argv[])
         arg.matrix = aoclsparse_matrix_random;
     }
     /* ============================================================================================
-    */
+     */
     if(arg.M < 0 || arg.N < 0)
     {
         std::cerr << "Invalid dimension" << std::endl;

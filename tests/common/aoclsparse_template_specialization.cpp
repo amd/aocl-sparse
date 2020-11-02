@@ -253,3 +253,46 @@ aoclsparse_status aoclsparse_bsrmv(aoclsparse_operation       trans,
 
 }
 
+template <>
+aoclsparse_status aoclsparse_csrsv(aoclsparse_operation       trans,
+                                const float*              alpha,
+                                aoclsparse_int             m,
+                                const float*              csr_val,
+                                const aoclsparse_int*      csr_col_ind,
+                                const aoclsparse_int*      csr_row_ptr,
+                                const aoclsparse_mat_descr descr,
+                                const float*             x,
+                                float*                  y )
+{
+    return aoclsparse_scsrsv(trans,
+                            alpha,
+                            m,
+                            csr_val,
+                            csr_col_ind,
+                            csr_row_ptr,
+                            descr,
+                            x,
+                            y);
+}
+
+template <>
+aoclsparse_status aoclsparse_csrsv(aoclsparse_operation       trans,
+                                  const double*              alpha,
+                                  aoclsparse_int             m,
+                                  const double*              csr_val,
+                                  const aoclsparse_int*      csr_col_ind,
+                                  const aoclsparse_int*      csr_row_ptr,
+                                  const aoclsparse_mat_descr descr,
+                                  const double*             x,
+                                  double*                  y )
+{
+    return aoclsparse_dcsrsv(trans,
+                            alpha,
+                            m,
+                            csr_val,
+                            csr_col_ind,
+                            csr_row_ptr,
+                            descr,
+                            x,
+                            y);
+}

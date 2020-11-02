@@ -92,5 +92,15 @@ aoclsparse_status aoclsparse_bsrmv(aoclsparse_operation       trans,
                                 const T*             x,
                                 const T*             beta,
                                 T*                   y);
+template <typename T>
+aoclsparse_status aoclsparse_csrsv(aoclsparse_operation       trans,
+                               const T*              alpha,
+                               aoclsparse_int             m,
+                               const T*              csr_val,
+                               const aoclsparse_int*      csr_col_ind,
+                               const aoclsparse_int*      csr_row_ptr,
+                               const aoclsparse_mat_descr descr,
+                               const T*             x,
+                               T*                  y );
 
 #endif // AOCLSPARSE_HPP

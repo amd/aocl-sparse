@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -647,6 +647,93 @@ aoclsparse_status aoclsparse_dbsrmv(aoclsparse_operation       trans,
                                     double*                   y
                                     );
 
+/**@}*/
+
+/*! \ingroup level2_module
+ *  \brief Sparse triangular solve using CSR storage format for single and double
+ *      data precisions.
+ *
+ *  \details
+ *  \p aoclsparse_csrsv solves a sparse triangular linear system of a sparse
+ *  \f$m \times m\f$ matrix, defined in CSR storage format, a dense solution vector
+ *  \f$y\f$ and the right-hand side \f$x\f$ that is multiplied by \f$\alpha\f$, such that
+ *  \f[
+ *    op(A) \cdot y = \alpha \cdot x,
+ *  \f]
+ *  with
+ *  \f[
+ *    op(A) = \left\{
+ *    \begin{array}{ll}
+ *        A,   & \text{if trans == aoclsparse_operation_none} \\
+ *        A^T, & \text{if trans == aoclsparse_operation_transpose} \\
+ *        A^H, & \text{if trans == aoclsparse_operation_conjugate_transpose}
+ *    \end{array}
+ *    \right.
+ *  \f]
+ *
+ *  \note
+ *  Currently, only \p trans == \ref aoclsparse_operation_none is supported.
+ *
+ *  \note
+ *  The sparse CSR matrix has to be sorted.
+ *
+ *  @param[in]
+ *  trans       matrix operation type.
+ *  @param[in]
+ *  alpha       scalar \f$\alpha\f$.
+ *  @param[in]
+ *  m           number of rows of the sparse CSR matrix.
+ *  @param[in]
+ *  csr_val     array of \p nnz elements of the sparse CSR matrix.
+ *  @param[in]
+ *  csr_row_ptr array of \p m+1 elements that point to the start
+ *              of every row of the sparse CSR matrix.
+ *  @param[in]
+ *  csr_col_ind array of \p nnz elements containing the column indices of the sparse
+ *              CSR matrix.
+ *  @param[in]
+ *  descr       descriptor of the sparse CSR matrix.
+ *  @param[in]
+ *  x           array of \p m elements, holding the right-hand side.
+ *  @param[out]
+ *  y           array of \p m elements, holding the solution.
+ *
+ *  \retval     aoclsparse_status_success the operation completed successfully.
+ *  \retval     aoclsparse_status_invalid_size \p m is invalid.
+ *  \retval     aoclsparse_status_invalid_pointer \p descr, \p alpha, \p csr_val,
+ *              \p csr_row_ptr, \p csr_col_ind, \p x or \p y pointer is invalid.
+ *  \retval     aoclsparse_status_internal_error an internal error occurred.
+ *  \retval     aoclsparse_status_not_implemented
+ *              \p trans == \ref aoclsparse_operation_conjugate_transpose or
+ *              \p trans == \ref aoclsparse_operation_transpose or
+ *              \ref aoclsparse_matrix_type != \ref aoclsparse_matrix_type_general.
+ *
+ */
+/**@{*/
+__attribute__((__visibility__("default")))
+aoclsparse_status aoclsparse_scsrsv(aoclsparse_operation       trans,
+                                  const float*              alpha,
+                                  aoclsparse_int             m,
+                                  const float*              csr_val,
+                                  const aoclsparse_int*      csr_col_ind,
+                                  const aoclsparse_int*      csr_row_ptr,
+                                  const aoclsparse_mat_descr descr,
+                                  const float*             x,
+                                  float*                  y
+                               );
+
+
+__attribute__((__visibility__("default")))
+aoclsparse_status aoclsparse_dcsrsv(aoclsparse_operation       trans,
+                                  const double*              alpha,
+                                  aoclsparse_int             m,
+                                  const double*              csr_val,
+                                  const aoclsparse_int*      csr_col_ind,
+                                  const aoclsparse_int*      csr_row_ptr,
+                                  const aoclsparse_mat_descr descr,
+                                  const double*             x,
+                                  double*                  y
+                               );
 /**@}*/
 
 #ifdef __cplusplus

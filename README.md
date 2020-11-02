@@ -11,7 +11,7 @@ Optional:
 ## Quickstart aocl-sparse build and install
 
 #### CMake
-All compiler specifications are determined automatically. 
+All compiler specifications are determined automatically.
 
 After cloning aocl-sparse, Go to aocl-sparse directory, create and go to the build directory
 ```

@@ -339,4 +339,57 @@ void csr_to_bsr(aoclsparse_int              m,
     }
 }
 
+template <typename T>
+void csr_to_csc(aoclsparse_int                     M,
+                aoclsparse_int                     N,
+                aoclsparse_int                     nnz,
+                const std::vector<aoclsparse_int>& csr_row_ptr,
+                const std::vector<aoclsparse_int>& csr_col_ind,
+                const std::vector<T>&              csr_val,
+                std::vector<aoclsparse_int>&       csc_row_ind,
+                std::vector<aoclsparse_int>&       csc_col_ptr,
+                std::vector<T>&                    csc_val,
+                aoclsparse_index_base              base)
+{
+    csc_row_ind.resize(nnz);
+    csc_col_ptr.resize(N + 1, 0);
+    csc_val.resize(nnz);
+
+    // Determine nnz per column
+    for(aoclsparse_int i = 0; i < nnz; ++i)
+    {
+        ++csc_col_ptr[csr_col_ind[i] + 1 - base];
+    }
+
+    // Scan
+    for(aoclsparse_int i = 0; i < N; ++i)
+    {
+        csc_col_ptr[i + 1] += csc_col_ptr[i];
+    }
+
+    // Fill row indices and values
+    for(aoclsparse_int i = 0; i < M; ++i)
+    {
+        aoclsparse_int row_begin = csr_row_ptr[i] - base;
+        aoclsparse_int row_end   = csr_row_ptr[i + 1] - base;
+
+        for(aoclsparse_int j = row_begin; j < row_end; ++j)
+        {
+            aoclsparse_int col = csr_col_ind[j] - base;
+            aoclsparse_int idx = csc_col_ptr[col];
+
+            csc_row_ind[idx] = i + base;
+            csc_val[idx]     = csr_val[j];
+
+            ++csc_col_ptr[col];
+        }
+    }
+    // Shift column pointer array
+    for(aoclsparse_int i = N; i > 0; --i)
+    {
+        csc_col_ptr[i] = csc_col_ptr[i - 1] + base;
+    }
+
+    csc_col_ptr[0] = base;
+}
 #endif // AOCLSPARSE_CONVERT_HPP
