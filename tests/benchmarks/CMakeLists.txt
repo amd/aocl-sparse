@@ -21,24 +21,9 @@
 #
 # ########################################################################
 
-set(Boost_USE_MULTITHREADED ON)
-set(Boost_DETAILED_FAILURE_MSG ON)
-set(Boost_ADDITIONAL_VERSIONS 1.65.1 1.65)
-set(Boost_USE_STATIC_LIBS OFF)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 
 find_package(Threads REQUIRED)
-find_package(Boost COMPONENTS program_options)
-
-if(NOT Boost_FOUND)
-  message(STATUS "Dynamic boost libraries not found. Attempting to find static libraries...")
-  set(Boost_USE_STATIC_LIBS ON)
-  find_package(Boost COMPONENTS program_options)
-
-  if(NOT Boost_FOUND)
-    message(FATAL_ERROR "boost is a required dependency and is not found; try adding boost path to CMAKE_PREFIX_PATH")
-  endif()
-endif()
 
 set(AOCLSPARSE_BENCHMARK_SOURCES
   aoclsparse_test.cpp
@@ -70,7 +55,7 @@ endif()
 if(NOT TARGET aoclsparse)
   target_link_libraries(aoclsparse-bench PRIVATE ${AOCLSPARSE_LIBRARIES})
 else()
-  target_link_libraries(aoclsparse-bench PRIVATE aocl::aoclsparse ${Boost_PROGRAM_OPTIONS_LIBRARY})
+  target_link_libraries(aoclsparse-bench PRIVATE aocl::aoclsparse)
 endif()
 
 

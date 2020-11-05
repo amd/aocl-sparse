@@ -22,9 +22,7 @@
  * ************************************************************************ */
 
 /*! \file
- *  \brief aoclsparse_arguments.hpp provides a class to parse command arguments in both,
- *  clients and gtest. If class structure is changed, aoclsparse_common.yaml must also be
- *  changed.
+ *  \brief aoclsparse_arguments.hpp provides a class to parse command arguments in clients
  */
 
 #pragma once
@@ -47,8 +45,6 @@ struct Arguments
     aoclsparse_int nnz;
     aoclsparse_int block_dim;
 
-    aoclsparse_datatype compute_type;
-
     double alpha;
     double beta;
 
@@ -63,68 +59,8 @@ struct Arguments
     aoclsparse_int timing;
     aoclsparse_int iters;
 
-
-    uint32_t algo;
-
     char filename[64];
     char function[64];
-    char name[64];
-    char category[32];
-
-    // Validate input format.
-    // aoclsparse_gentest.py is expected to conform to this format.
-    // aoclsparse_gentest.py uses aoclsparse_common.yaml to generate this format.
-    static void validate(std::istream& ifs)
-    {
-        auto error = [](auto name) {
-            std::cerr << "Arguments field " << name << " does not match format.\n\n"
-                      << "Fatal error: Binary test data does match input format.\n"
-                         "Ensure that aoclsparse_arguments.hpp and aoclsparse_common.yaml\n"
-                         "define exactly the same Arguments, that aoclsparse_gentest.py\n"
-                         "generates the data correctly, and that endianness is the same.\n";
-            abort();
-        };
-
-        char      header[10]{}, trailer[10]{};
-        Arguments arg{};
-        ifs.read(header, sizeof(header));
-        ifs >> arg;
-        ifs.read(trailer, sizeof(trailer));
-
-        if(strcmp(header, "aoclSPARSE"))
-            error("header");
-        else if(strcmp(trailer, "AOCLsparse"))
-            error("trailer");
-
-        auto check_func = [&, sig = (unsigned char)0](const auto& elem, auto name) mutable {
-            static_assert(sizeof(elem) <= 255,
-                          "One of the fields of Arguments is too large (> 255 bytes)");
-            for(unsigned char i = 0; i < sizeof(elem); ++i)
-                if(reinterpret_cast<const unsigned char*>(&elem)[i] ^ sig ^ i)
-                    error(name);
-            sig += 89;
-        };
-
-#define AOCLSPARSE_FORMAT_CHECK(x) check_func(arg.x, #x)
-
-        // Order is important
-        AOCLSPARSE_FORMAT_CHECK(M);
-        AOCLSPARSE_FORMAT_CHECK(N);
-        AOCLSPARSE_FORMAT_CHECK(K);
-        AOCLSPARSE_FORMAT_CHECK(nnz);
-        AOCLSPARSE_FORMAT_CHECK(compute_type);
-        AOCLSPARSE_FORMAT_CHECK(alpha);
-        AOCLSPARSE_FORMAT_CHECK(beta);
-        AOCLSPARSE_FORMAT_CHECK(matrix);
-        AOCLSPARSE_FORMAT_CHECK(unit_check);
-        AOCLSPARSE_FORMAT_CHECK(timing);
-        AOCLSPARSE_FORMAT_CHECK(iters);
-        AOCLSPARSE_FORMAT_CHECK(algo);
-        AOCLSPARSE_FORMAT_CHECK(filename);
-        AOCLSPARSE_FORMAT_CHECK(function);
-        AOCLSPARSE_FORMAT_CHECK(name);
-        AOCLSPARSE_FORMAT_CHECK(category);
-    }
 
 private:
 
@@ -184,42 +120,6 @@ private:
         str << std::quoted(s);
     }
 
-    // Function to print Arguments out to stream in YAML format
-    // Google Tests uses this automatically to dump parameters
-    friend std::ostream& operator<<(std::ostream& str, const Arguments& arg)
-    {
-        // delim starts as '{' opening brace and becomes ',' afterwards
-        auto print = [&, delim = '{'](const char* name, auto x) mutable {
-            str << delim << " " << name << ": ";
-            print_value(str, x);
-            delim = ',';
-        };
-
-        print("function", arg.function);
-        print("compute_type", aoclsparse_datatype2string(arg.compute_type));
-        print("M", arg.M);
-        print("N", arg.N);
-        print("nnz", arg.nnz);
-        print("alpha", arg.alpha);
-        print("beta", arg.beta);
-        print("matrix", aoclsparse_matrix2string(arg.matrix));
-        print("file", arg.filename);
-        print("algo", arg.algo);
-        print("name", arg.name);
-        print("category", arg.category);
-        print("unit_check", arg.unit_check);
-        print("timing", arg.timing);
-        print("iters", arg.iters);
-        return str << " }\n";
-    }
 };
-
-static_assert(std::is_standard_layout<Arguments>{},
-              "Arguments is not a standard layout type, and thus is "
-              "incompatible with C.");
-
-static_assert(std::is_trivial<Arguments>{},
-              "Arguments is not a trivial type, and thus is "
-              "incompatible with C.");
 
 #endif // AOCLSPARSE_ARGUMENTS_HPP

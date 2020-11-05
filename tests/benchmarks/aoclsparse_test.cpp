@@ -20,6 +20,18 @@
  * THE SOFTWARE.
  *
  * ************************************************************************ */
+/*! \file
+ *  \brief aoclsparse_test.cpp is the main test application which reads the
+ *  command line arguments and verifies the specific aoclsparse API's
+ *  and calculates flops and bandwdith data
+ *  Example to invoke test bench for CSR-SPMV with standard test input:
+ *  ./aoclsparse-bench --function=csrmv --precision=d
+ *      --alpha=1 --beta=0 --iters=1000 --mtx=<matrix_market_file_name>
+ *  Example to invoke test bench for CSR-SPMV on randomly generated matrix:
+ *  ./aoclsparse-bench --function=csrmv --precision=d --sizem=1000
+ *      --sizen=1000 --sizennz=4000 --verify=1
+ */
+
 #include <aoclsparse.h>
 
 // Level2
@@ -28,99 +40,84 @@
 #include "testing_bsrmv.hpp"
 #include "testing_ellmv.hpp"
 #include "testing_csrmv.hpp"
-
-#include <boost/program_options.hpp>
+#include "testing_csrsv.hpp"
 #include <iostream>
-
-namespace po = boost::program_options;
 
 int main(int argc, char* argv[])
 {
     Arguments arg;
-    arg.unit_check = 0;
-    arg.timing = 1;
-
-    std::string   function;
+    arg.unit_check = 0;//default value
+    arg.iters = 10;//default value
+    arg.M = 128; //default value
+    arg.N = 128; //default value
+    arg.nnz = 0; //default value
+    arg.block_dim = 2; //default value
+    arg.alpha = 1.0; //default value
+    arg.beta = 0.0; //default value
     std::string   mtxfile;
     char          precision = 'd';
-    char          transA;
-    int           baseA;
-    char          diag;
-    char          uplo;
-    aoclsparse_int dir;
-    char          apol;
-    po::options_description desc("aoclsparse test command line options");
-    desc.add_options()("help,h", "produces this help message")
-        ("sizem,m",
-         po::value<aoclsparse_int>(&arg.M)->default_value(128),
-         "Specific matrix size testing: sizem is only applicable to SPARSE-2 "
-         "& SPARSE-3: the number of rows.")
+    char          transA = 'N';
+    int           baseA = 0;
+    char          diag = 'N';
+    char          uplo = 'L';
+    strcpy(arg.function , "csrmv");
+    // Initialize command line
+    aoclsparse_command_line_args args(argc, argv);
 
-        ("sizen,n",
-         po::value<aoclsparse_int>(&arg.N)->default_value(128),
-         "Specific matrix/vector size testing: SPARSE-1: the length of the "
-         "dense vector. SPARSE-2 & SPARSE-3: the number of columns")
-
-        ("sizennz,z",
-         po::value<aoclsparse_int>(&arg.nnz)->default_value(0),
-         "Specific vector size testing, LEVEL-1: the number of non-zero elements "
-         "of the sparse vector.")
-
-        ("blockdim",
-         po::value<aoclsparse_int>(&arg.block_dim)->default_value(2),
-         "BSR block dimension (default: 2)")
-
-        ("mtx",
-         po::value<std::string>(&mtxfile)->default_value(""), "read from matrix "
-         "market (.mtx) format. This will override parameters -m, -n, and -z.")
-
-        ("alpha",
-         po::value<double>(&arg.alpha)->default_value(1.0), "specifies the scalar alpha")
-
-        ("beta",
-         po::value<double>(&arg.beta)->default_value(0.0), "specifies the scalar beta")
-
-        ("transposeA",
-         po::value<char>(&transA)->default_value('N'),
-         "N = no transpose, T = transpose")
-
-        ("indexbaseA",
-         po::value<int>(&baseA)->default_value(0),
-         "0 = zero-based indexing, 1 = one-based indexing, (default: 0)")
-
-        //        ("diag",
-        //          po::value<char>(&diag)->default_value('N'),
-        //          "N = non-unit diagonal, U = unit diagonal, (default = N)")
-
-        //        ("uplo",
-        //          po::value<char>(&uplo)->default_value('L'),
-        //          "L = lower fill, U = upper fill, (default = L)")
-
-        ("function,f",
-         po::value<std::string>(&function)->default_value("csrmv"),
-         "SPARSE function to test. Options:\n"
-         "  Level2: csrmv ellmv diamv csrsymv bsrmv")
-
-        ("precision,r",
-         po::value<char>(&precision)->default_value('d'), "Options: s,d")
-
-        ("verify,v",
-         po::value<aoclsparse_int>(&arg.unit_check)->default_value(0),
-         "Validate results ? 0 = No, 1 = Yes (default: No)")
-
-        ("iters,i",
-         po::value<aoclsparse_int>(&arg.iters)->default_value(10),
-         "Iterations to run inside timing loop");
-
-    po::variables_map vm;
-    po::store(po::parse_command_line(argc, argv, desc), vm);
-    po::notify(vm);
-
-    if(vm.count("help") || (argc == 1))
+    if(args.aoclsparse_check_cmdline_flag("help") || (argc == 1))
     {
-        std::cout << desc << std::endl;
+        printf(
+                "aoclsparse test command line options:"
+                "\n\t"
+                "%s "
+                " --help  produces this help message"
+                "\n\t"
+                "--sizem=<Number of rows> \t  m is only  applicable to SPARSE-2 & SPARSE-3: the number  of rows."
+                "\n\t"
+                "--sizen=<Number of columns> \t  SPARSE-1:  the length of the dense vector. SPARSE-2 & SPARSE-3: the number of columns"
+                "\n\t"
+                "--sizennz=<Number of non-zeroes> \t  Number of the non-zeroes in sparse matrix/vector"
+                "\n\t"
+                "--mtx=<matrix market (.mtx)> \t  Read from matrix market (.mtx) format. This  will override parameters -sizem, -sizen, and -sizennz."
+                "\n\t"
+                "--alpha=<scalar alpha> \t Specifies the scalar alpha"
+                "\n\t"
+                "--beta=<scalar beta> \t Specifies the scalar beta"
+                "\n\t"
+                "--transposeA=<N/T> \t N = no transpose, T = transpose"
+                "\n\t"
+                "--indexbaseA=<0/1> \t 0 = zero-based indexing, 1 = one-based indexing, (default: 0)"
+                "\n\t"
+                "--diag=<N/U> \t N = non-unit diagonal, U = unit diagonal, (default = N)"
+                "\n\t"
+                "--uplo=<L/U> \t L = lower fill, U = upper fill, (default = L)"
+                "\n\t"
+                "--function=<function to test> \t SPARSE function to test. Options:  Level2: csrmv ellmv diamv csrsymv bsrmv csrsv (default: csrmv)"
+                "\n\t"
+                "--precision=<s/d> \t Options: s,d (default: d)"
+                "\n\t"
+                "--verify=<0/1> \t Validate results ? 0 = No, 1 = Yes (default: No)"
+                "\n\t"
+                "--iters=<num of iterations> \t Iterations to run inside timing loop (default: 10)"
+                "\n", argv[0]);
+
         return 0;
     }
+    args.aoclsparse_get_cmdline_argument("sizem", arg.M);
+    args.aoclsparse_get_cmdline_argument("sizen", arg.N);
+    args.aoclsparse_get_cmdline_argument("sizennz", arg.nnz);
+    args.aoclsparse_get_cmdline_argument("blockdim", arg.block_dim);
+    args.aoclsparse_get_cmdline_argument("mtx", mtxfile);
+    args.aoclsparse_get_cmdline_argument("alpha", arg.alpha);
+    args.aoclsparse_get_cmdline_argument("beta", arg.beta);
+    args.aoclsparse_get_cmdline_argument("transposeA", transA);
+    args.aoclsparse_get_cmdline_argument("indexbaseA", baseA);
+    args.aoclsparse_get_cmdline_argument("diag", diag);
+    args.aoclsparse_get_cmdline_argument("uplo", uplo);
+    args.aoclsparse_get_cmdline_argument("function", arg.function);
+    args.aoclsparse_get_cmdline_argument("precision", precision);
+    args.aoclsparse_get_cmdline_argument("verify", arg.unit_check);
+    args.aoclsparse_get_cmdline_argument("iters", arg.iters);
 
     if(precision != 's' && precision != 'd' )
     {
@@ -138,6 +135,8 @@ int main(int argc, char* argv[])
     }
 
     arg.baseA = (baseA == 0) ? aoclsparse_index_base_zero : aoclsparse_index_base_one;
+    arg.diag = (diag == 'N') ? aoclsparse_diag_type_non_unit : aoclsparse_diag_type_unit;
+    arg.uplo = (uplo == 'L') ? aoclsparse_fill_mode_lower : aoclsparse_fill_mode_upper;
 
     if(mtxfile != "")
     {
@@ -148,6 +147,7 @@ int main(int argc, char* argv[])
     {
         arg.matrix = aoclsparse_matrix_random;
     }
+
     /* ============================================================================================
      */
     if(arg.M < 0 || arg.N < 0)
@@ -155,44 +155,47 @@ int main(int argc, char* argv[])
         std::cerr << "Invalid dimension" << std::endl;
         return -1;
     }
-    if(function == "csrmv")
+    if(strcmp(arg.function ,"csrmv") == 0)
     {
-        arg.algo = 1;
         if(precision == 's')
             testing_csrmv<float>(arg);
         else if(precision == 'd')
             testing_csrmv<double>(arg);
     }
-    else if(function == "ellmv")
+    else if(strcmp(arg.function ,"ellmv") == 0)
     {
-        arg.algo = 1;
         if(precision == 's')
             testing_ellmv<float>(arg);
         else if(precision == 'd')
             testing_ellmv<double>(arg);
     }
-    else if(function == "diamv")
+    else if(strcmp(arg.function ,"diamv") == 0)
     {
-        arg.algo = 1;
         if(precision == 's')
             testing_diamv<float>(arg);
         else if(precision == 'd')
             testing_diamv<double>(arg);
     }
-    else if(function == "csrsymv")
+    else if(strcmp(arg.function ,"csrsymv") == 0)
     {
-        arg.algo = 1;
         if(precision == 'd')
             testing_csrmv<double>(arg);
         else if(precision == 's')
             testing_csrmv<float>(arg);
     }
-    else if(function == "bsrmv")
+    else if(strcmp(arg.function ,"bsrmv") == 0)
     {
         if(precision == 's')
             testing_bsrmv<float>(arg);
         else if(precision == 'd')
             testing_bsrmv<double>(arg);
+    }
+    else if(strcmp(arg.function ,"csrsv") == 0)
+    {
+        if(precision == 'd')
+            testing_csrsv<double>(arg);
+        else if(precision == 's')
+            testing_csrsv<float>(arg);
     }
     else
     {

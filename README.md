@@ -4,10 +4,6 @@ aocl-sparse exposes a common interface that provides Basic Linear Algebra Subrou
 ## Requirements
 * CMake (3.5 or later)
 
-Optional:
-* [Boost][]
-  * Required for benchmarks.
-
 ## Quickstart aocl-sparse build and install
 
 #### CMake
@@ -52,12 +48,12 @@ Test the installation by running CSR-SPMV on scircuit.mtx file, e.g.
 cd aocl-sparse/build/release
 wget https://sparse.tamu.edu/MM/Hamm/scircuit.tar.gz
 tar xf scircuit.tar.gz; mv scircuit ./scircuit.mtx && rm -rf scircuit.tar.gz scircuit
-./tests/staging/aoclsparse-bench -f csrmv --precision d --alpha 1 --beta 0 --iters 1000 --mtx ./scircuit.mtx/scircuit.mtx
+./tests/staging/aoclsparse-bench --function=csrmv --precision=d --alpha=1 --beta=0 --iters=1000 --mtx=./scircuit.mtx/scircuit.mtx
 ```
 
 Test the installation by running CSR-SPMV on randomly generated matrix, e.g.
 ```
-./tests/staging/aoclsparse-bench -f csrmv --precision d -m 1000 -n 1000 -z 4000 -v 1
+./tests/staging/aoclsparse-bench --function=csrmv --precision=d --sizem=1000 --sizen=1000 --sizennz=4000 --verify=1
 ```
 
 ## License
