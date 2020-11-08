@@ -1,16 +1,16 @@
 /* ************************************************************************
  * Copyright (c) 2020 Advanced Micro Devices, Inc. All rights reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sdia
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,7 +18,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
- * 
+ *
  * ************************************************************************ */
 
 #pragma once
@@ -34,7 +34,6 @@
 #include "aoclsparse_check.hpp"
 #include "aoclsparse_utility.hpp"
 #include "aoclsparse_random.hpp"
-#include "aoclsparse_convert.hpp"
 
 template <typename T>
 void testing_diamv(const Arguments& arg)
@@ -45,8 +44,8 @@ void testing_diamv(const Arguments& arg)
     aoclsparse_matrix_init mat       = arg.matrix;
     aoclsparse_operation   trans     = arg.transA;
     aoclsparse_index_base  base      = arg.baseA;
-    bool issymm;    
-    std::string           filename = arg.filename; 
+    bool issymm;
+    std::string           filename = arg.filename;
 
     T alpha = static_cast<T>(arg.alpha);
     T beta  = static_cast<T>(arg.beta);
@@ -87,11 +86,19 @@ void testing_diamv(const Arguments& arg)
     // Initialize data
     aoclsparse_init<T>(x, 1, N, 1);
     aoclsparse_init<T>(y, 1, M, 1);
-    y_gold = y; 
+    y_gold = y;
+    // Convert CSR matrix to DIA
+    CHECK_AOCLSPARSE_ERROR(aoclsparse_csr2dia_ndiag(
+            M, N, nnz, csr_row_ptr.data(), csr_col_ind.data(), &dia_num_diag));
+    aoclsparse_int size = (M > N) ? M : N;
+    aoclsparse_int nnz_dia = size * dia_num_diag;
+    // Allocate DIA matrix
+    dia_offset.resize(dia_num_diag);
+    dia_val.resize(nnz_dia);
 
     // Convert CSR matrix to DIA
-    csr_to_dia(
-            M, N, nnz, csr_row_ptr, csr_col_ind, csr_val, dia_offset, dia_val, dia_num_diag, base);
+    CHECK_AOCLSPARSE_ERROR(aoclsparse_csr2dia(
+            M, N, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data(), dia_num_diag, dia_offset.data(), dia_val.data()));
     if(arg.unit_check)
     {
         CHECK_AOCLSPARSE_ERROR(aoclsparse_diamv(trans,
@@ -164,6 +171,6 @@ void testing_diamv(const Arguments& arg)
         << std::setw(12) << cpu_gbyte << std::setw(12) << cpu_time_used * 1e3
         << std::setw(12) << number_hot_calls << std::setw(12)
         << (arg.unit_check ? "yes" : "no") << std::endl;
-} 
+}
 
 #endif // TESTING_DIAMV_HPP

@@ -34,7 +34,6 @@
 #include "aoclsparse_check.hpp"
 #include "aoclsparse_utility.hpp"
 #include "aoclsparse_random.hpp"
-#include "aoclsparse_convert.hpp"
 
 template <typename T>
 void testing_ellmv(const Arguments& arg)
@@ -90,8 +89,12 @@ void testing_ellmv(const Arguments& arg)
     y_gold = y;
 
     // Convert CSR matrix to ELL
-    csr_to_ell(
-            M, nnz, csr_row_ptr, csr_col_ind, csr_val, ell_col_ind, ell_val, ell_width, base, base);
+    CHECK_AOCLSPARSE_ERROR(aoclsparse_csr2ell_width(
+            M, nnz, csr_row_ptr.data(), &ell_width));
+    ell_col_ind.resize(ell_width * M);
+    ell_val.resize(ell_width * M);
+    CHECK_AOCLSPARSE_ERROR(aoclsparse_csr2ell(
+        M, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data(), ell_col_ind.data(), ell_val.data(), ell_width));
     if(arg.unit_check)
     {
         CHECK_AOCLSPARSE_ERROR(aoclsparse_ellmv(trans,

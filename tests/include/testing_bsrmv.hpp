@@ -34,7 +34,6 @@
 #include "aoclsparse_check.hpp"
 #include "aoclsparse_utility.hpp"
 #include "aoclsparse_random.hpp"
-#include "aoclsparse_convert.hpp"
 
 template <typename T>
 void testing_bsrmv(const Arguments& arg)
@@ -102,24 +101,20 @@ void testing_bsrmv(const Arguments& arg)
     aoclsparse_int                nnzb;
     std::vector<aoclsparse_int> bsr_row_ptr(mb + 1);
 
-    csr_to_bsr_nnz(
-            bsr_dim , M, N, mb , nb , base , csr_row_ptr.data(), csr_col_ind.data(), base, bsr_row_ptr.data(), &nnzb);
+    CHECK_AOCLSPARSE_ERROR(aoclsparse_csr2bsr_nnz(
+            M, N, csr_row_ptr.data(), csr_col_ind.data(), bsr_dim, bsr_row_ptr.data(), &nnzb));
 
     std::vector<aoclsparse_int> bsr_col_ind(nnzb);
     std::vector<T>             bsr_val(nnzb * bsr_dim * bsr_dim);
-    csr_to_bsr<T >(M,
+    CHECK_AOCLSPARSE_ERROR(aoclsparse_csr2bsr<T>(M,
             N,
-            mb,
-            nb,
-            bsr_dim,
-            base,
             csr_val.data(),
             csr_row_ptr.data(),
             csr_col_ind.data(),
-            base,
+            bsr_dim,
             bsr_val.data(),
             bsr_row_ptr.data(),
-            bsr_col_ind.data());
+            bsr_col_ind.data()));
 
     if(arg.unit_check)
     {

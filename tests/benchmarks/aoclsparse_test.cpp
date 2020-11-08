@@ -92,6 +92,8 @@ int main(int argc, char* argv[])
                 "\n\t"
                 "--uplo=<L/U> \t L = lower fill, U = upper fill, (default = L)"
                 "\n\t"
+                "--blockdim=<block dimension> \t block dimension for bsrmv "
+                "\n\t"
                 "--function=<function to test> \t SPARSE function to test. Options:  Level2: csrmv ellmv diamv csrsymv bsrmv csrsv (default: csrmv)"
                 "\n\t"
                 "--precision=<s/d> \t Options: s,d (default: d)"

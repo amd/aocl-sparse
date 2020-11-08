@@ -28,6 +28,9 @@ set(AOCLSPARSE_SOURCES
   src/level2/aoclsparse_bsrmv.cpp
   src/level2/aoclsparse_csrsv.cpp
 
+# Conversion
+  src/conversion/aoclsparse_convert.cpp
+
 # Extra
   src/extra/aoclsparse_auxiliary.cpp
 )

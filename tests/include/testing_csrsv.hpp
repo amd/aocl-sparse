@@ -129,8 +129,12 @@ void testing_csrsv(const Arguments& arg)
         }
         else
         {
-            csr_to_csc(M, N, nnz, csr_row_ptr, csr_col_ind, csr_val,
-                    csc_row_ind, csc_col_ptr, csc_val, base);
+            csc_row_ind.resize(nnz);
+            csc_col_ptr.resize(N + 1, 0);
+            csc_val.resize(nnz);
+
+            CHECK_AOCLSPARSE_ERROR(aoclsparse_csr2csc(M, N, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data(),
+                    csc_row_ind.data(), csc_col_ptr.data(), csc_val.data()));
             // Reference SPMV CSC implementation
             for(int i = 0; i < N; i++)
             {
