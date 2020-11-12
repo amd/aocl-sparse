@@ -46,8 +46,8 @@ aoclsparse_status aoclsparse_diamv(const T                alpha,
     for(aoclsparse_int i = 0; i < dia_num_diag; ++i)
     {
         aoclsparse_int offset   = dia_offset[i];
-        aoclsparse_int istart   = std::max(0 , -offset);
-        aoclsparse_int jstart   = std::max(0 , offset);
+        aoclsparse_int istart   = std::max((aoclsparse_int)0 , -offset);
+        aoclsparse_int jstart   = std::max((aoclsparse_int)0 , offset);
         aoclsparse_int num_values = std ::min(m-istart , n-jstart);
 
         for(aoclsparse_int j = 0; j < num_values; ++j)

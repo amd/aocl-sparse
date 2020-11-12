@@ -63,10 +63,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Build options
 option(BUILD_SHARED_LIBS "Build aocl-sparse as a shared library" ON)
-option(BUILD_CLIENTS_TESTS "Build tests (requires googletest)" OFF)
 option(BUILD_CLIENTS_BENCHMARKS "Build benchmarks" OFF)
-option(BUILD_CLIENTS_SAMPLES "Build examples" OFF)
-option(BUILD_VERBOSE "Output additional build information" ON)
+OPTION(BUILD_ILP64 "ILP64 Support" OFF)
 
 # Dependencies
 include(cmake/Dependencies.cmake)
@@ -96,6 +94,11 @@ set(aoclsparse_SOVERSION ${AOCLSPARSE_VERSION})
 
 # AMD targets
 set(AMDCPU_TARGETS  CACHE STRING "List of specific machine types for library to target")
+
+IF(BUILD_ILP64)
+    message( STATUS "BUILD_ILP64 = ON" )
+    ADD_DEFINITIONS(-Daoclsparse_ILP64)
+ENDIF(BUILD_ILP64)
 
 add_compile_options ( -shared -march=native -fpermissive )
 # aoclsparse library

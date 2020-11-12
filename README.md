@@ -18,8 +18,8 @@ cd build/release;
 # Configure aocl-sparse
 # Build options:
 #   BUILD_CLIENTS_BENCHMARKS - build benchmarks (OFF)
-#   BUILD_VERBOSE            - verbose output (OFF)
 #   BUILD_SHARED_LIBS        - build aocl-sparse as a shared library (ON)
+#   BUILD_ILP64              - ILP64 Support (OFF)
 
 # Build shared library (default)
 if CMAKE_INSTALL_PREFIX is not provided then /opt/aoclsparse/ is the default location which contains lib/ and include/ directory files.
