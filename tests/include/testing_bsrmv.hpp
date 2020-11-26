@@ -84,19 +84,20 @@ void testing_bsrmv(const Arguments& arg)
             issymm,
             false);
 
-    // Allocate memory for vectors
-    std::vector<T> x(N);
-    std::vector<T> y(M);
-    std::vector<T> y_gold(M);
-
-    // Initialize data
-    aoclsparse_init<T>(x, 1, N, 1);
-    aoclsparse_init<T>(y, 1, M, 1);
-    y_gold = y;
-
     // Update BSR block dimensions from generated matrix
     aoclsparse_int mb = (M + bsr_dim - 1) / bsr_dim;
     aoclsparse_int nb = (N + bsr_dim - 1) / bsr_dim;
+
+    // Allocate memory for vectors
+    std::vector<T> x(nb * bsr_dim);
+    std::vector<T> y(mb * bsr_dim);
+    std::vector<T> y_gold(mb * bsr_dim);
+
+    // Initialize data
+    aoclsparse_init<T>(x, 1, nb * bsr_dim, 1);
+    aoclsparse_init<T>(y, 1, mb * bsr_dim, 1);
+    y_gold = y;
+
     // Convert CSR to BSR
     aoclsparse_int                nnzb;
     std::vector<aoclsparse_int> bsr_row_ptr(mb + 1);
