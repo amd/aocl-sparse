@@ -58,7 +58,7 @@ extern "C" {
 */
 __attribute__((__visibility__("default")))
 aoclsparse_status aoclsparse_csr2ell_width(
-                aoclsparse_int       M,
+                aoclsparse_int       m,
                 aoclsparse_int       nnz,
                 const aoclsparse_int *csr_row_ptr,
                 aoclsparse_int       *ell_width);
@@ -101,7 +101,7 @@ aoclsparse_status aoclsparse_csr2ell_width(
 /**@{*/
 __attribute__((__visibility__("default")))
 aoclsparse_status aoclsparse_scsr2ell(
-                aoclsparse_int       M,
+                aoclsparse_int       m,
                 const aoclsparse_int *csr_row_ptr,
                 const aoclsparse_int *csr_col_ind,
                 const float          *csr_val,
@@ -111,7 +111,7 @@ aoclsparse_status aoclsparse_scsr2ell(
 
 __attribute__((__visibility__("default")))
 aoclsparse_status aoclsparse_dcsr2ell(
-                aoclsparse_int       M,
+                aoclsparse_int       m,
                 const aoclsparse_int *csr_row_ptr,
                 const aoclsparse_int *csr_col_ind,
                 const double         *csr_val,
@@ -150,8 +150,8 @@ aoclsparse_status aoclsparse_dcsr2ell(
 */
 __attribute__((__visibility__("default")))
 aoclsparse_status aoclsparse_csr2dia_ndiag(
-                aoclsparse_int       M,
-                aoclsparse_int       N,
+                aoclsparse_int       m,
+                aoclsparse_int       n,
                 aoclsparse_int       nnz,
                 const aoclsparse_int *csr_row_ptr,
                 const aoclsparse_int *csr_col_ind,
@@ -196,8 +196,8 @@ aoclsparse_status aoclsparse_csr2dia_ndiag(
 /**@{*/
 __attribute__((__visibility__("default")))
 aoclsparse_status aoclsparse_scsr2dia(
-            aoclsparse_int       M,
-            aoclsparse_int       N,
+            aoclsparse_int       m,
+            aoclsparse_int       n,
             const aoclsparse_int *csr_row_ptr,
             const aoclsparse_int *csr_col_ind,
             const float          *csr_val,
@@ -207,8 +207,8 @@ aoclsparse_status aoclsparse_scsr2dia(
 
 __attribute__((__visibility__("default")))
 aoclsparse_status aoclsparse_dcsr2dia(
-            aoclsparse_int       M,
-            aoclsparse_int       N,
+            aoclsparse_int       m,
+            aoclsparse_int       n,
             const aoclsparse_int *csr_row_ptr,
             const aoclsparse_int *csr_col_ind,
             const double         *csr_val,
