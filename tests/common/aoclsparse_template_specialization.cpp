@@ -346,7 +346,7 @@ aoclsparse_status aoclsparse_csr2ell(
 }
 
 template <>
-aoclsparse_status aoclsparse_csr2dia(
+aoclsparse_status aoclsparse_csr2dia_template(
         aoclsparse_int       m,
         aoclsparse_int       n,
         const aoclsparse_int *csr_row_ptr,
@@ -367,7 +367,7 @@ aoclsparse_status aoclsparse_csr2dia(
 }
 
 template <>
-aoclsparse_status aoclsparse_csr2dia(
+aoclsparse_status aoclsparse_csr2dia_template(
         aoclsparse_int       m,
         aoclsparse_int       n,
         const aoclsparse_int *csr_row_ptr,
@@ -434,7 +434,7 @@ aoclsparse_status aoclsparse_csr2bsr(
 }
 
 template <>
-aoclsparse_status aoclsparse_csr2csc(
+aoclsparse_status aoclsparse_csr2csc_template(
         aoclsparse_int       m,
         aoclsparse_int       n,
         aoclsparse_int       nnz,
@@ -457,7 +457,7 @@ aoclsparse_status aoclsparse_csr2csc(
 }
 
 template <>
-aoclsparse_status aoclsparse_csr2csc(
+aoclsparse_status aoclsparse_csr2csc_template(
         aoclsparse_int       m,
         aoclsparse_int       n,
         aoclsparse_int       nnz,

@@ -133,7 +133,7 @@ void testing_csrsv(const Arguments& arg)
             csc_col_ptr.resize(N + 1, 0);
             csc_val.resize(nnz);
 
-            CHECK_AOCLSPARSE_ERROR(aoclsparse_csr2csc(M, N, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data(),
+            CHECK_AOCLSPARSE_ERROR(aoclsparse_csr2csc_template(M, N, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data(),
                     csc_row_ind.data(), csc_col_ptr.data(), csc_val.data()));
             // Reference SPMV CSC implementation
             for(int i = 0; i < N; i++)

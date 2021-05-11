@@ -97,7 +97,7 @@ void testing_diamv(const Arguments& arg)
     dia_val.resize(nnz_dia);
 
     // Convert CSR matrix to DIA
-    CHECK_AOCLSPARSE_ERROR(aoclsparse_csr2dia(
+    CHECK_AOCLSPARSE_ERROR(aoclsparse_csr2dia_template(
             M, N, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data(), dia_num_diag, dia_offset.data(), dia_val.data()));
     if(arg.unit_check)
     {
