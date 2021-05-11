@@ -1,16 +1,16 @@
 /* ************************************************************************
  * Copyright (c) 2020 Advanced Micro Devices, Inc.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,10 +18,11 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
- * 
+ *
  * ************************************************************************ */
 
 #include "aoclsparse_descr.h"
+#include "aoclsparse_mat_csr.h"
 #include "aoclsparse.h"
 
 #ifdef __cplusplus
@@ -227,6 +228,51 @@ aoclsparse_diag_type aoclsparse_get_mat_diag_type(const aoclsparse_mat_descr des
         return aoclsparse_diag_type_non_unit;
     }
     return descr->diag_type;
+}
+
+/********************************************************************************
+ * \brief aoclsparse_mat_csr is a structure holding the aoclsparse csr matrix.
+ * It must be set using the aoclsparse_create_mat_csr() routine.
+ * It should be destroyed at the end using aoclsparse_destroy_mat_csr().
+ ********************************************************************************/
+aoclsparse_status aoclsparse_create_mat_csr(aoclsparse_mat_csr &csr,
+                    aoclsparse_index_base   base,
+                    aoclsparse_int          M,
+                    aoclsparse_int          N,
+                    aoclsparse_int          csr_nnz,
+                    aoclsparse_int*         csr_row_ptr,
+                    aoclsparse_int*         csr_col_ind,
+                    void*                   csr_val)
+{
+    csr = new _aoclsparse_mat_csr;
+    csr->m = M;
+    csr->n = N;
+    csr->csr_nnz = csr_nnz;
+    csr->csr_row_ptr = csr_row_ptr;
+    csr->csr_col_ind = csr_col_ind;
+    csr->csr_val = csr_val;
+    return aoclsparse_status_success;
+}
+/********************************************************************************
+ * \brief Destroy csr matrix.
+ ********************************************************************************/
+aoclsparse_status aoclsparse_destroy_mat_csr(aoclsparse_mat_csr csr)
+{
+    if(csr == nullptr)
+    {
+        return aoclsparse_status_success;
+    }
+
+    // Destruct
+    try
+    {
+        delete csr;
+    }
+    catch(const aoclsparse_status& status)
+    {
+        return status;
+    }
+    return aoclsparse_status_success;
 }
 
 #ifdef __cplusplus

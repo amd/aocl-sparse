@@ -1,16 +1,16 @@
 /* ************************************************************************
- * Copyright (c) 2020 Advanced Micro Devices, Inc.
- * 
+ * Copyright (c) 2020-21 Advanced Micro Devices, Inc.
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,7 +18,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
- * 
+ *
  * ************************************************************************ */
 /*! \file
  * \brief aoclsparse_types.h defines data types used by aoclsparse
@@ -64,6 +64,17 @@ typedef struct
  *  It should be destroyed at the end using aoclsparse_destroy_mat_descr().
  */
 typedef struct _aoclsparse_mat_descr* aoclsparse_mat_descr;
+
+/*! \ingroup types_module
+ *  \brief CSR matrix storage format.
+ *
+ *  \details
+ *  The aoclSPARSE CSR matrix structure holds the CSR matrix. It must be initialized using
+ *  aoclsparse_create_mat_csr() and the returned CSR matrix must be passed to all
+ *  subsequent library calls that involve the matrix. It should be destroyed at the end
+ *  using aoclsparse_destroy_mat_csr().
+ */
+typedef struct _aoclsparse_mat_csr* aoclsparse_mat_csr;
 
 #ifdef __cplusplus
 extern "C" {
@@ -145,6 +156,19 @@ typedef enum aoclsparse_fill_mode_
     aoclsparse_fill_mode_lower = 0, /**< lower triangular part is stored. */
     aoclsparse_fill_mode_upper = 1 /**< upper triangular part is stored. */
 } aoclsparse_fill_mode;
+
+/*! \ingroup types_module
+ *  \brief List of dense matrix ordering.
+ *
+ *  \details
+ *  This is a list of supported \ref aoclsparse_order types that are used to describe the
+ *  memory layout of a dense matrix
+ */
+typedef enum aoclsparse_order_
+{
+    aoclsparse_order_row    = 0, /**< Row major. */
+    aoclsparse_order_column = 1 /**< Column major. */
+} aoclsparse_order;
 
 /*! \ingroup types_module
  *  \brief List of aoclsparse status codes definition.

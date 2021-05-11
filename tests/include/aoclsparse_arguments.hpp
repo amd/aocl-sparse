@@ -52,6 +52,7 @@ struct Arguments
     aoclsparse_index_base      baseA;
     aoclsparse_diag_type       diag;
     aoclsparse_fill_mode       uplo;
+    aoclsparse_order           order;
 
     aoclsparse_matrix_init matrix;
 

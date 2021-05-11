@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020 Advanced Micro Devices, Inc.All rights reserved.
+ * Copyright (c) 2020-21 Advanced Micro Devices, Inc.All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -37,7 +37,7 @@
  * ===========================================================================
  */
 template <typename T>
-    constexpr double
+constexpr double
 csrmv_gbyte_count(aoclsparse_int M, aoclsparse_int N, aoclsparse_int nnz, bool beta = false)
 {
     return ((M + 1 + nnz) * sizeof(aoclsparse_int) + (M + N + nnz + (beta ? M : 0)) * sizeof(T))
@@ -67,6 +67,19 @@ template <typename T>
 constexpr double csrsv_gbyte_count(aoclsparse_int M, aoclsparse_int nnz)
 {
     return ((M + 1 + nnz) * sizeof(aoclsparse_int) + (M + M + nnz) * sizeof(T)) / 1e9;
+}
+
+/*
+ * ===========================================================================
+ *    level 3 SPARSE
+ * ===========================================================================
+ */
+template <typename T>
+constexpr double csrmm_gbyte_count(aoclsparse_int M, aoclsparse_int nnz_A, aoclsparse_int nnz_B, aoclsparse_int nnz_C, bool beta = false)
+{
+    return (((M + 1) * sizeof(aoclsparse_int)) + (nnz_A * sizeof(aoclsparse_int))
+            + ((nnz_A + nnz_B + nnz_C + (beta ? nnz_C : 0)) * sizeof(T)))
+           / 1e9;
 }
 
 #endif // AOCLSPARSE_GBYTE_HPP

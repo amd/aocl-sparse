@@ -34,89 +34,108 @@
 
 /*
  * ===========================================================================
+ *    level 3 SPARSE
+ * ===========================================================================
+ */
+template <typename T>
+aoclsparse_status aoclsparse_csrmm(
+	aoclsparse_operation       trans,
+	const T*                   alpha,
+	const aoclsparse_mat_csr   csr,
+	const aoclsparse_mat_descr descr,
+	aoclsparse_order           order,
+	const T*                   B,
+	aoclsparse_int             n,
+	aoclsparse_int             ldb,
+	const T*                   beta,
+	T*                         C,
+	aoclsparse_int             ldc);
+
+/*
+ * ===========================================================================
  *    level 2 SPARSE
  * ===========================================================================
  */
 template <typename T>
 aoclsparse_status aoclsparse_csrmv(
-        aoclsparse_operation       trans,
-        const T*                   alpha,
-        aoclsparse_int             m,
-        aoclsparse_int             n,
-        aoclsparse_int             nnz,
-        const T*                   csr_val,
-        const aoclsparse_int*      csr_col_ind,
-        const aoclsparse_int*      csr_row_ptr,
-        const aoclsparse_mat_descr descr,
-        const T*                   x,
-        const T*                   beta,
-        T*                         y);
+	aoclsparse_operation       trans,
+	const T*                   alpha,
+	aoclsparse_int             m,
+	aoclsparse_int             n,
+	aoclsparse_int             nnz,
+	const T*                   csr_val,
+	const aoclsparse_int*      csr_col_ind,
+	const aoclsparse_int*      csr_row_ptr,
+	const aoclsparse_mat_descr descr,
+	const T*                   x,
+	const T*                   beta,
+	T*                         y);
 
 template <typename T>
 aoclsparse_status aoclsparse_ellmv(
-        aoclsparse_operation       trans,
-        const T*                   alpha,
-        aoclsparse_int             m,
-        aoclsparse_int             n,
-        aoclsparse_int             nnz,
-        const T*                   ell_val,
-        const aoclsparse_int*      ell_col_ind,
-        const aoclsparse_int       ell_width,
-        const aoclsparse_mat_descr descr,
-        const T*                   x,
-        const T*                   beta,
-        T*                         y);
+	aoclsparse_operation       trans,
+	const T*                   alpha,
+	aoclsparse_int             m,
+	aoclsparse_int             n,
+	aoclsparse_int             nnz,
+	const T*                   ell_val,
+	const aoclsparse_int*      ell_col_ind,
+	const aoclsparse_int       ell_width,
+	const aoclsparse_mat_descr descr,
+	const T*                   x,
+	const T*                   beta,
+	T*                         y);
 
 template <typename T>
 aoclsparse_status aoclsparse_diamv(
-        aoclsparse_operation       trans,
-        const T*                   alpha,
-        aoclsparse_int             m,
-        aoclsparse_int             n,
-        aoclsparse_int             nnz,
-        const T*                   dia_val,
-        const aoclsparse_int*      dia_offset,
-        aoclsparse_int             dia_num_diag,
-        const aoclsparse_mat_descr descr,
-        const T*                   x,
-        const T*                   beta,
-        T*                         y );
+	aoclsparse_operation       trans,
+	const T*                   alpha,
+	aoclsparse_int             m,
+	aoclsparse_int             n,
+	aoclsparse_int             nnz,
+	const T*                   dia_val,
+	const aoclsparse_int*      dia_offset,
+	aoclsparse_int             dia_num_diag,
+	const aoclsparse_mat_descr descr,
+	const T*                   x,
+	const T*                   beta,
+	T*                         y );
 
 template <typename T>
 aoclsparse_status aoclsparse_bsrmv(
-        aoclsparse_operation       trans,
-        const T*                   alpha,
-        aoclsparse_int             mb,
-        aoclsparse_int             nb,
-        aoclsparse_int             bsr_dim,
-        const T*                   bsr_val,
-        const aoclsparse_int*      bsr_col_ind,
-        const aoclsparse_int*      bsr_row_ptr,
-        const aoclsparse_mat_descr descr,
-        const T*                   x,
-        const T*                   beta,
-        T*                         y);
+	aoclsparse_operation       trans,
+	const T*                   alpha,
+	aoclsparse_int             mb,
+	aoclsparse_int             nb,
+	aoclsparse_int             bsr_dim,
+	const T*                   bsr_val,
+	const aoclsparse_int*      bsr_col_ind,
+	const aoclsparse_int*      bsr_row_ptr,
+	const aoclsparse_mat_descr descr,
+	const T*                   x,
+	const T*                   beta,
+	T*                         y);
 template <typename T>
 aoclsparse_status aoclsparse_csrsv(
-        aoclsparse_operation       trans,
-        const T*                   alpha,
-        aoclsparse_int             m,
-        const T*                   csr_val,
-        const aoclsparse_int*      csr_col_ind,
-        const aoclsparse_int*      csr_row_ptr,
-        const aoclsparse_mat_descr descr,
-        const T*                   x,
-        T*                         y );
+	aoclsparse_operation       trans,
+	const T*                   alpha,
+	aoclsparse_int             m,
+	const T*                   csr_val,
+	const aoclsparse_int*      csr_col_ind,
+	const aoclsparse_int*      csr_row_ptr,
+	const aoclsparse_mat_descr descr,
+	const T*                   x,
+	T*                         y );
 
 template <typename T>
 aoclsparse_status aoclsparse_csr2ell(
-        aoclsparse_int       m,
-        const aoclsparse_int *csr_row_ptr,
-        const aoclsparse_int *csr_col_ind,
-        const T              *csr_val,
-        aoclsparse_int       *ell_col_ind,
-        T                    *ell_val,
-        aoclsparse_int       ell_width);
+	aoclsparse_int       m,
+	const aoclsparse_int *csr_row_ptr,
+	const aoclsparse_int *csr_col_ind,
+	const T              *csr_val,
+	aoclsparse_int       *ell_col_ind,
+	T                    *ell_val,
+	aoclsparse_int       ell_width);
 
 template <typename T>
 aoclsparse_status aoclsparse_csr2dia_template(
@@ -131,15 +150,15 @@ aoclsparse_status aoclsparse_csr2dia_template(
 
 template <typename T>
 aoclsparse_status aoclsparse_csr2bsr(
-        aoclsparse_int        m,
-        aoclsparse_int        n,
-        const T*              csr_val,
-        const aoclsparse_int* csr_row_ptr,
-        const aoclsparse_int* csr_col_ind,
-        aoclsparse_int        block_dim,
-        T*                    bsr_val,
-        aoclsparse_int*       bsr_row_ptr,
-        aoclsparse_int*       bsr_col_ind);
+	aoclsparse_int        m,
+	aoclsparse_int        n,
+	const T*              csr_val,
+	const aoclsparse_int* csr_row_ptr,
+	const aoclsparse_int* csr_col_ind,
+	aoclsparse_int        block_dim,
+	T*                    bsr_val,
+	aoclsparse_int*       bsr_row_ptr,
+	aoclsparse_int*       bsr_col_ind);
 
 template <typename T>
 aoclsparse_status aoclsparse_csr2csc_template(

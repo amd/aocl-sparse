@@ -41,7 +41,9 @@
 #include "testing_ellmv.hpp"
 #include "testing_csrmv.hpp"
 #include "testing_csrsv.hpp"
-#include <iostream>
+
+// Level3
+#include "testing_csrmm.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -50,6 +52,7 @@ int main(int argc, char* argv[])
     arg.iters = 10;//default value
     arg.M = 128; //default value
     arg.N = 128; //default value
+    arg.K = 128; //default value
     arg.nnz = 0; //default value
     arg.block_dim = 2; //default value
     arg.alpha = 1.0; //default value
@@ -60,6 +63,7 @@ int main(int argc, char* argv[])
     int           baseA = 0;
     char          diag = 'N';
     char          uplo = 'L';
+    int           order = 1;
     strcpy(arg.function , "csrmv");
     // Initialize command line
     aoclsparse_command_line_args args(argc, argv);
@@ -76,6 +80,8 @@ int main(int argc, char* argv[])
                 "\n\t"
                 "--sizen=<Number of columns> \t  SPARSE-1:  the length of the dense vector. SPARSE-2 & SPARSE-3: the number of columns"
                 "\n\t"
+                 "--sizek=<Number of columns> \t  SPARSE-2 & SPARSE-3: the number of columns"
+                 "\n\t"
                 "--sizennz=<Number of non-zeroes> \t  Number of the non-zeroes in sparse matrix/vector"
                 "\n\t"
                 "--mtx=<matrix market (.mtx)> \t  Read from matrix market (.mtx) format. This  will override parameters -sizem, -sizen, and -sizennz."
@@ -94,19 +100,22 @@ int main(int argc, char* argv[])
                 "\n\t"
                 "--blockdim=<block dimension> \t block dimension for bsrmv "
                 "\n\t"
-                "--function=<function to test> \t SPARSE function to test. Options:  Level2: csrmv ellmv diamv csrsymv bsrmv csrsv (default: csrmv)"
+                "--function=<function to test> \t SPARSE function to test. Options:  Level2: csrmv ellmv diamv csrsymv bsrmv csrsv Level3: csrmm (default: csrmv)"
                 "\n\t"
                 "--precision=<s/d> \t Options: s,d (default: d)"
                 "\n\t"
                 "--verify=<0/1> \t Validate results ? 0 = No, 1 = Yes (default: No)"
                 "\n\t"
                 "--iters=<num of iterations> \t Iterations to run inside timing loop (default: 10)"
+                 "\n\t"
+                 "--order=<0/1> \t Indicates whether a dense matrix is laid out in column-major storage: 1, or row-major storage 0 (default: 1)"
                 "\n", argv[0]);
 
         return 0;
     }
     args.aoclsparse_get_cmdline_argument("sizem", arg.M);
     args.aoclsparse_get_cmdline_argument("sizen", arg.N);
+    args.aoclsparse_get_cmdline_argument("sizek", arg.K);
     args.aoclsparse_get_cmdline_argument("sizennz", arg.nnz);
     args.aoclsparse_get_cmdline_argument("blockdim", arg.block_dim);
     args.aoclsparse_get_cmdline_argument("mtx", mtxfile);
@@ -120,6 +129,7 @@ int main(int argc, char* argv[])
     args.aoclsparse_get_cmdline_argument("precision", precision);
     args.aoclsparse_get_cmdline_argument("verify", arg.unit_check);
     args.aoclsparse_get_cmdline_argument("iters", arg.iters);
+    args.aoclsparse_get_cmdline_argument("order", order);
 
     if(precision != 's' && precision != 'd' )
     {
@@ -139,6 +149,7 @@ int main(int argc, char* argv[])
     arg.baseA = (baseA == 0) ? aoclsparse_index_base_zero : aoclsparse_index_base_one;
     arg.diag = (diag == 'N') ? aoclsparse_diag_type_non_unit : aoclsparse_diag_type_unit;
     arg.uplo = (uplo == 'L') ? aoclsparse_fill_mode_lower : aoclsparse_fill_mode_upper;
+    arg.order = (order == 1) ? aoclsparse_order_column : aoclsparse_order_row;
 
     if(mtxfile != "")
     {
@@ -198,6 +209,13 @@ int main(int argc, char* argv[])
             testing_csrsv<double>(arg);
         else if(precision == 's')
             testing_csrsv<float>(arg);
+     }
+     else if(strcmp(arg.function ,"csrmm") == 0)
+     {
+         if(precision == 'd')
+             testing_csrmm<double>(arg);
+         else if(precision == 's')
+             testing_csrmm<float>(arg);
     }
     else
     {

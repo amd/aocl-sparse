@@ -736,6 +736,109 @@ aoclsparse_status aoclsparse_dcsrsv(aoclsparse_operation       trans,
                                );
 /**@}*/
 
+/*! \ingroup level3_module
+ *  \brief Sparse matrix dense matrix multiplication using CSR storage format
+ *
+ *  \details
+ *  \p aoclsparse_csrmm multiplies the scalar \f$\alpha\f$ with a sparse \f$m \times k\f$
+ *  matrix \f$A\f$, defined in CSR storage format, and the dense \f$k \times n\f$
+ *  matrix \f$B\f$ and adds the result to the dense \f$m \times n\f$ matrix \f$C\f$ that
+ *  is multiplied by the scalar \f$\beta\f$, such that
+ *  \f[
+ *    C := \alpha \cdot op(A) \cdot B + \beta \cdot C,
+ *  \f]
+ *  with
+ *  \f[
+ *    op(A) = \left\{
+ *    \begin{array}{ll}
+ *        A,   & \text{if trans_A == aoclsparse_operation_none} \\
+ *        A^T, & \text{if trans_A == aoclsparse_operation_transpose} \\
+ *        A^H, & \text{if trans_A == aoclsparse_operation_conjugate_transpose}
+ *    \end{array}
+ *    \right.
+ *  \f]
+ *
+ *  \code{.c}
+ *      for(i = 0; i < ldc; ++i)
+ *      {
+ *          for(j = 0; j < n; ++j)
+ *          {
+ *              C[i][j] = beta * C[i][j];
+ *
+ *              for(k = csr_row_ptr[i]; k < csr_row_ptr[i + 1]; ++k)
+ *              {
+ *                  C[i][j] += alpha * csr_val[k] * B[csr_col_ind[k]][j];
+ *              }
+ *          }
+ *      }
+ *  \endcode
+ *
+ *
+ *  @param[in]
+ *  trans_A     matrix \f$A\f$ operation type.
+ *  @param[in]
+ *  alpha       scalar \f$\alpha\f$.
+ *  @param[in]
+ *  csr         sparse CSR matrix \f$A\f$ structure.
+ *  @param[in]
+ *  descr       descriptor of the sparse CSR matrix \f$A\f$. Currently, only
+ *              \ref aoclsparse_matrix_type_general is supported.
+ *  @param[in]
+ *  B           array of dimension \f$ldb \times n\f$ or
+ *              \f$ldb \times k\f$ .
+ *  @param[in]
+ *  n           number of columns of the dense matrix \f$B\f$ and \f$C\f$.
+ *  @param[in]
+ *  ldb         leading dimension of \f$B\f$, must be at least \f$\max{(1, k)}\f$
+ *              (\f$op(A) == A\f$) or \f$\max{(1, m)}\f$ (\f$op(A) == A^T\f$ or
+ *              \f$op(A) == A^H\f$).
+ *  @param[in]
+ *  beta        scalar \f$\beta\f$.
+ *  @param[inout]
+ *  C           array of dimension \f$ldc \times n\f$.
+ *  @param[in]
+ *  ldc         leading dimension of \f$C\f$, must be at least \f$\max{(1, m)}\f$
+ *              (\f$op(A) == A\f$) or \f$\max{(1, k)}\f$ (\f$op(A) == A^T\f$ or
+ *              \f$op(A) == A^H\f$).
+ *
+ *  \retval     aoclsparse_status_success the operation completed successfully.
+ *  \retval     aoclsparse_status_invalid_size \p m, \p n, \p k, \p nnz, \p ldb or \p ldc
+ *              is invalid.
+ *  \retval     aoclsparse_status_invalid_pointer \p descr, \p alpha, \p csr,
+ *              \p B, \p beta or \p C pointer is invalid.
+ *  \retval     aoclsparse_status_not_implemented
+ *              \ref aoclsparse_matrix_type != \ref aoclsparse_matrix_type_general.
+ *
+*/
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_scsrmm(aoclsparse_operation     trans_A,
+                                  const float*               alpha,
+                                  const aoclsparse_mat_csr   csr,
+                                  const aoclsparse_mat_descr descr,
+                                  aoclsparse_order           order,
+                                  const float*               B,
+                                  aoclsparse_int             n,
+                                  aoclsparse_int             ldb,
+                                  const float*               beta,
+                                  float*                     C,
+                                  aoclsparse_int             ldc);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_dcsrmm(aoclsparse_operation     trans_A,
+                                  const double*              alpha,
+                                  const aoclsparse_mat_csr   csr,
+                                  const aoclsparse_mat_descr descr,
+                                  aoclsparse_order           order,
+                                  const double*              B,
+                                  aoclsparse_int             n,
+                                  aoclsparse_int             ldb,
+                                  const double*              beta,
+                                  double*                    C,
+                                  aoclsparse_int             ldc);
+/**@}*/
+
+
 #ifdef __cplusplus
 }
 #endif

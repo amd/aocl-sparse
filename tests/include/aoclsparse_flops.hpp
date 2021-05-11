@@ -48,4 +48,17 @@ constexpr double csrsv_gflop_count(aoclsparse_int M, aoclsparse_int nnz, aoclspa
     return (2.0 * nnz + M + (diag == aoclsparse_diag_type_non_unit ? M : 0)) / 1e9;
 }
 
+/*
+ *===========================================================================
+ *    level 3 SPARSE
+ * ===========================================================================
+ */
+template <typename T>
+constexpr double csrmm_gflop_count(T N, T nnz_A, T nnz_C, bool beta = false)
+{
+    // Multiplication by 2 comes from 1 addition and 1 multiplication in product. Multiplication
+    // by alpha and beta not counted.
+    return (2.0 * nnz_A * N + (beta ? nnz_C : 0)) / 1e9;
+}
+
 #endif // AOCLSPARSE_FLOPS_HPP
