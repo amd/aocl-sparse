@@ -56,7 +56,7 @@ extern "C" {
 *              \p ell_width pointer is invalid.
 *  \retval     aoclsparse_status_internal_error an internal error occurred.
 */
-__attribute__((__visibility__("default")))
+DLL_PUBLIC
 aoclsparse_status aoclsparse_csr2ell_width(
                 aoclsparse_int       M,
                 aoclsparse_int       nnz,
@@ -99,7 +99,7 @@ aoclsparse_status aoclsparse_csr2ell_width(
 *
 */
 /**@{*/
-__attribute__((__visibility__("default")))
+DLL_PUBLIC
 aoclsparse_status aoclsparse_scsr2ell(
                 aoclsparse_int       M,
                 const aoclsparse_int *csr_row_ptr,
@@ -109,7 +109,7 @@ aoclsparse_status aoclsparse_scsr2ell(
                 float                *ell_val,
                 aoclsparse_int       ell_width);
 
-__attribute__((__visibility__("default")))
+DLL_PUBLIC
 aoclsparse_status aoclsparse_dcsr2ell(
                 aoclsparse_int       M,
                 const aoclsparse_int *csr_row_ptr,
@@ -148,7 +148,7 @@ aoclsparse_status aoclsparse_dcsr2ell(
 *              \p ell_width pointer is invalid.
 *  \retval     aoclsparse_status_internal_error an internal error occurred.
 */
-__attribute__((__visibility__("default")))
+DLL_PUBLIC
 aoclsparse_status aoclsparse_csr2dia_ndiag(
                 aoclsparse_int       M,
                 aoclsparse_int       N,
@@ -194,7 +194,7 @@ aoclsparse_status aoclsparse_csr2dia_ndiag(
 *
 */
 /**@{*/
-__attribute__((__visibility__("default")))
+DLL_PUBLIC
 aoclsparse_status aoclsparse_scsr2dia(
             aoclsparse_int       M,
             aoclsparse_int       N,
@@ -205,7 +205,7 @@ aoclsparse_status aoclsparse_scsr2dia(
             aoclsparse_int       *dia_offset,
             float                *dia_val);
 
-__attribute__((__visibility__("default")))
+DLL_PUBLIC
 aoclsparse_status aoclsparse_dcsr2dia(
             aoclsparse_int       M,
             aoclsparse_int       N,
@@ -248,7 +248,7 @@ aoclsparse_status aoclsparse_dcsr2dia(
 *  \retval     aoclsparse_status_invalid_pointer \p csr_row_ptr or \p csr_col_ind or \p bsr_row_ptr or \p bsr_nnz
 *              pointer is invalid.
 */
-__attribute__((__visibility__("default")))
+DLL_PUBLIC
 aoclsparse_status aoclsparse_csr2bsr_nnz(
             aoclsparse_int       m,
             aoclsparse_int       n,
@@ -297,7 +297,7 @@ aoclsparse_status aoclsparse_csr2bsr_nnz(
 *
 */
 /**@{*/
-__attribute__((__visibility__("default")))
+DLL_PUBLIC
 aoclsparse_status aoclsparse_scsr2bsr(
             aoclsparse_int       m,
             aoclsparse_int       n,
@@ -309,7 +309,7 @@ aoclsparse_status aoclsparse_scsr2bsr(
             aoclsparse_int       *bsr_row_ptr,
             aoclsparse_int       *bsr_col_ind);
 
-__attribute__((__visibility__("default")))
+DLL_PUBLIC
 aoclsparse_status aoclsparse_dcsr2bsr(
             aoclsparse_int       m,
             aoclsparse_int       n,
@@ -364,7 +364,7 @@ aoclsparse_status aoclsparse_dcsr2bsr(
 *
 */
 /**@{*/
-__attribute__((__visibility__("default")))
+DLL_PUBLIC
 aoclsparse_status aoclsparse_scsr2csc(
             aoclsparse_int       m,
             aoclsparse_int       n,
@@ -376,7 +376,7 @@ aoclsparse_status aoclsparse_scsr2csc(
             aoclsparse_int       *csc_col_ptr,
             float                *csc_val);
 
-__attribute__((__visibility__("default")))
+DLL_PUBLIC
 aoclsparse_status aoclsparse_dcsr2csc(
             aoclsparse_int       m,
             aoclsparse_int       n,

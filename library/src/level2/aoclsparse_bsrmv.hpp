@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2021 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,6 +25,11 @@
 
 #include "aoclsparse_descr.h"
 #include "aoclsparse.h"
+
+#if defined(_WIN32) || defined(_WIN64)
+//Windows equivalent of gcc c99 type qualifier __restrict__
+#define __restrict__ __restrict
+#endif
 
 template <typename T>
 aoclsparse_status aoclsparse_bsrmv(T  alpha,

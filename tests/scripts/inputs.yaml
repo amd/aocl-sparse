@@ -1,0 +1,17 @@
+# Copyright (C) 2020, Advanced Micro Devices, Inc. All Rights Reserved
+# file_name and sheet_name can be modified according to aocl-sparse test plan file
+
+file_name: "aocl-sparse_test_plan.xlsx"
+sheet_name: "SPARSE_TEST_PLAN"
+
+# numactl command for linux
+numa_cmd_linux: "numactl --physcpubind=4"
+
+# numactl command for windows
+numa_cmd_win: "start /wait /B /affinity 0x05"
+
+#mtx files path
+mtx_path: "tests/benchmarks/matrices/"
+
+#aocl-bench binary path
+bench_path_linux: "../../build/release/tests/staging/"

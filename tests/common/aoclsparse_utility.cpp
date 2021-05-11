@@ -23,9 +23,15 @@
 
 #include "aoclsparse_utility.hpp"
 #include "aoclsparse_random.hpp"
+#include "aoclsparse_test.hpp"
 #include <cstdlib>
 #include <cstring>
-#include <time.h>
+
+#if defined (_WIN32) || defined (_WIN64)
+    #include <windows.h>
+#else
+    #include <time.h>
+#endif
 
 // Random number generator
 // Note: We do not use random_device to initialize the RNG, because we want
@@ -38,6 +44,28 @@ aoclsparse_rng_t aoclsparse_seed(aoclsparse_rng);
 std::string aoclsparse_exepath()
 {
     std::string pathstr;
+#if defined (_WIN32) || defined (_WIN64)
+    char* path = (char*) malloc(MAX_PATH * sizeof(char));
+    char*    pgmptr;
+    if (_get_pgmptr(&pgmptr) == 0) {
+        strcpy(path, pgmptr);
+        pgmptr = NULL;
+    }
+    else {
+        free(path);
+    }
+
+    if(path)
+    {
+        char* p = strrchr(path, '\\');
+        if(p)
+        {
+            p[1]    = 0;
+            pathstr = path;
+        }
+        free(path);
+    }
+#else
     char*       path = realpath("/proc/self/exe", 0);
     if(path)
     {
@@ -49,6 +77,7 @@ std::string aoclsparse_exepath()
         }
         free(path);
     }
+#endif
     return pathstr;
 }
 
@@ -73,7 +102,7 @@ double aoclsparse_clock_min_diff( double time_min, double time_start )
 
     time_diff = aoclsparse_clock() - time_start;
 
-    time_min = std::min( time_min, time_diff );
+    time_min = (std::min)( time_min, time_diff );
 
     // Assume that anything:
     // - under or equal to zero,

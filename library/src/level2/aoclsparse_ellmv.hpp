@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020-2021 Advanced Micro Devices, Inc. All rights reserved.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -144,7 +144,15 @@ aoclsparse_status aoclsparse_ellmv(const double               alpha,
             __m128d sse_sum = _mm_add_pd(sum_lo, sum_hi);
 
             // Store result
-            result = sse_sum[0];
+            /*
+            __m128d in gcc is typedef as double
+            but in Windows, this is defined as a struct
+            */
+            #if !defined(__clang__) && (defined(_WIN32) || defined(_WIN64))
+                result = sse_sum.m128d_f64[0];
+            #else
+                result = sse_sum[0];
+            #endif
         }
 
         //Remainder loop

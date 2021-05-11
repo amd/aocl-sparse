@@ -28,6 +28,13 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#if defined(_WIN32) || defined(_WIN64)
+// Windows specific attribute for exporting function to dll
+#define DLL_PUBLIC __declspec(dllexport)
+#else
+#define DLL_PUBLIC  __attribute__((__visibility__("default")))
+#endif
+
 /*! \ingroup types_module
  *  \brief Specifies whether int32 or int64 is used.
  */

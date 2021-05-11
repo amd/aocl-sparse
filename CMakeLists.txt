@@ -1,5 +1,5 @@
 # ########################################################################
-# Copyright (c) 2020 Advanced Micro Devices, Inc.
+# Copyright (c) 2020-2021 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -100,7 +100,22 @@ IF(BUILD_ILP64)
     ADD_DEFINITIONS(-Daoclsparse_ILP64)
 ENDIF(BUILD_ILP64)
 
-add_compile_options ( -shared -march=native -fpermissive )
+SET(AMD_ARCH "native" CACHE STRING "select AMD zen version for Clang toolchain")
+
+if ("${AMD_ARCH}" STREQUAL "")
+  message(FATAL_ERROR "Machine arch missing! Select one of znver1, znver2 or znver3")
+elseif (${AMD_ARCH} STREQUAL "znver1")
+  add_compile_options("-march=znver1")
+elseif (${AMD_ARCH} STREQUAL "znver2")
+  add_compile_options("-march=znver2")
+elseif (${AMD_ARCH} STREQUAL "znver3")
+  add_compile_options("-march=znver3")
+else ()
+  add_compile_options("-march=native")
+  message(STATUS "Using -march=native as default")
+endif ()
+
+add_compile_options ( -shared -fpermissive )
 # aoclsparse library
 add_subdirectory(library)
 

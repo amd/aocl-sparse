@@ -34,7 +34,7 @@
 #include "aoclsparse_check.hpp"
 #include "aoclsparse_utility.hpp"
 #include "aoclsparse_random.hpp"
-
+#include "aoclsparse_convert.h"
 template <typename T>
 void testing_ellmv(const Arguments& arg)
 {

@@ -47,7 +47,8 @@ extern "C" {
  *  \retval aoclsparse_status_success the operation completed successfully.
  *  \retval aoclsparse_status_invalid_pointer \p version is invalid.
  */
-__attribute__((__visibility__("default"))) aoclsparse_status aoclsparse_get_version(aoclsparse_int* version);
+DLL_PUBLIC 
+aoclsparse_status aoclsparse_get_version(aoclsparse_int* version);
 
 /*! \ingroup aux_module
  *  \brief Create a matrix descriptor
@@ -63,7 +64,7 @@ __attribute__((__visibility__("default"))) aoclsparse_status aoclsparse_get_vers
  *  \retval aoclsparse_status_success the operation completed successfully.
  *  \retval aoclsparse_status_invalid_pointer \p descr pointer is invalid.
  */
-__attribute__((__visibility__("default")))
+DLL_PUBLIC
 aoclsparse_status aoclsparse_create_mat_descr(aoclsparse_mat_descr* descr);
 
 /*! \ingroup aux_module
@@ -80,7 +81,7 @@ aoclsparse_status aoclsparse_create_mat_descr(aoclsparse_mat_descr* descr);
  *  \retval aoclsparse_status_success the operation completed successfully.
  *  \retval aoclsparse_status_invalid_pointer \p src or \p dest pointer is invalid.
  */
-__attribute__((__visibility__("default")))
+DLL_PUBLIC
 aoclsparse_status aoclsparse_copy_mat_descr(aoclsparse_mat_descr dest, const aoclsparse_mat_descr src);
 
 /*! \ingroup aux_module
@@ -96,7 +97,7 @@ aoclsparse_status aoclsparse_copy_mat_descr(aoclsparse_mat_descr dest, const aoc
  *  \retval aoclsparse_status_success the operation completed successfully.
  *  \retval aoclsparse_status_invalid_pointer \p descr is invalid.
  */
-__attribute__((__visibility__("default")))
+DLL_PUBLIC
 aoclsparse_status aoclsparse_destroy_mat_descr(aoclsparse_mat_descr descr);
 
 /*! \ingroup aux_module
@@ -115,7 +116,7 @@ aoclsparse_status aoclsparse_destroy_mat_descr(aoclsparse_mat_descr descr);
  *  \retval aoclsparse_status_invalid_pointer \p descr pointer is invalid.
  *  \retval aoclsparse_status_invalid_value \p base is invalid.
  */
-__attribute__((__visibility__("default")))
+DLL_PUBLIC
 aoclsparse_status aoclsparse_set_mat_index_base(aoclsparse_mat_descr descr, aoclsparse_index_base base);
 
 /*! \ingroup aux_module
@@ -129,7 +130,7 @@ aoclsparse_status aoclsparse_set_mat_index_base(aoclsparse_mat_descr descr, aocl
  *
  *  \returns \ref aoclsparse_index_base_zero or \ref aoclsparse_index_base_one.
  */
-__attribute__((__visibility__("default")))
+DLL_PUBLIC
 aoclsparse_index_base aoclsparse_get_mat_index_base(const aoclsparse_mat_descr descr);
 
 /*! \ingroup aux_module
@@ -152,7 +153,7 @@ aoclsparse_index_base aoclsparse_get_mat_index_base(const aoclsparse_mat_descr d
  *  \retval aoclsparse_status_invalid_pointer \p descr pointer is invalid.
  *  \retval aoclsparse_status_invalid_value \p type is invalid.
  */
-__attribute__((__visibility__("default")))
+DLL_PUBLIC
 aoclsparse_status aoclsparse_set_mat_type(aoclsparse_mat_descr descr, aoclsparse_matrix_type type);
 
 /*! \ingroup aux_module
@@ -168,7 +169,7 @@ aoclsparse_status aoclsparse_set_mat_type(aoclsparse_mat_descr descr, aoclsparse
  *              \ref aoclsparse_matrix_type_hermitian or
  *              \ref aoclsparse_matrix_type_triangular.
  */
-__attribute__((__visibility__("default")))
+DLL_PUBLIC
 aoclsparse_matrix_type aoclsparse_get_mat_type(const aoclsparse_mat_descr descr);
 
 /*! \ingroup aux_module
@@ -188,7 +189,7 @@ aoclsparse_matrix_type aoclsparse_get_mat_type(const aoclsparse_mat_descr descr)
  *  \retval aoclsparse_status_invalid_pointer \p descr pointer is invalid.
  *  \retval aoclsparse_status_invalid_value \p fill_mode is invalid.
  */
-__attribute__((__visibility__("default")))
+DLL_PUBLIC
 aoclsparse_status aoclsparse_set_mat_fill_mode(aoclsparse_mat_descr descr,
                                              aoclsparse_fill_mode fill_mode);
 
@@ -203,7 +204,7 @@ aoclsparse_status aoclsparse_set_mat_fill_mode(aoclsparse_mat_descr descr,
  *
  *  \returns    \ref aoclsparse_fill_mode_lower or \ref aoclsparse_fill_mode_upper.
  */
-__attribute__((__visibility__("default")))
+DLL_PUBLIC
 aoclsparse_fill_mode aoclsparse_get_mat_fill_mode(const aoclsparse_mat_descr descr);
 
 /*! \ingroup aux_module
@@ -223,7 +224,7 @@ aoclsparse_fill_mode aoclsparse_get_mat_fill_mode(const aoclsparse_mat_descr des
  *  \retval aoclsparse_status_invalid_pointer \p descr pointer is invalid.
  *  \retval aoclsparse_status_invalid_value \p diag_type is invalid.
  */
-__attribute__((__visibility__("default")))
+DLL_PUBLIC
 aoclsparse_status aoclsparse_set_mat_diag_type(aoclsparse_mat_descr descr,
                                              aoclsparse_diag_type diag_type);
 
@@ -239,7 +240,7 @@ aoclsparse_status aoclsparse_set_mat_diag_type(aoclsparse_mat_descr descr,
  *
  *  \returns \ref aoclsparse_diag_type_unit or \ref aoclsparse_diag_type_non_unit.
  */
-__attribute__((__visibility__("default")))
+DLL_PUBLIC
 aoclsparse_diag_type aoclsparse_get_mat_diag_type(const aoclsparse_mat_descr descr);
 
 #ifdef __cplusplus
