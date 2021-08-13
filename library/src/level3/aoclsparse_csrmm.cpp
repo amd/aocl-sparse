@@ -122,40 +122,20 @@ aoclsparse_status aoclsparse_csrmm_template(aoclsparse_operation     trans,
 	return aoclsparse_status_invalid_size;
     }
     if (order == aoclsparse_order_column)
-    {
-	/*If sparse matrix A is smaller than dense matrix B ,
-	 * loop order has to be n-m-k*/
-	if(nnz < k*n)
-	    return aoclsparse_csrmm_col_major_vec_nmk(alpha,
-		    csr_val,
-		    csr_col_ind,
-		    csr_row_ptr,
-		    m,
-		    k,
-		    B,
-		    n,
-		    ldb,
-		    beta,
-		    C,
-		    ldc);
-	/*If sparse matrix A is larger than dense matrix B ,
-	 * loop order has to be m-n-k*/
-	else
-	    return aoclsparse_csrmm_col_major_vec_mnk(alpha,
-		    csr_val,
-		    csr_col_ind,
-		    csr_row_ptr,
-		    m,
-		    k,
-		    B,
-		    n,
-		    ldb,
-		    beta,
-		    C,
-		    ldc);
-    }
+	return aoclsparse_csrmm_col_major(alpha,
+		csr_val,
+		csr_col_ind,
+		csr_row_ptr,
+		m,
+		k,
+		B,
+		n,
+		ldb,
+		beta,
+		C,
+		ldc);
     else
-	return aoclsparse_csrmm_row_major_vec(alpha,
+	return aoclsparse_csrmm_row_major(alpha,
 		csr_val,
 		csr_col_ind,
 		csr_row_ptr,
@@ -193,7 +173,7 @@ INSTANTIATE(double);
  * */
 
 #define C_IMPL(NAME, TYPE)                                                  \
-    extern "C" aoclsparse_status NAME(aoclsparse_operation      trans,     \
+extern "C" aoclsparse_status NAME(aoclsparse_operation      trans,     \
 	    const TYPE*                alpha,       \
 	    const aoclsparse_mat_csr   csr,         \
 	    const aoclsparse_mat_descr descr,       \

@@ -30,223 +30,19 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
-
-aoclsparse_status aoclsparse_csrmm_col_major_vec_mnk(const float*            alpha,
-	const float* __restrict__          csr_val,
-	const aoclsparse_int* __restrict__ csr_col_ind,
-	const aoclsparse_int* __restrict__ csr_row_ptr,
-	aoclsparse_int                     m,
-	aoclsparse_int                     k,
-	const float*                       B,
-	aoclsparse_int                     n,
-	aoclsparse_int                     ldb,
-	const float*                       beta,
-	float*                             C,
-	aoclsparse_int                     ldc)
+typedef union
 {
-    const aoclsparse_int *colIndPtr;
-    const float *matValPtr;
-    aoclsparse_int idx_B = 0, idx_B_1 = 0, idx_B_2 = 0, idx_B_3 = 0;
-    aoclsparse_int idx_B_4 = 0, idx_B_5 = 0, idx_B_6 = 0, idx_B_7 = 0;
-
-    for(aoclsparse_int i = 0; i < m; ++i)
-    {
-	for(aoclsparse_int j = 0; j < n; ++j)
-	{
-	    __m256 vec_vals , vec_x , vec_y;
-	    matValPtr = &csr_val[csr_row_ptr[i]];
-	    colIndPtr = &csr_col_ind[csr_row_ptr[i]];
-	    aoclsparse_int idx_C     =  i + j * ldc;
-
-	    float sum = 0.0;
-	    vec_y = _mm256_setzero_ps();
-	    aoclsparse_int l;
-	    aoclsparse_int nnz = csr_row_ptr[i+1] - csr_row_ptr[i];
-	    aoclsparse_int k_iter = nnz/8;
-	    aoclsparse_int k_rem = nnz%8;
-
-	    //Loop in multiples of 4 non-zeroes
-	    for(l =  0 ; l < k_iter ; l++ )
-	    {
-		//(csr_val[j] csr_val[j+1] csr_val[j+2] csr_val[j+3] csr_val[j+4] csr_val[j+5] csr_val[j+6] csr_val[j+7]
-		vec_vals = _mm256_loadu_ps(matValPtr);
-
-		idx_B = (colIndPtr[0] + j * ldb);
-		idx_B_1 = (colIndPtr[1] + j * ldb);
-		idx_B_2 = (colIndPtr[2] + j * ldb);
-		idx_B_3 = (colIndPtr[3] + j * ldb);
-		idx_B_4 = (colIndPtr[4] + j * ldb);
-		idx_B_5 = (colIndPtr[5] + j * ldb);
-		idx_B_6 = (colIndPtr[6] + j * ldb);
-		idx_B_7 = (colIndPtr[7] + j * ldb);
-		//Gather the x vector elements from the column indices
-		vec_x  = _mm256_set_ps(B[idx_B_7],
-			B[idx_B_6],
-			B[idx_B_5],
-			B[idx_B_4],
-			B[idx_B_3],
-			B[idx_B_2],
-			B[idx_B_1],
-			B[idx_B]);
-
-		vec_y = _mm256_fmadd_ps(vec_vals, vec_x , vec_y);
-
-		matValPtr+=8;
-		colIndPtr+=8;
-	    }
-
-	    // Horizontal addition
-	    if(k_iter){
-		// hiQuad = ( x7, x6, x5, x4 )
-		__m128 hiQuad = _mm256_extractf128_ps(vec_y, 1);
-		// loQuad = ( x3, x2, x1, x0 )
-		const __m128 loQuad = _mm256_castps256_ps128(vec_y);
-		// sumQuad = ( x3 + x7, x2 + x6, x1 + x5, x0 + x4 )
-		const __m128 sumQuad = _mm_add_ps(loQuad, hiQuad);
-		// loDual = ( -, -, x1 + x5, x0 + x4 )
-		const __m128 loDual = sumQuad;
-		// hiDual = ( -, -, x3 + x7, x2 + x6 )
-		const __m128 hiDual = _mm_movehl_ps(sumQuad, sumQuad);
-		// sumDual = ( -, -, x1 + x3 + x5 + x7, x0 + x2 + x4 + x6 )
-		const __m128 sumDual = _mm_add_ps(loDual, hiDual);
-		// lo = ( -, -, -, x0 + x2 + x4 + x6 )
-		const __m128 lo = sumDual;
-		// hi = ( -, -, -, x1 + x3 + x5 + x7 )
-		const __m128 hi = _mm_shuffle_ps(sumDual, sumDual, 0x1);
-		// sum = ( -, -, -, x0 + x1 + x2 + x3 + x4 + x5 + x6 + x7 )
-		const __m128 sse_sum = _mm_add_ss(lo, hi);
-		sum = _mm_cvtss_f32(sse_sum);
-
-	    }
-	    //Remainder loop for nnz%4
-	    for(l = 0 ; l < k_rem ; l++ )
-	    {
-		idx_B = (colIndPtr[l] + j * ldb);
-		sum += *matValPtr++ * B[idx_B];
-	    }
-
-
-	    if(*beta == static_cast<float>(0))
-	    {
-		C[idx_C] = *alpha * sum;
-	    }
-	    else
-	    {
-		C[idx_C] = std::fma(*beta, C[idx_C], *alpha * sum);
-	    }
-	}
-    }
-    return aoclsparse_status_success;
-}
-
-aoclsparse_status aoclsparse_csrmm_col_major_vec_nmk(const float*            alpha,
-	const float* __restrict__          csr_val,
-	const aoclsparse_int* __restrict__ csr_col_ind,
-	const aoclsparse_int* __restrict__ csr_row_ptr,
-	aoclsparse_int                     m,
-	aoclsparse_int                     k,
-	const float*                       B,
-	aoclsparse_int                     n,
-	aoclsparse_int                     ldb,
-	const float*                       beta,
-	float*                             C,
-	aoclsparse_int                     ldc)
+    __m256d v;
+    double  d[4] __attribute__((aligned(64)));
+} v4df_t;
+typedef union
 {
-    const aoclsparse_int *colIndPtr;
-    const float *matValPtr;
-    aoclsparse_int idx_B = 0, idx_B_1 = 0, idx_B_2 = 0, idx_B_3 = 0;
-    aoclsparse_int idx_B_4 = 0, idx_B_5 = 0, idx_B_6 = 0, idx_B_7 = 0;
-
-    for(aoclsparse_int j = 0; j < n; ++j)
-    {
-	for(aoclsparse_int i = 0; i < m; ++i)
-	{
-	    __m256 vec_vals , vec_x , vec_y;
-	    matValPtr = &csr_val[csr_row_ptr[i]];
-	    colIndPtr = &csr_col_ind[csr_row_ptr[i]];
-	    aoclsparse_int idx_C     =  i + j * ldc;
-
-	    float sum = 0.0;
-	    vec_y = _mm256_setzero_ps();
-	    aoclsparse_int l;
-	    aoclsparse_int nnz = csr_row_ptr[i+1] - csr_row_ptr[i];
-	    aoclsparse_int k_iter = nnz/8;
-	    aoclsparse_int k_rem = nnz%8;
-
-	    //Loop in multiples of 4 non-zeroes
-	    for(l =  0 ; l < k_iter ; l++ )
-	    {
-		//(csr_val[j] csr_val[j+1] csr_val[j+2] csr_val[j+3] csr_val[j+4] csr_val[j+5] csr_val[j+6] csr_val[j+7]
-		vec_vals = _mm256_loadu_ps(matValPtr);
-
-		idx_B = (colIndPtr[0] + j * ldb);
-		idx_B_1 = (colIndPtr[1] + j * ldb);
-		idx_B_2 = (colIndPtr[2] + j * ldb);
-		idx_B_3 = (colIndPtr[3] + j * ldb);
-		idx_B_4 = (colIndPtr[4] + j * ldb);
-		idx_B_5 = (colIndPtr[5] + j * ldb);
-		idx_B_6 = (colIndPtr[6] + j * ldb);
-		idx_B_7 = (colIndPtr[7] + j * ldb);
-		//Gather the x vector elements from the column indices
-		vec_x  = _mm256_set_ps(B[idx_B_7],
-			B[idx_B_6],
-			B[idx_B_5],
-			B[idx_B_4],
-			B[idx_B_3],
-			B[idx_B_2],
-			B[idx_B_1],
-			B[idx_B]);
-
-		vec_y = _mm256_fmadd_ps(vec_vals, vec_x , vec_y);
-
-		matValPtr+=8;
-		colIndPtr+=8;
-	    }
-
-	    // Horizontal addition
-	    if(k_iter){
-		// hiQuad = ( x7, x6, x5, x4 )
-		__m128 hiQuad = _mm256_extractf128_ps(vec_y, 1);
-		// loQuad = ( x3, x2, x1, x0 )
-		const __m128 loQuad = _mm256_castps256_ps128(vec_y);
-		// sumQuad = ( x3 + x7, x2 + x6, x1 + x5, x0 + x4 )
-		const __m128 sumQuad = _mm_add_ps(loQuad, hiQuad);
-		// loDual = ( -, -, x1 + x5, x0 + x4 )
-		const __m128 loDual = sumQuad;
-		// hiDual = ( -, -, x3 + x7, x2 + x6 )
-		const __m128 hiDual = _mm_movehl_ps(sumQuad, sumQuad);
-		// sumDual = ( -, -, x1 + x3 + x5 + x7, x0 + x2 + x4 + x6 )
-		const __m128 sumDual = _mm_add_ps(loDual, hiDual);
-		// lo = ( -, -, -, x0 + x2 + x4 + x6 )
-		const __m128 lo = sumDual;
-		// hi = ( -, -, -, x1 + x3 + x5 + x7 )
-		const __m128 hi = _mm_shuffle_ps(sumDual, sumDual, 0x1);
-		// sum = ( -, -, -, x0 + x1 + x2 + x3 + x4 + x5 + x6 + x7 )
-		const __m128 sse_sum = _mm_add_ss(lo, hi);
-		sum = _mm_cvtss_f32(sse_sum);
-
-	    }
-	    //Remainder loop for nnz%4
-	    for(l = 0 ; l < k_rem ; l++ )
-	    {
-		idx_B = (colIndPtr[l] + j * ldb);
-		sum += *matValPtr++ * B[idx_B];
-	    }
+    __m128d v;
+    double  d[2] __attribute__((aligned(64)));
+} v2df_t;
 
 
-	    if(*beta == static_cast<float>(0))
-	    {
-		C[idx_C] = *alpha * sum;
-	    }
-	    else
-	    {
-		C[idx_C] = std::fma(*beta, C[idx_C], *alpha * sum);
-	    }
-	}
-    }
-    return aoclsparse_status_success;
-}
-aoclsparse_status aoclsparse_csrmm_col_major_vec_mnk(const double*            alpha,
+aoclsparse_status aoclsparse_csrmm_col_major(const double*            alpha,
 	const double* __restrict__         csr_val,
 	const aoclsparse_int* __restrict__ csr_col_ind,
 	const aoclsparse_int* __restrict__ csr_row_ptr,
@@ -259,160 +55,604 @@ aoclsparse_status aoclsparse_csrmm_col_major_vec_mnk(const double*            al
 	double*                            C,
 	aoclsparse_int                     ldc)
 {
-    const aoclsparse_int *colIndPtr;
-    const double *matValPtr;
-    aoclsparse_int idx_B = 0, idx_B_1 = 0, idx_B_2 = 0, idx_B_3 = 0;
+    // Number of sub-blocks of 4 columns in B matrix
+    aoclsparse_int j_iter = n/4;
 
-    for(aoclsparse_int i = 0; i < m; ++i)
+    // Remainder numbers of column of B after multiple of 4
+    aoclsparse_int j_rem = n%4;
+
+    // Offsets to each of four columns j,j+1,j+2,j+3
+    // of B dense matrix in column major format
+    aoclsparse_int j_offset = 0;
+    aoclsparse_int j_offset_1 = 0;
+    aoclsparse_int j_offset_2 = 0;
+    aoclsparse_int j_offset_3 = 0;
+
+    // Indices of elements of input dense matrix B
+    aoclsparse_int idx_B = 0;
+    aoclsparse_int idx_B_1 = 0;
+    aoclsparse_int idx_B_2 = 0;
+    aoclsparse_int idx_B_3 = 0;
+    aoclsparse_int idx_B_4 = 0;
+    aoclsparse_int idx_B_5 = 0;
+    aoclsparse_int idx_B_6 = 0;
+    aoclsparse_int idx_B_7 = 0;
+
+    // Indices of output dense matrix C in column major format
+    // Four elements of one row of C matrix gets updated in
+    // one iteration.
+    aoclsparse_int idx_C =  0;
+    aoclsparse_int idx_C_1 =  0;
+    aoclsparse_int idx_C_2 =  0;
+    aoclsparse_int idx_C_3 =  0;
+
+    // xmm registers for A , B ,C matrix elements
+    v2df_t vec_A , vec_B;
+    v2df_t vec_B_1;
+    v2df_t vec_B_2;
+    v2df_t vec_B_3;
+    v2df_t vec_C  ;
+    v2df_t vec_C_1 ;
+    v2df_t vec_C_2 ;
+    v2df_t vec_C_3 ;
+
+    // Iterate along sub-blocks of 4 columns of B matrix
+    for(aoclsparse_int j = 0; j < j_iter*4; j+=4)
     {
-	for(aoclsparse_int j = 0; j < n; ++j)
-	{
-	    __m256d vec_vals , vec_x , vec_y;
-	    matValPtr = &csr_val[csr_row_ptr[i]];
-	    colIndPtr = &csr_col_ind[csr_row_ptr[i]];
-	    aoclsparse_int idx_C     =  i + j * ldc;
+	// Offsets to each of four columns j,j+1,j+2,j+3
+	// of B dense matrix in column major format
+	j_offset = j * ldb;
+	j_offset_1 = (j + 1) * ldb;
+	j_offset_2 = (j + 2) * ldb;
+	j_offset_3 = (j + 3) * ldb;
 
-	    double sum = 0.0;
-	    vec_y = _mm256_setzero_pd();
-	    aoclsparse_int l;
-	    aoclsparse_int nnz = csr_row_ptr[i+1] - csr_row_ptr[i];
-	    aoclsparse_int k_iter = nnz/4;
-	    aoclsparse_int k_rem = nnz%4;
-
-	    //Loop in multiples of 4 non-zeroes
-	    for(l =  0 ; l < k_iter ; l++ )
-	    {
-		//(csr_val[j] (csr_val[j+1] (csr_val[j+2] (csr_val[j+3]
-		vec_vals = _mm256_loadu_pd((double const *)matValPtr);
-
-		idx_B = (colIndPtr[0] + j * ldb);
-		idx_B_1 = (colIndPtr[1] + j * ldb);
-		idx_B_2 = (colIndPtr[2] + j * ldb);
-		idx_B_3 = (colIndPtr[3] + j * ldb);
-		//Gather the x vector elements from the column indices
-		vec_x  = _mm256_set_pd(B[idx_B_3],
-			B[idx_B_2],
-			B[idx_B_1],
-			B[idx_B]);
-
-		vec_y = _mm256_fmadd_pd(vec_vals, vec_x, vec_y);
-		matValPtr+=4;
-		colIndPtr+=4;
-	    }
-
-	    // Horizontal addition
-	    if(k_iter){
-		// sum[0] += sum[1] ; sum[2] += sum[3]
-		vec_y = _mm256_hadd_pd(vec_y, vec_y);
-		// Cast avx_sum to 128 bit to obtain sum[0] and sum[1]
-		__m128d sum_lo = _mm256_castpd256_pd128(vec_y);
-		// Extract 128 bits to obtain sum[2] and sum[3]
-		__m128d sum_hi = _mm256_extractf128_pd(vec_y, 1);
-		// Add remaining two sums
-		__m128d sse_sum = _mm_add_pd(sum_lo, sum_hi);
-		// Store result
-		sum = sse_sum[0];
-	    }
-	    //Remainder loop for nnz%4
-	    for(l = 0 ; l < k_rem ; l++ )
-	    {
-		idx_B = (colIndPtr[l] + j * ldb);
-		sum += *matValPtr++ * B[idx_B];
-	    }
-
-
-	    if(*beta == static_cast<double>(0))
-	    {
-		C[idx_C] = *alpha * sum;
-	    }
-	    else
-	    {
-		C[idx_C] = std::fma(*beta, C[idx_C], *alpha * sum);
-	    }
-	}
-    }
-    return aoclsparse_status_success;
-}
-
-aoclsparse_status aoclsparse_csrmm_col_major_vec_nmk(const double*            alpha,
-	const double* __restrict__         csr_val,
-	const aoclsparse_int* __restrict__ csr_col_ind,
-	const aoclsparse_int* __restrict__ csr_row_ptr,
-	aoclsparse_int                     m,
-	aoclsparse_int                     k,
-	const double*                      B,
-	aoclsparse_int                     n,
-	aoclsparse_int                     ldb,
-	const double*                      beta,
-	double*                            C,
-	aoclsparse_int                     ldc)
-{
-    const aoclsparse_int *colIndPtr;
-    const double *matValPtr;
-    aoclsparse_int idx_B = 0, idx_B_1 = 0, idx_B_2 = 0, idx_B_3 = 0;
-
-    for(aoclsparse_int j = 0; j < n; ++j)
-    {
+	// Iterate along rows of sparse matrix A
 	for(aoclsparse_int i = 0; i < m; ++i)
 	{
-	    __m256d vec_vals , vec_x , vec_y;
-	    matValPtr = &csr_val[csr_row_ptr[i]];
-	    colIndPtr = &csr_col_ind[csr_row_ptr[i]];
-	    aoclsparse_int idx_C     =  i + j * ldc;
+	    // Pointer to the first and last nonzero
+	    // of ith row
+	    aoclsparse_int row_begin = csr_row_ptr[i] ;
+	    aoclsparse_int row_end   = csr_row_ptr[i + 1] ;
 
-	    double sum = 0.0;
-	    vec_y = _mm256_setzero_pd();
-	    aoclsparse_int l;
-	    aoclsparse_int nnz = csr_row_ptr[i+1] - csr_row_ptr[i];
-	    aoclsparse_int k_iter = nnz/4;
-	    aoclsparse_int k_rem = nnz%4;
+	    // Indices of elements of input dense matrix B
+	    idx_B = 0;
+	    idx_B_1 = 0;
+	    idx_B_2 = 0;
+	    idx_B_3 = 0;
+	    idx_B_4 = 0;
+	    idx_B_5 = 0;
+	    idx_B_6 = 0;
+	    idx_B_7 = 0;
 
-	    //Loop in multiples of 4 non-zeroes
-	    for(l =  0 ; l < k_iter ; l++ )
+	    // Indices of output dense matrix C in column major format
+	    // Four elements of one row of C matrix gets updated in
+	    // one iteration.
+	    idx_C =  i + j * ldc;
+	    idx_C_1 =  i + ((j+1) * ldc);
+	    idx_C_2 =  i + ((j+2) * ldc);
+	    idx_C_3 =  i + ((j+3) * ldc);
+
+	    // Accumulator for 4 elements of C matrix
+	    double sum[4] ;
+
+	    // Set Accumulators to zero
+	    vec_C.v = _mm_setzero_pd();
+	    vec_C_1.v = _mm_setzero_pd();
+	    vec_C_2.v = _mm_setzero_pd();
+	    vec_C_3.v = _mm_setzero_pd();
+
+	    const double *csr_val_ptr = &csr_val[row_begin];
+
+	    //Iterate over non-zeroes of ith row of A in multiples of 2
+	    for(aoclsparse_int k = row_begin; k < row_end - 1; k+=2)
 	    {
-		//(csr_val[j] (csr_val[j+1] (csr_val[j+2] (csr_val[j+3]
-		vec_vals = _mm256_loadu_pd((double const *)matValPtr);
+		//Load csr_val[k] csr_val[k+1] into xmm register
+		vec_A.v = _mm_loadu_pd((double const *)csr_val_ptr);
+		csr_val_ptr+=2;
 
-		idx_B = (colIndPtr[0] + j * ldb);
-		idx_B_1 = (colIndPtr[1] + j * ldb);
-		idx_B_2 = (colIndPtr[2] + j * ldb);
-		idx_B_3 = (colIndPtr[3] + j * ldb);
-		//Gather the x vector elements from the column indices
-		vec_x  = _mm256_set_pd(B[idx_B_3],
-			B[idx_B_2],
-			B[idx_B_1],
-			B[idx_B]);
+		// Column indices of csr_val[k] csr_val[k+1]
+		aoclsparse_int csr_col_ind_k = csr_col_ind[k];
+		aoclsparse_int csr_col_ind_k_1 = csr_col_ind[k+1];
 
-		vec_y = _mm256_fmadd_pd(vec_vals, vec_x, vec_y);
-		matValPtr+=4;
-		colIndPtr+=4;
+		// Indices of elements of jth column of B matrix
+		// to be multiplied against csr_val[k] csr_val[k+1]
+		// Load the specific B elements into xmm register
+		idx_B = (csr_col_ind_k + j_offset);
+		idx_B_1 = (csr_col_ind_k_1 + j_offset);
+		vec_B.d[0] = B[idx_B];
+		vec_B.d[1] = B[idx_B_1];
+
+		// Indices of elements of (j+1)st column of B matrix
+		// to be multiplied against csr_val[k] csr_val[k+1]
+		// Load the specific B elements into xmm register
+		idx_B_2 = (csr_col_ind_k + j_offset_1);
+		idx_B_3 = (csr_col_ind_k_1 + j_offset_1);
+		vec_B_1.d[0] = B[idx_B_2];
+		vec_B_1.d[1] = B[idx_B_3];
+
+		// Indices of elements of (j+2)nd column of B matrix
+		// to be multiplied against csr_val[k] csr_val[k+1]
+		// Load the specific B elements into xmm register
+		idx_B_4 = (csr_col_ind_k + j_offset_2);
+		idx_B_5 = (csr_col_ind_k_1 + j_offset_2);
+		vec_B_2.d[0] = B[idx_B_4];
+		vec_B_2.d[1] = B[idx_B_5];
+
+		// Indices of elements of (j+3)rd column of B matrix
+		// to be multiplied against csr_val[k] csr_val[k+1]
+		// Load the specific B elements into xmm register
+		idx_B_6 = (csr_col_ind_k + j_offset_3);
+		idx_B_7 = (csr_col_ind_k_1 + j_offset_3);
+		vec_B_3.d[0] = B[idx_B_6];
+		vec_B_3.d[1] = B[idx_B_7];
+
+		// Multiply csr_val[k] csr_val[k+1] by corresponding
+		// elements of jth column of B matrix  and add to
+		// accumulator
+		vec_B.v = _mm_mul_pd(vec_A.v, vec_B.v);
+		vec_C.v = _mm_add_pd(vec_C.v, vec_B.v);
+
+		// Multiply csr_val[k] csr_val[k+1] by corresponding
+		// elements of (j+1)st column of B matrix  and add to
+		// accumulator
+		vec_B_1.v = _mm_mul_pd(vec_A.v, vec_B_1.v);
+		vec_C_1.v = _mm_add_pd(vec_C_1.v, vec_B_1.v);
+
+		// Multiply csr_val[k] csr_val[k+1] by corresponding
+		// elements of (j+2)nd column of B matrix  and add to
+		// accumulator
+		vec_B_2.v = _mm_mul_pd(vec_A.v, vec_B_2.v);
+		vec_C_2.v = _mm_add_pd(vec_C_2.v, vec_B_2.v);
+
+		// Multiply csr_val[k] csr_val[k+1] by corresponding
+		// elements of (j+3)rd column of B matrix  and add to
+		// accumulator
+		vec_B_3.v = _mm_mul_pd(vec_A.v, vec_B_3.v);
+		vec_C_3.v = _mm_add_pd(vec_C_3.v, vec_B_3.v);
 	    }
 
-	    // Horizontal addition
-	    if(k_iter){
-		// sum[0] += sum[1] ; sum[2] += sum[3]
-		vec_y = _mm256_hadd_pd(vec_y, vec_y);
-		// Cast avx_sum to 128 bit to obtain sum[0] and sum[1]
-		__m128d sum_lo = _mm256_castpd256_pd128(vec_y);
-		// Extract 128 bits to obtain sum[2] and sum[3]
-		__m128d sum_hi = _mm256_extractf128_pd(vec_y, 1);
-		// Add remaining two sums
-		__m128d sse_sum = _mm_add_pd(sum_lo, sum_hi);
-		// Store result
-		sum = sse_sum[0];
-	    }
-	    //Remainder loop for nnz%4
-	    for(l = 0 ; l < k_rem ; l++ )
+	    //Remainder one non-zero of ith row of A, if nnz in the row is odd
+	    if(((row_end - row_begin)%2) == 1)
 	    {
-		idx_B = (colIndPtr[l] + j * ldb);
-		sum += *matValPtr++ * B[idx_B];
+		//Load last single non-zero of ith row into xmm register
+		vec_A.d[0] = csr_val[row_end - 1];
+
+		// Indices of elements of jth,(j+1)st,(j+2)nd,(j+3)rd
+		// columns of B matrix to be multiplied against
+		// csr_val[row_end - 1]
+		// Load the specific B elements into xmm registers
+		idx_B = (csr_col_ind[row_end - 1] + j_offset);
+		idx_B_1 = (csr_col_ind[row_end - 1] + j_offset_1);
+		idx_B_2 = (csr_col_ind[row_end - 1] + j_offset_2);
+		idx_B_3 = (csr_col_ind[row_end - 1] + j_offset_3);
+		vec_B.d[0] = B[idx_B];
+		vec_B_1.d[0] = B[idx_B_1];
+		vec_B_2.d[0] = B[idx_B_2];
+		vec_B_3.d[0] = B[idx_B_3];
+
+		// Multiply last single non-zero by corresponding
+		// elements of 4 columns of B matrix  and add to
+		// accumulator
+		vec_B.v = _mm_mul_sd(vec_A.v, vec_B.v);
+		vec_C.v = _mm_add_sd(vec_C.v, vec_B.v);
+		vec_B_1.v = _mm_mul_sd(vec_A.v, vec_B_1.v);
+		vec_C_1.v = _mm_add_sd(vec_C_1.v, vec_B_1.v);
+		vec_B_2.v = _mm_mul_sd(vec_A.v, vec_B_2.v);
+		vec_C_2.v = _mm_add_sd(vec_C_2.v, vec_B_2.v);
+		vec_B_3.v = _mm_mul_sd(vec_A.v, vec_B_3.v);
+		vec_C_3.v = _mm_add_sd(vec_C_3.v, vec_B_3.v);
 	    }
+	    // Horizontal addition of lower and higher double
+	    // values in accumulator
+	    sum[0] = vec_C.d[0] + vec_C.d[1] ;
+	    sum[1] = vec_C_1.d[0]+ vec_C_1.d[1];
+	    sum[2] = vec_C_2.d[0]+ vec_C_2.d[1];
+	    sum[3] = vec_C_3.d[0]+ vec_C_3.d[1];
 
-
+	    // if beta = 0 , C= alpha*A*B
 	    if(*beta == static_cast<double>(0))
 	    {
-		C[idx_C] = *alpha * sum;
+		// if beta = 0 & alpha = 1, C= A*B
+		if(*alpha == static_cast<double>(1))
+		{
+		    C[idx_C] = sum[0];
+		    C[idx_C_1] = sum[1];
+		    C[idx_C_2] = sum[2];
+		    C[idx_C_3] = sum[3];
+		}
+		// if beta = 0 & alpha != 1, C= alpha*A*B
+		else
+		{
+		    C[idx_C] = *alpha * sum[0];
+		    C[idx_C_1] = *alpha * sum[1];
+		    C[idx_C_2] = *alpha * sum[2];
+		    C[idx_C_3] = *alpha * sum[3];
+		}
 	    }
+	    // if beta != 0 & alpha != 1, C= beta*C + alpha*A*B
+	    else
+	    {
+		C[idx_C] = std::fma(*beta, C[idx_C], *alpha * sum[0]);
+		C[idx_C_1] = std::fma(*beta, C[idx_C_1], *alpha * sum[1]);
+		C[idx_C_2] = std::fma(*beta, C[idx_C_2], *alpha * sum[2]);
+		C[idx_C_3] = std::fma(*beta, C[idx_C_3], *alpha * sum[3]);
+	    }
+	}
+    }
+
+    // if 3 == Remainder columns of B after subblocks of multiple of 4
+    if(j_rem == 3)
+    {
+	aoclsparse_int j = j_iter*4;
+
+	// Offsets to each of last three columns
+	// of B dense matrix in column major format
+	j_offset = j * ldb;
+	j_offset_1 = (j + 1) * ldb;
+	j_offset_2 = (j + 2) * ldb;
+
+	// Iterate along rows of sparse matrix A
+	for(aoclsparse_int i = 0; i < m; ++i)
+	{
+	    // Pointer to the first and last nonzero
+	    // of ith row
+	    aoclsparse_int row_begin = csr_row_ptr[i] ;
+	    aoclsparse_int row_end   = csr_row_ptr[i + 1] ;
+
+	    // Indices of elements of input dense matrix B
+	    idx_B = 0;
+	    idx_B_1 = 0;
+	    idx_B_2 = 0;
+	    idx_B_3 = 0;
+	    idx_B_4 = 0;
+	    idx_B_5 = 0;
+
+	    // Indices of output dense matrix C in column major format
+	    // Three elements of one row of C matrix gets updated in
+	    // one iteration.
+	    idx_C =  i + j * ldc;
+	    idx_C_1 =  i + ((j+1) * ldc);
+	    idx_C_2 =  i + ((j+2) * ldc);
+
+	    // Accumulator for 4 elements of C matrix
+	    double sum[3] = {static_cast<double>(0)};
+
+	    // Set Accumulators to zero
+	    vec_C.v = _mm_setzero_pd();
+	    vec_C_1.v = _mm_setzero_pd();
+	    vec_C_2.v = _mm_setzero_pd();
+
+	    const double *csr_val_ptr = &csr_val[row_begin];
+
+	    //Iterate over non-zeroes of ith row of A in multiples of 2
+	    for(aoclsparse_int k = row_begin; k < row_end - 1; k+=2)
+	    {
+		//Load csr_val[k] csr_val[k+1] into xmm register
+		vec_A.v = _mm_loadu_pd((double const *)csr_val_ptr);
+		csr_val_ptr+=2;
+
+		// Column indices of csr_val[k] csr_val[k+1]
+		aoclsparse_int csr_col_ind_k = csr_col_ind[k];
+		aoclsparse_int csr_col_ind_k_1 = csr_col_ind[k+1];
+
+		// Indices of elements of third last column of B matrix
+		// to be multiplied against csr_val[k] csr_val[k+1]
+		// Load the specific B elements into xmm register
+		idx_B = (csr_col_ind_k + j_offset);
+		idx_B_1 = (csr_col_ind_k_1 + j_offset);
+		vec_B.d[0] = B[idx_B];
+		vec_B.d[1] = B[idx_B_1];
+
+		// Indices of elements of 2nd last column of B matrix
+		// to be multiplied against csr_val[k] csr_val[k+1]
+		// Load the specific B elements into xmm register
+		idx_B_2 = (csr_col_ind_k + j_offset_1);
+		idx_B_3 = (csr_col_ind_k_1 + j_offset_1);
+		vec_B_1.d[0] = B[idx_B_2];
+		vec_B_1.d[1] = B[idx_B_3];
+
+		// Indices of elements of last column of B matrix
+		// to be multiplied against csr_val[k] csr_val[k+1]
+		// Load the specific B elements into xmm register
+		idx_B_4 = (csr_col_ind_k + j_offset_2);
+		idx_B_5 = (csr_col_ind_k_1 + j_offset_2);
+		vec_B_2.d[0] = B[idx_B_4];
+		vec_B_2.d[1] = B[idx_B_5];
+
+		// Multiply csr_val[k] csr_val[k+1] by corresponding
+		// elements of third last column of B matrix  and add to
+		// accumulator
+		vec_B.v = _mm_mul_pd(vec_A.v, vec_B.v);
+		vec_C.v = _mm_add_pd(vec_C.v, vec_B.v);
+
+		// Multiply csr_val[k] csr_val[k+1] by corresponding
+		// elements of second last column of B matrix  and add to
+		// accumulator
+		vec_B_1.v = _mm_mul_pd(vec_A.v, vec_B_1.v);
+		vec_C_1.v = _mm_add_pd(vec_C_1.v, vec_B_1.v);
+
+		// Multiply csr_val[k] csr_val[k+1] by corresponding
+		// elements of last column of B matrix  and add to
+		// accumulator
+		vec_B_2.v = _mm_mul_pd(vec_A.v, vec_B_2.v);
+		vec_C_2.v = _mm_add_pd(vec_C_2.v, vec_B_2.v);
+
+	    }
+	    //Remainder one non-zero of ith row of A, if nnz in the row is odd
+	    if(((row_end - row_begin)%2) == 1)
+	    {
+		//Load last single non-zero of ith row into xmm register
+		vec_A.d[0] = csr_val[row_end - 1];
+
+		// Indices of elements of last three columns of
+		// B matrix to be multiplied against csr_val[row_end - 1]
+		// Load the specific B elements into xmm registers
+		idx_B = (csr_col_ind[row_end - 1] + j_offset);
+		idx_B_1 = (csr_col_ind[row_end - 1] + j_offset_1);
+		idx_B_2 = (csr_col_ind[row_end - 1] + j_offset_2);
+		vec_B.d[0] = B[idx_B];
+		vec_B_1.d[0] = B[idx_B_1];
+		vec_B_2.d[0] = B[idx_B_2];
+
+		// Multiply last single non-zero by corresponding
+		// elements of 3 columns of B matrix  and add to
+		// accumulator
+		vec_B.v = _mm_mul_sd(vec_A.v, vec_B.v);
+		vec_C.v = _mm_add_sd(vec_C.v, vec_B.v);
+		vec_B_1.v = _mm_mul_sd(vec_A.v, vec_B_1.v);
+		vec_C_1.v = _mm_add_sd(vec_C_1.v, vec_B_1.v);
+		vec_B_2.v = _mm_mul_sd(vec_A.v, vec_B_2.v);
+		vec_C_2.v = _mm_add_sd(vec_C_2.v, vec_B_2.v);
+	    }
+	    // Horizontal addition of lower and higher double
+	    // values in accumulator
+	    sum[0] = vec_C.d[0] + vec_C.d[1] ;
+	    sum[1] = vec_C_1.d[0]+ vec_C_1.d[1];
+	    sum[2] = vec_C_2.d[0]+ vec_C_2.d[1];
+
+	    // if beta == 0 ,C= alpha*A*B
+	    if(*beta == static_cast<double>(0))
+	    {
+		// if beta == 0 & alpha == 1, C= A*B
+		if(*alpha == static_cast<double>(1))
+		{
+		    C[idx_C] = sum[0];
+		    C[idx_C_1] = sum[1];
+		    C[idx_C_2] = sum[2];
+		}
+		// if beta == 0 & alpha != 1, C= alpha*A*B
+		else
+		{
+		    C[idx_C] = *alpha * sum[0];
+		    C[idx_C_1] = *alpha * sum[1];
+		    C[idx_C_2] = *alpha * sum[2];
+		}
+	    }
+	    // if beta != 0 & alpha != 1, C= beta*C + alpha*A*B
+	    else
+	    {
+		C[idx_C] = std::fma(*beta, C[idx_C], *alpha * sum[0]);
+		C[idx_C_1] = std::fma(*beta, C[idx_C_1], *alpha * sum[1]);
+		C[idx_C_2] = std::fma(*beta, C[idx_C_2], *alpha * sum[2]);
+	    }
+	}
+    }
+    // if 2== Remainder columns of B after subblocks of multiple of 4
+    if(j_rem == 2)
+    {
+	aoclsparse_int j = j_iter*4;
+	// Offsets to each of last three columns
+	// of B dense matrix in column major format
+	j_offset = j * ldb;
+	j_offset_1 = (j + 1) * ldb;
+
+	// Iterate along rows of sparse matrix A
+	for(aoclsparse_int i = 0; i < m; ++i)
+	{
+	    // Pointer to the first and last nonzero
+	    // of ith row
+	    aoclsparse_int row_begin = csr_row_ptr[i] ;
+	    aoclsparse_int row_end   = csr_row_ptr[i + 1] ;
+
+	    // Indices of elements of input dense matrix B
+	    idx_B = 0;
+	    idx_B_1 = 0;
+	    idx_B_2 = 0;
+	    idx_B_3 = 0;
+	    idx_C =  i + j * ldc;
+	    idx_C_1 =  i + ((j+1) * ldc);
+
+	    // Accumulator for 4 elements of C matrix
+	    double sum[2] = {static_cast<double>(0)};
+
+	    // Set Accumulators to zero
+	    vec_C.v = _mm_setzero_pd();
+	    vec_C_1.v = _mm_setzero_pd();
+
+	    const double *csr_val_ptr = &csr_val[row_begin];
+
+	    //Iterate over non-zeroes of ith row of A in multiples of 2
+	    for(aoclsparse_int k = row_begin; k < row_end - 1; k+=2)
+	    {
+		//Load csr_val[k] csr_val[k+1] into xmm register
+		vec_A.v = _mm_loadu_pd((double const *)csr_val_ptr);
+		csr_val_ptr+=2;
+
+		// Column indices of csr_val[k] csr_val[k+1]
+		aoclsparse_int csr_col_ind_k = csr_col_ind[k];
+		aoclsparse_int csr_col_ind_k_1 = csr_col_ind[k+1];
+
+		// Indices of elements of 2nd last column of B matrix
+		// to be multiplied against csr_val[k] csr_val[k+1]
+		// Load the specific B elements into xmm register
+		idx_B = (csr_col_ind_k + j_offset);
+		idx_B_1 = (csr_col_ind_k_1 + j_offset);
+		vec_B.d[0] = B[idx_B];
+		vec_B.d[1] = B[idx_B_1];
+
+		// Indices of elements of last column of B matrix
+		// to be multiplied against csr_val[k] csr_val[k+1]
+		// Load the specific B elements into xmm register
+		idx_B_2 = (csr_col_ind_k + j_offset_1);
+		idx_B_3 = (csr_col_ind_k_1 + j_offset_1);
+		vec_B_1.d[0] = B[idx_B_2];
+		vec_B_1.d[1] = B[idx_B_3];
+
+		// Multiply csr_val[k] csr_val[k+1] by corresponding
+		// elements of second last column of B matrix  and add to
+		// accumulator
+		vec_B.v = _mm_mul_pd(vec_A.v, vec_B.v);
+		vec_C.v = _mm_add_pd(vec_C.v, vec_B.v);
+
+		// Multiply csr_val[k] csr_val[k+1] by corresponding
+		// elements of last column of B matrix  and add to
+		// accumulator
+		vec_B_1.v = _mm_mul_pd(vec_A.v, vec_B_1.v);
+		vec_C_1.v = _mm_add_pd(vec_C_1.v, vec_B_1.v);
+
+	    }
+	    //Remainder one non-zero of ith row of A, if nnz in the row is odd
+	    if(((row_end - row_begin)%2) == 1)
+	    {
+		//Load last single non-zero of ith row into xmm register
+		vec_A.d[0] = csr_val[row_end - 1];
+
+		// Indices of elements of last two columns of
+		// B matrix to be multiplied against csr_val[row_end - 1]
+		// Load the specific B elements into xmm registers
+		idx_B = (csr_col_ind[row_end - 1] + j_offset);
+		idx_B_1 = (csr_col_ind[row_end - 1] + j_offset_1);
+		vec_B.d[0] = B[idx_B];
+		vec_B_1.d[0] = B[idx_B_1];
+
+		// Multiply last single non-zero by corresponding
+		// elements of 2 columns of B matrix  and add to
+		// accumulator
+		vec_B.v = _mm_mul_sd(vec_A.v, vec_B.v);
+		vec_C.v = _mm_add_sd(vec_C.v, vec_B.v);
+		vec_B_1.v = _mm_mul_sd(vec_A.v, vec_B_1.v);
+		vec_C_1.v = _mm_add_sd(vec_C_1.v, vec_B_1.v);
+	    }
+	    // Horizontal addition of lower and higher double
+	    // values in accumulator
+	    sum[0] = vec_C.d[0] + vec_C.d[1] ;
+	    sum[1] = vec_C_1.d[0]+ vec_C_1.d[1];
+
+	    // if beta == 0 ,C= alpha*A*B
+	    if(*beta == static_cast<double>(0))
+	    {
+		// if beta == 0 & alpha == 1, C= A*B
+		if(*alpha == static_cast<double>(1))
+		{
+		    C[idx_C] = sum[0];
+		    C[idx_C_1] = sum[1];
+		}
+		// if beta == 0 & alpha != 1, C= alpha*A*B
+		else
+		{
+		    C[idx_C] = *alpha * sum[0];
+		    C[idx_C_1] = *alpha * sum[1];
+		}
+	    }
+	    // if beta != 0 & alpha != 1, C= beta*C + alpha*A*B
+	    else
+	    {
+		C[idx_C] = std::fma(*beta, C[idx_C], *alpha * sum[0]);
+		C[idx_C_1] = std::fma(*beta, C[idx_C_1], *alpha * sum[1]);
+	    }
+	}
+    }
+    // if 1 == Remainder columns of B after subblocks of multiple of 4
+    if(j_rem == 1)
+    {
+	aoclsparse_int j = j_iter*4;
+	// Offsets to each of last three columns
+	// of B dense matrix in column major format
+	j_offset = j * ldb;
+
+	// Iterate along rows of sparse matrix A
+	for(aoclsparse_int i = 0; i < m; ++i)
+	{
+	    // Pointer to the first and last nonzero
+	    // of ith row
+	    aoclsparse_int row_begin = csr_row_ptr[i] ;
+	    aoclsparse_int row_end   = csr_row_ptr[i + 1] ;
+
+	    // Indices of elements of input dense matrix B
+	    idx_B = 0;
+	    idx_B_1 = 0;
+	    idx_C =  i + j * ldc;
+
+	    // Accumulator for 4 elements of C matrix
+	    double sum = static_cast<double>(0);
+
+	    // Set Accumulators to zero
+	    vec_C.v = _mm_setzero_pd();
+
+	    const double *csr_val_ptr = &csr_val[row_begin];
+
+	    //Iterate over non-zeroes of ith row of A in multiples of 2
+	    for(aoclsparse_int k = row_begin; k < row_end - 1; k+=2)
+	    {
+		//Load csr_val[k] csr_val[k+1] into xmm register
+		vec_A.v = _mm_loadu_pd((double const *)csr_val_ptr);
+		csr_val_ptr+=2;
+
+		// Column indices of csr_val[k] csr_val[k+1]
+		aoclsparse_int csr_col_ind_k = csr_col_ind[k];
+		aoclsparse_int csr_col_ind_k_1 = csr_col_ind[k+1];
+
+		// Indices of elements of last column of B matrix
+		// to be multiplied against csr_val[k] csr_val[k+1]
+		// Load the specific B elements into xmm register
+		idx_B = (csr_col_ind_k + j_offset);
+		idx_B_1 = (csr_col_ind_k_1 + j_offset);
+		vec_B.d[0] = B[idx_B];
+		vec_B.d[1] = B[idx_B_1];
+
+		// Multiply csr_val[k] csr_val[k+1] by corresponding
+		// elements of last column of B matrix  and add to
+		// accumulator
+		vec_B.v = _mm_mul_pd(vec_A.v, vec_B.v);
+		vec_C.v = _mm_add_pd(vec_C.v, vec_B.v);
+	    }
+	    //Remainder one non-zero of ith row of A, if nnz in the row is odd
+	    if(((row_end - row_begin)%2) == 1)
+	    {
+		//Load last single non-zero of ith row into xmm register
+		vec_A.d[0] = csr_val[row_end - 1];
+
+		// Index of elements of last columns of
+		// B matrix to be multiplied against csr_val[row_end - 1]
+		// Load the specific B elements into xmm registers
+		idx_B = (csr_col_ind[row_end - 1] + j_offset);
+		vec_B.d[0] = B[idx_B];
+
+		// Multiply last single non-zero by corresponding
+		// element of last columns of B matrix  and add to
+		// accumulator
+		vec_B.v = _mm_mul_sd(vec_A.v, vec_B.v);
+		vec_C.v = _mm_add_sd(vec_C.v, vec_B.v);
+	    }
+	    // Horizontal addition of lower and higher double
+	    // values in accumulator
+	    sum = vec_C.d[0] + vec_C.d[1] ;
+
+	    // if beta == 0 ,C= alpha*A*B
+	    if(*beta == static_cast<double>(0))
+	    {
+		// if beta == 0 & alpha == 1, C= A*B
+		if(*alpha == static_cast<double>(1))
+		{
+		    C[idx_C] = sum;
+		}
+		// if beta == 0 & alpha != 1, C= alpha*A*B
+		else
+		{
+		    C[idx_C] = *alpha * sum;
+		}
+	    }
+	    // if beta != 0 & alpha != 1, C= beta*C + alpha*A*B
 	    else
 	    {
 		C[idx_C] = std::fma(*beta, C[idx_C], *alpha * sum);
@@ -422,7 +662,7 @@ aoclsparse_status aoclsparse_csrmm_col_major_vec_nmk(const double*            al
     return aoclsparse_status_success;
 }
 
-aoclsparse_status aoclsparse_csrmm_row_major_vec(const float*            alpha,
+aoclsparse_status aoclsparse_csrmm_col_major(const float*            alpha,
 	const float* __restrict__          csr_val,
 	const aoclsparse_int* __restrict__ csr_col_ind,
 	const aoclsparse_int* __restrict__ csr_row_ptr,
@@ -435,89 +675,471 @@ aoclsparse_status aoclsparse_csrmm_row_major_vec(const float*            alpha,
 	float*                             C,
 	aoclsparse_int                     ldc)
 {
-    const aoclsparse_int *colIndPtr;
-    const float *matValPtr;
-    aoclsparse_int idx_B = 0, idx_B_1 = 0, idx_B_2 = 0, idx_B_3 = 0;
-    aoclsparse_int idx_B_4 = 0, idx_B_5 = 0, idx_B_6 = 0, idx_B_7 = 0;
+    // Number of sub-blocks of 4 columns in B matrix
+    aoclsparse_int j_iter = n/4;
 
-    for(aoclsparse_int j = 0; j < n; ++j)
+    // Remainder numbers of column of B after multiple of 4
+    aoclsparse_int j_rem = n%4;
+
+    // Offsets to each of four columns j,j+1,j+2,j+3
+    // of B dense matrix in column major format
+    aoclsparse_int j_offset = 0;
+    aoclsparse_int j_offset_1 = 0;
+    aoclsparse_int j_offset_2 = 0;
+    aoclsparse_int j_offset_3 = 0;
+
+    // Indices of elements of input dense matrix B
+    aoclsparse_int idx_B = 0;
+    aoclsparse_int idx_B_1 = 0;
+    aoclsparse_int idx_B_2 = 0;
+    aoclsparse_int idx_B_3 = 0;
+
+    // Indices of output dense matrix C in column major format
+    // Four elements of one row of C matrix gets updated in
+    // one iteration.
+    aoclsparse_int idx_C =  0;
+    aoclsparse_int idx_C_1 =  0;
+    aoclsparse_int idx_C_2 =  0;
+    aoclsparse_int idx_C_3 =  0;
+    // Iterate along sub-blocks of 4 columns of B matrix
+    for(aoclsparse_int j = 0; j < j_iter*4; j+=4)
     {
+	// Offsets to each of four columns j,j+1,j+2,j+3
+	// of B dense matrix in column major format
+	j_offset = j * ldb;
+	j_offset_1 = (j + 1) * ldb;
+	j_offset_2 = (j + 2) * ldb;
+	j_offset_3 = (j + 3) * ldb;
+
+	// Iterate along rows of sparse matrix A
 	for(aoclsparse_int i = 0; i < m; ++i)
 	{
-	    __m256 vec_vals , vec_x , vec_y;
-	    matValPtr = &csr_val[csr_row_ptr[i]];
-	    colIndPtr = &csr_col_ind[csr_row_ptr[i]];
-	    aoclsparse_int idx_C     =  i * ldc + j;
+	    // Pointer to the first and last nonzero
+	    // of ith row
+	    aoclsparse_int row_begin = csr_row_ptr[i] ;
+	    aoclsparse_int row_end   = csr_row_ptr[i + 1] ;
 
-	    float sum = 0.0;
-	    vec_y = _mm256_setzero_ps();
-	    aoclsparse_int l;
-	    aoclsparse_int nnz = csr_row_ptr[i+1] - csr_row_ptr[i];
-	    aoclsparse_int k_iter = nnz/4;
-	    aoclsparse_int k_rem = nnz%4;
+	    // Indices of elements of input dense matrix B
+	    idx_B = 0;
+	    idx_B_1 = 0;
+	    idx_B_2 = 0;
+	    idx_B_3 = 0;
 
-	    //Loop in multiples of 4 non-zeroes
-	    for(l =  0 ; l < k_iter ; l++ )
+	    // Indices of output dense matrix C in column major format
+	    // Four elements of one row of C matrix gets updated in
+	    // one iteration.
+	    idx_C =  i + j * ldc;
+	    idx_C_1 =  i + ((j+1) * ldc);
+	    idx_C_2 =  i + ((j+2) * ldc);
+	    idx_C_3 =  i + ((j+3) * ldc);
+
+	    // Accumulator for 4 elements of C matrix
+	    float sum[4] = {static_cast<float>(0)};
+
+	    aoclsparse_int k_iter = (row_end - row_begin)/4;
+	    aoclsparse_int k_rem = (row_end - row_begin)%4;
+
+	    //Iterate over non-zeroes of ith row of A in multiples of 4
+	    for(aoclsparse_int k = row_begin; k < (row_begin + k_iter*4); k+=4)
 	    {
-		//(csr_val[j] csr_val[j+1] csr_val[j+2] csr_val[j+3] csr_val[j+4] csr_val[j+5] csr_val[j+6] csr_val[j+7]
-		vec_vals = _mm256_loadu_ps((float const *)matValPtr);
+		// Indices of elements of jth column of B matrix
+		// to be multiplied against csr_val[k] csr_val[k+1]
+		// csr_val[k+2] csr_val[k+3]
+		idx_B = (csr_col_ind[k] + j_offset);
+		idx_B_1 = (csr_col_ind[k+1] + j_offset);
+		idx_B_2 = (csr_col_ind[k+2] + j_offset);
+		idx_B_3 = (csr_col_ind[k+3] + j_offset);
 
-		idx_B = (j + colIndPtr[0] * ldb);
-		idx_B_1 = (j + colIndPtr[1] * ldb);
-		idx_B_2 = (j + colIndPtr[2] * ldb);
-		idx_B_3 = (j + colIndPtr[3] * ldb);
-		idx_B_4 = (j + colIndPtr[4] * ldb);
-		idx_B_5 = (j + colIndPtr[5] * ldb);
-		idx_B_6 = (j + colIndPtr[6] * ldb);
-		idx_B_7 = (j + colIndPtr[7] * ldb);
-		//Gather the x vector elements from the column indices
-		vec_x  = _mm256_set_ps(B[idx_B_7],
-			B[idx_B_6],
-			B[idx_B_5],
-			B[idx_B_4],
-			B[idx_B_3],
-			B[idx_B_2],
-			B[idx_B_1],
-			B[idx_B]);
+		// Multiply csr_val[k] csr_val[k+1] csr_val[k+2] csr_val[k+3]
+		// by corresponding elements of jth column of B matrix  and
+		// add to accumulator
+		sum[0] += csr_val[k] * B[idx_B];
+		sum[0] += csr_val[k+1] * B[idx_B_1];
+		sum[0] += csr_val[k+2] * B[idx_B_2];
+		sum[0] += csr_val[k+3] * B[idx_B_3];
 
-		vec_y = _mm256_fmadd_ps(vec_vals, vec_x, vec_y);
-		matValPtr+=8;
-		colIndPtr+=8;
+		// Indices of elements of (j+1)st column of B matrix
+		// to be multiplied against csr_val[k] csr_val[k+1]
+		// csr_val[k+2] csr_val[k+3]
+		idx_B = (csr_col_ind[k] + j_offset_1);
+		idx_B_1 = (csr_col_ind[k+1] + j_offset_1);
+		idx_B_2 = (csr_col_ind[k+2] + j_offset_1);
+		idx_B_3 = (csr_col_ind[k+3] + j_offset_1);
+
+		// Multiply csr_val[k] csr_val[k+1] csr_val[k+2] csr_val[k+3]
+		// by corresponding elements of (j+1)st column of B matrix  and
+		// add to accumulator
+		sum[1] += csr_val[k] * B[idx_B];
+		sum[1] += csr_val[k+1] * B[idx_B_1];
+		sum[1] += csr_val[k+2] * B[idx_B_2];
+		sum[1] += csr_val[k+3] * B[idx_B_3];
+
+		// Indices of elements of (j+2)nd column of B matrix
+		// to be multiplied against csr_val[k] csr_val[k+1]
+		// csr_val[k+2] csr_val[k+3]
+		idx_B = (csr_col_ind[k] + j_offset_2);
+		idx_B_1 = (csr_col_ind[k+1] + j_offset_2);
+		idx_B_2 = (csr_col_ind[k+2] + j_offset_2);
+		idx_B_3 = (csr_col_ind[k+3] + j_offset_2);
+
+		// Multiply csr_val[k] csr_val[k+1]icsr_val[k+2] csr_val[k+3]
+		// by corresponding elements of (j+2)nd column of B matrix  and
+		// add to accumulator
+		sum[2] += csr_val[k] * B[idx_B];
+		sum[2] += csr_val[k+1] * B[idx_B_1];
+		sum[2] += csr_val[k+2] * B[idx_B_2];
+		sum[2] += csr_val[k+3] * B[idx_B_3];
+
+		// Indices of elements of (j+3)rd column of B matrix
+		// to be multiplied against csr_val[k] csr_val[k+1]
+		// csr_val[k+2] csr_val[k+3]
+		idx_B = (csr_col_ind[k] + j_offset_3);
+		idx_B_1 = (csr_col_ind[k+1] + j_offset_3);
+		idx_B_2 = (csr_col_ind[k+2] + j_offset_3);
+		idx_B_3 = (csr_col_ind[k+3] + j_offset_3);
+
+		// Multiply csr_val[k] csr_val[k+1]icsr_val[k+2] csr_val[k+3]
+		// by corresponding elements of (j+3)rd column of B matrix  and
+		// add to accumulator
+		sum[3] += csr_val[k] * B[idx_B];
+		sum[3] += csr_val[k+1] * B[idx_B_1];
+		sum[3] += csr_val[k+2] * B[idx_B_2];
+		sum[3] += csr_val[k+3] * B[idx_B_3];
 	    }
 
-	    // Horizontal addition
-	    if(k_iter){
-		// hiQuad = ( x7, x6, x5, x4 )
-		__m128 hiQuad = _mm256_extractf128_ps(vec_y, 1);
-		// loQuad = ( x3, x2, x1, x0 )
-		const __m128 loQuad = _mm256_castps256_ps128(vec_y);
-		// sumQuad = ( x3 + x7, x2 + x6, x1 + x5, x0 + x4 )
-		const __m128 sumQuad = _mm_add_ps(loQuad, hiQuad);
-		// loDual = ( -, -, x1 + x5, x0 + x4 )
-		const __m128 loDual = sumQuad;
-		// hiDual = ( -, -, x3 + x7, x2 + x6 )
-		const __m128 hiDual = _mm_movehl_ps(sumQuad, sumQuad);
-		// sumDual = ( -, -, x1 + x3 + x5 + x7, x0 + x2 + x4 + x6 )
-		const __m128 sumDual = _mm_add_ps(loDual, hiDual);
-		// lo = ( -, -, -, x0 + x2 + x4 + x6 )
-		const __m128 lo = sumDual;
-		// hi = ( -, -, -, x1 + x3 + x5 + x7 )
-		const __m128 hi = _mm_shuffle_ps(sumDual, sumDual, 0x1);
-		// sum = ( -, -, -, x0 + x1 + x2 + x3 + x4 + x5 + x6 + x7 )
-		const __m128 sse_sum = _mm_add_ss(lo, hi);
-		sum = _mm_cvtss_f32(sse_sum);
-	    }
-	    //Remainder loop for nnz%4
-	    for(l = 0 ; l < k_rem ; l++ )
+	    // Remainder (3/2/1) non-zero of ith row of A,
+	    // if nnz in the row is not a multiple of 4
+	    for(aoclsparse_int k = (row_begin + k_iter*4); k < row_end; k++)
 	    {
-		idx_B = (j + colIndPtr[l] * ldb) ;
-		sum += *matValPtr++ * B[idx_B];
+		// Indices of elements of jth,(j+1)st,(j+2)nd,(j+3)rd
+		// columns of B matrix to be multiplied against
+		// csr_val[k]
+		idx_B = (csr_col_ind[k] + j_offset);
+		idx_B_1 = (csr_col_ind[k] + j_offset_1);
+		idx_B_2 = (csr_col_ind[k] + j_offset_2);
+		idx_B_3 = (csr_col_ind[k]+ j_offset_3);
+
+		// Multiply csr_val[k] by corresponding elements of
+		// 4 columns of B matrix  and add to accumulator
+		sum[0] += csr_val[k] * B[idx_B];
+		sum[1] += csr_val[k] * B[idx_B_1];
+		sum[2] += csr_val[k] * B[idx_B_2];
+		sum[3] += csr_val[k] * B[idx_B_3];
+	    }
+	    // if beta = 0 , C= alpha*A*B
+	    if(*beta == static_cast<float>(0))
+	    {
+		C[idx_C] = *alpha * sum[0];
+		C[idx_C_1] = *alpha * sum[1];
+		C[idx_C_2] = *alpha * sum[2];
+		C[idx_C_3] = *alpha * sum[3];
+	    }
+	    // if beta != 0 & alpha != 1, C= beta*C + alpha*A*B
+	    else
+	    {
+		C[idx_C] = std::fma(*beta, C[idx_C], *alpha * sum[0]);
+		C[idx_C_1] = std::fma(*beta, C[idx_C_1], *alpha * sum[1]);
+		C[idx_C_2] = std::fma(*beta, C[idx_C_2], *alpha * sum[2]);
+		C[idx_C_3] = std::fma(*beta, C[idx_C_3], *alpha * sum[3]);
+	    }
+	}
+    }
+
+    // if 3 == Remainder columns of B after subblocks of multiple of 4
+    if(j_rem ==3)
+    {
+	aoclsparse_int j = j_iter*4;
+
+	// Offsets to each of last three columns
+	// of B dense matrix in column major format
+	j_offset = j * ldb;
+	j_offset_1 = (j + 1) * ldb;
+	j_offset_2 = (j + 2) * ldb;
+
+	// Iterate along rows of sparse matrix A
+	for(aoclsparse_int i = 0; i < m; ++i)
+	{
+	    // Pointer to the first and last nonzero
+	    // of ith row
+	    aoclsparse_int row_begin = csr_row_ptr[i] ;
+	    aoclsparse_int row_end   = csr_row_ptr[i + 1] ;
+
+	    // Indices of elements of input dense matrix B
+	    idx_B = 0;
+	    idx_B_1 = 0;
+	    idx_B_2 = 0;
+	    idx_B_3 = 0;
+
+	    // Indices of output dense matrix C in column major format
+	    // Three elements of one row of C matrix gets updated in
+	    // one iteration.
+	    idx_C =  i + j * ldc;
+	    idx_C_1 =  i + ((j+1) * ldc);
+	    idx_C_2 =  i + ((j+2) * ldc);
+
+	    // Accumulator for 3 elements of C matrix
+	    float sum[3] = {static_cast<float>(0)};
+
+	    aoclsparse_int k_iter = (row_end - row_begin)/4;
+	    aoclsparse_int k_rem = (row_end - row_begin)%4;
+
+	    //Iterate over non-zeroes of ith row of A in multiples of 4
+	    for(aoclsparse_int k = row_begin; k < (row_begin + k_iter*4); k+=4)
+	    {
+		// Indices of elements of jth column of B matrix
+		// to be multiplied against csr_val[k] csr_val[k+1]
+		// csr_val[k+2] csr_val[k+3]
+		idx_B = (csr_col_ind[k] + j_offset);
+		idx_B_1 = (csr_col_ind[k+1] + j_offset);
+		idx_B_2 = (csr_col_ind[k+2] + j_offset);
+		idx_B_3 = (csr_col_ind[k+3] + j_offset);
+
+		// Multiply csr_val[k] csr_val[k+1] csr_val[k+2] csr_val[k+3]
+		// by corresponding elements of jth column of B matrix  and
+		// add to accumulator
+		sum[0] += csr_val[k] * B[idx_B];
+		sum[0] += csr_val[k+1] * B[idx_B_1];
+		sum[0] += csr_val[k+2] * B[idx_B_2];
+		sum[0] += csr_val[k+3] * B[idx_B_3];
+
+		// Indices of elements of (j+1)st column of B matrix
+		// to be multiplied against csr_val[k] csr_val[k+1]
+		// csr_val[k+2] csr_val[k+3]
+		idx_B = (csr_col_ind[k] + j_offset_1);
+		idx_B_1 = (csr_col_ind[k+1] + j_offset_1);
+		idx_B_2 = (csr_col_ind[k+2] + j_offset_1);
+		idx_B_3 = (csr_col_ind[k+3] + j_offset_1);
+
+		// Multiply csr_val[k] csr_val[k+1] csr_val[k+2] csr_val[k+3]
+		// by corresponding elements of (j+1)st column of B matrix  and
+		// add to accumulator
+		sum[1] += csr_val[k] * B[idx_B];
+		sum[1] += csr_val[k+1] * B[idx_B_1];
+		sum[1] += csr_val[k+2] * B[idx_B_2];
+		sum[1] += csr_val[k+3] * B[idx_B_3];
+
+		// Indices of elements of (j+2)nd column of B matrix
+		// to be multiplied against csr_val[k] csr_val[k+1]
+		// csr_val[k+2] csr_val[k+3]
+		idx_B = (csr_col_ind[k] + j_offset_2);
+		idx_B_1 = (csr_col_ind[k+1] + j_offset_2);
+		idx_B_2 = (csr_col_ind[k+2] + j_offset_2);
+		idx_B_3 = (csr_col_ind[k+3] + j_offset_2);
+
+		// Multiply csr_val[k] csr_val[k+1]icsr_val[k+2] csr_val[k+3]
+		// by corresponding elements of (j+2)nd column of B matrix  and
+		// add to accumulator
+		sum[2] += csr_val[k] * B[idx_B];
+		sum[2] += csr_val[k+1] * B[idx_B_1];
+		sum[2] += csr_val[k+2] * B[idx_B_2];
+		sum[2] += csr_val[k+3] * B[idx_B_3];
+
 	    }
 
+	    // Remainder (3/2/1) non-zero of ith row of A,
+	    // if nnz in the row is not a multiple of 4
+	    for(aoclsparse_int k = (row_begin + k_iter*4); k < row_end; k++)
+	    {
+		// Indices of elements of jth,(j+1)st,(j+2)nd
+		// columns of B matrix to be multiplied against
+		// csr_val[k]
+		idx_B = (csr_col_ind[k] + j_offset);
+		idx_B_1 = (csr_col_ind[k] + j_offset_1);
+		idx_B_2 = (csr_col_ind[k] + j_offset_2);
+
+		// Multiply csr_val[k] by corresponding elements of
+		// 3 columns of B matrix  and add to accumulator
+		sum[0] += csr_val[k] * B[idx_B];
+		sum[1] += csr_val[k] * B[idx_B_1];
+		sum[2] += csr_val[k] * B[idx_B_2];
+	    }
+	    // if beta = 0 , C= alpha*A*B
+	    if(*beta == static_cast<float>(0))
+	    {
+		C[idx_C] = *alpha * sum[0];
+		C[idx_C_1] = *alpha * sum[1];
+		C[idx_C_2] = *alpha * sum[2];
+	    }
+	    // if beta != 0 & alpha != 1, C= beta*C + alpha*A*B
+	    else
+	    {
+		C[idx_C] = std::fma(*beta, C[idx_C], *alpha * sum[0]);
+		C[idx_C_1] = std::fma(*beta, C[idx_C_1], *alpha * sum[1]);
+		C[idx_C_2] = std::fma(*beta, C[idx_C_2], *alpha * sum[2]);
+	    }
+	}
+    }
+    // if 2 == Remainder columns of B after subblocks of multiple of 4
+    if(j_rem ==2)
+    {
+	aoclsparse_int j = j_iter*4;
+	// Offsets to each of last two columns
+	// of B dense matrix in column major format
+	j_offset = j * ldb;
+	j_offset_1 = (j + 1) * ldb;
+
+	// Iterate along rows of sparse matrix A
+	for(aoclsparse_int i = 0; i < m; ++i)
+	{
+	    // Pointer to the first and last nonzero
+	    // of ith row
+	    aoclsparse_int row_begin = csr_row_ptr[i] ;
+	    aoclsparse_int row_end   = csr_row_ptr[i + 1] ;
+
+	    // Indices of elements of input dense matrix B
+	    idx_B = 0;
+	    idx_B_1 = 0;
+	    idx_B_2 = 0;
+	    idx_B_3 = 0;
+
+	    // Indices of output dense matrix C in column major format
+	    // Two elements of one row of C matrix gets updated in
+	    // one iteration.
+	    idx_C =  i + j * ldc;
+	    idx_C_1 =  i + ((j+1) * ldc);
+
+	    // Accumulator for 2 elements of C matrix
+	    float sum[2] = {static_cast<float>(0)};
+
+	    aoclsparse_int k_iter = (row_end - row_begin)/4;
+	    aoclsparse_int k_rem = (row_end - row_begin)%4;
+
+	    //Iterate over non-zeroes of ith row of A in multiples of 4
+	    for(aoclsparse_int k = row_begin; k < (row_begin + k_iter*4); k+=4)
+	    {
+		// Indices of elements of jth column of B matrix
+		// to be multiplied against csr_val[k] csr_val[k+1]
+		// csr_val[k+2] csr_val[k+3]
+		idx_B = (csr_col_ind[k] + j_offset);
+		idx_B_1 = (csr_col_ind[k+1] + j_offset);
+		idx_B_2 = (csr_col_ind[k+2] + j_offset);
+		idx_B_3 = (csr_col_ind[k+3] + j_offset);
+
+		// Multiply csr_val[k] csr_val[k+1] csr_val[k+2] csr_val[k+3]
+		// by corresponding elements of jth column of B matrix  and
+		// add to accumulator
+		sum[0] += csr_val[k] * B[idx_B];
+		sum[0] += csr_val[k+1] * B[idx_B_1];
+		sum[0] += csr_val[k+2] * B[idx_B_2];
+		sum[0] += csr_val[k+3] * B[idx_B_3];
+
+		// Indices of elements of (j+1)st column of B matrix
+		// to be multiplied against csr_val[k] csr_val[k+1]
+		// csr_val[k+2] csr_val[k+3]
+		idx_B = (csr_col_ind[k] + j_offset_1);
+		idx_B_1 = (csr_col_ind[k+1] + j_offset_1);
+		idx_B_2 = (csr_col_ind[k+2] + j_offset_1);
+		idx_B_3 = (csr_col_ind[k+3] + j_offset_1);
+
+		// Multiply csr_val[k] csr_val[k+1] csr_val[k+2] csr_val[k+3]
+		// by corresponding elements of (j+1)st column of B matrix  and
+		// add to accumulator
+		sum[1] += csr_val[k] * B[idx_B];
+		sum[1] += csr_val[k+1] * B[idx_B_1];
+		sum[1] += csr_val[k+2] * B[idx_B_2];
+		sum[1] += csr_val[k+3] * B[idx_B_3];
+	    }
+
+	    // Remainder (3/2/1) non-zero of ith row of A,
+	    // if nnz in the row is not a multiple of 4
+	    for(aoclsparse_int k = (row_begin + k_iter*4); k < row_end; k++)
+	    {
+		// Indices of elements of jth,(j+1)st
+		// columns of B matrix to be multiplied against
+		// csr_val[k]
+		idx_B = (csr_col_ind[k] + j_offset);
+		idx_B_1 = (csr_col_ind[k] + j_offset_1);
+
+		// Multiply csr_val[k] by corresponding elements of
+		// 2 columns of B matrix  and add to accumulator
+		sum[0] += csr_val[k] * B[idx_B];
+		sum[1] += csr_val[k] * B[idx_B_1];
+	    }
+	    // if beta = 0 , C= alpha*A*B
+	    if(*beta == static_cast<float>(0))
+	    {
+		C[idx_C] = *alpha * sum[0];
+		C[idx_C_1] = *alpha * sum[1];
+	    }
+	    // if beta != 0 & alpha != 1, C= beta*C + alpha*A*B
+	    else
+	    {
+		C[idx_C] = std::fma(*beta, C[idx_C], *alpha * sum[0]);
+		C[idx_C_1] = std::fma(*beta, C[idx_C_1], *alpha * sum[1]);
+	    }
+	}
+    }
+    // if 1 == Remainder columns of B after subblocks of multiple of 4
+    if(j_rem ==1)
+    {
+	aoclsparse_int j = j_iter*4;
+	// Offsets to each of last column
+	// of B dense matrix in column major format
+	j_offset = j * ldb;
+
+	// Iterate along rows of sparse matrix A
+	for(aoclsparse_int i = 0; i < m; ++i)
+	{
+	    // Pointer to the first and last nonzero
+	    // of ith row
+	    aoclsparse_int row_begin = csr_row_ptr[i] ;
+	    aoclsparse_int row_end   = csr_row_ptr[i + 1] ;
+
+	    // Indices of elements of input dense matrix B
+	    idx_B = 0;
+	    idx_B_1 = 0;
+	    idx_B_2 = 0;
+	    idx_B_3 = 0;
+
+	    // Index of output dense matrix C in column major format
+	    // ONe element of one row of C matrix gets updated in
+	    // one iteration.
+	    idx_C =  i + j * ldc;
+
+	    // Accumulator for 1 element of C matrix
+	    float sum = static_cast<float>(0);
+
+	    aoclsparse_int k_iter = (row_end - row_begin)/4;
+	    aoclsparse_int k_rem = (row_end - row_begin)%4;
+
+	    //Iterate over non-zeroes of ith row of A in multiples of 4
+	    for(aoclsparse_int k = row_begin; k < (row_begin + k_iter*4); k+=4)
+	    {
+		// Indices of elements of jth column of B matrix
+		// to be multiplied against csr_val[k] csr_val[k+1]
+		// csr_val[k+2] csr_val[k+3]
+		idx_B = (csr_col_ind[k] + j_offset);
+		idx_B_1 = (csr_col_ind[k+1] + j_offset);
+		idx_B_2 = (csr_col_ind[k+2] + j_offset);
+		idx_B_3 = (csr_col_ind[k+3] + j_offset);
+
+		// Multiply csr_val[k] csr_val[k+1] csr_val[k+2] csr_val[k+3]
+		// by corresponding elements of jth column of B matrix  and
+		// add to accumulator
+		sum += csr_val[k] * B[idx_B];
+		sum += csr_val[k+1] * B[idx_B_1];
+		sum += csr_val[k+2] * B[idx_B_2];
+		sum += csr_val[k+3] * B[idx_B_3];
+	    }
+
+	    // Remainder (3/2/1) non-zero of ith row of A,
+	    // if nnz in the row is not a multiple of 4
+	    for(aoclsparse_int k = (row_begin + k_iter*4); k < row_end; k++)
+	    {
+		// Indices of element of jth column of B matrix
+		// to be multiplied against csr_val[k]
+		idx_B = (csr_col_ind[k] + j_offset);
+
+		// Multiply csr_val[k] by corresponding elements of
+		// 1 columns of B matrix  and add to accumulator
+		sum += csr_val[k] * B[idx_B];
+	    }
+	    // if beta = 0 , C= alpha*A*B
 	    if(*beta == static_cast<float>(0))
 	    {
 		C[idx_C] = *alpha * sum;
 	    }
+	    // if beta != 0 & alpha != 1, C= beta*C + alpha*A*B
 	    else
 	    {
 		C[idx_C] = std::fma(*beta, C[idx_C], *alpha * sum);
@@ -527,138 +1149,7 @@ aoclsparse_status aoclsparse_csrmm_row_major_vec(const float*            alpha,
     return aoclsparse_status_success;
 }
 
-aoclsparse_status aoclsparse_csrmm_row_major_vec(const double*            alpha,
-	const double* __restrict__         csr_val,
-	const aoclsparse_int* __restrict__ csr_col_ind,
-	const aoclsparse_int* __restrict__ csr_row_ptr,
-	aoclsparse_int                     m,
-	aoclsparse_int                     k,
-	const double*                      B,
-	aoclsparse_int                     n,
-	aoclsparse_int                     ldb,
-	const double*                      beta,
-	double*                            C,
-	aoclsparse_int                     ldc)
-{
-    const aoclsparse_int *colIndPtr;
-    const double *matValPtr;
-    aoclsparse_int idx_B = 0, idx_B_1 = 0, idx_B_2 = 0, idx_B_3 = 0;
-
-    for(aoclsparse_int j = 0; j < n; ++j)
-    {
-	for(aoclsparse_int i = 0; i < m; ++i)
-	{
-	    __m256d vec_vals , vec_x , vec_y;
-	    matValPtr = &csr_val[csr_row_ptr[i]];
-	    colIndPtr = &csr_col_ind[csr_row_ptr[i]];
-	    aoclsparse_int idx_C     =  i * ldc + j;
-
-	    double sum = 0.0;
-	    vec_y = _mm256_setzero_pd();
-	    aoclsparse_int l;
-	    aoclsparse_int nnz = csr_row_ptr[i+1] - csr_row_ptr[i];
-	    aoclsparse_int k_iter = nnz/4;
-	    aoclsparse_int k_rem = nnz%4;
-
-	    //Loop in multiples of 4 non-zeroes
-	    for(l =  0 ; l < k_iter ; l++ )
-	    {
-		//(csr_val[j] (csr_val[j+1] (csr_val[j+2] (csr_val[j+3]
-		vec_vals = _mm256_loadu_pd((double const *)matValPtr);
-
-		idx_B = (j + colIndPtr[0] * ldb);
-		idx_B_1 = (j + colIndPtr[1] * ldb);
-		idx_B_2 = (j + colIndPtr[2] * ldb);
-		idx_B_3 = (j + colIndPtr[3] * ldb);
-		//Gather the x vector elements from the column indices
-		vec_x  = _mm256_set_pd(B[idx_B_3],
-			B[idx_B_2],
-			B[idx_B_1],
-			B[idx_B]);
-
-		vec_y = _mm256_fmadd_pd(vec_vals, vec_x, vec_y);
-		matValPtr+=4;
-		colIndPtr+=4;
-	    }
-
-	    // Horizontal addition
-	    if(k_iter){
-		// sum[0] += sum[1] ; sum[2] += sum[3]
-		vec_y = _mm256_hadd_pd(vec_y, vec_y);
-		// Cast avx_sum to 128 bit to obtain sum[0] and sum[1]
-		__m128d sum_lo = _mm256_castpd256_pd128(vec_y);
-		// Extract 128 bits to obtain sum[2] and sum[3]
-		__m128d sum_hi = _mm256_extractf128_pd(vec_y, 1);
-		// Add remaining two sums
-		__m128d sse_sum = _mm_add_pd(sum_lo, sum_hi);
-		// Store result
-		sum = sse_sum[0];
-	    }
-	    //Remainder loop for nnz%4
-	    for(l = 0 ; l < k_rem ; l++ )
-	    {
-		idx_B = (j + colIndPtr[l] * ldb) ;
-		sum += *matValPtr++ * B[idx_B];
-	    }
-
-	    if(*beta == static_cast<double>(0))
-	    {
-		C[idx_C] = *alpha * sum;
-	    }
-	    else
-	    {
-		C[idx_C] = std::fma(*beta, C[idx_C], *alpha * sum);
-	    }
-	}
-    }
-    return aoclsparse_status_success;
-}
-
-    template <typename T>
-aoclsparse_status aoclsparse_csrmm_col_major(const T*            alpha,
-	const T* __restrict__              csr_val,
-	const aoclsparse_int* __restrict__ csr_col_ind,
-	const aoclsparse_int* __restrict__ csr_row_ptr,
-	aoclsparse_int                     m,
-	aoclsparse_int                     k,
-	const T*                           B,
-	aoclsparse_int                     n,
-	aoclsparse_int                     ldb,
-	const T*                           beta,
-	T*                                 C,
-	aoclsparse_int                     ldc)
-{
-    for(aoclsparse_int j = 0; j < n; ++j)
-    {
-	for(aoclsparse_int i = 0; i < m; ++i)
-	{
-	    T row_begin = csr_row_ptr[i] ;
-	    T row_end   = csr_row_ptr[i + 1] ;
-	    aoclsparse_int idx_C =  i + j * ldc;
-
-	    T sum = static_cast<T>(0);
-
-	    for(aoclsparse_int k = row_begin; k < row_end; ++k)
-	    {
-		aoclsparse_int idx_B = 0;
-		idx_B = (csr_col_ind[k] + j * ldb);
-
-		sum = std::fma(csr_val[k], B[idx_B], sum);
-	    }
-	    if(*beta == static_cast<T>(0))
-	    {
-		C[idx_C] = *alpha * sum;
-	    }
-	    else
-	    {
-		C[idx_C] = std::fma(*beta, C[idx_C], *alpha * sum);
-	    }
-	}
-    }
-    return aoclsparse_status_success;
-}
-
-    template <typename T>
+template <typename T>
 aoclsparse_status aoclsparse_csrmm_row_major(const T*            alpha,
 	const T* __restrict__              csr_val,
 	const aoclsparse_int* __restrict__ csr_col_ind,
