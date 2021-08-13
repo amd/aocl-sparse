@@ -29,7 +29,12 @@
 
 #include <algorithm>
 #include <cmath>
-#include <iostream>
+
+#if defined(_WIN32) || defined(_WIN64)
+//Windows equivalent of gcc c99 type qualifier __restrict__
+#define __restrict__ __restrict
+#endif
+
 typedef union
 {
     __m256d v;
