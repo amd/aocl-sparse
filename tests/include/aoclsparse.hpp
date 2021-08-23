@@ -172,4 +172,16 @@ aoclsparse_status aoclsparse_csr2csc_template(
         aoclsparse_int       *csc_col_ptr,
         T                    *csc_val);
 
+template <typename T>
+aoclsparse_status aoclsparse_csr2dense(
+            aoclsparse_int             m,
+            aoclsparse_int             n,
+            const aoclsparse_mat_descr descr,
+            const T*                   csr_val,
+            const aoclsparse_int*      csr_row_ptr,
+            const aoclsparse_int*      csr_col_ind,
+            T*                         A,
+            aoclsparse_int             ld,
+            aoclsparse_order           order);
+
 #endif /*AOCLSPARSE_HPP*/

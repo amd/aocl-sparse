@@ -394,3 +394,48 @@ extern "C" aoclsparse_status aoclsparse_dcsr2csc(
             csc_col_ptr,
             csc_val);
 }
+
+extern "C" aoclsparse_status aoclsparse_scsr2dense(
+            aoclsparse_int             m,
+            aoclsparse_int             n,
+            const aoclsparse_mat_descr descr,
+            const float*               csr_val,
+            const aoclsparse_int*      csr_row_ptr,
+            const aoclsparse_int*      csr_col_ind,
+            float*                     A,
+            aoclsparse_int             ld,
+            aoclsparse_order           order)
+{
+    return aoclsparse_csr2dense(m,
+            n,
+	    descr,
+	    csr_val,
+	    csr_row_ptr,
+	    csr_col_ind,
+	    A,
+	    ld,
+	    order);
+}
+
+extern "C" aoclsparse_status aoclsparse_dcsr2dense(
+            aoclsparse_int             m,
+            aoclsparse_int             n,
+            const aoclsparse_mat_descr descr,
+            const double*              csr_val,
+            const aoclsparse_int*      csr_row_ptr,
+            const aoclsparse_int*      csr_col_ind,
+            double*                    A,
+            aoclsparse_int             ld,
+            aoclsparse_order           order)
+{
+    return aoclsparse_csr2dense(m,
+            n,
+	    descr,
+	    csr_val,
+	    csr_row_ptr,
+	    csr_col_ind,
+	    A,
+	    ld,
+	    order);
+}
+

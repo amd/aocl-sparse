@@ -389,6 +389,65 @@ aoclsparse_status aoclsparse_dcsr2csc(
             double               *csc_val);
 /**@}*/
 
+/*! \ingroup conv_module
+ *  \brief
+ *  This function converts the sparse matrix in CSR format into a dense matrix.
+ *
+ *  @param[in]
+ *  m           number of rows of the dense matrix \p A.
+ *
+ *  @param[in]
+ *  n           number of columns of the dense matrix \p A.
+ *
+ *  @param[in]
+ *  descr       the descriptor of the dense matrix \p A, the supported matrix type is \ref aoclsparse_matrix_type_general and also any valid value of the \ref aoclsparse_index_base.
+ *
+ *  @param[in]
+ *  csr_val     array of nnz ( = \p csr_row_ptr[m] - \p csr_row_ptr[0] ) nonzero elements of matrix \p A.
+ *  @param[in]
+ *  csr_row_ptr integer array of m+1 elements that contains the start of every row and the end of the last row plus one.
+ *  @param[in]
+ *  csr_col_ind integer array of nnz ( = \p csr_row_ptr[m] - csr_row_ptr[0] ) column indices of the non-zero elements of matrix \p A.
+ *
+ *  @param[out]
+ *  A           array of dimensions (\p ld, \p n)
+ *
+ *  @param[out]
+ *  ld          leading dimension of dense array \p A.
+ *  @param[in]
+ *  order       memory layout of a dense matrix \p A.
+ *
+ *  \retval     aoclsparse_status_success the operation completed successfully.
+ *  \retval     aoclsparse_status_invalid_size \p m or \p n or \p ld is invalid.
+ *  \retval     aoclsparse_status_invalid_pointer \p A or \p csr_val \p csr_row_ptr or \p csr_col_ind
+ *              pointer is invalid.
+ */
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_scsr2dense(
+            aoclsparse_int             m,
+            aoclsparse_int             n,
+            const aoclsparse_mat_descr descr,
+            const float*               csr_val,
+            const aoclsparse_int*      csr_row_ptr,
+            const aoclsparse_int*      csr_col_ind,
+            float*                     A,
+            aoclsparse_int             ld,
+            aoclsparse_order           order);
+
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_dcsr2dense(
+            aoclsparse_int             m,
+            aoclsparse_int             n,
+            const aoclsparse_mat_descr descr,
+            const double*              csr_val,
+            const aoclsparse_int*      csr_row_ptr,
+            const aoclsparse_int*      csr_col_ind,
+            double*                    A,
+            aoclsparse_int             ld,
+            aoclsparse_order           order);
+/**@}*/
 #ifdef __cplusplus
 }
 #endif
