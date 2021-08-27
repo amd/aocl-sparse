@@ -79,20 +79,20 @@ void testing_csrsv(const Arguments& arg)
     aoclsparse_get_version(&ver);
 
     std::cout << "aocl-sparse version: " << ver / 100000 << "." << ver / 100 % 1000 << "."
-        << ver % 100 << std::endl;
+	<< ver % 100 << std::endl;
 #endif
     // Sample matrix
     aoclsparse_init_csr_matrix(csr_row_ptr,
-            csr_col_ind,
-            csr_val,
-            M,
-            N,
-            nnz,
-            base,
-            mat,
-            filename.c_str(),
-            issymm,
-            false);
+	    csr_col_ind,
+	    csr_val,
+	    M,
+	    N,
+	    nnz,
+	    base,
+	    mat,
+	    filename.c_str(),
+	    issymm,
+	    false);
 
     // Allocate memory for vectors
     std::vector<T> hx(N);
@@ -105,57 +105,57 @@ void testing_csrsv(const Arguments& arg)
     hy_gold = hy;
     if(arg.unit_check)
     {
-        if(uplo == aoclsparse_fill_mode_lower)
-        {
-            // Reference SPMV CSR implementation
-            for(int i = 0; i < M; i++)
-            {
-                T result = 0.0;
-                for(int j = csr_row_ptr[i]-base ; j < csr_row_ptr[i+1]-base ; j++)
-                {
-                    result += h_alpha * csr_val[j] * hx[csr_col_ind[j] - base];
-                }
-                hy_gold[i] = (h_beta * hy_gold[i]) + result;
-            }
-            CHECK_AOCLSPARSE_ERROR(aoclsparse_csrsv(trans,
-                        &h_alpha,
-                        M,
-                        csr_val.data(),
-                        csr_col_ind.data(),
-                        csr_row_ptr.data(),
-                        descr,
-                        hy_gold.data(),
-                        hy.data()));
-        }
-        else
-        {
-            csc_row_ind.resize(nnz);
-            csc_col_ptr.resize(N + 1, 0);
-            csc_val.resize(nnz);
+	if(uplo == aoclsparse_fill_mode_lower)
+	{
+	    // Reference SPMV CSR implementation
+	    for(int i = 0; i < M; i++)
+	    {
+		T result = 0.0;
+		for(int j = csr_row_ptr[i]-base ; j < csr_row_ptr[i+1]-base ; j++)
+		{
+		    result += h_alpha * csr_val[j] * hx[csr_col_ind[j] - base];
+		}
+		hy_gold[i] = (h_beta * hy_gold[i]) + result;
+	    }
+	    CHECK_AOCLSPARSE_ERROR(aoclsparse_csrsv(trans,
+			&h_alpha,
+			M,
+			csr_val.data(),
+			csr_col_ind.data(),
+			csr_row_ptr.data(),
+			descr,
+			hy_gold.data(),
+			hy.data()));
+	}
+	else
+	{
+	    csc_row_ind.resize(nnz);
+	    csc_col_ptr.resize(N + 1, 0);
+	    csc_val.resize(nnz);
 
-            CHECK_AOCLSPARSE_ERROR(aoclsparse_csr2csc_template(M, N, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data(),
-                    csc_row_ind.data(), csc_col_ptr.data(), csc_val.data()));
-            // Reference SPMV CSC implementation
-            for(int i = 0; i < N; i++)
-            {
-                T result = 0.0;
-                for(int j = csc_col_ptr[i]-base ; j < csc_col_ptr[i+1]-base ; j++)
-                {
-                    result += h_alpha * csc_val[j] * hx[csc_row_ind[j] - base];
-                }
-                hy_gold[i] = (h_beta * hy_gold[i]) + result;
-            }
-            CHECK_AOCLSPARSE_ERROR(aoclsparse_csrsv(trans,
-                        &h_alpha,
-                        M,
-                        csc_val.data(),
-                        csc_row_ind.data(),
-                        csc_col_ptr.data(),
-                        descr,
-                        hy_gold.data(),
-                        hy.data()));
-        }
-        near_check_general<T>(1, M, 1, hx.data(), hy.data());
+	    CHECK_AOCLSPARSE_ERROR(aoclsparse_csr2csc_template(M, N, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data(),
+			csc_row_ind.data(), csc_col_ptr.data(), csc_val.data()));
+	    // Reference SPMV CSC implementation
+	    for(int i = 0; i < N; i++)
+	    {
+		T result = 0.0;
+		for(int j = csc_col_ptr[i]-base ; j < csc_col_ptr[i+1]-base ; j++)
+		{
+		    result += h_alpha * csc_val[j] * hx[csc_row_ind[j] - base];
+		}
+		hy_gold[i] = (h_beta * hy_gold[i]) + result;
+	    }
+	    CHECK_AOCLSPARSE_ERROR(aoclsparse_csrsv(trans,
+			&h_alpha,
+			M,
+			csc_val.data(),
+			csc_row_ind.data(),
+			csc_col_ptr.data(),
+			descr,
+			hy_gold.data(),
+			hy.data()));
+	}
+	near_check_general<T>(1, M, 1, hx.data(), hy.data());
     }
     int number_hot_calls  = arg.iters;
 
@@ -164,41 +164,41 @@ void testing_csrsv(const Arguments& arg)
     // Performance run
     for(int iter = 0; iter < number_hot_calls; ++iter)
     {
-        double cpu_time_start = aoclsparse_clock();
-        CHECK_AOCLSPARSE_ERROR(aoclsparse_csrsv(trans,
-                    &h_alpha,
-                    M,
-                    csr_val.data(),
-                    csr_col_ind.data(),
-                    csr_row_ptr.data(),
-                    descr,
-                    hy_gold.data(),
-                    hy.data()));
-        cpu_time_used = aoclsparse_clock_min_diff( cpu_time_used, cpu_time_start );
+	double cpu_time_start = aoclsparse_clock();
+	CHECK_AOCLSPARSE_ERROR(aoclsparse_csrsv(trans,
+		    &h_alpha,
+		    M,
+		    csr_val.data(),
+		    csr_col_ind.data(),
+		    csr_row_ptr.data(),
+		    descr,
+		    hy_gold.data(),
+		    hy.data()));
+	cpu_time_used = aoclsparse_clock_min_diff( cpu_time_used, cpu_time_start );
     }
 
 
     double cpu_gflops
-        = csrsv_gflop_count<T>(M, nnz,diag) / cpu_time_used ;
+	= csrsv_gflop_count<T>(M, nnz,diag) / cpu_time_used ;
     double cpu_gbyte
-        = csrsv_gbyte_count<T>(M, nnz) / cpu_time_used ;
+	= csrsv_gbyte_count<T>(M, nnz) / cpu_time_used ;
 
     std::cout.precision(2);
     std::cout.setf(std::ios::fixed);
     std::cout.setf(std::ios::left);
 
     std::cout << std::setw(12) << "M" << std::setw(12) << "N" << std::setw(12) << "nnz"
-        << std::setw(12) << "alpha" << std::setw(12) << "beta" << std::setw(12)
-        << "GFlop/s" << std::setw(12) << "GB/s"
-        << std::setw(12) << "msec" << std::setw(12) << "iter" << std::setw(12)
-        << "verified" << std::endl;
+	<< std::setw(12) << "alpha" << std::setw(12) << "beta" << std::setw(12)
+	<< "GFlop/s" << std::setw(12) << "GB/s"
+	<< std::setw(12) << "msec" << std::setw(12) << "iter" << std::setw(12)
+	<< "verified" << std::endl;
 
     std::cout << std::setw(12) << M << std::setw(12) << N << std::setw(12) << nnz
-        << std::setw(12) << h_alpha << std::setw(12) << h_beta << std::setw(12)
-        << cpu_gflops
-        << std::setw(12) << cpu_gbyte << std::setw(12) << cpu_time_used * 1e3
-        << std::setw(12) << number_hot_calls << std::setw(12)
-        << (arg.unit_check ? "yes" : "no") << std::endl;
+	<< std::setw(12) << h_alpha << std::setw(12) << h_beta << std::setw(12)
+	<< cpu_gflops << std::setw(12) << cpu_gbyte
+	<< std::setw(12) << std::scientific << cpu_time_used * 1e3
+	<< std::setw(12) << number_hot_calls << std::setw(12)
+	<< (arg.unit_check ? "yes" : "no") << std::endl;
 }
 
 #endif // TESTING_CSRSV_HPP

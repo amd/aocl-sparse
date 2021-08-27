@@ -69,20 +69,20 @@ void testing_bsrmv(const Arguments& arg)
     aoclsparse_get_version(&ver);
 
     std::cout << "aocl-sparse version: " << ver / 100000 << "." << ver / 100 % 1000 << "."
-        << ver % 100 << std::endl;
+	<< ver % 100 << std::endl;
 #endif
     // Sample matrix
     aoclsparse_init_csr_matrix(csr_row_ptr,
-            csr_col_ind,
-            csr_val,
-            M,
-            N,
-            nnz,
-            base,
-            mat,
-            filename.c_str(),
-            issymm,
-            false);
+	    csr_col_ind,
+	    csr_val,
+	    M,
+	    N,
+	    nnz,
+	    base,
+	    mat,
+	    filename.c_str(),
+	    issymm,
+	    false);
 
     // Update BSR block dimensions from generated matrix
     aoclsparse_int mb = (M + bsr_dim - 1) / bsr_dim;
@@ -103,45 +103,45 @@ void testing_bsrmv(const Arguments& arg)
     std::vector<aoclsparse_int> bsr_row_ptr(mb + 1);
 
     CHECK_AOCLSPARSE_ERROR(aoclsparse_csr2bsr_nnz(
-            M, N, csr_row_ptr.data(), csr_col_ind.data(), bsr_dim, bsr_row_ptr.data(), &nnzb));
+		M, N, csr_row_ptr.data(), csr_col_ind.data(), bsr_dim, bsr_row_ptr.data(), &nnzb));
 
     std::vector<aoclsparse_int> bsr_col_ind(nnzb);
     std::vector<T>             bsr_val(nnzb * bsr_dim * bsr_dim);
     CHECK_AOCLSPARSE_ERROR(aoclsparse_csr2bsr<T>(M,
-            N,
-            csr_val.data(),
-            csr_row_ptr.data(),
-            csr_col_ind.data(),
-            bsr_dim,
-            bsr_val.data(),
-            bsr_row_ptr.data(),
-            bsr_col_ind.data()));
+		N,
+		csr_val.data(),
+		csr_row_ptr.data(),
+		csr_col_ind.data(),
+		bsr_dim,
+		bsr_val.data(),
+		bsr_row_ptr.data(),
+		bsr_col_ind.data()));
 
     if(arg.unit_check)
     {
-        CHECK_AOCLSPARSE_ERROR(aoclsparse_bsrmv(trans,
-                    &alpha,
-                    mb,
-                    nb,
-                    bsr_dim,
-                    bsr_val.data(),
-                    bsr_col_ind.data(),
-                    bsr_row_ptr.data(),
-                    descr,
-                    x.data(),
-                    &beta,
-                    y.data()));
-        // Reference SPMV CSR implementation
-        for(int i = 0; i < M; i++)
-        {
-            T result = 0.0;
-            for(int j = csr_row_ptr[i]-base ; j < csr_row_ptr[i+1]-base ; j++)
-            {
-                result += alpha * csr_val[j] * x[csr_col_ind[j] - base];
-            }
-            y_gold[i] = (beta * y_gold[i]) + result;
-        }
-        near_check_general<T>(1, M, 1, y_gold.data(), y.data());
+	CHECK_AOCLSPARSE_ERROR(aoclsparse_bsrmv(trans,
+		    &alpha,
+		    mb,
+		    nb,
+		    bsr_dim,
+		    bsr_val.data(),
+		    bsr_col_ind.data(),
+		    bsr_row_ptr.data(),
+		    descr,
+		    x.data(),
+		    &beta,
+		    y.data()));
+	// Reference SPMV CSR implementation
+	for(int i = 0; i < M; i++)
+	{
+	    T result = 0.0;
+	    for(int j = csr_row_ptr[i]-base ; j < csr_row_ptr[i+1]-base ; j++)
+	    {
+		result += alpha * csr_val[j] * x[csr_col_ind[j] - base];
+	    }
+	    y_gold[i] = (beta * y_gold[i]) + result;
+	}
+	near_check_general<T>(1, M, 1, y_gold.data(), y.data());
     }
     int number_hot_calls  = arg.iters;
 
@@ -150,44 +150,44 @@ void testing_bsrmv(const Arguments& arg)
     // Performance run
     for(int iter = 0; iter < number_hot_calls; ++iter)
     {
-        double cpu_time_start = aoclsparse_clock();
-        CHECK_AOCLSPARSE_ERROR(aoclsparse_bsrmv(trans,
-                    &alpha,
-                    mb,
-                    nb,
-                    bsr_dim,
-                    bsr_val.data(),
-                    bsr_col_ind.data(),
-                    bsr_row_ptr.data(),
-                    descr,
-                    x.data(),
-                    &beta,
-                    y.data()));
-        cpu_time_used = aoclsparse_clock_min_diff( cpu_time_used, cpu_time_start );
+	double cpu_time_start = aoclsparse_clock();
+	CHECK_AOCLSPARSE_ERROR(aoclsparse_bsrmv(trans,
+		    &alpha,
+		    mb,
+		    nb,
+		    bsr_dim,
+		    bsr_val.data(),
+		    bsr_col_ind.data(),
+		    bsr_row_ptr.data(),
+		    descr,
+		    x.data(),
+		    &beta,
+		    y.data()));
+	cpu_time_used = aoclsparse_clock_min_diff( cpu_time_used, cpu_time_start );
     }
 
 
     double cpu_gflops
-        = spmv_gflop_count<T>(M, nnz, beta != static_cast<T>(0)) / cpu_time_used ;
+	= spmv_gflop_count<T>(M, nnz, beta != static_cast<T>(0)) / cpu_time_used ;
     double cpu_gbyte
-        = csrmv_gbyte_count<T>(M, N, nnz, beta != static_cast<T>(0)) / cpu_time_used ;
+	= csrmv_gbyte_count<T>(M, N, nnz, beta != static_cast<T>(0)) / cpu_time_used ;
 
     std::cout.precision(2);
     std::cout.setf(std::ios::fixed);
     std::cout.setf(std::ios::left);
 
     std::cout << std::setw(12) << "M" << std::setw(12) << "N" << std::setw(12) << "nnz"
-        << std::setw(12) << "alpha" << std::setw(12) << "beta" << std::setw(12)
-        << "GFlop/s" << std::setw(12) << "GB/s"
-        << std::setw(12) << "msec" << std::setw(12) << "iter" << std::setw(12)
-        << "verified" << std::endl;
+	<< std::setw(12) << "alpha" << std::setw(12) << "beta" << std::setw(12)
+	<< "GFlop/s" << std::setw(12) << "GB/s"
+	<< std::setw(12) << "msec" << std::setw(12) << "iter" << std::setw(12)
+	<< "verified" << std::endl;
 
     std::cout << std::setw(12) << M << std::setw(12) << N << std::setw(12) << nnz
-        << std::setw(12) << alpha << std::setw(12) << beta << std::setw(12)
-        << cpu_gflops
-        << std::setw(12) << cpu_gbyte << std::setw(12) << cpu_time_used * 1e3
-        << std::setw(12) << number_hot_calls << std::setw(12)
-        << (arg.unit_check ? "yes" : "no") << std::endl;
+	<< std::setw(12) << alpha << std::setw(12) << beta << std::setw(12)
+	<< cpu_gflops << std::setw(12) << cpu_gbyte
+	<< std::setw(12) << std::scientific << cpu_time_used * 1e3
+	<< std::setw(12) << number_hot_calls << std::setw(12)
+	<< (arg.unit_check ? "yes" : "no") << std::endl;
 }
 
 #endif // TESTING_CSRMV_HPP

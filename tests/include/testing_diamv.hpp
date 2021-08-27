@@ -67,16 +67,16 @@ void testing_diamv(const Arguments& arg)
 
     // Sample matrix
     aoclsparse_init_csr_matrix(csr_row_ptr,
-            csr_col_ind,
-            csr_val,
-            M,
-            N,
-            nnz,
-            base,
-            mat,
-            filename.c_str(),
-            issymm,
-            true);
+	    csr_col_ind,
+	    csr_val,
+	    M,
+	    N,
+	    nnz,
+	    base,
+	    mat,
+	    filename.c_str(),
+	    issymm,
+	    true);
 
     // Allocate memory for vectors
     std::vector<T> x(N);
@@ -89,7 +89,7 @@ void testing_diamv(const Arguments& arg)
     y_gold = y;
     // Convert CSR matrix to DIA
     CHECK_AOCLSPARSE_ERROR(aoclsparse_csr2dia_ndiag(
-            M, N, nnz, csr_row_ptr.data(), csr_col_ind.data(), &dia_num_diag));
+		M, N, nnz, csr_row_ptr.data(), csr_col_ind.data(), &dia_num_diag));
     aoclsparse_int size = (M > N) ? M : N;
     aoclsparse_int nnz_dia = size * dia_num_diag;
     // Allocate DIA matrix
@@ -98,33 +98,33 @@ void testing_diamv(const Arguments& arg)
 
     // Convert CSR matrix to DIA
     CHECK_AOCLSPARSE_ERROR(aoclsparse_csr2dia_template(
-            M, N, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data(), dia_num_diag, dia_offset.data(), dia_val.data()));
+		M, N, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data(), dia_num_diag, dia_offset.data(), dia_val.data()));
     if(arg.unit_check)
     {
-        CHECK_AOCLSPARSE_ERROR(aoclsparse_diamv(trans,
-                    &alpha,
-                    M,
-                    N,
-                    nnz,
-                    dia_val.data(),
-                    dia_offset.data(),
-                    dia_num_diag,
-                    descr,
-                    x.data(),
-                    &beta,
-                    y.data()));
-        // Reference SPMV CSR implementation
-        for(int i = 0; i < M; i++)
-        {
-            T result = 0.0;
-            for(int j = csr_row_ptr[i] - base; j < csr_row_ptr[i+1] - base; j++)
-            {
-                result += alpha * csr_val[j] * x[csr_col_ind[j] - base];
-            }
-            y_gold[i] = (beta * y_gold[i]) + result;
+	CHECK_AOCLSPARSE_ERROR(aoclsparse_diamv(trans,
+		    &alpha,
+		    M,
+		    N,
+		    nnz,
+		    dia_val.data(),
+		    dia_offset.data(),
+		    dia_num_diag,
+		    descr,
+		    x.data(),
+		    &beta,
+		    y.data()));
+	// Reference SPMV CSR implementation
+	for(int i = 0; i < M; i++)
+	{
+	    T result = 0.0;
+	    for(int j = csr_row_ptr[i] - base; j < csr_row_ptr[i+1] - base; j++)
+	    {
+		result += alpha * csr_val[j] * x[csr_col_ind[j] - base];
+	    }
+	    y_gold[i] = (beta * y_gold[i]) + result;
 
-        }
-        near_check_general<T>(1, M, 1, y_gold.data(), y.data());
+	}
+	near_check_general<T>(1, M, 1, y_gold.data(), y.data());
     }
     int number_hot_calls  = arg.iters;
 
@@ -133,44 +133,44 @@ void testing_diamv(const Arguments& arg)
     // Performance run
     for(int iter = 0; iter < number_hot_calls; ++iter)
     {
-        double cpu_time_start = aoclsparse_clock();
-        CHECK_AOCLSPARSE_ERROR(aoclsparse_diamv(trans,
-                    &alpha,
-                    M,
-                    N,
-                    nnz,
-                    dia_val.data(),
-                    dia_offset.data(),
-                    dia_num_diag,
-                    descr,
-                    x.data(),
-                    &beta,
-                    y.data()));
-        cpu_time_used = aoclsparse_clock_min_diff(cpu_time_used , cpu_time_start );
+	double cpu_time_start = aoclsparse_clock();
+	CHECK_AOCLSPARSE_ERROR(aoclsparse_diamv(trans,
+		    &alpha,
+		    M,
+		    N,
+		    nnz,
+		    dia_val.data(),
+		    dia_offset.data(),
+		    dia_num_diag,
+		    descr,
+		    x.data(),
+		    &beta,
+		    y.data()));
+	cpu_time_used = aoclsparse_clock_min_diff(cpu_time_used , cpu_time_start );
     }
 
 
     double cpu_gflops
-        = spmv_gflop_count<T>(M, nnz, beta != static_cast<T>(0)) / cpu_time_used ;
+	= spmv_gflop_count<T>(M, nnz, beta != static_cast<T>(0)) / cpu_time_used ;
     double cpu_gbyte
-        = csrmv_gbyte_count<T>(M, N, nnz, beta != static_cast<T>(0)) / cpu_time_used ;
+	= csrmv_gbyte_count<T>(M, N, nnz, beta != static_cast<T>(0)) / cpu_time_used ;
 
     std::cout.precision(2);
     std::cout.setf(std::ios::fixed);
     std::cout.setf(std::ios::left);
 
     std::cout << std::setw(12) << "M" << std::setw(12) << "N" << std::setw(12) << "nnz"
-        << std::setw(12) << "alpha" << std::setw(12) << "beta" << std::setw(12)
-        << "GFlop/s" << std::setw(12) << "GB/s"
-        << std::setw(12) << "msec" << std::setw(12) << "iter" << std::setw(12)
-        << "verified" << std::endl;
+	<< std::setw(12) << "alpha" << std::setw(12) << "beta" << std::setw(12)
+	<< "GFlop/s" << std::setw(12) << "GB/s"
+	<< std::setw(12) << "msec" << std::setw(12) << "iter" << std::setw(12)
+	<< "verified" << std::endl;
 
     std::cout << std::setw(12) << M << std::setw(12) << N << std::setw(12) << nnz
-        << std::setw(12) << alpha << std::setw(12) << beta << std::setw(12)
-        << cpu_gflops
-        << std::setw(12) << cpu_gbyte << std::setw(12) << cpu_time_used * 1e3
-        << std::setw(12) << number_hot_calls << std::setw(12)
-        << (arg.unit_check ? "yes" : "no") << std::endl;
+	<< std::setw(12) << alpha << std::setw(12) << beta << std::setw(12)
+	<< cpu_gflops << std::setw(12) << cpu_gbyte
+	<< std::setw(12) << std::scientific << cpu_time_used * 1e3
+	<< std::setw(12) << number_hot_calls << std::setw(12)
+	<< (arg.unit_check ? "yes" : "no") << std::endl;
 }
 
 #endif // TESTING_DIAMV_HPP

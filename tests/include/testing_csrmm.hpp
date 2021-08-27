@@ -288,8 +288,8 @@ void testing_csrmm(const Arguments& arg)
     std::cout << std::setw(12) << M << std::setw(12) << N << std::setw(12) << K
 	<< std::setw(12) << nnz << std::setw(12) << B_m * B_n << std::setw(12) << C_m * C_n
 	<< std::setw(12) << alpha << std::setw(12) << beta << std::setw(12)
-	<< cpu_gflops
-	<< std::setw(12) << cpu_gbyte << std::setw(12) << cpu_time_used * 1e3
+	<< cpu_gflops << std::setw(12) << cpu_gbyte
+	<< std::setw(12) << std::scientific << cpu_time_used * 1e3
 	<< std::setw(12) << number_hot_calls << std::setw(12)
 	<< (arg.unit_check ? "yes" : "no") << std::endl;
 
