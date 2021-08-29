@@ -28,7 +28,7 @@
 #include <algorithm>
 
 template <typename T>
-aoclsparse_status aoclsparse_diamv(const T                alpha,
+aoclsparse_status aoclsparse_diamv_template(const T                alpha,
                                    aoclsparse_int             m,
                                    aoclsparse_int             n,
                                    aoclsparse_int             nnz,

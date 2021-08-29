@@ -97,7 +97,7 @@ extern "C" aoclsparse_status aoclsparse_scsrsv(aoclsparse_operation       trans,
     {
         return aoclsparse_status_invalid_pointer;
     }
-    return aoclsparse_csrsv(*alpha,
+    return aoclsparse_csrsv_template(*alpha,
             m,
             csr_val,
             csr_col_ind,
@@ -174,7 +174,7 @@ extern "C" aoclsparse_status aoclsparse_dcsrsv(aoclsparse_operation       trans,
     {
         return aoclsparse_status_invalid_pointer;
     }
-    return aoclsparse_csrsv(*alpha,
+    return aoclsparse_csrsv_template(*alpha,
             m,
             csr_val,
             csr_col_ind,

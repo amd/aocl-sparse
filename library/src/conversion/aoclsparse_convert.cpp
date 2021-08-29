@@ -83,7 +83,7 @@ extern "C" aoclsparse_status aoclsparse_scsr2ell(
         float                *ell_val,
         aoclsparse_int       ell_width)
 {
-    return aoclsparse_csr2ell(m,
+    return aoclsparse_csr2ell_template(m,
             csr_row_ptr,
             csr_col_ind,
             csr_val,
@@ -101,7 +101,7 @@ extern "C" aoclsparse_status aoclsparse_dcsr2ell(
         double               *ell_val,
         aoclsparse_int       ell_width)
 {
-    return aoclsparse_csr2ell(m,
+    return aoclsparse_csr2ell_template(m,
             csr_row_ptr,
             csr_col_ind,
             csr_val,
@@ -175,7 +175,7 @@ extern "C" aoclsparse_status aoclsparse_scsr2dia(
         aoclsparse_int       *dia_offset,
         float                *dia_val)
 {
-    return aoclsparse_csr2dia(m,
+    return aoclsparse_csr2dia_template(m,
             n,
             csr_row_ptr,
             csr_col_ind,
@@ -195,7 +195,7 @@ extern "C" aoclsparse_status aoclsparse_dcsr2dia(
         aoclsparse_int       *dia_offset,
         double               *dia_val)
 {
-    return aoclsparse_csr2dia(m,
+    return aoclsparse_csr2dia_template(m,
             n,
             csr_row_ptr,
             csr_col_ind,
@@ -318,7 +318,7 @@ extern "C" aoclsparse_status aoclsparse_scsr2bsr(
         aoclsparse_int       *bsr_row_ptr,
         aoclsparse_int       *bsr_col_ind)
 {
-    return aoclsparse_csr2bsr(m,
+    return aoclsparse_csr2bsr_template(m,
             n,
             csr_val,
             csr_row_ptr,
@@ -340,7 +340,7 @@ extern "C" aoclsparse_status aoclsparse_dcsr2bsr(
         aoclsparse_int       *bsr_row_ptr,
         aoclsparse_int       *bsr_col_ind)
 {
-    return aoclsparse_csr2bsr(m,
+    return aoclsparse_csr2bsr_template(m,
             n,
             csr_val,
             csr_row_ptr,
@@ -362,7 +362,7 @@ extern "C" aoclsparse_status aoclsparse_scsr2csc(
         aoclsparse_int       *csc_col_ptr,
         float                *csc_val)
 {
-    return aoclsparse_csr2csc(m,
+    return aoclsparse_csr2csc_template(m,
             n,
             nnz,
             csr_row_ptr,
@@ -384,7 +384,7 @@ extern "C" aoclsparse_status aoclsparse_dcsr2csc(
         aoclsparse_int       *csc_col_ptr,
         double               *csc_val)
 {
-    return aoclsparse_csr2csc(m,
+    return aoclsparse_csr2csc_template(m,
             n,
             nnz,
             csr_row_ptr,
@@ -406,7 +406,7 @@ extern "C" aoclsparse_status aoclsparse_scsr2dense(
             aoclsparse_int             ld,
             aoclsparse_order           order)
 {
-    return aoclsparse_csr2dense(m,
+    return aoclsparse_csr2dense_template(m,
             n,
 	    descr,
 	    csr_val,
@@ -428,7 +428,7 @@ extern "C" aoclsparse_status aoclsparse_dcsr2dense(
             aoclsparse_int             ld,
             aoclsparse_order           order)
 {
-    return aoclsparse_csr2dense(m,
+    return aoclsparse_csr2dense_template(m,
             n,
 	    descr,
 	    csr_val,

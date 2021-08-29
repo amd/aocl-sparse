@@ -1,16 +1,16 @@
 /* ************************************************************************
  * Copyright (c) 2020-2021 Advanced Micro Devices, Inc. All rights reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -18,7 +18,7 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
- * 
+ *
  * ************************************************************************ */
 #ifndef AOCLSPARSE_ELLMV_HPP
 #define AOCLSPARSE_ELLMV_HPP
@@ -27,7 +27,7 @@
 #include "aoclsparse_descr.h"
 #include <immintrin.h>
 
-aoclsparse_status aoclsparse_ellmv(const float                alpha,
+aoclsparse_status aoclsparse_ellmv_template(const float                alpha,
                                    aoclsparse_int             m,
                                    aoclsparse_int             n,
                                    aoclsparse_int             nnz,
@@ -74,7 +74,7 @@ aoclsparse_status aoclsparse_ellmv(const float                alpha,
     return aoclsparse_status_success;
 }
 
-aoclsparse_status aoclsparse_ellmv(const double               alpha,
+aoclsparse_status aoclsparse_ellmv_template(const double               alpha,
                                    aoclsparse_int             m,
                                    aoclsparse_int             n,
                                    aoclsparse_int             nnz,
@@ -85,7 +85,7 @@ aoclsparse_status aoclsparse_ellmv(const double               alpha,
                                    const double              beta,
                                    double*                   y )
 {
-    __m256d vec_vals , vec_x , vec_y;	
+    __m256d vec_vals , vec_x , vec_y;
     aoclsparse_int k_iter = ell_width/4;
     aoclsparse_int k_rem = ell_width%4;
 
@@ -95,18 +95,18 @@ aoclsparse_status aoclsparse_ellmv(const double               alpha,
         aoclsparse_int idx = i * ell_width ;
 
         const aoclsparse_int *pell_col_ind;
-        const double *pell_val;	    
+        const double *pell_val;
 
         pell_col_ind = &ell_col_ind[idx];
         pell_val = &ell_val[idx];
         vec_y = _mm256_setzero_pd();
-        
+
         //Loop over in multiple of 4
         for(aoclsparse_int p = 0; p < k_iter; ++p)
         {
             aoclsparse_int col = *pell_col_ind ;
 
-            // Multiply only the valid non-zeroes, column index = -1 for padded zeroes 
+            // Multiply only the valid non-zeroes, column index = -1 for padded zeroes
             if(col >= 0)
             {
                 //(ell_val[j] (ell_val[j+1] (ell_val[j+2] (ell_val[j+3]

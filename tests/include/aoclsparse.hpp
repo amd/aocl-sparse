@@ -138,7 +138,7 @@ aoclsparse_status aoclsparse_csr2ell(
 	aoclsparse_int       ell_width);
 
 template <typename T>
-aoclsparse_status aoclsparse_csr2dia_template(
+aoclsparse_status aoclsparse_csr2dia(
         aoclsparse_int       m,
         aoclsparse_int       n,
         const aoclsparse_int *csr_row_ptr,
@@ -161,7 +161,7 @@ aoclsparse_status aoclsparse_csr2bsr(
 	aoclsparse_int*       bsr_col_ind);
 
 template <typename T>
-aoclsparse_status aoclsparse_csr2csc_template(
+aoclsparse_status aoclsparse_csr2csc(
         aoclsparse_int       m,
         aoclsparse_int       n,
         aoclsparse_int       nnz,

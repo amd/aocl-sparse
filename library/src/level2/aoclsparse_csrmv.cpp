@@ -125,7 +125,7 @@ extern "C" aoclsparse_status aoclsparse_scsrmv(aoclsparse_operation       trans,
     }
     else
     {
-        return aoclsparse_csrmv(*alpha,
+        return aoclsparse_csrmv_vectorized(*alpha,
                 m,
                 n,
                 nnz,

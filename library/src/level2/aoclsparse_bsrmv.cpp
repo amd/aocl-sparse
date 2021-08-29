@@ -141,7 +141,7 @@ extern "C" aoclsparse_status aoclsparse_sbsrmv(aoclsparse_operation       trans,
                 *beta,
                 y);
     else
-        return aoclsparse_bsrmv(*alpha,
+        return aoclsparse_bsrmv_general(*alpha,
                 mb,
                 nb,
                 bsr_dim,
@@ -263,7 +263,7 @@ extern "C" aoclsparse_status aoclsparse_dbsrmv(aoclsparse_operation       trans,
                 *beta,
                 y);
     else
-        return aoclsparse_bsrmv(*alpha,
+        return aoclsparse_bsrmv_general(*alpha,
                 mb,
                 nb,
                 bsr_dim,

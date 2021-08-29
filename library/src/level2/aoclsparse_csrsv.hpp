@@ -28,7 +28,7 @@
 #include "iostream"
 
 template <typename T>
-aoclsparse_status aoclsparse_csrsv(const T                   alpha,
+aoclsparse_status aoclsparse_csrsv_template(const T                   alpha,
                                   aoclsparse_int             m,
                                   const T*                   csr_val,
                                   const aoclsparse_int*      csr_col_ind,

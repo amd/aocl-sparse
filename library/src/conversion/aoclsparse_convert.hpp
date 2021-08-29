@@ -33,7 +33,7 @@
 #endif
 
 template <typename T>
-aoclsparse_status aoclsparse_csr2ell(
+aoclsparse_status aoclsparse_csr2ell_template(
 	aoclsparse_int       m,
 	const aoclsparse_int *csr_row_ptr,
 	const aoclsparse_int *csr_col_ind,
@@ -103,7 +103,7 @@ aoclsparse_status aoclsparse_csr2ell(
 }
 
 template <typename T>
-aoclsparse_status aoclsparse_csr2dia(
+aoclsparse_status aoclsparse_csr2dia_template(
 	aoclsparse_int       m,
 	aoclsparse_int       n,
 	const aoclsparse_int *csr_row_ptr,
@@ -193,7 +193,7 @@ aoclsparse_status aoclsparse_csr2dia(
 
 #define BCSR_IND(j, bi, bj, dim) ((j) + (bi) + (bj) * (dim))
 template <typename T>
-aoclsparse_status aoclsparse_csr2bsr(
+aoclsparse_status aoclsparse_csr2bsr_template(
 	aoclsparse_int                     m,
 	aoclsparse_int                     n,
 	const T* __restrict__              csr_val,
@@ -334,7 +334,7 @@ aoclsparse_status aoclsparse_csr2bsr(
 }
 
 template <typename T>
-aoclsparse_status aoclsparse_csr2csc(
+aoclsparse_status aoclsparse_csr2csc_template(
 	aoclsparse_int       m,
 	aoclsparse_int       n,
 	aoclsparse_int       nnz,
@@ -422,7 +422,7 @@ aoclsparse_status aoclsparse_csr2csc(
 }
 
 template <typename T>
-aoclsparse_status aoclsparse_csr2dense(
+aoclsparse_status aoclsparse_csr2dense_template(
 	aoclsparse_int             m,
 	aoclsparse_int             n,
 	const aoclsparse_mat_descr descr,

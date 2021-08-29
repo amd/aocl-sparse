@@ -32,7 +32,7 @@
 #endif
 
 template <typename T>
-aoclsparse_status aoclsparse_bsrmv(T  alpha,
+aoclsparse_status aoclsparse_bsrmv_general(T  alpha,
         aoclsparse_int mb,
         aoclsparse_int nb,
         aoclsparse_int bsr_dim,

@@ -32,16 +32,17 @@
 #define __restrict__ __restrict
 #endif
 
-aoclsparse_status aoclsparse_csrmv(const float               alpha,
-        aoclsparse_int                         m,
-        aoclsparse_int                         n,
-        aoclsparse_int                         nnz,
-        const float* __restrict__              csr_val,
-        const aoclsparse_int* __restrict__     csr_col_ind,
-        const aoclsparse_int* __restrict__     csr_row_ptr,
-        const float* __restrict__              x,
-        const float                            beta,
-        float* __restrict__                    y)
+aoclsparse_status aoclsparse_csrmv_vectorized(
+	const float               alpha,
+	aoclsparse_int                         m,
+	aoclsparse_int                         n,
+	aoclsparse_int                         nnz,
+	const float* __restrict__              csr_val,
+	const aoclsparse_int* __restrict__     csr_col_ind,
+	const aoclsparse_int* __restrict__     csr_row_ptr,
+	const float* __restrict__              x,
+	const float                            beta,
+	float* __restrict__                    y)
 {
     __m256 vec_vals , vec_x ,vec_y;
     const aoclsparse_int *colIndPtr;
@@ -51,77 +52,77 @@ aoclsparse_status aoclsparse_csrmv(const float               alpha,
 
     for(aoclsparse_int i = 0; i < m; i++)
     {
-        aoclsparse_int j;
-        float result = 0.0;
-        vec_y = _mm256_setzero_ps();
-        aoclsparse_int nnz = csr_row_ptr[i+1] - csr_row_ptr[i];
-        aoclsparse_int k_iter = nnz/8;
-        aoclsparse_int k_rem = nnz%8;
+	aoclsparse_int j;
+	float result = 0.0;
+	vec_y = _mm256_setzero_ps();
+	aoclsparse_int nnz = csr_row_ptr[i+1] - csr_row_ptr[i];
+	aoclsparse_int k_iter = nnz/8;
+	aoclsparse_int k_rem = nnz%8;
 
-        //Loop in multiples of 8
-        for(j =  0 ; j < k_iter ; j++ )
-        {
-            //(csr_val[j] csr_val[j+1] csr_val[j+2] csr_val[j+3] csr_val[j+4] csr_val[j+5] csr_val[j+6] csr_val[j+7]
-            vec_vals = _mm256_loadu_ps(matValPtr);
+	//Loop in multiples of 8
+	for(j =  0 ; j < k_iter ; j++ )
+	{
+	    //(csr_val[j] csr_val[j+1] csr_val[j+2] csr_val[j+3] csr_val[j+4] csr_val[j+5] csr_val[j+6] csr_val[j+7]
+	    vec_vals = _mm256_loadu_ps(matValPtr);
 
-            //Gather the xvector values from the column indices
-            vec_x  = _mm256_set_ps(x[*(colIndPtr+7)],
-                    x[*(colIndPtr+6)],
-                    x[*(colIndPtr+5)],
-                    x[*(colIndPtr+4)],
-                    x[*(colIndPtr+3)],
-                    x[*(colIndPtr+2)],
-                    x[*(colIndPtr+1)],
-                    x[*(colIndPtr)]);
+	    //Gather the xvector values from the column indices
+	    vec_x  = _mm256_set_ps(x[*(colIndPtr+7)],
+		    x[*(colIndPtr+6)],
+		    x[*(colIndPtr+5)],
+		    x[*(colIndPtr+4)],
+		    x[*(colIndPtr+3)],
+		    x[*(colIndPtr+2)],
+		    x[*(colIndPtr+1)],
+		    x[*(colIndPtr)]);
 
-            vec_y = _mm256_fmadd_ps(vec_vals, vec_x , vec_y);
+	    vec_y = _mm256_fmadd_ps(vec_vals, vec_x , vec_y);
 
-            matValPtr += 8;
-            colIndPtr += 8;
-        }
+	    matValPtr += 8;
+	    colIndPtr += 8;
+	}
 
-        // Horizontal addition of vec_y
-        if(k_iter){
-            // hiQuad = ( x7, x6, x5, x4 )
-            __m128 hiQuad = _mm256_extractf128_ps(vec_y, 1);
-            // loQuad = ( x3, x2, x1, x0 )
-            const __m128 loQuad = _mm256_castps256_ps128(vec_y);
-            // sumQuad = ( x3 + x7, x2 + x6, x1 + x5, x0 + x4 )
-            const __m128 sumQuad = _mm_add_ps(loQuad, hiQuad);
-            // loDual = ( -, -, x1 + x5, x0 + x4 )
-            const __m128 loDual = sumQuad;
-            // hiDual = ( -, -, x3 + x7, x2 + x6 )
-            const __m128 hiDual = _mm_movehl_ps(sumQuad, sumQuad);
-            // sumDual = ( -, -, x1 + x3 + x5 + x7, x0 + x2 + x4 + x6 )
-            const __m128 sumDual = _mm_add_ps(loDual, hiDual);
-            // lo = ( -, -, -, x0 + x2 + x4 + x6 )
-            const __m128 lo = sumDual;
-            // hi = ( -, -, -, x1 + x3 + x5 + x7 )
-            const __m128 hi = _mm_shuffle_ps(sumDual, sumDual, 0x1);
-            // sum = ( -, -, -, x0 + x1 + x2 + x3 + x4 + x5 + x6 + x7 )
-            const __m128 sum = _mm_add_ss(lo, hi);
-            result = _mm_cvtss_f32(sum);
-        }
+	// Horizontal addition of vec_y
+	if(k_iter){
+	    // hiQuad = ( x7, x6, x5, x4 )
+	    __m128 hiQuad = _mm256_extractf128_ps(vec_y, 1);
+	    // loQuad = ( x3, x2, x1, x0 )
+	    const __m128 loQuad = _mm256_castps256_ps128(vec_y);
+	    // sumQuad = ( x3 + x7, x2 + x6, x1 + x5, x0 + x4 )
+	    const __m128 sumQuad = _mm_add_ps(loQuad, hiQuad);
+	    // loDual = ( -, -, x1 + x5, x0 + x4 )
+	    const __m128 loDual = sumQuad;
+	    // hiDual = ( -, -, x3 + x7, x2 + x6 )
+	    const __m128 hiDual = _mm_movehl_ps(sumQuad, sumQuad);
+	    // sumDual = ( -, -, x1 + x3 + x5 + x7, x0 + x2 + x4 + x6 )
+	    const __m128 sumDual = _mm_add_ps(loDual, hiDual);
+	    // lo = ( -, -, -, x0 + x2 + x4 + x6 )
+	    const __m128 lo = sumDual;
+	    // hi = ( -, -, -, x1 + x3 + x5 + x7 )
+	    const __m128 hi = _mm_shuffle_ps(sumDual, sumDual, 0x1);
+	    // sum = ( -, -, -, x0 + x1 + x2 + x3 + x4 + x5 + x6 + x7 )
+	    const __m128 sum = _mm_add_ss(lo, hi);
+	    result = _mm_cvtss_f32(sum);
+	}
 
-        //Remainder loop
-        for(j =  0 ; j < k_rem ; j++ )
-        {
-            result += *matValPtr++ * x[*colIndPtr++];
-        }
+	//Remainder loop
+	for(j =  0 ; j < k_rem ; j++ )
+	{
+	    result += *matValPtr++ * x[*colIndPtr++];
+	}
 
-        // Perform alpha * A * x
-        if(alpha != static_cast<float>(1))
-        {
-            result = alpha * result;
-        }
+	// Perform alpha * A * x
+	if(alpha != static_cast<float>(1))
+	{
+	    result = alpha * result;
+	}
 
-        // Perform (beta * y) + (alpha * A * x)
-        if(beta != static_cast<float>(0))
-        {
-            result += beta * y[i];
-        }
+	// Perform (beta * y) + (alpha * A * x)
+	if(beta != static_cast<float>(0))
+	{
+	    result += beta * y[i];
+	}
 
-        y[i] = result ;
+	y[i] = result ;
     }
 
     return aoclsparse_status_success;
@@ -129,15 +130,15 @@ aoclsparse_status aoclsparse_csrmv(const float               alpha,
 
 template <typename T>
 aoclsparse_status aoclsparse_csrmv_general(const T               alpha,
-        aoclsparse_int                         m,
-        aoclsparse_int                         n,
-        aoclsparse_int                         nnz,
-        const T* __restrict__                  csr_val,
-        const aoclsparse_int* __restrict__     csr_col_ind,
-        const aoclsparse_int* __restrict__     csr_row_ptr,
-        const T* __restrict__                  x,
-        const T                                beta,
-        T* __restrict__                        y)
+	aoclsparse_int                         m,
+	aoclsparse_int                         n,
+	aoclsparse_int                         nnz,
+	const T* __restrict__                  csr_val,
+	const aoclsparse_int* __restrict__     csr_col_ind,
+	const aoclsparse_int* __restrict__     csr_row_ptr,
+	const T* __restrict__                  x,
+	const T                                beta,
+	T* __restrict__                        y)
 {
     const aoclsparse_int *colIndPtr;
     const T *matValPtr;
@@ -148,27 +149,27 @@ aoclsparse_status aoclsparse_csrmv_general(const T               alpha,
     // Perform matrix-vector product for each non-zero of the ith row
     for(aoclsparse_int i = 0; i < m; i++)
     {
-        T result = 0.0;
-        aoclsparse_int nnz = csr_row_ptr[i+1] - csr_row_ptr[i];
+	T result = 0.0;
+	aoclsparse_int nnz = csr_row_ptr[i+1] - csr_row_ptr[i];
 
-        for(aoclsparse_int j =  0 ; j < nnz ; j++ )
-        {
-            result += (*matValPtr++) * x[*colIndPtr++];
-        }
+	for(aoclsparse_int j =  0 ; j < nnz ; j++ )
+	{
+	    result += (*matValPtr++) * x[*colIndPtr++];
+	}
 
-        // Perform alpha * A * x
-        if(alpha != static_cast<double>(1))
-        {
-            result = alpha * result;
-        }
+	// Perform alpha * A * x
+	if(alpha != static_cast<double>(1))
+	{
+	    result = alpha * result;
+	}
 
-        // Perform (beta * y) + (alpha * A * x)
-        if(beta != static_cast<double>(0))
-        {
-            result += beta * y[i];
-        }
+	// Perform (beta * y) + (alpha * A * x)
+	if(beta != static_cast<double>(0))
+	{
+	    result += beta * y[i];
+	}
 
-        y[i] = result ;
+	y[i] = result ;
     }
 
     return aoclsparse_status_success;
@@ -176,63 +177,63 @@ aoclsparse_status aoclsparse_csrmv_general(const T               alpha,
 
 template <typename T>
 aoclsparse_status aoclsparse_csrmv_symm(const T               alpha,
-        aoclsparse_int                         m,
-        aoclsparse_int                         n,
-        aoclsparse_int                         nnz,
-        const T* __restrict__                  csr_val,
-        const aoclsparse_int* __restrict__     csr_col_ind,
-        const aoclsparse_int* __restrict__     csr_row_ptr,
-        const T* __restrict__                  x,
-        const T                                beta,
-        T* __restrict__                        y)
+	aoclsparse_int                         m,
+	aoclsparse_int                         n,
+	aoclsparse_int                         nnz,
+	const T* __restrict__                  csr_val,
+	const aoclsparse_int* __restrict__     csr_col_ind,
+	const aoclsparse_int* __restrict__     csr_row_ptr,
+	const T* __restrict__                  x,
+	const T                                beta,
+	T* __restrict__                        y)
 {
     // Perform (beta * y)
     if(beta != static_cast<double>(1))
     {
-        for(aoclsparse_int i = 0; i < m; i++)
-            y[i] = beta * y[i];
+	for(aoclsparse_int i = 0; i < m; i++)
+	    y[i] = beta * y[i];
     }
     // Iterate over each row of the input matrix and
     // Perform matrix-vector product for each non-zero of the ith row
     for(aoclsparse_int i = 0; i < m; i++)
     {
-        // Diagonal element(if a non-zero) has to be multiplied once
-        // in a symmetrc matrix with corresponding x vector element.
-        // Last element of every row in a lower triangular symmetric
-        // matrix is diagonal element. Diagonal element when equal to
-        // zero , will not be present in the csr_val array . To
-        // handle this corner case , last_ele_diag is initialised to
-        // zero if diagonal element is zero, hence not multiplied.
-        // last_ele_diag becomes one if diagonal element is non-zero
-        // and hence multiplied once with corresponding x-vector element
-        aoclsparse_int diag_idx = csr_row_ptr[i+1] - 1 ;
-        aoclsparse_int last_ele_diag= !(csr_col_ind[diag_idx] ^ i);
-        y[i]  +=  last_ele_diag * alpha * csr_val[diag_idx] * x[i];
-        aoclsparse_int end = csr_row_ptr[i+1] - last_ele_diag ;
-        // Handle all the elements in a row other than the diagonal element
-        // Each element has an equivelant occurence on other side of the
-        // diagonal and hence need to multiply with two offsets of x-vector
-        // and update 2 offsets of y-vector
-        for(aoclsparse_int j =  csr_row_ptr[i] ; j < end; j++ )
-        {
-            y[i] +=  alpha * csr_val[j] * x[csr_col_ind[j]];
-            y[csr_col_ind[j]] += alpha * csr_val[j] * x[i];
-        }
+	// Diagonal element(if a non-zero) has to be multiplied once
+	// in a symmetrc matrix with corresponding x vector element.
+	// Last element of every row in a lower triangular symmetric
+	// matrix is diagonal element. Diagonal element when equal to
+	// zero , will not be present in the csr_val array . To
+	// handle this corner case , last_ele_diag is initialised to
+	// zero if diagonal element is zero, hence not multiplied.
+	// last_ele_diag becomes one if diagonal element is non-zero
+	// and hence multiplied once with corresponding x-vector element
+	aoclsparse_int diag_idx = csr_row_ptr[i+1] - 1 ;
+	aoclsparse_int last_ele_diag= !(csr_col_ind[diag_idx] ^ i);
+	y[i]  +=  last_ele_diag * alpha * csr_val[diag_idx] * x[i];
+	aoclsparse_int end = csr_row_ptr[i+1] - last_ele_diag ;
+	// Handle all the elements in a row other than the diagonal element
+	// Each element has an equivelant occurence on other side of the
+	// diagonal and hence need to multiply with two offsets of x-vector
+	// and update 2 offsets of y-vector
+	for(aoclsparse_int j =  csr_row_ptr[i] ; j < end; j++ )
+	{
+	    y[i] +=  alpha * csr_val[j] * x[csr_col_ind[j]];
+	    y[csr_col_ind[j]] += alpha * csr_val[j] * x[i];
+	}
     }
     return aoclsparse_status_success;
 }
 
 
 aoclsparse_status aoclsparse_csrmv_vectorized(const double               alpha,
-        aoclsparse_int                         m,
-        aoclsparse_int                         n,
-        aoclsparse_int                         nnz,
-        const double* __restrict__             csr_val,
-        const aoclsparse_int* __restrict__     csr_col_ind,
-        const aoclsparse_int* __restrict__     csr_row_ptr,
-        const double* __restrict__             x,
-        const double                           beta,
-        double* __restrict__                   y)
+	aoclsparse_int                         m,
+	aoclsparse_int                         n,
+	aoclsparse_int                         nnz,
+	const double* __restrict__             csr_val,
+	const aoclsparse_int* __restrict__     csr_col_ind,
+	const aoclsparse_int* __restrict__     csr_row_ptr,
+	const double* __restrict__             x,
+	const double                           beta,
+	double* __restrict__                   y)
 {
     __m256d vec_vals , vec_x , vec_y;
     const aoclsparse_int *colIndPtr;
@@ -242,72 +243,72 @@ aoclsparse_status aoclsparse_csrmv_vectorized(const double               alpha,
 
     for(aoclsparse_int i = 0; i < m; i++)
     {
-        aoclsparse_int j;
-        double result = 0.0;
-        vec_y = _mm256_setzero_pd();
-        aoclsparse_int nnz = csr_row_ptr[i+1] - csr_row_ptr[i];
-        aoclsparse_int k_iter = nnz/4;
-        aoclsparse_int k_rem = nnz%4;
+	aoclsparse_int j;
+	double result = 0.0;
+	vec_y = _mm256_setzero_pd();
+	aoclsparse_int nnz = csr_row_ptr[i+1] - csr_row_ptr[i];
+	aoclsparse_int k_iter = nnz/4;
+	aoclsparse_int k_rem = nnz%4;
 
-        //Loop in multiples of 4 non-zeroes
-        for(j =  0 ; j < k_iter ; j++ )
-        {
-            //(csr_val[j] (csr_val[j+1] (csr_val[j+2] (csr_val[j+3]
-            vec_vals = _mm256_loadu_pd((double const *)matValPtr);
+	//Loop in multiples of 4 non-zeroes
+	for(j =  0 ; j < k_iter ; j++ )
+	{
+	    //(csr_val[j] (csr_val[j+1] (csr_val[j+2] (csr_val[j+3]
+	    vec_vals = _mm256_loadu_pd((double const *)matValPtr);
 
-            //Gather the x vector elements from the column indices
-            vec_x  = _mm256_set_pd(x[*(colIndPtr+3)],
-                    x[*(colIndPtr+2)],
-                    x[*(colIndPtr+1)],
-                    x[*(colIndPtr)]);
+	    //Gather the x vector elements from the column indices
+	    vec_x  = _mm256_set_pd(x[*(colIndPtr+3)],
+		    x[*(colIndPtr+2)],
+		    x[*(colIndPtr+1)],
+		    x[*(colIndPtr)]);
 
-            vec_y = _mm256_fmadd_pd(vec_vals, vec_x, vec_y);
+	    vec_y = _mm256_fmadd_pd(vec_vals, vec_x, vec_y);
 
-            matValPtr+=4;
-            colIndPtr+=4;
-        }
+	    matValPtr+=4;
+	    colIndPtr+=4;
+	}
 
-        // Horizontal addition
-        if(k_iter){
-            // sum[0] += sum[1] ; sum[2] += sum[3]
-            vec_y = _mm256_hadd_pd(vec_y, vec_y);
-            // Cast avx_sum to 128 bit to obtain sum[0] and sum[1]
-            __m128d sum_lo = _mm256_castpd256_pd128(vec_y);
-            // Extract 128 bits to obtain sum[2] and sum[3]
-            __m128d sum_hi = _mm256_extractf128_pd(vec_y, 1);
-            // Add remaining two sums
-            __m128d sse_sum = _mm_add_pd(sum_lo, sum_hi);
-            // Store result
-            /*
-            __m128d in gcc is typedef as double
-            but in Windows, this is defined as a struct
-            */
-            #if !defined(__clang__) && (defined(_WIN32) || defined(_WIN64))
-	        result = sse_sum.m128d_f64[0];
-            #else
-                result = sse_sum[0];
-            #endif
-        }
+	// Horizontal addition
+	if(k_iter){
+	    // sum[0] += sum[1] ; sum[2] += sum[3]
+	    vec_y = _mm256_hadd_pd(vec_y, vec_y);
+	    // Cast avx_sum to 128 bit to obtain sum[0] and sum[1]
+	    __m128d sum_lo = _mm256_castpd256_pd128(vec_y);
+	    // Extract 128 bits to obtain sum[2] and sum[3]
+	    __m128d sum_hi = _mm256_extractf128_pd(vec_y, 1);
+	    // Add remaining two sums
+	    __m128d sse_sum = _mm_add_pd(sum_lo, sum_hi);
+	    // Store result
+	    /*
+	       __m128d in gcc is typedef as double
+	       but in Windows, this is defined as a struct
+	       */
+#if !defined(__clang__) && (defined(_WIN32) || defined(_WIN64))
+	    result = sse_sum.m128d_f64[0];
+#else
+	    result = sse_sum[0];
+#endif
+	}
 
-        //Remainder loop for nnz%4
-        for(j =  0 ; j < k_rem ; j++ )
-        {
-            result += *matValPtr++ * x[*colIndPtr++];
-        }
+	//Remainder loop for nnz%4
+	for(j =  0 ; j < k_rem ; j++ )
+	{
+	    result += *matValPtr++ * x[*colIndPtr++];
+	}
 
-        // Perform alpha * A * x
-        if(alpha != static_cast<double>(1))
-        {
-            result = alpha * result;
-        }
+	// Perform alpha * A * x
+	if(alpha != static_cast<double>(1))
+	{
+	    result = alpha * result;
+	}
 
-        // Perform (beta * y) + (alpha * A * x)
-        if(beta != static_cast<double>(0))
-        {
-            result += beta * y[i];
-        }
+	// Perform (beta * y) + (alpha * A * x)
+	if(beta != static_cast<double>(0))
+	{
+	    result += beta * y[i];
+	}
 
-        y[i] = result ;
+	y[i] = result ;
     }
 
     return aoclsparse_status_success;
