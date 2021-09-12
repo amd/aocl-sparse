@@ -675,7 +675,10 @@ aoclsparse_status aoclsparse_dbsrmv(aoclsparse_operation       trans,
  *  Currently, only \p trans == \ref aoclsparse_operation_none is supported.
  *
  *  \note
- *  The sparse CSR matrix has to be sorted.
+ *  The input matrix has to be sparse upper or lower triangular matrix
+ *  with unit or non-unit main diagonal. Matrix has to be sorted.
+ *  No diagonal element can be omitted from a sparse storage
+ *  if the solver is called with the non-unit indicator.
  *
  *  @param[in]
  *  trans       matrix operation type.

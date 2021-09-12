@@ -93,7 +93,11 @@ void testing_csrsv(const Arguments& arg)
 	    filename.c_str(),
 	    issymm,
 	    false);
-
+    if(mat == aoclsparse_matrix_random){
+       std::cerr << "WARNING : aoclsparse_csrsv should be tested only for standard sparse"
+            << " triangular matrices in mtx format " << std::endl;
+       exit(EXIT_FAILURE);
+    }
     // Allocate memory for vectors
     std::vector<T> hx(N);
     std::vector<T> hy(M);

@@ -66,11 +66,6 @@ aoclsparse_status aoclsparse_csr2ell_width(
     // Compute ELL non-zeros
     aoclsparse_int ell_nnz = *ell_width * m;
 
-    // Limit ELL size to 5 times CSR nnz
-    if(ell_nnz > ( 5 * nnz ))
-    {
-        return aoclsparse_status_internal_error;
-    }
     return aoclsparse_status_success;
 }
 
@@ -157,11 +152,7 @@ extern "C" aoclsparse_status aoclsparse_csr2dia_ndiag(
     }
     aoclsparse_int size = (m > n) ? m : n;
     aoclsparse_int nnz_dia = size * *dia_num_diag;
-    // Conversion fails if DIA nnz exceeds 5 times CSR nnz
-    if(nnz_dia > (5 * nnz))
-    {
-        return aoclsparse_status_internal_error;
-    }
+
     return aoclsparse_status_success;
 }
 

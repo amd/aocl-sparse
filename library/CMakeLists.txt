@@ -92,7 +92,7 @@ endif()
 set_target_properties(aoclsparse PROPERTIES SOVERSION ${aoclsparse_SOVERSION} )
 set_target_properties(aoclsparse PROPERTIES VERSION ${aoclsparse_SOVERSION})
 set_target_properties(aoclsparse PROPERTIES CXX_VISIBILITY_PRESET "hidden" VISIBILITY_INLINES_HIDDEN ON)
-set_target_properties(aoclsparse PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/staging")
+set_target_properties(aoclsparse PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/library")
 set_target_properties(aoclsparse PROPERTIES DEBUG_POSTFIX "-d")
 
 
