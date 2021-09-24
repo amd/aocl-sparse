@@ -259,7 +259,7 @@ aoclsparse_diag_type aoclsparse_get_mat_diag_type(const aoclsparse_mat_descr des
  *  @param[in]
  *  n           number of columns of the sparse CSR matrix.
  *  @param[in]
- *  nnz         number of non-zero entries of the sparse CSR matrix.
+ *  csr_nnz     number of non-zero entries of the sparse CSR matrix.
  *  @param[in]
  *  csr_row_ptr array of \p m+1 elements that point to the start
  *              of every row of the sparse CSR matrix.

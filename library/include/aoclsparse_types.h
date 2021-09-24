@@ -28,6 +28,12 @@
 #include <stddef.h>
 #include <stdint.h>
 
+/*! \ingroup types_module
+ *  \brief Macro for function attribute
+ *
+ *  \details
+ *  The macro specifies visibility attribute of public functions
+ */
 #if defined(_WIN32) || defined(_WIN64)
 // Windows specific attribute for exporting function to dll
 #define DLL_PUBLIC __declspec(dllexport)

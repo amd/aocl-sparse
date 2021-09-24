@@ -608,6 +608,8 @@ aoclsparse_status aoclsparse_dcsrsv(aoclsparse_operation       trans,
  *  descr       descriptor of the sparse CSR matrix \f$A\f$. Currently, only
  *              \ref aoclsparse_matrix_type_general is supported.
  *  @param[in]
+ *  order       aoclsparse_order_row/aoclsparse_order_column for dense matrix
+ *  @param[in]
  *  B           array of dimension \f$ldb \times n\f$ or
  *              \f$ldb \times k\f$ .
  *  @param[in]
