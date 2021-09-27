@@ -135,7 +135,7 @@ void testing_csrmm(const Arguments& arg)
     aoclsparse_index_base  base      = arg.baseA;
     aoclsparse_matrix_init mat       = arg.matrix;
     std::string           filename = arg.filename;
-    aoclsparse_order      order  = aoclsparse_order_column;
+    aoclsparse_order      order  = arg.order;
     bool issymm = false;
     double cpu_gbyte;
     double cpu_gflops;
