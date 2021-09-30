@@ -1,2 +1,0 @@
-openpyxl==3.0.5
-PyYAML==5.3.1
