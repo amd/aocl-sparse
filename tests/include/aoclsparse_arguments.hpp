@@ -60,7 +60,7 @@ struct Arguments
     aoclsparse_int timing;
     aoclsparse_int iters;
 
-    char filename[1024];
+    std::string filename;
     char function[64];
 
 private:

@@ -57,7 +57,6 @@ int main(int argc, char* argv[])
     arg.block_dim = 2; //default value
     arg.alpha = 1.0; //default value
     arg.beta = 0.0; //default value
-    std::string   mtxfile;
     char          precision = 'd';
     char          transA = 'N';
     int           baseA = 0;
@@ -118,7 +117,7 @@ int main(int argc, char* argv[])
     args.aoclsparse_get_cmdline_argument("sizek", arg.K);
     args.aoclsparse_get_cmdline_argument("sizennz", arg.nnz);
     args.aoclsparse_get_cmdline_argument("blockdim", arg.block_dim);
-    args.aoclsparse_get_cmdline_argument("mtx", mtxfile);
+    args.aoclsparse_get_cmdline_argument("mtx", arg.filename);
     args.aoclsparse_get_cmdline_argument("alpha", arg.alpha);
     args.aoclsparse_get_cmdline_argument("beta", arg.beta);
     args.aoclsparse_get_cmdline_argument("transposeA", transA);
@@ -151,9 +150,8 @@ int main(int argc, char* argv[])
     arg.uplo = (uplo == 'L') ? aoclsparse_fill_mode_lower : aoclsparse_fill_mode_upper;
     arg.order = (order == 1) ? aoclsparse_order_column : aoclsparse_order_row;
 
-    if(mtxfile != "")
+    if(arg.filename != "")
     {
-        strcpy(arg.filename, mtxfile.c_str());
         arg.matrix = aoclsparse_matrix_file_mtx;
     }
     else
