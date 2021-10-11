@@ -1,0 +1,20 @@
+/*
+* Copyright (C) 2020-2021 Advanced Micro Devices, Inc. All rights reserved.
+*
+*/
+This directory contains sample source file showing sample usage of AMD Sparse
+library functions.
+
+Steps to build and run the sample application:
+1. Set AOCLSPARSE_ROOT to library installed path
+   export AOCLSPARSE_ROOT=<path to AOCL install directory>
+   eg: export AOCLSPARSE_ROOT=$HOME/amd/aocl/3.0-5
+
+2. Add aoclsparse shared library path to env path variable $LD_LIBRARY_PATH
+   export LD_LIBRARY_PATH=$AOCLSPARSE_ROOT/lib:$LD_LIBRARY_PATH
+
+3. Compile the sample appplication by linking to the aoclsparse library
+   g++ -O3 -DNDEBUG sample_csrmv.cpp -I $AOCLSPARSE_ROOT/include/ -L$AOCLSPARSE_ROOT/lib/ -laoclsparse -o test
+
+4. Run the application
+   ./test
