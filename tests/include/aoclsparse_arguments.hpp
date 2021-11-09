@@ -49,6 +49,7 @@ struct Arguments
     double beta;
 
     aoclsparse_operation       transA;
+    aoclsparse_operation       transB;
     aoclsparse_index_base      baseA;
     aoclsparse_diag_type       diag;
     aoclsparse_fill_mode       uplo;

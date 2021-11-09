@@ -664,6 +664,121 @@ aoclsparse_status aoclsparse_dcsrmm(aoclsparse_operation     trans_A,
                                   aoclsparse_int             ldc);
 /**@}*/
 
+/*! \ingroup level3_module
+ *  \brief Sparse matrix Sparse matrix multiplication using CSR storage format
+ *
+ *  \details
+ *  \p aoclsparse_csr2m multiplies a sparse \f$m \times k\f$
+ *  matrix \f$A\f$, defined in CSR storage format, and the sparse \f$k \times n\f$
+ *  matrix \f$B\f$, defined in CSR storage format and stores the result to the sparse
+ *  \f$m \times n\f$ matrix \f$C\f$, such that
+ *  \f[
+ *    C :=  op(A) \cdot op(B),
+ *  \f]
+ *  with
+ *  \f[
+ *     op(A) = \left\{
+ *     \begin{array}{ll}
+ *         A,   & \text{if trans_A == aoclsparse_operation_none} \\
+ *         A^T, & \text{if trans_A == aoclsparse_operation_transpose} \\
+ *         A^H, & \text{if trans_A == aoclsparse_operation_conjugate_transpose}
+ *     \end{array}
+ *     \right.
+ *  \f]
+ *  and
+ *  \f[
+ *    op(B) = \left\{
+ *    \begin{array}{ll}
+ *        B,   & \text{if trans_B == aoclsparse_operation_none} \\
+ *        B^T, & \text{if trans_B == aoclsparse_operation_transpose} \\
+ *        B^H, & \text{if trans_B == aoclsparse_operation_conjugate_transpose}
+ *    \end{array}
+ *    \right.
+ *  \f]
+ *
+ *  @param[in]
+ *  trans_A     matrix \f$A\f$ operation type.
+ *  @param[in]
+ *  descrA      descriptor of the sparse CSR matrix \f$A\f$. Currently, only
+ *              \ref aoclsparse_matrix_type_general is supported.
+ *  @param[in]
+ *  csrA        sparse CSR matrix \f$A\f$ structure.
+ *  @param[in]
+ *  trans_B     matrix \f$B\f$ operation type.
+ *  @param[in]
+ *  descrB      descriptor of the sparse CSR matrix \f$B\f$. Currently, only
+ *              \ref aoclsparse_matrix_type_general is supported.
+ *  @param[in]
+ *  csrB        sparse CSR matrix \f$B\f$ structure.
+ *  @param[in]
+ *  request     Specifies full computation or two-stage algorithm
+ *  		\ref aoclsparse_stage_nnz_count , Only rowIndex array of the
+ *  		CSR matrix is computed internally. The output sparse CSR matrix
+ *  		can be extracted to measure the memory required for full operation.
+ *  		\ref aoclsparse_stage_finalize . Finalize computation of remaining
+ *  		output arrays ( column indices and values of output matrix entries) .
+ *  		Has to be called only after aoclsparse_dcsr2m call with
+ *  		aoclsparse_stage_nnz_count parameter.
+ *  		\ref aoclsparse_stage_full_computation . Perform the entire
+ *  		computation in a single step.
+ *
+ *  @param[out]
+ *  *csrC        Pointer to sparse CSR matrix \f$C\f$ structure.
+ *
+ *  \retval     aoclsparse_status_success the operation completed successfully.
+ *  \retval     aoclsparse_status_invalid_size input parameters contain an invalid value.
+ *  \retval     aoclsparse_status_invalid_pointer \p descrA,  \p csr,
+ *              \p descrB,  \p csrB, \p csrC is invalid.
+ *  \retval     aoclsparse_status_not_implemented
+ *              \ref aoclsparse_matrix_type != \ref aoclsparse_matrix_type_general.
+ *
+ *  \par Example
+ *  Shows multiplication of 2 sparse matrices to give a newly allocated sparse matrix
+ *  \code{.c}
+ *  	aoclsparse_mat_csr csrA;
+ *  	aoclsparse_create_mat_csr(csrA, base, M, K, nnz_A, csr_row_ptr_A.data(), csr_col_ind_A.data(), csr_val_A.data());
+ *  	aoclsparse_mat_csr csrB;
+ *  	aoclsparse_create_mat_csr(csrB, base, K, N, nnz_B, csr_row_ptr_B.data(), csr_col_ind_B.data(), csr_val_B.data());
+ *
+ * 	aoclsparse_mat_csr csrC = NULL;
+ * 	aoclsparse_int *csr_row_ptr_C = NULL;
+ * 	aoclsparse_int *csr_col_ind_C = NULL;
+ * 	double             *csr_val_C = NULL;
+ * 	aoclsparse_int C_M, C_N;
+ * 	request =  aoclsparse_stage_nnz_count;
+ * 	CHECK_AOCLSPARSE_ERROR(aoclsparse_dcsr2m(transA,
+ * 		descrA,
+ * 		csrA,
+ * 		transB,
+ * 		descrB,
+ * 		csrB,
+ * 		request,
+ * 		&csrC));
+ *
+ * 	request =  aoclsparse_stage_finalize;
+ * 	CHECK_AOCLSPARSE_ERROR(aoclsparse_dcsr2m(transA,
+ * 		descrA,
+ * 		csrA,
+ * 		transB,
+ * 		descrB,
+ * 		csrB,
+ * 		request,
+ * 		&csrC));
+ * 	aoclsparse_export_mat_csr(csrC, &base, &C_M, &C_N, &nnz_C, &csr_row_ptr_C, &csr_col_ind_C, (void **)&csr_val_C);
+ *
+ *  \endcode
+*/
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_dcsr2m(aoclsparse_operation     trans_A,
+	    const aoclsparse_mat_descr descrA,
+	    const aoclsparse_mat_csr   csrA,
+	    aoclsparse_operation       trans_B,
+	    const aoclsparse_mat_descr descrB,
+	    const aoclsparse_mat_csr   csrB,
+	    const aoclsparse_request   request,
+	    aoclsparse_mat_csr         *csrC);
+/**@}*/
 
 #ifdef __cplusplus
 }

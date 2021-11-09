@@ -281,6 +281,45 @@ aoclsparse_status aoclsparse_create_mat_csr(aoclsparse_mat_csr &csr,
                                          aoclsparse_int*         csr_row_ptr,
                                          aoclsparse_int*         csr_col_ind,
                                          void*                   csr_val);
+/*! \ingroup aux_module
+ *  \brief Export a \p CSR matrix structure
+ *
+ *  \details
+ *  \p aoclsparse_export_mat_csr exports a structure that holds the matrix in \p CSR
+ *  storage format.
+ *
+ *  @param[in]
+ *  csr the pointer to the CSR sparse matrix.
+ *  @param[out]
+ *  base    \ref aoclsparse_index_base_zero or \ref aoclsparse_index_base_one.
+ *  @param[out]
+ *  m           number of rows of the sparse CSR matrix.
+ *  @param[out]
+ *  n           number of columns of the sparse CSR matrix.
+ *  @param[out]
+ *  csr_nnz     number of non-zero entries of the sparse CSR matrix.
+ *  @param[out]
+ *  csr_row_ptr array of \p m+1 elements that point to the start
+ *              of every row of the sparse CSR matrix.
+ *  @param[out]
+ *  csr_col_ind array of \p nnz elements containing the column indices of the sparse
+ *              CSR matrix.
+ *  @param[out]
+ *  csr_val     array of \p nnz elements of the sparse CSR matrix.
+ *
+ *  \retval aoclsparse_status_success the operation completed successfully.
+ *  \retval aoclsparse_status_invalid_pointer \p csr pointer is invalid.
+ */
+DLL_PUBLIC
+aoclsparse_status aoclsparse_export_mat_csr(aoclsparse_mat_csr &csr,
+           aoclsparse_index_base   *base,
+           aoclsparse_int          *M,
+           aoclsparse_int          *N,
+           aoclsparse_int          *csr_nnz,
+           aoclsparse_int*         *csr_row_ptr,
+           aoclsparse_int*         *csr_col_ind,
+           void*                   *csr_val);
+
 
 /*! \ingroup aux_module
  *  \brief Destroy a \p CSR matrix structure

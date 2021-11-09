@@ -82,4 +82,13 @@ constexpr double csrmm_gbyte_count(aoclsparse_int M, aoclsparse_int nnz_A, aocls
            / 1e9;
 }
 
+template <typename T>
+constexpr double csr2m_gbyte_count(aoclsparse_int M, aoclsparse_int N, aoclsparse_int K, aoclsparse_int nnz_A, aoclsparse_int nnz_B, aoclsparse_int nnz_C)
+{
+    double size_A = ((M + 1.0) * sizeof(aoclsparse_int)) + (nnz_A * sizeof(aoclsparse_int)) + (nnz_A * sizeof(T)) ;
+    double size_B = ((K + 1.0) * sizeof(aoclsparse_int)) + (nnz_B * sizeof(aoclsparse_int)) + (nnz_B * sizeof(T)) ;
+    double size_C = ((M + 1.0) * sizeof(aoclsparse_int)) + (nnz_C * sizeof(aoclsparse_int)) + (nnz_C * sizeof(T)) ;
+    return (size_A + size_B + size_C ) / 1e9;
+}
+
 #endif // AOCLSPARSE_GBYTE_HPP

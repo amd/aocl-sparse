@@ -63,7 +63,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Build options
 option(BUILD_SHARED_LIBS "Build aocl-sparse as a shared library" ON)
-option(BUILD_CLIENTS_BENCHMARKS "Build benchmarks" OFF)
+option(BUILD_CLIENTS_BENCHMARKS "Build benchmarks (requires Boost) " OFF)
 OPTION(BUILD_ILP64 "ILP64 Support" OFF)
 
 # Dependencies

@@ -193,6 +193,21 @@ typedef enum aoclsparse_status_
     aoclsparse_status_invalid_value   = 5, /**< invalid value parameter. */
 } aoclsparse_status;
 
+
+/*! \ingroup types_module
+ *  \brief List of request stages for sparse matrix * sparse matrix.
+ *
+ *  \details
+ *  This is a list of the \ref aoclsparse_request types that are used by the
+ *  aoclsparse_csr2m funtion.
+ */
+typedef enum aoclsparse_request_
+{
+    aoclsparse_stage_nnz_count        = 0, /**< Only rowIndex array of the CSR matrix is computed internally. */
+    aoclsparse_stage_finalize         = 1, /**< Finalize computation. Has to be called only after csr2m call with aoclsparse_stage_nnz_count parameter. */
+    aoclsparse_stage_full_computation = 2, /**< Perform the entire computation in a single step. */
+} aoclsparse_request;
+
 #ifdef __cplusplus
 }
 #endif

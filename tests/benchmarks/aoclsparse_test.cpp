@@ -44,6 +44,7 @@
 
 // Level3
 #include "testing_csrmm.hpp"
+#include "testing_csr2m.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -59,6 +60,7 @@ int main(int argc, char* argv[])
     arg.beta = 0.0; //default value
     char          precision = 'd';
     char          transA = 'N';
+    char          transB = 'N';
     int           baseA = 0;
     char          diag = 'N';
     char          uplo = 'L';
@@ -121,6 +123,7 @@ int main(int argc, char* argv[])
     args.aoclsparse_get_cmdline_argument("alpha", arg.alpha);
     args.aoclsparse_get_cmdline_argument("beta", arg.beta);
     args.aoclsparse_get_cmdline_argument("transposeA", transA);
+    args.aoclsparse_get_cmdline_argument("transposeB", transB);
     args.aoclsparse_get_cmdline_argument("indexbaseA", baseA);
     args.aoclsparse_get_cmdline_argument("diag", diag);
     args.aoclsparse_get_cmdline_argument("uplo", uplo);
@@ -143,6 +146,15 @@ int main(int argc, char* argv[])
     else if(transA == 'T')
     {
         arg.transA = aoclsparse_operation_transpose;
+    }
+
+    if(transB == 'N')
+    {
+	arg.transB = aoclsparse_operation_none;
+    }
+    else if(transB == 'T')
+    {
+	arg.transB = aoclsparse_operation_transpose;
     }
 
     arg.baseA = (baseA == 0) ? aoclsparse_index_base_zero : aoclsparse_index_base_one;
@@ -214,6 +226,11 @@ int main(int argc, char* argv[])
              testing_csrmm<double>(arg);
          else if(precision == 's')
              testing_csrmm<float>(arg);
+    }
+     else if(strcmp(arg.function ,"csr2m") == 0)
+     {
+         if(precision == 'd')
+             testing_csr2m<double>(arg);
     }
     else
     {

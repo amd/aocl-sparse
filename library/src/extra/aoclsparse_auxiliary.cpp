@@ -253,6 +253,31 @@ aoclsparse_status aoclsparse_create_mat_csr(aoclsparse_mat_csr &csr,
     csr->csr_val = csr_val;
     return aoclsparse_status_success;
 }
+
+/********************************************************************************
+ * \brief aoclsparse_mat_csr is a structure holding the aoclsparse csr matrix.
+ * Use this routine to export the contents of this straucture
+ ********************************************************************************/
+aoclsparse_status aoclsparse_export_mat_csr(aoclsparse_mat_csr &csr,
+	aoclsparse_index_base   *base,
+	aoclsparse_int          *M,
+	aoclsparse_int          *N,
+	aoclsparse_int          *csr_nnz,
+	aoclsparse_int*         *csr_row_ptr,
+	aoclsparse_int*         *csr_col_ind,
+	void*                   *csr_val)
+{
+    *M = csr->m ;
+    *N = csr->n ;
+    *csr_nnz = csr->csr_nnz ;
+    *csr_row_ptr = csr->csr_row_ptr ;
+    *csr_col_ind = csr->csr_col_ind ;
+    *csr_val = csr->csr_val ;
+    *base = aoclsparse_index_base_zero;
+    return aoclsparse_status_success;
+}
+
+
 /********************************************************************************
  * \brief Destroy csr matrix.
  ********************************************************************************/
