@@ -293,9 +293,9 @@ aoclsparse_status aoclsparse_create_mat_csr(aoclsparse_mat_csr &csr,
  *  @param[out]
  *  base    \ref aoclsparse_index_base_zero or \ref aoclsparse_index_base_one.
  *  @param[out]
- *  m           number of rows of the sparse CSR matrix.
+ *  M           number of rows of the sparse CSR matrix.
  *  @param[out]
- *  n           number of columns of the sparse CSR matrix.
+ *  N           number of columns of the sparse CSR matrix.
  *  @param[out]
  *  csr_nnz     number of non-zero entries of the sparse CSR matrix.
  *  @param[out]

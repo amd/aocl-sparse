@@ -71,11 +71,11 @@ include(cmake/Dependencies.cmake)
 
 # Define a version for the aocl-sparse code.
 if( NOT DEFINED AOCLSPARSE_VERSION_MAJOR )
-	set( AOCLSPARSE_VERSION_MAJOR 3 )
+	set( AOCLSPARSE_VERSION_MAJOR 4 )
 endif( )
 
 if( NOT DEFINED AOCLSPARSE_VERSION_MINOR )
-	set( AOCLSPARSE_VERSION_MINOR 1 )
+	set( AOCLSPARSE_VERSION_MINOR 0 )
 endif( )
 
 if( NOT DEFINED AOCLSPARSE_VERSION_PATCH )
