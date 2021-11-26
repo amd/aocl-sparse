@@ -238,6 +238,10 @@ aoclsparse_status aoclsparse_dcsr2m(
 		aoclsparse_int *csr_col_ind_C = (aoclsparse_int *)malloc(nnz_C * sizeof(aoclsparse_int));
 		double *csr_val_C = (double *)malloc(nnz_C * sizeof(double));
 
+		/*Insufficient memory for output allocation */
+		if((csr_col_ind_C == NULL) || (csr_val_C == NULL))
+			return aoclsparse_status_internal_error;
+
 		aoclsparse_dcsr2m_finalize( m,
 			n,
 			csrA->csr_row_ptr,
@@ -272,6 +276,10 @@ aoclsparse_status aoclsparse_dcsr2m(
 
 		aoclsparse_int *csr_col_ind_C = (aoclsparse_int *)malloc(nnz_C * sizeof(aoclsparse_int));
 		double *csr_val_C = (double *)malloc(nnz_C * sizeof(double));
+
+		/*Insufficient memory for output allocation */
+		if((csr_col_ind_C == NULL) || (csr_val_C == NULL))
+			return aoclsparse_status_internal_error;
 
 		aoclsparse_dcsr2m_finalize( m,
 			n,
