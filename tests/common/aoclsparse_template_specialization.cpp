@@ -26,6 +26,50 @@
 #include <aoclsparse.h>
 
 template <>
+aoclsparse_status aoclsparse_csr2m<double>(
+        aoclsparse_operation       transA,
+        const aoclsparse_mat_descr descrA,
+        const aoclsparse_mat_csr   csrA,
+        aoclsparse_operation       transB,
+        const aoclsparse_mat_descr descrB,
+        const aoclsparse_mat_csr   csrB,
+        aoclsparse_request         request,
+        aoclsparse_mat_csr         *csrC)
+{
+    return aoclsparse_dcsr2m(
+            transA,
+            descrA,
+            csrA,
+            transB,
+            descrB,
+            csrB,
+            request,
+            csrC);
+}
+
+template <>
+aoclsparse_status aoclsparse_csr2m<float>(
+        aoclsparse_operation       transA,
+        const aoclsparse_mat_descr descrA,
+        const aoclsparse_mat_csr   csrA,
+        aoclsparse_operation       transB,
+        const aoclsparse_mat_descr descrB,
+        const aoclsparse_mat_csr   csrB,
+        aoclsparse_request         request,
+        aoclsparse_mat_csr         *csrC)
+{
+    return aoclsparse_scsr2m(
+            transA,
+            descrA,
+            csrA,
+            transB,
+            descrB,
+            csrB,
+            request,
+            csrC);
+}
+
+template <>
 aoclsparse_status aoclsparse_csrmm(
 	aoclsparse_operation       trans,
 	const float*               alpha,

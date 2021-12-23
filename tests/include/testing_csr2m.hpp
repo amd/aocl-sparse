@@ -54,10 +54,10 @@ void aoclsparse_order_column_index(aoclsparse_int         m,
 	T                      *csr_val)
 {
     std::vector<aoclsparse_int> col(nnz);
-    std::vector<double> val(nnz);
+    std::vector<T> val(nnz);
 
     memcpy(col.data(), csr_col_ind, sizeof(aoclsparse_int) * nnz);
-    memcpy(val.data(), csr_val, sizeof(double) * nnz);
+    memcpy(val.data(), csr_val, sizeof(T) * nnz);
     for(aoclsparse_int i = 0; i < m; ++i)
     {
 	aoclsparse_int row_begin = csr_row_ptr[i] ;
@@ -70,7 +70,7 @@ void aoclsparse_order_column_index(aoclsparse_int         m,
 	}
 
 	aoclsparse_int* col_entry = &col[row_begin];
-	double* val_entry = &val[row_begin];
+	T* val_entry = &val[row_begin];
 
 	std::sort(perm.begin(), perm.end(), [&](const aoclsparse_int& a, const aoclsparse_int& b) {
 		return col_entry[a] <= col_entry[b];
@@ -205,7 +205,7 @@ void testing_csr2m(const Arguments& arg)
     T             *csr_val_C = NULL;
     aoclsparse_int C_M, C_N;
 
-    using dMatrixType = uBLAS::compressed_matrix<double, uBLAS::row_major, 0, uBLAS::unbounded_array<aoclsparse_int> >;
+    using dMatrixType = uBLAS::compressed_matrix<T, uBLAS::row_major, 0, uBLAS::unbounded_array<aoclsparse_int> >;
 
     static dMatrixType ublasCsrA;
     static dMatrixType ublasCsrB;
@@ -217,18 +217,18 @@ void testing_csr2m(const Arguments& arg)
     ublasCsrA.complete_index1_data();
     ublasCsrB.complete_index1_data();
 
-    memcpy(ublasCsrA.value_data().begin(), csr_val_A.data(), nnz_A * sizeof(double));
+    memcpy(ublasCsrA.value_data().begin(), csr_val_A.data(), nnz_A * sizeof(T));
     memcpy(ublasCsrA.index1_data().begin(), csr_row_ptr_A.data(), (M + 1) * sizeof(aoclsparse_int));
     memcpy(ublasCsrA.index2_data().begin(), csr_col_ind_A.data(), nnz_A * sizeof(aoclsparse_int));
 
-    memcpy(ublasCsrB.value_data().begin(), csr_val_B.data(), nnz_B * sizeof(double));
+    memcpy(ublasCsrB.value_data().begin(), csr_val_B.data(), nnz_B * sizeof(T));
     memcpy(ublasCsrB.index1_data().begin(), csr_row_ptr_B.data(), (K + 1) * sizeof(aoclsparse_int));
     memcpy(ublasCsrB.index2_data().begin(), csr_col_ind_B.data(), nnz_B * sizeof(aoclsparse_int));
 
     if(arg.unit_check)
     {
 	request =  aoclsparse_stage_nnz_count;
-	CHECK_AOCLSPARSE_ERROR(aoclsparse_dcsr2m(transA,
+	CHECK_AOCLSPARSE_ERROR(aoclsparse_csr2m<T>(transA,
 		    descrA,
 		    csrA,
 		    transB,
@@ -238,7 +238,7 @@ void testing_csr2m(const Arguments& arg)
 		    &csrC));
 
 	request =  aoclsparse_stage_finalize;
-	CHECK_AOCLSPARSE_ERROR(aoclsparse_dcsr2m(transA,
+	CHECK_AOCLSPARSE_ERROR(aoclsparse_csr2m<T>(transA,
 		    descrA,
 		    csrA,
 		    transB,
@@ -270,7 +270,7 @@ void testing_csr2m(const Arguments& arg)
 	csrC = NULL;
 	request =  aoclsparse_stage_full_computation;
 	cpu_time_start = aoclsparse_clock();
-	CHECK_AOCLSPARSE_ERROR(aoclsparse_dcsr2m(transA,
+	CHECK_AOCLSPARSE_ERROR(aoclsparse_csr2m<T>(transA,
 		    descrA,
 		    csrA,
 		    transB,

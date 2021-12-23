@@ -38,6 +38,17 @@
  * ===========================================================================
  */
 template <typename T>
+aoclsparse_status aoclsparse_csr2m(
+		aoclsparse_operation       transA,
+		const aoclsparse_mat_descr descrA,
+		const aoclsparse_mat_csr   csrA,
+		aoclsparse_operation       transB,
+		const aoclsparse_mat_descr descrB,
+		const aoclsparse_mat_csr   csrB,
+		aoclsparse_request         request,
+		aoclsparse_mat_csr         *csrC);
+
+template <typename T>
 aoclsparse_status aoclsparse_csrmm(
 	aoclsparse_operation       trans,
 	const T*                   alpha,

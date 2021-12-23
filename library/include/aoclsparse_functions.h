@@ -666,7 +666,7 @@ aoclsparse_status aoclsparse_dcsrmm(aoclsparse_operation     trans_A,
 
 /*! \ingroup level3_module
  *  \brief Sparse matrix Sparse matrix multiplication using CSR storage format
- *
+ *  for single and double precision datatypes.
  *  \details
  *  \p aoclsparse_csr2m multiplies a sparse \f$m \times k\f$
  *  matrix \f$A\f$, defined in CSR storage format, and the sparse \f$k \times n\f$
@@ -771,6 +771,16 @@ aoclsparse_status aoclsparse_dcsrmm(aoclsparse_operation     trans_A,
 /**@{*/
 DLL_PUBLIC
 aoclsparse_status aoclsparse_dcsr2m(aoclsparse_operation     trans_A,
+	    const aoclsparse_mat_descr descrA,
+	    const aoclsparse_mat_csr   csrA,
+	    aoclsparse_operation       trans_B,
+	    const aoclsparse_mat_descr descrB,
+	    const aoclsparse_mat_csr   csrB,
+	    const aoclsparse_request   request,
+	    aoclsparse_mat_csr         *csrC);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_scsr2m(aoclsparse_operation     trans_A,
 	    const aoclsparse_mat_descr descrA,
 	    const aoclsparse_mat_csr   csrA,
 	    aoclsparse_operation       trans_B,

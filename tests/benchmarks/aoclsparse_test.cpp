@@ -231,6 +231,8 @@ int main(int argc, char* argv[])
      {
          if(precision == 'd')
              testing_csr2m<double>(arg);
+         else if(precision == 's')
+             testing_csr2m<float>(arg);
     }
     else
     {
