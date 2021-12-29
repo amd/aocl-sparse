@@ -24,6 +24,7 @@
 #include "aoclsparse.h"
 #include "aoclsparse_csrmv.hpp"
 
+extern aoclsparse_thread global_thread;
 /*
  *===========================================================================
  *   C wrapper
@@ -43,6 +44,13 @@ extern "C" aoclsparse_status aoclsparse_scsrmv(aoclsparse_operation       trans,
         float*                     y
         )
 {
+    // Read the environment variables to update global variable
+    // This function updates the num_threads only once.
+    aoclsparse_init_once();
+
+    aoclsparse_thread thread;
+    thread.num_threads = global_thread.num_threads;
+
     if(descr == nullptr)
     {
         return aoclsparse_status_invalid_pointer;
@@ -133,8 +141,9 @@ extern "C" aoclsparse_status aoclsparse_scsrmv(aoclsparse_operation       trans,
                 csr_col_ind,
                 csr_row_ptr,
                 x,
-                *beta,
-                y);
+		*beta,
+		y,
+		&thread);
     }
 }
 
@@ -152,6 +161,13 @@ extern "C" aoclsparse_status aoclsparse_dcsrmv(aoclsparse_operation       trans,
         double*                    y
         )
 {
+    // Read the environment variables to update global variable
+    // This function updates the num_threads only once.
+    aoclsparse_init_once();
+
+    aoclsparse_thread thread;
+    thread.num_threads = global_thread.num_threads;
+
     if(descr == nullptr)
     {
         return aoclsparse_status_invalid_pointer;
@@ -243,25 +259,27 @@ extern "C" aoclsparse_status aoclsparse_dcsrmv(aoclsparse_operation       trans,
         if(nnz <= (10 * m))
             return aoclsparse_csrmv_general(*alpha,
                     m,
-                    n,
-                    nnz,
-                    csr_val,
-                    csr_col_ind,
-                    csr_row_ptr,
-                    x,
-                    *beta,
-                    y);
-        else
-            return aoclsparse_csrmv_vectorized(*alpha,
-                    m,
-                    n,
-                    nnz,
-                    csr_val,
-                    csr_col_ind,
-                    csr_row_ptr,
-                    x,
-                    *beta,
-                    y);
+		    n,
+		    nnz,
+		    csr_val,
+		    csr_col_ind,
+		    csr_row_ptr,
+		    x,
+		    *beta,
+		    y,
+		    &thread);
+	else
+	    return aoclsparse_csrmv_vectorized(*alpha,
+		    m,
+		    n,
+		    nnz,
+		    csr_val,
+		    csr_col_ind,
+		    csr_row_ptr,
+		    x,
+		    *beta,
+		    y,
+		    &thread);
     }
 }
 

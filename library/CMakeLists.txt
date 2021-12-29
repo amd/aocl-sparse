@@ -60,10 +60,7 @@ add_library(aocl::aoclsparse ALIAS aoclsparse)
 
 # Target link libraries
 if(SUPPORT_OMP)
-target_link_libraries(aoclsparse PRIVATE ${OpenMP_CXX_FLAGS})
-endif()
-if(SUPPORT_MPI)
-  target_link_libraries(aoclsparse PUBLIC ${MPI_CXX_LIBRARIES})
+target_link_libraries(aoclsparse PRIVATE OpenMP::OpenMP_CXX)
 endif()
 
 # Target include directories
@@ -74,18 +71,9 @@ target_include_directories(aoclsparse
                                    $<INSTALL_INTERFACE:include>
 )
 
-# Target compile definitions
-if(SUPPORT_MPI)
-  target_compile_definitions(aoclsparse PRIVATE SUPPORT_MULTINODE)
-  target_compile_definitions(aoclsparse PUBLIC ${MPI_COMPILE_DEFINITIONS})
-endif()
-
 # Target compile options
 if(SUPPORT_OMP)
   target_compile_options(aoclsparse PUBLIC ${OpenMP_CXX_FLAGS})
-endif()
-if(SUPPORT_MPI)
-  target_compile_options(aoclsparse PUBLIC ${MPI_COMPILE_OPTIONS})
 endif()
 
 # Target properties
