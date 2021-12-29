@@ -25,12 +25,14 @@
 
 #include "aoclsparse.h"
 #include "aoclsparse_descr.h"
+#include "aoclsparse_pthread.h"
 #include <immintrin.h>
 
 #if defined(_WIN32) || defined(_WIN64)
 //Windows equivalent of gcc c99 type qualifier __restrict__
 #define __restrict__ __restrict
 #endif
+
 
 aoclsparse_status aoclsparse_csrmv_vectorized(
 	const float               alpha,
@@ -42,19 +44,23 @@ aoclsparse_status aoclsparse_csrmv_vectorized(
 	const aoclsparse_int* __restrict__     csr_row_ptr,
 	const float* __restrict__              x,
 	const float                            beta,
-	float* __restrict__                    y)
+	float* __restrict__                    y,
+	aoclsparse_thread                      *thread)
 {
     __m256 vec_vals , vec_x ,vec_y;
     const aoclsparse_int *colIndPtr;
     const float *matValPtr;
-    matValPtr = &csr_val[csr_row_ptr[0]];
-    colIndPtr = &csr_col_ind[csr_row_ptr[0]];
 
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(thread->num_threads)  private(colIndPtr, matValPtr, vec_vals , vec_x ,vec_y)
+#endif
     for(aoclsparse_int i = 0; i < m; i++)
     {
 	aoclsparse_int j;
 	float result = 0.0;
 	vec_y = _mm256_setzero_ps();
+	matValPtr = &csr_val[csr_row_ptr[i]];
+	colIndPtr = &csr_col_ind[csr_row_ptr[i]];
 	aoclsparse_int nnz = csr_row_ptr[i+1] - csr_row_ptr[i];
 	aoclsparse_int k_iter = nnz/8;
 	aoclsparse_int k_rem = nnz%8;
@@ -138,18 +144,22 @@ aoclsparse_status aoclsparse_csrmv_general(const T               alpha,
 	const aoclsparse_int* __restrict__     csr_row_ptr,
 	const T* __restrict__                  x,
 	const T                                beta,
-	T* __restrict__                        y)
+	T* __restrict__                        y,
+	aoclsparse_thread                      *thread)
 {
+
     const aoclsparse_int *colIndPtr;
     const T *matValPtr;
-    matValPtr = &csr_val[csr_row_ptr[0]];
-    colIndPtr = &csr_col_ind[csr_row_ptr[0]];
-
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(thread->num_threads) private(colIndPtr, matValPtr)
+#endif
     // Iterate over each row of the input matrix and
     // Perform matrix-vector product for each non-zero of the ith row
     for(aoclsparse_int i = 0; i < m; i++)
     {
 	T result = 0.0;
+	matValPtr = &csr_val[csr_row_ptr[i]];
+	colIndPtr = &csr_col_ind[csr_row_ptr[i]];
 	aoclsparse_int nnz = csr_row_ptr[i+1] - csr_row_ptr[i];
 
 	for(aoclsparse_int j =  0 ; j < nnz ; j++ )
@@ -233,18 +243,22 @@ aoclsparse_status aoclsparse_csrmv_vectorized(const double               alpha,
 	const aoclsparse_int* __restrict__     csr_row_ptr,
 	const double* __restrict__             x,
 	const double                           beta,
-	double* __restrict__                   y)
+	double* __restrict__                   y,
+	aoclsparse_thread                      *thread)
 {
     __m256d vec_vals , vec_x , vec_y;
     const aoclsparse_int *colIndPtr;
     const double *matValPtr;
-    matValPtr = &csr_val[csr_row_ptr[0]];
-    colIndPtr = &csr_col_ind[csr_row_ptr[0]];
 
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(thread->num_threads) private(colIndPtr, matValPtr, vec_vals , vec_x ,vec_y)
+#endif
     for(aoclsparse_int i = 0; i < m; i++)
     {
 	aoclsparse_int j;
 	double result = 0.0;
+	matValPtr = &csr_val[csr_row_ptr[i]];
+	colIndPtr = &csr_col_ind[csr_row_ptr[i]];
 	vec_y = _mm256_setzero_pd();
 	aoclsparse_int nnz = csr_row_ptr[i+1] - csr_row_ptr[i];
 	aoclsparse_int k_iter = nnz/4;

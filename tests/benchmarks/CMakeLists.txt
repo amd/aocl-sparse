@@ -27,7 +27,6 @@ set(Boost_ADDITIONAL_VERSIONS 1.65.1 1.65)
 set(Boost_USE_STATIC_LIBS OFF)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 
-find_package(Threads REQUIRED)
 find_package(Boost)
 
 if(NOT Boost_FOUND)

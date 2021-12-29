@@ -60,11 +60,11 @@ else
 fi
 
 # Generate logfile name
-logname=dcsrmv_$(date +'%Y%m%d%H%M%S').csv
+logname=mt_dcsrmv_$(date +'%Y%m%d%H%M%S').csv
 truncate -s 0 $logname
 
 # Run csrmv for all matrices in ./matrices/matrixlist
 while IFS= read -r filename; do
-    echo "numactl --physcpubind=4 $bench --function=csrmv --precision=d --alpha=1 --beta=0 --iters=100 --mtx=$filename --verify=1"
-    numactl --physcpubind=4 $bench --function=csrmv --precision=d --alpha=1 --beta=0 --iters=100 --mtx=$filename --verify=1 2>&1 | tee -a $logname
+    echo "AOCLSPARSE_NUM_THREADS=4 numactl --physcpubind=4,5,6,7 $bench --function=csrmv --precision=d --alpha=1 --beta=0 --iters=100 --mtx=$filename --verify=1"
+    AOCLSPARSE_NUM_THREADS=4 numactl --physcpubind=4,5,6,7 $bench --function=csrmv --precision=d --alpha=1 --beta=0 --iters=100 --mtx=$filename --verify=1 2>&1 | tee -a $logname
 done < ./matrices/matrixlist

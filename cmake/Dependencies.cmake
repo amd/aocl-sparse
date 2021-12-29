@@ -29,7 +29,6 @@ find_package(Git REQUIRED)
 # Find OpenMP package
 find_package(OpenMP)
 if (NOT OPENMP_FOUND)
-#message("-- OpenMP not found. Compiling WITHOUT OpenMP support.")
   message("-- OpenMP not found.")
 else()
   option(SUPPORT_OMP "Compile WITH OpenMP support." ON)
