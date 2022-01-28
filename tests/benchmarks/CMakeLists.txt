@@ -28,12 +28,12 @@ set(Boost_USE_STATIC_LIBS OFF)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 
 find_package(Threads REQUIRED)
-find_package(Boost COMPONENTS program_options filesystem regex system)
+find_package(Boost)
 
 if(NOT Boost_FOUND)
     message(STATUS "Dynamic boost libraries not found. Attempting to find static libraries...")
     set(Boost_USE_STATIC_LIBS ON)
-find_package(Boost COMPONENTS program_options filesystem regex system)
+find_package(Boost)
 
 if(NOT Boost_FOUND)
     message(FATAL_ERROR "boost is a required dependency and is not found; try adding boost path to CMAKE_PREFIX_PATH")
@@ -55,6 +55,7 @@ add_executable(aoclsparse-bench ${AOCLSPARSE_BENCHMARK_SOURCES} ${AOCLSPARSE_CLI
 target_include_directories(aoclsparse-bench
   PRIVATE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
+    ${Boost_INCLUDE_DIRS}
 )
 
 # OpenMP cmake fix for cmake <= 3.9
@@ -70,7 +71,7 @@ endif()
 if(NOT TARGET aoclsparse)
   target_link_libraries(aoclsparse-bench PRIVATE ${AOCLSPARSE_LIBRARIES})
 else()
-  target_link_libraries(aoclsparse-bench PRIVATE aocl::aoclsparse Boost::program_options )
+  target_link_libraries(aoclsparse-bench PRIVATE aocl::aoclsparse )
 endif()
 
 
