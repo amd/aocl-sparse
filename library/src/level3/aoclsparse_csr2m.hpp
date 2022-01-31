@@ -54,15 +54,48 @@ aoclsparse_status aoclsparse_csr2m_nnz_count(
 
         // Loop over columns of A
         for(aoclsparse_int j = csr_row_ptr_A[i]; j < csr_row_ptr_A[i + 1]; j++)
-        {
-            // Current column of A
-            aoclsparse_int col_A = csr_col_ind_A[j];
+	{
+	    // Current column of A
+	    aoclsparse_int col_A = csr_col_ind_A[j];
+	    aoclsparse_int nnz_row = csr_row_ptr_B[col_A + 1] - csr_row_ptr_B[col_A];
+	    aoclsparse_int k_iter = nnz_row/4;
+	    aoclsparse_int k_rem = nnz_row%4;
 
-            // Loop over columns of B in row j
-            for(aoclsparse_int k = csr_row_ptr_B[col_A]; k < csr_row_ptr_B[col_A + 1]; k++)
+	    // Loop over columns of B in row j in groups of 4
+            for(aoclsparse_int k = 0; k < k_iter*4; k+=4)
             {
                 // Current column of B
-                aoclsparse_int col_B = csr_col_ind_B[k];
+                aoclsparse_int col_B = csr_col_ind_B[csr_row_ptr_B[col_A] + k];
+
+                // Check if a new nnz is generated
+                if(nnz[col_B] != i)
+                {
+                    nnz[col_B] = i;
+                    num_nonzeros++;
+                }
+
+		// Current column of B
+                col_B = csr_col_ind_B[csr_row_ptr_B[col_A] + k + 1];
+
+                // Check if a new nnz is generated
+                if(nnz[col_B] != i)
+                {
+                    nnz[col_B] = i;
+                    num_nonzeros++;
+                }
+
+		// Current column of B
+                col_B = csr_col_ind_B[csr_row_ptr_B[col_A] + k + 2];
+
+                // Check if a new nnz is generated
+                if(nnz[col_B] != i)
+                {
+                    nnz[col_B] = i;
+                    num_nonzeros++;
+                }
+
+		// Current column of B
+                col_B = csr_col_ind_B[csr_row_ptr_B[col_A] + k + 3];
 
                 // Check if a new nnz is generated
                 if(nnz[col_B] != i)
@@ -71,6 +104,19 @@ aoclsparse_status aoclsparse_csr2m_nnz_count(
                     num_nonzeros++;
                 }
             }
+            // Loop over remaining columns of B in row j
+            for(aoclsparse_int k = 0; k < k_rem; k++)
+            {
+                // Current column of B
+                aoclsparse_int col_B = csr_col_ind_B[csr_row_ptr_B[col_A] + (k_iter * 4) + k];
+
+                // Check if a new nnz is generated
+                if(nnz[col_B] != i)
+                {
+                    nnz[col_B] = i;
+                    num_nonzeros++;
+                }
+	    }
         }
         csr_row_ptr_C[i + 1] = num_nonzeros;
     }
