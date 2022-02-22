@@ -65,13 +65,13 @@ void aoclsparse_create_csr(aoclsparse_mat_csr &csrA,
     // 	4  5  6
     aoclsparse_int row_ptr_A[] = {0, 2, 3, 6};
     aoclsparse_int col_ind_A[] = {0, 2, 2, 0, 1, 2};
-    double             val_A[] = {1 , 2 , 3, 4, 5, 6};;
+    float             val_A[] = {1 , 2 , 3, 4, 5, 6};;
     aoclsparse_int *csr_row_ptr_A = (aoclsparse_int *)malloc( (M + 1) * sizeof(aoclsparse_int) );
     aoclsparse_int *csr_col_ind_A = (aoclsparse_int *)malloc( NNZ_A * sizeof(aoclsparse_int) );
-    double             *csr_val_A = (double *)malloc( (NNZ_A) * sizeof(double) );
+    float             *csr_val_A = (float *)malloc( (NNZ_A) * sizeof(float) );
     memcpy( csr_row_ptr_A, row_ptr_A, (M + 1) * sizeof(aoclsparse_int));
     memcpy( csr_col_ind_A, col_ind_A,  NNZ_A  * sizeof(aoclsparse_int));
-    memcpy( csr_val_A, val_A,  NNZ_A  * sizeof(double));
+    memcpy( csr_val_A, val_A,  NNZ_A  * sizeof(float));
     aoclsparse_create_mat_csr(csrA, base, M, K, NNZ_A, csr_row_ptr_A, csr_col_ind_A, csr_val_A);
 
     // Initialise matrix B
@@ -80,13 +80,13 @@ void aoclsparse_create_csr(aoclsparse_mat_csr &csrA,
     // 	0  4  0
     aoclsparse_int row_ptr_B[K + 1] = {0, 2, 3, 4};
     aoclsparse_int col_ind_B[NNZ_B]= {0, 1, 2, 1};
-    double         val_B[NNZ_B] = {1 , 2 , 3, 4};
+    float         val_B[NNZ_B] = {1 , 2 , 3, 4};
     aoclsparse_int *csr_row_ptr_B = (aoclsparse_int *)malloc( (K + 1) * sizeof(aoclsparse_int) );
     aoclsparse_int *csr_col_ind_B = (aoclsparse_int *)malloc( NNZ_B * sizeof(aoclsparse_int) );
-    double             *csr_val_B = (double *)malloc( (NNZ_B) * sizeof(double) );
+    float             *csr_val_B = (float *)malloc( (NNZ_B) * sizeof(float) );
     memcpy( csr_row_ptr_B, row_ptr_B, (K + 1) * sizeof(aoclsparse_int));
     memcpy( csr_col_ind_B, col_ind_B,  NNZ_B  * sizeof(aoclsparse_int));
-    memcpy( csr_val_B, val_B,  NNZ_B  * sizeof(double));
+    memcpy( csr_val_B, val_B,  NNZ_B  * sizeof(float));
     aoclsparse_create_mat_csr(csrB, base, K, N, NNZ_B, csr_row_ptr_B, csr_col_ind_B, csr_val_B);
     return ;
 }
@@ -117,16 +117,16 @@ int main(int argc, char* argv[])
     aoclsparse_mat_csr csrC = NULL;
     aoclsparse_int *csr_row_ptr_C = NULL;
     aoclsparse_int *csr_col_ind_C = NULL;
-    double         *csr_val_C = NULL;
+    float         *csr_val_C = NULL;
     aoclsparse_int C_M, C_N;
 
 #ifdef TWO_STAGE_COMPUTATION
-    std::cout << "Invoking aoclsparse_dcsr2m with aoclsparse_stage_nnz_count..";
+    std::cout << "Invoking aoclsparse_scsr2m with aoclsparse_stage_nnz_count..";
     // aoclsparse_stage_nnz_count : Only rowIndex array of the CSR matrix
     // is computed internally. The output sparse CSR matrix can be
     // extracted to measure the memory required for full operation.
     request =  aoclsparse_stage_nnz_count;
-    status = aoclsparse_dcsr2m(transA,
+    status = aoclsparse_scsr2m(transA,
 	    descrA,
 	    csrA,
 	    transB,
@@ -138,7 +138,7 @@ int main(int argc, char* argv[])
 	std::cout << "DONE\n";
     else
     {
-	std::cout << "ERROR in aoclsparse_dcsr2m\n";
+	std::cout << "ERROR in aoclsparse_scsr2m\n";
 	exit(EXIT_FAILURE);
     }
 
@@ -154,13 +154,13 @@ int main(int argc, char* argv[])
     std::cout <<std::endl;
 #endif
 
-    std::cout << "Invoking aoclsparse_dcsr2m with aoclsparse_stage_finalize..";
+    std::cout << "Invoking aoclsparse_scsr2m with aoclsparse_stage_finalize..";
     // aoclsparse_stage_finalize : Finalize computation of remaining
     // output arrays ( column indices and values of output matrix entries) .
-    // Has to be called only after aoclsparse_dcsr2m call with
+    // Has to be called only after aoclsparse_scsr2m call with
     // aoclsparse_stage_nnz_count parameter.
     request =  aoclsparse_stage_finalize;
-    status = aoclsparse_dcsr2m(transA,
+    status = aoclsparse_scsr2m(transA,
 	    descrA,
 	    csrA,
 	    transB,
@@ -172,7 +172,7 @@ int main(int argc, char* argv[])
 	std::cout << "DONE\n";
     else
     {
-	std::cout << "ERROR in aoclsparse_dcsr2m\n";
+	std::cout << "ERROR in aoclsparse_scsr2m\n";
 	exit(EXIT_FAILURE);
     }
     aoclsparse_export_mat_csr(csrC, &base, &C_M, &C_N, &nnz_C, &csr_row_ptr_C, &csr_col_ind_C, (void **)&csr_val_C);
@@ -190,11 +190,11 @@ int main(int argc, char* argv[])
 #endif
 
 #else // SINGLE STAGE
-    std::cout << "Invoking aoclsparse_dcsr2m with aoclsparse_stage_full_computation..";
+    std::cout << "Invoking aoclsparse_scsr2m with aoclsparse_stage_full_computation..";
     // aoclsparse_stage_full_computation :  Whole computation is performed in
     // single step.
     request =  aoclsparse_stage_full_computation;
-    status = aoclsparse_dcsr2m(transA,
+    status = aoclsparse_scsr2m(transA,
 	    descrA,
 	    csrA,
 	    transB,
@@ -206,7 +206,7 @@ int main(int argc, char* argv[])
 	std::cout << "DONE\n";
     else
     {
-	std::cout << "ERROR in aoclsparse_dcsr2m\n";
+	std::cout << "ERROR in aoclsparse_scsr2m\n";
 	exit(EXIT_FAILURE);
     }
 
