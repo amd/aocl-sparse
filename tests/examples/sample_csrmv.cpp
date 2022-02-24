@@ -36,10 +36,7 @@ int main(int argc, char* argv[])
     double beta  = 0.0;
 
     // Print aoclsparse version
-    aoclsparse_int ver;
-    aoclsparse_get_version(&ver);
-    std::cout << "aocl-sparse version: " << ver / 100000 << "." << ver / 100 % 1000 << "."
-              << ver % 100 << std::endl;
+    std::cout << aoclsparse_get_version() << std::endl;
 
     // Create matrix descriptor
     aoclsparse_mat_descr descr;
