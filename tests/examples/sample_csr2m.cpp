@@ -101,11 +101,7 @@ int main(int argc, char* argv[])
     aoclsparse_operation transB = aoclsparse_operation_none;
 
     // Print aoclsparse version
-    aoclsparse_int ver;
-    aoclsparse_get_version(&ver);
-    std::cout << "aocl-sparse version: " << ver / 100000 << "." << ver / 100 % 1000 << "."
-	<< ver % 100 << std::endl;
-
+    std::cout << aoclsparse_get_version() << std::endl;
 
     // Initialise matrix descriptor and csr matrix structure of inputs A and B
     aoclsparse_mat_descr descrA;

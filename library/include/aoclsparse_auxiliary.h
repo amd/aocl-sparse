@@ -37,18 +37,14 @@ extern "C" {
  *
  *  \details
  *  \p aoclsparse_get_version gets the aoclsparse library version number.
- *  - patch = version % 100
- *  - minor = version / 100 % 1000
- *  - major = version / 100000
+ *    in the format "aocl-sparse <major>.<minor>.<patch>
  *
  *  @param[out]
- *  version the version number of the aoclsparse library.
+ *  version the version string of the aoclsparse library.
  *
- *  \retval aoclsparse_status_success the operation completed successfully.
- *  \retval aoclsparse_status_invalid_pointer \p version is invalid.
  */
 DLL_PUBLIC
-aoclsparse_status aoclsparse_get_version(aoclsparse_int* version);
+char* aoclsparse_get_version();
 
 /*! \ingroup aux_module
  *  \brief Create a matrix descriptor

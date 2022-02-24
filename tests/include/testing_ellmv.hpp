@@ -64,6 +64,10 @@ void testing_ellmv(const Arguments& arg)
     std::vector<T>             ell_val;
     aoclsparse_int              ell_width;
     aoclsparse_seedrand();
+#if 0
+    // Print aoclsparse version
+    std::cout << aoclsparse_get_version() << std::endl;
+#endif
 
     // Sample matrix
     aoclsparse_init_csr_matrix(csr_row_ptr,

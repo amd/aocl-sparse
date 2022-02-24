@@ -64,6 +64,10 @@ void testing_diamv(const Arguments& arg)
     std::vector<T>              dia_val;
     aoclsparse_int              dia_num_diag;
     aoclsparse_seedrand();
+#if 0
+    // Print aoclsparse version
+    std::cout << aoclsparse_get_version() << std::endl;
+#endif
 
     // Sample matrix
     aoclsparse_init_csr_matrix(csr_row_ptr,

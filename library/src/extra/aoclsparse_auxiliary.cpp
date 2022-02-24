@@ -24,28 +24,24 @@
 #include "aoclsparse_descr.h"
 #include "aoclsparse_mat_csr.h"
 #include "aoclsparse.h"
+#include <string>
+#include <cstring>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /********************************************************************************
-* \brief Get aoclsparse version
-* version % 100        = patch level
-* version / 100 % 1000 = minor version
-* version / 100000     = major version
-*******************************************************************************/
-aoclsparse_status aoclsparse_get_version(aoclsparse_int* version)
+ * \brief Get aoclsparse version
+ *******************************************************************************/
+char * aoclsparse_get_version()
 {
-    if (version == NULL)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
+    std::string ver = "aocl-sparse " + std::to_string(AOCLSPARSE_VERSION_MAJOR) + "."
+	+ std::to_string(AOCLSPARSE_VERSION_MINOR) + "."
+	+ std::to_string(AOCLSPARSE_VERSION_PATCH) ;
 
-    *version = AOCLSPARSE_VERSION_MAJOR * 100000 + AOCLSPARSE_VERSION_MINOR * 100
-               + AOCLSPARSE_VERSION_PATCH;
-
-    return aoclsparse_status_success;
+    char* version = strcpy(new char[ver.length() + 1], ver.c_str());
+    return version;
 }
 
 /********************************************************************************

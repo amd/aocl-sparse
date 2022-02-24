@@ -78,12 +78,7 @@ void testing_sycsrmv(const Arguments& arg)
     aoclsparse_seedrand();
 #if 0
     // Print aoclsparse version
-    int  ver;
-
-    aoclsparse_get_version(&ver);
-
-    std::cout << "aocl-sparse version: " << ver / 100000 << "." << ver / 100 % 1000 << "."
-	<< ver % 100 << std::endl;
+    std::cout << aoclsparse_get_version() << std::endl;
 #endif
     // Sample matrix
     aoclsparse_init_csr_matrix(hcsr_row_ptr,
