@@ -185,5 +185,130 @@ aoclsparse_status aoclsparse_ellmv_template(const double               alpha,
 
     return aoclsparse_status_success;
 }
+
+
+
+// ToDo: just an outline for now
+aoclsparse_status aoclsparse_elltmv_template(const float                alpha,
+                                   aoclsparse_int             m,
+                                   aoclsparse_int             n,
+                                   aoclsparse_int             nnz,
+                                   const float*              ell_val,
+                                   const aoclsparse_int*      ell_col_ind,
+                                   aoclsparse_int      ell_width,
+                                   const float*             x,
+                                   const float              beta,
+                                   float*                   y )
+{
+    aoclsparse_int k = ell_width;
+    double rd;
+    for (aoclsparse_int j = 0; j < m; j++) {
+          rd = 0.0;
+          for (aoclsparse_int i = 0; i < k; i++) {
+                  rd += *(ell_val + i*m + j) * (x[*(ell_col_ind + i*m +j)]);
+          }
+
+
+          if(alpha != static_cast<double>(1))
+          {
+                  rd = alpha * rd;
+          }
+
+          if(beta != static_cast<double>(0))
+          {
+              rd += beta * y[j];
+          }
+          y[j] = rd ;
+    }
+
+    return aoclsparse_status_success;
+
+
+}
+
+aoclsparse_status aoclsparse_elltmv_template(const double               alpha,
+                                   aoclsparse_int             m,
+                                   aoclsparse_int             n,
+                                   aoclsparse_int             nnz,
+                                   const double*              ell_val,
+                                   const aoclsparse_int*      ell_col_ind,
+                                   aoclsparse_int      ell_width,
+                                   const double*             x,
+                                   const double              beta,
+                                   double*                   y )
+{
+        __m256d res, vvals, vx, vy, va, vb,  res1, vvals1, vx1, vy1;
+//      __m256d res, vvals, vx, vy, va, vb;
+
+        va = _mm256_set1_pd(alpha);
+        vb = _mm256_set1_pd(beta);
+        res = _mm256_setzero_pd();
+        res1 = _mm256_setzero_pd();
+        aoclsparse_int k = ell_width;
+        int blk = 4;
+        for (aoclsparse_int j = 0; j < m/blk ; j++) {
+                res = _mm256_setzero_pd();
+                res1 = _mm256_setzero_pd();
+                aoclsparse_int joff = j*blk;
+                for (aoclsparse_int i = 0; i < k; i++) {
+
+                        aoclsparse_int off = joff + i*m;
+
+                        vvals = _mm256_loadu_pd((double const *)(ell_val + off));
+                        vx = _mm256_set_pd(x[*(ell_col_ind +off+3)], x[*(ell_col_ind + off +2)],
+                                        x[*(ell_col_ind + off+1)],x[*(ell_col_ind + off)]);
+                        res = _mm256_fmadd_pd(vvals, vx, res);
+/*
+                        vvals1 = _mm256_loadu_pd((double const *)(ell_val + i*m + (j*blk)+4));
+                        vx1 = _mm256_set_pd(x[*(ell_col_ind + i*m + j*blk+7)], x[*(ell_col_ind + i*m + j*blk+6)],
+                                        x[*(ell_col_ind + i*m + j*blk+5)],x[*(ell_col_ind + i*m + j*blk+4)]);
+                        res1 = _mm256_fmadd_pd(vvals1, vx1, res1);
+*/
+                }
+
+
+                        if(alpha != static_cast<double>(1))
+                        {
+                                res = _mm256_mul_pd(va,res);
+                        //      res1 = _mm256_mul_pd(va,res1);
+                        }
+
+                        if(beta != static_cast<double>(0))
+                        {
+                                vy = _mm256_loadu_pd(&y[j*blk]);
+                                res = _mm256_fmadd_pd(vb,vy,res);
+/*
+                                vy1 = _mm256_loadu_pd(&y[j*blk+4]);
+                                res1 = _mm256_fmadd_pd(vb,vy1,res1);
+*/
+
+                        }
+                        _mm256_storeu_pd(&y[joff], res);
+//                      _mm256_storeu_pd(&y[j*blk+4], res1);
+          }
+          double rd;
+          for (aoclsparse_int j = (m/blk)*blk ; j < m; j++) {
+                rd = 0.0;
+                for (aoclsparse_int i = 0; i < k; i++) {
+                        rd += *(ell_val + i*m + j) * (x[*(ell_col_ind + i*m +j)]);
+                }
+
+                        if(alpha != static_cast<double>(1))
+                        {
+                                rd = alpha * rd;
+                        }
+
+                        if(beta != static_cast<double>(0))
+                        {
+                            rd += beta * y[j];
+                        }
+
+                        y[j] = rd ;
+         }
+
+    return aoclsparse_status_success;
+}
+
+
 #endif // AOCLSPARSE_ELLMV_HPP
 

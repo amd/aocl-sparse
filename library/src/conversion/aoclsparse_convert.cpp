@@ -105,6 +105,45 @@ extern "C" aoclsparse_status aoclsparse_dcsr2ell(
             ell_width);
 }
 
+
+extern "C" aoclsparse_status aoclsparse_scsr2ellt(
+        aoclsparse_int       m,
+        const aoclsparse_int *csr_row_ptr,
+        const aoclsparse_int *csr_col_ind,
+        const float          *csr_val,
+        aoclsparse_int       *ell_col_ind,
+        float                *ell_val,
+        aoclsparse_int       ell_width)
+{
+    return aoclsparse_csr2ellt_template(m,
+            csr_row_ptr,
+            csr_col_ind,
+            csr_val,
+            ell_col_ind,
+            ell_val,
+            ell_width);
+}
+
+extern "C" aoclsparse_status aoclsparse_dcsr2ellt(
+        aoclsparse_int       m,
+        const aoclsparse_int *csr_row_ptr,
+        const aoclsparse_int *csr_col_ind,
+        const double         *csr_val,
+        aoclsparse_int       *ell_col_ind,
+        double               *ell_val,
+        aoclsparse_int       ell_width)
+{
+    return aoclsparse_csr2ellt_template(m,
+            csr_row_ptr,
+            csr_col_ind,
+            csr_val,
+            ell_col_ind,
+            ell_val,
+            ell_width);
+}
+
+
+
 extern "C" aoclsparse_status aoclsparse_csr2dia_ndiag(
         aoclsparse_int       m,
         aoclsparse_int       n,
