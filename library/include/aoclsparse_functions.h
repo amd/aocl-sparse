@@ -277,6 +277,36 @@ aoclsparse_status aoclsparse_dellmv(aoclsparse_operation       trans,
 /**@}*/
 
 
+DLL_PUBLIC
+aoclsparse_status aoclsparse_selltmv(aoclsparse_operation       trans,
+                                   const float*              alpha,
+                                   aoclsparse_int             m,
+                                   aoclsparse_int             n,
+                                   aoclsparse_int             nnz,
+                                   const float*              ell_val,
+                                   const aoclsparse_int*      ell_col_ind,
+                                   aoclsparse_int      ell_width,
+                                   const aoclsparse_mat_descr descr,
+                                   const float*             x,
+                                   const float*            beta,
+                                   float*                   y );
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_delltmv(aoclsparse_operation       trans,
+                                   const double*              alpha,
+                                   aoclsparse_int             m,
+                                   aoclsparse_int             n,
+                                   aoclsparse_int             nnz,
+                                   const double*              ell_val,
+                                   const aoclsparse_int*      ell_col_ind,
+                                   aoclsparse_int      ell_width,
+                                   const aoclsparse_mat_descr descr,
+                                   const double*             x,
+                                   const double*            beta,
+                                   double*                   y );
+
+
+
 /*! \ingroup level2_module
  *  \brief Single & Double precision sparse matrix vector multiplication using DIA storage format
  *

@@ -120,6 +120,29 @@ aoclsparse_status aoclsparse_dcsr2ell(
                 aoclsparse_int       ell_width);
 /**@}*/
 
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_scsr2ellt(
+                aoclsparse_int       m,
+                const aoclsparse_int *csr_row_ptr,
+                const aoclsparse_int *csr_col_ind,
+                const float          *csr_val,
+                aoclsparse_int       *ell_col_ind,
+                float                *ell_val,
+                aoclsparse_int       ell_width);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_dcsr2ellt(
+                aoclsparse_int       m,
+                const aoclsparse_int *csr_row_ptr,
+                const aoclsparse_int *csr_col_ind,
+                const double         *csr_val,
+                aoclsparse_int       *ell_col_ind,
+                double               *ell_val,
+                aoclsparse_int       ell_width);
+
+
+
 /*! \ingroup conv_module
 *  \brief Convert a sparse CSR matrix into a sparse DIA matrix
 *
