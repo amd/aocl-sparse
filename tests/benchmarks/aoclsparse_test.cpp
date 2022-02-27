@@ -39,6 +39,7 @@
 #include "testing_sycsrmv.hpp"
 #include "testing_bsrmv.hpp"
 #include "testing_ellmv.hpp"
+#include "testing_elltmv.hpp"
 #include "testing_csrmv.hpp"
 #include "testing_csrsv.hpp"
 
@@ -101,7 +102,7 @@ int main(int argc, char* argv[])
                 "\n\t"
                 "--blockdim=<block dimension> \t block dimension for bsrmv "
                 "\n\t"
-                "--function=<function to test> \t SPARSE function to test. Options:  Level2: csrmv ellmv diamv csrsymv bsrmv csrsv Level3: csrmm (default: csrmv)"
+                "--function=<function to test> \t SPARSE function to test. Options:  Level2: csrmv ellmv elltmv diamv csrsymv bsrmv csrsv Level3: csrmm (default: csrmv)"
                 "\n\t"
                 "--precision=<s/d> \t Options: s,d (default: d)"
                 "\n\t"
@@ -192,6 +193,13 @@ int main(int argc, char* argv[])
         else if(precision == 'd')
             testing_ellmv<double>(arg);
     }
+    else if(strcmp(arg.function ,"elltmv") == 0)
+    {
+        if(precision == 's')
+            testing_elltmv<float>(arg);
+        else if(precision == 'd')
+            testing_elltmv<double>(arg);
+    }    
     else if(strcmp(arg.function ,"diamv") == 0)
     {
         if(precision == 's')
