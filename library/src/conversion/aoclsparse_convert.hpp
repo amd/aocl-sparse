@@ -26,7 +26,6 @@
 #include "aoclsparse.h"
 #include "aoclsparse_descr.h"
 #include <vector>
-#include <cstring>  // required for memcpy
 
 #if defined(_WIN32) || defined(_WIN64)
 //Windows equivalent of gcc c99 type qualifier __restrict__
@@ -103,7 +102,6 @@ aoclsparse_status aoclsparse_csr2ell_template(
     return aoclsparse_status_success;
 }
 
-//ToDo: Need to optimize this code
 template <typename T>
 aoclsparse_status aoclsparse_csr2ellt_template(
         aoclsparse_int       m,
@@ -148,45 +146,27 @@ aoclsparse_status aoclsparse_csr2ellt_template(
         return aoclsparse_status_invalid_pointer;
     }
 
+    // Transpose the ell matrix as we populate
     for(aoclsparse_int i = 0; i < m; ++i)
     {
-        aoclsparse_int p = i * ell_width ;
         aoclsparse_int row_begin = csr_row_ptr[i] ;
         aoclsparse_int row_end   = csr_row_ptr[i + 1] ;
-        aoclsparse_int row_nnz   = row_end - row_begin;
-
+        aoclsparse_int k = 0;
         // Fill ELL matrix with data
-        for(aoclsparse_int j = row_begin; j < row_end; ++j,++p)
+        for(aoclsparse_int j = row_begin; j < row_end; ++j, ++k)
         {
-            ell_col_ind[p] = csr_col_ind[j] ;
-            ell_val[p]     = csr_val[j];
+            ell_col_ind[k*m + i] = csr_col_ind[j] ;
+            ell_val[k*m + i]     = csr_val[j];
         }
 
         // Add padding to ELL structures
-        for(aoclsparse_int j = row_nnz; j < ell_width; ++j, ++p)
+        for(; k < ell_width; ++k)
         {
-            ell_col_ind[p] = csr_col_ind[row_end-1]; //0; // Manu -1;
-            ell_val[p]     = static_cast<T>(0);
+            ell_col_ind[k*m + i] = csr_col_ind[row_end-1]; //0; // Manu -1;
+            ell_val[k*m + i]     = static_cast<T>(0);
 
         }
     }
-    // transponse the ell_val matrix to enable efficient vectorization
-    // ToDo: transpose while filling in the ell related matrices (above) 
-    std::vector<T> td (m*ell_width);
-    std::vector<aoclsparse_int> tcid (m*ell_width);
-    T *dptr = td.data();
-    aoclsparse_int *cidptr = tcid.data();
-    double d1=0.0, d2 = 0.0;
-    aoclsparse_int i1=0,i2=0;
-    for (aoclsparse_int i = 0; i < m; ++i) {
-      for (aoclsparse_int j = 0; j < ell_width; ++j) {
-         *(dptr + j*m + i) = *(ell_val + i*ell_width + j);
-         *(cidptr + j*m + i) = *(ell_col_ind + i*ell_width + j);
-      }
-    }
-    memcpy(ell_val, dptr, m*ell_width*sizeof(double));
-    memcpy(ell_col_ind, cidptr, m*ell_width*sizeof(aoclsparse_int));
-
 
     return aoclsparse_status_success;
 }
