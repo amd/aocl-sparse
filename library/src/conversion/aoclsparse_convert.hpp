@@ -171,7 +171,112 @@ aoclsparse_status aoclsparse_csr2ellt_template(
     return aoclsparse_status_success;
 }
 
+template <typename T>
+aoclsparse_status aoclsparse_csr2ellthybrid_template(
+        aoclsparse_int       m,
+	aoclsparse_int       *ell_m,
+        const aoclsparse_int *csr_row_ptr,
+        const aoclsparse_int *csr_col_ind,
+        const T              *csr_val,
+	aoclsparse_int       *row_idx_map,         // mapping of the overall row indices after hybrid ell conversion
+	aoclsparse_int       *csr_row_idx_map,     // mapping of rows that need to be accessed in the csr format 
+        aoclsparse_int       *ell_col_ind,
+        T                    *ell_val,
+        aoclsparse_int       ell_width)
+{
+    // Check sizes
+    if((m < 0) || (ell_width < 0))
+    {
+        return aoclsparse_status_invalid_size;
+    }
 
+    // Quick return if possible
+    if((m == 0) || (ell_width == 0))
+    {
+        return aoclsparse_status_success;
+    }
+
+    // Check pointer arguments
+    if(csr_val == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    else if(csr_row_ptr == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    else if(csr_col_ind == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    else if(ell_val == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    else if(ell_col_ind == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+
+    // Find the number of rows that will be in the ell format
+    aoclsparse_int m_ell = 0;
+    for (aoclsparse_int k = 0; k < m; ++k) {
+        if ((csr_row_ptr[k + 1] - csr_row_ptr[k]) <= ell_width)
+		m_ell++;
+    }
+    *ell_m = m_ell;
+    // Transpose the ell matrix as we populate
+    aoclsparse_int t_csr_ridx = 0;
+    aoclsparse_int t_ridx = 0;
+    for(aoclsparse_int i = 0; i < m; ++i)
+    {
+        aoclsparse_int row_begin = csr_row_ptr[i] ;
+        aoclsparse_int row_end   = csr_row_ptr[i + 1] ;
+        aoclsparse_int k = 0;
+	aoclsparse_int flag = 0;
+
+	// split rows based on the "computed" ell_width
+	if ((row_end - row_begin) > ell_width) {
+	   // populate the csr_row_idx_map
+	   csr_row_idx_map[t_csr_ridx++] = i;
+//	   continue;
+           flag = 1;
+	}
+
+	// testing
+	//row_idx_map[t_ridx] = i;
+
+        // Fill ELL matrix with data
+	// For testing
+	m_ell = m;
+	if (flag) {
+	    for(aoclsparse_int j = 0; j < m; ++j) {
+		ell_col_ind[k*m_ell + t_ridx] = csr_col_ind[row_end-1] ;
+	        ell_val[k*m_ell + t_ridx]     = static_cast<T>(0);
+	    }
+	} else {
+            for(aoclsparse_int j = row_begin; j < row_end; ++j, ++k)
+            {
+                   ell_col_ind[k*m_ell + t_ridx] = csr_col_ind[j] ;
+                   ell_val[k*m_ell + t_ridx]     = csr_val[j];
+            }
+    
+            // Add padding to ELL structures
+            for(; k < ell_width; ++k)
+            {
+                ell_col_ind[k*m_ell + t_ridx] = csr_col_ind[row_end-1]; //0; // Manu -1;
+                ell_val[k*m_ell + t_ridx]     = static_cast<T>(0);
+            }
+	}
+        t_ridx++;
+    }
+    /* testing
+    for (aoclsparse_int k = 0; k < t_csr_ridx; ++k) {
+	row_idx_map[t_ridx++] = csr_row_idx_map[k];
+    }
+    */
+    return aoclsparse_status_success;
+}
 
 template <typename T>
 aoclsparse_status aoclsparse_csr2dia_template(

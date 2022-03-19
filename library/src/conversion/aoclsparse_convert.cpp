@@ -69,6 +69,52 @@ aoclsparse_status aoclsparse_csr2ell_width(
     return aoclsparse_status_success;
 }
 
+aoclsparse_status aoclsparse_csr2ellthyb_width(
+        aoclsparse_int       m,
+        aoclsparse_int       nnz,
+        const aoclsparse_int *csr_row_ptr,
+	aoclsparse_int       *ell_m,
+        aoclsparse_int       *ell_width)
+{
+    // Check sizes
+    if(m < 0)
+    {
+        return aoclsparse_status_invalid_size;
+    }
+
+    // Check ell_width pointer
+    if(ell_width == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    // Check pointer arguments
+    if(csr_row_ptr == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    // Determine ELL width
+    *ell_width = 0;
+
+    for(aoclsparse_int i = 0; i < m; ++i)
+    {
+        aoclsparse_int row_nnz = csr_row_ptr[i + 1] - csr_row_ptr[i];
+//	if (row_nnz <= (nnz/m)*1.35)
+	if (row_nnz <= ceil(float(nnz)/m))
+           *ell_width = std::max(row_nnz, *ell_width);
+    }
+    
+    *ell_m = 0;
+    for(aoclsparse_int i = 0; i < m; ++i)
+    {
+        aoclsparse_int row_nnz = csr_row_ptr[i + 1] - csr_row_ptr[i];
+        if (row_nnz <= *ell_width)
+           (*ell_m)++;
+    }
+
+    return aoclsparse_status_success;
+}
+
+
 extern "C" aoclsparse_status aoclsparse_scsr2ell(
         aoclsparse_int       m,
         const aoclsparse_int *csr_row_ptr,
@@ -142,7 +188,53 @@ extern "C" aoclsparse_status aoclsparse_dcsr2ellt(
             ell_width);
 }
 
+extern "C" aoclsparse_status aoclsparse_scsr2ellthyb(
+        aoclsparse_int       m,
+	aoclsparse_int       *ell_m,
+        const aoclsparse_int *csr_row_ptr,
+        const aoclsparse_int *csr_col_ind,
+        const float          *csr_val,
+        aoclsparse_int       *row_idx_map,
+        aoclsparse_int       *csr_row_idx_map,
+        aoclsparse_int       *ell_col_ind,
+        float                *ell_val,
+        aoclsparse_int       ell_width)
+{
+    return aoclsparse_csr2ellthybrid_template(m,
+            ell_m,
+            csr_row_ptr,
+            csr_col_ind,
+            csr_val,
+            row_idx_map,
+	    csr_row_idx_map, 
+            ell_col_ind,
+            ell_val,
+            ell_width);
+}
 
+extern "C" aoclsparse_status aoclsparse_dcsr2ellthyb(
+        aoclsparse_int       m,
+	aoclsparse_int       *ell_m,
+        const aoclsparse_int *csr_row_ptr,
+        const aoclsparse_int *csr_col_ind,
+        const double         *csr_val,
+        aoclsparse_int       *row_idx_map,
+        aoclsparse_int       *csr_row_idx_map,	
+        aoclsparse_int       *ell_col_ind,
+        double               *ell_val,
+        aoclsparse_int       ell_width)
+{
+    return aoclsparse_csr2ellthybrid_template(m,
+	    ell_m,
+            csr_row_ptr,
+            csr_col_ind,
+            csr_val,
+            row_idx_map,
+            csr_row_idx_map,	    
+            ell_col_ind,
+            ell_val,
+            ell_width);
+}
 
 extern "C" aoclsparse_status aoclsparse_csr2dia_ndiag(
         aoclsparse_int       m,

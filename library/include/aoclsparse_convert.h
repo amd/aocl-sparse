@@ -63,6 +63,16 @@ aoclsparse_status aoclsparse_csr2ell_width(
                 const aoclsparse_int *csr_row_ptr,
                 aoclsparse_int       *ell_width);
 
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_csr2ellthyb_width(
+                aoclsparse_int       m,
+                aoclsparse_int       nnz,
+                const aoclsparse_int *csr_row_ptr,
+		 aoclsparse_int       *ell_m,
+                aoclsparse_int       *ell_width);
+
+
 /*! \ingroup conv_module
 *  \brief Convert a sparse CSR matrix into a sparse ELLPACK matrix
 *
@@ -141,7 +151,31 @@ aoclsparse_status aoclsparse_dcsr2ellt(
                 double               *ell_val,
                 aoclsparse_int       ell_width);
 
+DLL_PUBLIC
+aoclsparse_status aoclsparse_scsr2ellthyb(
+                aoclsparse_int       m,
+		 aoclsparse_int       *ell_m,
+                const aoclsparse_int *csr_row_ptr,
+                const aoclsparse_int *csr_col_ind,
+                const float          *csr_val,
+                aoclsparse_int       *row_idx_map,
+                aoclsparse_int       *csr_row_idx_map,
+                aoclsparse_int       *ell_col_ind,
+                float                *ell_val,
+                aoclsparse_int       ell_width);
 
+DLL_PUBLIC
+aoclsparse_status aoclsparse_dcsr2ellthyb(
+                aoclsparse_int       m,
+		 aoclsparse_int       *ell_m,
+                const aoclsparse_int *csr_row_ptr,
+                const aoclsparse_int *csr_col_ind,
+                const double         *csr_val,
+                aoclsparse_int       *row_idx_map,
+                aoclsparse_int       *csr_row_idx_map,
+                aoclsparse_int       *ell_col_ind,
+                double               *ell_val,
+                aoclsparse_int       ell_width);
 
 /*! \ingroup conv_module
 *  \brief Convert a sparse CSR matrix into a sparse DIA matrix
