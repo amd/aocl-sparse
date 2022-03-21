@@ -48,43 +48,37 @@ aoclsparse_status aoclsparse_csrmv_vectorized(
 	aoclsparse_thread                      *thread)
 {
     __m256 vec_vals , vec_x ,vec_y;
-    const aoclsparse_int *colIndPtr;
-    const float *matValPtr;
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(thread->num_threads)  private(colIndPtr, matValPtr, vec_vals , vec_x ,vec_y)
+#pragma omp parallel for num_threads(thread->num_threads)  private(vec_vals , vec_x ,vec_y)
 #endif
     for(aoclsparse_int i = 0; i < m; i++)
     {
 	aoclsparse_int j;
 	float result = 0.0;
 	vec_y = _mm256_setzero_ps();
-	matValPtr = &csr_val[csr_row_ptr[i]];
-	colIndPtr = &csr_col_ind[csr_row_ptr[i]];
 	aoclsparse_int nnz = csr_row_ptr[i+1] - csr_row_ptr[i];
 	aoclsparse_int k_iter = nnz/8;
 	aoclsparse_int k_rem = nnz%8;
 
 	//Loop in multiples of 8
-	for(j =  0 ; j < k_iter ; j++ )
+	for(j =  csr_row_ptr[i] ; j < csr_row_ptr[i + 1] - k_rem ; j+=8 )
 	{
 	    //(csr_val[j] csr_val[j+1] csr_val[j+2] csr_val[j+3] csr_val[j+4] csr_val[j+5] csr_val[j+6] csr_val[j+7]
-	    vec_vals = _mm256_loadu_ps(matValPtr);
+	    vec_vals = _mm256_loadu_ps(&csr_val[j]);
 
 	    //Gather the xvector values from the column indices
-	    vec_x  = _mm256_set_ps(x[*(colIndPtr+7)],
-		    x[*(colIndPtr+6)],
-		    x[*(colIndPtr+5)],
-		    x[*(colIndPtr+4)],
-		    x[*(colIndPtr+3)],
-		    x[*(colIndPtr+2)],
-		    x[*(colIndPtr+1)],
-		    x[*(colIndPtr)]);
+	    vec_x  = _mm256_set_ps(x[csr_col_ind[j+7]],
+		    x[csr_col_ind[j+6]],
+		    x[csr_col_ind[j+5]],
+		    x[csr_col_ind[j+4]],
+		    x[csr_col_ind[j+3]],
+		    x[csr_col_ind[j+2]],
+		    x[csr_col_ind[j+1]],
+		    x[csr_col_ind[j]]);
 
 	    vec_y = _mm256_fmadd_ps(vec_vals, vec_x , vec_y);
 
-	    matValPtr += 8;
-	    colIndPtr += 8;
 	}
 
 	// Horizontal addition of vec_y
@@ -111,9 +105,9 @@ aoclsparse_status aoclsparse_csrmv_vectorized(
 	}
 
 	//Remainder loop
-	for(j =  0 ; j < k_rem ; j++ )
+	for(j =  csr_row_ptr[i + 1] - k_rem ; j < csr_row_ptr[i + 1] ; j++ )
 	{
-	    result += *matValPtr++ * x[*colIndPtr++];
+	    result += csr_val[j] * x[csr_col_ind[j]];
 	}
 
 	// Perform alpha * A * x
@@ -148,23 +142,18 @@ aoclsparse_status aoclsparse_csrmv_general(const T               alpha,
 	aoclsparse_thread                      *thread)
 {
 
-    const aoclsparse_int *colIndPtr;
-    const T *matValPtr;
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(thread->num_threads) private(colIndPtr, matValPtr)
+#pragma omp parallel for num_threads(thread->num_threads)
 #endif
     // Iterate over each row of the input matrix and
     // Perform matrix-vector product for each non-zero of the ith row
     for(aoclsparse_int i = 0; i < m; i++)
     {
 	T result = 0.0;
-	matValPtr = &csr_val[csr_row_ptr[i]];
-	colIndPtr = &csr_col_ind[csr_row_ptr[i]];
-	aoclsparse_int nnz = csr_row_ptr[i+1] - csr_row_ptr[i];
 
-	for(aoclsparse_int j =  0 ; j < nnz ; j++ )
+	for(aoclsparse_int j =  csr_row_ptr[i] ; j < csr_row_ptr[i + 1] ; j++ )
 	{
-	    result += (*matValPtr++) * x[*colIndPtr++];
+	    result += csr_val[j] * x[csr_col_ind[j]];
 	}
 
 	// Perform alpha * A * x
@@ -247,39 +236,32 @@ aoclsparse_status aoclsparse_csrmv_vectorized(const double               alpha,
 	aoclsparse_thread                      *thread)
 {
     __m256d vec_vals , vec_x , vec_y;
-    const aoclsparse_int *colIndPtr;
-    const double *matValPtr;
-
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(thread->num_threads) private(colIndPtr, matValPtr, vec_vals , vec_x ,vec_y)
+#pragma omp parallel for num_threads(thread->num_threads) private(vec_vals , vec_x ,vec_y)
 #endif
     for(aoclsparse_int i = 0; i < m; i++)
     {
 	aoclsparse_int j;
 	double result = 0.0;
-	matValPtr = &csr_val[csr_row_ptr[i]];
-	colIndPtr = &csr_col_ind[csr_row_ptr[i]];
 	vec_y = _mm256_setzero_pd();
 	aoclsparse_int nnz = csr_row_ptr[i+1] - csr_row_ptr[i];
 	aoclsparse_int k_iter = nnz/4;
 	aoclsparse_int k_rem = nnz%4;
 
 	//Loop in multiples of 4 non-zeroes
-	for(j =  0 ; j < k_iter ; j++ )
+	for(j =  csr_row_ptr[i] ; j < csr_row_ptr[i + 1] - k_rem ; j+=4 )
 	{
 	    //(csr_val[j] (csr_val[j+1] (csr_val[j+2] (csr_val[j+3]
-	    vec_vals = _mm256_loadu_pd((double const *)matValPtr);
+	    vec_vals = _mm256_loadu_pd((double const *)&csr_val[j]);
 
 	    //Gather the x vector elements from the column indices
-	    vec_x  = _mm256_set_pd(x[*(colIndPtr+3)],
-		    x[*(colIndPtr+2)],
-		    x[*(colIndPtr+1)],
-		    x[*(colIndPtr)]);
+	    vec_x  = _mm256_set_pd(x[csr_col_ind[j + 3]],
+		    x[csr_col_ind[j + 2]],
+		    x[csr_col_ind[j + 1]],
+		    x[csr_col_ind[j]]);
 
 	    vec_y = _mm256_fmadd_pd(vec_vals, vec_x, vec_y);
 
-	    matValPtr+=4;
-	    colIndPtr+=4;
 	}
 
 	// Horizontal addition
@@ -305,9 +287,9 @@ aoclsparse_status aoclsparse_csrmv_vectorized(const double               alpha,
 	}
 
 	//Remainder loop for nnz%4
-	for(j =  0 ; j < k_rem ; j++ )
+	for(j =  csr_row_ptr[i + 1] - k_rem ; j < csr_row_ptr[i + 1] ; j++ )
 	{
-	    result += *matValPtr++ * x[*colIndPtr++];
+	    result += csr_val[j] * x[csr_col_ind[j]];
 	}
 
 	// Perform alpha * A * x
