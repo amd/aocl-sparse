@@ -858,6 +858,27 @@ aoclsparse_status aoclsparse_scsr2m(aoclsparse_operation     trans_A,
 	    aoclsparse_mat_csr         *csrC);
 /**@}*/
 
+DLL_PUBLIC
+aoclsparse_status aoclsparse_dmv(aoclsparse_operation     op,
+                                  const double*              alpha,
+                                  aoclsparse_matrix A,
+                                  const aoclsparse_mat_descr descr,
+                                  const double*             x,
+                                  const double*             beta,
+                                  double*                   y);
+/**@}*/
+
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_smv(aoclsparse_operation     op,
+                                  const float*              alpha,
+                                  aoclsparse_matrix A,
+                                  const aoclsparse_mat_descr descr,
+                                  const float*             x,
+                                  const float*             beta,
+                                  float*                   y);
+/**@}*/
+
 #ifdef __cplusplus
 }
 #endif

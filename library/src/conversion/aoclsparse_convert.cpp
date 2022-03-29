@@ -95,13 +95,26 @@ aoclsparse_status aoclsparse_csr2ellthyb_width(
     // Determine ELL width
     *ell_width = 0;
 
+    aoclsparse_int mx_nnz_lt_nnza = 0, mn_nnz_gt_nnza = nnz, cmn = 0, cmx = 0, nnza = nnz/m;
     for(aoclsparse_int i = 0; i < m; ++i)
     {
-        aoclsparse_int row_nnz = csr_row_ptr[i + 1] - csr_row_ptr[i];
-//	if (row_nnz <= (nnz/m)*1.35)
-	if (row_nnz <= ceil(float(nnz)/m))
-           *ell_width = std::max(row_nnz, *ell_width);
+        aoclsparse_int nnzi = csr_row_ptr[i + 1] - csr_row_ptr[i];
+        if ((nnzi > mx_nnz_lt_nnza) && (nnzi <= nnza)) {
+            mx_nnz_lt_nnza = nnzi;
+        }
+        if ((nnzi < mn_nnz_gt_nnza) && (nnzi > nnza)) {
+            mn_nnz_gt_nnza = nnzi;
+        }
+
+        if ((nnzi <= nnza))
+            cmx++;
+        else
+            cmn++;
     }
+    if (cmx >= cmn)
+       *ell_width = mx_nnz_lt_nnza;
+    else
+       *ell_width = mn_nnz_gt_nnza;
     
     *ell_m = 0;
     for(aoclsparse_int i = 0; i < m; ++i)
@@ -561,3 +574,81 @@ extern "C" aoclsparse_status aoclsparse_dcsr2dense(
 	    order);
 }
 
+aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
+{
+    // Validations
+
+    // check if already optimized
+    if (A->optimized) {
+        return aoclsparse_status_success;
+    } 
+
+    // Check sizes
+    if((A->m < 0) || (A->n < 0) ||  (A->nnz < 0))
+    {
+        return aoclsparse_status_invalid_size;
+    }
+
+    // Check CSR matrix is populated, it not return an error. ToDo: need to handle CSC / COO cases later
+    if((A->csr_mat.csr_row_ptr == nullptr) || (A->csr_mat.csr_col_ptr == nullptr) || (A->csr_mat.csr_val == nullptr))
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+
+
+    // very basic analyses
+    if (A->nnz/A->m >= 10) {
+        A->mat_type = aoclsparse_csr_mat;   // CSR 
+    } else {
+        A->mat_type = aoclsparse_ellt_csr_hyb_mat;   // ELL-CSR-HYB 
+    }
+
+    
+    if (A->mat_type == aoclsparse_ellt_csr_hyb_mat) {
+
+        aoclsparse_int *ell_col_ind; 
+        double *ell_dval;
+        float *ell_sval;
+        aoclsparse_int *csr_row_idx_map;
+        aoclsparse_int *row_idx_map;
+        aoclsparse_int              ell_width;
+        aoclsparse_int              ell_m;
+
+        // get the ell_width
+        aoclsparse_csr2ellthyb_width(A->m, A->nnz, A->csr_mat.csr_row_ptr, &ell_m, &ell_width);
+
+        ell_col_ind = (aoclsparse_int *) malloc(sizeof(aoclsparse_int)*ell_width * A->m);
+
+        if (A->val_type == aoclsparse_dmat) {
+            ell_dval = (double *) malloc(sizeof(double)*ell_width * A->m);
+        } else if (A->val_type == aoclsparse_smat) {
+            ell_sval = (float *) malloc(sizeof(float)*ell_width * A->m);
+        }
+        csr_row_idx_map = (aoclsparse_int*) malloc(sizeof(aoclsparse_int)*(A->m - ell_m));
+
+        // convert to hybrid ELLT-CSR format
+        if (A->val_type == aoclsparse_dmat) {
+            aoclsparse_dcsr2ellthyb(A->m, &ell_m, A->csr_mat.csr_row_ptr, A->csr_mat.csr_col_ptr, 
+            (double *)A->csr_mat.csr_val, row_idx_map, csr_row_idx_map, ell_col_ind, ell_dval, ell_width);
+            A->ell_csr_hyb_mat.ell_val = (double*)ell_dval;
+        } else if (A->val_type == aoclsparse_smat) {
+            aoclsparse_scsr2ellthyb(A->m, &ell_m, A->csr_mat.csr_row_ptr, A->csr_mat.csr_col_ptr, 
+            (float *) A->csr_mat.csr_val, row_idx_map, csr_row_idx_map, ell_col_ind, ell_sval, ell_width);
+            A->ell_csr_hyb_mat.ell_val = (float*)ell_sval;
+        }
+
+        // set appropriate members of "A"
+        A->ell_csr_hyb_mat.ell_width = ell_width;
+        A->ell_csr_hyb_mat.ell_m = ell_m;
+        A->ell_csr_hyb_mat.ell_col_ind = ell_col_ind;
+        A->ell_csr_hyb_mat.csr_row_id_map = csr_row_idx_map;
+        A->ell_csr_hyb_mat.csr_col_ptr = A->csr_mat.csr_col_ptr;
+        A->ell_csr_hyb_mat.csr_val = A->csr_mat.csr_val;
+
+    }
+    
+
+    A->optimized = true;
+
+    return aoclsparse_status_success;
+}

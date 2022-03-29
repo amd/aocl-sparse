@@ -385,6 +385,45 @@ aoclsparse_status aoclsparse_ellthybmv(
 
 }
 
+template <>
+aoclsparse_status aoclsparse_mv(
+		aoclsparse_operation       op,
+        const float*               alpha,
+        aoclsparse_matrix       A,
+        const aoclsparse_mat_descr descr,
+        const float*               x,
+        const float*               beta,
+        float*                     y)
+{
+    return aoclsparse_smv(op,
+            alpha,
+	        A,
+            descr,
+            x,
+            beta,
+            y);
+
+}
+
+template <>
+aoclsparse_status aoclsparse_mv(
+		aoclsparse_operation       op,	
+        const double*               alpha,
+        aoclsparse_matrix       A,
+        const aoclsparse_mat_descr descr,
+        const double*               x,
+        const double*               beta,
+        double*                     y)
+{
+    return aoclsparse_dmv(op,
+            alpha,
+			A,
+            descr,
+            x,
+            beta,
+            y);
+
+}
 
 template <>
 aoclsparse_status aoclsparse_diamv(

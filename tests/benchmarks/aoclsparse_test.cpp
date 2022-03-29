@@ -41,6 +41,7 @@
 #include "testing_ellmv.hpp"
 #include "testing_elltmv.hpp"
 #include "testing_ellthybmv.hpp"
+#include "testing_optmv.hpp"
 #include "testing_csrmv.hpp"
 #include "testing_csrsv.hpp"
 
@@ -207,6 +208,13 @@ int main(int argc, char* argv[])
             testing_ellthybmv<float>(arg);
         else if(precision == 'd')
             testing_ellthybmv<double>(arg);
+    }        
+    else if(strcmp(arg.function ,"optmv") == 0)
+    {
+        if(precision == 's')
+            testing_optmv<float>(arg);
+        else if(precision == 'd')
+            testing_optmv<double>(arg);
     }        
     else if(strcmp(arg.function ,"diamv") == 0)
     {

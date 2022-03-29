@@ -82,6 +82,12 @@ typedef struct _aoclsparse_mat_descr* aoclsparse_mat_descr;
  */
 typedef struct _aoclsparse_mat_csr* aoclsparse_mat_csr;
 
+
+typedef struct _aoclsparse_csr* aoclsparse_csr;
+typedef struct _aoclsparse_ell* aoclsparse_ell;
+typedef struct _aoclsparse_ell_csr_hyb* aoclsparse_ell_csr_hyb;
+typedef struct _aoclsparse_matrix* aoclsparse_matrix;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -129,6 +135,26 @@ typedef enum aoclsparse_matrix_type_
     aoclsparse_matrix_type_hermitian  = 2, /**< hermitian matrix type. */
     aoclsparse_matrix_type_triangular = 3 /**< triangular matrix type. */
 } aoclsparse_matrix_type;
+
+
+typedef enum aoclsparse_matrix_data_type_
+{
+    aoclsparse_dmat    = 0, /**< double precision data. */
+    aoclsparse_smat  = 1, /**< single precision data. */
+    aoclsparse_cmat  = 2, /**< single precision complex data. */
+    aoclsparse_zmat = 3 /**< double precision complex data. */
+} aoclsparse_matrix_data_type;
+
+
+typedef enum aoclsparse_matrix_format_type_
+{
+    aoclsparse_csr_mat    = 0, /**< CSR format. */
+    aoclsparse_ell_mat  = 1, /**< ELLPACK format. */
+    aoclsparse_ellt_mat  = 2, /**< ELLPACK format stored as transpose format. */
+    aoclsparse_ellt_csr_hyb_mat = 3, /**< ELLPACK transpose + CSR hybrid format. */
+    aoclsparse_ell_csr_hyb_mat = 4, /**< ELLPACK + CSR hybrid format. */
+    aoclsparse_dia_mat = 5 /**< diag format. */
+} aoclsparse_matrix_format_type;
 
 /*! \ingroup types_module
  *  \brief Indicates if the diagonal entries are unity.
