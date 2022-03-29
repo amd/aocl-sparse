@@ -25,6 +25,7 @@
 
 #include "aoclsparse.h"
 #include "aoclsparse_descr.h"
+#include "aoclsparse_mat_structures.h"
 #include <vector>
 
 #if defined(_WIN32) || defined(_WIN64)
@@ -162,7 +163,8 @@ aoclsparse_status aoclsparse_csr2ellt_template(
         // Add padding to ELL structures
         for(; k < ell_width; ++k)
         {
-            ell_col_ind[k*m + i] = csr_col_ind[row_end-1]; //0; // Manu -1;
+	     // padding the col_ind with the value of last col ind for reuse 
+            ell_col_ind[k*m + i] = csr_col_ind[row_end-1]; 
             ell_val[k*m + i]     = static_cast<T>(0);
 
         }
@@ -264,7 +266,8 @@ aoclsparse_status aoclsparse_csr2ellthybrid_template(
             // Add padding to ELL structures
             for(; k < ell_width; ++k)
             {
-                ell_col_ind[k*m_ell + t_ridx] = csr_col_ind[row_end-1]; //0; // Manu -1;
+		// padding the col_ind with the value of last col ind for reuse
+                ell_col_ind[k*m_ell + t_ridx] = csr_col_ind[row_end-1]; 
                 ell_val[k*m_ell + t_ridx]     = static_cast<T>(0);
             }
 	}

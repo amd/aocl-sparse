@@ -72,6 +72,8 @@ aoclsparse_status aoclsparse_csr2ellthyb_width(
 		 aoclsparse_int       *ell_m,
                 aoclsparse_int       *ell_width);
 
+DLL_PUBLIC
+aoclsparse_status aoclsparse_optimize(aoclsparse_matrix mat);
 
 /*! \ingroup conv_module
 *  \brief Convert a sparse CSR matrix into a sparse ELLPACK matrix

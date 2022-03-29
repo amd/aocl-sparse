@@ -24,6 +24,7 @@
 #include "aoclsparse_descr.h"
 #include "aoclsparse_mat_csr.h"
 #include "aoclsparse.h"
+#include "aoclsparse_mat_structures.h"
 #include <string>
 #include <cstring>
 
@@ -249,6 +250,72 @@ aoclsparse_status aoclsparse_create_mat_csr(aoclsparse_mat_csr &csr,
     csr->csr_val = csr_val;
     return aoclsparse_status_success;
 }
+
+/********************************************************************************
+ * \brief aoclsparse_create_csr sets the sparse matrix in the csr format.
+ ********************************************************************************/
+aoclsparse_status aoclsparse_create_dcsr(aoclsparse_matrix &mat,
+                    aoclsparse_index_base   base,
+                    aoclsparse_int          M,
+                    aoclsparse_int          N,
+                    aoclsparse_int          csr_nnz,
+                    aoclsparse_int*         csr_row_ptr,
+                    aoclsparse_int*         csr_col_ptr,
+                    void*                   csr_val)
+{
+    mat = new _aoclsparse_matrix;
+    mat->m = M;
+    mat->n = N;
+    mat->nnz = csr_nnz;
+    mat->base = base;
+    mat->optimized = false;
+    mat->val_type = aoclsparse_dmat;
+    mat->csr_mat.csr_row_ptr = csr_row_ptr;
+    mat->csr_mat.csr_col_ptr = csr_col_ptr;
+    mat->csr_mat.csr_val = csr_val;
+    return aoclsparse_status_success;
+}
+
+
+/********************************************************************************
+ * \brief aoclsparse_create_ell sets the sparse matrix in the ell format.
+ * This function can be called after the matrix "mat" is initialized.
+ ********************************************************************************/
+aoclsparse_status aoclsparse_create_ell(aoclsparse_matrix mat,
+		            aoclsparse_int          ell_width,
+                    aoclsparse_int*         ell_col_ind,
+                    void*                   ell_val)
+{
+    mat->ell_mat.ell_width = ell_width;
+    mat->ell_mat.ell_col_ind = ell_col_ind;
+    mat->ell_mat.ell_val = ell_val;
+    return aoclsparse_status_success;
+}
+
+
+/********************************************************************************
+ * \brief aoclsparse_create_ell_csr_hyb sets the sparse matrix in the hybrid format.
+ * This function can be called after the matrix "mat" is initialized (which also
+ * initializes the csr format by default)
+ ********************************************************************************/
+aoclsparse_status aoclsparse_create_ell_csr_hyb(aoclsparse_matrix mat,
+                    aoclsparse_int          ell_width,
+                    aoclsparse_int          ell_m,
+                    aoclsparse_int*         ell_col_ind,
+                    aoclsparse_int*         csr_row_id_map,
+                    void*                   ell_val)
+{
+    mat->ell_csr_hyb_mat.ell_width = ell_width;
+    mat->ell_csr_hyb_mat.ell_m = ell_m;
+    mat->ell_csr_hyb_mat.ell_col_ind = ell_col_ind;
+    mat->ell_csr_hyb_mat.ell_val = ell_val;
+    mat->ell_csr_hyb_mat.csr_row_id_map = csr_row_id_map;
+    mat->ell_csr_hyb_mat.csr_col_ptr = mat->csr_mat.csr_col_ptr;
+    mat->ell_csr_hyb_mat.csr_val = mat->csr_mat.csr_val;
+
+    return aoclsparse_status_success;
+}
+
 
 /********************************************************************************
  * \brief aoclsparse_mat_csr is a structure holding the aoclsparse csr matrix.

@@ -131,7 +131,18 @@ aoclsparse_status aoclsparse_ellthybmv(
         const aoclsparse_mat_descr descr,
         const T*                   x,
         const T*                   beta,
+        T*                         y);		
+
+template <typename T>
+aoclsparse_status aoclsparse_mv(
+		aoclsparse_operation       trans,
+        const T*                   alpha,
+        aoclsparse_matrix       A,
+        const aoclsparse_mat_descr descr,
+        const T*                   x,
+        const T*                   beta,
         T*                         y);
+  
 
 template <typename T>
 aoclsparse_status aoclsparse_diamv(
