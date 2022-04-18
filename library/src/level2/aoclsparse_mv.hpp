@@ -30,6 +30,95 @@
 
 #include<iostream>
 
+aoclsparse_status aoclsparse_dcsr_mat_br4(aoclsparse_operation     op,
+                                   const double              alpha,
+                                   aoclsparse_matrix       A,
+                                   const aoclsparse_mat_descr descr,
+                                   const double*             x,
+                                   const double            beta,
+                                   double*                   y )
+{
+        aoclsparse_int i, j, k, tc = 0;
+        __m256d res, vvals, vx, vy, va, vb;
+        va = _mm256_set1_pd(alpha);
+        vb = _mm256_set1_pd(beta);
+        res = _mm256_setzero_pd();
+
+        aoclsparse_int *tcptr = (aoclsparse_int *) A->csr_mat_br4.csr_col_ptr;
+        aoclsparse_int *rptr = (aoclsparse_int *) A->csr_mat_br4.csr_row_ptr;
+        aoclsparse_int *cptr;
+        double *tvptr = (double *) A->csr_mat_br4.csr_val;
+        double *vptr;
+        aoclsparse_int blk = 4;
+        for(i = 0; i < (A->m)/blk; i++)
+        {
+            aoclsparse_int r = rptr[i*blk];
+            vptr = (double *)(tvptr + r);
+            cptr = tcptr + r;
+
+            res = _mm256_setzero_pd();
+           // aoclsparse_int nnz = rptr[i*blk];
+            aoclsparse_int nnz = rptr[i*blk + 1] - r;
+            for(j = 0; j < nnz; ++j)
+            {
+                aoclsparse_int off = j*blk;
+                vvals = _mm256_loadu_pd((double const *)(vptr + off));
+
+                vx = _mm256_set_pd(x[*(cptr+off+3)], x[*(cptr + off +2)],
+                                        x[*(cptr + off +1)], x[*(cptr+off)]);
+
+                res = _mm256_fmadd_pd(vvals, vx, res);
+            }
+            /*
+            tc += blk*nnz;
+            vptr += blk*nnz;
+            cptr += blk*nnz;
+            */
+
+            if(alpha != static_cast<double>(1))
+            {
+                res = _mm256_mul_pd(va,res);
+            }
+
+            if(beta != static_cast<double>(0))
+            {
+                vy = _mm256_loadu_pd(&y[i*blk]);
+                res = _mm256_fmadd_pd(vb,vy,res);
+            }
+            _mm256_storeu_pd(&y[i*blk], res);
+        }
+
+        for (k = ((A->m)/blk)*blk; k < A->m; ++k) {
+            double result = 0;
+            /*
+            aoclsparse_int nnz = A->csr_mat_br4.csr_row_ptr[k];
+            for(j = 0; j < nnz; ++j)
+            {
+                result += ((double *)A->csr_mat_br4.csr_val)[tc] * x[A->csr_mat_br4.csr_col_ptr[tc]];
+                tc++;;
+            }
+            */
+            for (j = A->csr_mat_br4.csr_row_ptr[k]; j < A->csr_mat_br4.csr_row_ptr[k+1]; ++j) {
+                result += ((double *)A->csr_mat_br4.csr_val)[j] * x[A->csr_mat_br4.csr_col_ptr[j]];
+            }
+
+            if(alpha != static_cast<double>(1))
+            {
+                result = alpha * result;
+            }
+
+            if(beta != static_cast<double>(0))
+            {
+                result += beta * y[k];
+            }
+            y[k] = result;
+        }
+
+    return aoclsparse_status_success;
+}
+
+
+
 aoclsparse_status aoclsparse_mv_template(aoclsparse_operation       op,
                                     const float                alpha,
                                     aoclsparse_matrix A,
@@ -53,7 +142,7 @@ aoclsparse_status aoclsparse_mv_template(aoclsparse_operation       op,
  
     if (A->mat_type == aoclsparse_csr_mat) {
         //Invoke SPMV API for CSR storage format(double precision)
-        aoclsparse_dcsrmv(op,
+        return(aoclsparse_dcsrmv(op,
             &alpha,
             A->m,
             A->n,
@@ -64,9 +153,9 @@ aoclsparse_status aoclsparse_mv_template(aoclsparse_operation       op,
             descr,
             x,
             &beta,
-            y);
+            y));
     } else if (A->mat_type == aoclsparse_ellt_csr_hyb_mat) {
-        aoclsparse_dellthybmv(op,
+        return(aoclsparse_dellthybmv(op,
             &alpha,
             A->m,
             A->n,
@@ -83,11 +172,19 @@ aoclsparse_status aoclsparse_mv_template(aoclsparse_operation       op,
             descr,
             x,
             &beta,
-            y );
+            y ));
 
+    } else if (A->mat_type == aoclsparse_csr_mat_br4) {
+        return (aoclsparse_dcsr_mat_br4(op,
+                                   alpha,
+                                   A,
+                                   descr,
+                                   x,
+                                   beta,
+                                   y ));
+    } else {
+        return aoclsparse_status_invalid_value;
     }
-
-    return aoclsparse_status_success;
 }
 
 

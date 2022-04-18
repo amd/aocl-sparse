@@ -102,7 +102,10 @@ struct _aoclsparse_matrix
     // csr matrix
     struct _aoclsparse_csr csr_mat;
 
-    // csr matrix
+    // csr matrix for avx2
+    struct _aoclsparse_csr csr_mat_br4;
+
+    // ellt matrix
     struct _aoclsparse_ell ell_mat;
 
     // ell-csr-hyb matrix
