@@ -27,6 +27,7 @@
 #include "aoclsparse_descr.h"
 #include "aoclsparse_mat_structures.h"
 #include <vector>
+#include<cstring>
 
 #if defined(_WIN32) || defined(_WIN64)
 //Windows equivalent of gcc c99 type qualifier __restrict__

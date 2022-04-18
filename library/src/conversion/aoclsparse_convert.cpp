@@ -596,14 +596,96 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
     }
 
 
-    // very basic analyses
-    if (A->nnz/A->m >= 10) {
-        A->mat_type = aoclsparse_csr_mat;   // CSR 
-    } else {
-        A->mat_type = aoclsparse_ellt_csr_hyb_mat;   // ELL-CSR-HYB 
+    // collect the required for decision making
+    aoclsparse_int *row_ptr = A->csr_mat.csr_row_ptr;
+    aoclsparse_int m = A->m;
+    // 1: ELL width
+    aoclsparse_int ell_width = 0, nnz = A->nnz;
+    double nnza = (double)nnz/m;
+    aoclsparse_int mx_nnz_lt_nnza = 0, mn_nnz_gt_nnza = nnz, cmn = 0, cmx = 0;
+    for(aoclsparse_int i = 0; i < m; ++i)
+    {
+        aoclsparse_int nnzi = row_ptr[i + 1] - row_ptr[i];
+        if ((nnzi > mx_nnz_lt_nnza) && (nnzi <= nnza)) {
+            mx_nnz_lt_nnza = nnzi;
+        }
+        if ((nnzi < mn_nnz_gt_nnza) && (nnzi > nnza)) {
+            mn_nnz_gt_nnza = nnzi;
+        }
+
+        if ((nnzi <= nnza))
+            cmx++;
+        else
+            cmn++;
+    }
+    if (cmx >= cmn)
+       ell_width = mx_nnz_lt_nnza;
+    else
+       ell_width = mn_nnz_gt_nnza;
+
+    // 2: csr_rows_with_nnz_lt_10, ell_csr_nnz (hybrid fillin), ...
+    aoclsparse_int ell_m = 0, ell_csr_nnz = 0, ell_csr_g_ew_l_10 = 0,  ell_csr_g_ew_g_10 = 0, csr_lt_10 = 0, rem = 0;
+    for(aoclsparse_int i = 0; i < m; ++i)
+    {
+        aoclsparse_int row_nnz = row_ptr[i + 1] - row_ptr[i];
+        if (row_nnz <= ell_width)
+           (ell_m)++;
+        else {
+            ell_csr_nnz += row_nnz;
+            if (row_nnz <= 10)
+                    ell_csr_g_ew_l_10++;
+            else
+                    ell_csr_g_ew_g_10++;
+        }
+        if (row_nnz <= 10)
+                csr_lt_10++;
+        rem += row_nnz%4;
     }
 
-    
+    aoclsparse_int ell_nnz = ell_width*m + ell_csr_nnz;
+
+    // 3: Fill-in for csr_br4 implementation
+    aoclsparse_int i,j, tnnz = 0;
+    aoclsparse_int row_nnz;
+    for (i = 0 ; i < m; i+=4){
+
+        aoclsparse_int m1, m2;
+        if ((m - i) < 4)
+            break;
+        m1 = std::max((row_ptr[i+1]-row_ptr[i]),
+                        (row_ptr[i+2]-row_ptr[i+1]) );
+        m2 = std::max((row_ptr[i+3]-row_ptr[i+2]),
+                        (row_ptr[i+4]-row_ptr[i+3]) );
+        row_nnz = std::max(m1,m2);
+        tnnz += 4*row_nnz;
+    }
+    for (j = i; j < m; ++j) {
+        row_nnz = row_ptr[j+1]-row_ptr[j];
+        tnnz += row_nnz;
+    }
+    double prctg_rows_lt_10 = (double)(csr_lt_10/m)*100;
+    double fill_ratio = ((double)(tnnz-ell_nnz)/tnnz)*100;
+
+    if (ell_width <= 30){ // ToDo: why this cutoff?
+      if (fill_ratio < -0.1) {
+          A->mat_type = aoclsparse_csr_mat_br4;   // CSR-BT-AVX2
+      } else if ((fill_ratio > -0.1) && (fill_ratio < 0.1)){
+          A->mat_type = aoclsparse_ellt_csr_hyb_mat;   // ELL-CSR-HYB 
+      } else {
+          if ( ell_csr_g_ew_l_10 < ell_csr_g_ew_g_10) {
+              A->mat_type = aoclsparse_ellt_csr_hyb_mat; // ELL-CSR-HYB 
+          } else {
+             A->mat_type = aoclsparse_csr_mat_br4;  // CSR-BT-AVX2
+          }
+      }
+    } else {
+      if (prctg_rows_lt_10 < 10.0) {
+         A->mat_type = aoclsparse_csr_mat;     // CSR 
+      } else {
+         A->mat_type = aoclsparse_csr_mat_br4; // CSR-BT-AVX2
+      }
+    }
+
     if (A->mat_type == aoclsparse_ellt_csr_hyb_mat) {
 
         aoclsparse_int *ell_col_ind; 
@@ -645,9 +727,102 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
         A->ell_csr_hyb_mat.csr_col_ptr = A->csr_mat.csr_col_ptr;
         A->ell_csr_hyb_mat.csr_val = A->csr_mat.csr_val;
 
+    } else if (A->mat_type == aoclsparse_csr_mat_br4) {  // vectorized csr blocked format for AVX2
+        aoclsparse_int *col_ptr;
+        aoclsparse_int *row_ptr;
+        aoclsparse_int *trow_ptr;   // ToDo: need to replace row_ptr with trow_ptr
+        void *csr_val;
+        aoclsparse_int row_nnz;
+
+        // populate row_nnz
+        aoclsparse_int i;
+        aoclsparse_int j;
+        aoclsparse_int tnnz = 0;
+        row_ptr =(aoclsparse_int *) malloc(sizeof(aoclsparse_int) * (A->m));
+        trow_ptr =(aoclsparse_int *) malloc(sizeof(aoclsparse_int) * (A->m + 1));
+        trow_ptr[0] = A->base;
+        for (i = 0 ; i < A->m; i+=4){
+
+            aoclsparse_int m1, m2;
+            if ((A->m - i) < 4)
+               break;
+            m1 = std::max((A->csr_mat.csr_row_ptr[i+1]-A->csr_mat.csr_row_ptr[i]),
+                           (A->csr_mat.csr_row_ptr[i+2]-A->csr_mat.csr_row_ptr[i+1]) );
+            m2 = std::max((A->csr_mat.csr_row_ptr[i+3]-A->csr_mat.csr_row_ptr[i+2]),
+                           (A->csr_mat.csr_row_ptr[i+4]-A->csr_mat.csr_row_ptr[i+3]) );
+            row_nnz = std::max(m1,m2);
+            row_ptr[i] = row_ptr[i+1] = row_ptr[i+2] = row_ptr[i+3] = row_nnz;
+            trow_ptr[i+1] = trow_ptr[i] + row_nnz;
+            trow_ptr[i+2] = trow_ptr[i+1] + row_nnz;
+            trow_ptr[i+3] = trow_ptr[i+2] + row_nnz;
+            trow_ptr[i+4] = trow_ptr[i+3] + row_nnz;
+            tnnz += 4*row_nnz;
+        }
+        for (j = i; j < A->m; ++j) {
+            row_nnz = A->csr_mat.csr_row_ptr[j+1]-A->csr_mat.csr_row_ptr[j];
+            tnnz += row_nnz;
+            row_ptr[j] = row_nnz;
+            trow_ptr[j+1] = trow_ptr[j] + row_nnz;
+        }
+
+        // create the new csr matrix and convert to the csr-avx2 format
+        col_ptr =(aoclsparse_int *) malloc(sizeof(aoclsparse_int) * tnnz);
+        if (A->val_type == aoclsparse_dmat) {
+            csr_val = (double *) malloc(sizeof(double)*tnnz);
+        } else if (A->val_type == aoclsparse_smat) {
+            csr_val = (float *) malloc(sizeof(float)*tnnz);
+        }
+        aoclsparse_int tc = 0; // count of nonzeros
+        for (i = 0; i < A->m; ++i) {
+            aoclsparse_int nz = A->csr_mat.csr_row_ptr[i+1]-A->csr_mat.csr_row_ptr[i];
+            aoclsparse_int ridx = A->csr_mat.csr_row_ptr[i];
+            for (j = 0; j < nz; ++j) {
+                ((double *)csr_val)[tc] = ((double *)A->csr_mat.csr_val)[ridx+j];
+                col_ptr[tc] = A->csr_mat.csr_col_ptr[ridx+j];
+                tc++;
+            }
+            if (nz < row_ptr[i]) { // ToDo -- can remove the if condition
+                for (j = nz; j < row_ptr[i]; ++j) {
+                    col_ptr[tc] = A->csr_mat.csr_col_ptr[ridx+nz-1];
+                    ((double *)csr_val)[tc] = static_cast<double>(0);
+                    tc++;
+                }
+            }
+        }
+        tc = 0;
+        aoclsparse_int *cptr = (aoclsparse_int *) col_ptr;
+        double *vptr = (double *) csr_val;
+        for(i = 0; i < A->m; i+=4) {
+            cptr = col_ptr + tc;
+            vptr = (double*)csr_val + tc;
+            aoclsparse_int nnz = row_ptr[i];
+            if ((A->m - i) < 4)
+               break;
+            // transponse the chunk into an auxiliary buffer
+            double *bufval = (double *)malloc(sizeof(double)*nnz*4);
+            aoclsparse_int *bufidx = (aoclsparse_int *)malloc(sizeof(aoclsparse_int)*nnz*4);
+            aoclsparse_int ii, jj;
+            for (ii = 0; ii < nnz; ++ii) {
+                for (jj = 0; jj < 4;  ++jj) {
+                    bufval[jj+ii*4] = vptr[ii + jj*nnz];
+                    bufidx[jj+ii*4] = cptr[ii + jj*nnz];
+                }
+            }
+            memcpy(vptr, bufval, sizeof(double)*nnz*4);
+            memcpy(cptr, bufidx, sizeof(aoclsparse_int)*nnz*4);
+            free (bufval);
+            free(bufidx);
+            tc += nnz*4;
+        }
+
+        // set appropriate members of "A"
+//        A->csr_mat_br4.csr_row_ptr = row_ptr;
+        free(row_ptr);
+        A->csr_mat_br4.csr_row_ptr = trow_ptr;   // ToDo: replace row_ptr with this
+        A->csr_mat_br4.csr_col_ptr = col_ptr;
+        A->csr_mat_br4.csr_val = csr_val;
     }
     
-
     A->optimized = true;
 
     return aoclsparse_status_success;

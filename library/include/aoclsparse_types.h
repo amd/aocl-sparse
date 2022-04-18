@@ -153,7 +153,8 @@ typedef enum aoclsparse_matrix_format_type_
     aoclsparse_ellt_mat  = 2, /**< ELLPACK format stored as transpose format. */
     aoclsparse_ellt_csr_hyb_mat = 3, /**< ELLPACK transpose + CSR hybrid format. */
     aoclsparse_ell_csr_hyb_mat = 4, /**< ELLPACK + CSR hybrid format. */
-    aoclsparse_dia_mat = 5 /**< diag format. */
+    aoclsparse_dia_mat = 5, /**< diag format. */
+    aoclsparse_csr_mat_br4 = 6 /**< Modified CSR format for AVX2 double. */
 } aoclsparse_matrix_format_type;
 
 /*! \ingroup types_module
