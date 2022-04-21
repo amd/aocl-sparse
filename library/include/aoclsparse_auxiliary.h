@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2021 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020-2022 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,11 +33,11 @@ extern "C" {
 #endif
 
 /*! \ingroup aux_module
- *  \brief Get aoclsparse version
+ *  \brief Get AOCL-Sparse version
  *
  *  \details
  *  \p aoclsparse_get_version gets the aoclsparse library version number.
- *    in the format "aocl-sparse <major>.<minor>.<patch>
+ *    in the format "AOCL-Sparse <major>.<minor>.<patch>
  *
  *  @param[out]
  *  version the version string of the aoclsparse library.

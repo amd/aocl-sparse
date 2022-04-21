@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2021 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020-2022 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +36,7 @@ extern "C" {
  *******************************************************************************/
 char * aoclsparse_get_version()
 {
-    std::string ver = "aocl-sparse " + std::to_string(AOCLSPARSE_VERSION_MAJOR) + "."
+    std::string ver = "AOCL-Sparse " + std::to_string(AOCLSPARSE_VERSION_MAJOR) + "."
 	+ std::to_string(AOCLSPARSE_VERSION_MINOR) + "."
 	+ std::to_string(AOCLSPARSE_VERSION_PATCH) ;
 

@@ -1,10 +1,10 @@
-# aocl-sparse
-aocl-sparse exposes a common interface that provides Basic Linear Algebra Subroutines for sparse computation implemented for AMD's CPUs.
+# AOCL-Sparse
+AOCL-Sparse exposes a common interface that provides Basic Linear Algebra Subroutines for sparse computation implemented for AMD's CPUs.
 
 ## Requirements
 * CMake (3.5 or later)
 
-## Quickstart aocl-sparse build and install
+## Quickstart AOCL-Sparse build and install
 
 #### CMake
 All compiler specifications are determined automatically.
@@ -15,10 +15,10 @@ cd aocl-sparse;
 mkdir -p build/release;
 cd build/release;
 
-# Configure aocl-sparse
+# Configure AOCL-Sparse
 # Build options:
 #   BUILD_CLIENTS_BENCHMARKS - build benchmarks (OFF)
-#   BUILD_SHARED_LIBS        - build aocl-sparse as a shared library (ON)
+#   BUILD_SHARED_LIBS        - build AOCL-Sparse as a shared library (ON)
 #   BUILD_ILP64              - ILP64 Support (OFF)
 
 # Build shared library (default)
@@ -37,7 +37,7 @@ make install
 ```
 
 #### Benchmarks
-To run benchmarks, aocl-sparse has to be built with option -DBUILD_CLIENTS_BENCHMARKS=ON.
+To run benchmarks, AOCL-Sparse has to be built with option -DBUILD_CLIENTS_BENCHMARKS=ON.
 
 cmake -DBUILD_CLIENTS_BENCHMARKS=ON ../../
 make install
