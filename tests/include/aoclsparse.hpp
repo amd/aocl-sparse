@@ -265,4 +265,19 @@ aoclsparse_status aoclsparse_csr2dense(
             aoclsparse_int             ld,
             aoclsparse_order           order);
 
+/*
+ * ===========================================================================
+ *    Sparse Solvers
+ * ===========================================================================
+ */
+template <typename T>
+aoclsparse_status aoclsparse_ilu_smoother(
+		aoclsparse_operation       	trans,        
+        aoclsparse_matrix       	A,
+        const aoclsparse_mat_descr 	descr,
+		const T*                   	diag,
+		const T*                   	approx_inv_diag,
+        T*                   		x,        
+        const T*                    b);
+
 #endif /*AOCLSPARSE_HPP*/

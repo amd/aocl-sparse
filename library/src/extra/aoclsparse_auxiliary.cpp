@@ -25,6 +25,7 @@
 #include "aoclsparse_mat_csr.h"
 #include "aoclsparse.h"
 #include "aoclsparse_mat_structures.h"
+#include "aoclsparse_types.h"
 #include <string>
 #include <cstring>
 
@@ -273,6 +274,9 @@ aoclsparse_status aoclsparse_create_dcsr(aoclsparse_matrix &mat,
     mat->csr_mat.csr_row_ptr = csr_row_ptr;
     mat->csr_mat.csr_col_ptr = csr_col_ptr;
     mat->csr_mat.csr_val = csr_val;
+
+    mat->hint_id = aoclsparse_spmv;   //initialize to assign values during hint operation
+   
     return aoclsparse_status_success;
 }
 
@@ -361,6 +365,157 @@ aoclsparse_status aoclsparse_destroy_mat_csr(aoclsparse_mat_csr csr)
         return status;
     }
     return aoclsparse_status_success;
+}
+
+/********************************************************************************
+ * \brief aoclsparse_matrix is a structure holding the sparse matrix A in CSR, 
+ * Ellpack, Diagonal and other hybrid formats. The working buffers allocated in SPMV's 
+ * optimize phase needs to be deallocated
+ *******************************************************************************/
+aoclsparse_status aoclsparse_destroy_mv(aoclsparse_matrix A)
+{
+    
+    if (A->mat_type == aoclsparse_ellt_csr_hyb_mat)     // // ELL-CSR-HYB 
+    {
+        aoclsparse_ell_csr_hyb ell_csr_hyb_mat = &(A->ell_csr_hyb_mat);
+
+        if(ell_csr_hyb_mat->ell_col_ind != NULL)
+        {
+            free(ell_csr_hyb_mat->ell_col_ind);
+            ell_csr_hyb_mat->ell_col_ind = NULL;
+        }        
+        if(ell_csr_hyb_mat->ell_val != NULL)
+        {
+            free(ell_csr_hyb_mat->ell_val);
+            ell_csr_hyb_mat->ell_val = NULL;
+        }      
+        if(ell_csr_hyb_mat->csr_row_id_map != NULL)
+        {
+            free(ell_csr_hyb_mat->csr_row_id_map);
+            ell_csr_hyb_mat->csr_row_id_map = NULL;
+        }                   
+    }      
+    else if (A->mat_type == aoclsparse_csr_mat_br4) // vectorized csr blocked format for AVX2
+    {
+        aoclsparse_csr csr_mat_br4 = &(A->csr_mat_br4);
+
+        if(csr_mat_br4->csr_row_ptr != NULL)
+        {
+            free(csr_mat_br4->csr_row_ptr);
+            csr_mat_br4->csr_row_ptr = NULL;
+        }  
+        if(csr_mat_br4->csr_col_ptr != NULL)
+        {
+            free(csr_mat_br4->csr_col_ptr);
+            csr_mat_br4->csr_col_ptr = NULL;
+        }
+        if(csr_mat_br4->csr_val != NULL)
+        {
+            free(csr_mat_br4->csr_val);
+            csr_mat_br4->csr_val = NULL;
+        }                
+    }
+    return aoclsparse_status_success;
+}
+/********************************************************************************
+ * \brief aoclsparse_matrix is a structure holding the sparse matrix A. 
+ * The working buffers allocated in CSR2M's nnz_count, finalize and final computation phases
+ * needs to be deallocated.
+ *******************************************************************************/
+aoclsparse_status aoclsparse_destroy_2m(aoclsparse_matrix A)
+{
+    /*
+        delete 3 pointers from csrC structure namely
+        1. (*csrC)->csr_row_ptr
+        2. (*csrC)->csr_col_ind
+        3. (*csrC)->csr_val
+        This csrC structure is not part of main sparse matrix structure "A" and is treated as an input/output argument
+
+        Also, the "request" variable is not stored anywhere as part of structure "A"
+
+        Since aoclsparse_destroy(A) API's function signature just has the matrix structure "A", the information
+        needed to delete members of A and request variable are not available
+
+        Conclusion: Need changes to make csrC as just an output parameter and the 3 buffers allocated should be part
+        of Structure A.
+        */
+    return aoclsparse_status_success;
+}
+
+/********************************************************************************
+ * \brief _aoclsparse_ilu is a structure holding the ILU related information
+ * sparse matrix A. It must be deallocated using aoclsparse_destroy_ilu() which
+ * looks for working buffers allocated in ILU's optimize phase 
+ *******************************************************************************/
+aoclsparse_status aoclsparse_destroy_ilu(_aoclsparse_ilu *ilu_info)
+{
+    if(ilu_info != NULL)
+    {     
+        if(ilu_info->col_idx_mapper != NULL)
+        {
+            free(ilu_info->col_idx_mapper);
+            ilu_info->col_idx_mapper = NULL;
+        }
+        if(ilu_info->lu_diag_ptr != NULL)
+        {
+            free(ilu_info->lu_diag_ptr);
+            ilu_info->lu_diag_ptr = NULL;
+        }
+        ilu_info = NULL;
+    }
+    return aoclsparse_status_success;
+}
+
+/********************************************************************************
+ * \brief aoclsparse_matrix is a structure holding the sparse matrix A.
+ * It must be deallocated using aoclsparse_destroy() by carefully looking for all the 
+ * allocations as part of different Sparse routines and their corresponding
+ * Hint/Optimize functions.
+ *******************************************************************************/
+aoclsparse_status aoclsparse_destroy(aoclsparse_matrix A)
+{
+    aoclsparse_status ret = aoclsparse_status_success;
+    aoclsparse_int mv_hint, trsv_hint, mm_hint, twom_hint, ilu_hint;     
+
+    mv_hint = A->hint_id & aoclsparse_spmv;
+    trsv_hint = (A->hint_id & aoclsparse_trsv) >> 1;
+    mm_hint = (A->hint_id & aoclsparse_mm) >> 2;
+    twom_hint = (A->hint_id & aoclsparse_2m) >> 3;
+    ilu_hint = (A->hint_id & aoclsparse_ilu) >> 4;
+
+    if(mv_hint)
+    {
+        //delete SPMV data structures allocated in hint/optimize
+        ret = aoclsparse_destroy_mv(A);
+    }
+    if(mm_hint)
+    {
+        //delete Dense - Sparse Matrix Mult data structures allocated in hint/optimize
+        //To Do        
+    }      
+    if(trsv_hint)
+    {
+        //delete triangular solve data structures allocated in hint/optimize
+        //To Do               
+    }
+    if(twom_hint)
+    {
+        //delete Sparse - Sparse Matrix Mult data structures allocated in hint/optimize        
+        ret = aoclsparse_destroy_2m(A); 
+    }
+    if(ilu_hint)
+    {
+        //delete ILU data structures allocated in hint/optimize
+        ret = aoclsparse_destroy_ilu(&(A->ilu_info));        
+    } 
+
+    if(A != NULL)
+    {
+        delete A;
+        A = NULL;
+    }
+    return ret;
+
 }
 
 #ifdef __cplusplus

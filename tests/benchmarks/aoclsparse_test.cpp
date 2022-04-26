@@ -49,6 +49,9 @@
 #include "testing_csrmm.hpp"
 #include "testing_csr2m.hpp"
 
+//Solvers
+#include "testing_ilu.hpp"
+
 int main(int argc, char* argv[])
 {
     Arguments arg;
@@ -258,6 +261,13 @@ int main(int argc, char* argv[])
          else if(precision == 's')
              testing_csr2m<float>(arg);
     }
+    else if(strcmp(arg.function ,"ilu") == 0)
+    {
+         if(precision == 'd')
+             testing_ilu<double>(arg);
+         else if(precision == 's')
+             testing_ilu<float>(arg);
+    }    
     else
     {
         std::cerr << "Invalid value for --function" << std::endl;

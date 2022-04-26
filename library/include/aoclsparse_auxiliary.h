@@ -360,6 +360,22 @@ aoclsparse_status aoclsparse_export_mat_csr(aoclsparse_mat_csr &csr,
  */
 DLL_PUBLIC
 aoclsparse_status aoclsparse_destroy_mat_csr(aoclsparse_mat_csr csr);
+
+/*! \ingroup aux_module
+ *  \brief Destroy a sparse matrix structure
+ *
+ *  \details
+ *  \p aoclsparse_destroy destroys a structure that holds the matrix
+ *  @param[in]
+ *  the pointer to the sparse matrix.
+ *
+ *  \retval aoclsparse_status_success the operation completed successfully.
+ *  \retval aoclsparse_status_invalid_pointer \p matrix structure pointer is invalid.
+ */
+ /**@{*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_destroy(aoclsparse_matrix mat);
+/**@}*/
 #ifdef __cplusplus
 }
 #endif
