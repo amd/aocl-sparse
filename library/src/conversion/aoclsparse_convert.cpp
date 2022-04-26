@@ -574,28 +574,8 @@ extern "C" aoclsparse_status aoclsparse_dcsr2dense(
 	    order);
 }
 
-aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
+aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
 {
-    // Validations
-
-    // check if already optimized
-    if (A->optimized) {
-        return aoclsparse_status_success;
-    } 
-
-    // Check sizes
-    if((A->m < 0) || (A->n < 0) ||  (A->nnz < 0))
-    {
-        return aoclsparse_status_invalid_size;
-    }
-
-    // Check CSR matrix is populated, it not return an error. ToDo: need to handle CSC / COO cases later
-    if((A->csr_mat.csr_row_ptr == nullptr) || (A->csr_mat.csr_col_ptr == nullptr) || (A->csr_mat.csr_val == nullptr))
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-
-
     // collect the required for decision making
     aoclsparse_int *row_ptr = A->csr_mat.csr_row_ptr;
     aoclsparse_int m = A->m;
@@ -824,6 +804,248 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
     }
     
     A->optimized = true;
+
+    return aoclsparse_status_success;
+}
+
+aoclsparse_status aoclsparse_optimize_ilu0(aoclsparse_matrix A)
+{
+    aoclsparse_status       ret = aoclsparse_status_success;
+    aoclsparse_int         *lu_diag_ptr = NULL; 
+    aoclsparse_int         *col_idx_mapper = NULL; 
+    aoclsparse_int          nrows = A->m;
+
+    lu_diag_ptr = (aoclsparse_int *) malloc(sizeof(aoclsparse_int)* nrows);
+    if(NULL == lu_diag_ptr)
+    {
+        ret = aoclsparse_status_internal_error;
+        return ret;
+    }
+
+    col_idx_mapper = (aoclsparse_int *) malloc(sizeof(aoclsparse_int)* nrows);
+    if(NULL == col_idx_mapper)
+    {
+        ret = aoclsparse_status_internal_error;
+        return ret;
+    }
+
+    for(aoclsparse_int i = 0; i < nrows; i++)
+    {
+        col_idx_mapper[i] = 0;
+        lu_diag_ptr[i] = 0;
+    } 
+
+    //set members of ILU info
+    A->ilu_info.lu_diag_ptr = lu_diag_ptr;
+    A->ilu_info.col_idx_mapper = col_idx_mapper;
+
+    A->optimized = true;
+    return ret;
+}
+
+aoclsparse_status aoclsparse_optimize_ilu(aoclsparse_matrix A)
+{
+    aoclsparse_status       ret = aoclsparse_status_success;
+
+    A->ilu_info.ilu_fact_type = aoclsparse_ilu0; // ILU0 
+    switch(A->ilu_info.ilu_fact_type)
+    {
+        case aoclsparse_ilu0:
+            ret = aoclsparse_optimize_ilu0(A); 			
+            break;    
+        case aoclsparse_ilup:            
+            //ret = aoclsparse_optimize_ilup(A); 			
+            //To Do
+            break;                                       
+        default:
+            ret = aoclsparse_status_invalid_value;
+            break;
+    }  
+    return ret;
+
+}
+aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
+{
+    aoclsparse_status       ret = aoclsparse_status_success;
+    // Validations
+
+    // check if already optimized
+    if (A->optimized) 
+    {
+        return aoclsparse_status_success;
+    } 
+
+    // Check sizes
+    if((A->m < 0) || (A->n < 0) ||  (A->nnz < 0))
+    {
+        return aoclsparse_status_invalid_size;
+    }
+
+    // Check CSR matrix is populated, it not return an error. ToDo: need to handle CSC / COO cases later
+    if((A->csr_mat.csr_row_ptr == nullptr) || (A->csr_mat.csr_col_ptr == nullptr) || (A->csr_mat.csr_val == nullptr))
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+
+    // ToDo: any other validations
+
+    aoclsparse_int mv_hint, trsv_hint, mm_hint, twom_hint, ilu_hint;     
+    mv_hint = A->hint_id & aoclsparse_spmv;
+    trsv_hint = (A->hint_id & aoclsparse_trsv) >> 1;
+    mm_hint = (A->hint_id & aoclsparse_mm) >> 2;
+    twom_hint = (A->hint_id & aoclsparse_2m) >> 3;
+    ilu_hint = (A->hint_id & aoclsparse_ilu) >> 4;
+
+    if(mv_hint)
+    {
+        //SPMV Analysis and Optimization
+        ret = aoclsparse_optimize_mv(A);
+    }
+    if(trsv_hint)
+    {
+        //TRSV Analysis and Optimization
+        //To Do 
+    }    
+    if(mm_hint)
+    {
+        //Dense - Sparse Matrix Mult Analysis and Optimization
+        //To Do        
+    }
+    if(twom_hint)
+    {
+        //Sparse - Sparse Matrix Mult Analysis and Optimization
+        //To Do        
+    }
+    if(ilu_hint)
+    {
+        //ILU Analysis and Optimization
+        ret = aoclsparse_optimize_ilu(A);        
+    }        
+    
+    return ret;
+}
+
+aoclsparse_status aoclsparse_set_mv_hint(aoclsparse_matrix A,
+                                                aoclsparse_operation       trans,
+                                                const aoclsparse_mat_descr descr,
+                                                aoclsparse_int       expected_no_of_calls)
+{
+    // Check sizes
+    if((A->m < 0) || (A->n < 0) ||  (A->nnz < 0))
+    {
+        return aoclsparse_status_invalid_size;
+    }
+
+    // Check CSR matrix is populated, it not return an error. ToDo: need to handle CSC / COO cases later
+    if((A->csr_mat.csr_row_ptr == nullptr) || (A->csr_mat.csr_col_ptr == nullptr) || (A->csr_mat.csr_val == nullptr))
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+
+    // Perform the bitwise | 
+    A->hint_id = static_cast<aoclsparse_hint_type>(A->hint_id | aoclsparse_spmv);
+
+    //todo: Any more analysis operations that will help optimize routine later
+    //todo: to make use of trans, expected_no_of_calls and matrix descriptor 
+
+    return aoclsparse_status_success;
+}
+aoclsparse_status aoclsparse_set_sv_hint(aoclsparse_matrix A,
+                                                aoclsparse_operation       trans,
+                                                const aoclsparse_mat_descr descr,
+                                                aoclsparse_int       expected_no_of_calls)
+{
+    // Check sizes
+    if((A->m < 0) || (A->n < 0) ||  (A->nnz < 0))
+    {
+        return aoclsparse_status_invalid_size;
+    }
+
+    // Check CSR matrix is populated, it not return an error. ToDo: need to handle CSC / COO cases later
+    if((A->csr_mat.csr_row_ptr == nullptr) || (A->csr_mat.csr_col_ptr == nullptr) || (A->csr_mat.csr_val == nullptr))
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+
+    // Perform the bitwise | 
+    A->hint_id = static_cast<aoclsparse_hint_type>(A->hint_id | aoclsparse_trsv);    
+
+    //todo: Any more analysis operations that will help optimize routine later
+    //todo: to make use of trans, expected_no_of_calls and matrix descriptor 
+
+    return aoclsparse_status_success;
+}
+aoclsparse_status aoclsparse_set_mm_hint(aoclsparse_matrix A,
+                                                aoclsparse_operation       trans,
+                                                const aoclsparse_mat_descr descr,
+                                                aoclsparse_int       expected_no_of_calls)
+{
+    // Check sizes
+    if((A->m < 0) || (A->n < 0) ||  (A->nnz < 0))
+    {
+        return aoclsparse_status_invalid_size;
+    }
+
+    // Check CSR matrix is populated, it not return an error. ToDo: need to handle CSC / COO cases later
+    if((A->csr_mat.csr_row_ptr == nullptr) || (A->csr_mat.csr_col_ptr == nullptr) || (A->csr_mat.csr_val == nullptr))
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+
+    // Perform the bitwise | 
+    A->hint_id = static_cast<aoclsparse_hint_type>(A->hint_id | aoclsparse_mm);        
+
+    //todo: Any more analysis operations that will help optimize routine later
+    //todo: to make use of trans, expected_no_of_calls and matrix descriptor 
+
+    return aoclsparse_status_success;
+}
+aoclsparse_status aoclsparse_set_2m_hint(aoclsparse_matrix A,
+                                                aoclsparse_operation       trans,
+                                                const aoclsparse_mat_descr descr,
+                                                aoclsparse_int       expected_no_of_calls)
+{
+    // Check sizes
+    if((A->m < 0) || (A->n < 0) ||  (A->nnz < 0))
+    {
+        return aoclsparse_status_invalid_size;
+    }
+
+    // Check CSR matrix is populated, it not return an error. ToDo: need to handle CSC / COO cases later
+    if((A->csr_mat.csr_row_ptr == nullptr) || (A->csr_mat.csr_col_ptr == nullptr) || (A->csr_mat.csr_val == nullptr))
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+
+    // Perform the bitwise | 
+    A->hint_id = static_cast<aoclsparse_hint_type>(A->hint_id | aoclsparse_2m);     
+
+    //todo: Any more analysis operations that will help optimize routine later
+    //todo: to make use of trans, expected_no_of_calls and matrix descriptor 
+
+    return aoclsparse_status_success;
+}
+aoclsparse_status aoclsparse_set_lu_smoother_hint(aoclsparse_matrix A,
+                                                aoclsparse_operation       trans,
+                                                const aoclsparse_mat_descr descr,
+                                                aoclsparse_int       expected_no_of_calls)
+{
+    // Check sizes
+    if((A->m < 0) || (A->n < 0) ||  (A->nnz < 0))
+    {
+        return aoclsparse_status_invalid_size;
+    }
+
+    // Check CSR matrix is populated, it not return an error. ToDo: need to handle CSC / COO cases later
+    if((A->csr_mat.csr_row_ptr == nullptr) || (A->csr_mat.csr_col_ptr == nullptr) || (A->csr_mat.csr_val == nullptr))
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    // Perform the bitwise | 
+    A->hint_id = static_cast<aoclsparse_hint_type>(A->hint_id | aoclsparse_ilu);     
+
+    //todo: Any more analysis operations that will help optimize routine later
+    //todo: to make use of trans, expected_no_of_calls and matrix descriptor 
 
     return aoclsparse_status_success;
 }

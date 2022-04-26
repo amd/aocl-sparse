@@ -879,6 +879,161 @@ aoclsparse_status aoclsparse_smv(aoclsparse_operation     op,
                                   float*                   y);
 /**@}*/
 
+/*! \ingroup solver_module
+ *  \brief Sparse Iterative solver algorithms 
+ *  for single and double precision datatypes.
+ *  \details
+ *  \p aoclsparse_dilu_smoother performs Incomplete LU factorization on the sparse matrix 
+ *  \f$A\f$, defined in CSR storage format and also does an iterative LU solve to find an approximate \f$x\f$
+ *
+ *  @param[in]
+ *  op           matrix \f$A\f$ operation type. Transpose not yet supported.
+*   @param[in]
+ *  alpha       scalar \f$\alpha\f$.* 
+ *  @param[in]
+ *  descrA      descriptor of the sparse CSR matrix \f$A\f$. Currently, only
+ *              \ref aoclsparse_matrix_type_general is supported.
+ *  @param[in]
+ *  csrA        sparse CSR matrix \f$A\f$ structure.
+ *  @param[in]
+ *  trans_B     matrix \f$B\f$ operation type.
+ *  @param[in]
+ *  descrB      descriptor of the sparse CSR matrix \f$B\f$. Currently, only
+ *              \ref aoclsparse_matrix_type_general is supported.
+ *  @param[in]
+ *  diag        array of \p n elements vector that contains diagonal elements of 
+ *              sparse CSR matrix \f$A\f$. It is unused as of now.
+  *  @param[in]
+ *  approx_inv_diag     It is unused as of now.
+ *  @param[in]
+ *  beta        scalar \f$\beta\f$.
+ *  @param[in]
+ *  y           array of \p m elements which is a result of (\f$op(Ax) == y\f$). y is calculated
+ *              using a known reference \f$x\f$ vector, which is then used to find norm for iterative
+ *              \f$x\f$ during LU solve phase. Norm and Relative Error % decides the convergence
+ *
+ *  @param[out]
+ *  x           array of \p n elements vector found with the known values of CSR matrix \f$A\f$ and
+ *              resultant vector product \f$y\f$ in \f$ A x = y \f$. Every call to the API gives an iterative
+ *              update of \f$x\f$, whcih is used to find norm during LU solve phase. 
+ *              Norm and Relative Error % decides the convergence
+ *
+ *  \retval     aoclsparse_status_success the operation completed successfully.
+ *  \retval     aoclsparse_status_invalid_size input parameters contain an invalid value.
+ *  \retval     aoclsparse_status_invalid_pointer \p descrA,  \p csr,
+ *              \p descrB,  \p csrB, \p csrC is invalid.
+ *  \retval     aoclsparse_status_not_implemented
+ *              \ref aoclsparse_matrix_type != \ref aoclsparse_matrix_type_general.
+ *
+ *  \par Example - 1
+ *  Shows Factorization and Solution of a sparse matrix to give an iterative update of \f$x\f$ that progresses the convergence of
+ *  the equation \f$ A x = y \f$
+ *  \code{.c}
+ *  	 aoclsparse_matrix A;
+ *     //calculates L and U factors using ILU0 algorithm
+ *     // Also does a step of LU solve using initial guess of \f$x\f$ vector
+ *     aoclsparse_ilu_smoother(trans,
+ *                             A,
+ *                             descr,
+ *                             diag,
+ *                             approx_inv_diag,
+ *                             x,
+ *                             b);
+ *
+ *     //loop needs to iterate until the vector \f$x\f$ generates a minimum norm between \f$x_ref\f$ and
+ *     //\f$x\f$ or to a specific no of iterations or untill the error % between old and new x is minimum
+ *     while(iter < g_max_iters)
+ *     {          
+ *         aoclsparse_copy_vector(x, x_old, N);  
+ *         //just performs a LU Solve operation using old vector of \f$x\f$ to produce
+ *         // an update for new vector of \f$x\f$ 
+ *         aoclsparse_ilu_smoother(trans,
+ *                                 A,
+ *                                 descr,
+ *                                 diag,
+ *                                 approx_inv_diag,
+ *                                 x,
+ *                                 b);      
+ *         //minimise error percentage to find a better update for x  
+ *         iter++;
+ *     } 
+ *  
+ *  \endcode
+ * 
+*/
+
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_dilu_smoother(aoclsparse_operation     op,
+                                  aoclsparse_matrix A,
+                                  const aoclsparse_mat_descr descr,
+                                  const double*                   	diag,
+                                  const double*                   	approx_inv_diag,                                   
+                                  double*             x,                                        
+                                  const double*                   b);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_silu_smoother(aoclsparse_operation     op,
+                                  aoclsparse_matrix A,
+                                  const aoclsparse_mat_descr descr,
+                                  const float*                   	diag,
+                                  const float*                   	approx_inv_diag,                                        
+                                  float*             x,                            
+                                  const float*                   b);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_silu0(aoclsparse_operation       trans,
+                                   aoclsparse_int               m,
+                                   aoclsparse_int               n,
+                                   aoclsparse_int               nnz,
+                                   aoclsparse_int*              lu_diag_ptr,
+                                   aoclsparse_int*              col_idx_mapper,
+                                   bool*                        is_ilu0_factorized,
+                                   const aoclsparse_ilu_type*        ilu_fact_type,
+                                   float*                       csr_val,
+                                   const aoclsparse_int*        csr_row_ind,
+                                   const aoclsparse_int*        csr_col_ind,
+                                   const aoclsparse_mat_descr   descr,
+                                   const float*                 diag,
+                                   const float*                 approx_inv_diag,                                       
+                                   float*                       x,
+                                   const float*                 b );
+DLL_PUBLIC
+aoclsparse_status aoclsparse_dilu0(aoclsparse_operation          trans,
+                                    aoclsparse_int                  m,
+                                    aoclsparse_int                  n,
+                                    aoclsparse_int                  nnz,
+                                    aoclsparse_int*                 lu_diag_ptr,
+                                    aoclsparse_int*                 col_idx_mapper,
+                                    bool*                           is_ilu0_factorized,
+                                    const aoclsparse_ilu_type*           ilu_fact_type,
+                                    double*                         csr_val,
+                                    const aoclsparse_int*           csr_row_ind,
+                                    const aoclsparse_int*           csr_col_ind,
+                                    const aoclsparse_mat_descr      descr,
+                                    const double*                   diag,
+                                    const double*                   approx_inv_diag,                                        
+                                    double*                         x,
+                                    const double*                   b );
+
+aoclsparse_status aoclsparse_silu_solve(aoclsparse_int               m,
+                                   aoclsparse_int               n,
+                                   aoclsparse_int*              lu_diag_ptr,
+                                   float*                       csr_val,
+                                   const aoclsparse_int*        csr_row_ind,
+                                   const aoclsparse_int*        csr_col_ind,                                   
+                                   float*                       x,
+                                   const float*                 b );
+                                  
+aoclsparse_status aoclsparse_dilu_solve(aoclsparse_int               m,
+                                   aoclsparse_int               n,
+                                   aoclsparse_int*              lu_diag_ptr,
+                                   double*                       csr_val,
+                                   const aoclsparse_int*        csr_row_ind,
+                                   const aoclsparse_int*        csr_col_ind,                                   
+                                   double*                       x,
+                                   const double*                 b );  
+/**@}*/
 #ifdef __cplusplus
 }
 #endif

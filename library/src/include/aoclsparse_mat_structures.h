@@ -82,6 +82,18 @@ struct _aoclsparse_ell_csr_hyb
 };
 
 /********************************************************************************
+ * \brief _aoclsparse_ilu is a structure holding data members for ILU operation.
+ * It is used internally during the optimization process which includes ILU factorization.
+ * It should be destroyed at the end using aoclsparse_destroy_mat_structs().
+ *******************************************************************************/
+struct _aoclsparse_ilu
+{
+    aoclsparse_int         *lu_diag_ptr;        //pointer to diagonal elements in csr values array
+    aoclsparse_int         *col_idx_mapper;     //working array
+    bool                    ilu_factorized = false;     //flag to indicate if ILU factorization is done
+    aoclsparse_ilu_type     ilu_fact_type;              // indicator of ILU factorization type
+};
+/********************************************************************************
  * \brief _aoclsparse_matrix is a structure holding generic aoclsparse matrices.
  * It should be used by all the sparse routines to initialize the sparse matrices.
  * It should be destroyed at the end using aoclsparse_destroy_mat_structs().
@@ -96,8 +108,7 @@ struct _aoclsparse_matrix
     aoclsparse_index_base base = aoclsparse_index_base_zero;
     aoclsparse_matrix_data_type val_type = aoclsparse_dmat;  
     aoclsparse_matrix_format_type mat_type = aoclsparse_csr_mat;    
-    aoclsparse_int mv_hint = 0;  // ToDo: Placeholder for now
-    aoclsparse_int mem_hint = 0;  // ToDo: Placeholder for now
+    aoclsparse_hint_type hint_id = aoclsparse_spmv;
 
     // csr matrix
     struct _aoclsparse_csr csr_mat;
@@ -111,6 +122,8 @@ struct _aoclsparse_matrix
     // ell-csr-hyb matrix
     struct _aoclsparse_ell_csr_hyb ell_csr_hyb_mat;   
 
+    //ilu members
+    struct _aoclsparse_ilu ilu_info;
 };
 
 

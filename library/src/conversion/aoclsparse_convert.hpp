@@ -26,6 +26,7 @@
 #include "aoclsparse.h"
 #include "aoclsparse_descr.h"
 #include "aoclsparse_mat_structures.h"
+#include "aoclsparse_types.h"
 #include <vector>
 #include<cstring>
 

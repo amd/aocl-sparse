@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2021 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -895,4 +895,44 @@ aoclsparse_status aoclsparse_csr2dense(
 	    A,
 	    ld,
 	    order);
+}
+
+template <>
+aoclsparse_status aoclsparse_ilu_smoother(
+		aoclsparse_operation       	op,
+        aoclsparse_matrix       	A,
+        const aoclsparse_mat_descr 	descr,
+		const float*                diag,
+		const float*                approx_inv_diag,		
+        float*               		x,
+        const float*                b)
+{	
+    return aoclsparse_silu_smoother(op,
+									A,
+									descr,
+									diag,
+									approx_inv_diag,			
+									x,
+									b);
+
+}
+
+template <>
+aoclsparse_status aoclsparse_ilu_smoother(
+		aoclsparse_operation       			op,	
+        aoclsparse_matrix       			A,
+        const aoclsparse_mat_descr 			descr,
+		const double*                   	diag,
+		const double*                   	approx_inv_diag,		
+        double*               				x,
+        const double*                     	b)
+{	
+    return aoclsparse_dilu_smoother(op,
+									A,
+									descr,
+									diag,
+									approx_inv_diag,			
+									x,
+									b);
+
 }

@@ -145,6 +145,36 @@ typedef enum aoclsparse_matrix_data_type_
     aoclsparse_zmat = 3 /**< double precision complex data. */
 } aoclsparse_matrix_data_type;
 
+/*! \ingroup types_module
+ *  \brief Specify the sparse routine category to optimize.
+ *
+ *  \details
+ *  The \ref aoclsparse_routine_type indicates the type of a sparse routine.
+ *  For a given sparse routine \ref that needs analysing, a corresponding set of allocations
+ *  and optimizations are performed. For example, SPMV operation chooses the right MV kernel
+ *  based on various factors such as nnz/row etc. 
+ */
+typedef enum aoclsparse_hint_type_
+{
+    aoclsparse_spmv     = 0x01, /**< SPMV. */
+    aoclsparse_trsv     = 0x02, /**< Triangular Solve */
+    aoclsparse_mm       = 0x04, /**< Dense Matrix-Sparse Matrix Multiplication. */
+    aoclsparse_2m       = 0x08, /**< Sparse Matrix-Sparse Matrix Multiplication. */
+    aoclsparse_ilu      = 0x10 /**< Incomplete LU Factorization. */
+} aoclsparse_hint_type;
+
+/*! \ingroup types_module
+ *  \brief Specify the type of ILU factorization.
+ *
+ *  \details
+ *  The \ref aoclsparse_routine_type indicates the type of ILU factorization like ILU0, ILU(p) etc.
+  */
+typedef enum aoclsparse_ilu_type_
+{
+    aoclsparse_ilu0    = 0, /**< ILU0. */
+    aoclsparse_ilup    = 1, /**< ILU(p). */
+} aoclsparse_ilu_type;
+
 
 typedef enum aoclsparse_matrix_format_type_
 {
