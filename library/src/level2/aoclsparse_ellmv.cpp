@@ -24,6 +24,8 @@
 #include "aoclsparse.h"
 #include "aoclsparse_ellmv.hpp"
 
+extern aoclsparse_thread global_thread;
+
 /*
  *===========================================================================
  *   C wrapper
@@ -42,6 +44,13 @@ extern "C" aoclsparse_status aoclsparse_sellmv(aoclsparse_operation       trans,
                                    const float*            beta,
                                    float*                   y )
 {
+    // Read the environment variables to update global variable
+    // This function updates the num_threads only once.
+    aoclsparse_init_once();
+
+    aoclsparse_thread thread;
+    thread.num_threads = global_thread.num_threads;
+
     if(descr == nullptr)
     {
         return aoclsparse_status_invalid_pointer;
@@ -118,7 +127,8 @@ extern "C" aoclsparse_status aoclsparse_sellmv(aoclsparse_operation       trans,
                             ell_width,
                             x,
                             *beta,
-                            y);
+			    y,
+			    &thread);
 }
 
 extern "C" aoclsparse_status aoclsparse_dellmv(aoclsparse_operation       trans,
@@ -134,6 +144,13 @@ extern "C" aoclsparse_status aoclsparse_dellmv(aoclsparse_operation       trans,
                                    const double*            beta,
                                    double*                   y )
 {
+    // Read the environment variables to update global variable
+    // This function updates the num_threads only once.
+    aoclsparse_init_once();
+
+    aoclsparse_thread thread;
+    thread.num_threads = global_thread.num_threads;
+
     if(descr == nullptr)
     {
         return aoclsparse_status_invalid_pointer;
@@ -210,7 +227,8 @@ extern "C" aoclsparse_status aoclsparse_dellmv(aoclsparse_operation       trans,
                             ell_width,
                             x,
                             *beta,
-                            y);
+			    y,
+			    &thread);
 }
 
 extern "C" aoclsparse_status aoclsparse_selltmv(aoclsparse_operation       trans,
@@ -226,6 +244,13 @@ extern "C" aoclsparse_status aoclsparse_selltmv(aoclsparse_operation       trans
                                    const float*            beta,
                                    float*                   y )
 {
+    // Read the environment variables to update global variable
+    // This function updates the num_threads only once.
+    aoclsparse_init_once();
+
+    aoclsparse_thread thread;
+    thread.num_threads = global_thread.num_threads;
+
     if(descr == nullptr)
     {
         return aoclsparse_status_invalid_pointer;
@@ -302,7 +327,8 @@ extern "C" aoclsparse_status aoclsparse_selltmv(aoclsparse_operation       trans
                             ell_width,
                             x,
                             *beta,
-                            y);
+			    y,
+			    &thread);
 }
 
 
@@ -319,6 +345,13 @@ extern "C" aoclsparse_status aoclsparse_delltmv(aoclsparse_operation       trans
                                    const double*            beta,
                                    double*                   y )
 {
+    // Read the environment variables to update global variable
+    // This function updates the num_threads only once.
+    aoclsparse_init_once();
+
+    aoclsparse_thread thread;
+    thread.num_threads = global_thread.num_threads;
+
     if(descr == nullptr)
     {
         return aoclsparse_status_invalid_pointer;
@@ -395,9 +428,10 @@ extern "C" aoclsparse_status aoclsparse_delltmv(aoclsparse_operation       trans
                             ell_width,
                             x,
                             *beta,
-                            y);
+			    y,
+			    &thread);
 }
-    
+
 // Manu - for Hybrid
 extern "C" aoclsparse_status aoclsparse_sellthybmv(aoclsparse_operation       trans,
                                    const float*              alpha,
@@ -418,6 +452,13 @@ extern "C" aoclsparse_status aoclsparse_sellthybmv(aoclsparse_operation       tr
                                    const float*            beta,
                                    float*                   y )
 {
+    // Read the environment variables to update global variable
+    // This function updates the num_threads only once.
+    aoclsparse_init_once();
+
+    aoclsparse_thread thread;
+    thread.num_threads = global_thread.num_threads;
+
     return aoclsparse_ellthybmv_template(*alpha,
                             m,
                             n,
@@ -433,7 +474,8 @@ extern "C" aoclsparse_status aoclsparse_sellthybmv(aoclsparse_operation       tr
 			    csr_row_idx_map,
                             x,
                             *beta,
-                            y);
+			    y,
+			    &thread);
 
 }
 
@@ -457,6 +499,13 @@ extern "C" aoclsparse_status aoclsparse_dellthybmv(aoclsparse_operation       tr
                                    const double*            beta,
                                    double*                   y )
 {
+    // Read the environment variables to update global variable
+    // This function updates the num_threads only once.
+    aoclsparse_init_once();
+
+    aoclsparse_thread thread;
+    thread.num_threads = global_thread.num_threads;
+
     return aoclsparse_ellthybmv_template(*alpha,
                             m,
                             n,
@@ -471,7 +520,7 @@ extern "C" aoclsparse_status aoclsparse_dellthybmv(aoclsparse_operation       tr
                             row_idx_map,
                             csr_row_idx_map,
                             x,
-                            *beta,
-                            y);
-
+			    *beta,
+			    y,
+			    &thread);
 }
