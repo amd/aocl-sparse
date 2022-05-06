@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,15 +20,20 @@
  * THE SOFTWARE.
  *
  * ************************************************************************ */
-#ifndef AOCLSPARSE_H_
-#define AOCLSPARSE_H_
+#ifndef AOCLSPARSE_ANALYSIS_HPP
+#define AOCLSPARSE_ANALYSIS_HPP
 
-#include "aoclsparse_auxiliary.h"
-#include "aoclsparse_functions.h"
-#include "aoclsparse_convert.h"
-#include "aoclsparse_analysis.h"
+#include "aoclsparse.h"
+#include "aoclsparse_descr.h"
+#include "aoclsparse_mat_structures.h"
 #include "aoclsparse_types.h"
-#include "aoclsparse_version.h"
+#include <vector>
+#include<cstring>
 
-#endif // AOCLSPARSE_H_
+#if defined(_WIN32) || defined(_WIN64)
+//Windows equivalent of gcc c99 type qualifier __restrict__
+#define __restrict__ __restrict
+#endif
+
+#endif // AOCLSPARSE_ANALYSIS_HPP
 

@@ -48,9 +48,9 @@ extern "C" aoclsparse_status aoclsparse_silu_smoother(aoclsparse_operation      
         // TODO
         return aoclsparse_status_not_implemented;
     }
-    if(descr->type != aoclsparse_matrix_type_general)
+    if(descr->type != aoclsparse_matrix_type_symmetric)
     {
-        // TODO
+        // TODO: Only Symmetric Positive Definite Matrices are supported for ILU operation
         return aoclsparse_status_not_implemented;
     }
 
@@ -90,8 +90,8 @@ extern "C" aoclsparse_status aoclsparse_silu_smoother(aoclsparse_operation      
     {
         return aoclsparse_status_invalid_pointer;
     }
-    
-    return aoclsparse_ilu_template(op,
+
+    return aoclsparse_ilu_template<float>(op,
                             A,
                             descr,
                             diag,
@@ -119,9 +119,9 @@ extern "C" aoclsparse_status aoclsparse_dilu_smoother(aoclsparse_operation      
         // TODO
         return aoclsparse_status_not_implemented;
     }
-    if(descr->type != aoclsparse_matrix_type_general)
+    if(descr->type != aoclsparse_matrix_type_symmetric)
     {
-        // TODO
+        // TODO: Only Symmetric Positive Definite Matrices are supported for ILU operation
         return aoclsparse_status_not_implemented;
     }
 
@@ -161,8 +161,8 @@ extern "C" aoclsparse_status aoclsparse_dilu_smoother(aoclsparse_operation      
     {
         return aoclsparse_status_invalid_pointer;
     }
-    
-    return aoclsparse_ilu_template(op,                            
+     
+    return aoclsparse_ilu_template<double>(op,                            
                             A,
                             descr,
                             diag,

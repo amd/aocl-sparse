@@ -936,3 +936,42 @@ aoclsparse_status aoclsparse_ilu_smoother(
 									b);
 
 }
+
+template <>
+aoclsparse_status aoclsparse_create_csr(aoclsparse_matrix &mat,
+                    aoclsparse_index_base   base,
+                    aoclsparse_int          M,
+                    aoclsparse_int          N,
+                    aoclsparse_int          csr_nnz,
+                    aoclsparse_int*         csr_row_ptr,
+                    aoclsparse_int*         csr_col_ptr,
+                    float*                  csr_val)
+{	
+    return aoclsparse_create_scsr(mat, 
+								base, 
+								M, 
+								N, 
+								csr_nnz, 
+								csr_row_ptr, 
+								csr_col_ptr, 
+								csr_val);
+}
+template <>
+aoclsparse_status aoclsparse_create_csr(aoclsparse_matrix &mat,
+                    aoclsparse_index_base   base,
+                    aoclsparse_int          M,
+                    aoclsparse_int          N,
+                    aoclsparse_int          csr_nnz,
+                    aoclsparse_int*         csr_row_ptr,
+                    aoclsparse_int*         csr_col_ptr,
+                    double*                 csr_val)
+{	
+    return aoclsparse_create_dcsr(mat, 
+								base, 
+								M, 
+								N, 
+								csr_nnz, 
+								csr_row_ptr, 
+								csr_col_ptr, 
+								csr_val);
+}

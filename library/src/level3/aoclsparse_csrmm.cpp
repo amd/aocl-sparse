@@ -121,6 +121,7 @@ aoclsparse_status aoclsparse_csrmm_template(aoclsparse_operation     trans,
     {
 	return aoclsparse_status_invalid_size;
     }
+
     if (order == aoclsparse_order_column)
 	return aoclsparse_csrmm_col_major(alpha,
 		csr_val,

@@ -251,6 +251,19 @@ aoclsparse_status aoclsparse_csr2m_template(
     if(csrA->n != csrB->m)
         return aoclsparse_status_invalid_value;
 
+    /*
+        Since CSR2M does not call Hint and Optimize, an explicit
+        one-time hint id setting needs to happen in the beginninng of 
+        execution API, which is here.
+        All the subsequent calls to csr2m API would be like NOPs
+    */
+    //aoclsparse_int twom_hint; 
+    //twom_hint = ((*csrC)->hint_id & aoclsparse_2m) >> 3;  
+    //if(!twom_hint)
+    //{
+    //    (*csrC)->hint_id = static_cast<aoclsparse_hint_type>(A->hint_id | aoclsparse_2m);
+    //}  
+
     switch (request) {
 
         case aoclsparse_stage_nnz_count:

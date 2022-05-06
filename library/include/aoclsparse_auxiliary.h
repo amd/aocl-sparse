@@ -278,6 +278,15 @@ aoclsparse_status aoclsparse_create_mat_csr(aoclsparse_mat_csr &csr,
                                          aoclsparse_int*         csr_col_ind,
                                          void*                   csr_val);
 
+DLL_PUBLIC
+aoclsparse_status aoclsparse_create_scsr(aoclsparse_matrix &mat,
+                    aoclsparse_index_base   base,
+                    aoclsparse_int          M,
+                    aoclsparse_int          N,
+                    aoclsparse_int          csr_nnz,
+                    aoclsparse_int*         csr_row_ptr,
+                    aoclsparse_int*         csr_col_ptr,
+                    float*                  csr_val);
 
 DLL_PUBLIC
 aoclsparse_status aoclsparse_create_dcsr(aoclsparse_matrix &mat,
@@ -287,7 +296,7 @@ aoclsparse_status aoclsparse_create_dcsr(aoclsparse_matrix &mat,
                     aoclsparse_int          csr_nnz,
                     aoclsparse_int*         csr_row_ptr,
                     aoclsparse_int*         csr_col_ptr,
-                    void*                   csr_val);
+                    double*                 csr_val);
 
 
 DLL_PUBLIC
