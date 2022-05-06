@@ -251,9 +251,36 @@ aoclsparse_status aoclsparse_create_mat_csr(aoclsparse_mat_csr &csr,
     csr->csr_val = csr_val;
     return aoclsparse_status_success;
 }
+/********************************************************************************
+ * \brief aoclsparse_create_scsr sets the sparse matrix in the csr format.
+ ********************************************************************************/
+aoclsparse_status aoclsparse_create_scsr(aoclsparse_matrix &mat,
+                    aoclsparse_index_base   base,
+                    aoclsparse_int          M,
+                    aoclsparse_int          N,
+                    aoclsparse_int          csr_nnz,
+                    aoclsparse_int*         csr_row_ptr,
+                    aoclsparse_int*         csr_col_ptr,
+                    float*                   csr_val)
+{
+    mat = new _aoclsparse_matrix;
+    mat->m = M;
+    mat->n = N;
+    mat->nnz = csr_nnz;
+    mat->base = base;
+    mat->optimized = false;
+    mat->val_type = aoclsparse_smat;
+    mat->csr_mat.csr_row_ptr = csr_row_ptr;
+    mat->csr_mat.csr_col_ptr = csr_col_ptr;
+    mat->csr_mat.csr_val = csr_val;
+
+    mat->hint_id = aoclsparse_none;   //initialize to 0 during hint operation
+   
+    return aoclsparse_status_success;
+}
 
 /********************************************************************************
- * \brief aoclsparse_create_csr sets the sparse matrix in the csr format.
+ * \brief aoclsparse_create_dcsr sets the sparse matrix in the csr format.
  ********************************************************************************/
 aoclsparse_status aoclsparse_create_dcsr(aoclsparse_matrix &mat,
                     aoclsparse_index_base   base,
@@ -262,7 +289,7 @@ aoclsparse_status aoclsparse_create_dcsr(aoclsparse_matrix &mat,
                     aoclsparse_int          csr_nnz,
                     aoclsparse_int*         csr_row_ptr,
                     aoclsparse_int*         csr_col_ptr,
-                    void*                   csr_val)
+                    double*                   csr_val)
 {
     mat = new _aoclsparse_matrix;
     mat->m = M;
@@ -275,7 +302,7 @@ aoclsparse_status aoclsparse_create_dcsr(aoclsparse_matrix &mat,
     mat->csr_mat.csr_col_ptr = csr_col_ptr;
     mat->csr_mat.csr_val = csr_val;
 
-    mat->hint_id = aoclsparse_spmv;   //initialize to assign values during hint operation
+    mat->hint_id = aoclsparse_none;   //initialize to 0 during hint operation
    
     return aoclsparse_status_success;
 }

@@ -108,7 +108,7 @@ struct _aoclsparse_matrix
     aoclsparse_index_base base = aoclsparse_index_base_zero;
     aoclsparse_matrix_data_type val_type = aoclsparse_dmat;  
     aoclsparse_matrix_format_type mat_type = aoclsparse_csr_mat;    
-    aoclsparse_hint_type hint_id = aoclsparse_spmv;
+    aoclsparse_hint_type hint_id = aoclsparse_none;
 
     // csr matrix
     struct _aoclsparse_csr csr_mat;

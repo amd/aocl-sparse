@@ -103,20 +103,71 @@ aoclsparse_status aoclsparse_ilu0_factorization(aoclsparse_int          m,
 	return ret;
 }
 
+template <typename T>
+aoclsparse_status aoclsparse_ilu_solve(aoclsparse_int          m,
+                                   aoclsparse_int                       n,	
+                                   aoclsparse_int* __restrict__          lu_diag_ptr,						   
+								   T* __restrict__            	csr_val,								   
+								   const aoclsparse_int* __restrict__   row_offsets,
+                                   const aoclsparse_int* __restrict__   column_indices,
+                                   T* __restrict__                       xv,
+                                   const T* __restrict__                 bv)
+{
+	aoclsparse_status ret = aoclsparse_status_success;
+    aoclsparse_int i, k;    
+
+   //Forward Solve
+   //Solve L . y = b
+   for(i = 0; i < m; i++)
+   {
+       T sum = bv[i];
+       for(k = row_offsets[i]; k < lu_diag_ptr[i]; k++)
+       {
+           aoclsparse_int col_idx = column_indices[k];
+           T temp = 0.0;
+           temp = csr_val[k] * xv[col_idx];           
+           sum = sum - temp;
+       }
+       xv[i] = sum;
+   } 
+
+   //Backward Solve
+   // Solve: U . x = y
+   for(i = m - 1; i >= 0; i--)
+   {              
+       aoclsparse_int diag_idx = lu_diag_ptr[i];
+       T diag_elem;
+       for(k = lu_diag_ptr[i] + 1; k < row_offsets[i+1]; k++)
+       {
+           aoclsparse_int col_idx = column_indices[k];
+           T temp = 0.0;
+           temp = csr_val[k] * xv[col_idx];                       
+           xv[i] = xv[i] - temp;
+       }    
+       diag_elem = csr_val[diag_idx];     
+       if(diag_elem != 0.0)
+       {
+            xv[i] = xv[i]/diag_elem;  
+       }   
+   }     
+	return ret;
+}
+
+template <typename T>
 aoclsparse_status aoclsparse_ilu0_template(aoclsparse_int               m,
                                    aoclsparse_int                       n,
                                    aoclsparse_int                       nnz,
-                                   aoclsparse_int*  __restrict__        lu_diag_ptr,
-                                   aoclsparse_int*  __restrict__        col_idx_mapper,
+                                   aoclsparse_int*         lu_diag_ptr,
+                                   aoclsparse_int*         col_idx_mapper,
 								   bool*                       			is_ilu0_factorized,
 								   const aoclsparse_ilu_type*				ilu_fact_type,
-								   float* __restrict__            	        csr_val,
-                                   const aoclsparse_int* __restrict__   csr_row_ptr,
-								   const aoclsparse_int* __restrict__   csr_col_ind,
-                                   const float* __restrict__                diag,
-                                   const float* __restrict__                approx_inv_diag,                                   								   
-                                   float* __restrict__                  	x,
-                                   const float* __restrict__            	b )
+								   T*             	        csr_val,
+                                   const aoclsparse_int*    csr_row_ptr,
+								   const aoclsparse_int*   csr_col_ind,
+                                   const T*                diag,
+                                   const T*                 approx_inv_diag,                                   								   
+                                   T*                  	x,
+                                   const T*             	b )
 {
 	aoclsparse_status ret = aoclsparse_status_success;
 	//Perform ILU0 Factorization only once
@@ -125,7 +176,7 @@ aoclsparse_status aoclsparse_ilu0_template(aoclsparse_int               m,
 		switch(*ilu_fact_type)
 		{
 			case aoclsparse_ilu0:
-				ret = aoclsparse_ilu0_factorization(m,
+				ret = aoclsparse_ilu0_factorization<T>(m,
 											n,
 											lu_diag_ptr,
 											col_idx_mapper,
@@ -141,7 +192,7 @@ aoclsparse_status aoclsparse_ilu0_template(aoclsparse_int               m,
 
 	}	
 
-    aoclsparse_silu_solve(m,
+    aoclsparse_ilu_solve<T>(m,
                         n,
                         lu_diag_ptr,
                         csr_val,
@@ -152,55 +203,7 @@ aoclsparse_status aoclsparse_ilu0_template(aoclsparse_int               m,
                         
 	return ret;
 }
-aoclsparse_status aoclsparse_ilu0_template(aoclsparse_int               m,
-                                   aoclsparse_int                       n,
-                                   aoclsparse_int                       nnz,
-                                   aoclsparse_int*  __restrict__        lu_diag_ptr,
-                                   aoclsparse_int*  __restrict__        col_idx_mapper,
-								   bool*                       			is_ilu0_factorized,
-								   const aoclsparse_ilu_type*           ilu_fact_type,
-								   double* __restrict__            	        csr_val,
-                                   const aoclsparse_int* __restrict__   csr_row_ptr,
-								   const aoclsparse_int* __restrict__   csr_col_ind,
-                                   const double* __restrict__                diag,
-                                   const double* __restrict__                approx_inv_diag,                                   								   
-                                   double* __restrict__                  	x,
-                                   const double* __restrict__            	b )
-{
-	aoclsparse_status ret = aoclsparse_status_success;
-	//Perform ILU0 Factorization only once
-	if( (*is_ilu0_factorized) == false )
-	{
-		switch(*ilu_fact_type)
-		{
-			case aoclsparse_ilu0:
-				ret = aoclsparse_ilu0_factorization(m,
-											n,
-											lu_diag_ptr,
-											col_idx_mapper,
-											csr_val,
-                                            csr_row_ptr,
-											csr_col_ind);
-				*is_ilu0_factorized = true;			
-				break;                           
-			default:
-				ret = aoclsparse_status_invalid_value;
-				break;
-		}  		
 
-	}	   
 
-    //Basic LU Solution phase to generate iterative update of x 
-    aoclsparse_dilu_solve(m,
-                        n,
-                        lu_diag_ptr,
-                        csr_val,
-                        csr_row_ptr,
-                        csr_col_ind,                        
-                        x,
-                        b);
-                        
-	return ret;
-}
 #endif // AOCLSPARSE_ILU0_HPP
 

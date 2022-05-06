@@ -35,6 +35,8 @@
 #include "aoclsparse_utility.hpp"
 #include "aoclsparse_random.hpp"
 #include "aoclsparse_convert.h"
+#include "aoclsparse_analysis.h"
+
 template <typename T>
 void testing_optmv(const Arguments& arg)
 {
@@ -83,7 +85,7 @@ void testing_optmv(const Arguments& arg)
 
 
     aoclsparse_matrix A; 
-    CHECK_AOCLSPARSE_ERROR(aoclsparse_create_dcsr(A, base, M, N, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data()));
+    CHECK_AOCLSPARSE_ERROR(aoclsparse_create_csr<T>(A, base, M, N, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data()));
 
   
     // Allocate memory for vectors
@@ -96,6 +98,9 @@ void testing_optmv(const Arguments& arg)
     aoclsparse_init<T>(y, 1, M, 1);
     y_gold = y;
 
+
+    //to identify hint id(which routine is to be executed, destroyed later)
+    CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mv_hint(A, trans, descr, 0));
 
     // Optimize the matrix, "A"
     CHECK_AOCLSPARSE_ERROR(aoclsparse_optimize(A));
@@ -162,6 +167,8 @@ void testing_optmv(const Arguments& arg)
 	<< std::setw(12) << std::scientific << cpu_time_used * 1e3
 	<< std::setw(12) << number_hot_calls << std::setw(12)
 	<< (arg.unit_check ? "yes" : "no") << std::endl;
+
+    aoclsparse_destroy(A);
 }
 
 #endif // TESTING_OPTMV_HPP

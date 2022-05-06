@@ -35,6 +35,7 @@
 #include "aoclsparse_utility.hpp"
 #include "aoclsparse_random.hpp"
 #include "aoclsparse_convert.h"
+#include "aoclsparse_analysis.h"
 
 #include <string>
 #include <fstream>
@@ -49,59 +50,6 @@ aoclsparse_int g_max_iters = 0;
 //#undef PARAM_LOG
 #define PARAM_LOG
 
-//#define DEBUG_LOG
-
-#ifdef DEBUG_LOG
-template <typename T>
-void log_vector_info(T * xvRef, aoclsparse_int N)
-{
-    for (aoclsparse_int i = 0; i < N; i++) 
-    {
-        printf("[i = %3d] [xRef = %.2f]\n", i, xvRef[i]);
-    }
-    return;
-}
-template <typename T>
-void Display_in_matrix_form(aoclsparse_int num_rows, aoclsparse_int num_cols, aoclsparse_int num_nonzeros, aoclsparse_int * row_offsets, aoclsparse_int * column_indices, T * val_array)
-{       
-    printf("Input Matrix (%d x %d, nonzeros = %d):\n", (aoclsparse_int) num_rows, (aoclsparse_int) num_cols, (aoclsparse_int) num_nonzeros);
-    for (aoclsparse_int row = 0; row < num_rows; row++)
-    {            
-        T value_to_print;
-        aoclsparse_int col_offset = row_offsets[row];
-        for (aoclsparse_int col = 0; col < num_cols; col++)
-        {                                       
-            if(col_offset < row_offsets[row + 1] && col == column_indices[col_offset])
-            {
-                value_to_print = val_array[col_offset];                                        
-                col_offset++;
-            }
-            else
-            {
-                value_to_print = 0.0;
-            }
-            printf("%4.2f ", value_to_print);              
-        }
-        printf("\n");
-    }
-    fflush(stdout);        
-}
-template <typename T>
-void Display_csrformat(aoclsparse_int num_rows, aoclsparse_int num_cols, aoclsparse_int num_nonzeros, aoclsparse_int * row_offsets, aoclsparse_int * column_indices, T * values)
-{
-    printf("Input Matrix (%d vertices, %d nonzeros):\n", (int) num_rows, (int) num_nonzeros);
-    for (int row = 0; row < num_rows; row++)
-    {
-        printf("%d [@%d, #%d]: ", row, row_offsets[row], row_offsets[row + 1] - row_offsets[row]);
-        for (int col_offset = row_offsets[row]; col_offset < row_offsets[row + 1]; col_offset++)
-        {
-            printf("%d (%f), ", column_indices[col_offset], values[col_offset]);
-        }
-        printf("\n");
-    }
-    fflush(stdout);
-}
-#endif
 template <typename T>
 void Dump_mtx_File_csc(const string&        market_filename,
                         aoclsparse_int       num_rows,
@@ -206,13 +154,7 @@ void Dump_mtx_File_csc(const string&        market_filename,
             printf("Invalid input id for Matrix Dump\n");
             break;
     }
-    test_matrix += market_filename;
-    #if 0
-        printf("input matrix name= %s\n", market_filename.c_str());  
-        fflush(stdout);     
-        printf("test matrix name= %s\n", test_matrix.c_str());  
-        fflush(stdout);        
-    #endif     
+    test_matrix += market_filename;    
     fA.open(test_matrix);
     fA << "%%MatrixMarket matrix coordinate real general\n";
     fA << DateString;
@@ -471,10 +413,19 @@ inline void ref_csrilu0(aoclsparse_int                     M,
         }
     }
 }
-
+template <typename T>
+void clear_local_resource(T *x)
+{
+    if(x != NULL)
+    {
+        free(x);
+        x = NULL;
+    } 
+}
 template <typename T>
 void testing_ilu(const Arguments& arg)
 {
+    aoclsparse_status ret;
     aoclsparse_int         M         = arg.M;
     aoclsparse_int         N         = arg.N;
     aoclsparse_int         nnz       = arg.nnz;
@@ -506,7 +457,6 @@ void testing_ilu(const Arguments& arg)
     std::cout << aoclsparse_get_version() << std::endl;
 #endif
 
-    // Sample matrix
     aoclsparse_init_csr_matrix(csr_row_ptr,
 	    csr_col_ind,
 	    csr_val,
@@ -520,26 +470,12 @@ void testing_ilu(const Arguments& arg)
 	    true);
 
 
-    // Manu -- new
-	aoclsparse_matrix A; // = new _aoclsparse_matrix;
-    CHECK_AOCLSPARSE_ERROR(aoclsparse_create_dcsr(A, base, M, N, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data()));
+    aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_symmetric);
 
 
-    //Display_csrformat<T>(M, N, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data());
+	aoclsparse_matrix A;
 
-#if 0//def DEBUG_LOG
-        printf("symmetry: %d\n", issymm);
-        //printf("A before creating sparse structure:\n");
-        //Display_csrformat<T>(M, N, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data());
-        printf("A from sparse structure:\n");
-        Display_in_matrix_form(A);
-#endif  
-  
-    // Allocate memory for vectors
-    //std::vector<T> x_ref(N);
-    //std::vector<T> b(M);
-    //std::vector<T> x_old(N);
-    //std::vector<T> x(N);
+    CHECK_AOCLSPARSE_ERROR(aoclsparse_create_csr<T>(A, base, M, N, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data()));
 
     T *x_ref=NULL;
     T *x_old=NULL;
@@ -607,8 +543,18 @@ void testing_ilu(const Arguments& arg)
 
     double cpu_time_analysis = DBL_MAX;
     double cpu_time_start = aoclsparse_clock();
-    //Basic routine type checks
-    CHECK_AOCLSPARSE_ERROR(aoclsparse_set_lu_smoother_hint(A, trans, descr, 0));
+    //Basic routine type checks    
+    ret = aoclsparse_set_lu_smoother_hint(A, trans, descr, 0);
+    if(aoclsparse_status_success != ret)
+    {
+        std::cerr << "aoclSPARSE status error: Expected " << aoclsparse_status_to_string(aoclsparse_status_success)
+                  << ", received " << aoclsparse_status_to_string(ret) << std::endl;
+        clear_local_resource(x_ref);
+        clear_local_resource(x_old);
+        clear_local_resource(x);
+        clear_local_resource(b);
+        return;
+    }
 
     // Optimize the matrix, "A"
     CHECK_AOCLSPARSE_ERROR(aoclsparse_optimize(A));
@@ -627,14 +573,7 @@ void testing_ilu(const Arguments& arg)
         // Check solution vector if no pivot has been found
         if(h_analysis_pivot_gold == -1 && h_solve_pivot_gold == -1)
         {
-            near_check_general<T>(1, nnz, 1, csr_val_gold.data(), csr_val.data());
-#ifdef DEBUG_LOG        
-        for(int i = 0; i < nnz; i++)
-        {
-            printf("[%d] csr_val[%d] = %f, csr_val_gold[%d] = %f\n", i, i, csr_val[i], i, csr_val_gold[i]);
-            fflush(stdout);
-        }        
-#endif              
+            near_check_general<T>(1, nnz, 1, csr_val_gold.data(), csr_val.data());             
         }
     }
     double norm = calculate_l2Norm<T>(x_ref, x, N);
@@ -770,28 +709,13 @@ void testing_ilu(const Arguments& arg)
     #endif    
 
 
-cleanup:
-    if(x_ref != NULL)
-    {
-        free(x_ref);
-        x_ref = NULL;
-    }
-    if(x_old != NULL)
-    {
-        free(x_old);
-        x_old = NULL;
-    }
-    if(x != NULL)
-    {
-        free(x);
-        x = NULL;
-    }
-    if(b != NULL)
-    {
-        free(b);
-        b = NULL;
-    } 
+    clear_local_resource(x_ref);
+    clear_local_resource(x_old);
+    clear_local_resource(x);
+    clear_local_resource(b);
+
     aoclsparse_destroy(A);
+    return;
 }
 
 #endif // TESTING_ILU_HPP
