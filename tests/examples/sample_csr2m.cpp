@@ -43,8 +43,8 @@
 
 #define PRINT_OUTPUT
 
-void aoclsparse_create_csr(aoclsparse_mat_csr &csrA,
-	aoclsparse_mat_csr &csrB,
+void aoclsparse_create_csr(aoclsparse_matrix &csrA,
+	aoclsparse_matrix &csrB,
 	aoclsparse_mat_descr *descrA,
 	aoclsparse_mat_descr *descrB)
 {
@@ -72,7 +72,7 @@ void aoclsparse_create_csr(aoclsparse_mat_csr &csrA,
     memcpy( csr_row_ptr_A, row_ptr_A, (M + 1) * sizeof(aoclsparse_int));
     memcpy( csr_col_ind_A, col_ind_A,  NNZ_A  * sizeof(aoclsparse_int));
     memcpy( csr_val_A, val_A,  NNZ_A  * sizeof(float));
-    aoclsparse_create_mat_csr(csrA, base, M, K, NNZ_A, csr_row_ptr_A, csr_col_ind_A, csr_val_A);
+    aoclsparse_create_scsr(csrA, base, M, K, NNZ_A, csr_row_ptr_A, csr_col_ind_A, csr_val_A);
 
     // Initialise matrix B
     // 	1  2  0
@@ -87,7 +87,7 @@ void aoclsparse_create_csr(aoclsparse_mat_csr &csrA,
     memcpy( csr_row_ptr_B, row_ptr_B, (K + 1) * sizeof(aoclsparse_int));
     memcpy( csr_col_ind_B, col_ind_B,  NNZ_B  * sizeof(aoclsparse_int));
     memcpy( csr_val_B, val_B,  NNZ_B  * sizeof(float));
-    aoclsparse_create_mat_csr(csrB, base, K, N, NNZ_B, csr_row_ptr_B, csr_col_ind_B, csr_val_B);
+    aoclsparse_create_scsr(csrB, base, K, N, NNZ_B, csr_row_ptr_B, csr_col_ind_B, csr_val_B);
     return ;
 }
 
@@ -106,11 +106,11 @@ int main(int argc, char* argv[])
     // Initialise matrix descriptor and csr matrix structure of inputs A and B
     aoclsparse_mat_descr descrA;
     aoclsparse_mat_descr descrB;
-    aoclsparse_mat_csr csrA ;
-    aoclsparse_mat_csr csrB ;
+    aoclsparse_matrix csrA ;
+    aoclsparse_matrix csrB ;
     aoclsparse_create_csr(csrA, csrB, &descrA, &descrB);
 
-    aoclsparse_mat_csr csrC = NULL;
+    aoclsparse_matrix csrC = NULL;
     aoclsparse_int *csr_row_ptr_C = NULL;
     aoclsparse_int *csr_col_ind_C = NULL;
     float         *csr_val_C = NULL;
@@ -231,9 +231,9 @@ int main(int argc, char* argv[])
 #endif
     aoclsparse_destroy_mat_descr(descrA);
     aoclsparse_destroy_mat_descr(descrB);
-    aoclsparse_destroy_mat_csr(csrA);
-    aoclsparse_destroy_mat_csr(csrB);
-    aoclsparse_destroy_mat_csr(csrC);
+    aoclsparse_destroy(csrA);
+    aoclsparse_destroy(csrB);
+    aoclsparse_destroy(csrC);
     return 0;
 
 }

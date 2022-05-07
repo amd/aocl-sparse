@@ -76,11 +76,10 @@ typedef struct _aoclsparse_mat_descr* aoclsparse_mat_descr;
  *
  *  \details
  *  The aoclSPARSE CSR matrix structure holds the CSR matrix. It must be initialized using
- *  aoclsparse_create_mat_csr() and the returned CSR matrix must be passed to all
+ *  aoclsparse_create_(d/s)csr() and the returned CSR matrix must be passed to all
  *  subsequent library calls that involve the matrix. It should be destroyed at the end
- *  using aoclsparse_destroy_mat_csr().
+ *  using aoclsparse_destroy().
  */
-typedef struct _aoclsparse_mat_csr* aoclsparse_mat_csr;
 
 
 typedef struct _aoclsparse_csr* aoclsparse_csr;
@@ -88,6 +87,10 @@ typedef struct _aoclsparse_ell* aoclsparse_ell;
 typedef struct _aoclsparse_ell_csr_hyb* aoclsparse_ell_csr_hyb;
 typedef struct _aoclsparse_matrix* aoclsparse_matrix;
 
+/* TBD To be deprecated structure and API
+ */
+typedef struct _aoclsparse_matrix* aoclsparse_mat_csr;
+#define aoclsparse_destroy_mat_csr aoclsparse_destroy;
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -153,7 +156,7 @@ typedef enum aoclsparse_matrix_data_type_
  *  The sparse routine identification is used across analysis, allocation/deallocation and execution
  *  For a given sparse routine \ref that needs analysing, a corresponding set of allocations
  *  and optimizations are performed. For example, SPMV operation chooses the right MV kernel
- *  based on various factors such as nnz/row etc and does allocations if needed for that MV kernel structure. 
+ *  based on various factors such as nnz/row etc and does allocations if needed for that MV kernel structure.
  */
 typedef enum aoclsparse_hint_type_
 {

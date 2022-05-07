@@ -243,17 +243,17 @@ aoclsparse_diag_type aoclsparse_get_mat_diag_type(const aoclsparse_mat_descr des
  *  \brief Update a \p CSR matrix structure
  *
  *  \details
- *  \p aoclsparse_create_mat_csr updates a structure that holds the matrix in \p CSR
- *  storage format. It should be destroyed at the end using aoclsparse_destroy_mat_csr().
+ *  \p aoclsparse_create_(s/d)csr updates a structure that holds the matrix in \p CSR
+ *  storage format. It should be destroyed at the end using aoclsparse_destroy().
  *
  *  @param[inout]
  *  csr the pointer to the CSR sparse matrix.
  *  @param[in]
  *  base    \ref aoclsparse_index_base_zero or \ref aoclsparse_index_base_one.
  *  @param[in]
- *  m           number of rows of the sparse CSR matrix.
+ *  M           number of rows of the sparse CSR matrix.
  *  @param[in]
- *  n           number of columns of the sparse CSR matrix.
+ *  N           number of columns of the sparse CSR matrix.
  *  @param[in]
  *  csr_nnz     number of non-zero entries of the sparse CSR matrix.
  *  @param[in]
@@ -268,16 +268,7 @@ aoclsparse_diag_type aoclsparse_get_mat_diag_type(const aoclsparse_mat_descr des
  *  \retval aoclsparse_status_success the operation completed successfully.
  *  \retval aoclsparse_status_invalid_pointer \p csr pointer is invalid.
  */
-DLL_PUBLIC
-aoclsparse_status aoclsparse_create_mat_csr(aoclsparse_mat_csr &csr,
-                                         aoclsparse_index_base   base,
-                                         aoclsparse_int          m,
-                                         aoclsparse_int          n,
-                                         aoclsparse_int          csr_nnz,
-                                         aoclsparse_int*         csr_row_ptr,
-                                         aoclsparse_int*         csr_col_ind,
-                                         void*                   csr_val);
-
+/**@{*/
 DLL_PUBLIC
 aoclsparse_status aoclsparse_create_scsr(aoclsparse_matrix &mat,
                     aoclsparse_index_base   base,
@@ -297,7 +288,7 @@ aoclsparse_status aoclsparse_create_dcsr(aoclsparse_matrix &mat,
                     aoclsparse_int*         csr_row_ptr,
                     aoclsparse_int*         csr_col_ptr,
                     double*                 csr_val);
-
+/**@}*/
 
 DLL_PUBLIC
 aoclsparse_status aoclsparse_create_ell(aoclsparse_matrix mat,
@@ -311,7 +302,7 @@ aoclsparse_status aoclsparse_create_ell_csr_hyb(aoclsparse_matrix mat,
                     aoclsparse_int          ell_m,
                     aoclsparse_int*         ell_cold_ind,
                     aoclsparse_int*         csr_row_id_map,
-                    void*                   ell_val);                    
+                    void*                   ell_val);
 
 
 /*! \ingroup aux_module
@@ -344,7 +335,7 @@ aoclsparse_status aoclsparse_create_ell_csr_hyb(aoclsparse_matrix mat,
  *  \retval aoclsparse_status_invalid_pointer \p csr pointer is invalid.
  */
 DLL_PUBLIC
-aoclsparse_status aoclsparse_export_mat_csr(aoclsparse_mat_csr &csr,
+aoclsparse_status aoclsparse_export_mat_csr(aoclsparse_matrix &csr,
            aoclsparse_index_base   *base,
            aoclsparse_int          *M,
            aoclsparse_int          *N,
@@ -353,22 +344,6 @@ aoclsparse_status aoclsparse_export_mat_csr(aoclsparse_mat_csr &csr,
            aoclsparse_int*         *csr_col_ind,
            void*                   *csr_val);
 
-
-/*! \ingroup aux_module
- *  \brief Destroy a \p CSR matrix structure
- *
- *  \details
- *  \p aoclsparse_destroy_mat_csr destroys a structure that holds the matrix in \p CSR
- *  storage format.
- *
- *  @param[in]
- *  csr the pointer to the CSR sparse matrix.
- *
- *  \retval aoclsparse_status_success the operation completed successfully.
- *  \retval aoclsparse_status_invalid_pointer \p csr pointer is invalid.
- */
-DLL_PUBLIC
-aoclsparse_status aoclsparse_destroy_mat_csr(aoclsparse_mat_csr csr);
 
 /*! \ingroup aux_module
  *  \brief Destroy a sparse matrix structure

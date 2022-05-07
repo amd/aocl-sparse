@@ -29,12 +29,12 @@ template <>
 aoclsparse_status aoclsparse_csr2m<double>(
         aoclsparse_operation       transA,
         const aoclsparse_mat_descr descrA,
-        const aoclsparse_mat_csr   csrA,
+        const aoclsparse_matrix    csrA,
         aoclsparse_operation       transB,
         const aoclsparse_mat_descr descrB,
-        const aoclsparse_mat_csr   csrB,
+        const aoclsparse_matrix    csrB,
         aoclsparse_request         request,
-        aoclsparse_mat_csr         *csrC)
+        aoclsparse_matrix          *csrC)
 {
     return aoclsparse_dcsr2m(
             transA,
@@ -51,12 +51,12 @@ template <>
 aoclsparse_status aoclsparse_csr2m<float>(
         aoclsparse_operation       transA,
         const aoclsparse_mat_descr descrA,
-        const aoclsparse_mat_csr   csrA,
+        const aoclsparse_matrix    csrA,
         aoclsparse_operation       transB,
         const aoclsparse_mat_descr descrB,
-        const aoclsparse_mat_csr   csrB,
+        const aoclsparse_matrix    csrB,
         aoclsparse_request         request,
-        aoclsparse_mat_csr         *csrC)
+        aoclsparse_matrix          *csrC)
 {
     return aoclsparse_scsr2m(
             transA,
@@ -73,7 +73,7 @@ template <>
 aoclsparse_status aoclsparse_csrmm(
 	aoclsparse_operation       trans,
 	const float*               alpha,
-	const aoclsparse_mat_csr   csr,
+	const aoclsparse_matrix    csr,
 	const aoclsparse_mat_descr descr,
 	aoclsparse_order           order,
 	const float*               B,
@@ -100,7 +100,7 @@ template <>
 aoclsparse_status aoclsparse_csrmm(
 	aoclsparse_operation       trans,
 	const double*              alpha,
-	const aoclsparse_mat_csr   csr,
+	const aoclsparse_matrix    csr,
 	const aoclsparse_mat_descr descr,
 	aoclsparse_order           order,
 	const double*              B,
@@ -353,12 +353,12 @@ aoclsparse_status aoclsparse_ellthybmv(
         const double*              ell_val,
         const aoclsparse_int*      ell_col_ind,
         const aoclsparse_int       ell_width,
-        const aoclsparse_int       ell_m,	
+        const aoclsparse_int       ell_m,
         const double*               csr_val,
         const aoclsparse_int*      csr_row_ind,
         const aoclsparse_int*      csr_col_ind,
         aoclsparse_int*            row_idx_map,
-        aoclsparse_int*            csr_row_idx_map,	
+        aoclsparse_int*            csr_row_idx_map,
         const aoclsparse_mat_descr descr,
         const double*              x,
         const double*              beta,
@@ -377,7 +377,7 @@ aoclsparse_status aoclsparse_ellthybmv(
             csr_row_ind,
             csr_col_ind,
             row_idx_map,
-            csr_row_idx_map,	    
+            csr_row_idx_map,
             descr,
             x,
             beta,
@@ -407,7 +407,7 @@ aoclsparse_status aoclsparse_mv(
 
 template <>
 aoclsparse_status aoclsparse_mv(
-		aoclsparse_operation       op,	
+		aoclsparse_operation       op,
         const double*               alpha,
         aoclsparse_matrix       A,
         const aoclsparse_mat_descr descr,
@@ -758,7 +758,7 @@ aoclsparse_status aoclsparse_csr2dia(
 	    dia_val);
 }
 
-    template <>
+template <>
 aoclsparse_status aoclsparse_csr2bsr(
 	aoclsparse_int       m,
 	aoclsparse_int       n,
@@ -899,41 +899,41 @@ aoclsparse_status aoclsparse_csr2dense(
 
 template <>
 aoclsparse_status aoclsparse_ilu_smoother(
-		aoclsparse_operation       	op,
-        aoclsparse_matrix       	A,
-        const aoclsparse_mat_descr 	descr,
-		const float*                diag,
-		const float*                approx_inv_diag,		
-        float*               		x,
-        const float*                b)
-{	
+	aoclsparse_operation       	op,
+	aoclsparse_matrix       	A,
+	const aoclsparse_mat_descr 	descr,
+	const float*                diag,
+	const float*                approx_inv_diag,
+	float*               		x,
+	const float*                b)
+{
     return aoclsparse_silu_smoother(op,
-									A,
-									descr,
-									diag,
-									approx_inv_diag,			
-									x,
-									b);
+	    A,
+	    descr,
+	    diag,
+	    approx_inv_diag,
+	    x,
+	    b);
 
 }
 
 template <>
 aoclsparse_status aoclsparse_ilu_smoother(
-		aoclsparse_operation       			op,	
-        aoclsparse_matrix       			A,
-        const aoclsparse_mat_descr 			descr,
-		const double*                   	diag,
-		const double*                   	approx_inv_diag,		
-        double*               				x,
-        const double*                     	b)
-{	
+	aoclsparse_operation       			op,
+	aoclsparse_matrix       			A,
+	const aoclsparse_mat_descr 			descr,
+	const double*                   	diag,
+	const double*                   	approx_inv_diag,
+	double*               				x,
+	const double*                     	b)
+{
     return aoclsparse_dilu_smoother(op,
-									A,
-									descr,
-									diag,
-									approx_inv_diag,			
-									x,
-									b);
+	    A,
+	    descr,
+	    diag,
+	    approx_inv_diag,
+	    x,
+	    b);
 
 }
 
@@ -946,15 +946,15 @@ aoclsparse_status aoclsparse_create_csr(aoclsparse_matrix &mat,
                     aoclsparse_int*         csr_row_ptr,
                     aoclsparse_int*         csr_col_ptr,
                     float*                  csr_val)
-{	
-    return aoclsparse_create_scsr(mat, 
-								base, 
-								M, 
-								N, 
-								csr_nnz, 
-								csr_row_ptr, 
-								csr_col_ptr, 
-								csr_val);
+{
+    return aoclsparse_create_scsr(mat,
+	    base,
+	    M,
+	    N,
+	    csr_nnz,
+	    csr_row_ptr,
+	    csr_col_ptr,
+	    csr_val);
 }
 template <>
 aoclsparse_status aoclsparse_create_csr(aoclsparse_matrix &mat,
@@ -965,13 +965,13 @@ aoclsparse_status aoclsparse_create_csr(aoclsparse_matrix &mat,
                     aoclsparse_int*         csr_row_ptr,
                     aoclsparse_int*         csr_col_ptr,
                     double*                 csr_val)
-{	
-    return aoclsparse_create_dcsr(mat, 
-								base, 
-								M, 
-								N, 
-								csr_nnz, 
-								csr_row_ptr, 
-								csr_col_ptr, 
-								csr_val);
+{
+    return aoclsparse_create_dcsr(mat,
+	    base,
+	    M,
+	    N,
+	    csr_nnz,
+	    csr_row_ptr,
+	    csr_col_ptr,
+	    csr_val);
 }

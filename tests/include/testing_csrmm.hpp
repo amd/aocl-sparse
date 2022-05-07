@@ -187,8 +187,8 @@ void testing_csrmm(const Arguments& arg)
     aoclsparse_int ncolB = order == aoclsparse_order_column ? B_n : ldb;
     aoclsparse_int nrowC = order == aoclsparse_order_column ? ldc : C_m;
     aoclsparse_int ncolC = order == aoclsparse_order_column ? C_n : ldc;
-    aoclsparse_mat_csr csr;
-    aoclsparse_create_mat_csr(csr, base, A_m, A_n, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data());
+    aoclsparse_matrix csr;
+    aoclsparse_create_csr(csr, base, A_m, A_n, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data());
     // Allocate memory for matrix
     std::vector<T> B(nrowB * ncolB);
     std::vector<T> C(nrowC * ncolC);

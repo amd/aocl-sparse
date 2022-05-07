@@ -41,18 +41,18 @@ template <typename T>
 aoclsparse_status aoclsparse_csr2m(
 		aoclsparse_operation       transA,
 		const aoclsparse_mat_descr descrA,
-		const aoclsparse_mat_csr   csrA,
+		const aoclsparse_matrix    csrA,
 		aoclsparse_operation       transB,
 		const aoclsparse_mat_descr descrB,
-		const aoclsparse_mat_csr   csrB,
+		const aoclsparse_matrix    csrB,
 		aoclsparse_request         request,
-		aoclsparse_mat_csr         *csrC);
+		aoclsparse_matrix          *csrC);
 
 template <typename T>
 aoclsparse_status aoclsparse_csrmm(
 	aoclsparse_operation       trans,
 	const T*                   alpha,
-	const aoclsparse_mat_csr   csr,
+	const aoclsparse_matrix    csr,
 	const aoclsparse_mat_descr descr,
 	aoclsparse_order           order,
 	const T*                   B,
@@ -131,7 +131,7 @@ aoclsparse_status aoclsparse_ellthybmv(
         const aoclsparse_mat_descr descr,
         const T*                   x,
         const T*                   beta,
-        T*                         y);		
+        T*                         y);
 
 template <typename T>
 aoclsparse_status aoclsparse_mv(
@@ -142,7 +142,7 @@ aoclsparse_status aoclsparse_mv(
         const T*                   x,
         const T*                   beta,
         T*                         y);
-  
+
 
 template <typename T>
 aoclsparse_status aoclsparse_diamv(
@@ -272,13 +272,13 @@ aoclsparse_status aoclsparse_csr2dense(
  */
 template <typename T>
 aoclsparse_status aoclsparse_ilu_smoother(
-		aoclsparse_operation       	trans,        
-        aoclsparse_matrix       	A,
-        const aoclsparse_mat_descr 	descr,
-		const T*                   	diag,
-		const T*                   	approx_inv_diag,
-        T*                   		x,        
-        const T*                    b);
+	aoclsparse_operation       	trans,
+	aoclsparse_matrix       	A,
+	const aoclsparse_mat_descr 	descr,
+	const T*                   	diag,
+	const T*                   	approx_inv_diag,
+	T*                   		x,
+	const T*                    b);
 
 /*
  * ===========================================================================
