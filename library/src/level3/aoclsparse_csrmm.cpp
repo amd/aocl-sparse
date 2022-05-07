@@ -24,14 +24,14 @@
 #include "aoclsparse.h"
 #include "aoclsparse_csrmm.hpp"
 #include "aoclsparse_descr.h"
-#include "aoclsparse_mat_csr.h"
+#include "aoclsparse_mat_structures.h"
 #include <algorithm>
 #include <cmath>
 
 template <typename T>
 aoclsparse_status aoclsparse_csrmm_template(aoclsparse_operation     trans,
 	const T*                   alpha,
-	const aoclsparse_mat_csr   csr,
+	const aoclsparse_matrix    csr,
 	const aoclsparse_mat_descr descr,
 	aoclsparse_order           order,
 	const T*                   B,
@@ -53,10 +53,10 @@ aoclsparse_status aoclsparse_csrmm_template(aoclsparse_operation     trans,
     }
     aoclsparse_int             m = csr->m;
     aoclsparse_int             k = csr->n;
-    aoclsparse_int             nnz = csr->csr_nnz;
-    const T*                   csr_val = static_cast<T*>(csr->csr_val);
-    const aoclsparse_int*      csr_col_ind = csr->csr_col_ind;
-    const aoclsparse_int*      csr_row_ptr = csr->csr_row_ptr;
+    aoclsparse_int             nnz = csr->nnz;
+    const T*                   csr_val = static_cast<T*>(csr->csr_mat.csr_val);
+    const aoclsparse_int*      csr_col_ind = csr->csr_mat.csr_col_ptr;
+    const aoclsparse_int*      csr_row_ptr = csr->csr_mat.csr_row_ptr;
     if(trans != aoclsparse_operation_none)
     {
 	// TODO
@@ -154,7 +154,7 @@ aoclsparse_status aoclsparse_csrmm_template(aoclsparse_operation     trans,
 template aoclsparse_status aoclsparse_csrmm_template<TTYPE>( \
 	    aoclsparse_operation       trans,                                    \
 	    const TTYPE*               alpha,                                    \
-	    const aoclsparse_mat_csr   csr,                                      \
+	    const aoclsparse_matrix    csr,                                      \
 	    const aoclsparse_mat_descr descr,                                    \
 	    aoclsparse_order           order,                                    \
 	    const TTYPE*               B,                                        \
@@ -176,7 +176,7 @@ INSTANTIATE(double);
 #define C_IMPL(NAME, TYPE)                                                  \
 extern "C" aoclsparse_status NAME(aoclsparse_operation      trans,     \
 	    const TYPE*                alpha,       \
-	    const aoclsparse_mat_csr   csr,         \
+	    const aoclsparse_matrix    csr,         \
 	    const aoclsparse_mat_descr descr,       \
 	    aoclsparse_order           order,       \
 	    const TYPE*                B,           \

@@ -26,12 +26,12 @@
 aoclsparse_status aoclsparse_dcsr2m(
         aoclsparse_operation       transA,
         const aoclsparse_mat_descr descrA,
-        const aoclsparse_mat_csr   csrA,
+        const aoclsparse_matrix    csrA,
         aoclsparse_operation       transB,
         const aoclsparse_mat_descr descrB,
-        const aoclsparse_mat_csr   csrB,
+        const aoclsparse_matrix    csrB,
         aoclsparse_request         request,
-        aoclsparse_mat_csr         *csrC)
+        aoclsparse_matrix          *csrC)
 {
     return aoclsparse_csr2m_template<double>(
             transA,
@@ -47,12 +47,12 @@ aoclsparse_status aoclsparse_dcsr2m(
 aoclsparse_status aoclsparse_scsr2m(
         aoclsparse_operation       transA,
         const aoclsparse_mat_descr descrA,
-        const aoclsparse_mat_csr   csrA,
+        const aoclsparse_matrix    csrA,
         aoclsparse_operation       transB,
         const aoclsparse_mat_descr descrB,
-        const aoclsparse_mat_csr   csrB,
+        const aoclsparse_matrix    csrB,
         aoclsparse_request         request,
-        aoclsparse_mat_csr         *csrC)
+        aoclsparse_matrix          *csrC)
 {
     return aoclsparse_csr2m_template<float>(
             transA,

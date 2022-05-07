@@ -29,7 +29,7 @@
 
 /********************************************************************************
  * \brief aoclsparse_csr is a structure holding the aoclsparse matrix
- * in csr format. It must be initialized using aoclsparse_create_mat_csr()
+ * in csr format. It must be initialized using aoclsparse_create_(s/d)csr()
  * and the retured handle must be passed to all subsequent library function
  * calls that involve the matrix.
  * It should be destroyed at the end using aoclsparse_destroy_mat_structs().
@@ -77,7 +77,7 @@ struct _aoclsparse_ell_csr_hyb
  //   aoclsparse_int* row_id_map =  nullptr;
     aoclsparse_int* csr_col_ptr = nullptr;   // points to the corresponding CSR pointer
     void*          csr_val     = nullptr;    // points to the corresponding CSR pointer
-    
+
 
 };
 
@@ -106,8 +106,8 @@ struct _aoclsparse_matrix
     aoclsparse_int nnz;
     bool optimized = false;
     aoclsparse_index_base base = aoclsparse_index_base_zero;
-    aoclsparse_matrix_data_type val_type = aoclsparse_dmat;  
-    aoclsparse_matrix_format_type mat_type = aoclsparse_csr_mat;    
+    aoclsparse_matrix_data_type val_type = aoclsparse_dmat;
+    aoclsparse_matrix_format_type mat_type = aoclsparse_csr_mat;
     aoclsparse_hint_type hint_id = aoclsparse_none;
 
     // csr matrix
@@ -120,7 +120,7 @@ struct _aoclsparse_matrix
     struct _aoclsparse_ell ell_mat;
 
     // ell-csr-hyb matrix
-    struct _aoclsparse_ell_csr_hyb ell_csr_hyb_mat;   
+    struct _aoclsparse_ell_csr_hyb ell_csr_hyb_mat;
 
     //ilu members
     struct _aoclsparse_ilu ilu_info;

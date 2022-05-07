@@ -26,7 +26,7 @@
 
 #include "aoclsparse.h"
 #include "aoclsparse_descr.h"
-#include "aoclsparse_mat_csr.h"
+#include "aoclsparse_mat_structures.h"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -207,12 +207,12 @@ template <typename T>
 aoclsparse_status aoclsparse_csr2m_template(
         aoclsparse_operation       transA,
         const aoclsparse_mat_descr descrA,
-        const aoclsparse_mat_csr   csrA,
+        const aoclsparse_matrix    csrA,
         aoclsparse_operation       transB,
         const aoclsparse_mat_descr descrB,
-        const aoclsparse_mat_csr   csrB,
+        const aoclsparse_matrix    csrB,
         aoclsparse_request         request,
-        aoclsparse_mat_csr         *csrC)
+        aoclsparse_matrix          *csrC)
 {
     // Check for valid handle and matrix descriptor
     if((descrA == nullptr) ||(descrB == nullptr))
@@ -251,19 +251,6 @@ aoclsparse_status aoclsparse_csr2m_template(
     if(csrA->n != csrB->m)
         return aoclsparse_status_invalid_value;
 
-    /*
-        Since CSR2M does not call Hint and Optimize, an explicit
-        one-time hint id setting needs to happen in the beginninng of 
-        execution API, which is here.
-        All the subsequent calls to csr2m API would be like NOPs
-    */
-    //aoclsparse_int twom_hint; 
-    //twom_hint = ((*csrC)->hint_id & aoclsparse_2m) >> 3;  
-    //if(!twom_hint)
-    //{
-    //    (*csrC)->hint_id = static_cast<aoclsparse_hint_type>(A->hint_id | aoclsparse_2m);
-    //}  
-
     switch (request) {
 
         case aoclsparse_stage_nnz_count:
@@ -276,30 +263,30 @@ aoclsparse_status aoclsparse_csr2m_template(
                 aoclsparse_csr2m_nnz_count( m,
                         n,
                         &nnz_C,
-                        csrA->csr_row_ptr,
-                        csrA->csr_col_ind,
-                        csrB->csr_row_ptr,
-                        csrB->csr_col_ind,
+                        csrA->csr_mat.csr_row_ptr,
+                        csrA->csr_mat.csr_col_ptr,
+                        csrB->csr_mat.csr_row_ptr,
+                        csrB->csr_mat.csr_col_ptr,
                         csr_row_ptr_C);
-                *csrC = new _aoclsparse_mat_csr;
+                *csrC = new _aoclsparse_matrix ;
                 (*csrC)->m = m;
                 (*csrC)->n = n;
-                (*csrC)->csr_nnz = nnz_C;
-                (*csrC)->csr_row_ptr = csr_row_ptr_C;
+                (*csrC)->nnz = nnz_C;
+                (*csrC)->csr_mat.csr_row_ptr = csr_row_ptr_C;
                 break;
             }
         case aoclsparse_stage_finalize:
             {
-                if(((*csrC)->m == 0) || ((*csrC)->n == 0) || ((*csrC)->csr_nnz == 0))
+                if(((*csrC)->m == 0) || ((*csrC)->n == 0) || ((*csrC)->nnz == 0))
                     return aoclsparse_status_invalid_value;
-                if((*csrC)->csr_row_ptr == nullptr)
+                if((*csrC)->csr_mat.csr_row_ptr == nullptr)
                     return aoclsparse_status_invalid_pointer;
 
                 aoclsparse_int m = (*csrC)->m;
                 aoclsparse_int n = (*csrC)->n;
-                aoclsparse_int nnz_C = (*csrC)->csr_nnz;
+                aoclsparse_int nnz_C = (*csrC)->nnz;
 
-                aoclsparse_int *csr_row_ptr_C = (*csrC)->csr_row_ptr;
+                aoclsparse_int *csr_row_ptr_C = (*csrC)->csr_mat.csr_row_ptr;
                 aoclsparse_int *csr_col_ind_C = (aoclsparse_int *)malloc(nnz_C * sizeof(aoclsparse_int));
                 T *csr_val_C = (T *)malloc(nnz_C * sizeof(T));
 
@@ -309,18 +296,18 @@ aoclsparse_status aoclsparse_csr2m_template(
 
                 aoclsparse_csr2m_finalize( m,
                         n,
-                        csrA->csr_row_ptr,
-                        csrA->csr_col_ind,
-                        (const T*)csrA->csr_val,
-                        csrB->csr_row_ptr,
-                        csrB->csr_col_ind,
-                        (const T*)csrB->csr_val,
+                        csrA->csr_mat.csr_row_ptr,
+                        csrA->csr_mat.csr_col_ptr,
+                        (const T*)csrA->csr_mat.csr_val,
+                        csrB->csr_mat.csr_row_ptr,
+                        csrB->csr_mat.csr_col_ptr,
+                        (const T*)csrB->csr_mat.csr_val,
                         csr_row_ptr_C,
                         csr_col_ind_C,
                         csr_val_C);
 
-                (*csrC)->csr_col_ind = csr_col_ind_C;
-                (*csrC)->csr_val = csr_val_C;
+                (*csrC)->csr_mat.csr_col_ptr = csr_col_ind_C;
+                (*csrC)->csr_mat.csr_val = csr_val_C;
                 break;
             }
         case aoclsparse_stage_full_computation:
@@ -333,10 +320,10 @@ aoclsparse_status aoclsparse_csr2m_template(
                 aoclsparse_csr2m_nnz_count( m,
                         n,
                         &nnz_C,
-                        csrA->csr_row_ptr,
-                        csrA->csr_col_ind,
-                        csrB->csr_row_ptr,
-                        csrB->csr_col_ind,
+                        csrA->csr_mat.csr_row_ptr,
+                        csrA->csr_mat.csr_col_ptr,
+                        csrB->csr_mat.csr_row_ptr,
+                        csrB->csr_mat.csr_col_ptr,
                         csr_row_ptr_C);
 
                 aoclsparse_int *csr_col_ind_C = (aoclsparse_int *)malloc(nnz_C * sizeof(aoclsparse_int));
@@ -348,28 +335,41 @@ aoclsparse_status aoclsparse_csr2m_template(
 
                 aoclsparse_csr2m_finalize( m,
                         n,
-                        csrA->csr_row_ptr,
-                        csrA->csr_col_ind,
-                        (const T*)csrA->csr_val,
-                        csrB->csr_row_ptr,
-                        csrB->csr_col_ind,
-                        (const T*)csrB->csr_val,
+                        csrA->csr_mat.csr_row_ptr,
+                        csrA->csr_mat.csr_col_ptr,
+                        (const T*)csrA->csr_mat.csr_val,
+                        csrB->csr_mat.csr_row_ptr,
+                        csrB->csr_mat.csr_col_ptr,
+                        (const T*)csrB->csr_mat.csr_val,
                         csr_row_ptr_C,
                         csr_col_ind_C,
                         csr_val_C);
-                *csrC = new _aoclsparse_mat_csr;
+                *csrC = new _aoclsparse_matrix ;
                 (*csrC)->m = m;
                 (*csrC)->n = n;
-                (*csrC)->csr_nnz = nnz_C;
-                (*csrC)->csr_row_ptr = csr_row_ptr_C;
-                (*csrC)->csr_col_ind = csr_col_ind_C;
-                (*csrC)->csr_val = csr_val_C;
+                (*csrC)->nnz = nnz_C;
+                (*csrC)->csr_mat.csr_row_ptr = csr_row_ptr_C;
+                (*csrC)->csr_mat.csr_col_ptr = csr_col_ind_C;
+                (*csrC)->csr_mat.csr_val = csr_val_C;
                 break;
             }
         default:
             return aoclsparse_status_invalid_value;
 
     }
+    /*
+       Since CSR2M does not call Hint and Optimize, an explicit
+       one-time hint id setting needs to happen in the beginninng of
+       execution API, which is here.
+       All the subsequent calls to csr2m API would be like NOPs
+       */
+    aoclsparse_int twom_hint;
+    twom_hint = ((*csrC)->hint_id & aoclsparse_2m) >> 3;
+    if(!twom_hint)
+    {
+	(*csrC)->hint_id = static_cast<aoclsparse_hint_type>((*csrC)->hint_id | aoclsparse_2m);
+    }
+
     return aoclsparse_status_success;
 }
 

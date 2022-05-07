@@ -708,7 +708,7 @@ aoclsparse_status aoclsparse_dcsrsv(aoclsparse_operation       trans,
 DLL_PUBLIC
 aoclsparse_status aoclsparse_scsrmm(aoclsparse_operation     trans_A,
                                   const float*               alpha,
-                                  const aoclsparse_mat_csr   csr,
+                                  const aoclsparse_matrix    csr,
                                   const aoclsparse_mat_descr descr,
                                   aoclsparse_order           order,
                                   const float*               B,
@@ -721,7 +721,7 @@ aoclsparse_status aoclsparse_scsrmm(aoclsparse_operation     trans_A,
 DLL_PUBLIC
 aoclsparse_status aoclsparse_dcsrmm(aoclsparse_operation     trans_A,
                                   const double*              alpha,
-                                  const aoclsparse_mat_csr   csr,
+                                  const aoclsparse_matrix    csr,
                                   const aoclsparse_mat_descr descr,
                                   aoclsparse_order           order,
                                   const double*              B,
@@ -803,12 +803,12 @@ aoclsparse_status aoclsparse_dcsrmm(aoclsparse_operation     trans_A,
  *  \par Example
  *  Shows multiplication of 2 sparse matrices to give a newly allocated sparse matrix
  *  \code{.c}
- *  	aoclsparse_mat_csr csrA;
- *  	aoclsparse_create_mat_csr(csrA, base, M, K, nnz_A, csr_row_ptr_A.data(), csr_col_ind_A.data(), csr_val_A.data());
- *  	aoclsparse_mat_csr csrB;
- *  	aoclsparse_create_mat_csr(csrB, base, K, N, nnz_B, csr_row_ptr_B.data(), csr_col_ind_B.data(), csr_val_B.data());
+ *  	aoclsparse_matrix  csrA;
+ *  	aoclsparse_create_dcsr(csrA, base, M, K, nnz_A, csr_row_ptr_A.data(), csr_col_ind_A.data(), csr_val_A.data());
+ *  	aoclsparse_matrix  csrB;
+ *  	aoclsparse_create_dcsr(csrB, base, K, N, nnz_B, csr_row_ptr_B.data(), csr_col_ind_B.data(), csr_val_B.data());
  *
- * 	aoclsparse_mat_csr csrC = NULL;
+ * 	aoclsparse_matrix  csrC = NULL;
  * 	aoclsparse_int *csr_row_ptr_C = NULL;
  * 	aoclsparse_int *csr_col_ind_C = NULL;
  * 	double             *csr_val_C = NULL;
@@ -840,22 +840,22 @@ aoclsparse_status aoclsparse_dcsrmm(aoclsparse_operation     trans_A,
 DLL_PUBLIC
 aoclsparse_status aoclsparse_dcsr2m(aoclsparse_operation     trans_A,
 	    const aoclsparse_mat_descr descrA,
-	    const aoclsparse_mat_csr   csrA,
+	    const aoclsparse_matrix    csrA,
 	    aoclsparse_operation       trans_B,
 	    const aoclsparse_mat_descr descrB,
-	    const aoclsparse_mat_csr   csrB,
+	    const aoclsparse_matrix    csrB,
 	    const aoclsparse_request   request,
-	    aoclsparse_mat_csr         *csrC);
+	    aoclsparse_matrix          *csrC);
 
 DLL_PUBLIC
 aoclsparse_status aoclsparse_scsr2m(aoclsparse_operation     trans_A,
 	    const aoclsparse_mat_descr descrA,
-	    const aoclsparse_mat_csr   csrA,
+	    const aoclsparse_matrix    csrA,
 	    aoclsparse_operation       trans_B,
 	    const aoclsparse_mat_descr descrB,
-	    const aoclsparse_mat_csr   csrB,
+	    const aoclsparse_matrix    csrB,
 	    const aoclsparse_request   request,
-	    aoclsparse_mat_csr         *csrC);
+	    aoclsparse_matrix          *csrC);
 /**@}*/
 
 DLL_PUBLIC
@@ -880,10 +880,10 @@ aoclsparse_status aoclsparse_smv(aoclsparse_operation     op,
 /**@}*/
 
 /*! \ingroup solver_module
- *  \brief Sparse Iterative solver algorithms 
+ *  \brief Sparse Iterative solver algorithms
  *  for single and double precision datatypes.
  *  \details
- *  \p aoclsparse_ilu_smoother performs Incomplete LU factorization on the sparse matrix 
+ *  \p aoclsparse_ilu_smoother performs Incomplete LU factorization on the sparse matrix
  *  \p A, defined in CSR storage format and also does an iterative LU solve to find an approximate \p x
  *
  *  @param[in]
@@ -894,14 +894,14 @@ aoclsparse_status aoclsparse_smv(aoclsparse_operation     op,
  *  descr      descriptor of the sparse matrix handle \p A. Currently, only
  *              \ref aoclsparse_matrix_type_symmetric is supported.
  *  @param[in]
- *  diag        array of \p n elements vector that contains diagonal elements of 
+ *  diag        array of \p n elements vector that contains diagonal elements of
  *              sparse CSR matrix \p A. It is unused as of now.
  *  @param[in]
  *  approx_inv_diag     It is unused as of now.
  *  @param[out]
  *  x           array of \p n element vector found using the known values of CSR matrix \p A and
  *              resultant vector product \p b in Ax = b. Every call to the API gives an iterative
- *              update of \p x, whcih is used to find norm during LU solve phase. 
+ *              update of \p x, whcih is used to find norm during LU solve phase.
  *              Norm and Relative Error % decides the convergence of \p x wrt \p x_ref
  *  @param[in]
  *  b           array of \p m elements which is the result of \p A and \p x in Ax = b. b is calculated
@@ -933,8 +933,8 @@ aoclsparse_status aoclsparse_smv(aoclsparse_operation     op,
  *     //loop needs to iterate until the vector x generates a minimum norm between x_ref and
  *     //x or to a specific no of iterations or untill the error % between old and new x is minimum
  *     while(iter < g_max_iters)
- *     {          
- *         aoclsparse_copy_vector(x, x_old, N);  
+ *     {
+ *         aoclsparse_copy_vector(x, x_old, N);
  *         //just performs a LU Solve operation using old vector of x to produce
  *         // an update for new vector of x
  *         aoclsparse_dilu_smoother(trans,
@@ -943,13 +943,13 @@ aoclsparse_status aoclsparse_smv(aoclsparse_operation     op,
  *                                 diag,
  *                                 approx_inv_diag,
  *                                 x,
- *                                 b);      
- *         //minimise error percentage to find a better update for x  
+ *                                 b);
+ *         //minimise error percentage to find a better update for x
  *         iter++;
- *     } 
- *  
+ *     }
+ *
  *  \endcode
- * 
+ *
 */
 
 /**@{*/
@@ -958,8 +958,8 @@ aoclsparse_status aoclsparse_dilu_smoother(aoclsparse_operation     op,
                                   aoclsparse_matrix A,
                                   const aoclsparse_mat_descr descr,
                                   const double*                   	diag,
-                                  const double*                   	approx_inv_diag,                                   
-                                  double*             x,                                        
+                                  const double*                   	approx_inv_diag,
+                                  double*             x,
                                   const double*                   b);
 
 DLL_PUBLIC
@@ -967,8 +967,8 @@ aoclsparse_status aoclsparse_silu_smoother(aoclsparse_operation     op,
                                   aoclsparse_matrix A,
                                   const aoclsparse_mat_descr descr,
                                   const float*                   	diag,
-                                  const float*                   	approx_inv_diag,                                        
-                                  float*             x,                            
+                                  const float*                   	approx_inv_diag,
+                                  float*             x,
                                   const float*                   b);
 /**@}*/
 #ifdef __cplusplus
