@@ -44,33 +44,45 @@ int main(int argc, char* argv[])
     // and aoclsparse_index_base to aoclsparse_index_base_zero.
     aoclsparse_create_mat_descr(&descr);
 
+    aoclsparse_index_base base = aoclsparse_index_base_zero;
+
     // Initialise matrix
+    //  1  0  0  2  0
+    //  0  3  0  0  0
+    //  0  0  4  0  0
+    //  0  5  0  6  7
+    //  0  0  0  0  8
     aoclsparse_int csr_row_ptr[M+1] = {0, 2, 3, 4, 7, 8};
     aoclsparse_int csr_col_ind[NNZ]= {0, 3, 1, 2, 1, 3, 4, 4};
-    double         csr_val[NNZ] = {1 , 6 , 1.050e+01, 1.500e-02, 2.505e+02, -2.800e+02 , 3.332e+01 , 1.200e+01};
+    double         csr_val[NNZ] = {1, 2, 3, 4, 5, 6, 7, 8};
+    aoclsparse_matrix A;
+    aoclsparse_create_dcsr(A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
+
     // Initialise vectors
     double x[N] = { 1.0, 2.0, 3.0, 4.0, 5.0};
     double y[M];
 
-    std::cout << "Invoking aoclsparse_dcsrmv..";
-    //Invoke SPMV API for CSR storage format(double precision)
-    aoclsparse_dcsrmv(trans,
-                      &alpha,
-                      M,
-                      N,
-                      NNZ,
-                      csr_val,
-                      csr_col_ind,
-                      csr_row_ptr,
-                      descr,
-                      x,
-                      &beta,
-                      y);
+    //to identify hint id(which routine is to be executed, destroyed later)
+    aoclsparse_set_mv_hint(A, trans, descr, 0);
+
+    // Optimize the matrix, "A"
+    aoclsparse_optimize(A);
+
+    std::cout << "Invoking aoclsparse_dmv..";
+    //Invoke SPMV API (double precision)
+    aoclsparse_dmv(trans,
+	    &alpha,
+	    A,
+	    descr,
+	    x,
+	    &beta,
+	    y);
     std::cout << "Done." << std::endl;
     std::cout << "Output Vector:" << std::endl;
     for(aoclsparse_int i=0;i < M; i++)
-        std::cout << y[i] << std::endl;
+	std::cout << y[i] << std::endl;
 
     aoclsparse_destroy_mat_descr(descr);
+    aoclsparse_destroy(A);
     return 0;
 }
