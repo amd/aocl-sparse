@@ -144,8 +144,23 @@ aoclsparse_status aoclsparse_mv_template(aoclsparse_operation  op,
                                     const float                beta,
                                     float*                     y)
 {
-    // ToDo: float version need to be implemented
-    return aoclsparse_status_not_implemented;
+    // ToDo: optimized float versions need to be implemented
+    if (A->mat_type == aoclsparse_csr_mat) {
+        return(aoclsparse_scsrmv(op,
+                    &alpha,
+                    A->m,
+                    A->n,
+                    A->nnz,
+                    (float *) A->csr_mat.csr_val,
+                    A->csr_mat.csr_col_ptr,
+                    A->csr_mat.csr_row_ptr,
+                    descr,
+                    x,
+                    &beta,
+                    y));
+    } else {    
+       return aoclsparse_status_not_implemented;
+    }
 }
 
 aoclsparse_status aoclsparse_mv_template(aoclsparse_operation   op,

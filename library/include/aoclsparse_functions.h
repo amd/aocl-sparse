@@ -276,6 +276,7 @@ aoclsparse_status aoclsparse_dellmv(aoclsparse_operation       trans,
                                    double*                   y );
 /**@}*/
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 
 DLL_PUBLIC
 aoclsparse_status aoclsparse_selltmv(aoclsparse_operation       trans,
@@ -344,6 +345,8 @@ aoclsparse_status aoclsparse_dellthybmv(aoclsparse_operation       trans,
                                    const double*             x,
                                    const double*            beta,
                                    double*                   y );
+
+#endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
 /*! \ingroup level2_module
  *  \brief Single & Double precision sparse matrix vector multiplication using DIA storage format
@@ -535,6 +538,106 @@ aoclsparse_status aoclsparse_dbsrmv(aoclsparse_operation       trans,
                                     const double*             beta,
                                     double*                   y
                                     );
+
+/**@}*/
+
+
+
+/*! \ingroup level2_module
+ *  \brief Single & Double precision sparse matrix vector multiplication using optimized mv routines
+ *
+ *  \details
+ *  \p aoclsparse_?mv multiplies the scalar \f$\alpha\f$ with a sparse \f$m \times n\f$
+ *  matrix, defined in a sparse storage format, and the dense vector \f$x\f$ and adds the
+ *  result to the dense vector \f$y\f$ that is multiplied by the scalar \f$\beta\f$,
+ *  such that
+ *  \f[
+ *    y := \alpha \cdot op(A) \cdot x + \beta \cdot y,
+ *  \f]
+ *  with
+ *  \f[
+ *    op(A) = \left\{
+ *    \begin{array}{ll}
+ *        A,   & \text{if\: trans == aoclsparse\_operation\_none} \\
+ *        A^T, & \text{if\: trans == aoclsparse\_operation\_transpose} \\
+ *        A^H, & \text{if\: trans == aoclsparse\_operation\_conjugate\_transpose}
+ *    \end{array}
+ *    \right.
+ *  \f]
+ *
+ *
+ *  \note
+ *  Currently, only \p trans == \ref aoclsparse_operation_none is supported.
+ *  Currently, for \ref aoclsparse_matrix_type == \ref aoclsparse_matrix_type_symmetric,
+ *  only lower triangular matrices are supported.
+ *
+ *  @param[in]
+ *  trans       matrix operation type.
+ *  @param[in]
+ *  alpha       scalar \f$\alpha\f$.
+ *  @param[in]
+ *  A           the sparse matrix structure that is created using
+ *              \ref aoclsparse_create_dcsr.
+ *  @param[in]
+ *  descr       descriptor of the sparse CSR matrix. Currently, only
+ *              \ref aoclsparse_matrix_type_general and
+ *              \ref aoclsparse_matrix_type_symmetric is supported.
+ *  @param[in]
+ *  x           array of \p n elements (\f$op(A) == A\f$) or \p m elements
+ *              (\f$op(A) == A^T\f$ or \f$op(A) == A^H\f$).
+ *  @param[in]
+ *  beta        scalar \f$\beta\f$.
+ *  @param[inout]
+ *  y           array of \p m elements (\f$op(A) == A\f$) or \p n elements
+ *              (\f$op(A) == A^T\f$ or \f$op(A) == A^H\f$).
+ *
+ *  \retval     aoclsparse_status_success the operation completed successfully.
+ *  \retval     aoclsparse_status_invalid_size \p m, \p n or \p nnz is invalid.
+ *  \retval     aoclsparse_status_invalid_pointer \p descr, \p alpha, \p internal 
+ *              structures related to the sparse matrix \p A, \p x, \p beta or \p y has 
+ *              an invalid pointer.
+ *  \retval     aoclsparse_status_not_implemented
+ *              \p trans != \ref aoclsparse_operation_none or
+ *              \ref aoclsparse_matrix_type != \ref aoclsparse_matrix_type_general.
+ *              \ref aoclsparse_matrix_type != \ref aoclsparse_matrix_type_symmetric.
+ *
+ *  \par Example
+ *  This example performs a sparse matrix vector multiplication in CSR format
+ *  using additional meta data to improve performance.
+ *  \code{.c}
+ *      // Compute y = Ax
+ *      aoclsparse_dmv(trans,
+ *                     &alpha,
+ *                     A,
+ *                    descr,
+ *                    x,
+ *                    &beta,
+ *                    y);
+ *
+ *      // Do more work
+ *      // ...
+ *
+ *  \endcode
+ */
+/**@{*/
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_smv(aoclsparse_operation     op,
+                                  const float*              alpha,
+                                  aoclsparse_matrix A,
+                                  const aoclsparse_mat_descr descr,
+                                  const float*             x,
+                                  const float*             beta,
+                                  float*                   y);
+ 
+DLL_PUBLIC
+aoclsparse_status aoclsparse_dmv(aoclsparse_operation     op,
+                                  const double*              alpha,
+                                  aoclsparse_matrix A,
+                                  const aoclsparse_mat_descr descr,
+                                  const double*             x,
+                                  const double*             beta,
+                                  double*                   y);
 
 /**@}*/
 
@@ -858,26 +961,6 @@ aoclsparse_status aoclsparse_scsr2m(aoclsparse_operation     trans_A,
 	    aoclsparse_matrix          *csrC);
 /**@}*/
 
-DLL_PUBLIC
-aoclsparse_status aoclsparse_dmv(aoclsparse_operation     op,
-                                  const double*              alpha,
-                                  aoclsparse_matrix A,
-                                  const aoclsparse_mat_descr descr,
-                                  const double*             x,
-                                  const double*             beta,
-                                  double*                   y);
-/**@}*/
-
-
-DLL_PUBLIC
-aoclsparse_status aoclsparse_smv(aoclsparse_operation     op,
-                                  const float*              alpha,
-                                  aoclsparse_matrix A,
-                                  const aoclsparse_mat_descr descr,
-                                  const float*             x,
-                                  const float*             beta,
-                                  float*                   y);
-/**@}*/
 
 /*! \ingroup solver_module
  *  \brief Sparse Iterative solver algorithms
