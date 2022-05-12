@@ -33,6 +33,17 @@
  */
 aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
 {
+    // Check the matrix precision type
+    // If single, set the matrix type as aoclsparse_csr_mat
+    // and return withtout any optimization
+
+    if (A->val_type == aoclsparse_smat) {
+         A->mat_type = aoclsparse_csr_mat;
+         A->optimized = true;
+         return aoclsparse_status_success;
+    }
+
+    
     // collect the required for decision making
     aoclsparse_int *row_ptr = A->csr_mat.csr_row_ptr;
     aoclsparse_int m = A->m;
@@ -399,11 +410,6 @@ aoclsparse_status aoclsparse_set_mv_hint(aoclsparse_matrix A,
         // TODO
         return aoclsparse_status_not_implemented;
     }
-    if(descr->type != aoclsparse_matrix_type_symmetric)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }    
     if(trans != aoclsparse_operation_none)
     {
         // TODO
