@@ -139,10 +139,15 @@ typedef enum aoclsparse_matrix_type_
     aoclsparse_matrix_type_triangular = 3 /**< triangular matrix type. */
 } aoclsparse_matrix_type;
 
-
+/*! \ingroup types_module
+ *  \brief Specify the matrix data type.
+ *
+ *  \details
+ *  The \ref aoclsparse_matrix_data_type indices the data-type of a matrix.
+ */
 typedef enum aoclsparse_matrix_data_type_
 {
-    aoclsparse_dmat    = 0, /**< double precision data. */
+    aoclsparse_dmat  = 0, /**< double precision data. */
     aoclsparse_smat  = 1, /**< single precision data. */
     aoclsparse_cmat  = 2, /**< single precision complex data. */
     aoclsparse_zmat = 3 /**< double precision complex data. */
@@ -154,7 +159,7 @@ typedef enum aoclsparse_matrix_data_type_
  *  \details
  *  The \ref aoclsparse_hint_type indicates the type of a sparse routine.
  *  The sparse routine identification is used across analysis, allocation/deallocation and execution
- *  For a given sparse routine \ref that needs analysing, a corresponding set of allocations
+ *  For a given sparse routine that needs analysing, a corresponding set of allocations
  *  and optimizations are performed. For example, SPMV operation chooses the right MV kernel
  *  based on various factors such as nnz/row etc and does allocations if needed for that MV kernel structure.
  */
@@ -165,14 +170,14 @@ typedef enum aoclsparse_hint_type_
     aoclsparse_trsv     = 0x02, /**< Triangular Solve */
     aoclsparse_mm       = 0x04, /**< Dense Matrix-Sparse Matrix Multiplication. */
     aoclsparse_2m       = 0x08, /**< Sparse Matrix-Sparse Matrix Multiplication. */
-    aoclsparse_ilu      = 0x10 /**< Incomplete LU Factorization. */
+    aoclsparse_ilu      = 0x10  /**< Incomplete LU Factorization. */
 } aoclsparse_hint_type;
 
 /*! \ingroup types_module
  *  \brief Specify the type of ILU factorization.
  *
  *  \details
- *  The \ref aoclsparse_routine_type indicates the type of ILU factorization like ILU0, ILU(p) etc.
+ *  The \ref aoclsparse_ilu_type indicates the type of ILU factorization like ILU0, ILU(p) etc.
   */
 typedef enum aoclsparse_ilu_type_
 {
@@ -180,16 +185,21 @@ typedef enum aoclsparse_ilu_type_
     aoclsparse_ilup    = 1, /**< ILU(p). */
 } aoclsparse_ilu_type;
 
-
+/*! \ingroup types_module
+ *  \brief Specify the matrix storage format type.
+ *
+ *  \details
+ *  The \ref aoclsparse_matrix_format_type indices the storage format of a sparse matrix.
+ */
 typedef enum aoclsparse_matrix_format_type_
 {
-    aoclsparse_csr_mat    = 0, /**< CSR format. */
-    aoclsparse_ell_mat  = 1, /**< ELLPACK format. */
-    aoclsparse_ellt_mat  = 2, /**< ELLPACK format stored as transpose format. */
+    aoclsparse_csr_mat          = 0, /**< CSR format. */
+    aoclsparse_ell_mat          = 1, /**< ELLPACK format. */
+    aoclsparse_ellt_mat         = 2, /**< ELLPACK format stored as transpose format. */
     aoclsparse_ellt_csr_hyb_mat = 3, /**< ELLPACK transpose + CSR hybrid format. */
-    aoclsparse_ell_csr_hyb_mat = 4, /**< ELLPACK + CSR hybrid format. */
-    aoclsparse_dia_mat = 5, /**< diag format. */
-    aoclsparse_csr_mat_br4 = 6 /**< Modified CSR format for AVX2 double. */
+    aoclsparse_ell_csr_hyb_mat  = 4, /**< ELLPACK + CSR hybrid format. */
+    aoclsparse_dia_mat          = 5, /**< diag format. */
+    aoclsparse_csr_mat_br4      = 6  /**< Modified CSR format for AVX2 double. */
 } aoclsparse_matrix_format_type;
 
 /*! \ingroup types_module

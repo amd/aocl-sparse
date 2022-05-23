@@ -37,7 +37,7 @@ extern "C" {
  *
  *  \details
  *  \p aoclsparse_get_version gets the aoclsparse library version number.
- *    in the format "AOCL-Sparse <major>.<minor>.<patch>
+ *    in the format "AOCL-Sparse <major>.<minor>.<patch>"
  *
  *  @param[out]
  *  version the version string of the aoclsparse library.
@@ -247,7 +247,7 @@ aoclsparse_diag_type aoclsparse_get_mat_diag_type(const aoclsparse_mat_descr des
  *  storage format. It should be destroyed at the end using aoclsparse_destroy().
  *
  *  @param[inout]
- *  csr the pointer to the CSR sparse matrix.
+ *  mat the pointer to the CSR sparse matrix.
  *  @param[in]
  *  base    \ref aoclsparse_index_base_zero or \ref aoclsparse_index_base_one.
  *  @param[in]
@@ -260,7 +260,7 @@ aoclsparse_diag_type aoclsparse_get_mat_diag_type(const aoclsparse_mat_descr des
  *  csr_row_ptr array of \p m+1 elements that point to the start
  *              of every row of the sparse CSR matrix.
  *  @param[in]
- *  csr_col_ind array of \p nnz elements containing the column indices of the sparse
+ *  csr_col_ptr array of \p nnz elements containing the column indices of the sparse
  *              CSR matrix.
  *  @param[in]
  *  csr_val     array of \p nnz elements of the sparse CSR matrix.
@@ -351,7 +351,7 @@ aoclsparse_status aoclsparse_export_mat_csr(aoclsparse_matrix &csr,
  *  \details
  *  \p aoclsparse_destroy destroys a structure that holds the matrix
  *  @param[in]
- *  the pointer to the sparse matrix.
+ *  mat the pointer to the sparse matrix.
  *
  *  \retval aoclsparse_status_success the operation completed successfully.
  *  \retval aoclsparse_status_invalid_pointer \p matrix structure pointer is invalid.

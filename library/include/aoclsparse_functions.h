@@ -572,7 +572,7 @@ aoclsparse_status aoclsparse_dbsrmv(aoclsparse_operation       trans,
  *  only lower triangular matrices are supported.
  *
  *  @param[in]
- *  trans       matrix operation type.
+ *  op          matrix operation type.
  *  @param[in]
  *  alpha       scalar \f$\alpha\f$.
  *  @param[in]
@@ -593,8 +593,8 @@ aoclsparse_status aoclsparse_dbsrmv(aoclsparse_operation       trans,
  *
  *  \retval     aoclsparse_status_success the operation completed successfully.
  *  \retval     aoclsparse_status_invalid_size \p m, \p n or \p nnz is invalid.
- *  \retval     aoclsparse_status_invalid_pointer \p descr, \p alpha, \p internal 
- *              structures related to the sparse matrix \p A, \p x, \p beta or \p y has 
+ *  \retval     aoclsparse_status_invalid_pointer \p descr, \p alpha, \p internal
+ *              structures related to the sparse matrix \p A, \p x, \p beta or \p y has
  *              an invalid pointer.
  *  \retval     aoclsparse_status_not_implemented
  *              \p trans != \ref aoclsparse_operation_none or
@@ -609,10 +609,10 @@ aoclsparse_status aoclsparse_dbsrmv(aoclsparse_operation       trans,
  *      aoclsparse_dmv(trans,
  *                     &alpha,
  *                     A,
- *                    descr,
- *                    x,
- *                    &beta,
- *                    y);
+ *                     descr,
+ *                     x,
+ *                     &beta,
+ *                     y);
  *
  *      // Do more work
  *      // ...
@@ -629,7 +629,7 @@ aoclsparse_status aoclsparse_smv(aoclsparse_operation     op,
                                   const float*             x,
                                   const float*             beta,
                                   float*                   y);
- 
+
 DLL_PUBLIC
 aoclsparse_status aoclsparse_dmv(aoclsparse_operation     op,
                                   const double*              alpha,
