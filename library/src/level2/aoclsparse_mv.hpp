@@ -61,7 +61,7 @@ aoclsparse_status aoclsparse_dcsr_mat_br4(aoclsparse_operation op,
     aoclsparse_int blk = 4;
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(thread.num_threads) private(vvals, vx, vy, vptr, cptr)
+#pragma omp parallel for num_threads(thread.num_threads) private(res, vvals, vx, vy, vptr, cptr)
 #endif
     for(aoclsparse_int i = 0; i < (A->m)/blk; i++)
     {
