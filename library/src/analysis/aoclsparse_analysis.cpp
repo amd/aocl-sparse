@@ -148,13 +148,28 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
         aoclsparse_csr2ellthyb_width(A->m, A->nnz, A->csr_mat.csr_row_ptr, &ell_m, &ell_width);
 
         ell_col_ind = (aoclsparse_int *) malloc(sizeof(aoclsparse_int)*ell_width * A->m);
+        if(NULL == ell_col_ind) {
+            return aoclsparse_status_internal_error;
+        }
+	
 
         if (A->val_type == aoclsparse_dmat) {
             ell_dval = (double *) malloc(sizeof(double)*ell_width * A->m);
+            if(NULL == ell_dval) {
+                return aoclsparse_status_internal_error;
+            }
+	    
         } else if (A->val_type == aoclsparse_smat) {
             ell_sval = (float *) malloc(sizeof(float)*ell_width * A->m);
-        }
+            if(NULL == ell_sval) {
+                return aoclsparse_status_internal_error;
+            }
+	}
         csr_row_idx_map = (aoclsparse_int*) malloc(sizeof(aoclsparse_int)*(A->m - ell_m));
+
+        if(NULL == csr_row_idx_map) {
+            return aoclsparse_status_internal_error;
+        }
 
         // convert to hybrid ELLT-CSR format
         if (A->val_type == aoclsparse_dmat) {
@@ -187,8 +202,14 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
         aoclsparse_int j;
         aoclsparse_int tnnz = 0;
         row_ptr =(aoclsparse_int *) malloc(sizeof(aoclsparse_int) * (A->m));
+        if(NULL == row_ptr) {
+            return aoclsparse_status_internal_error;
+        }	
         trow_ptr =(aoclsparse_int *) malloc(sizeof(aoclsparse_int) * (A->m + 1));
-        trow_ptr[0] = A->base;
+        if(NULL == trow_ptr) {
+            return aoclsparse_status_internal_error;
+        }
+	trow_ptr[0] = A->base;
         for (i = 0 ; i < A->m; i+=4){
 
             aoclsparse_int m1, m2;
@@ -215,11 +236,19 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
 
         // create the new csr matrix and convert to the csr-avx2 format
         col_ptr =(aoclsparse_int *) malloc(sizeof(aoclsparse_int) * tnnz);
+        if(NULL == col_ptr) {
+            return aoclsparse_status_internal_error;
+        }
+	
         if (A->val_type == aoclsparse_dmat) {
             csr_val = (double *) malloc(sizeof(double)*tnnz);
         } else if (A->val_type == aoclsparse_smat) {
             csr_val = (float *) malloc(sizeof(float)*tnnz);
         }
+        if(NULL == csr_val) {
+            return aoclsparse_status_internal_error;
+        }
+
         aoclsparse_int tc = 0; // count of nonzeros
         for (i = 0; i < A->m; ++i) {
             aoclsparse_int nz = A->csr_mat.csr_row_ptr[i+1]-A->csr_mat.csr_row_ptr[i];
@@ -248,8 +277,15 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
                break;
             // transponse the chunk into an auxiliary buffer
             double *bufval = (double *)malloc(sizeof(double)*nnz*4);
+            if(NULL == bufval) {
+                return aoclsparse_status_internal_error;
+            }
+	    
             aoclsparse_int *bufidx = (aoclsparse_int *)malloc(sizeof(aoclsparse_int)*nnz*4);
-            aoclsparse_int ii, jj;
+            if(NULL == bufidx) {
+                return aoclsparse_status_internal_error;
+            }
+	    aoclsparse_int ii, jj;
             for (ii = 0; ii < nnz; ++ii) {
                 for (jj = 0; jj < 4;  ++jj) {
                     bufval[jj+ii*4] = vptr[ii + jj*nnz];

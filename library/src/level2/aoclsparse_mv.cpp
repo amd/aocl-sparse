@@ -60,22 +60,6 @@ extern "C" aoclsparse_status aoclsparse_smv(aoclsparse_operation     op,
         return aoclsparse_status_not_implemented;
     }
 
-    // Check sizes
-    if(A->m < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    else if(A->n < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-
-    // Sanity check
-    if((A->m == 0 || A->n == 0))
-    {
-        return aoclsparse_status_invalid_size;
-    }
-
     // Quick return if possible
     if(A->m == 0 || A->n == 0)
     {
@@ -130,21 +114,6 @@ extern "C" aoclsparse_status aoclsparse_dmv(aoclsparse_operation     op,
     {
         // TODO
         return aoclsparse_status_not_implemented;
-    }
-    // Check sizes
-    if(A->m < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    else if(A->n < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-
-    // Sanity check
-    if((A->m == 0 || A->n == 0))
-    {
-        return aoclsparse_status_invalid_size;
     }
 
     // Quick return if possible

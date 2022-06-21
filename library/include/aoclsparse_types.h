@@ -257,12 +257,13 @@ typedef enum aoclsparse_order_
  */
 typedef enum aoclsparse_status_
 {
-    aoclsparse_status_success         = 0, /**< success. */
-    aoclsparse_status_not_implemented = 1, /**< function is not implemented. */
-    aoclsparse_status_invalid_pointer = 2, /**< invalid pointer parameter. */
-    aoclsparse_status_invalid_size    = 3, /**< invalid size parameter. */
-    aoclsparse_status_internal_error  = 4, /**< other internal library failure. */
-    aoclsparse_status_invalid_value   = 5, /**< invalid value parameter. */
+    aoclsparse_status_success               = 0, /**< success. */
+    aoclsparse_status_not_implemented       = 1, /**< function is not implemented. */
+    aoclsparse_status_invalid_pointer       = 2, /**< invalid pointer parameter. */
+    aoclsparse_status_invalid_size          = 3, /**< invalid size parameter. */
+    aoclsparse_status_internal_error        = 4, /**< other internal library failure. */
+    aoclsparse_status_invalid_value         = 5, /**< invalid value parameter. */
+    aoclsparse_status_invalid_index_value   = 6, /**< invalid index value. */
 } aoclsparse_status;
 
 

@@ -239,6 +239,26 @@ aoclsparse_status aoclsparse_create_scsr(aoclsparse_matrix &mat,
                     aoclsparse_int*         csr_col_ptr,
                     float*                   csr_val)
 {
+
+    // Validate the input parameters
+    if (M < 0 || N < 0) {
+      return aoclsparse_status_invalid_size;
+    }
+    if (csr_row_ptr == nullptr)
+        return aoclsparse_status_invalid_pointer;
+    if (csr_col_ptr == nullptr)
+        return aoclsparse_status_invalid_pointer;
+    if (csr_val == nullptr)
+        return aoclsparse_status_invalid_pointer;
+
+    // check if the column indicies are within bounds
+    for(aoclsparse_int i = 0; i < M; i++) {
+       for(aoclsparse_int j =  csr_row_ptr[i] ; j < csr_row_ptr[i + 1] ; j++ ) {
+          if ((csr_col_ptr[j] >= (N+base)) || (csr_col_ptr[j] < base))
+                  return aoclsparse_status_invalid_index_value;
+       }
+    }
+	
     mat = new _aoclsparse_matrix;
     mat->m = M;
     mat->n = N;
@@ -267,6 +287,26 @@ aoclsparse_status aoclsparse_create_dcsr(aoclsparse_matrix &mat,
                     aoclsparse_int*         csr_col_ptr,
                     double*                   csr_val)
 {
+
+    // Validate the input parameters
+    if (M < 0 || N < 0) {
+      return aoclsparse_status_invalid_size;
+    }
+    if (csr_row_ptr == nullptr)
+	return aoclsparse_status_invalid_pointer;
+    if (csr_col_ptr == nullptr)
+        return aoclsparse_status_invalid_pointer;
+    if (csr_val == nullptr)
+        return aoclsparse_status_invalid_pointer;
+
+    // check if the column indicies are within bounds
+    for(aoclsparse_int i = 0; i < M; i++) {
+       for(aoclsparse_int j =  csr_row_ptr[i] ; j < csr_row_ptr[i + 1] ; j++ ) {
+          if ((csr_col_ptr[j] >= (N+base)) || (csr_col_ptr[j] < base))
+		  return aoclsparse_status_invalid_index_value; 
+       }
+    }
+
     mat = new _aoclsparse_matrix;
     mat->m = M;
     mat->n = N;
