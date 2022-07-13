@@ -59,9 +59,10 @@ aoclsparse_status aoclsparse_dcsr_mat_br4(aoclsparse_operation op,
     double *tvptr = (double *) A->csr_mat_br4.csr_val;
     double *vptr;
     aoclsparse_int blk = 4;
+    aoclsparse_int chunk_size = (A->m) / (blk*thread.num_threads);
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(thread.num_threads) private(vvals, vx, vy, vptr, cptr)
+#pragma omp parallel for num_threads(thread.num_threads) schedule(dynamic,chunk_size) private(vvals, vx, vy, vptr, cptr)
 #endif
     for(aoclsparse_int i = 0; i < (A->m)/blk; i++)
     {
@@ -158,7 +159,7 @@ aoclsparse_status aoclsparse_mv_template(aoclsparse_operation  op,
                     x,
                     &beta,
                     y));
-    } else {    
+    } else {
        return aoclsparse_status_not_implemented;
     }
 }

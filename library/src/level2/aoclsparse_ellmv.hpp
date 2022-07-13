@@ -216,7 +216,7 @@ aoclsparse_status aoclsparse_elltmv_template(const float      alpha,
     double rd;
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(thread->num_threads)  private(rd)
+#pragma omp parallel for num_threads(thread->num_threads) schedule(dynamic,m/thread->num_threads) private(rd)
 #endif
     for (aoclsparse_int j = 0; j < m; j++) {
 	rd = 0.0;
@@ -259,9 +259,10 @@ aoclsparse_status aoclsparse_elltmv_template(const double               alpha,
     res = _mm256_setzero_pd();
     res1 = _mm256_setzero_pd();
     aoclsparse_int k = ell_width;
-    int blk = 4;
+    aoclsparse_int blk = 4;
+    aoclsparse_int chunk_size = m/(blk * thread->num_threads);
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(thread->num_threads)  private(res, vvals, vx, vy, va, vb,  res1, vvals1, vx1, vy1)
+#pragma omp parallel for num_threads(thread->num_threads)  schedule(dynamic,chunk_size) private(res, vvals, vx, vy, va, vb,  res1, vvals1, vx1, vy1)
 #endif
     for (aoclsparse_int j = 0; j < m/blk ; j++) {
 	res = _mm256_setzero_pd();
@@ -359,8 +360,9 @@ aoclsparse_status aoclsparse_ellthybmv_template(const double               alpha
     }
 
     int blk = 4;
+    aoclsparse_int chunk_size = m/(blk*thread->num_threads);
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(thread->num_threads)  private(res, vvals, vx, vy, va, vb)
+#pragma omp parallel for num_threads(thread->num_threads) schedule(dynamic,chunk_size) private(res, vvals, vx, vy, va, vb)
 #endif
     for (aoclsparse_int j = 0; j < m/blk ; j++) {
 	res = _mm256_setzero_pd();
@@ -412,8 +414,9 @@ aoclsparse_status aoclsparse_ellthybmv_template(const double               alpha
     __m256d vec_vals , vec_x , vec_y;
     const aoclsparse_int *colIndPtr;
     const double *matValPtr;
+    chunk_size = 512;
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(thread->num_threads)  private(vec_vals , vec_x , vec_y, colIndPtr, matValPtr)
+#pragma omp parallel for num_threads(thread->num_threads) schedule(dynamic,chunk_size) private(vec_vals , vec_x , vec_y, colIndPtr, matValPtr)
 #endif
     for (aoclsparse_int i = 0; i < m-ell_m; ++i) {
         double result = 0.0;

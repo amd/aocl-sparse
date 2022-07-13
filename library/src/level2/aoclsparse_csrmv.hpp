@@ -143,7 +143,7 @@ aoclsparse_status aoclsparse_csrmv_general(const T               alpha,
 {
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(thread->num_threads)
+#pragma omp parallel for num_threads(thread->num_threads) schedule(dynamic,m/thread->num_threads)
 #endif
     // Iterate over each row of the input matrix and
     // Perform matrix-vector product for each non-zero of the ith row
@@ -237,7 +237,7 @@ aoclsparse_status aoclsparse_csrmv_vectorized(const double               alpha,
 {
     __m256d vec_vals , vec_x , vec_y;
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(thread->num_threads) private(vec_vals , vec_x ,vec_y)
+#pragma omp parallel for num_threads(thread->num_threads) schedule(dynamic,m/thread->num_threads) private(vec_vals , vec_x ,vec_y)
 #endif
     for(aoclsparse_int i = 0; i < m; i++)
     {
