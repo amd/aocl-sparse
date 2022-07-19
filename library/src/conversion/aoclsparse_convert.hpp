@@ -563,6 +563,13 @@ aoclsparse_status aoclsparse_csr2csc_template(
     {
 	return aoclsparse_status_invalid_pointer;
     }
+
+    // csc_col_ptr comes from the user; initialize it to 0
+    for (aoclsparse_int i = 0; i < n+1; ++i)
+    {
+        csc_col_ptr[i] = 0;
+    }
+
     // Determine nnz per column
     for(aoclsparse_int i = 0; i < nnz; ++i)
     {
@@ -595,7 +602,7 @@ aoclsparse_status aoclsparse_csr2csc_template(
     // Shift column pointer array
     for(aoclsparse_int i = n; i > 0; --i)
     {
-	csc_col_ptr[i] = csc_col_ptr[i - 1];
+    csc_col_ptr[i] = csc_col_ptr[i - 1];
     }
 
     csc_col_ptr[0] = 0;
