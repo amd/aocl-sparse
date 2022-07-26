@@ -47,8 +47,8 @@ using namespace std;
 
 aoclsparse_int g_max_iters = 0;
 
-//#undef PARAM_LOG
-#define PARAM_LOG
+#undef PARAM_LOG
+//#define PARAM_LOG
 
 template <typename T>
 void Dump_mtx_File_csc(const string&        market_filename,
@@ -561,9 +561,8 @@ void testing_ilu(const Arguments& arg)
 	
 	cpu_time_analysis = aoclsparse_clock_min_diff(cpu_time_analysis , cpu_time_start );
 
-    
 
-    double cpu_time_fact = DBL_MAX;    
+    double cpu_time_fact = DBL_MAX;
     // Warm up and functionality run
     ilu_factorization_solution<T>(trans, A, N, descr, diag, approx_inv_diag, x_old,x, b, iter, min_arae_percent, cpu_time_start, cpu_time_fact);
     
@@ -649,6 +648,40 @@ void testing_ilu(const Arguments& arg)
         printf("is verified = %s\n", (arg.unit_check ? "yes" : "no"));  
         fflush(stdout);        
     }   
+#else
+    std::cout.precision(2);
+    std::cout.setf(std::ios::fixed);
+    std::cout.setf(std::ios::left);
+
+    std::cout << std::setw(20) << "input" 
+            << std::setw(12) << "M" 
+            << std::setw(12) << "nnz"
+	        << std::setw(16) << "conv_iters" 
+            << std::setw(12) << "arae_%" 
+            << std::setw(12) << "l2norm" 
+            << std::setw(12) << "bytes"
+	        << std::setw(16) << "analysis_t" 
+            << std::setw(12) << "fact_t" 
+            << std::setw(12) << "sol_t" 
+            << std::setw(12) << "a+f+s_t" 
+            << std::setw(12) << "f+s_t" 
+            << std::setw(12) << "verified" 
+            << std::endl;
+
+    std::cout << std::setw(20) << filename.c_str()
+            << std::setw(12) << M
+            << std::setw(12) << nnz
+	        << std::setw(16) << iter
+            << std::setw(12) << min_arae_percent
+            << std::setw(12) << norm
+            << std::setw(12) << std::scientific << cpu_gbyte	        
+            << std::setw(16) << std::scientific << cpu_time_analysis * 1e3
+            << std::setw(12) << std::scientific << cpu_time_fact * 1e3
+            << std::setw(12) << std::scientific << cpu_time_solution * 1e3
+            << std::setw(12) << std::scientific << (cpu_time_analysis + cpu_time_fact +cpu_time_solution) * 1e3
+            << std::setw(12) << std::scientific << (cpu_time_fact +cpu_time_solution) * 1e3
+            << std::setw(12) << (arg.unit_check ? "yes" : "no")
+            << std::endl;
 #endif
 
 
