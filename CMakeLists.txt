@@ -65,6 +65,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 option(BUILD_SHARED_LIBS "Build aocl-sparse as a shared library" ON)
 option(BUILD_CLIENTS_BENCHMARKS "Build benchmarks (requires Boost) " OFF)
 OPTION(BUILD_ILP64 "ILP64 Support" OFF)
+OPTION(USE_AVX512 "AVX512 Support" OFF)
 
 # Dependencies
 include(cmake/Dependencies.cmake)
@@ -99,6 +100,11 @@ IF(BUILD_ILP64)
     message( STATUS "BUILD_ILP64 = ON" )
     ADD_DEFINITIONS(-Daoclsparse_ILP64)
 ENDIF(BUILD_ILP64)
+
+IF(USE_AVX512)
+        message( STATUS "USE_AVX512 = ON" )
+        ADD_DEFINITIONS(-DUSE_AVX512)
+ENDIF(USE_AVX512)
 
 SET(AMD_ARCH "native" CACHE STRING "select AMD zen version for Clang toolchain")
 
