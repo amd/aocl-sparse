@@ -66,6 +66,7 @@ option(BUILD_SHARED_LIBS "Build aocl-sparse as a shared library" ON)
 option(BUILD_CLIENTS_BENCHMARKS "Build benchmarks (requires Boost) " OFF)
 OPTION(BUILD_ILP64 "ILP64 Support" OFF)
 OPTION(USE_AVX512 "AVX512 Support" OFF)
+option (ENABLE_SET_BUILD_DATE "Set library build date" OFF)
 
 # Dependencies
 include(cmake/Dependencies.cmake)
@@ -87,11 +88,24 @@ if( NOT DEFINED AOCLSPARSE_VERSION_TWEAK )
 	set( AOCLSPARSE_VERSION_TWEAK 0 )
 endif( )
 
+if( NOT DEFINED AOCL_SPARSE_BUILD_DATE )
+	set( AOCL_SPARSE_BUILD_DATE 0 )
+endif( )
+
 set( AOCLSPARSE_VERSION "${AOCLSPARSE_VERSION_MAJOR}.${AOCLSPARSE_VERSION_MINOR}.${AOCLSPARSE_VERSION_PATCH}.${AOCLSPARSE_VERSION_TWEAK}")
+string(TIMESTAMP BUILD_DATE "%Y%m%d")
 
 message( STATUS "AOCLSPARSE_VERSION= ${AOCLSPARSE_VERSION}" )
 message( STATUS "CMAKE_BUILD_TYPE= ${CMAKE_BUILD_TYPE}" )
 set(aoclsparse_SOVERSION ${AOCLSPARSE_VERSION})
+
+if(ENABLE_SET_BUILD_DATE)	
+  add_definitions(-DAOCL_SPARSE_BUILD_DATE=${ENABLE_SET_BUILD_DATE})
+  #message(STATUS "BUILD DATE = ${ENABLE_SET_BUILD_DATE}")
+else ()	
+  add_definitions(-DAOCL_SPARSE_BUILD_DATE=${BUILD_DATE})
+  #message(STATUS "BUILD DATE = ${BUILD_DATE}")
+endif()
 
 # AMD targets
 set(AMDCPU_TARGETS  CACHE STRING "List of specific machine types for library to target")

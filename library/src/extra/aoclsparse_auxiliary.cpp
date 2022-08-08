@@ -28,6 +28,9 @@
 #include <string>
 #include <cstring>
 
+#define VERSION_MAKE_STR(x) _VERSION_MAKE_STR(x)
+#define _VERSION_MAKE_STR(x) #x
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -37,9 +40,13 @@ extern "C" {
  *******************************************************************************/
 char * aoclsparse_get_version()
 {
-    std::string ver = "AOCL-Sparse " + std::to_string(AOCLSPARSE_VERSION_MAJOR) + "."
-	+ std::to_string(AOCLSPARSE_VERSION_MINOR) + "."
-	+ std::to_string(AOCLSPARSE_VERSION_PATCH) ;
+    std::string build_date(VERSION_MAKE_STR(AOCL_SPARSE_BUILD_DATE)); 
+    std::string ver = "AOCL-Sparse " + 
+                      std::to_string(AOCLSPARSE_VERSION_MAJOR) + "."
+                      + std::to_string(AOCLSPARSE_VERSION_MINOR) + "."
+                      + std::to_string(AOCLSPARSE_VERSION_PATCH)
+                      + " Build "
+                      + build_date;
 
     char* version = strcpy(new char[ver.length() + 1], ver.c_str());
     return version;
