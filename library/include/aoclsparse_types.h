@@ -38,7 +38,7 @@
 // Windows specific attribute for exporting function to dll
 #define DLL_PUBLIC __declspec(dllexport)
 #else
-#define DLL_PUBLIC  __attribute__((__visibility__("default")))
+#define DLL_PUBLIC __attribute__((__visibility__("default")))
 #endif
 
 /*! \ingroup types_module
@@ -81,11 +81,10 @@ typedef struct _aoclsparse_mat_descr* aoclsparse_mat_descr;
  *  using aoclsparse_destroy().
  */
 
-
-typedef struct _aoclsparse_csr* aoclsparse_csr;
-typedef struct _aoclsparse_ell* aoclsparse_ell;
+typedef struct _aoclsparse_csr*         aoclsparse_csr;
+typedef struct _aoclsparse_ell*         aoclsparse_ell;
 typedef struct _aoclsparse_ell_csr_hyb* aoclsparse_ell_csr_hyb;
-typedef struct _aoclsparse_matrix* aoclsparse_matrix;
+typedef struct _aoclsparse_matrix*      aoclsparse_matrix;
 
 /* TBD To be deprecated structure and API
  */
@@ -147,9 +146,9 @@ typedef enum aoclsparse_matrix_type_
  */
 typedef enum aoclsparse_matrix_data_type_
 {
-    aoclsparse_dmat  = 0, /**< double precision data. */
-    aoclsparse_smat  = 1, /**< single precision data. */
-    aoclsparse_cmat  = 2, /**< single precision complex data. */
+    aoclsparse_dmat = 0, /**< double precision data. */
+    aoclsparse_smat = 1, /**< single precision data. */
+    aoclsparse_cmat = 2, /**< single precision complex data. */
     aoclsparse_zmat = 3 /**< double precision complex data. */
 } aoclsparse_matrix_data_type;
 
@@ -165,12 +164,12 @@ typedef enum aoclsparse_matrix_data_type_
  */
 typedef enum aoclsparse_hint_type_
 {
-    aoclsparse_none     = 0x00, /**< INIT VALUE*/
-    aoclsparse_spmv     = 0x01, /**< SPMV. */
-    aoclsparse_trsv     = 0x02, /**< Triangular Solve */
-    aoclsparse_mm       = 0x04, /**< Dense Matrix-Sparse Matrix Multiplication. */
-    aoclsparse_2m       = 0x08, /**< Sparse Matrix-Sparse Matrix Multiplication. */
-    aoclsparse_ilu      = 0x10  /**< Incomplete LU Factorization. */
+    aoclsparse_none = 0x00, /**< INIT VALUE*/
+    aoclsparse_spmv = 0x01, /**< SPMV. */
+    aoclsparse_trsv = 0x02, /**< Triangular Solve */
+    aoclsparse_mm   = 0x04, /**< Dense Matrix-Sparse Matrix Multiplication. */
+    aoclsparse_2m   = 0x08, /**< Sparse Matrix-Sparse Matrix Multiplication. */
+    aoclsparse_ilu  = 0x10 /**< Incomplete LU Factorization. */
 } aoclsparse_hint_type;
 
 /*! \ingroup types_module
@@ -181,8 +180,8 @@ typedef enum aoclsparse_hint_type_
   */
 typedef enum aoclsparse_ilu_type_
 {
-    aoclsparse_ilu0    = 0, /**< ILU0. */
-    aoclsparse_ilup    = 1, /**< ILU(p). */
+    aoclsparse_ilu0 = 0, /**< ILU0. */
+    aoclsparse_ilup = 1, /**< ILU(p). */
 } aoclsparse_ilu_type;
 
 /*! \ingroup types_module
@@ -199,7 +198,7 @@ typedef enum aoclsparse_matrix_format_type_
     aoclsparse_ellt_csr_hyb_mat = 3, /**< ELLPACK transpose + CSR hybrid format. */
     aoclsparse_ell_csr_hyb_mat  = 4, /**< ELLPACK + CSR hybrid format. */
     aoclsparse_dia_mat          = 5, /**< diag format. */
-    aoclsparse_csr_mat_br4      = 6  /**< Modified CSR format for AVX2 double. */
+    aoclsparse_csr_mat_br4      = 6 /**< Modified CSR format for AVX2 double. */
 } aoclsparse_matrix_format_type;
 
 /*! \ingroup types_module
@@ -252,20 +251,25 @@ typedef enum aoclsparse_order_
  *  \brief List of aoclsparse status codes definition.
  *
  *  \details
- *  This is a list of the \ref aoclsparse_status types that are used by the aoclSPARSE
+ *  List of \ref aoclsparse_status values returned by the functions in the
  *  library.
  */
 typedef enum aoclsparse_status_
 {
-    aoclsparse_status_success               = 0, /**< success. */
-    aoclsparse_status_not_implemented       = 1, /**< function is not implemented. */
-    aoclsparse_status_invalid_pointer       = 2, /**< invalid pointer parameter. */
-    aoclsparse_status_invalid_size          = 3, /**< invalid size parameter. */
-    aoclsparse_status_internal_error        = 4, /**< other internal library failure. */
-    aoclsparse_status_invalid_value         = 5, /**< invalid value parameter. */
-    aoclsparse_status_invalid_index_value   = 6, /**< invalid index value. */
+    aoclsparse_status_success             = 0, /**< success. */
+    aoclsparse_status_not_implemented     = 1, /**< functionality is not implemented. */
+    aoclsparse_status_invalid_pointer     = 2, /**< invalid pointer parameter. */
+    aoclsparse_status_invalid_size        = 3, /**< invalid size parameter. */
+    aoclsparse_status_internal_error      = 4, /**< internal library failure. */
+    aoclsparse_status_invalid_value       = 5, /**< invalid parameter value. */
+    aoclsparse_status_invalid_index_value = 6, /**< invalid index value. */
+    aoclsparse_status_maxit               = 7, /**< function stopped after reaching number of iteration limit. */
+    aoclsparse_status_user_stop           = 8, /**< user requested termination. */
+    aoclsparse_status_wrong_type          = 9, /**< function called on the wrong type (double/float). */
+    aoclsparse_status_memory_error        = 10, /**< memory allocation failure. */
+    aoclsparse_status_numerical_error     = 11, /**< numerical error, e.g., matrix is not positive definite. */
+    aoclsparse_status_invalid_operation   = 12, /**< cannot proceed with the request at this point. */
 } aoclsparse_status;
-
 
 /*! \ingroup types_module
  *  \brief List of request stages for sparse matrix * sparse matrix.
@@ -276,8 +280,10 @@ typedef enum aoclsparse_status_
  */
 typedef enum aoclsparse_request_
 {
-    aoclsparse_stage_nnz_count        = 0, /**< Only rowIndex array of the CSR matrix is computed internally. */
-    aoclsparse_stage_finalize         = 1, /**< Finalize computation. Has to be called only after csr2m call with aoclsparse_stage_nnz_count parameter. */
+    aoclsparse_stage_nnz_count
+    = 0, /**< Only rowIndex array of the CSR matrix is computed internally. */
+    aoclsparse_stage_finalize
+    = 1, /**< Finalize computation. Has to be called only after csr2m call with aoclsparse_stage_nnz_count parameter. */
     aoclsparse_stage_full_computation = 2, /**< Perform the entire computation in a single step. */
 } aoclsparse_request;
 
@@ -286,4 +292,3 @@ typedef enum aoclsparse_request_
 #endif
 
 #endif // AOCLSPARSE_TYPES_H_
-

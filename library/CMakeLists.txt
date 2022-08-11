@@ -37,6 +37,7 @@ set(PUBLIC_HEADERS
     include/aoclsparse_convert.h
     include/aoclsparse_analysis.h
     include/aoclsparse_auxiliary.h
+    include/aoclsparse_solvers.h
     include/aoclsparse.h
     ${PROJECT_BINARY_DIR}/include/aoclsparse_version.h
 )
