@@ -21,122 +21,243 @@
  *
  * ************************************************************************ */
 
-#include "aoclsparse.h"
 #include "aoclsparse_mv.hpp"
+#include "aoclsparse.h"
+
+/* Template specializations */
+template <>
+aoclsparse_status aoclsparse_dcsr_mat_br4(aoclsparse_operation       op,
+                                          const double               alpha,
+                                          aoclsparse_matrix          A,
+                                          const aoclsparse_mat_descr descr,
+                                          const double*              x,
+                                          const double               beta,
+                                          double*                    y)
+{
+    // Read the environment variables to update global variable
+    // This function updates the num_threads only once.
+    aoclsparse_init_once();
+
+    aoclsparse_thread thread;
+    thread.num_threads = global_thread.num_threads;
+
+    aoclsparse_int tc = 0;
+    __m256d        res, vvals, vx, vy, va, vb;
+
+    va  = _mm256_set1_pd(alpha);
+    vb  = _mm256_set1_pd(beta);
+    res = _mm256_setzero_pd();
+
+    aoclsparse_int* tcptr = (aoclsparse_int*)A->csr_mat_br4.csr_col_ptr;
+    aoclsparse_int* rptr  = (aoclsparse_int*)A->csr_mat_br4.csr_row_ptr;
+    aoclsparse_int* cptr;
+    double*         tvptr = (double*)A->csr_mat_br4.csr_val;
+    double*         vptr;
+    aoclsparse_int  blk        = 4;
+    aoclsparse_int  chunk_size = (A->m) / (blk * thread.num_threads);
+
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(thread.num_threads) \
+    schedule(dynamic, chunk_size) private(res, vvals, vx, vy, vptr, cptr)
+#endif
+    for(aoclsparse_int i = 0; i < (A->m) / blk; i++)
+    {
+
+        aoclsparse_int r = rptr[i * blk];
+        vptr             = (double*)(tvptr + r);
+        cptr             = tcptr + r;
+
+        res = _mm256_setzero_pd();
+        // aoclsparse_int nnz = rptr[i*blk];
+        aoclsparse_int nnz = rptr[i * blk + 1] - r;
+        for(aoclsparse_int j = 0; j < nnz; ++j)
+        {
+            aoclsparse_int off = j * blk;
+            vvals              = _mm256_loadu_pd((double const*)(vptr + off));
+
+            vx = _mm256_set_pd(
+                x[*(cptr + off + 3)], x[*(cptr + off + 2)], x[*(cptr + off + 1)], x[*(cptr + off)]);
+
+            res = _mm256_fmadd_pd(vvals, vx, res);
+        }
+        /*
+	   tc += blk*nnz;
+	   vptr += blk*nnz;
+	   cptr += blk*nnz;
+	   */
+
+        if(alpha != static_cast<double>(1))
+        {
+            res = _mm256_mul_pd(va, res);
+        }
+
+        if(beta != static_cast<double>(0))
+        {
+            vy  = _mm256_loadu_pd(&y[i * blk]);
+            res = _mm256_fmadd_pd(vb, vy, res);
+        }
+        _mm256_storeu_pd(&y[i * blk], res);
+    }
+
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(thread.num_threads)
+#endif
+    for(aoclsparse_int k = ((A->m) / blk) * blk; k < A->m; ++k)
+    {
+        double result = 0;
+        /*
+	   aoclsparse_int nnz = A->csr_mat_br4.csr_row_ptr[k];
+	   for(j = 0; j < nnz; ++j)
+	   {
+	   result += ((double *)A->csr_mat_br4.csr_val)[tc] * x[A->csr_mat_br4.csr_col_ptr[tc]];
+	   tc++;;
+	   }
+	   */
+        for(aoclsparse_int j = A->csr_mat_br4.csr_row_ptr[k]; j < A->csr_mat_br4.csr_row_ptr[k + 1];
+            ++j)
+        {
+            result += ((double*)A->csr_mat_br4.csr_val)[j] * x[A->csr_mat_br4.csr_col_ptr[j]];
+        }
+
+        if(alpha != static_cast<double>(1))
+        {
+            result = alpha * result;
+        }
+
+        if(beta != static_cast<double>(0))
+        {
+            result += beta * y[k];
+        }
+        y[k] = result;
+    }
+
+    return aoclsparse_status_success;
+}
+
+template <>
+aoclsparse_status aoclsparse_dcsr_mat_br4(aoclsparse_operation       op,
+                                          const float                alpha,
+                                          aoclsparse_matrix          A,
+                                          const aoclsparse_mat_descr descr,
+                                          const float*               x,
+                                          const float                beta,
+                                          float*                     y)
+{
+    return aoclsparse_status_not_implemented;
+}
+
+template <>
+aoclsparse_status aoclsparse_mv_general(aoclsparse_operation       op,
+                                         const float                alpha,
+                                         aoclsparse_matrix          A,
+                                         const aoclsparse_mat_descr descr,
+                                         const float*               x,
+                                         const float                beta,
+                                         float*                     y)
+{
+    // ToDo: optimized float versions need to be implemented
+    if(A->mat_type == aoclsparse_csr_mat)
+    {
+        return (aoclsparse_scsrmv(op,
+                                  &alpha,
+                                  A->m,
+                                  A->n,
+                                  A->nnz,
+                                  (float*)A->csr_mat.csr_val,
+                                  A->csr_mat.csr_col_ptr,
+                                  A->csr_mat.csr_row_ptr,
+                                  descr,
+                                  x,
+                                  &beta,
+                                  y));
+    }
+    else
+    {
+        return aoclsparse_status_not_implemented;
+    }
+}
+
+template <>
+aoclsparse_status aoclsparse_mv_general(aoclsparse_operation       op,
+                                         const double               alpha,
+                                         aoclsparse_matrix          A,
+                                         const aoclsparse_mat_descr descr,
+                                         const double*              x,
+                                         const double               beta,
+                                         double*                    y)
+{
+    if(A->mat_type == aoclsparse_csr_mat)
+    {
+        //Invoke SPMV API for CSR storage format(double precision)
+        return (aoclsparse_dcsrmv(op,
+                                  &alpha,
+                                  A->m,
+                                  A->n,
+                                  A->nnz,
+                                  (double*)A->csr_mat.csr_val,
+                                  A->csr_mat.csr_col_ptr,
+                                  A->csr_mat.csr_row_ptr,
+                                  descr,
+                                  x,
+                                  &beta,
+                                  y));
+    }
+    else if(A->mat_type == aoclsparse_ellt_csr_hyb_mat)
+    {
+        return (aoclsparse_dellthybmv(op,
+                                      &alpha,
+                                      A->m,
+                                      A->n,
+                                      A->nnz,
+                                      (double*)A->ell_csr_hyb_mat.ell_val,
+                                      A->ell_csr_hyb_mat.ell_col_ind,
+                                      A->ell_csr_hyb_mat.ell_width,
+                                      A->ell_csr_hyb_mat.ell_m,
+                                      (double*)A->ell_csr_hyb_mat.csr_val,
+                                      A->csr_mat.csr_row_ptr,
+                                      A->csr_mat.csr_col_ptr,
+                                      nullptr,
+                                      A->ell_csr_hyb_mat.csr_row_id_map,
+                                      descr,
+                                      x,
+                                      &beta,
+                                      y));
+    }
+    else if(A->mat_type == aoclsparse_csr_mat_br4)
+    {
+        return (aoclsparse_dcsr_mat_br4(op, alpha, A, descr, x, beta, y));
+    }
+    else
+    {
+        return aoclsparse_status_invalid_value;
+    }
+}
 
 /*
  *===========================================================================
  *   C wrapper
  * ===========================================================================
  */
-extern "C" aoclsparse_status aoclsparse_smv(aoclsparse_operation     op,
-                                   const float*              alpha,
-                                   aoclsparse_matrix       A,
-                                   const aoclsparse_mat_descr descr,
-                                   const float*             x,
-                                   const float*            beta,
-                                   float*                   y )
+extern "C" aoclsparse_status aoclsparse_smv(aoclsparse_operation       op,
+                                            const float*               alpha,
+                                            aoclsparse_matrix          A,
+                                            const aoclsparse_mat_descr descr,
+                                            const float*               x,
+                                            const float*               beta,
+                                            float*                     y)
 {
-    if(descr == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-
-    // Check index base
-    if(descr->base != aoclsparse_index_base_zero)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-    if(descr->type != aoclsparse_matrix_type_general)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-
-    if(op != aoclsparse_operation_none)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-
-    // Quick return if possible
-    if(A->m == 0 || A->n == 0)
-    {
-        return aoclsparse_status_success;
-    }
-
-    // Check pointer arguments
-    if(x == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(y == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-
-    return aoclsparse_mv_template(op,
-                            *alpha,
-                            A,
-                            descr,
-                            x,
-                            *beta,
-                            y);
+    // All input checks are done in the templated version
+    return aoclsparse_mv(op, *alpha, A, descr, x, *beta, y);
 }
 
-extern "C" aoclsparse_status aoclsparse_dmv(aoclsparse_operation     op,
-                                   const double*              alpha,
-                                   aoclsparse_matrix       A,
-                                   const aoclsparse_mat_descr descr,
-                                   const double*             x,
-                                   const double*            beta,
-                                   double*                   y )
+extern "C" aoclsparse_status aoclsparse_dmv(aoclsparse_operation       op,
+                                            const double*              alpha,
+                                            aoclsparse_matrix          A,
+                                            const aoclsparse_mat_descr descr,
+                                            const double*              x,
+                                            const double*              beta,
+                                            double*                    y)
 {
-    if(descr == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-
-    // Check index base
-    if(descr->base != aoclsparse_index_base_zero)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-    if(descr->type != aoclsparse_matrix_type_general)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-
-    if(op != aoclsparse_operation_none)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-
-    // Quick return if possible
-    if(A->m == 0 || A->n == 0)
-    {
-        return aoclsparse_status_success;
-    }
-
-    // Check pointer arguments
-    if(x == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(y == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-
-    return aoclsparse_mv_template(op,
-                            *alpha,
-                            A,
-                            descr,
-                            x,
-                            *beta,
-                            y);
+    // All input checks are done in the templated version
+    return aoclsparse_mv(op, *alpha, A, descr, x, *beta, y);
 }

@@ -731,6 +731,93 @@ aoclsparse_status aoclsparse_dcsrsv(aoclsparse_operation       trans,
                                );
 /**@}*/
 
+/*! \ingroup level2_module
+ *  \brief Sparse triangular solve for single and double data precisions.
+ *
+ *  \details
+ *  \p aoclsparse_strsv and \p aoclsparse_dtrsv solve a sparse lower (or upper)
+ *  triangular linear system of equations. The system is defined by the sparse
+ *  \f$m \times m\f$ matrix \f$A\f$, the dense solution \f$m\$-vector
+ *  \f$x\f$, and the right-hand side dense \f$m\$-vector \f$b\f$. Vector \f$b\f$ is
+ *  multiplied by \f$\alpha\f$. The solution \f$x\f$ is estimated by solving
+ *  \f[
+ *    op(L) \cdot x = \alpha \cdot b, \mbox{or}\\
+ *    op(U) \cdot x = \alpha \cdot b, \mbox{or}\\
+ *  \f]
+ *  with
+ *  \f$L = tril(A)\f$ lower triangle of matrix \f$A\f$, similarly,
+ *  \f$U = triu(A)\f$ upper triangle of matrix \f$A\f$. the operator
+ *  \f$op()\f$ is regarded as the matrix transposition operation,
+ *  \f[
+ *    op(B) = \left\{
+ *    \begin{array}{ll}
+ *        B,       & \mbox{ if \ref trans == \ref aoclsparse_operation_none } \\
+ *        B^T,     & \mbox{ if \ref trans == \ref aoclsparse_operation_transpose }\\
+ *    \end{array}
+ *    \right.
+ *  \f]
+ *
+ *  \note
+ *  If the matrix descriptor \p descr specifies that the matrix \f$A\f$ is to be regarded has
+ *  having a unitary diagonal, then the main diagonal entries of matrix \f$A\f$ are not accessed and 
+ *  are considered to all be unitary.
+ *
+ *  \note
+ *  The input matrix need not be (upper or lower) triangular matrix, \p descr \p fill_mode specifies
+ *  which triangle to consider, namely, if \p fill_mode == \ref aoclsparse_fill_mode_lower, then
+ *  \f[
+ *    op(L) \cdot x = \alpha \cdot b,
+ *  \f] otherwise, if \p fill_mode == \ref aoclsparse_fill_mode_upper, then
+ *  \f[
+ *    op(U) \cdot x = \alpha \cdot b
+ *  \f]
+ *  is solved.
+ *
+ *  \note
+ *  To increase performance and if the matrix \f$A\f$ is to be used more than once to solve for different right-hand
+ *  sides \f$b\f$'s, then it is encouraged to provide hints using \p aoclsparse_set_sv_hint and \p aoclsparse_optimize,
+ *  otherwise the optimiziation for the matrix will be done by the solver on entry.
+ *
+ *  @param[in]
+ *  trans       matrix operation type, either \ref aoclsparse_operation_none or \ref aoclsparse_operation_transpose.
+ *  @param[in]
+ *  alpha       scalar \f$\alpha\f$, used to premultiply right-hand side vector \f$b\f$.
+ *  @param[inout]
+ *  A           matrix data. \p A is modified only if solver requires to optimize matrix data.
+ *  @param[in]
+ *  descr       matrix descriptor.
+ *  @param[in]
+ *  b           array of \p m elements, storing the right-hand side.
+ *  @param[out]
+ *  x           array of \p m elements, storing the solution if solver returns \ref aoclsparse_status_success.
+ *
+ *  \retval     aoclsparse_status_success the operation completed successfully and  \f$x\f$ contains the solution 
+ *              to the linear system of equations.
+ *  \retval     aoclsparse_status_invalid_size matrix \f$A\f$ or \f$op(A)\f$ is invalid.
+ *  \retval     aoclsparse_status_invalid_pointer One or more of \p A,  \p descr, \p x, \p b are invalid pointers.
+ *  \retval     aoclsparse_status_internal_error an internal error occurred.
+ *  \retval     aoclsparse_status_not_implemented the requested opteration is not yet implemented.
+ *  \retval     other possible failure values from a call to \ref aoclsparse_optimize.
+ *
+ */
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_strsv(aoclsparse_operation       trans,
+                                   const float                alpha,
+                                   aoclsparse_matrix          A,
+                                   const aoclsparse_mat_descr descr,
+                                   const float*               b,
+                                   float*                     x);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_dtrsv(aoclsparse_operation       trans,
+                                   const double               alpha,
+                                   aoclsparse_matrix          A,
+                                   const aoclsparse_mat_descr descr,
+                                   const double*              b,
+                                   double*                    x);
+/**@}*/
+
 /*! \ingroup level3_module
  *  \brief Sparse matrix dense matrix multiplication using CSR storage format
  *

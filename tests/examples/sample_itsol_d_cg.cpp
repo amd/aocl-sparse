@@ -57,36 +57,39 @@ int main()
     // CSR symmetric matrix. Only the lower triangle is stored
     aoclsparse_int icrow[9] = {0, 1, 2, 5, 6, 8, 11, 15, 18};
     aoclsparse_int icol[18] = {0, 1, 0, 1, 2, 3, 1, 4, 0, 4, 5, 0, 3, 4, 6, 2, 5, 7};
-    double         a[18]    = {19, 10, 1, 8, 11, 13, 2, 11, 2, 1, 9, 7, 9, 5, 12, 5, 5, 9};
+    double         aval[18] = {19, 10, 1, 8, 11, 13, 2, 11, 2, 1, 9, 7, 9, 5, 12, 5, 5, 9};
     aoclsparse_int n = 8, nnz = 18;
 
     // Create aocl sparse matrix
     aoclsparse_matrix     A;
     aoclsparse_index_base base = aoclsparse_index_base_zero;
     aoclsparse_mat_descr  descr_a;
-    aoclsparse_create_dcsr(A, base, n, n, nnz, icrow, icol, a);
+    aoclsparse_operation  trans = aoclsparse_operation_none;
+    aoclsparse_create_dcsr(A, base, n, n, nnz, icrow, icol, aval);
     aoclsparse_create_mat_descr(&descr_a);
     aoclsparse_set_mat_type(descr_a, aoclsparse_matrix_type_symmetric);
     aoclsparse_set_mat_fill_mode(descr_a, aoclsparse_fill_mode_lower);
+    aoclsparse_set_sv_hint(A, trans, descr_a, 100);
     aoclsparse_optimize(A);
 
     // Initialize initial point x0 and right hand side b
-    double x[n] = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
-    ;
-    double               b[n]            = {0.};
-    double               expected_sol[n] = {1.E0, 0.E0, 1.E0, 0.E0, 1.E0, 0.E0, 1.E0, 0.E0};
-    double               rinfo[100];
-    aoclsparse_operation trans = aoclsparse_operation_none;
-    double               alpha = 1.0, beta = 0.;
+    double x[n]            = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
+    double b[n]            = {0.};
+    double expected_sol[n] = {1.E0, 0.E0, 1.E0, 0.E0, 1.E0, 0.E0, 1.E0, 0.E0};
+    double rinfo[100];
+    double alpha = 1.0, beta = 0.;
     // generate RHS
-    aoclsparse_dcsrmv(trans, &alpha, n, n, nnz, a, icol, icrow, descr_a, expected_sol, &beta, b);
+    aoclsparse_dmv(trans, &alpha, A, descr_a, expected_sol, &beta, b);
+
 
     // create CG handle
     aoclsparse_itsol_handle handle = nullptr;
     aoclsparse_itsol_d_init(&handle);
 
     if(aoclsparse_itsol_option_set(handle, "CG Abs Tolerance", "5.0e-6")
-       != aoclsparse_status_success)
+           != aoclsparse_status_success
+       || aoclsparse_itsol_option_set(handle, "CG Preconditioner", "SGS")
+              != aoclsparse_status_success)
         std::cout << "Warning an option could not be set" << std::endl;
 
     // Call CG solver

@@ -28,6 +28,7 @@ set(AOCLSPARSE_SOURCES
   src/level2/aoclsparse_diamv.cpp
   src/level2/aoclsparse_bsrmv.cpp
   src/level2/aoclsparse_csrsv.cpp
+  src/level2/aoclsparse_trsv.cpp
   src/level3/aoclsparse_csrmm.cpp
   src/level3/aoclsparse_csr2m.cpp
 
@@ -44,6 +45,6 @@ set(AOCLSPARSE_SOURCES
 
 # Analysis
   src/analysis/aoclsparse_analysis.cpp
-
+  src/analysis/aoclsparse_csr_util.cpp
 )
 

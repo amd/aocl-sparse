@@ -58,3 +58,11 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 if(BUILD_CLIENTS_BENCHMARKS)
   add_subdirectory(benchmarks)
 endif()
+
+if (BUILD_CLIENTS_TESTS)
+  add_subdirectory(functionality)
+endif()
+
+if (BUILD_CLIENTS_SAMPLES)
+  add_subdirectory(examples)
+endif()

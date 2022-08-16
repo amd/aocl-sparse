@@ -26,6 +26,7 @@
 #define AOCLSPARSE_MAT_STRUCTS_H
 
 #include "aoclsparse.h"
+#include "aoclsparse_optimize_data.hpp"
 
 /********************************************************************************
  * \brief aoclsparse_csr is a structure holding the aoclsparse matrix
@@ -108,9 +109,12 @@ struct _aoclsparse_matrix
     aoclsparse_index_base base = aoclsparse_index_base_zero;
     aoclsparse_matrix_data_type val_type = aoclsparse_dmat;
     aoclsparse_matrix_format_type mat_type = aoclsparse_csr_mat;
-    aoclsparse_hint_type hint_id = aoclsparse_none;
+
+    // Optimization hints linked list
+    aoclsparse_optimize_data* optim_data = nullptr;
 
     // csr matrix
+    bool csr_mat_is_users = true;
     struct _aoclsparse_csr csr_mat;
 
     // csr matrix for avx2
@@ -124,6 +128,23 @@ struct _aoclsparse_matrix
 
     //ilu members
     struct _aoclsparse_ilu ilu_info;
+
+    // optimized csr matrix
+    // It is checked, sorted in rows, has a diagonal element in each row,
+    // however, some diagonal elements might have been added as zeros
+    struct _aoclsparse_csr opt_csr_mat;
+    // the matrix has been 'optimized', it can be used
+    bool opt_csr_ready;
+    // if true, user's csr_mat was fine to use so opt_csr_mat points
+    // to the same memory. Deallocate only if !opt_csr_is_users
+    bool opt_csr_is_users;
+    // the original matrix had full (nonzero) diagonal, so the matrix
+    // is safe for TRSVs
+    bool opt_csr_full_diag;
+    // position where the diagonal is located in every row
+    aoclsparse_int *idiag;
+    // position where the first strictly upper triangle element is/would be located in every row
+    aoclsparse_int *iurow;
 };
 
 

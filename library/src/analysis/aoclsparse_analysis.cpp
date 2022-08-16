@@ -23,9 +23,12 @@
 
 #include "aoclsparse.h"
 #include "aoclsparse_analysis.hpp"
+#include "aoclsparse_optimize_data.hpp"
+#include "aoclsparse_csr_util.hpp"
 #include <algorithm>
 #include <cmath>
 #include <limits>
+
 /*
  *===========================================================================
  *   C wrapper
@@ -379,16 +382,18 @@ aoclsparse_status aoclsparse_optimize_ilu(aoclsparse_matrix A)
     return ret;
 
 }
+
 aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
 {
-    aoclsparse_status       ret = aoclsparse_status_success;
+    aoclsparse_status       ret = aoclsparse_status_success, status;
+    aoclsparse_optimize_data* optd;
+    bool optimized;
+    
     // Validations
-
-    // check if already optimized
-    if (A->optimized) 
+    if (!A)
     {
-        return aoclsparse_status_success;
-    } 
+        return aoclsparse_status_invalid_pointer; 
+    }
 
     // Check sizes
     if((A->m < 0) || (A->n < 0) ||  (A->nnz < 0))
@@ -404,38 +409,54 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
 
     // ToDo: any other validations
 
-    aoclsparse_int mv_hint, trsv_hint, mm_hint, twom_hint, ilu_hint;     
-    mv_hint = A->hint_id & aoclsparse_spmv;
-    trsv_hint = (A->hint_id & aoclsparse_trsv) >> 1;
-    mm_hint = (A->hint_id & aoclsparse_mm) >> 2;
-    twom_hint = (A->hint_id & aoclsparse_2m) >> 3;
-    ilu_hint = (A->hint_id & aoclsparse_ilu) >> 4;
-
-    if(mv_hint)
+    // Go through the linked list of hinted actions to decide which action to take
+    optimized = true;
+    optd = A->optim_data;
+    aoclsparse_int mv_count = 0, ilu_count = 0;
+    aoclsparse_int other_count = 0, sum = 0;
+    while (optd)
     {
-        //SPMV Analysis and Optimization
+        optimized = optimized && optd->action_optimized;
+        optd->action_optimized = true;
+        // Increment the actions counter that are implemented
+        if (optd->act == aoclsparse_action_mv && optd->trans == aoclsparse_operation_none &&
+            A->val_type == aoclsparse_dmat && optd->nop > 0)
+            mv_count++;
+        else if (optd->act == aoclsparse_action_ilu0 && optd->nop > 0)
+            ilu_count++;
+        else
+            other_count++;
+        sum ++;
+        optd = optd->next;
+    }
+    // all actions in the list were already optimized for 
+    if (optimized)
+        return aoclsparse_status_success;
+
+    // If 'other' hints have been passed, simply optimize the matrix by creating a clean CSR 
+    if (other_count || sum == 0)
+    {
+        if (A->opt_csr_ready)
+            ret = aoclsparse_status_success;
+        else
+        {
+            if (A->val_type == aoclsparse_dmat)
+                ret = aoclsparse_csr_optimize<double>(A);
+            else
+                ret = aoclsparse_csr_optimize<float>(A);
+        }
+    }
+    else if (mv_count - sum >= 0)
+    {
+        // Only MV hints with nontransposed and double precision matrix has been passed
+        // Optimize for MV
         ret = aoclsparse_optimize_mv(A);
     }
-    if(trsv_hint)
+    else if (ilu_count)
     {
-        //TRSV Analysis and Optimization
-        //To Do 
-    }    
-    if(mm_hint)
-    {
-        //Dense - Sparse Matrix Mult Analysis and Optimization
-        //To Do        
+        // Only ilu hints have been passed
+        ret = aoclsparse_optimize_ilu(A);   
     }
-    if(twom_hint)
-    {
-        //Sparse - Sparse Matrix Mult Analysis and Optimization
-        //To Do        
-    }
-    if(ilu_hint)
-    {
-        //ILU Analysis and Optimization
-        ret = aoclsparse_optimize_ilu(A);        
-    }        
     
     return ret;
 }
@@ -456,11 +477,6 @@ aoclsparse_status aoclsparse_set_mv_hint(aoclsparse_matrix A,
         // TODO
         return aoclsparse_status_not_implemented;
     }
-    if(trans != aoclsparse_operation_none)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }    
     // Check sizes
     if(A->m < 0)
     {
@@ -485,16 +501,10 @@ aoclsparse_status aoclsparse_set_mv_hint(aoclsparse_matrix A,
     {
         return aoclsparse_status_invalid_pointer;
     }
-    aoclsparse_int mv_hint;     
-    mv_hint = A->hint_id & aoclsparse_spmv;
+    
+    // Add the hint at the start of the linked list
+    aoclsparse_add_hint(A->optim_data, aoclsparse_action_mv, descr, trans, expected_no_of_calls);
 
-    if(!mv_hint)
-    {
-        A->hint_id = static_cast<aoclsparse_hint_type>(A->hint_id | aoclsparse_spmv);
-    }    
-
-    //todo: Any more analysis operations that will help optimize routine later
-    //todo: to make use of trans, expected_no_of_calls and matrix descriptor 
 
     return aoclsparse_status_success;
 }
@@ -518,12 +528,7 @@ aoclsparse_status aoclsparse_set_sv_hint(aoclsparse_matrix A,
     {
         // TODO
         return aoclsparse_status_not_implemented;
-    }    
-    if(trans != aoclsparse_operation_none)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }    
+    }   
     // Check sizes
     if(A->m < 0)
     {
@@ -549,20 +554,12 @@ aoclsparse_status aoclsparse_set_sv_hint(aoclsparse_matrix A,
         return aoclsparse_status_invalid_pointer;
     }
 
-    aoclsparse_int trsv_hint;     
-    trsv_hint = (A->hint_id & aoclsparse_trsv) >> 1;
-
-    //set if not enabled
-    if(!trsv_hint)
-    {
-        A->hint_id = static_cast<aoclsparse_hint_type>(A->hint_id | aoclsparse_trsv);
-    }  
-
-    //todo: Any more analysis operations that will help optimize routine later
-    //todo: to make use of trans, expected_no_of_calls and matrix descriptor 
+    // Add the hint at the start of the linked list
+    aoclsparse_add_hint(A->optim_data, aoclsparse_action_sv, descr, trans, expected_no_of_calls);
 
     return aoclsparse_status_success;
 }
+
 aoclsparse_status aoclsparse_set_mm_hint(aoclsparse_matrix A,
                                                 aoclsparse_operation       trans,
                                                 const aoclsparse_mat_descr descr,
@@ -614,18 +611,8 @@ aoclsparse_status aoclsparse_set_mm_hint(aoclsparse_matrix A,
         return aoclsparse_status_invalid_pointer;
     }
 
-    // Perform the bitwise | 
-    aoclsparse_int mm_hint; 
-    mm_hint = (A->hint_id & aoclsparse_mm) >> 2;    
-
-    //set if not enabled
-    if(!mm_hint)
-    {
-        A->hint_id = static_cast<aoclsparse_hint_type>(A->hint_id | aoclsparse_mm);  
-    }  
-
-    //todo: Any more analysis operations that will help optimize routine later
-    //todo: to make use of trans, expected_no_of_calls and matrix descriptor 
+    // Add the hint at the start of the linked list
+    aoclsparse_add_hint(A->optim_data, aoclsparse_action_mm, descr, trans, expected_no_of_calls);
 
     return aoclsparse_status_success;
 }
@@ -680,25 +667,15 @@ aoclsparse_status aoclsparse_set_2m_hint(aoclsparse_matrix A,
         return aoclsparse_status_invalid_pointer;
     }
 
-    // Perform the bitwise |   
-    aoclsparse_int twom_hint; 
-    twom_hint = (A->hint_id & aoclsparse_2m) >> 3;  
-
-    //set if not enabled
-    if(!twom_hint)
-    {
-        A->hint_id = static_cast<aoclsparse_hint_type>(A->hint_id | aoclsparse_2m);
-    }  
-
-    //todo: Any more analysis operations that will help optimize routine later
-    //todo: to make use of trans, expected_no_of_calls and matrix descriptor 
+    // Add the hint at the start of the linked list
+    aoclsparse_add_hint(A->optim_data, aoclsparse_action_2m, descr, trans, expected_no_of_calls);
 
     return aoclsparse_status_success;
 }
 aoclsparse_status aoclsparse_set_lu_smoother_hint(aoclsparse_matrix A,
-                                                aoclsparse_operation       trans,
-                                                const aoclsparse_mat_descr descr,
-                                                aoclsparse_int       expected_no_of_calls)
+                                                  aoclsparse_operation       trans,
+                                                  const aoclsparse_mat_descr descr,
+                                                  aoclsparse_int       expected_no_of_calls)
 {
     //check descriptor
     if(descr == nullptr)
@@ -746,18 +723,8 @@ aoclsparse_status aoclsparse_set_lu_smoother_hint(aoclsparse_matrix A,
         return aoclsparse_status_invalid_pointer;
     }
 
-    // Perform the bitwise | 
-    aoclsparse_int ilu_hint; 
-    ilu_hint = (A->hint_id & aoclsparse_ilu) >> 4;
-
-    //set if not enabled
-    if(!ilu_hint)
-    {
-        A->hint_id = static_cast<aoclsparse_hint_type>(A->hint_id | aoclsparse_ilu);    
-    }  
-
-    //todo: Any more analysis operations that will help optimize routine later
-    //todo: to make use of trans, expected_no_of_calls and matrix descriptor 
+    // Add the hint at the start of the linked list
+    aoclsparse_add_hint(A->optim_data, aoclsparse_action_ilu0, descr, trans, expected_no_of_calls);
 
     return aoclsparse_status_success;
 }

@@ -63,7 +63,7 @@ int main(int argc, char* argv[])
     double y[M];
 
     //to identify hint id(which routine is to be executed, destroyed later)
-    aoclsparse_set_mv_hint(A, trans, descr, 0);
+    aoclsparse_set_mv_hint(A, trans, descr, 1);
 
     // Optimize the matrix, "A"
     aoclsparse_optimize(A);

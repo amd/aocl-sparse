@@ -45,40 +45,48 @@ int main()
     // CSR symmetric matrix. Only the lower triangle is stored
     aoclsparse_int icrow[9] = {0, 1, 2, 5, 6, 8, 11, 15, 18};
     aoclsparse_int icol[18] = {0, 1, 0, 1, 2, 3, 1, 4, 0, 4, 5, 0, 3, 4, 6, 2, 5, 7};
-    double         a[18]    = {19, 10, 1, 8, 11, 13, 2, 11, 2, 1, 9, 7, 9, 5, 12, 5, 5, 9};
+    double         aval[18] = {19, 10, 1, 8, 11, 13, 2, 11, 2, 1, 9, 7, 9, 5, 12, 5, 5, 9};
     aoclsparse_int n = 8, nnz = 18;
 
-    // create matrix descriptor
-    aoclsparse_mat_descr descr_a;
+    // create matrix and its descriptor
+    aoclsparse_matrix     mat;
+    aoclsparse_matrix     A;
+    aoclsparse_index_base base = aoclsparse_index_base_zero;
+    aoclsparse_mat_descr  descr_a;
+    aoclsparse_operation  trans = aoclsparse_operation_none;
+    aoclsparse_create_dcsr(A, base, n, n, nnz, icrow, icol, aval);
     aoclsparse_create_mat_descr(&descr_a);
     aoclsparse_set_mat_type(descr_a, aoclsparse_matrix_type_symmetric);
     aoclsparse_set_mat_fill_mode(descr_a, aoclsparse_fill_mode_lower);
+    aoclsparse_set_sv_hint(A, trans, descr_a, 100);
+    aoclsparse_optimize(A);
 
     // Initialize initial point x0 and right hand side b
-    double               x[n]            = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
-    double               b[n]            = {0.0};
-    double               expected_sol[n] = {1.E0, 0.E0, 1.E0, 0.E0, 1.E0, 0.E0, 1.E0, 0.E0};
-    double               alpha = 1.0, beta = 0.;
-    double               y[n];
-    aoclsparse_operation trans = aoclsparse_operation_none;
-    aoclsparse_dcsrmv(trans, &alpha, n, n, nnz, a, icol, icrow, descr_a, expected_sol, &beta, b);
+    double x[n]            = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
+    double b[n]            = {0.0};
+    double expected_sol[n] = {1.E0, 0.E0, 1.E0, 0.E0, 1.E0, 0.E0, 1.E0, 0.E0};
+    double alpha = 1.0, beta = 0.;
+    double y[n];
+    aoclsparse_dmv(trans, &alpha, A, descr_a, expected_sol, &beta, b);
 
     // create CG handle
     aoclsparse_itsol_handle handle = nullptr;
     aoclsparse_itsol_d_init(&handle);
 
-    // Change options (update to use )
-    if(aoclsparse_itsol_option_set(handle, "CG Iteration Limit", "50") != aoclsparse_status_success)
-        printf("Warning an option could not be set\n");
+    // Change options, set user defined preconditioner
+    if(aoclsparse_itsol_option_set(handle, "CG Iteration Limit", "50") != aoclsparse_status_success
+       || aoclsparse_itsol_option_set(handle, "CG preconditioner", "user")
+              != aoclsparse_status_success)
+        std::cout << "Warning an option could not be set" << std::endl;
 
     // initialize size and rhs inside the handle
     aoclsparse_itsol_d_rci_input(handle, n, b);
 
     // Call CG solver
-    aoclsparse_itsol_rci_job ircomm = aoclsparse_rci_start;
     aoclsparse_status        status;
-    double*                  u = nullptr;
-    double*                  v = nullptr;
+    aoclsparse_itsol_rci_job ircomm = aoclsparse_rci_start;
+    double*                  u      = nullptr;
+    double*                  v      = nullptr;
     double                   rinfo[100];
     double                   tol = 1.0e-5;
     bool                     hdr;
@@ -94,21 +102,24 @@ int main()
             // Compute v = Au
             beta  = 0.0;
             alpha = 1.0;
-            // dmv does not accept symmetric matrices yet. TODO change the call when it is updated
-            //aoclsparse_dmv(trans, &alpha, A, descr_a, u, &beta, v);
-            aoclsparse_dcsrmv(trans, &alpha, n, n, nnz, a, icol, icrow, descr_a, u, &beta, v);
+            aoclsparse_dmv(trans, &alpha, A, descr_a, u, &beta, v);
             break;
 
         case aoclsparse_rci_precond:
-            /* symgs_ref_avx(alpha, n, a, icol, icrow, u, v, y); */
-            for(int i = 0; i < n; i++)
-                v[i] = u[i];
+            // apply Symmetric Gauss-Seidel preconditioner step
+            aoclsparse_dtrsv(aoclsparse_operation_none, alpha, A, descr_a, u, y);
+            for(aoclsparse_int i = 0; i < n; i++)
+                y[i] *= aval[icrow[i + 1] - 1];
+            aoclsparse_dtrsv(aoclsparse_operation_transpose, alpha, A, descr_a, y, v);
             break;
 
         case aoclsparse_rci_stopping_criterion:
+            // No operations required, can be used to monitor the progress of the solve
+            // or defining a custom stopping criterion 
             // print iteration log
             hdr = ((int)rinfo[30] % 100) == 0;
             printer(rinfo, hdr);
+            // request solver to stop if custom criterion is met
             if(rinfo[0] < tol)
             {
                 std::cout << "User stop. Final residual: " << rinfo[0] << std::endl;
@@ -120,8 +131,10 @@ int main()
             break;
         }
     }
+    // Print the final results if the internal stopping criterion or the user defined one were met
     switch(status)
     {
+    case aoclsparse_status_user_stop:
     case aoclsparse_status_success:
         std::cout.precision(2);
         std::cout << std::scientific;
@@ -144,7 +157,7 @@ int main()
                   << "residual = " << rinfo[0] << std::endl;
 
     default:
-        std::cout << "Something unexpected happened!" << std::endl;
+        std::cout << "Something unexpected happened! " << status << std::endl;
     }
     aoclsparse_itsol_destroy(&handle);
 

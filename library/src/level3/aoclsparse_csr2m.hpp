@@ -27,6 +27,7 @@
 #include "aoclsparse.h"
 #include "aoclsparse_descr.h"
 #include "aoclsparse_mat_structures.h"
+#include "aoclsparse_auxiliary.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -269,6 +270,8 @@ aoclsparse_status aoclsparse_csr2m_template(
                         csrB->csr_mat.csr_col_ptr,
                         csr_row_ptr_C);
                 *csrC = new _aoclsparse_matrix ;
+                aoclsparse_init_csrmat(*csrC);
+                (*csrC)->csr_mat_is_users = false;
                 (*csrC)->m = m;
                 (*csrC)->n = n;
                 (*csrC)->nnz = nnz_C;
@@ -345,29 +348,19 @@ aoclsparse_status aoclsparse_csr2m_template(
                         csr_col_ind_C,
                         csr_val_C);
                 *csrC = new _aoclsparse_matrix ;
+                aoclsparse_init_csrmat(*csrC);
+                (*csrC)->csr_mat_is_users = false; // mark for deallocation in destroy()
                 (*csrC)->m = m;
                 (*csrC)->n = n;
                 (*csrC)->nnz = nnz_C;
                 (*csrC)->csr_mat.csr_row_ptr = csr_row_ptr_C;
                 (*csrC)->csr_mat.csr_col_ptr = csr_col_ind_C;
                 (*csrC)->csr_mat.csr_val = csr_val_C;
+
                 break;
             }
         default:
             return aoclsparse_status_invalid_value;
-
-    }
-    /*
-       Since CSR2M does not call Hint and Optimize, an explicit
-       one-time hint id setting needs to happen in the beginninng of
-       execution API, which is here.
-       All the subsequent calls to csr2m API would be like NOPs
-       */
-    aoclsparse_int twom_hint;
-    twom_hint = ((*csrC)->hint_id & aoclsparse_2m) >> 3;
-    if(!twom_hint)
-    {
-	(*csrC)->hint_id = static_cast<aoclsparse_hint_type>((*csrC)->hint_id | aoclsparse_2m);
     }
 
     return aoclsparse_status_success;

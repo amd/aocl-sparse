@@ -25,11 +25,15 @@
 
 #include "aoclsparse.h"
 #include "aoclsparse_descr.h"
+#include "aoclsparse_csr_util.hpp"
 #include "aoclsparse_itsol_data.hpp"
 #include "aoclsparse_itsol_list_options.hpp"
 #include "aoclsparse_itsol_options.hpp"
 #include "aoclsparse_mat_structures.h"
+#include "aoclsparse_mv.hpp"
 #include "aoclsparse_solvers.h"
+#include "aoclsparse_trsv.hpp"
+#include "aoclsparse_descr.h"
 #include <cmath>
 #include <iostream>
 
@@ -127,7 +131,7 @@ void aoclsparse_itsol_data_free(aoclsparse_itsol_data<T>* itsol, bool keep_itsol
         // TODO GMRES data deallocation
 
         if(!keep_itsol)
-            free(itsol);
+            delete itsol;
     }
 }
 
@@ -138,9 +142,14 @@ aoclsparse_status aoclsparse_itsol_data_init(aoclsparse_itsol_data<T>** itsol)
     if(itsol == nullptr)
         return aoclsparse_status_internal_error;
 
-    *itsol = (aoclsparse_itsol_data<T>*)malloc(sizeof(aoclsparse_itsol_data<T>));
-    if(!*itsol)
+    try
+    {
+        *itsol = new aoclsparse_itsol_data<T>;
+    }
+    catch(std::bad_alloc&)
+    {
         return aoclsparse_status_memory_error;
+    }
 
     (*itsol)->n       = 0;
     (*itsol)->b       = nullptr;
@@ -229,6 +238,86 @@ aoclsparse_status aoclsparse_itsol_solver_init(aoclsparse_itsol_data<T>* itsol)
         return aoclsparse_status_not_implemented;
         break;
     }
+
+    return aoclsparse_status_success;
+}
+
+/* Compute one step of a symmetric Gauss-Seidel preconditionner 
+ * This implementation solves the M^1*z = r preconditioner step in 3 stages:
+ *  If A = L + D + U, where L is the strictly lower triangle, 
+ *  D is the diagonal and U is the strctly upper triangle
+ *      1. solve (L+D)y = r using triangle solve
+ *      2. compute y := Dy
+ *      3. solve (U+D)z = y
+ */
+template <typename T>
+aoclsparse_status
+    aoclsparse_itsol_symgs(aoclsparse_matrix A, aoclsparse_mat_descr descr, T* r, T* y, T* z)
+{
+    // For internal use in CG.
+    // Add additional input checks if exposing it to the user
+    _aoclsparse_mat_descr descr_cpy;
+    T                     alpha      = 1.0;
+    aoclsparse_int        avxversion, i;
+    aoclsparse_status     status;
+    T*                    aval = static_cast<T*>(A->opt_csr_mat.csr_val);
+    aoclsparse_operation  trans;
+
+    if(descr->type != aoclsparse_matrix_type_general
+       && descr->type != aoclsparse_matrix_type_symmetric)
+        return aoclsparse_status_invalid_value;
+    aoclsparse_copy_mat_descr(&descr_cpy, descr);
+    aoclsparse_set_mat_type(&descr_cpy, aoclsparse_matrix_type_triangular);
+
+    // triangle solve avx is not yet implemented for single precision.
+    // TODO remove when switches to different avx implementations are written.
+    if (A->val_type == aoclsparse_dmat)
+        avxversion = 1;
+    else
+        avxversion = 0;
+
+    // (L+D)y := r
+    if(descr->type == aoclsparse_matrix_type_general
+       || descr->fill_mode == aoclsparse_fill_mode_lower)
+    {
+        // Use the lower triangle directly
+        aoclsparse_set_mat_fill_mode(&descr_cpy, aoclsparse_fill_mode_lower);
+        trans = aoclsparse_operation_none;
+    }
+    else
+    {
+        // symmetric with upper triangle given. use transpose trsv
+        aoclsparse_set_mat_fill_mode(&descr_cpy, aoclsparse_fill_mode_upper);
+        trans = aoclsparse_operation_transpose;
+    }
+    status = aoclsparse_trsv(trans, alpha, A, &descr_cpy, r, y, avxversion);
+    if(status != aoclsparse_status_success)
+        return status;
+
+    // y := Dy
+    if(descr->diag_type == aoclsparse_diag_type_non_unit)
+    {
+        for(i = 0; i < A->m; i++)
+            y[i] *= aval[A->idiag[i]];
+    }
+
+    // (U+D)z = y
+    if(descr->type == aoclsparse_matrix_type_general
+       || descr->fill_mode == aoclsparse_fill_mode_upper)
+    {
+        // Use the upper triangle directly
+        aoclsparse_set_mat_fill_mode(&descr_cpy, aoclsparse_fill_mode_upper);
+        trans = aoclsparse_operation_none;
+    }
+    else
+    {
+        // symmetric with lower triangle given. use transpose trsv
+        aoclsparse_set_mat_fill_mode(&descr_cpy, aoclsparse_fill_mode_lower);
+        trans = aoclsparse_operation_transpose;
+    }
+    status = aoclsparse_trsv(trans, alpha, A, &descr_cpy, y, z, avxversion);
+    if(status != aoclsparse_status_success)
+        return status;
 
     return aoclsparse_status_success;
 }
@@ -342,6 +431,14 @@ aoclsparse_status aoclsparse_itsol_solve(
     status = aoclsparse_itsol_solver_init(itsol);
     if(status != aoclsparse_status_success)
         return status;
+
+    if(!mat->opt_csr_ready)
+    {
+        // CG needs opt_csr to run
+        status = aoclsparse_csr_optimize<T>(mat);
+        if(status != aoclsparse_status_success)
+            return status;
+    }
     // indicate that initialization has been done
     // (not really needed unless the user start mixing forward iface and RCI)
     itsol->solving = true;
@@ -618,7 +715,7 @@ aoclsparse_status
                         aoclsparse_int monit(const T* x, const T* r, T rinfo[100], void* udata),
                         void*          udata)
 {
-    /* CG solver in reverse communication interface
+    /* CG solver in direct communication interface
      * Possible exits:
      * - maximum number of iteration reached
      * - user requested termination (via monit or precond)
@@ -653,6 +750,9 @@ aoclsparse_status
     if((itsol->cg)->precond == 3) // Add other preconds here...
     {
         // Symmetric Gauss-Seidel requested, allocate some memory
+        if(!mat->opt_csr_full_diag && !descr->diag_type == aoclsparse_diag_type_unit)
+            // Gauss-Seidel needs a full diagonal to perform the triangle solve
+            return aoclsparse_status_invalid_value;
         y = (T*)malloc(n * sizeof(T));
         if(y == nullptr)
             return aoclsparse_status_memory_error;
@@ -673,18 +773,7 @@ aoclsparse_status
             // Compute v = Au
             beta   = 0.0;
             alpha  = 1.0;
-            status = aoclsparse_csrmv(trans,
-                                      &alpha,
-                                      n,
-                                      n,
-                                      nnz,
-                                      (T*)mat->csr_mat.csr_val,
-                                      mat->csr_mat.csr_col_ptr,
-                                      mat->csr_mat.csr_row_ptr,
-                                      descr,
-                                      u,
-                                      &beta,
-                                      v);
+            status = aoclsparse_mv(aoclsparse_operation_none, alpha, mat, descr, u, beta, v);
             if(status != aoclsparse_status_success)
                 // Shouldn't happen, invalid pointer/value/not implemented should be checked before
                 return aoclsparse_status_internal_error;
@@ -693,7 +782,8 @@ aoclsparse_status
         case aoclsparse_rci_precond:
             switch((itsol->cg)->precond)
             {
-            case 1: // User defined preconditioner, call precond(...)
+            case 1:
+                // User defined preconditioner, call precond(...)
                 // precond pointer was already verified
                 flag = precond(0, u, v, udata);
                 // if the user indicates that preconditioner could not be applied
@@ -702,19 +792,15 @@ aoclsparse_status
                 if(flag != 0)
                     ircomm = aoclsparse_rci_interrupt;
                 break;
-            case 2: // Jacobi - Not yet implemented
+            case 2:
+                // Jacobi - Not yet implemented
                 break;
-            case 3: // Symmetric Gauss-Seidel - Not yet implemented
-                for(aoclsparse_int i = 0; i < n; i++)
-                    v[i] = u[i];
-                /* symgs_ref_avx(alpha,
-                              n,
-                              (T*)mat->csr_mat.csr_val,
-                              mat->csr_mat.csr_col_ptr,
-                              mat->csr_mat.csr_row_ptr,
-                              u,
-                              v,
-                              y); */
+            case 3:
+                // Symmetric Gauss-Seidel
+                status = aoclsparse_itsol_symgs(mat, descr, u, y, v);
+                if(status != aoclsparse_status_success)
+                    // symgs step failed. shouldn't happen, internal error?
+                    return aoclsparse_status_internal_error;
                 break;
             default: // None
                 for(aoclsparse_int i = 0; i < n; i++)

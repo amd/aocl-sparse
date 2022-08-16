@@ -25,6 +25,8 @@
 #include "aoclsparse.h"
 #include "aoclsparse_mat_structures.h"
 #include "aoclsparse_types.h"
+#include "aoclsparse_optimize_data.hpp"
+#include "aoclsparse_auxiliary.hpp"
 #include <string>
 #include <cstring>
 
@@ -266,18 +268,18 @@ aoclsparse_status aoclsparse_create_scsr(aoclsparse_matrix &mat,
        }
     }
 	
+    // Default values
     mat = new _aoclsparse_matrix;
+    aoclsparse_init_csrmat(mat);
     mat->m = M;
     mat->n = N;
     mat->nnz = csr_nnz;
     mat->base = base;
-    mat->optimized = false;
     mat->val_type = aoclsparse_smat;
     mat->csr_mat.csr_row_ptr = csr_row_ptr;
     mat->csr_mat.csr_col_ptr = csr_col_ptr;
     mat->csr_mat.csr_val = csr_val;
-
-    mat->hint_id = aoclsparse_none;   //initialize to 0 during hint operation
+    mat->csr_mat_is_users = true;
 
     return aoclsparse_status_success;
 }
@@ -313,19 +315,16 @@ aoclsparse_status aoclsparse_create_dcsr(aoclsparse_matrix &mat,
 		  return aoclsparse_status_invalid_index_value; 
        }
     }
-
     mat = new _aoclsparse_matrix;
+    aoclsparse_init_csrmat(mat);
     mat->m = M;
     mat->n = N;
     mat->nnz = csr_nnz;
     mat->base = base;
-    mat->optimized = false;
-    mat->val_type = aoclsparse_dmat;
     mat->csr_mat.csr_row_ptr = csr_row_ptr;
     mat->csr_mat.csr_col_ptr = csr_col_ptr;
     mat->csr_mat.csr_val = csr_val;
-
-    mat->hint_id = aoclsparse_none;   //initialize to 0 during hint operation
+    mat->csr_mat_is_users = true;
 
     return aoclsparse_status_success;
 }
@@ -452,21 +451,23 @@ aoclsparse_status aoclsparse_destroy_mv(aoclsparse_matrix A)
  *******************************************************************************/
 aoclsparse_status aoclsparse_destroy_2m(aoclsparse_matrix A)
 {
-
-    if(A->csr_mat.csr_row_ptr != NULL)
+    if (!A->csr_mat_is_users)
     {
-	free(A->csr_mat.csr_row_ptr);
-	A->csr_mat.csr_row_ptr = NULL;
-    }
-    if(A->csr_mat.csr_col_ptr != NULL)
-    {
-	free(A->csr_mat.csr_col_ptr);
-	A->csr_mat.csr_col_ptr = NULL;
-    }
-    if(A->csr_mat.csr_val != NULL)
-    {
-	free(A->csr_mat.csr_val);
-	A->csr_mat.csr_val = NULL;
+        if(A->csr_mat.csr_row_ptr != NULL)
+        {
+            free(A->csr_mat.csr_row_ptr);
+            A->csr_mat.csr_row_ptr = NULL;
+        }
+        if(A->csr_mat.csr_col_ptr != NULL)
+        {
+            free(A->csr_mat.csr_col_ptr);
+            A->csr_mat.csr_col_ptr = NULL;
+        }
+        if(A->csr_mat.csr_val != NULL)
+        {
+            free(A->csr_mat.csr_val);
+            A->csr_mat.csr_val = NULL;
+        }
     }
     return aoclsparse_status_success;
 }
@@ -495,58 +496,67 @@ aoclsparse_status aoclsparse_destroy_ilu(_aoclsparse_ilu *ilu_info)
     return aoclsparse_status_success;
 }
 
+aoclsparse_status aoclsparse_destroy_opt_csr(aoclsparse_matrix A)
+{
+    if (!A->opt_csr_is_users)
+    {
+        if (A->opt_csr_mat.csr_col_ptr)
+            free(A->opt_csr_mat.csr_col_ptr);
+        if (A->opt_csr_mat.csr_row_ptr)
+            free(A->opt_csr_mat.csr_row_ptr);
+        if (A->opt_csr_mat.csr_val)
+            free(A->opt_csr_mat.csr_val);
+    }
+    if (A->idiag)
+        free(A->idiag);
+    if (A->iurow)
+        free(A->iurow);
+    return aoclsparse_status_success;
+}
+
 /********************************************************************************
  * \brief aoclsparse_matrix is a structure holding the sparse matrix A.
  * It must be deallocated using aoclsparse_destroy() by carefully looking for all the
  * allocations as part of different Sparse routines and their corresponding
  * Hint/Optimize functions.
  *******************************************************************************/
-aoclsparse_status aoclsparse_destroy(aoclsparse_matrix A)
+aoclsparse_status aoclsparse_destroy(aoclsparse_matrix &A)
 {
     aoclsparse_status ret = aoclsparse_status_success;
     aoclsparse_int mv_hint, trsv_hint, mm_hint, twom_hint, ilu_hint;
 
-    mv_hint = A->hint_id & aoclsparse_spmv;
-    trsv_hint = (A->hint_id & aoclsparse_trsv) >> 1;
-    mm_hint = (A->hint_id & aoclsparse_mm) >> 2;
-    twom_hint = (A->hint_id & aoclsparse_2m) >> 3;
-    ilu_hint = (A->hint_id & aoclsparse_ilu) >> 4;
-
-    if(mv_hint)
+    if (A)
     {
-        //delete SPMV data structures allocated in hint/optimize
-        ret = aoclsparse_destroy_mv(A);
-    }
-    if(mm_hint)
-    {
-        //delete Dense - Sparse Matrix Mult data structures allocated in hint/optimize
-        //To Do
-    }
-    if(trsv_hint)
-    {
-        //delete triangular solve data structures allocated in hint/optimize
-        //To Do
-    }
-    if(twom_hint)
-    {
-        //delete Sparse - Sparse Matrix Mult data structures allocated in hint/optimize
-        ret = aoclsparse_destroy_2m(A);
-    }
-    if(ilu_hint)
-    {
-        //delete ILU data structures allocated in hint/optimize
-        ret = aoclsparse_destroy_ilu(&(A->ilu_info));
-    }
-
-    if(A != NULL)
-    {
+        aoclsparse_optimize_destroy(A->optim_data);
+        aoclsparse_destroy_opt_csr(A);
+        aoclsparse_destroy_mv(A);
+        aoclsparse_destroy_2m(A);
+        aoclsparse_destroy_ilu(&(A->ilu_info));
         delete A;
         A = NULL;
     }
     return ret;
-
 }
 
 #ifdef __cplusplus
 }
 #endif
+
+void aoclsparse_init_csrmat(aoclsparse_matrix A)
+{
+    // Default values for CSR matrices
+    if (!A)
+        return;
+    
+    A->optimized = false;
+    A->base = aoclsparse_index_base_zero;
+    A->val_type = aoclsparse_dmat;
+    A->mat_type = aoclsparse_csr_mat;
+    A->optim_data = nullptr;
+    A->csr_mat_is_users = true;
+    A->ilu_info.col_idx_mapper = nullptr;
+    A->ilu_info.lu_diag_ptr = nullptr;
+    A->opt_csr_ready = false;
+    A->idiag=nullptr;
+    A->iurow=nullptr;
+}

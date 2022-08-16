@@ -1,0 +1,18 @@
+# Add executables for each of the sample examples
+add_executable(sample_csr2m sample_csr2m.cpp)
+target_link_libraries(sample_csr2m aoclsparse pthread)
+
+add_executable(sample_spmv sample_spmv.cpp)
+target_link_libraries(sample_spmv aoclsparse pthread)
+
+add_executable(sample_itsol_d_cg_rci sample_itsol_d_cg_rci.cpp)
+target_link_libraries(sample_itsol_d_cg_rci aoclsparse pthread)
+
+add_executable(sample_itsol_d_cg sample_itsol_d_cg.cpp)
+target_link_libraries(sample_itsol_d_cg aoclsparse pthread)
+
+add_executable(sample_itsol_s_cg_rci sample_itsol_s_cg_rci.cpp)
+target_link_libraries(sample_itsol_s_cg_rci aoclsparse pthread)
+
+add_executable(sample_itsol_s_cg sample_itsol_s_cg.cpp)
+target_link_libraries(sample_itsol_s_cg aoclsparse pthread)

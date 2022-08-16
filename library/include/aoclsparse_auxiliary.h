@@ -358,7 +358,7 @@ aoclsparse_status aoclsparse_export_mat_csr(aoclsparse_matrix &csr,
  */
  /**@{*/
 DLL_PUBLIC
-aoclsparse_status aoclsparse_destroy(aoclsparse_matrix mat);
+aoclsparse_status aoclsparse_destroy(aoclsparse_matrix &mat);
 /**@}*/
 #ifdef __cplusplus
 }

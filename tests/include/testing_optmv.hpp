@@ -100,7 +100,7 @@ void testing_optmv(const Arguments& arg)
 
 
     //to identify hint id(which routine is to be executed, destroyed later)
-    CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mv_hint(A, trans, descr, 0));
+    CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mv_hint(A, trans, descr, 1));
 
     // Optimize the matrix, "A"
     CHECK_AOCLSPARSE_ERROR(aoclsparse_optimize(A));

@@ -64,28 +64,31 @@ int main()
     aoclsparse_matrix     A;
     aoclsparse_index_base base = aoclsparse_index_base_zero;
     aoclsparse_mat_descr  descr_a;
+    aoclsparse_operation  trans = aoclsparse_operation_none;
     aoclsparse_create_scsr(A, base, n, n, nnz, icrow, icol, a);
     aoclsparse_create_mat_descr(&descr_a);
     aoclsparse_set_mat_type(descr_a, aoclsparse_matrix_type_symmetric);
     aoclsparse_set_mat_fill_mode(descr_a, aoclsparse_fill_mode_lower);
+    aoclsparse_set_sv_hint(A, trans, descr_a, 100);
     aoclsparse_optimize(A);
 
     // Initialize initial point x0 and right hand side b
-    float                x[n]            = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
-    float                b[n]            = {0.};
-    float                expected_sol[n] = {1.E0, 0.E0, 1.E0, 0.E0, 1.E0, 0.E0, 1.E0, 0.E0};
-    float                rinfo[100];
-    aoclsparse_operation trans = aoclsparse_operation_none;
-    float                alpha = 1.0, beta = 0.;
+    float x[n]            = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
+    float b[n]            = {0.};
+    float expected_sol[n] = {1.E0, 0.E0, 1.E0, 0.E0, 1.E0, 0.E0, 1.E0, 0.E0};
+    float rinfo[100];
+    float alpha = 1.0, beta = 0.;
     // generate RHS
-    aoclsparse_scsrmv(trans, &alpha, n, n, nnz, a, icol, icrow, descr_a, expected_sol, &beta, b);
+    aoclsparse_smv(trans, &alpha, A, descr_a, expected_sol, &beta, b);
 
     // create CG handle
     aoclsparse_itsol_handle handle = nullptr;
     aoclsparse_itsol_s_init(&handle);
 
-    if(aoclsparse_itsol_option_set(handle, "CG Abs Tolerance", "5.0e-6")
-       != aoclsparse_status_success)
+    if(aoclsparse_itsol_option_set(handle, "CG Rel Tolerance", "1.0e-06")
+           != aoclsparse_status_success
+       || aoclsparse_itsol_option_set(handle, "CG Preconditioner", "SGS")
+              != aoclsparse_status_success)
         std::cout << "Warning an option could not be set" << std::endl;
 
     // Call CG solver
