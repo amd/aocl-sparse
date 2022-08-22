@@ -747,13 +747,13 @@ aoclsparse_status handle_parse_option(aoclsparse_options::OptionRegistry<T>& opt
                                       const char*                            option,
                                       const char*                            value)
 {
-    const int   byuser = 1;
-    int         flag;
-    int         iquery, iset;
-    int         otype = 0;
-    T           rquery, rset;
-    bool        bquery, bset;
-    std::string squery, sset, name;
+    const aoclsparse_int byuser = 1;
+    aoclsparse_int       flag;
+    aoclsparse_int       iquery, iset;
+    aoclsparse_int       otype = 0;
+    T                    rquery, rset;
+    bool                 bquery, bset;
+    std::string          squery, sset, name;
 
     if(!option)
         return aoclsparse_status_invalid_pointer;
