@@ -24,8 +24,6 @@
 #include "aoclsparse.h"
 #include "aoclsparse_ellmv.hpp"
 
-extern aoclsparse_thread global_thread;
-
 /*
  *===========================================================================
  *   C wrapper
@@ -48,8 +46,8 @@ extern "C" aoclsparse_status aoclsparse_sellmv(aoclsparse_operation       trans,
     // This function updates the num_threads only once.
     aoclsparse_init_once();
 
-    aoclsparse_thread thread;
-    thread.num_threads = global_thread.num_threads;
+    aoclsparse_context context;
+    context.num_threads = global_context.num_threads;
 
     if(descr == nullptr)
     {
@@ -128,7 +126,7 @@ extern "C" aoclsparse_status aoclsparse_sellmv(aoclsparse_operation       trans,
                             x,
                             *beta,
 			    y,
-			    &thread);
+			    &context);
 }
 
 extern "C" aoclsparse_status aoclsparse_dellmv(aoclsparse_operation       trans,
@@ -148,8 +146,9 @@ extern "C" aoclsparse_status aoclsparse_dellmv(aoclsparse_operation       trans,
     // This function updates the num_threads only once.
     aoclsparse_init_once();
 
-    aoclsparse_thread thread;
-    thread.num_threads = global_thread.num_threads;
+    aoclsparse_context context;
+    context.num_threads = global_context.num_threads;
+    context.is_avx512 = global_context.is_avx512;
 
     if(descr == nullptr)
     {
@@ -218,7 +217,34 @@ extern "C" aoclsparse_status aoclsparse_dellmv(aoclsparse_operation       trans,
         return aoclsparse_status_invalid_pointer;
     }
 
-    return aoclsparse_ellmv_template(*alpha,
+
+#if USE_AVX512
+    if (context.is_avx512)
+	    return aoclsparse_ellmv_template_avx512(*alpha,
+                            m,
+                            n,
+                            nnz,
+                            ell_val,
+                            ell_col_ind,
+                            ell_width,
+                            x,
+                            *beta,
+                            y,
+                            &context);
+    else
+	    return aoclsparse_ellmv_template_avx2(*alpha,
+                            m,
+                            n,
+                            nnz,
+                            ell_val,
+                            ell_col_ind,
+                            ell_width,
+                            x,
+                            *beta,
+                            y,
+                            &context);
+#else
+	    return aoclsparse_ellmv_template_avx2(*alpha,
                             m,
                             n,
                             nnz,
@@ -228,7 +254,8 @@ extern "C" aoclsparse_status aoclsparse_dellmv(aoclsparse_operation       trans,
                             x,
                             *beta,
 			    y,
-			    &thread);
+			    &context);
+#endif
 }
 
 extern "C" aoclsparse_status aoclsparse_selltmv(aoclsparse_operation       trans,
@@ -248,8 +275,8 @@ extern "C" aoclsparse_status aoclsparse_selltmv(aoclsparse_operation       trans
     // This function updates the num_threads only once.
     aoclsparse_init_once();
 
-    aoclsparse_thread thread;
-    thread.num_threads = global_thread.num_threads;
+    aoclsparse_context context;
+    context.num_threads = global_context.num_threads;
 
     if(descr == nullptr)
     {
@@ -328,7 +355,7 @@ extern "C" aoclsparse_status aoclsparse_selltmv(aoclsparse_operation       trans
                             x,
                             *beta,
 			    y,
-			    &thread);
+			    &context);
 }
 
 
@@ -349,8 +376,9 @@ extern "C" aoclsparse_status aoclsparse_delltmv(aoclsparse_operation       trans
     // This function updates the num_threads only once.
     aoclsparse_init_once();
 
-    aoclsparse_thread thread;
-    thread.num_threads = global_thread.num_threads;
+    aoclsparse_context context;
+    context.num_threads = global_context.num_threads;
+    context.is_avx512 = global_context.is_avx512;
 
     if(descr == nullptr)
     {
@@ -419,7 +447,33 @@ extern "C" aoclsparse_status aoclsparse_delltmv(aoclsparse_operation       trans
         return aoclsparse_status_invalid_pointer;
     }
 
-    return aoclsparse_elltmv_template(*alpha,
+#if USE_AVX512
+   if (context.is_avx512)
+	   return aoclsparse_elltmv_template_avx512(*alpha,
+                    m,
+                    n,
+                    nnz,
+                    ell_val,
+                    ell_col_ind,
+                    ell_width,
+                    x,
+                    *beta,
+                    y,
+                    &context);
+   else
+	   return aoclsparse_elltmv_template_avx2(*alpha,
+                     m,
+                     n,
+                     nnz,
+                     ell_val,
+                     ell_col_ind,
+                     ell_width,
+                     x,
+                     *beta,
+                     y,
+                     &context);
+#else
+	return aoclsparse_elltmv_template_avx2(*alpha,
                             m,
                             n,
                             nnz,
@@ -429,7 +483,8 @@ extern "C" aoclsparse_status aoclsparse_delltmv(aoclsparse_operation       trans
                             x,
                             *beta,
 			    y,
-			    &thread);
+			    &context);
+#endif
 }
 
 // Manu - for Hybrid
@@ -456,8 +511,8 @@ extern "C" aoclsparse_status aoclsparse_sellthybmv(aoclsparse_operation       tr
     // This function updates the num_threads only once.
     aoclsparse_init_once();
 
-    aoclsparse_thread thread;
-    thread.num_threads = global_thread.num_threads;
+    aoclsparse_context context;
+    context.num_threads = global_context.num_threads;
 
     return aoclsparse_ellthybmv_template(*alpha,
                             m,
@@ -475,7 +530,7 @@ extern "C" aoclsparse_status aoclsparse_sellthybmv(aoclsparse_operation       tr
                             x,
                             *beta,
 			    y,
-			    &thread);
+			    &context);
 
 }
 
@@ -503,24 +558,64 @@ extern "C" aoclsparse_status aoclsparse_dellthybmv(aoclsparse_operation       tr
     // This function updates the num_threads only once.
     aoclsparse_init_once();
 
-    aoclsparse_thread thread;
-    thread.num_threads = global_thread.num_threads;
+    aoclsparse_context context;
+    context.num_threads = global_context.num_threads;
+    context.is_avx512 = global_context.is_avx512;
 
-    return aoclsparse_ellthybmv_template(*alpha,
-                            m,
-                            n,
-                            nnz,
-                            ell_val,
-                            ell_col_ind,
-                            ell_width,
-			    ell_m,
-                            csr_val,
-                            csr_row_ind,
-                            csr_col_ind,
-                            row_idx_map,
-                            csr_row_idx_map,
-                            x,
-			    *beta,
-			    y,
-			    &thread);
+#if USE_AVX512
+    if (context.is_avx512)
+	return aoclsparse_ellthybmv_template_avx512(*alpha,
+            m,
+            n,
+            nnz,
+            ell_val,
+            ell_col_ind,
+            ell_width,
+	    ell_m,
+            csr_val,
+            csr_row_ind,
+            csr_col_ind,
+            row_idx_map,
+            csr_row_idx_map,
+            x,
+	    *beta,
+	    y,
+	    &context);
+    else
+	return aoclsparse_ellthybmv_template_avx2(*alpha,
+            m,
+            n,
+            nnz,
+            ell_val,
+            ell_col_ind,
+            ell_width,
+            ell_m,
+            csr_val,
+            csr_row_ind,
+            csr_col_ind,
+            row_idx_map,
+            csr_row_idx_map,
+            x,
+            *beta,
+            y,
+            &context);
+#else
+    return aoclsparse_ellthybmv_template_avx2(*alpha,
+          m,
+          n,
+          nnz,
+          ell_val,
+          ell_col_ind,
+          ell_width,
+          ell_m,
+          csr_val,
+          csr_row_ind,
+          csr_col_ind,
+          row_idx_map,
+          csr_row_idx_map,
+          x,
+          *beta,
+          y,
+          &context);
+#endif
 }

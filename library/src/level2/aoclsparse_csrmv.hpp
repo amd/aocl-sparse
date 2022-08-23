@@ -23,10 +23,10 @@
 #ifndef AOCLSPARSE_CSRMV_HPP
 #define AOCLSPARSE_CSRMV_HPP
 
+#include <immintrin.h>
 #include "aoclsparse.h"
 #include "aoclsparse_descr.h"
-#include "aoclsparse_pthread.h"
-#include <immintrin.h>
+#include "aoclsparse_context.h"
 
 #if defined(_WIN32) || defined(_WIN64)
 //Windows equivalent of gcc c99 type qualifier __restrict__
@@ -44,7 +44,33 @@ aoclsparse_status aoclsparse_csrmv_vectorized(const T        alpha,
                                               const T* __restrict__ x,
                                               const T beta,
                                               T* __restrict__ y,
-                                              aoclsparse_thread* thread);
+                                              aoclsparse_context* context);
+
+template <typename T>
+aoclsparse_status aoclsparse_csrmv_vectorized_avx2(const T        alpha,
+                                              aoclsparse_int m,
+                                              aoclsparse_int n,
+                                              aoclsparse_int nnz,
+                                              const T* __restrict__ csr_val,
+                                              const aoclsparse_int* __restrict__ csr_col_ind,
+                                              const aoclsparse_int* __restrict__ csr_row_ptr,
+                                              const T* __restrict__ x,
+                                              const T beta,
+                                              T* __restrict__ y,
+                                              aoclsparse_context* context);
+
+template <typename T>
+aoclsparse_status aoclsparse_csrmv_vectorized_avx512(const T        alpha,
+                                              aoclsparse_int m,
+                                              aoclsparse_int n,
+                                              aoclsparse_int nnz,
+                                              const T* __restrict__ csr_val,
+                                              const aoclsparse_int* __restrict__ csr_col_ind,
+                                              const aoclsparse_int* __restrict__ csr_row_ptr,
+                                              const T* __restrict__ x,
+                                              const T beta,
+                                              T* __restrict__ y,
+                                              aoclsparse_context* context);
 
 template <typename T>
 aoclsparse_status aoclsparse_csrmv_general(const T        alpha,
@@ -57,11 +83,11 @@ aoclsparse_status aoclsparse_csrmv_general(const T        alpha,
                                            const T* __restrict__ x,
                                            const T beta,
                                            T* __restrict__ y,
-                                           aoclsparse_thread* thread)
+                                           aoclsparse_context* context)
 {
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(thread->num_threads) schedule(dynamic, m / thread->num_threads)
+#pragma omp parallel for num_threads(context->num_threads) schedule(dynamic, m / context->num_threads)
 #endif
     // Iterate over each row of the input matrix and
     // Perform matrix-vector product for each non-zero of the ith row

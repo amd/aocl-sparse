@@ -23,15 +23,13 @@
 #ifndef AOCLSPARSE_OPTMV_HPP
 #define AOCLSPARSE_OPTMV_HPP
 
+#include <immintrin.h>
 #include "aoclsparse.h"
 #include "aoclsparse_descr.h"
-#include "aoclsparse_pthread.h"
+#include "aoclsparse_context.h"
 #include "aoclsparse_mat_structures.h"
-#include <immintrin.h>
 #include "aoclsparse_csr_util.hpp"
 #include "aoclsparse_csrmv.hpp"
-
-extern aoclsparse_thread global_thread;
 
 
 template <typename T>

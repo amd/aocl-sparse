@@ -101,15 +101,18 @@ void aoclsparse_pthread_once
        void              (*init)(void)
      );
 
-/********************************************************************************
- * \brief aoclsparse_thread is a structure holding the number of threads
+/******************************************************************************************
+ * \brief aoclsparse_context is a structure holding the number of threads, ISA information
  * It gets initialised by aoclsparse_init_once().
- *******************************************************************************/
-typedef struct _aoclsparse_thread
+ *****************************************************************************************/
+typedef struct _aoclsparse_context
 {
     // num of threads
     aoclsparse_int num_threads = 0;
-}aoclsparse_thread;
+    bool is_avx512 = false;
+}aoclsparse_context;
+
+extern aoclsparse_context global_context;
 
 /*! \ingroup aux_module
  *  \brief Initialise number of threads from environment variables

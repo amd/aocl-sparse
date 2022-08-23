@@ -21,9 +21,10 @@
  *
  * ************************************************************************ */
 
-#include "aoclsparse_pthread.h"
-#include "aoclsparse.h"
 #include <cstdlib>
+#include "aoclsparse_context.h"
+#include "aoclsparse.h"
+#include <alci/cpu_features.h>
 #if defined(AOCLSPARSE_DISABLE_SYSTEM)
 
 // This branch defines a pthread-like API, aoclsparse_pthread_*(), and implements it
@@ -153,8 +154,8 @@ void aoclsparse_pthread_once
 
 #endif // !defined(AOCLSPARSE_DISABLE_SYSTEM) && !defined(_MSC_VER)
 
-// The global aoclsparse_thread structure, which holds the global thread settings
-aoclsparse_thread global_thread;
+// The global aoclsparse_context structure, which holds the global thread,ISA settings
+aoclsparse_context global_context;
 
 // A mutex to allow synchronous access to global_thread.
 aoclsparse_pthread_mutex_t global_thread_mutex = AOCLSPARSE_PTHREAD_MUTEX_INITIALIZER;
@@ -187,7 +188,7 @@ aoclsparse_int aoclsparse_env_get_var( const char* env, aoclsparse_int fallback 
     return r_val;
 }
 
-void aoclsparse_thread_init_rntm_from_env(aoclsparse_thread *thread )
+void aoclsparse_thread_init_rntm_from_env(aoclsparse_context *context)
 {
     aoclsparse_int nt;
 
@@ -201,16 +202,26 @@ void aoclsparse_thread_init_rntm_from_env(aoclsparse_thread *thread )
     // If AOCLSPARSE_NUM_THREADS and OMP_NUM_THREADS was not set, set it to 1 for single threaded run.
     if ( nt == -1 )
 	nt = 1;
+    context->num_threads = nt;
+}
 
-    thread->num_threads = nt;
+void aoclsparse_isa_init(aoclsparse_context *context)
+{
+        // Check if the target supports AVX512
+	if (alc_cpu_has_avx512f()) {
+            context->is_avx512 = true;
+        }
 }
 
 // -----------------------------------------------------------------------------
-void aoclsparse_thread_init( void )
+void aoclsparse_context_init( void )
 {
     // Read the environment variables and use them to initialize the
     // global runtime object.
-    aoclsparse_thread_init_rntm_from_env( &global_thread );
+    aoclsparse_thread_init_rntm_from_env(&global_context);
+
+    // Read target ISA if it supports avx512
+    aoclsparse_isa_init(&global_context);
 }
 
 
@@ -231,7 +242,7 @@ static aoclsparse_pthread_once_t once_finalize = AOCLSPARSE_PTHREAD_ONCE_INIT;
 
 void aoclsparse_init_once( void )
 {
-    aoclsparse_pthread_once( &once_init, aoclsparse_thread_init );
+    aoclsparse_pthread_once( &once_init, aoclsparse_context_init );
 }
 
 void aoclsparse_finalize_once( void )
@@ -244,7 +255,7 @@ aoclsparse_int aoclsparse_thread_get_num_threads( void )
     // We must ensure that global_rntm has been initialized.
     aoclsparse_init_once();
 
-    return global_thread.num_threads;
+    return global_context.num_threads;
 }
 
 void aoclsparse_thread_set_num_threads( aoclsparse_int n_threads )
@@ -255,7 +266,7 @@ void aoclsparse_thread_set_num_threads( aoclsparse_int n_threads )
     // Acquire the mutex protecting global_thread.
     aoclsparse_pthread_mutex_lock( &global_thread_mutex );
 
-    global_thread.num_threads = n_threads;
+    global_context.num_threads = n_threads;
 
     // Release the mutex protecting global_thread.
     aoclsparse_pthread_mutex_unlock( &global_thread_mutex );

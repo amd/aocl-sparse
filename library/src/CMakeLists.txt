@@ -37,7 +37,7 @@ set(AOCLSPARSE_SOURCES
 
 # Extra
   src/extra/aoclsparse_auxiliary.cpp
-  src/extra/aoclsparse_pthread.cpp
+  src/extra/aoclsparse_context.cpp
 
 # Solvers
   src/solvers/aoclsparse_ilu.cpp

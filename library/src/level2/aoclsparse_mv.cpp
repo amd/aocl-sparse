@@ -38,8 +38,8 @@ aoclsparse_status aoclsparse_dcsr_mat_br4(aoclsparse_operation       op,
     // This function updates the num_threads only once.
     aoclsparse_init_once();
 
-    aoclsparse_thread thread;
-    thread.num_threads = global_thread.num_threads;
+    aoclsparse_context context;
+    context.num_threads = global_context.num_threads;
 
     aoclsparse_int tc = 0;
     __m256d        res, vvals, vx, vy, va, vb;
@@ -54,10 +54,10 @@ aoclsparse_status aoclsparse_dcsr_mat_br4(aoclsparse_operation       op,
     double*         tvptr = (double*)A->csr_mat_br4.csr_val;
     double*         vptr;
     aoclsparse_int  blk        = 4;
-    aoclsparse_int  chunk_size = (A->m) / (blk * thread.num_threads);
+    aoclsparse_int  chunk_size = (A->m) / (blk * context.num_threads);
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(thread.num_threads) \
+#pragma omp parallel for num_threads(context.num_threads) \
     schedule(dynamic, chunk_size) private(res, vvals, vx, vy, vptr, cptr)
 #endif
     for(aoclsparse_int i = 0; i < (A->m) / blk; i++)
@@ -100,7 +100,7 @@ aoclsparse_status aoclsparse_dcsr_mat_br4(aoclsparse_operation       op,
     }
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(thread.num_threads)
+#pragma omp parallel for num_threads(context.num_threads)
 #endif
     for(aoclsparse_int k = ((A->m) / blk) * blk; k < A->m; ++k)
     {

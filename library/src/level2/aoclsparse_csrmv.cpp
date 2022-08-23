@@ -24,8 +24,6 @@
 #include "aoclsparse.h"
 #include "aoclsparse_csrmv.hpp"
 
-extern aoclsparse_thread global_thread;
-
 
 // Template specializations 
 template<>
@@ -40,12 +38,12 @@ aoclsparse_status aoclsparse_csrmv_vectorized(
 	const float* __restrict__              x,
 	const float                            beta,
 	float* __restrict__                    y,
-	aoclsparse_thread                      *thread)
+	aoclsparse_context                      *context)
 {
     __m256 vec_vals , vec_x ,vec_y;
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(thread->num_threads)  private(vec_vals , vec_x ,vec_y)
+#pragma omp parallel for num_threads(context->num_threads)  private(vec_vals , vec_x ,vec_y)
 #endif
     for(aoclsparse_int i = 0; i < m; i++)
     {
@@ -126,13 +124,13 @@ aoclsparse_status aoclsparse_csrmv_vectorized(
 #if USE_AVX512
 template<>
 aoclsparse_status
-aoclsparse_csrmv_vectorized(const double alpha, aoclsparse_int m,
+aoclsparse_csrmv_vectorized_avx512(const double alpha, aoclsparse_int m,
                             aoclsparse_int n, aoclsparse_int nnz,
                             const double *__restrict__ csr_val,
                             const aoclsparse_int *__restrict__ csr_col_ind,
                             const aoclsparse_int *__restrict__ csr_row_ptr,
                             const double *__restrict__ x, const double beta,
-                            double *__restrict__ y, aoclsparse_thread *thread) {
+                            double *__restrict__ y, aoclsparse_context *context) {
     __m256d vec_y;
     __m512d vec_vals_512, vec_x_512, vec_y_512;
     for (aoclsparse_int i = 0; i < m; i++) {
@@ -203,20 +201,21 @@ aoclsparse_csrmv_vectorized(const double alpha, aoclsparse_int m,
     return aoclsparse_status_success;
   }
 
-#else
+#endif
+
 template<>
 aoclsparse_status
-aoclsparse_csrmv_vectorized(const double alpha, aoclsparse_int m,
+aoclsparse_csrmv_vectorized_avx2(const double alpha, aoclsparse_int m,
                             aoclsparse_int n, aoclsparse_int nnz,
                             const double *__restrict__ csr_val,
                             const aoclsparse_int *__restrict__ csr_col_ind,
                             const aoclsparse_int *__restrict__ csr_row_ptr,
                             const double *__restrict__ x, const double beta,
-                            double *__restrict__ y, aoclsparse_thread *thread) {
+                            double *__restrict__ y, aoclsparse_context *context) {
 
     __m256d vec_vals , vec_x , vec_y;
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(thread->num_threads) schedule(dynamic,m/thread->num_threads) private(vec_vals , vec_x ,vec_y)
+#pragma omp parallel for num_threads(context->num_threads) schedule(dynamic,m/context->num_threads) private(vec_vals , vec_x ,vec_y)
 #endif
     for(aoclsparse_int i = 0; i < m; i++)
     {
@@ -287,7 +286,6 @@ aoclsparse_csrmv_vectorized(const double alpha, aoclsparse_int m,
     }
     return aoclsparse_status_success;
 }
-#endif
 
 /*
  *===========================================================================
@@ -312,8 +310,8 @@ extern "C" aoclsparse_status aoclsparse_scsrmv(aoclsparse_operation       trans,
     // This function updates the num_threads only once.
     aoclsparse_init_once();
 
-    aoclsparse_thread thread;
-    thread.num_threads = global_thread.num_threads;
+    aoclsparse_context context;
+    context.num_threads = global_context.num_threads;
 
     if(descr == nullptr)
     {
@@ -407,7 +405,7 @@ extern "C" aoclsparse_status aoclsparse_scsrmv(aoclsparse_operation       trans,
                 x,
 		*beta,
 		y,
-		&thread);
+		&context);
     }
 }
 
@@ -429,8 +427,9 @@ extern "C" aoclsparse_status aoclsparse_dcsrmv(aoclsparse_operation       trans,
     // This function updates the num_threads only once.
     aoclsparse_init_once();
 
-    aoclsparse_thread thread;
-    thread.num_threads = global_thread.num_threads;
+    aoclsparse_context context;
+    context.num_threads = global_context.num_threads;
+    context.is_avx512 = global_context.is_avx512;
 
     if(descr == nullptr)
     {
@@ -531,18 +530,47 @@ extern "C" aoclsparse_status aoclsparse_dcsrmv(aoclsparse_operation       trans,
 		    x,
 		    *beta,
 		    y,
-		    &thread);
+		    &context);
 	else
-	    return aoclsparse_csrmv_vectorized(*alpha,
-		    m,
-		    n,
-		    nnz,
-		    csr_val,
-		    csr_col_ind,
-		    csr_row_ptr,
-		    x,
-		    *beta,
-		    y,
-		    &thread);
+        {
+#if USE_AVX512
+                if (context.is_avx512)
+                return aoclsparse_csrmv_vectorized_avx512(*alpha,
+                    m,
+                    n,
+                    nnz,
+                    csr_val,
+                    csr_col_ind,
+                    csr_row_ptr,
+                    x,
+                    *beta,
+                    y,
+                    &context);
+                else
+                return aoclsparse_csrmv_vectorized_avx2(*alpha,
+                    m,
+                    n,
+                    nnz,
+                    csr_val,
+                    csr_col_ind,
+                    csr_row_ptr,
+                    x,
+                    *beta,
+                    y,
+                    &context);
+#else
+                return aoclsparse_csrmv_vectorized_avx2(*alpha,
+                    m,
+                    n,
+                    nnz,
+                    csr_val,
+                    csr_col_ind,
+                    csr_row_ptr,
+                    x,
+                    *beta,
+                    y,
+                    &context);
+#endif
+        }
     }
 }

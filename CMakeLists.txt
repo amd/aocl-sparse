@@ -118,17 +118,18 @@ ENDIF(BUILD_ILP64)
 IF(USE_AVX512)
         message( STATUS "USE_AVX512 = ON" )
         ADD_DEFINITIONS(-DUSE_AVX512)
+	add_compile_options("-mavx2;-mfma;-mavx512f")
+ELSE()
+	SET(COMPILER_FLAGS "-mtune=native;-mavx2;-mfma" CACHE STRING "Set compiler flags. Recommended flags for AMD Zen CPUs --march=zenver* where * can take values 1,2,3,4 etc based on target AMD Zen architecure")
+	message(STATUS "COMPILER_FLAGS expects complete and valid flags")
+
+	if ("${COMPILER_FLAGS}" STREQUAL "")
+	  message(FATAL_ERROR "Machine arch missing!  Recommended flags for AMD Zen CPUs --march=zenver* where * can take values 1,2,3,4 etc based on target AMD Zen architecure")
+	else ()
+	  add_compile_options("${COMPILER_FLAGS}")
+	  message(STATUS "Using ${COMPILER_FLAGS}")
+	endif ()
 ENDIF(USE_AVX512)
-
-SET(COMPILER_FLAGS "-mtune=native;-mavx2;-mfma" CACHE STRING "Set compiler flags. Recommended flags for AMD Zen CPUs --march=zenver* where * can take values 1,2,3,4 etc based on target AMD Zen architecure")
-message(STATUS "COMPILER_FLAGS expects complete and valid flags")
-
-if ("${COMPILER_FLAGS}" STREQUAL "")
-  message(FATAL_ERROR "Machine arch missing!  Recommended flags for AMD Zen CPUs --march=zenver* where * can take values 1,2,3,4 etc based on target AMD Zen architecure")
-else ()
-  add_compile_options("${COMPILER_FLAGS}")
-  message(STATUS "Using ${COMPILER_FLAGS}")
-endif ()
 
 add_compile_options ( -shared -fpermissive )
 # aoclsparse library
