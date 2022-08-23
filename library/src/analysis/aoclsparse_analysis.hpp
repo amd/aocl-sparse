@@ -30,6 +30,8 @@
 #include <vector>
 #include<cstring>
 
+#define CSR512_BR4_THRESHOLD 10.0
+
 #if defined(_WIN32) || defined(_WIN64)
 //Windows equivalent of gcc c99 type qualifier __restrict__
 #define __restrict__ __restrict

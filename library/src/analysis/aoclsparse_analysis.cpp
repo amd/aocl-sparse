@@ -127,11 +127,21 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
           }
       }
     } else {
-      if (prctg_rows_lt_10 < 10.0) {
+    #if USE_AVX512
+    // This is used to choose between csrmv avx512 and br4 implementation   
+    double fill_ratio_avx512 = ((double)(tnnz-nnz)/tnnz)*100;
+    if (fill_ratio_avx512 > CSR512_BR4_THRESHOLD)
+	    A->mat_type = aoclsparse_csr_mat;
+    else
+	    A->mat_type = aoclsparse_csr_mat_br4;
+    #else
+      if (prctg_rows_lt_10 < CSR512_BR4_THRESHOLD) {
          A->mat_type = aoclsparse_csr_mat;     // CSR 
+
       } else {
          A->mat_type = aoclsparse_csr_mat_br4; // CSR-BT-AVX2
       }
+     #endif
     }
 
     if (A->mat_type == aoclsparse_ellt_csr_hyb_mat) {
