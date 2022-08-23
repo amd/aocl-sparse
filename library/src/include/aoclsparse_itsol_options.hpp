@@ -289,9 +289,9 @@ namespace aoclsparse_options
         {
             return value;
         };
-        void SetInvegerValue(aoclsparse_int value, u_char setby = 0)
+        void SetInvegerValue(aoclsparse_int value, aoclsparse_int setby = 0)
         {
-            u_char iflag = 0;
+            aoclsparse_int iflag = 0;
 
             if(value != value)
             {
@@ -449,9 +449,9 @@ namespace aoclsparse_options
         {
             return value;
         };
-        void SetRealValue(T value, u_char setby = 0)
+        void SetRealValue(T value, aoclsparse_int setby = 0)
         {
-            u_char iflag = 0;
+            aoclsparse_int iflag = 0;
 
             if(value != value)
             {
@@ -525,7 +525,7 @@ namespace aoclsparse_options
         {
             return value;
         };
-        void SetBoolValue(bool value, u_char setby = 0)
+        void SetBoolValue(bool value, aoclsparse_int setby = 0)
         {
             if(value != value)
             {
@@ -632,11 +632,11 @@ namespace aoclsparse_options
             key = labels.at(value);
             return value;
         }
-        void SetStringValue(const string value, const u_char setby = 0)
+        void SetStringValue(const string value, const aoclsparse_int setby = 0)
         {
-            OptionUtility u;
-            u_char        iflag = 1;
-            string        val(value);
+            OptionUtility  u;
+            aoclsparse_int iflag = 1;
+            string         val(value);
             u.PrepareString(val);
 
             // check that value is a valid key
