@@ -130,8 +130,8 @@ namespace aoclsparse_options
 
         const string setby_l[3] = {"(default)", "(user)", "(solver)"};
 
-        virtual string PrintOption(void)  = 0;
-        virtual string PrintDetails(void) = 0;
+        virtual string PrintOption(void)          = 0;
+        virtual string PrintDetails(bool doxygen) = 0;
 
         void SetName(string str)
         {
@@ -219,47 +219,82 @@ namespace aoclsparse_options
             return rec.str();
         }
 
-        string PrintDetails(void)
+        string PrintDetails(bool doxygen)
         {
-            // string        str;
             ostringstream rec;
-            rec << "Begin Option [Integer]" << endl;
-            rec << "   Name: '" << name << "'" << endl;
-            rec << "   Value: " << value << "     [default: " << vdefault << "]" << endl;
-            rec << "   Range: ";
-            if(lbound == m_inf && ubound == p_inf)
+            if(doxygen)
             {
-                rec << "unbounded" << endl;
+                rec << " * | **" << name << "** | integer | \\f$ i = " << vdefault << "\\f$ |"
+                    << endl;
+                rec << " * | " << desc << "|||" << endl;
+
+                if(lbound == m_inf && ubound == p_inf)
+                {
+                    rec << " * | There are no constraints on \\f$i\\f$. |||" << endl;
+                }
+                else
+                {
+                    rec << " * | "
+                        << "Valid values: \\f$";
+                    if(lbound == greaterequal)
+                    {
+                        rec << lower << " \\le ";
+                    }
+                    else if(lbound == greaterthan)
+                    {
+                        rec << lower << " \\lt ";
+                    }
+                    rec << "i";
+                    if(ubound == lessequal)
+                    {
+                        rec << " \\le " << upper;
+                    }
+                    else if(ubound == lessthan)
+                    {
+                        rec << " \\lt " << upper;
+                    }
+                    rec << "\\f$. |||" << endl;
+                }
             }
             else
             {
-                if(lbound == greaterequal)
+                rec << "Begin Option [Integer]" << endl;
+                rec << "   Name: '" << name << "'" << endl;
+                rec << "   Value: " << value << "     [default: " << vdefault << "]" << endl;
+                rec << "   Range: ";
+                if(lbound == m_inf && ubound == p_inf)
                 {
-                    rec << lower << " <= ";
+                    rec << "unbounded" << endl;
                 }
-                else if(lbound == greaterthan)
+                else
                 {
-                    rec << lower << " < ";
+                    if(lbound == greaterequal)
+                    {
+                        rec << lower << " <= ";
+                    }
+                    else if(lbound == greaterthan)
+                    {
+                        rec << lower << " < ";
+                    }
+                    rec << "value ";
+                    if(ubound == lessequal)
+                    {
+                        rec << " <= " << upper;
+                    }
+                    else if(ubound == lessthan)
+                    {
+                        rec << " < " << upper;
+                    }
+                    rec << endl;
                 }
-                rec << "value ";
-                if(ubound == lessequal)
-                {
-                    rec << " <= " << upper;
-                }
-                else if(ubound == lessthan)
-                {
-                    rec << " < " << upper;
-                }
-                rec << endl;
+                rec << "   Id: " << id << endl;
+                rec << "   Desc: " << desc << endl;
+                rec << "   Hidden: " << boolalpha << hidden << endl;
+                rec << "   Set-by: " << setby_l[setby] << endl;
+                rec << "   Print-group: " << pgrp << endl;
+
+                rec << "End Option" << endl;
             }
-            rec << "   Id: " << id << endl;
-            rec << "   Desc: " << desc << endl;
-            rec << "   Hidden: " << boolalpha << hidden << endl;
-            rec << "   Set-by: " << setby_l[setby] << endl;
-            rec << "   Print-group: " << pgrp << endl;
-
-            rec << "End Option" << endl;
-
             return rec.str();
         }
 
@@ -382,47 +417,81 @@ namespace aoclsparse_options
             return rec.str();
         }
 
-        string PrintDetails(void)
+        string PrintDetails(bool doxygen)
         {
-            // string        str;
             ostringstream rec;
-            rec << "Begin Option [Real]" << endl;
-            rec << "   Name: '" << name << "'" << endl;
-            rec << "   Value: " << value << "     [default: " << vdefault << "]" << endl;
-            rec << "   Range: ";
-            if(lbound == m_inf && ubound == p_inf)
+            if(doxygen)
             {
-                rec << "unbounded" << endl;
+                rec << " * | **" << name << "** | real | \\f$ r = " << vdefault << "\\f$ |" << endl;
+                rec << " * | " << desc << "|||" << endl;
+
+                if(lbound == m_inf && ubound == p_inf)
+                {
+                    rec << " * | There are no constraints on \\f$r\\f$. |||" << endl;
+                }
+                else
+                {
+                    rec << " * | "
+                        << "Valid values: \\f$";
+                    if(lbound == greaterequal)
+                    {
+                        rec << lower << " \\le ";
+                    }
+                    else if(lbound == greaterthan)
+                    {
+                        rec << lower << " \\lt ";
+                    }
+                    rec << "r";
+                    if(ubound == lessequal)
+                    {
+                        rec << " \\le " << upper;
+                    }
+                    else if(ubound == lessthan)
+                    {
+                        rec << " \\lt " << upper;
+                    }
+                    rec << "\\f$. |||" << endl;
+                }
             }
             else
             {
-                if(lbound == greaterequal)
+                rec << "Begin Option [Real]" << endl;
+                rec << "   Name: '" << name << "'" << endl;
+                rec << "   Value: " << value << "     [default: " << vdefault << "]" << endl;
+                rec << "   Range: ";
+                if(lbound == m_inf && ubound == p_inf)
                 {
-                    rec << lower << " <= ";
+                    rec << "unbounded" << endl;
                 }
-                else if(lbound == greaterthan)
+                else
                 {
-                    rec << lower << " < ";
+                    if(lbound == greaterequal)
+                    {
+                        rec << lower << " <= ";
+                    }
+                    else if(lbound == greaterthan)
+                    {
+                        rec << lower << " < ";
+                    }
+                    rec << "value ";
+                    if(ubound == lessequal)
+                    {
+                        rec << " <= " << upper;
+                    }
+                    else if(ubound == lessthan)
+                    {
+                        rec << " < " << upper;
+                    }
+                    rec << endl;
                 }
-                rec << "value ";
-                if(ubound == lessequal)
-                {
-                    rec << " <= " << upper;
-                }
-                else if(ubound == lessthan)
-                {
-                    rec << " < " << upper;
-                }
-                rec << endl;
+                rec << "   Id: " << id << endl;
+                rec << "   Desc: " << desc << endl;
+                rec << "   Hidden: " << boolalpha << hidden << endl;
+                rec << "   Set-by: " << setby_l[setby] << endl;
+                rec << "   Print-group: " << pgrp << endl;
+
+                rec << "End Option" << endl;
             }
-            rec << "   Id: " << id << endl;
-            rec << "   Desc: " << desc << endl;
-            rec << "   Hidden: " << boolalpha << hidden << endl;
-            rec << "   Set-by: " << setby_l[setby] << endl;
-            rec << "   Print-group: " << pgrp << endl;
-
-            rec << "End Option" << endl;
-
             return rec.str();
         }
 
@@ -506,18 +575,29 @@ namespace aoclsparse_options
             return rec.str();
         }
 
-        string PrintDetails(void)
+        string PrintDetails(bool doxygen)
         {
             ostringstream rec;
-            rec << "Begin Option [Boolean]" << endl;
-            rec << "   Name: '" << name << "'" << endl;
-            rec << "   Value: " << value << "     [default: " << vdefault << "]" << endl;
-            rec << "   Id: " << id << endl;
-            rec << "   Desc: " << desc << endl;
-            rec << "   Hidden: " << boolalpha << hidden << endl;
-            rec << "   Set-by: " << setby_l[setby] << endl;
-            rec << "   Print-group: " << pgrp << endl;
-            rec << "End Option" << endl;
+            if(doxygen)
+            {
+                rec << " * | **" << name << "** | Boolean | \\f$ b = \\f$ "
+                    << (vdefault ? "True" : "False") << " |" << endl;
+                rec << " * | " << desc << "|||" << endl;
+                rec << " * | "
+                    << "Valid values: \\f$b =\\f$ True, or False. |||" << endl;
+            }
+            else
+            {
+                rec << "Begin Option [Boolean]" << endl;
+                rec << "   Name: '" << name << "'" << endl;
+                rec << "   Value: " << value << "     [default: " << vdefault << "]" << endl;
+                rec << "   Id: " << id << endl;
+                rec << "   Desc: " << desc << endl;
+                rec << "   Hidden: " << boolalpha << hidden << endl;
+                rec << "   Set-by: " << setby_l[setby] << endl;
+                rec << "   Print-group: " << pgrp << endl;
+                rec << "End Option" << endl;
+            }
             return rec.str();
         }
 
@@ -603,23 +683,55 @@ namespace aoclsparse_options
             rec << " " << name << " = " << value << endl;
             return rec.str();
         }
-        string PrintDetails(void)
+        string PrintDetails(bool doxygen)
         {
             ostringstream rec;
-            rec << "Begin Option [String]" << endl;
-            rec << "   Name: '" << name << "'" << endl;
-            rec << "   Value: '" << value << "'     [default: '" << vdefault << "']" << endl;
-            rec << "   Valid values: " << endl;
-            for(auto const it : labels)
+            if(doxygen)
             {
-                rec << "      '" << it.first << "' : " << it.second << endl;
+                rec << " * | **" << name << "** | string | \\f$ s = \\f$ `" << vdefault << "` |"
+                    << endl;
+                rec << " * | " << desc << "|||" << endl;
+                rec << " * | "
+                    << "Valid values: \\f$s =\\f$ ";
+                {
+                    aoclsparse_int n = labels.size();
+                    for(auto const it : labels)
+                    {
+                        rec << "`" << it.first << "`";
+                        switch(n)
+                        {
+                        case 1:
+                            rec << ".";
+                            break;
+                        case 2:
+                            rec << ", or ";
+                            break;
+                        default:
+                            rec << ", ";
+                            break;
+                        }
+                        n--;
+                    }
+                    rec << " |||" << endl;
+                }
             }
-            rec << "   Id: " << id << endl;
-            rec << "   Desc: " << desc << endl;
-            rec << "   Hidden: " << boolalpha << hidden << endl;
-            rec << "   Set-by: " << setby_l[setby] << endl;
-            rec << "   Print-group: " << pgrp << endl;
-            rec << "End Option" << endl;
+            else
+            {
+                rec << "Begin Option [String]" << endl;
+                rec << "   Name: '" << name << "'" << endl;
+                rec << "   Value: '" << value << "'     [default: '" << vdefault << "']" << endl;
+                rec << "   Valid values: " << endl;
+                for(auto const it : labels)
+                {
+                    rec << "      '" << it.first << "' : " << it.second << endl;
+                }
+                rec << "   Id: " << id << endl;
+                rec << "   Desc: " << desc << endl;
+                rec << "   Hidden: " << boolalpha << hidden << endl;
+                rec << "   Set-by: " << setby_l[setby] << endl;
+                rec << "   Print-group: " << pgrp << endl;
+                rec << "End Option" << endl;
+            }
             return rec.str();
         }
 
@@ -938,19 +1050,58 @@ namespace aoclsparse_options
             cout << "End Options" << endl;
         };
 
-        void PrintDetails(void)
+        void PrintDetails(bool doxygen)
         {
-            // void PrintOptions(const vector<aoclsparse_int> pgrp){
-            cout << "Begin (detailed print of registered options)" << endl;
+            bool sep = false;
+            if(doxygen)
+            {
+                cout << " *" << endl;
+                cout << " * \\section anchor_itsol_options Options" << endl;
+                cout << " * The iterative solver framework has the following options." << endl;
+                cout << " *" << endl;
+                cout << " * | **Option name** |  Type  | Default value|" << endl;
+                cout << " * |:----------------|:------:|-------------:|" << endl;
+            }
+            else
+            {
+                cout << "Begin (detailed print of registered options)" << endl;
+            }
             for(auto it : IntRegistry)
-                cout << it.PrintDetails();
+            {
+                if(sep && doxygen)
+                    cout << " * | |||" << endl;
+                cout << it.PrintDetails(doxygen);
+                sep = true;
+            }
             for(auto it : RealRegistry)
-                cout << it.PrintDetails();
+            {
+                if(sep && doxygen)
+                    cout << " * | |||" << endl;
+                cout << it.PrintDetails(doxygen);
+                sep = true;
+            }
             for(auto it : BoolRegistry)
-                cout << it.PrintDetails();
+            {
+                if(sep && doxygen)
+                    cout << " * | |||" << endl;
+                cout << it.PrintDetails(doxygen);
+                sep = true;
+            }
             for(auto it : StringRegistry)
-                cout << it.PrintDetails();
-            cout << "End" << endl;
+            {
+                if(sep && doxygen)
+                    cout << " * | |||" << endl;
+                cout << it.PrintDetails(doxygen);
+                sep = true;
+            }
+            if(doxygen)
+            {
+                cout << " *" << endl;
+            }
+            else
+            {
+                cout << "End" << endl;
+            }
         };
     };
 }; // namespace aoclsparse_options
