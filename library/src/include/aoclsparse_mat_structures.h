@@ -89,8 +89,9 @@ struct _aoclsparse_ell_csr_hyb
  *******************************************************************************/
 struct _aoclsparse_ilu
 {
-    aoclsparse_int         *lu_diag_ptr;        //pointer to diagonal elements in csr values array
-    aoclsparse_int         *col_idx_mapper;     //working array
+    aoclsparse_int         *lu_diag_ptr=NULL;        //pointer to diagonal elements in csr values array
+    aoclsparse_int         *col_idx_mapper=NULL;     //working array
+    void                   *precond_csr_val=NULL;     //copy of buffer for ilu precondioned factors
     bool                    ilu_factorized = false;     //flag to indicate if ILU factorization is done
     aoclsparse_ilu_type     ilu_fact_type;              // indicator of ILU factorization type
     // true: ILU Optimization/Working-Buffer-Allocation already done, else needs to be performed^M

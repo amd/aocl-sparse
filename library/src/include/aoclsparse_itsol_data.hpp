@@ -91,6 +91,16 @@ enum cg_rc_task
     task_take_step
 };
 
+enum gmres_rc_task
+{
+    task_gmres_start = 0,
+    task_gmres_init_res,
+    task_gmres_init_precond,
+    task_gmres_start_iter,    
+    task_gmres_end_iter,
+    task_gmres_x_update,
+    task_gmres_restart_cycle
+};
 /*
  * Strucure holding the working memory for the CG algorithm
 */
@@ -105,6 +115,28 @@ struct cg_data
     aoclsparse_int niter;
 
     /* CG algorithm options */
+    T              rtol, atol;
+    aoclsparse_int maxit, precond;
+};
+
+/*
+ * Structure holding the working memory for the GMRES algorithm
+*/
+template <typename T>
+struct gmres_data
+{
+    /* Working vectors and values */
+    T        *v = 0, *h = 0, *g = 0;
+    T        *c = 0, *s = 0, *z = 0;
+    T        rnorm2, bnorm2, brtol;
+    /* GMRES algorithm state */
+    gmres_rc_task     task;
+    aoclsparse_int niter;
+    aoclsparse_int j;
+    /* Restart iteration count for the GMRES problem: Needed for working buffer allocation */
+    aoclsparse_int restart_iters;       
+
+    /* GMRES algorithm options */
     T              rtol, atol;
     aoclsparse_int maxit, precond;
 };
@@ -131,10 +163,10 @@ struct aoclsparse_itsol_data
     /* which solver is being used */
     aoclsparse_int solver;
 
-    /* Conjugate Gradient Method (CGM) solvers data */
+    /* Conjugate Gradient Method (CGM) solver's data */
     cg_data<T>* cg;
-    /* TODO add GMRES data here */
-    // gmres_data<T>* gmres;
+    /* GMRES solver's data */
+    gmres_data<T>* gmres;
 };
 
 struct _aoclsparse_itsol_handle

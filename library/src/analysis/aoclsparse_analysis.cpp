@@ -325,6 +325,10 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
     return aoclsparse_status_success;
 }
 
+/*
+    the ilu optimize fucntion currently just allocates the memory
+    needed for the working buffers of preconditioning
+*/
 aoclsparse_status aoclsparse_optimize_ilu0(aoclsparse_matrix A)
 {
     aoclsparse_status       ret = aoclsparse_status_success;
@@ -360,10 +364,15 @@ aoclsparse_status aoclsparse_optimize_ilu0(aoclsparse_matrix A)
     A->optimized = true;
     return ret;
 }
-
+/*
+    ILU optimize API allocates working buffers and also 
+    memory for the precondtioned csr value buffer
+*/
 aoclsparse_status aoclsparse_optimize_ilu(aoclsparse_matrix A)
 {
     aoclsparse_status       ret = aoclsparse_status_success;
+    double                 *ilu_dval;
+    float                  *ilu_sval;
     //If already allocated, then no need to reallocate. So return. Need to happen only once in the beginning
     if(A->ilu_info.ilu_ready == true)
     {
@@ -383,6 +392,27 @@ aoclsparse_status aoclsparse_optimize_ilu(aoclsparse_matrix A)
         default:
             ret = aoclsparse_status_invalid_value;
             break;
+    }  
+
+    if (A->val_type == aoclsparse_dmat) 
+    {
+        ilu_dval = (double *) malloc(sizeof(double) * A->nnz);
+        if(NULL == ilu_dval) 
+        {
+            return aoclsparse_status_memory_error;
+        }        
+        memcpy((double *) ilu_dval, (double *)A->csr_mat.csr_val, (sizeof(double) * A->nnz));            
+        A->ilu_info.precond_csr_val = (double *) ilu_dval;
+    } 
+    else if (A->val_type == aoclsparse_smat) 
+    {
+        ilu_sval = (float *) malloc(sizeof(float)* A->nnz);
+        if(NULL == ilu_sval) 
+        {
+            return aoclsparse_status_memory_error;
+        }      
+        memcpy((float *) ilu_sval, (float *)A->csr_mat.csr_val, (sizeof(float) * A->nnz));            
+        A->ilu_info.precond_csr_val = (float *) ilu_sval;
     }  
     //turn this flag on to indicate necessary allocations for ILU have been done
     A->ilu_info.ilu_ready=true;

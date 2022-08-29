@@ -491,6 +491,11 @@ aoclsparse_status aoclsparse_destroy_ilu(_aoclsparse_ilu *ilu_info)
             free(ilu_info->lu_diag_ptr);
             ilu_info->lu_diag_ptr = NULL;
         }
+        if(ilu_info->precond_csr_val != NULL)
+        {
+            free(ilu_info->precond_csr_val);
+            ilu_info->precond_csr_val = NULL;
+        }   		
         ilu_info = NULL;
     }
     return aoclsparse_status_success;

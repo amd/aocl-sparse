@@ -247,7 +247,7 @@ typedef enum aoclsparse_status_
     aoclsparse_status_user_stop           = 8, /**< user requested termination. */
     aoclsparse_status_wrong_type          = 9, /**< function called on the wrong type (double/float). */
     aoclsparse_status_memory_error        = 10, /**< memory allocation failure. */
-    aoclsparse_status_numerical_error     = 11, /**< numerical error, e.g., matrix is not positive definite. */
+    aoclsparse_status_numerical_error     = 11, /**< numerical error, e.g., matrix is not positive definite, divide-by-zero error */
     aoclsparse_status_invalid_operation   = 12, /**< cannot proceed with the request at this point. */
 } aoclsparse_status;
 
