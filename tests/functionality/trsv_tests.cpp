@@ -29,7 +29,6 @@
 #include "aoclsparse.h"
 #include "aoclsparse_descr.h"
 #include "aoclsparse_mat_structures.h"
-#include "aoclsparse_trsv.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -71,7 +70,8 @@ bool test_aoclsparse_trsv(const aoclsparse_int       testid,
              << " trans=" << (trans == aoclsparse_operation_transpose ? "TRANSPOSE" : "NO")
              << " avxversion=" << avxlabs[avxversion] << endl;
     }
-    ret = aoclsparse_trsv(trans, alpha, A, descr, b, x, avxversion);
+    //ret = aoclsparse_trsv(trans, alpha, A, descr, b, x, avxversion);
+    ret = aoclsparse_dtrsv(trans, alpha, A, descr, b, x);
     if(ret != aoclsparse_status_success)
     {
         cout << "Test failed with unexpected return from aoclsparse_trsv, status = " << ret << endl;
@@ -601,7 +601,9 @@ int main(void)
             testid, title, trans, A, descr, alpha, b, x, xref, xtol, icrowa, icola, aval);
         if(okload) // TODO PASS_BY-REFERENCE!!!
             // Call test as many times as available kernels
-            for(int avxversion = NONE; avxversion <= AVX2; avxversion++)
+            // only run on AVX2 until calling non-public APIs is possible
+            // TODO change when testing framework is adopted
+            for(int avxversion = AVX2; avxversion <= AVX2; avxversion++)
             {
                 ok &= test_aoclsparse_trsv(testid,
                                            title,
