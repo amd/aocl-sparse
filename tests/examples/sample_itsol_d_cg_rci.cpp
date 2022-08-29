@@ -49,7 +49,6 @@ int main()
     aoclsparse_int n = 8, nnz = 18;
 
     // create matrix and its descriptor
-    aoclsparse_matrix     mat;
     aoclsparse_matrix     A;
     aoclsparse_index_base base = aoclsparse_index_base_zero;
     aoclsparse_mat_descr  descr_a;

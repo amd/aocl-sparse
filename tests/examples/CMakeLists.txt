@@ -16,3 +16,6 @@ target_link_libraries(sample_itsol_s_cg_rci aoclsparse pthread)
 
 add_executable(sample_itsol_s_cg sample_itsol_s_cg.cpp)
 target_link_libraries(sample_itsol_s_cg aoclsparse pthread)
+
+add_executable(sample_dtrsv sample_dtrsv.cpp)
+target_link_libraries(sample_dtrsv aoclsparse pthread)
