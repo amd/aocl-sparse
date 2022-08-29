@@ -37,5 +37,7 @@
 #define __restrict__ __restrict
 #endif
 
+aoclsparse_status aoclsparse_optimize_ilu(aoclsparse_matrix A);
+
 #endif // AOCLSPARSE_ANALYSIS_HPP
 

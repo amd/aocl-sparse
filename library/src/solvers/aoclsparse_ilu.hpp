@@ -28,6 +28,7 @@
 #include "aoclsparse_mat_structures.h"
 #include "aoclsparse_types.h"
 #include "aoclsparse_ilu0.hpp"
+#include "aoclsparse_analysis.hpp"
 #include <immintrin.h>
 
 #include<iostream>
@@ -42,6 +43,12 @@ aoclsparse_status aoclsparse_ilu_template(aoclsparse_operation          op,
                                     const T*                       b )
 {
     aoclsparse_status ret = aoclsparse_status_success;
+
+    if(A->ilu_info.ilu_ready == false)
+    {
+        //optimize or allocate working buffers for ILU if not already done
+        aoclsparse_optimize_ilu(A);
+    }
 
     switch(A->ilu_info.ilu_fact_type)
     {

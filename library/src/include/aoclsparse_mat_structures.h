@@ -93,6 +93,8 @@ struct _aoclsparse_ilu
     aoclsparse_int         *col_idx_mapper;     //working array
     bool                    ilu_factorized = false;     //flag to indicate if ILU factorization is done
     aoclsparse_ilu_type     ilu_fact_type;              // indicator of ILU factorization type
+    // true: ILU Optimization/Working-Buffer-Allocation already done, else needs to be performed^M
+    bool                    ilu_ready=false;     
 };
 /********************************************************************************
  * \brief _aoclsparse_matrix is a structure holding generic aoclsparse matrices.

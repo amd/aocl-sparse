@@ -335,14 +335,14 @@ aoclsparse_status aoclsparse_optimize_ilu0(aoclsparse_matrix A)
     lu_diag_ptr = (aoclsparse_int *) malloc(sizeof(aoclsparse_int)* nrows);
     if(NULL == lu_diag_ptr)
     {
-        ret = aoclsparse_status_internal_error;
+        ret = aoclsparse_status_memory_error;
         return ret;
     }
 
     col_idx_mapper = (aoclsparse_int *) malloc(sizeof(aoclsparse_int)* nrows);
     if(NULL == col_idx_mapper)
     {
-        ret = aoclsparse_status_internal_error;
+        ret = aoclsparse_status_memory_error;
         return ret;
     }
 
@@ -364,6 +364,11 @@ aoclsparse_status aoclsparse_optimize_ilu0(aoclsparse_matrix A)
 aoclsparse_status aoclsparse_optimize_ilu(aoclsparse_matrix A)
 {
     aoclsparse_status       ret = aoclsparse_status_success;
+    //If already allocated, then no need to reallocate. So return. Need to happen only once in the beginning
+    if(A->ilu_info.ilu_ready == true)
+    {
+           return ret;
+    }
 
     A->ilu_info.ilu_fact_type = aoclsparse_ilu0; // ILU0 
     switch(A->ilu_info.ilu_fact_type)
@@ -379,6 +384,8 @@ aoclsparse_status aoclsparse_optimize_ilu(aoclsparse_matrix A)
             ret = aoclsparse_status_invalid_value;
             break;
     }  
+    //turn this flag on to indicate necessary allocations for ILU have been done
+    A->ilu_info.ilu_ready=true;
     return ret;
 
 }
