@@ -140,7 +140,7 @@ struct _aoclsparse_matrix
     bool opt_csr_ready;
     // if true, user's csr_mat was fine to use so opt_csr_mat points
     // to the same memory. Deallocate only if !opt_csr_is_users
-    bool opt_csr_is_users;
+    bool opt_csr_is_users=true;
     // the original matrix had full (nonzero) diagonal, so the matrix
     // is safe for TRSVs
     bool opt_csr_full_diag;

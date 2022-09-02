@@ -288,6 +288,7 @@ void testing_csrmm(const Arguments& arg)
 	<< std::setw(12) << number_hot_calls << std::setw(12)
 	<< (arg.unit_check ? "yes" : "no") << std::endl;
 
+	aoclsparse_destroy(csr);
 }
 
 #endif // TESTING_CSRMM_HPP
