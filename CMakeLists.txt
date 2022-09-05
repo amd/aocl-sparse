@@ -66,7 +66,8 @@ option(BUILD_SHARED_LIBS "Build aocl-sparse as a shared library" ON)
 option(BUILD_CLIENTS_BENCHMARKS "Build benchmarks (requires Boost) " OFF)
 OPTION(BUILD_ILP64 "ILP64 Support" OFF)
 OPTION(USE_AVX512 "AVX512 Support" OFF)
-option (ENABLE_SET_BUILD_DATE "Set library build date" OFF)
+set(ENABLE_SET_BUILD_DATE OFF CACHE STRING  "Set library build date")
+option(BUILD_CLIENTS_SAMPLES "Build sparse examples" OFF)
 
 # Dependencies
 include(cmake/Dependencies.cmake)

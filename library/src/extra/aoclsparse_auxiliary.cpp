@@ -280,6 +280,7 @@ aoclsparse_status aoclsparse_create_scsr(aoclsparse_matrix &mat,
     mat->csr_mat.csr_col_ptr = csr_col_ptr;
     mat->csr_mat.csr_val = csr_val;
     mat->csr_mat_is_users = true;
+    mat->opt_csr_is_users = true;
 
     return aoclsparse_status_success;
 }
@@ -325,6 +326,7 @@ aoclsparse_status aoclsparse_create_dcsr(aoclsparse_matrix &mat,
     mat->csr_mat.csr_col_ptr = csr_col_ptr;
     mat->csr_mat.csr_val = csr_val;
     mat->csr_mat_is_users = true;
+    mat->opt_csr_is_users = true;
 
     return aoclsparse_status_success;
 }

@@ -21,19 +21,13 @@ Steps to build and run the sample application:
       g++ -O3 -DNDEBUG sample_csr2m.cpp -I $AOCLSPARSE_ROOT/include/ -L$AOCLSPARSE_ROOT/lib/ -laoclsparse -o test
          or
 
-   b. Refer the following compile/link commands to build GMRES applications
-      export  SPARSE_TESTS_COMMON=<Path to tests/common in aocl-sparse repo>
-      eg:
-         export  SPARSE_TESTS_COMMON=$HOME/aocl-sparse/tests/common
-      export  SPARSE_TESTS_INCLUDE=<Path to tests/include in aocl-sparse repo>
-      eg:
-         export SPARSE_TESTS_INCLUDE=$HOME/aocl-sparse/tests/include   
-   g++ -O3 -DNDEBUG sample_itsol_d_gmres_rci.cpp -I $AOCLSPARSE_ROOT/include/ -L$AOCLSPARSE_ROOT/lib/ -laoclsparse -o test_gmres
-   g++ -O3 -DNDEBUG sample_itsol_s_gmres_rci.cpp -I $AOCLSPARSE_ROOT/include/ -L$AOCLSPARSE_ROOT/lib/ -laoclsparse -o test_gmres
-   g++ -O3 -DNDEBUG sample_itsol_d_gmres.cpp -I $AOCLSPARSE_ROOT/include/ -L$AOCLSPARSE_ROOT/lib/ -laoclsparse -o test_gmres
-   g++ -O3 -DNDEBUG sample_itsol_s_gmres.cpp -I $AOCLSPARSE_ROOT/include/ -L$AOCLSPARSE_ROOT/lib/ -laoclsparse -o test_gmres
+   b. Refer the following compile/link commands to build GMRES/CG applications
+   g++ -O3 -DNDEBUG sample_itsol_d_gmres_rci.cpp -I $AOCLSPARSE_ROOT/include/ -L$AOCLSPARSE_ROOT/lib/ -laoclsparse -o test_solver   
+   g++ -O3 -DNDEBUG sample_itsol_d_gmres.cpp -I $AOCLSPARSE_ROOT/include/ -L$AOCLSPARSE_ROOT/lib/ -laoclsparse -o test_solver
+   g++ -O3 -DNDEBUG sample_itsol_s_cg_rci.cpp -I $AOCLSPARSE_ROOT/include/ -L$AOCLSPARSE_ROOT/lib/ -laoclsparse -o test_solver
+   g++ -O3 -DNDEBUG sample_itsol_s_cg.cpp -I $AOCLSPARSE_ROOT/include/ -L$AOCLSPARSE_ROOT/lib/ -laoclsparse -o test_solver
 
 4. Run the application
    ./test
       or
-   ./test_gmres
+   ./test_solver

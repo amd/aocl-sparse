@@ -77,9 +77,6 @@ template <typename T>
 aoclsparse_int spmv(aoclsparse_int nrows, T* pl_values, aoclsparse_int *pl_col_idx, 
                     aoclsparse_int *pl_row_offsets, T *xv, T *bv)
 {
-#ifndef HPCG_NO_OPENMP
-    #pragma omp parallel for
-#endif
     for (aoclsparse_int i = 0; i < nrows; i++) 
     {             
         T sum = 0.0;                               
