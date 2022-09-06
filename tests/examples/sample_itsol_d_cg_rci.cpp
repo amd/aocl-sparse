@@ -25,13 +25,14 @@
 #include <iomanip>
 #include <iostream>
 #include <math.h>
+#include <vector>
 
 // Define custom log printer
 void printer(double rinfo[100], bool header)
 {
     std::ios_base::fmtflags fmt = std::cout.flags();
     fmt |= std::cout.scientific | std::cout.right;
-    if(header)
+    if (header)
         std::cout << std::setw(5) << std::right << " iter"
                   << " " << std::setw(16) << std::right << "optim"
                   << "  " << std::setw(3) << std::endl;
@@ -43,17 +44,19 @@ void printer(double rinfo[100], bool header)
 int main()
 {
     // CSR symmetric matrix. Only the lower triangle is stored
-    aoclsparse_int icrow[9] = {0, 1, 2, 5, 6, 8, 11, 15, 18};
-    aoclsparse_int icol[18] = {0, 1, 0, 1, 2, 3, 1, 4, 0, 4, 5, 0, 3, 4, 6, 2, 5, 7};
-    double         aval[18] = {19, 10, 1, 8, 11, 13, 2, 11, 2, 1, 9, 7, 9, 5, 12, 5, 5, 9};
+    std::vector<aoclsparse_int> icrow, icol;
+    std::vector<double> aval; 
     aoclsparse_int n = 8, nnz = 18;
+    icrow.assign({0, 1, 2, 5, 6, 8, 11, 15, 18});
+    icol.assign({0, 1, 0, 1, 2, 3, 1, 4, 0, 4, 5, 0, 3, 4, 6, 2, 5, 7});
+    aval.assign({19, 10, 1, 8, 11, 13, 2, 11, 2, 1, 9, 7, 9, 5, 12, 5, 5, 9});
 
     // create matrix and its descriptor
-    aoclsparse_matrix     A;
+    aoclsparse_matrix A;
     aoclsparse_index_base base = aoclsparse_index_base_zero;
-    aoclsparse_mat_descr  descr_a;
-    aoclsparse_operation  trans = aoclsparse_operation_none;
-    aoclsparse_create_dcsr(A, base, n, n, nnz, icrow, icol, aval);
+    aoclsparse_mat_descr descr_a;
+    aoclsparse_operation trans = aoclsparse_operation_none;
+    aoclsparse_create_dcsr(A, base, n, n, nnz, icrow.data(), icol.data(), aval.data());
     aoclsparse_create_mat_descr(&descr_a);
     aoclsparse_set_mat_type(descr_a, aoclsparse_matrix_type_symmetric);
     aoclsparse_set_mat_fill_mode(descr_a, aoclsparse_fill_mode_lower);
@@ -61,65 +64,64 @@ int main()
     aoclsparse_optimize(A);
 
     // Initialize initial point x0 and right hand side b
-    double x[n]            = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
-    double b[n]            = {0.0};
-    double expected_sol[n] = {1.E0, 0.E0, 1.E0, 0.E0, 1.E0, 0.E0, 1.E0, 0.E0};
+    std::vector<double> x, b, expected_sol, y;
+    x.assign({1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0});
+    b.assign({0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0});
+    expected_sol.assign({1.E0, 0.E0, 1.E0, 0.E0, 1.E0, 0.E0, 1.E0, 0.E0});
     double alpha = 1.0, beta = 0.;
-    double y[n];
-    aoclsparse_dmv(trans, &alpha, A, descr_a, expected_sol, &beta, b);
+    y.resize(n);
+    aoclsparse_dmv(trans, &alpha, A, descr_a, expected_sol.data(), &beta, b.data());
 
     // create CG handle
     aoclsparse_itsol_handle handle = nullptr;
     aoclsparse_itsol_d_init(&handle);
 
     // Change options, set user defined preconditioner
-    if(aoclsparse_itsol_option_set(handle, "CG Iteration Limit", "50") != aoclsparse_status_success
-       || aoclsparse_itsol_option_set(handle, "CG preconditioner", "user")
-              != aoclsparse_status_success)
+    if (aoclsparse_itsol_option_set(handle, "CG Iteration Limit", "50") != aoclsparse_status_success || aoclsparse_itsol_option_set(handle, "CG preconditioner", "user") != aoclsparse_status_success)
         std::cout << "Warning an option could not be set" << std::endl;
 
     // initialize size and rhs inside the handle
-    aoclsparse_itsol_d_rci_input(handle, n, b);
+    aoclsparse_itsol_d_rci_input(handle, n, b.data());
 
     // Call CG solver
-    aoclsparse_status        status;
+    aoclsparse_status status;
     aoclsparse_itsol_rci_job ircomm = aoclsparse_rci_start;
-    double*                  u      = nullptr;
-    double*                  v      = nullptr;
-    double                   rinfo[100];
-    double                   tol = 1.0e-5;
-    bool                     hdr;
+    double *u = nullptr;
+    double *v = nullptr;
+    double rinfo[100];
+    double tol = 1.0e-5;
+    bool hdr;
     std::cout << std::endl;
-    while(ircomm != aoclsparse_rci_stop)
+    while (ircomm != aoclsparse_rci_stop)
     {
-        status = aoclsparse_itsol_d_rci_solve(handle, &ircomm, &u, &v, x, rinfo);
-        if(status != aoclsparse_status_success)
+        status = aoclsparse_itsol_d_rci_solve(handle, &ircomm, &u, &v, x.data(), rinfo);
+        if (status != aoclsparse_status_success)
             break;
-        switch(ircomm)
+        switch (ircomm)
         {
         case aoclsparse_rci_mv:
             // Compute v = Au
-            beta  = 0.0;
+            beta = 0.0;
             alpha = 1.0;
             aoclsparse_dmv(trans, &alpha, A, descr_a, u, &beta, v);
             break;
 
         case aoclsparse_rci_precond:
             // apply Symmetric Gauss-Seidel preconditioner step
-            aoclsparse_dtrsv(aoclsparse_operation_none, alpha, A, descr_a, u, y);
-            for(aoclsparse_int i = 0; i < n; i++)
+            aoclsparse_dtrsv(aoclsparse_operation_none, alpha, A, descr_a, u, y.data());
+            for (aoclsparse_int i = 0; i < n; i++)
                 y[i] *= aval[icrow[i + 1] - 1];
-            aoclsparse_dtrsv(aoclsparse_operation_transpose, alpha, A, descr_a, y, v);
+            aoclsparse_dtrsv(aoclsparse_operation_transpose, alpha, A, descr_a, y.data(), v);
             break;
 
         case aoclsparse_rci_stopping_criterion:
             // No operations required, can be used to monitor the progress of the solve
-            // or defining a custom stopping criterion 
+            // or defining a custom stopping criterion
             // print iteration log
             hdr = ((int)rinfo[30] % 100) == 0;
             printer(rinfo, hdr);
             // request solver to stop if custom criterion is met
-            if(rinfo[0] < tol)
+            if (rinfo[0] < tol)
             {
                 std::cout << "User stop. Final residual: " << rinfo[0] << std::endl;
                 ircomm = aoclsparse_rci_interrupt;
@@ -131,7 +133,7 @@ int main()
         }
     }
     // Print the final results if the internal stopping criterion or the user defined one were met
-    switch(status)
+    switch (status)
     {
     case aoclsparse_status_user_stop:
     case aoclsparse_status_success:
@@ -142,11 +144,11 @@ int main()
                   << "Solution found: (residual = " << rinfo[0] << " in " << (int)rinfo[30]
                   << " iterations)" << std::endl
                   << "   Final X* = ";
-        for(int i = 0; i < n; i++)
+        for (int i = 0; i < n; i++)
             std::cout << std::setw(9) << x[i] << " ";
         std::cout << std::endl;
         std::cout << "Expected X* = ";
-        for(int i = 0; i < n; i++)
+        for (int i = 0; i < n; i++)
             std::cout << std::setw(9) << expected_sol[i] << " ";
         std::cout << std::endl;
         break;
