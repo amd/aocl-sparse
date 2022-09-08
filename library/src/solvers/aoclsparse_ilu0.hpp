@@ -26,6 +26,7 @@
 #include "aoclsparse.h"
 #include "aoclsparse_descr.h"
 #include "aoclsparse_types.h"
+#include "aoclsparse_auxiliary.hpp"
 
 #if defined(_WIN32) || defined(_WIN64)
 //Windows equivalent of gcc c99 type qualifier __restrict__
@@ -44,6 +45,7 @@ aoclsparse_status aoclsparse_ilu0_factorization(aoclsparse_int          m,
 	aoclsparse_status ret = aoclsparse_status_success;
 	aoclsparse_int          nrows = m;
 	aoclsparse_int i, j, jj, j1, j2, k, mn;
+    bool is_value_zero = false;
     
     for(i = 0; i < nrows; i++)
     {                    
@@ -63,11 +65,13 @@ aoclsparse_status aoclsparse_ilu0_factorization(aoclsparse_int          m,
             if(k < i)
             {                 
                 T diag_elem = csr_val[lu_diag_ptr[k]];
-                if(diag_elem == 0.0)
-                {       
-                    ret = aoclsparse_status_internal_error;             
+
+                is_value_zero = aoclsparse_zerocheck(diag_elem);
+                if(is_value_zero)
+                {        
+                    ret = aoclsparse_status_numerical_error;
                     return ret;
-                }
+                }       
                 csr_val[j] = csr_val[j]/diag_elem; 
                                               
                 for(jj = lu_diag_ptr[k] + 1; jj < csr_row_ptr[k + 1]; jj++)
@@ -87,12 +91,15 @@ aoclsparse_status aoclsparse_ilu0_factorization(aoclsparse_int          m,
         }
         lu_diag_ptr[i] = j;             
         //Error: ro Pivot
-        if(k != i || csr_val[j] == 0.0)
+
+        is_value_zero = aoclsparse_zerocheck(csr_val[j]);
+        if(k != i || is_value_zero)
         {       
             //ret = i;
             ret = aoclsparse_status_internal_error;             
             return ret;
-        }
+        }        
+
         //reset mapper
         for(mn = j1; mn < j2; mn++)
         {
@@ -115,6 +122,7 @@ aoclsparse_status aoclsparse_ilu_solve(aoclsparse_int          m,
 {
 	aoclsparse_status ret = aoclsparse_status_success;
     aoclsparse_int i, k;    
+    bool is_value_zero = false;
 
    //Forward Solve
    //Solve L . y = b
@@ -145,10 +153,11 @@ aoclsparse_status aoclsparse_ilu_solve(aoclsparse_int          m,
            xv[i] = xv[i] - temp;
        }    
        diag_elem = csr_val[diag_idx];     
-       if(diag_elem != 0.0)
-       {
+        is_value_zero = aoclsparse_zerocheck(diag_elem);
+        if(!is_value_zero)
+        {        
             xv[i] = xv[i]/diag_elem;  
-       }   
+        }   
    }     
 	return ret;
 }
@@ -164,7 +173,7 @@ aoclsparse_status aoclsparse_ilu0_template(aoclsparse_int               m,
 								   T*             	        csr_val,
                                    const aoclsparse_int*    csr_row_ptr,
 								   const aoclsparse_int*   csr_col_ind,
-                                   const T*                diag,
+                                   T                       **precond_csr_val,
                                    const T*                 approx_inv_diag,                                   								   
                                    T*                  	x,
                                    const T*             	b )
@@ -188,8 +197,8 @@ aoclsparse_status aoclsparse_ilu0_template(aoclsparse_int               m,
 			default:
 				ret = aoclsparse_status_invalid_value;
 				break;
-		}  		
-
+		}
+        *precond_csr_val = csr_val;
 	}	
 
     aoclsparse_ilu_solve<T>(m,

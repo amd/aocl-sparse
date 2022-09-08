@@ -315,7 +315,6 @@ int main()
     double *b=NULL; 
 
     double               alpha = 1.0, beta = 0.;
-    double               y[n];
     double norm=0.0;
     run_mode = RUN_MODE;
 

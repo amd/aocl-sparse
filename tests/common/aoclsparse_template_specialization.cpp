@@ -902,7 +902,7 @@ aoclsparse_status aoclsparse_ilu_smoother(
 	aoclsparse_operation       	op,
 	aoclsparse_matrix       	A,
 	const aoclsparse_mat_descr 	descr,
-	const float*                diag,
+	float 	                  	**precond_csr_val,
 	const float*                approx_inv_diag,
 	float*               		x,
 	const float*                b)
@@ -910,7 +910,7 @@ aoclsparse_status aoclsparse_ilu_smoother(
     return aoclsparse_silu_smoother(op,
 	    A,
 	    descr,
-	    diag,
+	    precond_csr_val,
 	    approx_inv_diag,
 	    x,
 	    b);
@@ -922,7 +922,7 @@ aoclsparse_status aoclsparse_ilu_smoother(
 	aoclsparse_operation       			op,
 	aoclsparse_matrix       			A,
 	const aoclsparse_mat_descr 			descr,
-	const double*                   	diag,
+	double                   			**precond_csr_val,
 	const double*                   	approx_inv_diag,
 	double*               				x,
 	const double*                     	b)
@@ -930,7 +930,7 @@ aoclsparse_status aoclsparse_ilu_smoother(
     return aoclsparse_dilu_smoother(op,
 	    A,
 	    descr,
-	    diag,
+	    precond_csr_val,
 	    approx_inv_diag,
 	    x,
 	    b);

@@ -32,7 +32,7 @@
 extern "C" aoclsparse_status aoclsparse_silu_smoother(aoclsparse_operation      op,	
                                                     aoclsparse_matrix           A,
                                                     const aoclsparse_mat_descr  descr,
-                                                    const float*                diag,
+                                                    float                      **precond_csr_val,
                                                     const float*                approx_inv_diag,                                                       
                                                     float*                      x,
                                                     const float*                b)
@@ -48,11 +48,6 @@ extern "C" aoclsparse_status aoclsparse_silu_smoother(aoclsparse_operation      
         // TODO
         return aoclsparse_status_not_implemented;
     }
-    if(descr->type != aoclsparse_matrix_type_symmetric)
-    {
-        // TODO: Only Symmetric Positive Definite Matrices are supported for ILU operation
-        return aoclsparse_status_not_implemented;
-    }
 
     if(op != aoclsparse_operation_none)
     {
@@ -60,33 +55,13 @@ extern "C" aoclsparse_status aoclsparse_silu_smoother(aoclsparse_operation      
         return aoclsparse_status_not_implemented;
     }
     // Check sizes
-    if(A->m < 0)
+    if((A->m <= 0) || (A->n <= 0))
     {
         return aoclsparse_status_invalid_size;
-    }
-    else if(A->n < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-
-    // Sanity check
-    if((A->m == 0 || A->n == 0))
-    {
-        return aoclsparse_status_invalid_size;
-    }
-
-    // Quick return if possible
-    if(A->m == 0 || A->n == 0)
-    {
-        return aoclsparse_status_success;
     }
 
     // Check pointer arguments
-    if(x == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(b == nullptr)
+    if((x == nullptr) || (b == nullptr))
     {
         return aoclsparse_status_invalid_pointer;
     }
@@ -94,7 +69,7 @@ extern "C" aoclsparse_status aoclsparse_silu_smoother(aoclsparse_operation      
     return aoclsparse_ilu_template<float>(op,
                             A,
                             descr,
-                            diag,
+                            precond_csr_val,
                             approx_inv_diag,                            
                             x,
                             b);
@@ -103,7 +78,7 @@ extern "C" aoclsparse_status aoclsparse_silu_smoother(aoclsparse_operation      
 extern "C" aoclsparse_status aoclsparse_dilu_smoother(aoclsparse_operation      op,	
                                                     aoclsparse_matrix           A,
                                                     const aoclsparse_mat_descr  descr,
-                                                    const double*               diag,
+                                                    double                     **precond_csr_val,
                                                     const double*               approx_inv_diag,                                                    
                                                     double*                     x,
                                                     const double*               b)
@@ -119,11 +94,6 @@ extern "C" aoclsparse_status aoclsparse_dilu_smoother(aoclsparse_operation      
         // TODO
         return aoclsparse_status_not_implemented;
     }
-    if(descr->type != aoclsparse_matrix_type_symmetric)
-    {
-        // TODO: Only Symmetric Positive Definite Matrices are supported for ILU operation
-        return aoclsparse_status_not_implemented;
-    }
 
     if(op != aoclsparse_operation_none)
     {
@@ -131,33 +101,13 @@ extern "C" aoclsparse_status aoclsparse_dilu_smoother(aoclsparse_operation      
         return aoclsparse_status_not_implemented;
     }
     // Check sizes
-    if(A->m < 0)
+    if((A->m <= 0) || (A->n <= 0))
     {
         return aoclsparse_status_invalid_size;
-    }
-    else if(A->n < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-
-    // Sanity check
-    if((A->m == 0 || A->n == 0))
-    {
-        return aoclsparse_status_invalid_size;
-    }
-
-    // Quick return if possible
-    if(A->m == 0 || A->n == 0)
-    {
-        return aoclsparse_status_success;
     }
 
     // Check pointer arguments
-    if(x == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(b == nullptr)
+    if((x == nullptr) || (b == nullptr))
     {
         return aoclsparse_status_invalid_pointer;
     }
@@ -165,7 +115,7 @@ extern "C" aoclsparse_status aoclsparse_dilu_smoother(aoclsparse_operation      
     return aoclsparse_ilu_template<double>(op,                            
                             A,
                             descr,
-                            diag,
+                            precond_csr_val,
                             approx_inv_diag,                                      
                             x,
                             b);

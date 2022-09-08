@@ -17,10 +17,12 @@ cd build/release;
 
 # Configure AOCL-Sparse
 # Build options:
-#   BUILD_CLIENTS_BENCHMARKS - build benchmarks (OFF)
-#   BUILD_SHARED_LIBS        - build AOCL-Sparse as a shared library (ON)
-#   BUILD_ILP64              - ILP64 Support (OFF)
-#   SUPPORT_OMP              - OpenMP Support (ON)
+#   BUILD_CLIENTS_BENCHMARKS - build benchmarks (Default : OFF)
+#   BUILD_SHARED_LIBS        - build AOCL-Sparse as a shared library (Default : ON)
+#   BUILD_ILP64              - ILP64 Support (Default : OFF)
+#   SUPPORT_OMP              - OpenMP Support (Default : ON)
+#   BUILD_CLIENTS_SAMPLES    - build examples (Default : OFF)
+#   BUILD_CLIENTS_TESTS      - build unit tests for hint, trsv and CG (Default : OFF)
 
 # Build shared library (default)
 if CMAKE_INSTALL_PREFIX is not provided then /opt/aoclsparse/ is the default location which contains lib/ and include/ directory files.

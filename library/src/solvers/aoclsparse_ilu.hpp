@@ -37,7 +37,7 @@ template <typename T>
 aoclsparse_status aoclsparse_ilu_template(aoclsparse_operation          op,
                                     aoclsparse_matrix                   A,
                                     const aoclsparse_mat_descr          descr,
-                                    const T*                   	diag,
+                                    T                   	    **precond_csr_val,
                                     const T*                   	approx_inv_diag,                                    
                                     T*                             x,
                                     const T*                       b )
@@ -46,7 +46,10 @@ aoclsparse_status aoclsparse_ilu_template(aoclsparse_operation          op,
 
     if(A->ilu_info.ilu_ready == false)
     {
-        //optimize or allocate working buffers for ILU if not already done
+        /*
+            currently optimize API allocates working buffers needed for ILU
+            functionality. ILU Optimize functionality to be extended in future
+        */
         aoclsparse_optimize_ilu(A);
     }
 
@@ -64,7 +67,7 @@ aoclsparse_status aoclsparse_ilu_template(aoclsparse_operation          op,
                                         (T *)A->ilu_info.precond_csr_val,                
                                         A->csr_mat.csr_row_ptr,
                                         A->csr_mat.csr_col_ptr,
-                                        diag,
+                                        precond_csr_val,
                                         approx_inv_diag,             
                                         x,
                                         b);                       

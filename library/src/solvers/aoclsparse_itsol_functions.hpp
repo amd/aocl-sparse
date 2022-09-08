@@ -1414,7 +1414,7 @@ aoclsparse_status
     T*                       io1      = nullptr;
     T*                       io2      = nullptr;
     T                        alpha = 1.0, beta = 0., timing = 0.;
-    T *diag=NULL, *approx_inv_diag=NULL;
+    T *precond_data=NULL, *approx_inv_diag=NULL;
     aoclsparse_operation     trans       = aoclsparse_operation_none;
     aoclsparse_status        exit_status = aoclsparse_status_success;
     aoclsparse_status        status;
@@ -1470,7 +1470,7 @@ aoclsparse_status
                 aoclsparse_ilu_template(trans,
                                         mat,                        //precond martix M
                                         descr,
-                                        (const T *)diag,
+                                        &precond_data,
                                         (const T *)approx_inv_diag,
                                         io1,                        //x = ?, io1 = z+j*n, 
                                         (const T *)io2);            //rhs, io2 = v+j*n   

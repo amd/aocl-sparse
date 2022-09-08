@@ -68,6 +68,7 @@ OPTION(BUILD_ILP64 "ILP64 Support" OFF)
 OPTION(USE_AVX512 "AVX512 Support" OFF)
 set(ENABLE_SET_BUILD_DATE OFF CACHE STRING  "Set library build date")
 option(BUILD_CLIENTS_SAMPLES "Build sparse examples" OFF)
+option(BUILD_CLIENTS_TESTS "Build sparse unit tests" OFF)
 
 # Dependencies
 include(cmake/Dependencies.cmake)

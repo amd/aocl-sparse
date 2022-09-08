@@ -275,7 +275,7 @@ aoclsparse_status aoclsparse_ilu_smoother(
 	aoclsparse_operation       	trans,
 	aoclsparse_matrix       	A,
 	const aoclsparse_mat_descr 	descr,
-	const T*                   	diag,
+	T 	                  		**precond_csr_val,
 	const T*                   	approx_inv_diag,
 	T*                   		x,
 	const T*                    b);

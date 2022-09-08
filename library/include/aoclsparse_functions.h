@@ -1063,9 +1063,10 @@ aoclsparse_status aoclsparse_scsr2m(aoclsparse_operation     trans_A,
  *  @param[in]
  *  descr      descriptor of the sparse matrix handle \p A. Currently, only
  *              \ref aoclsparse_matrix_type_symmetric is supported.
- *  @param[in]
- *  diag        array of \p n elements vector that contains diagonal elements of
- *              sparse CSR matrix \p A. It is unused as of now.
+ *  @param[out]
+ *  precond_csr_val        output pointer that contains
+ *                         L and U factors after ILU operation. The original value buffer of matrix
+ *                         \p A is not overwritten with the factors.
  *  @param[in]
  *  approx_inv_diag     It is unused as of now.
  *  @param[out]
@@ -1085,40 +1086,7 @@ aoclsparse_status aoclsparse_scsr2m(aoclsparse_operation     trans_A,
  *  \retval     aoclsparse_status_not_implemented
  *              \ref aoclsparse_matrix_type != \ref aoclsparse_matrix_type_symmetric.
  *
- *  \par Example - 1
- *  Shows Factorization and Solution of a sparse matrix to give an iterative update of \p x that progresses the convergence of
- *  the equation Ax = b
- *  \code{.c}
- *  	 aoclsparse_matrix A;
- *     //calculates L and U factors using ILU0 algorithm
- *     // Also does a step of LU solve using initial guess of x vector
- *     aoclsparse_dilu_smoother(trans,
- *                             A,
- *                             descr,
- *                             diag,
- *                             approx_inv_diag,
- *                             x,
- *                             b);
- *
- *     //loop needs to iterate until the vector x generates a minimum norm between x_ref and
- *     //x or to a specific no of iterations or untill the error % between old and new x is minimum
- *     while(iter < g_max_iters)
- *     {
- *         aoclsparse_copy_vector(x, x_old, N);
- *         //just performs a LU Solve operation using old vector of x to produce
- *         // an update for new vector of x
- *         aoclsparse_dilu_smoother(trans,
- *                                 A,
- *                                 descr,
- *                                 diag,
- *                                 approx_inv_diag,
- *                                 x,
- *                                 b);
- *         //minimise error percentage to find a better update for x
- *         iter++;
- *     }
- *
- *  \endcode
+ *  \par Refer to ILU Example from tests/include
  *
 */
 
@@ -1127,7 +1095,7 @@ DLL_PUBLIC
 aoclsparse_status aoclsparse_dilu_smoother(aoclsparse_operation     op,
                                   aoclsparse_matrix A,
                                   const aoclsparse_mat_descr descr,
-                                  const double*                   	diag,
+                                  double                   	      **precond_csr_val,
                                   const double*                   	approx_inv_diag,
                                   double*             x,
                                   const double*                   b);
@@ -1136,7 +1104,7 @@ DLL_PUBLIC
 aoclsparse_status aoclsparse_silu_smoother(aoclsparse_operation     op,
                                   aoclsparse_matrix A,
                                   const aoclsparse_mat_descr descr,
-                                  const float*                   	diag,
+                                  float                   	      **precond_csr_val,
                                   const float*                   	approx_inv_diag,
                                   float*             x,
                                   const float*                   b);

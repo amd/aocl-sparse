@@ -316,7 +316,6 @@ int main()
     float *b=NULL; 
 
     float               alpha = 1.0, beta = 0.;
-    float               y[n];
     float norm=0.0;
     run_mode = RUN_MODE;
 

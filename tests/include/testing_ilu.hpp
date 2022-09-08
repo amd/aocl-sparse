@@ -49,6 +49,7 @@ aoclsparse_int g_max_iters = 0;
 
 #undef PARAM_LOG
 //#define PARAM_LOG
+#define RUN_MODE 1
 
 template <typename T>
 void Dump_mtx_File_csc(const string&        market_filename,
@@ -264,7 +265,7 @@ void ilu_factorization_solution(aoclsparse_operation      	trans,
                                 aoclsparse_matrix          A, 
                                 aoclsparse_int              N,
                                 const aoclsparse_mat_descr 	descr,
-                                const T*               diag,
+                                T                      **precond_csr_val,
                                 const T*               approx_inv_diag,                                
                                 T*                     x_old, 
                                 T*                     x,
@@ -284,7 +285,7 @@ void ilu_factorization_solution(aoclsparse_operation      	trans,
     CHECK_AOCLSPARSE_ERROR(aoclsparse_ilu_smoother(trans,
                                                     A,
                                                     descr,
-                                                    diag,
+                                                    precond_csr_val,
                                                     approx_inv_diag,
                                                     x,
                                                     b));  
@@ -305,7 +306,7 @@ void ilu_factorization_solution(aoclsparse_operation      	trans,
         CHECK_AOCLSPARSE_ERROR(aoclsparse_ilu_smoother(trans,
                                                         A,
                                                         descr,
-                                                        diag,
+                                                        precond_csr_val,
                                                         approx_inv_diag,
                                                         x,
                                                         b));        
@@ -436,8 +437,8 @@ void testing_ilu(const Arguments& arg)
     std::string           filename = arg.filename;
     aoclsparse_int iter;
     double min_arae_percent;
-    aoclsparse_int run_mode=1;
-    T *diag=NULL, *approx_inv_diag=NULL;
+    aoclsparse_int run_mode=RUN_MODE;
+    T *approx_inv_diag=NULL;
     T alpha = static_cast<T>(arg.alpha);
     T beta  = static_cast<T>(arg.beta);
 
@@ -507,6 +508,7 @@ void testing_ilu(const Arguments& arg)
     }             
 
     // Initialize data
+    T *precond_csr_val=NULL;
     double val=1.0;
     //aoclsparse_init<T>(x_ref, 1, N, 1);
     aoclsparse_random_vector(x_ref, N);
@@ -564,7 +566,7 @@ void testing_ilu(const Arguments& arg)
 
     double cpu_time_fact = DBL_MAX;
     // Warm up and functionality run
-    ilu_factorization_solution<T>(trans, A, N, descr, diag, approx_inv_diag, x_old,x, b, iter, min_arae_percent, cpu_time_start, cpu_time_fact);
+    ilu_factorization_solution<T>(trans, A, N, descr, &precond_csr_val, approx_inv_diag, x_old,x, b, iter, min_arae_percent, cpu_time_start, cpu_time_fact);
     
 
     if(arg.unit_check)
@@ -572,7 +574,7 @@ void testing_ilu(const Arguments& arg)
         // Check solution vector if no pivot has been found
         if(h_analysis_pivot_gold == -1 && h_solve_pivot_gold == -1)
         {
-            near_check_general<T>(1, nnz, 1, csr_val_gold.data(), csr_val.data());             
+            near_check_general<T>(1, nnz, 1, csr_val_gold.data(), precond_csr_val);             
         }
     }
     double norm = calculate_l2Norm<T>(x_ref, x, N);
@@ -585,7 +587,7 @@ void testing_ilu(const Arguments& arg)
         CHECK_AOCLSPARSE_ERROR(aoclsparse_ilu_smoother(trans,
                                                         A,
                                                         descr,
-                                                        diag,
+                                                        &precond_csr_val,
                                                         approx_inv_diag,
                                                         x,
                                                         b));
