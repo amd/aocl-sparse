@@ -33,10 +33,10 @@ int main()
               << std::endl;
 
     // Create a tri-diagonal matrix in CSR format
-    // | 1  3  0  0 |
-    // | 2  1  3  0 |
-    // | 0  2  1  3 |
-    // | 0  0  2  1 |
+    // | 1  2  0  0 |
+    // | 3  1  2  0 |
+    // | 0  3  1  2 |
+    // | 0  0  3  1 |
     aoclsparse_int n = 4, m = 4, nnz = 10;
     aoclsparse_int icrow[5] = {0, 2, 5, 8, 10};
     aoclsparse_int icol[18] = {0, 1, 0, 1, 2, 1, 2, 3, 2, 3};
