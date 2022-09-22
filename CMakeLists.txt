@@ -132,8 +132,6 @@ ELSE()
 	  message(STATUS "Using ${COMPILER_FLAGS}")
 	endif ()
 ENDIF(USE_AVX512)
-
-add_compile_options ( -shared -fpermissive )
 # aoclsparse library
 add_subdirectory(library)
 
