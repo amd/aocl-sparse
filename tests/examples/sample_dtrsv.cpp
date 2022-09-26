@@ -41,13 +41,14 @@ int main()
     aoclsparse_int n = 4, m = 4, nnz = 10;
     aoclsparse_int icrow[5] = {0, 2, 5, 8, 10};
     aoclsparse_int icol[18] = {0, 1, 0, 1, 2, 1, 2, 3, 2, 3};
-    double         aval[18] = {1, 2, 3, 1, 2, 3, 1, 2, 3, 1};
+    double aval[18] = {1, 2, 3, 1, 2, 3, 1, 2, 3, 1};
+    aoclsparse_status status;
 
     // create aoclsparse matrix and its descriptor
-    aoclsparse_matrix     A;
+    aoclsparse_matrix A;
     aoclsparse_index_base base = aoclsparse_index_base_zero;
-    aoclsparse_mat_descr  descr_a;
-    aoclsparse_operation  trans = aoclsparse_operation_none;
+    aoclsparse_mat_descr descr_a;
+    aoclsparse_operation trans = aoclsparse_operation_none;
     aoclsparse_create_dcsr(A, base, m, n, nnz, icrow, icol, aval);
     aoclsparse_create_mat_descr(&descr_a);
 
@@ -59,28 +60,51 @@ int main()
     double b[4] = {1, 4, 4, 4};
     aoclsparse_set_mat_type(descr_a, aoclsparse_matrix_type_triangular);
     aoclsparse_set_mat_fill_mode(descr_a, aoclsparse_fill_mode_lower);
-    aoclsparse_set_sv_hint(A, trans, descr_a, 1);
-    aoclsparse_optimize(A);
+    status = aoclsparse_set_sv_hint(A, trans, descr_a, 1);
+    if (status != aoclsparse_status_success)
+    {
+        std::cerr << "Error setting SV hint, status = " << status << std::endl;
+        return 1;
+    }
+    status = aoclsparse_optimize(A);
+    if (status != aoclsparse_status_success)
+    {
+        std::cerr << "Error returned from aoclsparse_optimize, status = " << status << "." << std::endl;
+        return 2;
+    }
     // Call the triangle solver
     double alpha = 1.0;
     double x[n];
-    aoclsparse_dtrsv(aoclsparse_operation_none, alpha, A, descr_a, b, x);
+    status = aoclsparse_dtrsv(trans, alpha, A, descr_a, b, x);
+    if (status != aoclsparse_status_success)
+    {
+        std::cerr << "Error returned from aoclsparse_dtrsv, status = " << status << "." << std::endl;
+        return 3;
+    }
 
     // Print the result
-    std::cout << "Solving (L+D)x = b: " << std::endl << "  x = ";
+    std::cout << "Solving (L+D)x = b: " << std::endl
+              << "  x = ";
     std::cout << std::fixed;
     std::cout.precision(1);
-    for(aoclsparse_int i = 0; i < n; i++)
+    for (aoclsparse_int i = 0; i < n; i++)
         std::cout << x[i] << "  ";
     std::cout << std::endl;
 
     // The same method can be used to solve (U+D)x = b
     aoclsparse_set_mat_fill_mode(descr_a, aoclsparse_fill_mode_upper);
-    aoclsparse_dtrsv(aoclsparse_operation_none, alpha, A, descr_a, b, x);
+    status = aoclsparse_dtrsv(trans, alpha, A, descr_a, b, x);
+    if (status != aoclsparse_status_success)
+    {
+        std::cerr << "Error returned from aoclsparse_dtrsv, status = " << status << "." << std::endl;
+        return 3;
+    }
+
     // Print the result
     std::cout << std::endl;
-    std::cout << "Solving (U+D)x = b: " << std::endl << "  x = ";
-    for(aoclsparse_int i = 0; i < n; i++)
+    std::cout << "Solving (U+D)x = b: " << std::endl
+              << "  x = ";
+    for (aoclsparse_int i = 0; i < n; i++)
         std::cout << x[i] << "  ";
     std::cout << std::endl;
 

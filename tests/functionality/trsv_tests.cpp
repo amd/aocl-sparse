@@ -31,6 +31,7 @@
 #include "aoclsparse_mat_structures.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdlib>
 #include <fstream>
@@ -70,11 +71,12 @@ bool test_aoclsparse_trsv(const aoclsparse_int        testid,
              << " trans=" << (trans == aoclsparse_operation_transpose ? "TRANSPOSE" : "NO")
              << " avxversion=" << avxlabs[avxversion] << endl;
     }
-    //ret = aoclsparse_trsv(trans, alpha, A, descr, b, x, avxversion);
+    // ret = aoclsparse_trsv(trans, alpha, A, descr, b, x, avxversion);
     ret = aoclsparse_dtrsv(trans, alpha, A, descr, b, x);
     if(ret != aoclsparse_status_success)
     {
-        cout << "Test failed with unexpected return from aoclsparse_trsv, status = " << ret << endl;
+        cout << "Test failed with unexpected return from aoclsparse_dtrsv, status = " << ret
+             << endl;
     }
     bool pass = ret == aoclsparse_status_success;
     if(pass)
@@ -90,26 +92,58 @@ bool test_aoclsparse_trsv(const aoclsparse_int        testid,
             cout << "||x-xref|| = " << err << endl;
         }
     }
-    if(verbose)
+    if(verbose || !pass)
     {
         cout << "TEST #" << testid << " : " << (pass ? "PASS" : "FAILED") << endl;
     }
     return pass;
 }
 
-bool get_data(const aoclsparse_int    id,
-              string                 &title,
-              aoclsparse_operation   &trans,
-              aoclsparse_matrix      &A,
-              aoclsparse_mat_descr   &descr,
-              double                 &alpha,
-              vector<double>         &b,
-              vector<double>         &x,
-              vector<double>         &xref,
-              double                 &xtol,
-              vector<aoclsparse_int> &icrowa,
-              vector<aoclsparse_int> &icola,
-              vector<double>         &aval)
+bool test_aoclsparse_set_sv_hint(const aoclsparse_int        testid,
+                                 const string                testdesc,
+                                 aoclsparse_matrix          &A,
+                                 const aoclsparse_mat_descr &descr,
+                                 const aoclsparse_operation  trans,
+                                 const aoclsparse_int        ncalls,
+                                 const aoclsparse_status     exp_status,
+                                 const aoclsparse_int        verbose)
+{
+    aoclsparse_status ret;
+    if(verbose)
+    {
+        cout << endl << "TEST #" << testid << " " << testdesc << endl;
+    }
+    ret       = aoclsparse_set_sv_hint(A, trans, descr, ncalls);
+    bool pass = (ret == exp_status);
+    if(!pass)
+    {
+        cout << "Test failed with unexpected return from aoclsparse_set_sv_hint, status = " << ret
+             << endl;
+        cout << "Expected status = " << exp_status << endl;
+    }
+    if(verbose || !pass)
+    {
+        cout << "TEST #" << testid << " : " << (pass ? "PASS" : "FAILED") << endl;
+    }
+    return pass;
+}
+
+bool get_data(const aoclsparse_int       id,
+              string                    &title,
+              aoclsparse_operation      &trans,
+              aoclsparse_matrix         &A,
+              aoclsparse_mat_descr      &descr,
+              double                    &alpha,
+              vector<double>            &b,
+              vector<double>            &x,
+              vector<double>            &xref,
+              double                    &xtol,
+              vector<aoclsparse_int>    &icrowa,
+              vector<aoclsparse_int>    &icola,
+              vector<double>            &aval,
+              array<aoclsparse_int, 10> &iparm,
+              array<double, 10>         &dparm,
+              aoclsparse_status         &exp_status)
 {
     aoclsparse_int        n, nnz;
     aoclsparse_diag_type  diag;
@@ -117,6 +151,10 @@ bool get_data(const aoclsparse_int    id,
     aoclsparse_index_base base = aoclsparse_index_base_zero;
     alpha                      = 1.0;
     xtol                       = 1.0e-8;
+    exp_status                 = aoclsparse_status_success;
+    std::fill(iparm.begin(), iparm.end(), 0);
+    std::fill(dparm.begin(), dparm.end(), 0.0);
+    title = "";
     switch(id)
     {
     case 0:
@@ -127,8 +165,11 @@ bool get_data(const aoclsparse_int    id,
     case 5:
     case 6:
     case 7:
+    case 24:
         switch(id)
         {
+        case 24:
+            title = " (sv hint)";
         case 0: // diag test set
             /*
                       Solve a   Dx = b
@@ -144,7 +185,7 @@ bool get_data(const aoclsparse_int    id,
             b = [1.0  -2.0  8.0  5.0  -1.0 11.0 3.0]'
             Dx = b ==> x* = [-1/2, 1/2, 8/3, 1, 1/7, 11/9, 3/4]
             */
-            title     = "diag: Lx = alpha*b";
+            title     = "diag: Lx = alpha*b" + title;
             fill_mode = aoclsparse_fill_mode_lower;
             trans     = aoclsparse_operation_none;
             diag      = aoclsparse_diag_type_non_unit;
@@ -562,6 +603,67 @@ bool get_data(const aoclsparse_int    id,
         descr->diag_type = diag;
         break;
 
+    case 25:
+        title      = "Invalid matrix A (ptr NULL)";
+        A          = nullptr;
+        exp_status = aoclsparse_status_invalid_pointer;
+        break;
+
+    case 26:
+        title = "eye(1) with null descriptor";
+        n = nnz = 1;
+        icrowa.resize(2);
+        icola.resize(1);
+        aval.resize(1);
+        icrowa[0] = 0;
+        icrowa[1] = 1;
+        icola[0]  = 0;
+        aval[0]   = 1.0;
+        if(aoclsparse_create_dcsr(A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
+           != aoclsparse_status_success)
+            return false;
+        descr      = nullptr;
+        exp_status = aoclsparse_status_invalid_pointer;
+        break;
+
+    case 27:
+        title = "eye(1) with valid descriptor but negative expected_no_of_calls";
+        n = nnz = 1;
+        icrowa.resize(2);
+        icola.resize(1);
+        aval.resize(1);
+        icrowa[0] = 0;
+        icrowa[1] = 1;
+        icola[0]  = 0;
+        aval[0]   = 1.0;
+        if(aoclsparse_create_dcsr(A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
+           != aoclsparse_status_success)
+            return false;
+        if(aoclsparse_create_mat_descr(&descr) != aoclsparse_status_success)
+            return false;
+        iparm[0]   = -10;
+        exp_status = aoclsparse_status_invalid_value;
+        break;
+
+    case 28:
+        title = "eye(1) with matrix type set to general";
+        n = nnz = 1;
+        icrowa.resize(2);
+        icola.resize(1);
+        aval.resize(1);
+        icrowa[0] = 0;
+        icrowa[1] = 1;
+        icola[0]  = 0;
+        aval[0]   = 1.0;
+        if(aoclsparse_create_dcsr(A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
+           != aoclsparse_status_success)
+            return false;
+        if(aoclsparse_create_mat_descr(&descr) != aoclsparse_status_success)
+            return false;
+        descr->type = aoclsparse_matrix_type_general;
+        exp_status  = aoclsparse_status_success;
+        break;
+
     default:
         // no data with id found
         return false;
@@ -586,20 +688,41 @@ int main(void)
     double               xtol;
     aoclsparse_operation trans;
     // permanent storage of matrix data
-    vector<double>         aval;
-    vector<aoclsparse_int> icola;
-    vector<aoclsparse_int> icrowa;
+    vector<double>            aval;
+    vector<aoclsparse_int>    icola;
+    vector<aoclsparse_int>    icrowa;
+    array<aoclsparse_int, 10> iparm;
+    array<double, 10>         dparm;
+    aoclsparse_status         exp_status;
 
-    cout << "================================================" << endl;
+    cout << endl << "================================================" << endl;
     cout << "   AOCLSPARSE TRSV TESTS" << endl;
     cout << "================================================" << endl;
+    aoclsparse_int ntrsv   = 23;
+    aoclsparse_int nsvhint = ntrsv + 1;
 
     do
     {
         // fail on getting data or gone beyond last testid
-        okload = get_data(
-            testid, title, trans, A, descr, alpha, b, x, xref, xtol, icrowa, icola, aval);
-        if(okload) // TODO PASS_BY-REFERENCE!!!
+        okload = get_data(testid,
+                          title,
+                          trans,
+                          A,
+                          descr,
+                          alpha,
+                          b,
+                          x,
+                          xref,
+                          xtol,
+                          icrowa,
+                          icola,
+                          aval,
+                          iparm,
+                          dparm,
+                          exp_status);
+        if(okload)
+        {
+            // TODO PASS_BY-REFERENCE!!!
             // Call test as many times as available kernels
             // only run on AVX2 until calling non-public APIs is possible
             // TODO change when testing framework is adopted
@@ -618,10 +741,42 @@ int main(void)
                                            xtol,
                                            verbose);
             }
-        ++testid;
+            ++testid;
+        }
+    } while(okload && ok && testid <= ntrsv);
+
+    cout << endl << "================================================" << endl;
+    cout << "   AOCLSPARSE SV_HINT TESTS" << endl;
+    cout << "================================================" << endl;
+
+    do
+    {
+        // fail on getting data or gone beyond last testid
+        okload = get_data(testid,
+                          title,
+                          trans,
+                          A,
+                          descr,
+                          alpha,
+                          b,
+                          x,
+                          xref,
+                          xtol,
+                          icrowa,
+                          icola,
+                          aval,
+                          iparm,
+                          dparm,
+                          exp_status);
+        if(okload)
+        {
+            ok &= test_aoclsparse_set_sv_hint(
+                testid, title, A, descr, trans, iparm[0], exp_status, verbose);
+            ++testid;
+        }
     } while(okload && ok);
 
-    cout << "================================================" << endl;
+    cout << endl << "================================================" << endl;
     cout << "   OVERALL TESTS : " << (ok ? "ALL PASSSED" : "FAILED") << endl;
     cout << "================================================" << endl;
 

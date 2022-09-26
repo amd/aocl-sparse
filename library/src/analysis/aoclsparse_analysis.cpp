@@ -607,54 +607,23 @@ aoclsparse_status aoclsparse_set_mv_hint(aoclsparse_matrix          A,
 
     return aoclsparse_status_success;
 }
+
 aoclsparse_status aoclsparse_set_sv_hint(aoclsparse_matrix          A,
                                          aoclsparse_operation       trans,
                                          const aoclsparse_mat_descr descr,
                                          aoclsparse_int             expected_no_of_calls)
 {
-    //check descriptor
-    if(descr == nullptr)
+    // Check inputs
+    if (!A || !descr)
     {
         return aoclsparse_status_invalid_pointer;
     }
-    // Check index base
-    if(descr->base != aoclsparse_index_base_zero)
+    if (expected_no_of_calls < 0)
     {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-    if(descr->type != aoclsparse_matrix_type_symmetric)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-    // Check sizes
-    if(A->m < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    else if(A->n < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    // Sanity check
-    if((A->m == 0 || A->n == 0))
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    if(A->nnz < 0)
-    {
-        return aoclsparse_status_invalid_size;
+        return aoclsparse_status_invalid_value;
     }
 
-    // Check CSR matrix is populated, it not return an error. ToDo: need to handle CSC / COO cases later
-    if((A->csr_mat.csr_row_ptr == nullptr) || (A->csr_mat.csr_col_ptr == nullptr)
-       || (A->csr_mat.csr_val == nullptr))
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-
-    // Add the hint at the start of the linked list
+    // Add the hint to the linked list
     aoclsparse_add_hint(A->optim_data, aoclsparse_action_sv, descr, trans, expected_no_of_calls);
 
     return aoclsparse_status_success;
