@@ -44,7 +44,7 @@ extern "C" {
  *
  */
 DLL_PUBLIC
-char* aoclsparse_get_version();
+char *aoclsparse_get_version();
 
 /*! \ingroup aux_module
  *  \brief Create a matrix descriptor
@@ -61,7 +61,7 @@ char* aoclsparse_get_version();
  *  \retval aoclsparse_status_invalid_pointer \p descr pointer is invalid.
  */
 DLL_PUBLIC
-aoclsparse_status aoclsparse_create_mat_descr(aoclsparse_mat_descr* descr);
+aoclsparse_status aoclsparse_create_mat_descr(aoclsparse_mat_descr *descr);
 
 /*! \ingroup aux_module
  *  \brief Copy a matrix descriptor
@@ -78,7 +78,8 @@ aoclsparse_status aoclsparse_create_mat_descr(aoclsparse_mat_descr* descr);
  *  \retval aoclsparse_status_invalid_pointer \p src or \p dest pointer is invalid.
  */
 DLL_PUBLIC
-aoclsparse_status aoclsparse_copy_mat_descr(aoclsparse_mat_descr dest, const aoclsparse_mat_descr src);
+aoclsparse_status aoclsparse_copy_mat_descr(aoclsparse_mat_descr       dest,
+                                            const aoclsparse_mat_descr src);
 
 /*! \ingroup aux_module
  *  \brief Destroy a matrix descriptor
@@ -113,7 +114,8 @@ aoclsparse_status aoclsparse_destroy_mat_descr(aoclsparse_mat_descr descr);
  *  \retval aoclsparse_status_invalid_value \p base is invalid.
  */
 DLL_PUBLIC
-aoclsparse_status aoclsparse_set_mat_index_base(aoclsparse_mat_descr descr, aoclsparse_index_base base);
+aoclsparse_status aoclsparse_set_mat_index_base(aoclsparse_mat_descr  descr,
+                                                aoclsparse_index_base base);
 
 /*! \ingroup aux_module
  *  \brief Get the index base of a matrix descriptor
@@ -187,7 +189,7 @@ aoclsparse_matrix_type aoclsparse_get_mat_type(const aoclsparse_mat_descr descr)
  */
 DLL_PUBLIC
 aoclsparse_status aoclsparse_set_mat_fill_mode(aoclsparse_mat_descr descr,
-                                             aoclsparse_fill_mode fill_mode);
+                                               aoclsparse_fill_mode fill_mode);
 
 /*! \ingroup aux_module
  *  \brief Get the matrix fill mode of a matrix descriptor
@@ -222,7 +224,7 @@ aoclsparse_fill_mode aoclsparse_get_mat_fill_mode(const aoclsparse_mat_descr des
  */
 DLL_PUBLIC
 aoclsparse_status aoclsparse_set_mat_diag_type(aoclsparse_mat_descr descr,
-                                             aoclsparse_diag_type diag_type);
+                                               aoclsparse_diag_type diag_type);
 
 /*! \ingroup aux_module
  *  \brief Get the matrix diagonal type of a matrix descriptor
@@ -270,40 +272,39 @@ aoclsparse_diag_type aoclsparse_get_mat_diag_type(const aoclsparse_mat_descr des
  */
 /**@{*/
 DLL_PUBLIC
-aoclsparse_status aoclsparse_create_scsr(aoclsparse_matrix &mat,
-                    aoclsparse_index_base   base,
-                    aoclsparse_int          M,
-                    aoclsparse_int          N,
-                    aoclsparse_int          csr_nnz,
-                    aoclsparse_int*         csr_row_ptr,
-                    aoclsparse_int*         csr_col_ptr,
-                    float*                  csr_val);
+aoclsparse_status aoclsparse_create_scsr(aoclsparse_matrix    &mat,
+                                         aoclsparse_index_base base,
+                                         aoclsparse_int        M,
+                                         aoclsparse_int        N,
+                                         aoclsparse_int        csr_nnz,
+                                         aoclsparse_int       *csr_row_ptr,
+                                         aoclsparse_int       *csr_col_ptr,
+                                         float                *csr_val);
 
 DLL_PUBLIC
-aoclsparse_status aoclsparse_create_dcsr(aoclsparse_matrix &mat,
-                    aoclsparse_index_base   base,
-                    aoclsparse_int          M,
-                    aoclsparse_int          N,
-                    aoclsparse_int          csr_nnz,
-                    aoclsparse_int*         csr_row_ptr,
-                    aoclsparse_int*         csr_col_ptr,
-                    double*                 csr_val);
+aoclsparse_status aoclsparse_create_dcsr(aoclsparse_matrix    &mat,
+                                         aoclsparse_index_base base,
+                                         aoclsparse_int        M,
+                                         aoclsparse_int        N,
+                                         aoclsparse_int        csr_nnz,
+                                         aoclsparse_int       *csr_row_ptr,
+                                         aoclsparse_int       *csr_col_ptr,
+                                         double               *csr_val);
 /**@}*/
 
 DLL_PUBLIC
 aoclsparse_status aoclsparse_create_ell(aoclsparse_matrix mat,
-		            aoclsparse_int          ell_width,
-                    aoclsparse_int*         ell_cold_ind,
-                    void*                   ell_val);
+                                        aoclsparse_int    ell_width,
+                                        aoclsparse_int   *ell_cold_ind,
+                                        void             *ell_val);
 
 DLL_PUBLIC
 aoclsparse_status aoclsparse_create_ell_csr_hyb(aoclsparse_matrix mat,
-                    aoclsparse_int          ell_width,
-                    aoclsparse_int          ell_m,
-                    aoclsparse_int*         ell_cold_ind,
-                    aoclsparse_int*         csr_row_id_map,
-                    void*                   ell_val);
-
+                                                aoclsparse_int    ell_width,
+                                                aoclsparse_int    ell_m,
+                                                aoclsparse_int   *ell_cold_ind,
+                                                aoclsparse_int   *csr_row_id_map,
+                                                void             *ell_val);
 
 /*! \ingroup aux_module
  *  \brief Export a \p CSR matrix structure
@@ -335,15 +336,14 @@ aoclsparse_status aoclsparse_create_ell_csr_hyb(aoclsparse_matrix mat,
  *  \retval aoclsparse_status_invalid_pointer \p csr pointer is invalid.
  */
 DLL_PUBLIC
-aoclsparse_status aoclsparse_export_mat_csr(aoclsparse_matrix &csr,
-           aoclsparse_index_base   *base,
-           aoclsparse_int          *M,
-           aoclsparse_int          *N,
-           aoclsparse_int          *csr_nnz,
-           aoclsparse_int*         *csr_row_ptr,
-           aoclsparse_int*         *csr_col_ind,
-           void*                   *csr_val);
-
+aoclsparse_status aoclsparse_export_mat_csr(aoclsparse_matrix     &csr,
+                                            aoclsparse_index_base *base,
+                                            aoclsparse_int        *M,
+                                            aoclsparse_int        *N,
+                                            aoclsparse_int        *csr_nnz,
+                                            aoclsparse_int       **csr_row_ptr,
+                                            aoclsparse_int       **csr_col_ind,
+                                            void                 **csr_val);
 
 /*! \ingroup aux_module
  *  \brief Destroy a sparse matrix structure
@@ -356,7 +356,7 @@ aoclsparse_status aoclsparse_export_mat_csr(aoclsparse_matrix &csr,
  *  \retval aoclsparse_status_success the operation completed successfully.
  *  \retval aoclsparse_status_invalid_pointer \p matrix structure pointer is invalid.
  */
- /**@{*/
+/**@{*/
 DLL_PUBLIC
 aoclsparse_status aoclsparse_destroy(aoclsparse_matrix &mat);
 /**@}*/
@@ -364,4 +364,3 @@ aoclsparse_status aoclsparse_destroy(aoclsparse_matrix &mat);
 }
 #endif
 #endif // AOCLSPARSE_AUXILIARY_H_
-

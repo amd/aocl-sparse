@@ -29,7 +29,7 @@
 #ifndef AOCLSPARSE_GBYTE_HPP
 #define AOCLSPARSE_GBYTE_HPP
 
-#include <aoclsparse.h>
+#include "aoclsparse.h"
 
 /*
  * ===========================================================================
@@ -38,29 +38,30 @@
  */
 template <typename T>
 constexpr double
-csrmv_gbyte_count(aoclsparse_int M, aoclsparse_int N, aoclsparse_int nnz, bool beta = false)
+    csrmv_gbyte_count(aoclsparse_int M, aoclsparse_int N, aoclsparse_int nnz, bool beta = false)
 {
     return ((M + 1 + nnz) * sizeof(aoclsparse_int) + (M + N + nnz + (beta ? M : 0)) * sizeof(T))
-        / 1e9;
+           / 1e9;
 }
 
 template <typename T>
-    constexpr double
-ellmv_gbyte_count(aoclsparse_int M, aoclsparse_int N, aoclsparse_int nnz, bool beta = false)
+constexpr double
+    ellmv_gbyte_count(aoclsparse_int M, aoclsparse_int N, aoclsparse_int nnz, bool beta = false)
 {
     return (nnz * sizeof(aoclsparse_int) + (M + N + nnz + (beta ? M : 0)) * sizeof(T)) / 1e9;
 }
 
 template <typename T>
 constexpr double bsrmv_gbyte_count(aoclsparse_int mb,
-        aoclsparse_int nb,
-        aoclsparse_int nnzb,
-        aoclsparse_int bsr_dim,
-        bool          beta = false)
+                                   aoclsparse_int nb,
+                                   aoclsparse_int nnzb,
+                                   aoclsparse_int bsr_dim,
+                                   bool           beta = false)
 {
     return ((mb + 1 + nnzb) * sizeof(aoclsparse_int)
             + ((mb + nb) * bsr_dim + nnzb * bsr_dim * bsr_dim + (beta ? mb * bsr_dim : 0))
-            * sizeof(T)) / 1e9;
+                  * sizeof(T))
+           / 1e9;
 }
 
 template <typename T>
@@ -75,7 +76,11 @@ constexpr double csrsv_gbyte_count(aoclsparse_int M, aoclsparse_int nnz)
  * ===========================================================================
  */
 template <typename T>
-constexpr double csrmm_gbyte_count(aoclsparse_int M, aoclsparse_int nnz_A, aoclsparse_int nnz_B, aoclsparse_int nnz_C, bool beta = false)
+constexpr double csrmm_gbyte_count(aoclsparse_int M,
+                                   aoclsparse_int nnz_A,
+                                   aoclsparse_int nnz_B,
+                                   aoclsparse_int nnz_C,
+                                   bool           beta = false)
 {
     return (((M + 1) * sizeof(aoclsparse_int)) + (nnz_A * sizeof(aoclsparse_int))
             + ((nnz_A + nnz_B + nnz_C + (beta ? nnz_C : 0)) * sizeof(T)))
@@ -83,12 +88,20 @@ constexpr double csrmm_gbyte_count(aoclsparse_int M, aoclsparse_int nnz_A, aocls
 }
 
 template <typename T>
-constexpr double csr2m_gbyte_count(aoclsparse_int M, aoclsparse_int N, aoclsparse_int K, aoclsparse_int nnz_A, aoclsparse_int nnz_B, aoclsparse_int nnz_C)
+constexpr double csr2m_gbyte_count(aoclsparse_int M,
+                                   aoclsparse_int N,
+                                   aoclsparse_int K,
+                                   aoclsparse_int nnz_A,
+                                   aoclsparse_int nnz_B,
+                                   aoclsparse_int nnz_C)
 {
-    double size_A = ((M + 1.0) * sizeof(aoclsparse_int)) + (nnz_A * sizeof(aoclsparse_int)) + (nnz_A * sizeof(T)) ;
-    double size_B = ((K + 1.0) * sizeof(aoclsparse_int)) + (nnz_B * sizeof(aoclsparse_int)) + (nnz_B * sizeof(T)) ;
-    double size_C = ((M + 1.0) * sizeof(aoclsparse_int)) + (nnz_C * sizeof(aoclsparse_int)) + (nnz_C * sizeof(T)) ;
-    return (size_A + size_B + size_C ) / 1e9;
+    double size_A = ((M + 1.0) * sizeof(aoclsparse_int)) + (nnz_A * sizeof(aoclsparse_int))
+                    + (nnz_A * sizeof(T));
+    double size_B = ((K + 1.0) * sizeof(aoclsparse_int)) + (nnz_B * sizeof(aoclsparse_int))
+                    + (nnz_B * sizeof(T));
+    double size_C = ((M + 1.0) * sizeof(aoclsparse_int)) + (nnz_C * sizeof(aoclsparse_int))
+                    + (nnz_C * sizeof(T));
+    return (size_A + size_B + size_C) / 1e9;
 }
 
 /*

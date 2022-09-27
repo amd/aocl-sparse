@@ -27,6 +27,7 @@
 #include "aoclsparse.h"
 #include "aoclsparse_descr.h"
 #include "aoclsparse_csr_util.hpp"
+
 #include <immintrin.h>
 
 /*
@@ -42,8 +43,8 @@ aoclsparse_status
                     const T                    alpha, /* scalar for rescaling RHS */
                     aoclsparse_matrix          A, /* matrix data */
                     const aoclsparse_mat_descr descr, /* matrix type, fill_mode, diag type, base */
-                    const T*                   b, /* RHS */
-                    T*                         x, /* solution */
+                    const T                   *b, /* RHS */
+                    T                         *x, /* solution */
                     const aoclsparse_int       avxversion /* optimization level */);
 
 /* Core computation of TRSV, assumed A is optimized
@@ -52,12 +53,12 @@ aoclsparse_status
 template <typename T>
 static inline aoclsparse_status trsv_l_ref_core(const T               alpha,
                                                 aoclsparse_int        m,
-                                                const T*              a,
-                                                const aoclsparse_int* icol,
-                                                const aoclsparse_int* ilrow,
-                                                const aoclsparse_int* idiag,
-                                                const T*              b,
-                                                T*                    x,
+                                                const T              *a,
+                                                const aoclsparse_int *icol,
+                                                const aoclsparse_int *ilrow,
+                                                const aoclsparse_int *idiag,
+                                                const T              *b,
+                                                T                    *x,
                                                 const bool            unit)
 {
     aoclsparse_int i, idx;
@@ -81,12 +82,12 @@ static inline aoclsparse_status trsv_l_ref_core(const T               alpha,
 template <typename T>
 static inline aoclsparse_status trsv_lt_ref_core(const T               alpha,
                                                  aoclsparse_int        m,
-                                                 const T*              a,
-                                                 const aoclsparse_int* icol,
-                                                 const aoclsparse_int* ilrow,
-                                                 const aoclsparse_int* idiag,
-                                                 const T*              b,
-                                                 T*                    x,
+                                                 const T              *a,
+                                                 const aoclsparse_int *icol,
+                                                 const aoclsparse_int *ilrow,
+                                                 const aoclsparse_int *idiag,
+                                                 const T              *b,
+                                                 T                    *x,
                                                  const bool            unit)
 {
     aoclsparse_int i, idx;
@@ -112,12 +113,12 @@ static inline aoclsparse_status trsv_lt_ref_core(const T               alpha,
 template <typename T>
 static inline aoclsparse_status trsv_u_ref_core(const T               alpha,
                                                 aoclsparse_int        m,
-                                                const T*              a,
-                                                const aoclsparse_int* icol,
-                                                const aoclsparse_int* ilrow,
-                                                const aoclsparse_int* iurow,
-                                                const T*              b,
-                                                T*                    x,
+                                                const T              *a,
+                                                const aoclsparse_int *icol,
+                                                const aoclsparse_int *ilrow,
+                                                const aoclsparse_int *iurow,
+                                                const T              *b,
+                                                T                    *x,
                                                 const bool            unit)
 {
     aoclsparse_int i, idx, idxstart, idxend, idiag;
@@ -149,12 +150,12 @@ static inline aoclsparse_status trsv_u_ref_core(const T               alpha,
 template <typename T>
 static inline aoclsparse_status trsv_ut_ref_core(const T               alpha,
                                                  aoclsparse_int        m,
-                                                 const T*              a,
-                                                 const aoclsparse_int* icol,
-                                                 const aoclsparse_int* ilrow,
-                                                 const aoclsparse_int* iurow,
-                                                 const T*              b,
-                                                 T*                    x,
+                                                 const T              *a,
+                                                 const aoclsparse_int *icol,
+                                                 const aoclsparse_int *ilrow,
+                                                 const aoclsparse_int *iurow,
+                                                 const T              *b,
+                                                 T                    *x,
                                                  const bool            unit)
 {
     aoclsparse_int i, idx, idxstart, idxend, idiag;
@@ -188,22 +189,22 @@ static inline aoclsparse_status trsv_ut_ref_core(const T               alpha,
 template <typename T>
 inline aoclsparse_status trsv_l_ref_core_avx(const T               alpha,
                                              aoclsparse_int        m,
-                                             const T*              a,
-                                             const aoclsparse_int* icol,
-                                             const aoclsparse_int* ilrow,
-                                             const aoclsparse_int* idiag,
-                                             const T*              b,
-                                             T*                    x,
+                                             const T              *a,
+                                             const aoclsparse_int *icol,
+                                             const aoclsparse_int *ilrow,
+                                             const aoclsparse_int *idiag,
+                                             const T              *b,
+                                             T                    *x,
                                              const bool            unit);
 template <> // FLOAT
 inline aoclsparse_status trsv_l_ref_core_avx<float>(const float           alpha,
                                                     aoclsparse_int        m,
-                                                    const float*          a,
-                                                    const aoclsparse_int* icol,
-                                                    const aoclsparse_int* ilrow,
-                                                    const aoclsparse_int* idiag,
-                                                    const float*          b,
-                                                    float*                x,
+                                                    const float          *a,
+                                                    const aoclsparse_int *icol,
+                                                    const aoclsparse_int *ilrow,
+                                                    const aoclsparse_int *idiag,
+                                                    const float          *b,
+                                                    float                *x,
                                                     const bool            unit)
 {
     return aoclsparse_status_not_implemented;
@@ -211,12 +212,12 @@ inline aoclsparse_status trsv_l_ref_core_avx<float>(const float           alpha,
 template <> // DOUBLE
 inline aoclsparse_status trsv_l_ref_core_avx<double>(const double          alpha,
                                                      aoclsparse_int        m,
-                                                     const double*         a,
-                                                     const aoclsparse_int* icol,
-                                                     const aoclsparse_int* ilrow,
-                                                     const aoclsparse_int* idiag,
-                                                     const double*         b,
-                                                     double*               x,
+                                                     const double         *a,
+                                                     const aoclsparse_int *icol,
+                                                     const aoclsparse_int *ilrow,
+                                                     const aoclsparse_int *idiag,
+                                                     const double         *b,
+                                                     double               *x,
                                                      const bool            unit)
 {
     aoclsparse_int i, idx, idxend;
@@ -299,22 +300,22 @@ inline aoclsparse_status trsv_l_ref_core_avx<double>(const double          alpha
 template <typename T>
 inline aoclsparse_status trsv_lt_ref_core_avx(const T               alpha,
                                               aoclsparse_int        m,
-                                              const T*              a,
-                                              const aoclsparse_int* icol,
-                                              const aoclsparse_int* ilrow,
-                                              const aoclsparse_int* idiag,
-                                              const T*              b,
-                                              T*                    x,
+                                              const T              *a,
+                                              const aoclsparse_int *icol,
+                                              const aoclsparse_int *ilrow,
+                                              const aoclsparse_int *idiag,
+                                              const T              *b,
+                                              T                    *x,
                                               const bool            unit);
 template <> // FLOAT
 inline aoclsparse_status trsv_lt_ref_core_avx<float>(const float           alpha,
                                                      aoclsparse_int        m,
-                                                     const float*          a,
-                                                     const aoclsparse_int* icol,
-                                                     const aoclsparse_int* ilrow,
-                                                     const aoclsparse_int* idiag,
-                                                     const float*          b,
-                                                     float*                x,
+                                                     const float          *a,
+                                                     const aoclsparse_int *icol,
+                                                     const aoclsparse_int *ilrow,
+                                                     const aoclsparse_int *idiag,
+                                                     const float          *b,
+                                                     float                *x,
                                                      const bool            unit)
 {
     return aoclsparse_status_not_implemented;
@@ -322,12 +323,12 @@ inline aoclsparse_status trsv_lt_ref_core_avx<float>(const float           alpha
 template <> // DOUBLE
 inline aoclsparse_status trsv_lt_ref_core_avx<double>(const double          alpha,
                                                       aoclsparse_int        m,
-                                                      const double*         a,
-                                                      const aoclsparse_int* icol,
-                                                      const aoclsparse_int* ilrow,
-                                                      const aoclsparse_int* idiag,
-                                                      const double*         b,
-                                                      double*               x,
+                                                      const double         *a,
+                                                      const aoclsparse_int *icol,
+                                                      const aoclsparse_int *ilrow,
+                                                      const aoclsparse_int *idiag,
+                                                      const double         *b,
+                                                      double               *x,
                                                       const bool            unit)
 {
     aoclsparse_int i, idx, idxend;
@@ -393,22 +394,22 @@ inline aoclsparse_status trsv_lt_ref_core_avx<double>(const double          alph
 template <typename T>
 inline aoclsparse_status trsv_u_ref_core_avx(const T               alpha,
                                              aoclsparse_int        m,
-                                             const T*              a,
-                                             const aoclsparse_int* icol,
-                                             const aoclsparse_int* ilrow,
-                                             const aoclsparse_int* iurow,
-                                             const T*              b,
-                                             T*                    x,
+                                             const T              *a,
+                                             const aoclsparse_int *icol,
+                                             const aoclsparse_int *ilrow,
+                                             const aoclsparse_int *iurow,
+                                             const T              *b,
+                                             T                    *x,
                                              const bool            unit);
 template <> // FLOAT
 inline aoclsparse_status trsv_u_ref_core_avx<float>(const float           alpha,
                                                     aoclsparse_int        m,
-                                                    const float*          a,
-                                                    const aoclsparse_int* icol,
-                                                    const aoclsparse_int* ilrow,
-                                                    const aoclsparse_int* iurow,
-                                                    const float*          b,
-                                                    float*                x,
+                                                    const float          *a,
+                                                    const aoclsparse_int *icol,
+                                                    const aoclsparse_int *ilrow,
+                                                    const aoclsparse_int *iurow,
+                                                    const float          *b,
+                                                    float                *x,
                                                     const bool            unit)
 {
     return aoclsparse_status_not_implemented;
@@ -416,12 +417,12 @@ inline aoclsparse_status trsv_u_ref_core_avx<float>(const float           alpha,
 template <> // DOUBLE
 inline aoclsparse_status trsv_u_ref_core_avx<double>(const double          alpha,
                                                      aoclsparse_int        m,
-                                                     const double*         a,
-                                                     const aoclsparse_int* icol,
-                                                     const aoclsparse_int* ilrow,
-                                                     const aoclsparse_int* iurow,
-                                                     const double*         b,
-                                                     double*               x,
+                                                     const double         *a,
+                                                     const aoclsparse_int *icol,
+                                                     const aoclsparse_int *ilrow,
+                                                     const aoclsparse_int *iurow,
+                                                     const double         *b,
+                                                     double               *x,
                                                      const bool            unit)
 {
     aoclsparse_int i, idx, idxstart, idxend;
@@ -495,22 +496,22 @@ inline aoclsparse_status trsv_u_ref_core_avx<double>(const double          alpha
 template <typename T>
 inline aoclsparse_status trsv_ut_ref_core_avx(const T               alpha,
                                               aoclsparse_int        m,
-                                              const T*              a,
-                                              const aoclsparse_int* icol,
-                                              const aoclsparse_int* ilrow,
-                                              const aoclsparse_int* iurow,
-                                              const T*              b,
-                                              T*                    x,
+                                              const T              *a,
+                                              const aoclsparse_int *icol,
+                                              const aoclsparse_int *ilrow,
+                                              const aoclsparse_int *iurow,
+                                              const T              *b,
+                                              T                    *x,
                                               const bool            unit);
 template <> // FLOAT
 inline aoclsparse_status trsv_ut_ref_core_avx<float>(const float           alpha,
                                                      aoclsparse_int        m,
-                                                     const float*          a,
-                                                     const aoclsparse_int* icol,
-                                                     const aoclsparse_int* ilrow,
-                                                     const aoclsparse_int* iurow,
-                                                     const float*          b,
-                                                     float*                x,
+                                                     const float          *a,
+                                                     const aoclsparse_int *icol,
+                                                     const aoclsparse_int *ilrow,
+                                                     const aoclsparse_int *iurow,
+                                                     const float          *b,
+                                                     float                *x,
                                                      const bool            unit)
 {
     return aoclsparse_status_not_implemented;
@@ -518,12 +519,12 @@ inline aoclsparse_status trsv_ut_ref_core_avx<float>(const float           alpha
 template <> // DOUBLE
 inline aoclsparse_status trsv_ut_ref_core_avx<double>(const double          alpha,
                                                       aoclsparse_int        m,
-                                                      const double*         a,
-                                                      const aoclsparse_int* icol,
-                                                      const aoclsparse_int* ilrow,
-                                                      const aoclsparse_int* iurow,
-                                                      const double*         b,
-                                                      double*               x,
+                                                      const double         *a,
+                                                      const aoclsparse_int *icol,
+                                                      const aoclsparse_int *ilrow,
+                                                      const aoclsparse_int *iurow,
+                                                      const double         *b,
+                                                      double               *x,
                                                       const bool            unit)
 {
     aoclsparse_int i, idx, idxstart, idxend, idiag;
@@ -593,8 +594,8 @@ aoclsparse_status
                     const T                    alpha, /* scalar for rescaling RHS */
                     aoclsparse_matrix          A, /* matrix data */
                     const aoclsparse_mat_descr descr, /* matrix type, fill_mode, diag type, base */
-                    const T*                   b, /* RHS */
-                    T*                         x, /* solution */
+                    const T                   *b, /* RHS */
+                    T                         *x, /* solution */
                     const aoclsparse_int       avxversion /* optimization level */)
 {
     // Quick initial checks
@@ -638,14 +639,14 @@ aoclsparse_status
     if(!A->opt_csr_full_diag && !unit) // not of full rank, linear system cannot be solved
         return aoclsparse_status_invalid_value;
 
-    const T*              a    = (T*)((A->opt_csr_mat).csr_val);
-    const aoclsparse_int* icol = (A->opt_csr_mat).csr_col_ptr;
+    const T              *a    = (T *)((A->opt_csr_mat).csr_val);
+    const aoclsparse_int *icol = (A->opt_csr_mat).csr_col_ptr;
     // beggining of the row
-    const aoclsparse_int* ilrow = (A->opt_csr_mat).csr_row_ptr;
+    const aoclsparse_int *ilrow = (A->opt_csr_mat).csr_row_ptr;
     // position of the diagonal element (includes zeros) always has min(m,n) elements
-    const aoclsparse_int* idiag = A->idiag;
+    const aoclsparse_int *idiag = A->idiag;
     // ending of the row
-    const aoclsparse_int* iurow = A->iurow;
+    const aoclsparse_int *iurow = A->iurow;
     const bool            lower = descr->fill_mode == aoclsparse_fill_mode_lower;
     const bool            trans = transpose == aoclsparse_operation_transpose;
 

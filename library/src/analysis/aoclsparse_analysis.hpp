@@ -27,8 +27,9 @@
 #include "aoclsparse_descr.h"
 #include "aoclsparse_mat_structures.h"
 #include "aoclsparse_types.h"
+
+#include <cstring>
 #include <vector>
-#include<cstring>
 
 #define CSR512_BR4_THRESHOLD 10.0
 
@@ -40,4 +41,3 @@
 aoclsparse_status aoclsparse_optimize_ilu(aoclsparse_matrix A);
 
 #endif // AOCLSPARSE_ANALYSIS_HPP
-

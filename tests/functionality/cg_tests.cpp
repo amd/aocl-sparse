@@ -1,6 +1,7 @@
 #include "aoclsparse.h"
-#include "aoclsparse_itsol_functions.hpp"
 #include "functionality_tests_utils.h"
+#include "aoclsparse_itsol_functions.hpp"
+
 #include <iostream>
 
 #define VERBOSE 1
@@ -19,9 +20,9 @@ typedef struct
 
 /* Define itsol callbacks */
 template <typename T>
-aoclsparse_int precond(aoclsparse_int flag, const T* u, T* v, void* udata)
+aoclsparse_int precond(aoclsparse_int flag, const T *u, T *v, void *udata)
 {
-    user_data* ud = (user_data*)udata;
+    user_data *ud = (user_data *)udata;
 
     if(ud->testid == "positive")
     {
@@ -38,10 +39,10 @@ aoclsparse_int precond(aoclsparse_int flag, const T* u, T* v, void* udata)
 }
 
 template <typename T>
-aoclsparse_int monit(const T* x, const T* r, T rinfo[100], void* udata)
+aoclsparse_int monit(const T *x, const T *r, T rinfo[100], void *udata)
 {
     aoclsparse_int itest;
-    user_data*     ud = (user_data*)udata;
+    user_data     *ud = (user_data *)udata;
 
     itest = ud->itest;
     if(ud->testid == "errors")
@@ -56,7 +57,7 @@ aoclsparse_int monit(const T* x, const T* r, T rinfo[100], void* udata)
 }
 
 template <typename T>
-aoclsparse_int test_cg_error(aoclsparse_int itest, bool& pass)
+aoclsparse_int test_cg_error(aoclsparse_int itest, bool &pass)
 {
     std::string                 testid;
     aoclsparse_status           status, status_exp, ret;
@@ -158,7 +159,7 @@ aoclsparse_int test_cg_error(aoclsparse_int itest, bool& pass)
 }
 
 template <typename T>
-aoclsparse_int test_cg_positive(aoclsparse_int itest, bool& pass)
+aoclsparse_int test_cg_positive(aoclsparse_int itest, bool &pass)
 {
     std::string                 testid;
     aoclsparse_status           status, status_exp, ret;
@@ -278,7 +279,7 @@ aoclsparse_int test_cg_positive(aoclsparse_int itest, bool& pass)
     return 1;
 }
 
-bool run_tests(std::string testid, aoclsparse_int test(aoclsparse_int itest, bool& pass))
+bool run_tests(std::string testid, aoclsparse_int test(aoclsparse_int itest, bool &pass))
 {
     aoclsparse_int more_tests = 1;
     aoclsparse_int itest      = 0;

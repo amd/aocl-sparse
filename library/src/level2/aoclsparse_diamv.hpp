@@ -25,19 +25,20 @@
 
 #include "aoclsparse.h"
 #include "aoclsparse_descr.h"
+
 #include <algorithm>
 
 template <typename T>
-aoclsparse_status aoclsparse_diamv_template(const T                alpha,
-                                   aoclsparse_int             m,
-                                   aoclsparse_int             n,
-                                   aoclsparse_int             nnz,
-                                   const T*              dia_val,
-                                   const aoclsparse_int*      dia_offset,
-                                   aoclsparse_int      dia_num_diag,
-                                   const T*             x,
-                                   const T              beta,
-                                   T*                   y )
+aoclsparse_status aoclsparse_diamv_template(const T               alpha,
+                                            aoclsparse_int        m,
+                                            aoclsparse_int        n,
+                                            aoclsparse_int        nnz,
+                                            const T              *dia_val,
+                                            const aoclsparse_int *dia_offset,
+                                            aoclsparse_int        dia_num_diag,
+                                            const T              *x,
+                                            const T               beta,
+                                            T                    *y)
 {
     for(aoclsparse_int i = 0; i < m; ++i)
     {
@@ -45,15 +46,14 @@ aoclsparse_status aoclsparse_diamv_template(const T                alpha,
     }
     for(aoclsparse_int i = 0; i < dia_num_diag; ++i)
     {
-        aoclsparse_int offset   = dia_offset[i];
-        aoclsparse_int istart   = std::max((aoclsparse_int)0 , -offset);
-        aoclsparse_int jstart   = std::max((aoclsparse_int)0 , offset);
-        aoclsparse_int num_values = std ::min(m-istart , n-jstart);
+        aoclsparse_int offset     = dia_offset[i];
+        aoclsparse_int istart     = std::max((aoclsparse_int)0, -offset);
+        aoclsparse_int jstart     = std::max((aoclsparse_int)0, offset);
+        aoclsparse_int num_values = std ::min(m - istart, n - jstart);
 
         for(aoclsparse_int j = 0; j < num_values; ++j)
         {
-            y[istart + j] += alpha * dia_val[istart + i * m + j]
-                               * x[j + jstart];
+            y[istart + j] += alpha * dia_val[istart + i * m + j] * x[j + jstart];
         }
     }
 
@@ -61,4 +61,3 @@ aoclsparse_status aoclsparse_diamv_template(const T                alpha,
 }
 
 #endif // AOCLSPARSE_DIAMV_HPP
-

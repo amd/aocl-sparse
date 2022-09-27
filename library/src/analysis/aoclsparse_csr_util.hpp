@@ -27,6 +27,7 @@
 #include "aoclsparse_descr.h"
 #include "aoclsparse_mat_structures.h"
 #include "aoclsparse_types.h"
+
 #include <algorithm>
 #include <cstring>
 #include <string>
@@ -57,13 +58,13 @@ aoclsparse_status aoclsparse_csr_check_internal(aoclsparse_int       m,
                                                                       std::string       message));
 
 aoclsparse_status aoclsparse_csr_check_sort_diag(
-    aoclsparse_int m, aoclsparse_int n, const aoclsparse_csr csr_mat, bool& sorted, bool& fulldiag);
+    aoclsparse_int m, aoclsparse_int n, const aoclsparse_csr csr_mat, bool &sorted, bool &fulldiag);
 
 aoclsparse_status aoclsparse_csr_indices(aoclsparse_int        m,
-                                         const aoclsparse_int* icrow,
-                                         const aoclsparse_int* icol,
-                                         aoclsparse_int**      idiag,
-                                         aoclsparse_int**      iurow);
+                                         const aoclsparse_int *icrow,
+                                         const aoclsparse_int *icol,
+                                         aoclsparse_int      **idiag,
+                                         aoclsparse_int      **iurow);
 
 /* Copy a csr matrix 
  * Possible exit: invalid size, invalid pointer, memory alloc
@@ -76,7 +77,7 @@ aoclsparse_status aoclsparse_copy_csr(aoclsparse_int       m,
                                       aoclsparse_csr       As)
 {
     aoclsparse_int i, idx;
-    T *            aval, *aval_s;
+    T             *aval, *aval_s;
 
     if(m < 0)
         return aoclsparse_status_invalid_size;
@@ -86,14 +87,14 @@ aoclsparse_status aoclsparse_copy_csr(aoclsparse_int       m,
     if(m == 0 || nnz == 0)
         return aoclsparse_status_success;
 
-    As->csr_row_ptr = (aoclsparse_int*)malloc((m + 1) * sizeof(aoclsparse_int));
-    As->csr_col_ptr = (aoclsparse_int*)malloc(nnz * sizeof(aoclsparse_int));
-    As->csr_val     = (void*)malloc(nnz * sizeof(T));
+    As->csr_row_ptr = (aoclsparse_int *)malloc((m + 1) * sizeof(aoclsparse_int));
+    As->csr_col_ptr = (aoclsparse_int *)malloc(nnz * sizeof(aoclsparse_int));
+    As->csr_val     = (void *)malloc(nnz * sizeof(T));
     if(!As->csr_row_ptr || !As->csr_col_ptr || !As->csr_val)
         return aoclsparse_status_memory_error;
 
-    aval   = static_cast<T*>(A->csr_val);
-    aval_s = static_cast<T*>(As->csr_val);
+    aval   = static_cast<T *>(A->csr_val);
+    aval_s = static_cast<T *>(As->csr_val);
 
     // copy the matrix
     for(i = 0; i < m + 1; i++)
@@ -115,7 +116,7 @@ aoclsparse_status aoclsparse_sort_csr(
     aoclsparse_int m, aoclsparse_int n, aoclsparse_int nnz, aoclsparse_csr A, aoclsparse_csr As)
 {
     aoclsparse_int i, j, idx, nnzrow;
-    T *            aval, *aval_s;
+    T             *aval, *aval_s;
 
     if(m == 0 || nnz == 0)
         return aoclsparse_status_success;
@@ -128,15 +129,15 @@ aoclsparse_status aoclsparse_sort_csr(
     {
         perm.resize(nnz);
     }
-    catch(std::bad_alloc&)
+    catch(std::bad_alloc &)
     {
         return aoclsparse_status_memory_error;
     }
     for(j = 0; j < nnz; j++)
         perm[j] = j;
 
-    aval   = static_cast<T*>(A->csr_val);
-    aval_s = static_cast<T*>(As->csr_val);
+    aval   = static_cast<T *>(A->csr_val);
+    aval_s = static_cast<T *>(As->csr_val);
     for(i = 0; i < m; i++)
     {
         // sort each row according to its column indices
@@ -144,7 +145,7 @@ aoclsparse_status aoclsparse_sort_csr(
         nnzrow = A->csr_row_ptr[i + 1] - idx;
         std::sort(std::begin(perm) + idx,
                   std::begin(perm) + idx + nnzrow,
-                  [&](const aoclsparse_int& a, const aoclsparse_int& b) {
+                  [&](const aoclsparse_int &a, const aoclsparse_int &b) {
                       return A->csr_col_ptr[a] <= A->csr_col_ptr[b];
                   });
         for(j = idx; j < idx + nnzrow; j++)
@@ -160,15 +161,18 @@ aoclsparse_status aoclsparse_sort_csr(
 /* create some artificial fill-ins with zeros on the diagonal if some elements are missing
  * Assumes the rows are sorted */
 template <typename T>
-aoclsparse_status aoclsparse_csr_fill_diag(aoclsparse_int m, aoclsparse_int n, aoclsparse_int nnz, aoclsparse_csr A)
+aoclsparse_status aoclsparse_csr_fill_diag(aoclsparse_int m,
+                                           aoclsparse_int n,
+                                           aoclsparse_int nnz,
+                                           aoclsparse_csr A)
 {
     aoclsparse_int  i, j, count, idx, idxend;
-    aoclsparse_int* missing_diag;
+    aoclsparse_int *missing_diag;
 
     if(!A->csr_col_ptr || !A->csr_row_ptr || !A->csr_val)
         return aoclsparse_status_invalid_pointer;
 
-    missing_diag = (aoclsparse_int*)malloc(m * sizeof(aoclsparse_int));
+    missing_diag = (aoclsparse_int *)malloc(m * sizeof(aoclsparse_int));
     if(!missing_diag)
         return aoclsparse_status_memory_error;
     for(i = 0; i < m; i++)
@@ -205,13 +209,13 @@ aoclsparse_status aoclsparse_csr_fill_diag(aoclsparse_int m, aoclsparse_int n, a
         return aoclsparse_status_success;
     }
     aoclsparse_int *icol, *icrow;
-    T *             aval, *csr_val;
+    T              *aval, *csr_val;
     aoclsparse_int  nnz_new = nnz + count;
-    csr_val                 = static_cast<T*>(A->csr_val);
+    csr_val                 = static_cast<T *>(A->csr_val);
 
-    icol  = (aoclsparse_int*)malloc(nnz_new * sizeof(aoclsparse_int));
-    icrow = (aoclsparse_int*)malloc((m + 1) * sizeof(aoclsparse_int));
-    aval  = (T*)malloc(nnz_new * sizeof(T));
+    icol  = (aoclsparse_int *)malloc(nnz_new * sizeof(aoclsparse_int));
+    icrow = (aoclsparse_int *)malloc((m + 1) * sizeof(aoclsparse_int));
+    aval  = (T *)malloc(nnz_new * sizeof(T));
     if(!icol || !aval || !icrow)
         return aoclsparse_status_memory_error;
 

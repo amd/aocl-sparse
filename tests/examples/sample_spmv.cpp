@@ -22,15 +22,16 @@
  * ************************************************************************ */
 
 #include "aoclsparse.h"
+
 #include <iostream>
 
 #define M 5
 #define N 5
 #define NNZ 8
 
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
-    aoclsparse_operation   trans     = aoclsparse_operation_none;
+    aoclsparse_operation trans = aoclsparse_operation_none;
 
     double alpha = 1.0;
     double beta  = 0.0;
@@ -52,14 +53,14 @@ int main(int argc, char* argv[])
     //  0  0  4  0  0
     //  0  5  0  6  7
     //  0  0  0  0  8
-    aoclsparse_int csr_row_ptr[M+1] = {0, 2, 3, 4, 7, 8};
-    aoclsparse_int csr_col_ind[NNZ]= {0, 3, 1, 2, 1, 3, 4, 4};
-    double         csr_val[NNZ] = {1, 2, 3, 4, 5, 6, 7, 8};
+    aoclsparse_int    csr_row_ptr[M + 1] = {0, 2, 3, 4, 7, 8};
+    aoclsparse_int    csr_col_ind[NNZ]   = {0, 3, 1, 2, 1, 3, 4, 4};
+    double            csr_val[NNZ]       = {1, 2, 3, 4, 5, 6, 7, 8};
     aoclsparse_matrix A;
     aoclsparse_create_dcsr(A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
 
     // Initialise vectors
-    double x[N] = { 1.0, 2.0, 3.0, 4.0, 5.0};
+    double x[N] = {1.0, 2.0, 3.0, 4.0, 5.0};
     double y[M];
 
     //to identify hint id(which routine is to be executed, destroyed later)
@@ -70,17 +71,11 @@ int main(int argc, char* argv[])
 
     std::cout << "Invoking aoclsparse_dmv..";
     //Invoke SPMV API (double precision)
-    aoclsparse_dmv(trans,
-	    &alpha,
-	    A,
-	    descr,
-	    x,
-	    &beta,
-	    y);
+    aoclsparse_dmv(trans, &alpha, A, descr, x, &beta, y);
     std::cout << "Done." << std::endl;
     std::cout << "Output Vector:" << std::endl;
-    for(aoclsparse_int i=0;i < M; i++)
-	std::cout << y[i] << std::endl;
+    for(aoclsparse_int i = 0; i < M; i++)
+        std::cout << y[i] << std::endl;
 
     aoclsparse_destroy_mat_descr(descr);
     aoclsparse_destroy(A);

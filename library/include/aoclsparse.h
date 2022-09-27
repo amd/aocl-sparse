@@ -32,4 +32,3 @@
 #include "aoclsparse_version.h"
 
 #endif // AOCLSPARSE_H_
-

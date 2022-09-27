@@ -25,6 +25,7 @@
 #define AOCLSPARSE_ITSOL_OPTIONS_HPP_
 
 #include "aoclsparse.h"
+
 #include <cctype>
 #include <cstring>
 #include <iostream>
@@ -100,7 +101,7 @@ namespace aoclsparse_options
     {
     public:
         // Method to trim and squeeze [:blank:]s, and convert to lower case
-        void PrepareString(string& str)
+        void PrepareString(string &str)
         {
             regex ltrim("^[[:space:]]+");
             regex rtrim("[[:space:]]+$");
@@ -650,7 +651,7 @@ namespace aoclsparse_options
             if(OptionString::name == "")
                 throw invalid_argument("Invalid name (string reduced to zero-length).");
 
-            for(const auto& entry : labels)
+            for(const auto &entry : labels)
             {
                 label = entry.first;
                 u.PrepareString(label);
@@ -739,7 +740,7 @@ namespace aoclsparse_options
         {
             return value;
         };
-        string GetStringValue(aoclsparse_int& key) const
+        string GetStringValue(aoclsparse_int &key) const
         {
             key = labels.at(value);
             return value;
@@ -840,11 +841,11 @@ namespace aoclsparse_options
                 {
                     (*it).SetInvegerValue(value, setby);
                 }
-                catch(const out_of_range& oor)
+                catch(const out_of_range &oor)
                 {
                     return 1;
                 }
-                catch(const invalid_argument& iarg)
+                catch(const invalid_argument &iarg)
                 {
                     return 2;
                 }
@@ -872,11 +873,11 @@ namespace aoclsparse_options
                 {
                     (*it).SetRealValue(value, setby);
                 }
-                catch(const out_of_range& oor)
+                catch(const out_of_range &oor)
                 {
                     return 1;
                 }
-                catch(const invalid_argument& iarg)
+                catch(const invalid_argument &iarg)
                 {
                     return 2;
                 }
@@ -904,7 +905,7 @@ namespace aoclsparse_options
                 {
                     (*it).SetBoolValue(value, setby);
                 }
-                catch(const invalid_argument& iarg)
+                catch(const invalid_argument &iarg)
                 {
                     return 2;
                 }
@@ -932,11 +933,11 @@ namespace aoclsparse_options
                 {
                     (*it).SetStringValue(value, setby);
                 }
-                catch(const out_of_range& oor)
+                catch(const out_of_range &oor)
                 {
                     return 1;
                 }
-                catch(const invalid_argument& iarg)
+                catch(const invalid_argument &iarg)
                 {
                     return 2;
                 }
@@ -948,7 +949,7 @@ namespace aoclsparse_options
             return 0;
         };
         // Getters
-        aoclsparse_int GetOption(const string name, aoclsparse_int& value)
+        aoclsparse_int GetOption(const string name, aoclsparse_int &value)
         {
             OptionUtility u;
             string        pname(name);
@@ -966,7 +967,7 @@ namespace aoclsparse_options
             return 3;
         };
 
-        aoclsparse_int GetOption(const string name, T& value)
+        aoclsparse_int GetOption(const string name, T &value)
         {
             OptionUtility u;
             string        pname(name);
@@ -982,7 +983,7 @@ namespace aoclsparse_options
             }
             return 3;
         };
-        aoclsparse_int GetOption(const string name, bool& value)
+        aoclsparse_int GetOption(const string name, bool &value)
         {
             OptionUtility u;
             string        pname(name);
@@ -998,7 +999,7 @@ namespace aoclsparse_options
             }
             return 3;
         };
-        aoclsparse_int GetOption(const string name, string& value, aoclsparse_int& key)
+        aoclsparse_int GetOption(const string name, string &value, aoclsparse_int &key)
         {
             OptionUtility u;
             string        pname(name);
@@ -1014,7 +1015,7 @@ namespace aoclsparse_options
             }
             return 3;
         };
-        aoclsparse_int GetKey(const string name, aoclsparse_int& key)
+        aoclsparse_int GetKey(const string name, aoclsparse_int &key)
         {
             OptionUtility u;
             string        pname(name);

@@ -25,17 +25,17 @@
 #ifndef AOCLSPARSE_INIT_HPP
 #define AOCLSPARSE_INIT_HPP
 
+#include "aoclsparse.h"
 #include "aoclsparse_datatype2string.hpp"
-#include "aoclsparse_test.hpp"
 #include "aoclsparse_random.hpp"
+#include "aoclsparse_test.hpp"
 
 #include <algorithm>
+#include <complex>
 #include <cstdio>
 #include <fstream>
 #include <iostream>
-#include <aoclsparse.h>
 #include <vector>
-#include <complex>
 
 /* ==================================================================================== */
 /*! \brief  matrix/vector initialization: */
@@ -45,7 +45,7 @@
 // Initialize vector with random values
 template <typename T>
 inline void aoclsparse_init(
-        std::vector<T>& A, size_t M, size_t N, size_t lda, size_t stride = 0, size_t batch_count = 1)
+    std::vector<T> &A, size_t M, size_t N, size_t lda, size_t stride = 0, size_t batch_count = 1)
 {
     for(size_t i_batch = 0; i_batch < batch_count; i_batch++)
         for(size_t i = 0; i < M; ++i)
@@ -54,8 +54,7 @@ inline void aoclsparse_init(
 }
 // Initialize vector with a specific value
 template <typename T>
-inline void aoclsparse_set_vector(
-        T* v, T value, aoclsparse_int M)
+inline void aoclsparse_set_vector(T *v, T value, aoclsparse_int M)
 {
     for(aoclsparse_int i = 0; i < M; ++i)
     {
@@ -64,8 +63,7 @@ inline void aoclsparse_set_vector(
 }
 // Copy vector to another vector
 template <typename T>
-inline void aoclsparse_copy_vector(
-        T* v, T* w, aoclsparse_int M)
+inline void aoclsparse_copy_vector(T *v, T *w, aoclsparse_int M)
 {
     for(aoclsparse_int i = 0; i < M; ++i)
     {
@@ -75,8 +73,7 @@ inline void aoclsparse_copy_vector(
 
 // Initialize vector with a random value
 template <typename T>
-inline void aoclsparse_random_vector(
-        T* v, aoclsparse_int M)
+inline void aoclsparse_random_vector(T *v, aoclsparse_int M)
 {
     for(aoclsparse_int i = 0; i < M; ++i)
     {
@@ -85,7 +82,7 @@ inline void aoclsparse_random_vector(
 }
 // Initializes sparse index vector with nnz entries ranging from start to end
 inline void
-aoclsparse_init_index(std::vector<aoclsparse_int>& x, size_t nnz, size_t start, size_t end)
+    aoclsparse_init_index(std::vector<aoclsparse_int> &x, size_t nnz, size_t start, size_t end)
 {
     std::vector<bool> check(end - start, false);
 
@@ -113,7 +110,7 @@ aoclsparse_init_index(std::vector<aoclsparse_int>& x, size_t nnz, size_t start, 
 // mantissa 10 bits.
 template <typename T>
 inline void aoclsparse_init_alternating_sign(
-        std::vector<T>& A, size_t M, size_t N, size_t lda, size_t stride = 0, size_t batch_count = 1)
+    std::vector<T> &A, size_t M, size_t N, size_t lda, size_t stride = 0, size_t batch_count = 1)
 {
     for(size_t i_batch = 0; i_batch < batch_count; i_batch++)
         for(size_t i = 0; i < M; ++i)
@@ -125,10 +122,10 @@ inline void aoclsparse_init_alternating_sign(
 }
 
 inline void coo_to_csr(aoclsparse_int                     M,
-        aoclsparse_int                     nnz,
-        const std::vector<aoclsparse_int>& coo_row_ind,
-        std::vector<aoclsparse_int>&       csr_row_ptr,
-        aoclsparse_index_base              base)
+                       aoclsparse_int                     nnz,
+                       const std::vector<aoclsparse_int> &coo_row_ind,
+                       std::vector<aoclsparse_int>       &csr_row_ptr,
+                       aoclsparse_index_base              base)
 {
     // Resize and initialize csr_row_ptr with zeros
     csr_row_ptr.resize(M + 1, 0);
@@ -146,10 +143,10 @@ inline void coo_to_csr(aoclsparse_int                     M,
 }
 
 inline void csr_to_coo(aoclsparse_int                     M,
-        aoclsparse_int                     nnz,
-        const std::vector<aoclsparse_int>& csr_row_ptr,
-        std::vector<aoclsparse_int>&       coo_row_ind,
-        aoclsparse_index_base              base)
+                       aoclsparse_int                     nnz,
+                       const std::vector<aoclsparse_int> &csr_row_ptr,
+                       std::vector<aoclsparse_int>       &coo_row_ind,
+                       aoclsparse_index_base              base)
 {
     // Resize coo_row_ind
     coo_row_ind.resize(nnz);
@@ -172,7 +169,7 @@ inline void csr_to_coo(aoclsparse_int                     M,
 /*! \brief  Initialize an array with random data, with NaN where appropriate */
 
 template <typename T>
-inline void aoclsparse_init_nan(T* A, size_t N)
+inline void aoclsparse_init_nan(T *A, size_t N)
 {
     for(size_t i = 0; i < N; ++i)
         A[i] = T(aoclsparse_nan_rng());
@@ -180,7 +177,7 @@ inline void aoclsparse_init_nan(T* A, size_t N)
 
 template <typename T>
 inline void aoclsparse_init_nan(
-        std::vector<T>& A, size_t M, size_t N, size_t lda, size_t stride = 0, size_t batch_count = 1)
+    std::vector<T> &A, size_t M, size_t N, size_t lda, size_t stride = 0, size_t batch_count = 1)
 {
     for(size_t i_batch = 0; i_batch < batch_count; i_batch++)
         for(size_t i = 0; i < M; ++i)
@@ -191,13 +188,13 @@ inline void aoclsparse_init_nan(
 /* ==================================================================================== */
 /*! \brief  Generate a random sparse matrix in COO format */
 template <typename T>
-inline void aoclsparse_init_coo_matrix(std::vector<aoclsparse_int>& row_ind,
-        std::vector<aoclsparse_int>& col_ind,
-        std::vector<T>&             val,
-        size_t                      M,
-        size_t                      N,
-        size_t                      nnz,
-        aoclsparse_index_base        base)
+inline void aoclsparse_init_coo_matrix(std::vector<aoclsparse_int> &row_ind,
+                                       std::vector<aoclsparse_int> &col_ind,
+                                       std::vector<T>              &val,
+                                       size_t                       M,
+                                       size_t                       N,
+                                       size_t                       nnz,
+                                       aoclsparse_index_base        base)
 {
 
     if(row_ind.size() != nnz)
@@ -217,14 +214,14 @@ inline void aoclsparse_init_coo_matrix(std::vector<aoclsparse_int>& row_ind,
     size_t i = 0;
 
     // Uniform distributed row indices
-    aoclsparse_int rand_row_ind;
+    aoclsparse_int              rand_row_ind;
     std::vector<aoclsparse_int> occ_row_ind(M, 0);
     for(; i < nnz; ++i)
     {
         do
         {
             rand_row_ind = random_generator<aoclsparse_int>(0, M - 1);
-        }while(occ_row_ind[rand_row_ind] >= N);
+        } while(occ_row_ind[rand_row_ind] >= N);
         row_ind[i] = rand_row_ind;
         occ_row_ind[rand_row_ind]++;
     }
@@ -314,21 +311,21 @@ inline void aoclsparse_init_coo_matrix(std::vector<aoclsparse_int>& row_ind,
 /* ============================================================================================ */
 /*! \brief  Read matrix from mtx file in COO format */
 static inline void
-read_mtx_value(std::istringstream& is, aoclsparse_int& row, aoclsparse_int& col, float& val)
+    read_mtx_value(std::istringstream &is, aoclsparse_int &row, aoclsparse_int &col, float &val)
 {
     is >> row >> col >> val;
 }
 
 static inline void
-read_mtx_value(std::istringstream& is, aoclsparse_int& row, aoclsparse_int& col, double& val)
+    read_mtx_value(std::istringstream &is, aoclsparse_int &row, aoclsparse_int &col, double &val)
 {
     is >> row >> col >> val;
 }
 
-static inline void read_mtx_value(std::istringstream&      is,
-        aoclsparse_int&           row,
-        aoclsparse_int&           col,
-        aoclsparse_float_complex& val)
+static inline void read_mtx_value(std::istringstream       &is,
+                                  aoclsparse_int           &row,
+                                  aoclsparse_int           &col,
+                                  aoclsparse_float_complex &val)
 {
     float real;
     float imag;
@@ -338,10 +335,10 @@ static inline void read_mtx_value(std::istringstream&      is,
     val = {real, imag};
 }
 
-static inline void read_mtx_value(std::istringstream&       is,
-        aoclsparse_int&            row,
-        aoclsparse_int&            col,
-        aoclsparse_double_complex& val)
+static inline void read_mtx_value(std::istringstream        &is,
+                                  aoclsparse_int            &row,
+                                  aoclsparse_int            &col,
+                                  aoclsparse_double_complex &val)
 {
     double real;
     double imag;
@@ -352,24 +349,24 @@ static inline void read_mtx_value(std::istringstream&       is,
 }
 
 template <typename T>
-inline void aoclsparse_init_coo_mtx(const char*                 filename,
-        std::vector<aoclsparse_int>& coo_row_ind,
-        std::vector<aoclsparse_int>& coo_col_ind,
-        std::vector<T>&              coo_val,
-        aoclsparse_int&              M,
-        aoclsparse_int&              N,
-        aoclsparse_int&              nnz,
-        aoclsparse_index_base        base,
-        bool&                        issymm,
-        bool                         general)
+inline void aoclsparse_init_coo_mtx(const char                  *filename,
+                                    std::vector<aoclsparse_int> &coo_row_ind,
+                                    std::vector<aoclsparse_int> &coo_col_ind,
+                                    std::vector<T>              &coo_val,
+                                    aoclsparse_int              &M,
+                                    aoclsparse_int              &N,
+                                    aoclsparse_int              &nnz,
+                                    aoclsparse_index_base        base,
+                                    bool                        &issymm,
+                                    bool                         general)
 {
-    const char* env = getenv("GTEST_LISTENER");
+    const char *env = getenv("GTEST_LISTENER");
     if(!env || strcmp(env, "NO_PASS_LINE_IN_LOG"))
     {
         //std::cout << "Reading matrix " << filename << " ... ";
     }
 
-    FILE* f = fopen(filename, "r");
+    FILE *f = fopen(filename, "r");
     if(NULL == f)
     {
         CHECK_AOCLSPARSE_ERROR(aoclsparse_status_internal_error);
@@ -396,13 +393,13 @@ inline void aoclsparse_init_coo_mtx(const char*                 filename,
     }
 
     // Convert to lower case
-    for(char* p = array; *p != '\0'; *p = tolower(*p), p++)
+    for(char *p = array; *p != '\0'; *p = tolower(*p), p++)
         ;
-    for(char* p = coord; *p != '\0'; *p = tolower(*p), p++)
+    for(char *p = coord; *p != '\0'; *p = tolower(*p), p++)
         ;
-    for(char* p = data; *p != '\0'; *p = tolower(*p), p++)
+    for(char *p = data; *p != '\0'; *p = tolower(*p), p++)
         ;
-    for(char* p = type; *p != '\0'; *p = tolower(*p), p++)
+    for(char *p = type; *p != '\0'; *p = tolower(*p), p++)
         ;
 
     // Check banner
@@ -425,7 +422,7 @@ inline void aoclsparse_init_coo_mtx(const char*                 filename,
 
     // Check data
     if(strcmp(data, "real") != 0 && strcmp(data, "integer") != 0 && strcmp(data, "pattern") != 0
-            && strcmp(data, "complex") != 0)
+       && strcmp(data, "complex") != 0)
     {
         CHECK_AOCLSPARSE_ERROR(aoclsparse_status_internal_error);
     }
@@ -438,7 +435,7 @@ inline void aoclsparse_init_coo_mtx(const char*                 filename,
 
     // Symmetric flag
     aoclsparse_int symm = !strcmp(type, "symmetric");
-    issymm = symm ? true : false;
+    issymm              = symm ? true : false;
     // Skip comments
     while(fgets(line, 1024, f))
     {
@@ -461,11 +458,11 @@ inline void aoclsparse_init_coo_mtx(const char*                 filename,
     N    = static_cast<aoclsparse_int>(incol);
     snnz = static_cast<aoclsparse_int>(innz);
 
-    nnz = symm ? snnz  * 2 : snnz;
+    nnz = symm ? snnz * 2 : snnz;
 
     std::vector<aoclsparse_int> unsorted_row(nnz);
     std::vector<aoclsparse_int> unsorted_col(nnz);
-    std::vector<T>             unsorted_val(nnz);
+    std::vector<T>              unsorted_val(nnz);
 
     // Read entries
     aoclsparse_int idx = 0;
@@ -478,7 +475,7 @@ inline void aoclsparse_init_coo_mtx(const char*                 filename,
 
         aoclsparse_int irow;
         aoclsparse_int icol;
-        T             ival;
+        T              ival;
 
         std::istringstream ss(line);
 
@@ -532,20 +529,20 @@ inline void aoclsparse_init_coo_mtx(const char*                 filename,
         perm[i] = i;
     }
 
-    std::sort(perm.begin(), perm.end(), [&](const aoclsparse_int& a, const aoclsparse_int& b) {
-            if(unsorted_row[a] < unsorted_row[b])
-            {
+    std::sort(perm.begin(), perm.end(), [&](const aoclsparse_int &a, const aoclsparse_int &b) {
+        if(unsorted_row[a] < unsorted_row[b])
+        {
             return true;
-            }
-            else if(unsorted_row[a] == unsorted_row[b])
-            {
+        }
+        else if(unsorted_row[a] == unsorted_row[b])
+        {
             return (unsorted_col[a] < unsorted_col[b]);
-            }
-            else
-            {
+        }
+        else
+        {
             return false;
-            }
-            });
+        }
+    });
 
     for(aoclsparse_int i = 0; i < nnz; ++i)
     {
@@ -563,21 +560,22 @@ inline void aoclsparse_init_coo_mtx(const char*                 filename,
 /* ==================================================================================== */
 /*! \brief  Read matrix from mtx file in CSR format */
 template <typename T>
-inline void aoclsparse_init_csr_mtx(const char*                 filename,
-        std::vector<aoclsparse_int>& csr_row_ptr,
-        std::vector<aoclsparse_int>& csr_col_ind,
-        std::vector<T>&             csr_val,
-        aoclsparse_int&              M,
-        aoclsparse_int&              N,
-        aoclsparse_int&              nnz,
-        aoclsparse_index_base        base,
-        bool&                        issymm,
-        bool                         general)
+inline void aoclsparse_init_csr_mtx(const char                  *filename,
+                                    std::vector<aoclsparse_int> &csr_row_ptr,
+                                    std::vector<aoclsparse_int> &csr_col_ind,
+                                    std::vector<T>              &csr_val,
+                                    aoclsparse_int              &M,
+                                    aoclsparse_int              &N,
+                                    aoclsparse_int              &nnz,
+                                    aoclsparse_index_base        base,
+                                    bool                        &issymm,
+                                    bool                         general)
 {
     std::vector<aoclsparse_int> coo_row_ind;
 
     // Read COO matrix
-    aoclsparse_init_coo_mtx(filename, coo_row_ind, csr_col_ind, csr_val, M, N, nnz, base, issymm, general);
+    aoclsparse_init_coo_mtx(
+        filename, coo_row_ind, csr_col_ind, csr_val, M, N, nnz, base, issymm, general);
 
     // Convert to CSR
     csr_row_ptr.resize(M + 1);
@@ -587,20 +585,20 @@ inline void aoclsparse_init_csr_mtx(const char*                 filename,
 /* ==================================================================================== */
 /*! \brief  Generate a random sparse matrix in CSR format */
 template <typename T>
-inline void aoclsparse_init_csr_random(std::vector<aoclsparse_int>& row_ptr,
-        std::vector<aoclsparse_int>& col_ind,
-        std::vector<T>&             val,
-        aoclsparse_int               M,
-        aoclsparse_int               N,
-        aoclsparse_int&              nnz,
-        aoclsparse_index_base        base)
+inline void aoclsparse_init_csr_random(std::vector<aoclsparse_int> &row_ptr,
+                                       std::vector<aoclsparse_int> &col_ind,
+                                       std::vector<T>              &val,
+                                       aoclsparse_int               M,
+                                       aoclsparse_int               N,
+                                       aoclsparse_int              &nnz,
+                                       aoclsparse_index_base        base)
 {
     // Compute non-zero entries of the matrix
     if(!nnz)
         nnz = M * ((M > 1000 || N > 1000) ? 2.0 / std::max(M, N) : 0.02) * N;
 
     // Exit with error if nnz is greater than size of matrix
-    if(nnz > M*N)
+    if(nnz > M * N)
         CHECK_AOCLSPARSE_ERROR(aoclsparse_status_invalid_size);
 
     // Sample random matrix
@@ -615,13 +613,13 @@ inline void aoclsparse_init_csr_random(std::vector<aoclsparse_int>& row_ptr,
 /* ==================================================================================== */
 /*! \brief  Generate a random sparse matrix in COO format */
 template <typename T>
-inline void aoclsparse_init_coo_random(std::vector<aoclsparse_int>& row_ind,
-        std::vector<aoclsparse_int>& col_ind,
-        std::vector<T>&             val,
-        aoclsparse_int               M,
-        aoclsparse_int               N,
-        aoclsparse_int&              nnz,
-        aoclsparse_index_base        base)
+inline void aoclsparse_init_coo_random(std::vector<aoclsparse_int> &row_ind,
+                                       std::vector<aoclsparse_int> &col_ind,
+                                       std::vector<T>              &val,
+                                       aoclsparse_int               M,
+                                       aoclsparse_int               N,
+                                       aoclsparse_int              &nnz,
+                                       aoclsparse_index_base        base)
 {
     // Compute non-zero entries of the matrix
     if(!nnz)
@@ -633,17 +631,17 @@ inline void aoclsparse_init_coo_random(std::vector<aoclsparse_int>& row_ind,
 /* ==================================================================================== */
 /*! \brief  Initialize a sparse matrix in CSR format */
 template <typename T>
-inline void aoclsparse_init_csr_matrix(std::vector<aoclsparse_int>& csr_row_ptr,
-        std::vector<aoclsparse_int>& csr_col_ind,
-        std::vector<T>&             csr_val,
-        aoclsparse_int&              M,
-        aoclsparse_int&              N,
-        aoclsparse_int&              nnz,
-        aoclsparse_index_base        base,
-        aoclsparse_matrix_init       matrix,
-        const char*                 filename,
-        bool&			  issymm,
-        bool 			  general)
+inline void aoclsparse_init_csr_matrix(std::vector<aoclsparse_int> &csr_row_ptr,
+                                       std::vector<aoclsparse_int> &csr_col_ind,
+                                       std::vector<T>              &csr_val,
+                                       aoclsparse_int              &M,
+                                       aoclsparse_int              &N,
+                                       aoclsparse_int              &nnz,
+                                       aoclsparse_index_base        base,
+                                       aoclsparse_matrix_init       matrix,
+                                       const char                  *filename,
+                                       bool                        &issymm,
+                                       bool                         general)
 {
     // Differentiate the different matrix generators
     if(matrix == aoclsparse_matrix_random)
@@ -652,23 +650,24 @@ inline void aoclsparse_init_csr_matrix(std::vector<aoclsparse_int>& csr_row_ptr,
     }
     else if(matrix == aoclsparse_matrix_file_mtx)
     {
-        aoclsparse_init_csr_mtx(filename, csr_row_ptr, csr_col_ind, csr_val, M, N, nnz, base, issymm, general);
+        aoclsparse_init_csr_mtx(
+            filename, csr_row_ptr, csr_col_ind, csr_val, M, N, nnz, base, issymm, general);
     }
 }
 /* ==================================================================================== */
 /*! \brief  Initialize a sparse matrix in COO format */
 template <typename T>
-inline void aoclsparse_init_coo_matrix(std::vector<aoclsparse_int>& coo_row_ind,
-        std::vector<aoclsparse_int>& coo_col_ind,
-        std::vector<T>&             coo_val,
-        aoclsparse_int&              M,
-        aoclsparse_int&              N,
-        aoclsparse_int&              nnz,
-        aoclsparse_index_base        base,
-        aoclsparse_matrix_init       matrix,
-        const char*                 filename,
-        bool&                       issymm,
-        bool                        general)
+inline void aoclsparse_init_coo_matrix(std::vector<aoclsparse_int> &coo_row_ind,
+                                       std::vector<aoclsparse_int> &coo_col_ind,
+                                       std::vector<T>              &coo_val,
+                                       aoclsparse_int              &M,
+                                       aoclsparse_int              &N,
+                                       aoclsparse_int              &nnz,
+                                       aoclsparse_index_base        base,
+                                       aoclsparse_matrix_init       matrix,
+                                       const char                  *filename,
+                                       bool                        &issymm,
+                                       bool                         general)
 {
     // Differentiate the different matrix generators
     if(matrix == aoclsparse_matrix_random)
@@ -677,7 +676,8 @@ inline void aoclsparse_init_coo_matrix(std::vector<aoclsparse_int>& coo_row_ind,
     }
     else if(matrix == aoclsparse_matrix_file_mtx)
     {
-        aoclsparse_init_coo_mtx(filename, coo_row_ind, coo_col_ind, coo_val, M, N, nnz, base, issymm, general);
+        aoclsparse_init_coo_mtx(
+            filename, coo_row_ind, coo_col_ind, coo_val, M, N, nnz, base, issymm, general);
     }
 }
 #endif // AOCLSPARSE_INIT_HPP

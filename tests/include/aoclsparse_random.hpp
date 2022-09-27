@@ -25,9 +25,9 @@
 #ifndef AOCLSPARSE_RANDOM_HPP
 #define AOCLSPARSE_RANDOM_HPP
 
+#include "aoclsparse.h"
 
 #include <random>
-#include <aoclsparse.h>
 #include <type_traits>
 
 /* ==================================================================================== */

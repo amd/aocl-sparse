@@ -20,13 +20,14 @@
  * THE SOFTWARE.
  *
  * ************************************************************************ */
-#include "aoclsparse_itsol_functions.hpp"
 #include "aoclsparse.h"
-#include "aoclsparse_itsol_data.hpp"
-#include "aoclsparse_itsol_list_options.hpp"
-#include "aoclsparse_itsol_options.hpp"
 #include "aoclsparse_mat_structures.h"
 #include "aoclsparse_solvers.h"
+#include "aoclsparse_itsol_data.hpp"
+#include "aoclsparse_itsol_functions.hpp"
+#include "aoclsparse_itsol_list_options.hpp"
+#include "aoclsparse_itsol_options.hpp"
+
 #include <cmath>
 #include <iostream>
 
@@ -47,9 +48,9 @@ void aoclsparse_itsol_handle_prn_options(aoclsparse_itsol_handle handle)
     }
 }
 
-aoclsparse_status aoclsparse_itsol_option_set(aoclsparse_itsol_handle& handle,
-                                              const char*              option,
-                                              const char*              value)
+aoclsparse_status aoclsparse_itsol_option_set(aoclsparse_itsol_handle &handle,
+                                              const char              *option,
+                                              const char              *value)
 {
     if(handle == nullptr)
         return aoclsparse_status_invalid_pointer;
@@ -69,7 +70,7 @@ aoclsparse_status aoclsparse_itsol_option_set(aoclsparse_itsol_handle& handle,
 }
 
 /* Deallocate the internal iterative solver memory */
-void aoclsparse_itsol_destroy(aoclsparse_itsol_handle* handle)
+void aoclsparse_itsol_destroy(aoclsparse_itsol_handle *handle)
 {
     if(handle)
         if(*handle)
@@ -85,7 +86,7 @@ void aoclsparse_itsol_destroy(aoclsparse_itsol_handle* handle)
 /* Initialize the iterative solvers data structure' for double precision
  * Possible error: - Allocation, wrong pointer, internal error
  */
-aoclsparse_status aoclsparse_itsol_d_init(aoclsparse_itsol_handle* handle)
+aoclsparse_status aoclsparse_itsol_d_init(aoclsparse_itsol_handle *handle)
 {
     if(handle == nullptr)
         return aoclsparse_status_invalid_pointer;
@@ -111,7 +112,7 @@ aoclsparse_status aoclsparse_itsol_d_init(aoclsparse_itsol_handle* handle)
 /* Initialize the iterative solvers data structure' for single precision
  * Possible error: - Allocation, wrong pointer, internal error
  */
-aoclsparse_status aoclsparse_itsol_s_init(aoclsparse_itsol_handle* handle)
+aoclsparse_status aoclsparse_itsol_s_init(aoclsparse_itsol_handle *handle)
 {
     if(handle == nullptr)
         return aoclsparse_status_invalid_pointer;
@@ -146,7 +147,7 @@ aoclsparse_status aoclsparse_itsol_s_init(aoclsparse_itsol_handle* handle)
  * - internal allocation: raised by itsol_rci_input (itsol->b error)
  */
 aoclsparse_status
-    aoclsparse_itsol_d_rci_input(aoclsparse_itsol_handle handle, aoclsparse_int n, const double* b)
+    aoclsparse_itsol_d_rci_input(aoclsparse_itsol_handle handle, aoclsparse_int n, const double *b)
 {
 
     if(handle == nullptr)
@@ -158,7 +159,7 @@ aoclsparse_status
 
 /* Equivalent to aoclsparse_itsol_d_rci_input for single precision */
 aoclsparse_status
-    aoclsparse_itsol_s_rci_input(aoclsparse_itsol_handle handle, aoclsparse_int n, const float* b)
+    aoclsparse_itsol_s_rci_input(aoclsparse_itsol_handle handle, aoclsparse_int n, const float *b)
 {
     if(handle == nullptr)
         return aoclsparse_status_invalid_pointer;
@@ -171,10 +172,10 @@ aoclsparse_status
  * Generic RCI entry point for all iterative solvers
  */
 aoclsparse_status aoclsparse_itsol_d_rci_solve(aoclsparse_itsol_handle   handle,
-                                               aoclsparse_itsol_rci_job* ircomm,
-                                               double**                  u,
-                                               double**                  v,
-                                               double*                   x,
+                                               aoclsparse_itsol_rci_job *ircomm,
+                                               double                  **u,
+                                               double                  **v,
+                                               double                   *x,
                                                double                    rinfo[100])
 {
     /* Main entry point for the iterative solvers; checks input briefly and calls the instantiated solver
@@ -190,10 +191,10 @@ aoclsparse_status aoclsparse_itsol_d_rci_solve(aoclsparse_itsol_handle   handle,
 }
 
 aoclsparse_status aoclsparse_itsol_s_rci_solve(aoclsparse_itsol_handle   handle,
-                                               aoclsparse_itsol_rci_job* ircomm,
-                                               float**                   u,
-                                               float**                   v,
-                                               float*                    x,
+                                               aoclsparse_itsol_rci_job *ircomm,
+                                               float                   **u,
+                                               float                   **v,
+                                               float                    *x,
                                                float                     rinfo[100])
 {
     if(handle == nullptr)
@@ -211,12 +212,12 @@ aoclsparse_status aoclsparse_itsol_d_solve(
     aoclsparse_int             n,
     aoclsparse_matrix          mat,
     const aoclsparse_mat_descr descr,
-    const double*              b,
-    double*                    x,
+    const double              *b,
+    double                    *x,
     double                     rinfo[100],
-    aoclsparse_int precond(aoclsparse_int flag, const double* u, double* v, void* udata),
-    aoclsparse_int monit(const double* x, const double* r, double rinfo[100], void* udata),
-    void*          udata)
+    aoclsparse_int precond(aoclsparse_int flag, const double *u, double *v, void *udata),
+    aoclsparse_int monit(const double *x, const double *r, double rinfo[100], void *udata),
+    void          *udata)
 {
     if(!handle)
         return aoclsparse_status_invalid_pointer;
@@ -231,12 +232,12 @@ aoclsparse_status aoclsparse_itsol_s_solve(
     aoclsparse_int             n,
     aoclsparse_matrix          mat,
     const aoclsparse_mat_descr descr,
-    const float*               b,
-    float*                     x,
+    const float               *b,
+    float                     *x,
     float                      rinfo[100],
-    aoclsparse_int             precond(aoclsparse_int flag, const float* u, float* v, void* udata),
-    aoclsparse_int             monit(const float* x, const float* r, float rinfo[100], void* udata),
-    void*                      udata)
+    aoclsparse_int             precond(aoclsparse_int flag, const float *u, float *v, void *udata),
+    aoclsparse_int             monit(const float *x, const float *r, float rinfo[100], void *udata),
+    void                      *udata)
 {
     if(!handle)
         return aoclsparse_status_invalid_pointer;
@@ -248,17 +249,17 @@ aoclsparse_status aoclsparse_itsol_s_solve(
 
 template <>
 inline aoclsparse_status aoclsparse_csrmv(aoclsparse_operation       trans,
-                                          const float*               alpha,
+                                          const float               *alpha,
                                           aoclsparse_int             m,
                                           aoclsparse_int             n,
                                           aoclsparse_int             nnz,
-                                          const float*               csr_val,
-                                          const aoclsparse_int*      csr_col_ind,
-                                          const aoclsparse_int*      csr_row_ptr,
+                                          const float               *csr_val,
+                                          const aoclsparse_int      *csr_col_ind,
+                                          const aoclsparse_int      *csr_row_ptr,
                                           const aoclsparse_mat_descr descr,
-                                          const float*               x,
-                                          const float*               beta,
-                                          float*                     y)
+                                          const float               *x,
+                                          const float               *beta,
+                                          float                     *y)
 {
     return aoclsparse_scsrmv(
         trans, alpha, m, n, nnz, csr_val, csr_col_ind, csr_row_ptr, descr, x, beta, y);
@@ -266,17 +267,17 @@ inline aoclsparse_status aoclsparse_csrmv(aoclsparse_operation       trans,
 
 template <>
 inline aoclsparse_status aoclsparse_csrmv(aoclsparse_operation       trans,
-                                          const double*              alpha,
+                                          const double              *alpha,
                                           aoclsparse_int             m,
                                           aoclsparse_int             n,
                                           aoclsparse_int             nnz,
-                                          const double*              csr_val,
-                                          const aoclsparse_int*      csr_col_ind,
-                                          const aoclsparse_int*      csr_row_ptr,
+                                          const double              *csr_val,
+                                          const aoclsparse_int      *csr_col_ind,
+                                          const aoclsparse_int      *csr_row_ptr,
                                           const aoclsparse_mat_descr descr,
-                                          const double*              x,
-                                          const double*              beta,
-                                          double*                    y)
+                                          const double              *x,
+                                          const double              *beta,
+                                          double                    *y)
 {
     return aoclsparse_dcsrmv(
         trans, alpha, m, n, nnz, csr_val, csr_col_ind, csr_row_ptr, descr, x, beta, y);

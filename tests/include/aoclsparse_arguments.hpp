@@ -29,13 +29,13 @@
 #ifndef AOCLSPARSE_ARGUMENTS_HPP
 #define AOCLSPARSE_ARGUMENTS_HPP
 
+#include "aoclsparse.h"
 #include "aoclsparse_datatype2string.hpp"
 
 #include <cmath>
 #include <cstring>
 #include <iomanip>
 #include <iostream>
-#include <aoclsparse.h>
 
 struct Arguments
 {
@@ -48,12 +48,12 @@ struct Arguments
     double alpha;
     double beta;
 
-    aoclsparse_operation       transA;
-    aoclsparse_operation       transB;
-    aoclsparse_index_base      baseA;
-    aoclsparse_diag_type       diag;
-    aoclsparse_fill_mode       uplo;
-    aoclsparse_order           order;
+    aoclsparse_operation  transA;
+    aoclsparse_operation  transB;
+    aoclsparse_index_base baseA;
+    aoclsparse_diag_type  diag;
+    aoclsparse_fill_mode  uplo;
+    aoclsparse_order      order;
 
     aoclsparse_matrix_init matrix;
 
@@ -62,15 +62,13 @@ struct Arguments
     aoclsparse_int iters;
 
     std::string filename;
-    char function[64];
+    char        function[64];
 
 private:
-
-
     // Function to read Structures data from stream
-    friend std::istream& operator>>(std::istream& str, Arguments& arg)
+    friend std::istream &operator>>(std::istream &str, Arguments &arg)
     {
-        str.read(reinterpret_cast<char*>(&arg), sizeof(arg));
+        str.read(reinterpret_cast<char *>(&arg), sizeof(arg));
         return str;
     }
 
@@ -78,13 +76,13 @@ private:
 
     // Default output
     template <typename T>
-    static void print_value(std::ostream& str, const T& x)
+    static void print_value(std::ostream &str, const T &x)
     {
         str << x;
     }
 
     // Floating-point output
-    static void print_value(std::ostream& str, double x)
+    static void print_value(std::ostream &str, double x)
     {
         if(std::isnan(x))
             str << ".nan";
@@ -96,7 +94,7 @@ private:
             snprintf(s, sizeof(s) - 2, "%.17g", x);
 
             // If no decimal point or exponent, append .0
-            char* end = s + strcspn(s, ".eE");
+            char *end = s + strcspn(s, ".eE");
             if(!*end)
                 strcat(end, ".0");
             str << s;
@@ -104,24 +102,23 @@ private:
     }
 
     // Character output
-    static void print_value(std::ostream& str, char c)
+    static void print_value(std::ostream &str, char c)
     {
         char s[]{c, 0};
         str << std::quoted(s, '\'');
     }
 
     // bool output
-    static void print_value(std::ostream& str, bool b)
+    static void print_value(std::ostream &str, bool b)
     {
         str << (b ? "true" : "false");
     }
 
     // string output
-    static void print_value(std::ostream& str, const char* s)
+    static void print_value(std::ostream &str, const char *s)
     {
         str << std::quoted(s);
     }
-
 };
 
 #endif // AOCLSPARSE_ARGUMENTS_HPP

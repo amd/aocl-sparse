@@ -21,15 +21,16 @@
  *
  * ************************************************************************ */
 
-#include "aoclsparse_csr_util.hpp"
 #include "aoclsparse.h"
+#include "aoclsparse_csr_util.hpp"
+
 #include <sstream>
 
 /* Destroy the optimize_data linked list*/
-void aoclsparse_optimize_destroy(aoclsparse_optimize_data*& opt)
+void aoclsparse_optimize_destroy(aoclsparse_optimize_data *&opt)
 {
-    aoclsparse_optimize_data* optd_ptr = opt;
-    aoclsparse_optimize_data* next     = nullptr;
+    aoclsparse_optimize_data *optd_ptr = opt;
+    aoclsparse_optimize_data *next     = nullptr;
 
     while(optd_ptr)
     {
@@ -43,18 +44,18 @@ void aoclsparse_optimize_destroy(aoclsparse_optimize_data*& opt)
 /* Add a new hinted action at the start of an optimize_data linked list
  * Possible exit: memory allocation error
  */
-aoclsparse_status aoclsparse_add_hint(aoclsparse_optimize_data*& list,
+aoclsparse_status aoclsparse_add_hint(aoclsparse_optimize_data *&list,
                                       aoclsparse_hinted_action   act,
                                       aoclsparse_mat_descr       desc,
                                       aoclsparse_operation       trans,
                                       aoclsparse_int             nop)
 {
-    aoclsparse_optimize_data* optd;
+    aoclsparse_optimize_data *optd;
     try
     {
         optd = new aoclsparse_optimize_data;
     }
-    catch(std::bad_alloc&)
+    catch(std::bad_alloc &)
     {
         return aoclsparse_status_memory_error;
     }
@@ -241,7 +242,7 @@ aoclsparse_status aoclsparse_csr_check_internal(aoclsparse_int       m,
  * Possible fails: size(m<0), invalid_pointer (input)
  */
 aoclsparse_status aoclsparse_csr_check_sort_diag(
-    aoclsparse_int m, aoclsparse_int n, const aoclsparse_csr csr_mat, bool& sorted, bool& fulldiag)
+    aoclsparse_int m, aoclsparse_int n, const aoclsparse_csr csr_mat, bool &sorted, bool &fulldiag)
 {
 
     sorted   = false;
@@ -309,10 +310,10 @@ aoclsparse_status aoclsparse_csr_check_sort_diag(
  * at most one diag element per row.
  */
 aoclsparse_status aoclsparse_csr_indices(aoclsparse_int        m,
-                                         const aoclsparse_int* icrow,
-                                         const aoclsparse_int* icol,
-                                         aoclsparse_int**      idiag,
-                                         aoclsparse_int**      iurow)
+                                         const aoclsparse_int *icrow,
+                                         const aoclsparse_int *icol,
+                                         aoclsparse_int      **idiag,
+                                         aoclsparse_int      **iurow)
 {
 
     if(m < 0)
@@ -321,8 +322,8 @@ aoclsparse_status aoclsparse_csr_indices(aoclsparse_int        m,
         return aoclsparse_status_invalid_pointer;
 
     aoclsparse_int mtmp = m > 0 ? m : 1; // to avoid m=0 issues in malloc(0)
-    *idiag              = (aoclsparse_int*)malloc(mtmp * sizeof(aoclsparse_int));
-    *iurow              = (aoclsparse_int*)malloc(mtmp * sizeof(aoclsparse_int));
+    *idiag              = (aoclsparse_int *)malloc(mtmp * sizeof(aoclsparse_int));
+    *iurow              = (aoclsparse_int *)malloc(mtmp * sizeof(aoclsparse_int));
     if(*idiag == nullptr || *iurow == nullptr)
     {
         if(*idiag)

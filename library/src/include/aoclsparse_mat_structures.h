@@ -38,12 +38,10 @@
 struct _aoclsparse_csr
 {
     // CSR matrix part
-    aoclsparse_int* csr_row_ptr = nullptr;
-    aoclsparse_int* csr_col_ptr = nullptr;
-    void*          csr_val     = nullptr;
+    aoclsparse_int *csr_row_ptr = nullptr;
+    aoclsparse_int *csr_col_ptr = nullptr;
+    void           *csr_val     = nullptr;
 };
-
-
 
 /********************************************************************************
  * \brief aoclsparse_ell is a structure holding the aoclsparse matrix
@@ -53,12 +51,10 @@ struct _aoclsparse_csr
 struct _aoclsparse_ell
 {
     // ELL matrix part
-    aoclsparse_int ell_width = 0;
-    aoclsparse_int* ell_col_ind = nullptr;
-    void*          ell_val     = nullptr;
+    aoclsparse_int  ell_width   = 0;
+    aoclsparse_int *ell_col_ind = nullptr;
+    void           *ell_val     = nullptr;
 };
-
-
 
 /********************************************************************************
  * \brief aoclsparse_ell_csr_hyb is a structure holding the aoclsparse matrix
@@ -68,18 +64,16 @@ struct _aoclsparse_ell
 struct _aoclsparse_ell_csr_hyb
 {
     // ELL matrix part
-    aoclsparse_int ell_width = 0;
-    aoclsparse_int ell_m = 0;
-    aoclsparse_int* ell_col_ind = nullptr;
-    void*          ell_val     = nullptr;
+    aoclsparse_int  ell_width   = 0;
+    aoclsparse_int  ell_m       = 0;
+    aoclsparse_int *ell_col_ind = nullptr;
+    void           *ell_val     = nullptr;
 
     // CSR part
-    aoclsparse_int* csr_row_id_map =  nullptr;
- //   aoclsparse_int* row_id_map =  nullptr;
-    aoclsparse_int* csr_col_ptr = nullptr;   // points to the corresponding CSR pointer
-    void*          csr_val     = nullptr;    // points to the corresponding CSR pointer
-
-
+    aoclsparse_int *csr_row_id_map = nullptr;
+    //   aoclsparse_int* row_id_map =  nullptr;
+    aoclsparse_int *csr_col_ptr = nullptr; // points to the corresponding CSR pointer
+    void           *csr_val     = nullptr; // points to the corresponding CSR pointer
 };
 
 /********************************************************************************
@@ -89,13 +83,13 @@ struct _aoclsparse_ell_csr_hyb
  *******************************************************************************/
 struct _aoclsparse_ilu
 {
-    aoclsparse_int         *lu_diag_ptr=NULL;        //pointer to diagonal elements in csr values array
-    aoclsparse_int         *col_idx_mapper=NULL;     //working array
-    void                   *precond_csr_val=NULL;     //copy of buffer for ilu precondioned factors
-    bool                    ilu_factorized = false;     //flag to indicate if ILU factorization is done
-    aoclsparse_ilu_type     ilu_fact_type;              // indicator of ILU factorization type
+    aoclsparse_int     *lu_diag_ptr     = NULL; //pointer to diagonal elements in csr values array
+    aoclsparse_int     *col_idx_mapper  = NULL; //working array
+    void               *precond_csr_val = NULL; //copy of buffer for ilu precondioned factors
+    bool                ilu_factorized  = false; //flag to indicate if ILU factorization is done
+    aoclsparse_ilu_type ilu_fact_type; // indicator of ILU factorization type
     // true: ILU Optimization/Working-Buffer-Allocation already done, else needs to be performed^M
-    bool                    ilu_ready=false;     
+    bool ilu_ready = false;
 };
 /********************************************************************************
  * \brief _aoclsparse_matrix is a structure holding generic aoclsparse matrices.
@@ -105,19 +99,19 @@ struct _aoclsparse_ilu
 struct _aoclsparse_matrix
 {
     // generic sparse matrix properties
-    aoclsparse_int m;
-    aoclsparse_int n;
-    aoclsparse_int nnz;
-    bool optimized = false;
-    aoclsparse_index_base base = aoclsparse_index_base_zero;
-    aoclsparse_matrix_data_type val_type = aoclsparse_dmat;
-    aoclsparse_matrix_format_type mat_type = aoclsparse_csr_mat;
+    aoclsparse_int                m;
+    aoclsparse_int                n;
+    aoclsparse_int                nnz;
+    bool                          optimized = false;
+    aoclsparse_index_base         base      = aoclsparse_index_base_zero;
+    aoclsparse_matrix_data_type   val_type  = aoclsparse_dmat;
+    aoclsparse_matrix_format_type mat_type  = aoclsparse_csr_mat;
 
     // Optimization hints linked list
-    aoclsparse_optimize_data* optim_data = nullptr;
+    aoclsparse_optimize_data *optim_data = nullptr;
 
     // csr matrix
-    bool csr_mat_is_users = true;
+    bool                   csr_mat_is_users = true;
     struct _aoclsparse_csr csr_mat;
 
     // csr matrix for avx2
@@ -140,7 +134,7 @@ struct _aoclsparse_matrix
     bool opt_csr_ready;
     // if true, user's csr_mat was fine to use so opt_csr_mat points
     // to the same memory. Deallocate only if !opt_csr_is_users
-    bool opt_csr_is_users=true;
+    bool opt_csr_is_users = true;
     // the original matrix had full (nonzero) diagonal, so the matrix
     // is safe for TRSVs
     bool opt_csr_full_diag;
@@ -149,6 +143,5 @@ struct _aoclsparse_matrix
     // position where the first strictly upper triangle element is/would be located in every row
     aoclsparse_int *iurow;
 };
-
 
 #endif // AOCLSPARSE_MAT_STRUCTS_H

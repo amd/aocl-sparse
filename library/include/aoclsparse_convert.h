@@ -57,20 +57,17 @@ extern "C" {
 *  \retval     aoclsparse_status_internal_error an internal error occurred.
 */
 DLL_PUBLIC
-aoclsparse_status aoclsparse_csr2ell_width(
-                aoclsparse_int       m,
-                aoclsparse_int       nnz,
-                const aoclsparse_int *csr_row_ptr,
-                aoclsparse_int       *ell_width);
-
+aoclsparse_status aoclsparse_csr2ell_width(aoclsparse_int        m,
+                                           aoclsparse_int        nnz,
+                                           const aoclsparse_int *csr_row_ptr,
+                                           aoclsparse_int       *ell_width);
 
 DLL_PUBLIC
-aoclsparse_status aoclsparse_csr2ellthyb_width(
-                aoclsparse_int       m,
-                aoclsparse_int       nnz,
-                const aoclsparse_int *csr_row_ptr,
-		 aoclsparse_int       *ell_m,
-                aoclsparse_int       *ell_width);
+aoclsparse_status aoclsparse_csr2ellthyb_width(aoclsparse_int        m,
+                                               aoclsparse_int        nnz,
+                                               const aoclsparse_int *csr_row_ptr,
+                                               aoclsparse_int       *ell_m,
+                                               aoclsparse_int       *ell_width);
 
 /*! \ingroup conv_module
 *  \brief Convert a sparse CSR matrix into a sparse ELLPACK matrix
@@ -109,72 +106,65 @@ aoclsparse_status aoclsparse_csr2ellthyb_width(
 */
 /**@{*/
 DLL_PUBLIC
-aoclsparse_status aoclsparse_scsr2ell(
-                aoclsparse_int       m,
-                const aoclsparse_int *csr_row_ptr,
-                const aoclsparse_int *csr_col_ind,
-                const float          *csr_val,
-                aoclsparse_int       *ell_col_ind,
-                float                *ell_val,
-                aoclsparse_int       ell_width);
+aoclsparse_status aoclsparse_scsr2ell(aoclsparse_int        m,
+                                      const aoclsparse_int *csr_row_ptr,
+                                      const aoclsparse_int *csr_col_ind,
+                                      const float          *csr_val,
+                                      aoclsparse_int       *ell_col_ind,
+                                      float                *ell_val,
+                                      aoclsparse_int        ell_width);
 
 DLL_PUBLIC
-aoclsparse_status aoclsparse_dcsr2ell(
-                aoclsparse_int       m,
-                const aoclsparse_int *csr_row_ptr,
-                const aoclsparse_int *csr_col_ind,
-                const double         *csr_val,
-                aoclsparse_int       *ell_col_ind,
-                double               *ell_val,
-                aoclsparse_int       ell_width);
+aoclsparse_status aoclsparse_dcsr2ell(aoclsparse_int        m,
+                                      const aoclsparse_int *csr_row_ptr,
+                                      const aoclsparse_int *csr_col_ind,
+                                      const double         *csr_val,
+                                      aoclsparse_int       *ell_col_ind,
+                                      double               *ell_val,
+                                      aoclsparse_int        ell_width);
 /**@}*/
 
+DLL_PUBLIC
+aoclsparse_status aoclsparse_scsr2ellt(aoclsparse_int        m,
+                                       const aoclsparse_int *csr_row_ptr,
+                                       const aoclsparse_int *csr_col_ind,
+                                       const float          *csr_val,
+                                       aoclsparse_int       *ell_col_ind,
+                                       float                *ell_val,
+                                       aoclsparse_int        ell_width);
 
 DLL_PUBLIC
-aoclsparse_status aoclsparse_scsr2ellt(
-                aoclsparse_int       m,
-                const aoclsparse_int *csr_row_ptr,
-                const aoclsparse_int *csr_col_ind,
-                const float          *csr_val,
-                aoclsparse_int       *ell_col_ind,
-                float                *ell_val,
-                aoclsparse_int       ell_width);
+aoclsparse_status aoclsparse_dcsr2ellt(aoclsparse_int        m,
+                                       const aoclsparse_int *csr_row_ptr,
+                                       const aoclsparse_int *csr_col_ind,
+                                       const double         *csr_val,
+                                       aoclsparse_int       *ell_col_ind,
+                                       double               *ell_val,
+                                       aoclsparse_int        ell_width);
 
 DLL_PUBLIC
-aoclsparse_status aoclsparse_dcsr2ellt(
-                aoclsparse_int       m,
-                const aoclsparse_int *csr_row_ptr,
-                const aoclsparse_int *csr_col_ind,
-                const double         *csr_val,
-                aoclsparse_int       *ell_col_ind,
-                double               *ell_val,
-                aoclsparse_int       ell_width);
+aoclsparse_status aoclsparse_scsr2ellthyb(aoclsparse_int        m,
+                                          aoclsparse_int       *ell_m,
+                                          const aoclsparse_int *csr_row_ptr,
+                                          const aoclsparse_int *csr_col_ind,
+                                          const float          *csr_val,
+                                          aoclsparse_int       *row_idx_map,
+                                          aoclsparse_int       *csr_row_idx_map,
+                                          aoclsparse_int       *ell_col_ind,
+                                          float                *ell_val,
+                                          aoclsparse_int        ell_width);
 
 DLL_PUBLIC
-aoclsparse_status aoclsparse_scsr2ellthyb(
-                aoclsparse_int       m,
-		 aoclsparse_int       *ell_m,
-                const aoclsparse_int *csr_row_ptr,
-                const aoclsparse_int *csr_col_ind,
-                const float          *csr_val,
-                aoclsparse_int       *row_idx_map,
-                aoclsparse_int       *csr_row_idx_map,
-                aoclsparse_int       *ell_col_ind,
-                float                *ell_val,
-                aoclsparse_int       ell_width);
-
-DLL_PUBLIC
-aoclsparse_status aoclsparse_dcsr2ellthyb(
-                aoclsparse_int       m,
-		 aoclsparse_int       *ell_m,
-                const aoclsparse_int *csr_row_ptr,
-                const aoclsparse_int *csr_col_ind,
-                const double         *csr_val,
-                aoclsparse_int       *row_idx_map,
-                aoclsparse_int       *csr_row_idx_map,
-                aoclsparse_int       *ell_col_ind,
-                double               *ell_val,
-                aoclsparse_int       ell_width);
+aoclsparse_status aoclsparse_dcsr2ellthyb(aoclsparse_int        m,
+                                          aoclsparse_int       *ell_m,
+                                          const aoclsparse_int *csr_row_ptr,
+                                          const aoclsparse_int *csr_col_ind,
+                                          const double         *csr_val,
+                                          aoclsparse_int       *row_idx_map,
+                                          aoclsparse_int       *csr_row_idx_map,
+                                          aoclsparse_int       *ell_col_ind,
+                                          double               *ell_val,
+                                          aoclsparse_int        ell_width);
 
 /*! \ingroup conv_module
 *  \brief Convert a sparse CSR matrix into a sparse DIA matrix
@@ -205,13 +195,12 @@ aoclsparse_status aoclsparse_dcsr2ellthyb(
 *  \retval     aoclsparse_status_internal_error an internal error occurred.
 */
 DLL_PUBLIC
-aoclsparse_status aoclsparse_csr2dia_ndiag(
-                aoclsparse_int       m,
-                aoclsparse_int       n,
-                aoclsparse_int       nnz,
-                const aoclsparse_int *csr_row_ptr,
-                const aoclsparse_int *csr_col_ind,
-                aoclsparse_int       *dia_num_diag);
+aoclsparse_status aoclsparse_csr2dia_ndiag(aoclsparse_int        m,
+                                           aoclsparse_int        n,
+                                           aoclsparse_int        nnz,
+                                           const aoclsparse_int *csr_row_ptr,
+                                           const aoclsparse_int *csr_col_ind,
+                                           aoclsparse_int       *dia_num_diag);
 
 /*! \ingroup conv_module
 *  \brief Convert a sparse CSR matrix into a sparse DIA matrix
@@ -251,26 +240,24 @@ aoclsparse_status aoclsparse_csr2dia_ndiag(
 */
 /**@{*/
 DLL_PUBLIC
-aoclsparse_status aoclsparse_scsr2dia(
-            aoclsparse_int       m,
-            aoclsparse_int       n,
-            const aoclsparse_int *csr_row_ptr,
-            const aoclsparse_int *csr_col_ind,
-            const float          *csr_val,
-            aoclsparse_int       dia_num_diag,
-            aoclsparse_int       *dia_offset,
-            float                *dia_val);
+aoclsparse_status aoclsparse_scsr2dia(aoclsparse_int        m,
+                                      aoclsparse_int        n,
+                                      const aoclsparse_int *csr_row_ptr,
+                                      const aoclsparse_int *csr_col_ind,
+                                      const float          *csr_val,
+                                      aoclsparse_int        dia_num_diag,
+                                      aoclsparse_int       *dia_offset,
+                                      float                *dia_val);
 
 DLL_PUBLIC
-aoclsparse_status aoclsparse_dcsr2dia(
-            aoclsparse_int       m,
-            aoclsparse_int       n,
-            const aoclsparse_int *csr_row_ptr,
-            const aoclsparse_int *csr_col_ind,
-            const double         *csr_val,
-            aoclsparse_int       dia_num_diag,
-            aoclsparse_int       *dia_offset,
-            double               *dia_val);
+aoclsparse_status aoclsparse_dcsr2dia(aoclsparse_int        m,
+                                      aoclsparse_int        n,
+                                      const aoclsparse_int *csr_row_ptr,
+                                      const aoclsparse_int *csr_col_ind,
+                                      const double         *csr_val,
+                                      aoclsparse_int        dia_num_diag,
+                                      aoclsparse_int       *dia_offset,
+                                      double               *dia_val);
 /**@}*/
 
 /*! \ingroup conv_module
@@ -305,14 +292,13 @@ aoclsparse_status aoclsparse_dcsr2dia(
 *              pointer is invalid.
 */
 DLL_PUBLIC
-aoclsparse_status aoclsparse_csr2bsr_nnz(
-            aoclsparse_int       m,
-            aoclsparse_int       n,
-            const aoclsparse_int *csr_row_ptr,
-            const aoclsparse_int *csr_col_ind,
-            aoclsparse_int       block_dim,
-            aoclsparse_int       *bsr_row_ptr,
-            aoclsparse_int       *bsr_nnz);
+aoclsparse_status aoclsparse_csr2bsr_nnz(aoclsparse_int        m,
+                                         aoclsparse_int        n,
+                                         const aoclsparse_int *csr_row_ptr,
+                                         const aoclsparse_int *csr_col_ind,
+                                         aoclsparse_int        block_dim,
+                                         aoclsparse_int       *bsr_row_ptr,
+                                         aoclsparse_int       *bsr_nnz);
 
 /*! \ingroup conv_module
 *  \brief Convert a sparse CSR matrix into a sparse BSR matrix
@@ -354,28 +340,26 @@ aoclsparse_status aoclsparse_csr2bsr_nnz(
 */
 /**@{*/
 DLL_PUBLIC
-aoclsparse_status aoclsparse_scsr2bsr(
-            aoclsparse_int       m,
-            aoclsparse_int       n,
-            const float          *csr_val,
-            const aoclsparse_int *csr_row_ptr,
-            const aoclsparse_int *csr_col_ind,
-            aoclsparse_int       block_dim,
-            float                *bsr_val,
-            aoclsparse_int       *bsr_row_ptr,
-            aoclsparse_int       *bsr_col_ind);
+aoclsparse_status aoclsparse_scsr2bsr(aoclsparse_int        m,
+                                      aoclsparse_int        n,
+                                      const float          *csr_val,
+                                      const aoclsparse_int *csr_row_ptr,
+                                      const aoclsparse_int *csr_col_ind,
+                                      aoclsparse_int        block_dim,
+                                      float                *bsr_val,
+                                      aoclsparse_int       *bsr_row_ptr,
+                                      aoclsparse_int       *bsr_col_ind);
 
 DLL_PUBLIC
-aoclsparse_status aoclsparse_dcsr2bsr(
-            aoclsparse_int       m,
-            aoclsparse_int       n,
-            const double         *csr_val,
-            const aoclsparse_int *csr_row_ptr,
-            const aoclsparse_int *csr_col_ind,
-            aoclsparse_int       block_dim,
-            double               *bsr_val,
-            aoclsparse_int       *bsr_row_ptr,
-            aoclsparse_int       *bsr_col_ind);
+aoclsparse_status aoclsparse_dcsr2bsr(aoclsparse_int        m,
+                                      aoclsparse_int        n,
+                                      const double         *csr_val,
+                                      const aoclsparse_int *csr_row_ptr,
+                                      const aoclsparse_int *csr_col_ind,
+                                      aoclsparse_int        block_dim,
+                                      double               *bsr_val,
+                                      aoclsparse_int       *bsr_row_ptr,
+                                      aoclsparse_int       *bsr_col_ind);
 /**@}*/
 
 /*! \ingroup conv_module
@@ -421,28 +405,26 @@ aoclsparse_status aoclsparse_dcsr2bsr(
 */
 /**@{*/
 DLL_PUBLIC
-aoclsparse_status aoclsparse_scsr2csc(
-            aoclsparse_int       m,
-            aoclsparse_int       n,
-            aoclsparse_int       nnz,
-            const aoclsparse_int *csr_row_ptr,
-            const aoclsparse_int *csr_col_ind,
-            const float          *csr_val,
-            aoclsparse_int       *csc_row_ind,
-            aoclsparse_int       *csc_col_ptr,
-            float                *csc_val);
+aoclsparse_status aoclsparse_scsr2csc(aoclsparse_int        m,
+                                      aoclsparse_int        n,
+                                      aoclsparse_int        nnz,
+                                      const aoclsparse_int *csr_row_ptr,
+                                      const aoclsparse_int *csr_col_ind,
+                                      const float          *csr_val,
+                                      aoclsparse_int       *csc_row_ind,
+                                      aoclsparse_int       *csc_col_ptr,
+                                      float                *csc_val);
 
 DLL_PUBLIC
-aoclsparse_status aoclsparse_dcsr2csc(
-            aoclsparse_int       m,
-            aoclsparse_int       n,
-            aoclsparse_int       nnz,
-            const aoclsparse_int *csr_row_ptr,
-            const aoclsparse_int *csr_col_ind,
-            const double         *csr_val,
-            aoclsparse_int       *csc_row_ind,
-            aoclsparse_int       *csc_col_ptr,
-            double               *csc_val);
+aoclsparse_status aoclsparse_dcsr2csc(aoclsparse_int        m,
+                                      aoclsparse_int        n,
+                                      aoclsparse_int        nnz,
+                                      const aoclsparse_int *csr_row_ptr,
+                                      const aoclsparse_int *csr_col_ind,
+                                      const double         *csr_val,
+                                      aoclsparse_int       *csc_row_ind,
+                                      aoclsparse_int       *csc_col_ptr,
+                                      double               *csc_val);
 /**@}*/
 
 /*! \ingroup conv_module
@@ -480,33 +462,29 @@ aoclsparse_status aoclsparse_dcsr2csc(
  */
 /**@{*/
 DLL_PUBLIC
-aoclsparse_status aoclsparse_scsr2dense(
-            aoclsparse_int             m,
-            aoclsparse_int             n,
-            const aoclsparse_mat_descr descr,
-            const float*               csr_val,
-            const aoclsparse_int*      csr_row_ptr,
-            const aoclsparse_int*      csr_col_ind,
-            float*                     A,
-            aoclsparse_int             ld,
-            aoclsparse_order           order);
-
+aoclsparse_status aoclsparse_scsr2dense(aoclsparse_int             m,
+                                        aoclsparse_int             n,
+                                        const aoclsparse_mat_descr descr,
+                                        const float               *csr_val,
+                                        const aoclsparse_int      *csr_row_ptr,
+                                        const aoclsparse_int      *csr_col_ind,
+                                        float                     *A,
+                                        aoclsparse_int             ld,
+                                        aoclsparse_order           order);
 
 DLL_PUBLIC
-aoclsparse_status aoclsparse_dcsr2dense(
-            aoclsparse_int             m,
-            aoclsparse_int             n,
-            const aoclsparse_mat_descr descr,
-            const double*              csr_val,
-            const aoclsparse_int*      csr_row_ptr,
-            const aoclsparse_int*      csr_col_ind,
-            double*                    A,
-            aoclsparse_int             ld,
-            aoclsparse_order           order);
+aoclsparse_status aoclsparse_dcsr2dense(aoclsparse_int             m,
+                                        aoclsparse_int             n,
+                                        const aoclsparse_mat_descr descr,
+                                        const double              *csr_val,
+                                        const aoclsparse_int      *csr_row_ptr,
+                                        const aoclsparse_int      *csr_col_ind,
+                                        double                    *A,
+                                        aoclsparse_int             ld,
+                                        aoclsparse_order           order);
 /**@}*/
 
 #ifdef __cplusplus
 }
 #endif
 #endif // AOCLSPARSE_CONVERT_H_
-

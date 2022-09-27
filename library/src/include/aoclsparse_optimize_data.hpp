@@ -50,17 +50,17 @@ struct aoclsparse_optimize_data
     // store if the matrix has already been optimized for this specific operation
     bool action_optimized = false;
     // next hint requested
-    aoclsparse_optimize_data* next = nullptr;
+    aoclsparse_optimize_data *next = nullptr;
 };
 
 /* Add a new optimize hint to the list */
-aoclsparse_status aoclsparse_add_hint(aoclsparse_optimize_data*& list,
+aoclsparse_status aoclsparse_add_hint(aoclsparse_optimize_data *&list,
                                       aoclsparse_hinted_action   op,
                                       aoclsparse_mat_descr       desc,
                                       aoclsparse_operation       trans,
                                       aoclsparse_int             nop);
 
 /* Deallocate the aoclsparse_optimize_data linked list*/
-void aoclsparse_optimize_destroy(aoclsparse_optimize_data*& opt);
+void aoclsparse_optimize_destroy(aoclsparse_optimize_data *&opt);
 
 #endif // AOCLSPARSE_OPTIMIZE_DATA

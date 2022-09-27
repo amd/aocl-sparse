@@ -25,6 +25,7 @@
 
 #include "aoclsparse_itsol_data.hpp"
 #include "aoclsparse_itsol_options.hpp"
+
 #include <cmath>
 #include <vector>
 
@@ -88,7 +89,7 @@
  *  OptionRegistry.PrintDetails() method (see aoclsparse_itsol_options.hpp).
  */
 template <typename T>
-int register_options(aoclsparse_options::OptionRegistry<T>& opts)
+int register_options(aoclsparse_options::OptionRegistry<T> &opts)
 {
     using namespace aoclsparse_options;
     T macheps = std::numeric_limits<T>::epsilon();
@@ -166,7 +167,7 @@ int register_options(aoclsparse_options::OptionRegistry<T>& opts)
             return 2;
     }
     /*************GMRES OPTIONS******************/
-    {         
+    {
         OptionInt o("gmres iteration limit",
                     2,
                     "Set GMRES iteration limit",
@@ -178,9 +179,9 @@ int register_options(aoclsparse_options::OptionRegistry<T>& opts)
                     p_inf,
                     150);
         if(opts.Register(o))
-            return 2;                           
+            return 2;
     }
-    {        
+    {
         OptionReal<T> o("gmres rel tolerance",
                         4,
                         "Set relative convergence tolerance for gmres method",
@@ -192,9 +193,9 @@ int register_options(aoclsparse_options::OptionRegistry<T>& opts)
                         p_inf,
                         tol);
         if(opts.Register(o))
-            return 2;                            
+            return 2;
     }
-    {           
+    {
         OptionReal<T> o("gmres abs tolerance",
                         1,
                         "Set absolute convergence tolerance for gmres method",
@@ -206,22 +207,20 @@ int register_options(aoclsparse_options::OptionRegistry<T>& opts)
                         p_inf,
                         1e-6);
         if(opts.Register(o))
-            return 2;                                 
+            return 2;
     }
-    {                
+    {
         OptionString o("gmres preconditioner",
                        3,
                        "Choose preconditioner to use with gmres method",
                        false,
                        0,
-                       {{"None", 0},
-                        {"User", 1},
-                        {"ILU0", 2}},
+                       {{"None", 0}, {"User", 1}, {"ILU0", 2}},
                        "None");
         if(opts.Register(o))
-            return 2;                                   
-    }    
-    {              
+            return 2;
+    }
+    {
         OptionInt o("gmres restart iterations",
                     2,
                     "Set GMRES restart iterations",
@@ -233,8 +232,8 @@ int register_options(aoclsparse_options::OptionRegistry<T>& opts)
                     p_inf,
                     20);
         if(opts.Register(o))
-            return 2;                            
-    }             
+            return 2;
+    }
     return 0;
 }
 

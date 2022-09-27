@@ -77,27 +77,27 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix mat);
 */
 /**@{*/
 DLL_PUBLIC
-aoclsparse_status aoclsparse_set_mv_hint(aoclsparse_matrix mat,
-                                                aoclsparse_operation       trans,
-                                                const aoclsparse_mat_descr descr,
-                                                aoclsparse_int       expected_no_of_calls);
+aoclsparse_status aoclsparse_set_mv_hint(aoclsparse_matrix          mat,
+                                         aoclsparse_operation       trans,
+                                         const aoclsparse_mat_descr descr,
+                                         aoclsparse_int             expected_no_of_calls);
 /**@}*/
 DLL_PUBLIC
-aoclsparse_status aoclsparse_set_sv_hint(aoclsparse_matrix mat,
-                                                aoclsparse_operation       trans,
-                                                const aoclsparse_mat_descr descr,
-                                                aoclsparse_int       expected_no_of_calls);
+aoclsparse_status aoclsparse_set_sv_hint(aoclsparse_matrix          mat,
+                                         aoclsparse_operation       trans,
+                                         const aoclsparse_mat_descr descr,
+                                         aoclsparse_int             expected_no_of_calls);
 DLL_PUBLIC
-aoclsparse_status aoclsparse_set_mm_hint(aoclsparse_matrix mat,
-                                                aoclsparse_operation       trans,
-                                                const aoclsparse_mat_descr descr,
-                                                aoclsparse_int       expected_no_of_calls);
+aoclsparse_status aoclsparse_set_mm_hint(aoclsparse_matrix          mat,
+                                         aoclsparse_operation       trans,
+                                         const aoclsparse_mat_descr descr,
+                                         aoclsparse_int             expected_no_of_calls);
 
 DLL_PUBLIC
-aoclsparse_status aoclsparse_set_2m_hint(aoclsparse_matrix mat,
-                                                aoclsparse_operation       trans,
-                                                const aoclsparse_mat_descr descr,
-                                                aoclsparse_int       expected_no_of_calls);
+aoclsparse_status aoclsparse_set_2m_hint(aoclsparse_matrix          mat,
+                                         aoclsparse_operation       trans,
+                                         const aoclsparse_mat_descr descr,
+                                         aoclsparse_int             expected_no_of_calls);
 /*! \ingroup analysis_module
 *  \brief Provides any hints such as the type of routine, expected no of calls etc
 *
@@ -122,14 +122,13 @@ aoclsparse_status aoclsparse_set_2m_hint(aoclsparse_matrix mat,
 */
 /**@{*/
 DLL_PUBLIC
-aoclsparse_status aoclsparse_set_lu_smoother_hint(aoclsparse_matrix mat,
-                                                aoclsparse_operation       trans,
-                                                const aoclsparse_mat_descr descr,
-                                                aoclsparse_int       expected_no_of_calls);
+aoclsparse_status aoclsparse_set_lu_smoother_hint(aoclsparse_matrix          mat,
+                                                  aoclsparse_operation       trans,
+                                                  const aoclsparse_mat_descr descr,
+                                                  aoclsparse_int             expected_no_of_calls);
 /**@}*/
 
 #ifdef __cplusplus
 }
 #endif
 #endif // AOCLSPARSE_ANALYSIS_H_
-

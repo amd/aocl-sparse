@@ -43,7 +43,7 @@ typedef aoclsparse_int aoclsparse_pthread_once_t;
 // -- pthreads macros --
 
 #define AOCLSPARSE_PTHREAD_MUTEX_INITIALIZER 0
-#define AOCLSPARSE_PTHREAD_ONCE_INIT         0
+#define AOCLSPARSE_PTHREAD_ONCE_INIT 0
 
 #elif defined(_MSC_VER) // !defined(AOCLSPARSE_DISABLE_SYSTEM)
 
@@ -52,13 +52,13 @@ typedef aoclsparse_int aoclsparse_pthread_once_t;
 // in terms of Windows API calls.
 
 // -- pthread types --
-typedef SRWLOCK aoclsparse_pthread_mutex_t;
+typedef SRWLOCK   aoclsparse_pthread_mutex_t;
 typedef INIT_ONCE aoclsparse_pthread_once_t;
 
 // -- pthreads macros --
 
 #define AOCLSPARSE_PTHREAD_MUTEX_INITIALIZER SRWLOCK_INIT
-#define AOCLSPARSE_PTHREAD_ONCE_INIT         INIT_ONCE_STATIC_INIT
+#define AOCLSPARSE_PTHREAD_ONCE_INIT INIT_ONCE_STATIC_INIT
 
 #else // !defined(AOCLSPARSE_DISABLE_SYSTEM) && !defined(_MSC_VER)
 
@@ -69,13 +69,13 @@ typedef INIT_ONCE aoclsparse_pthread_once_t;
 
 // -- pthread types --
 
-typedef pthread_mutex_t     aoclsparse_pthread_mutex_t;
-typedef pthread_once_t      aoclsparse_pthread_once_t;
+typedef pthread_mutex_t aoclsparse_pthread_mutex_t;
+typedef pthread_once_t  aoclsparse_pthread_once_t;
 
 // -- pthreads macros --
 
 #define AOCLSPARSE_PTHREAD_MUTEX_INITIALIZER PTHREAD_MUTEX_INITIALIZER
-#define AOCLSPARSE_PTHREAD_ONCE_INIT         PTHREAD_ONCE_INIT
+#define AOCLSPARSE_PTHREAD_ONCE_INIT PTHREAD_ONCE_INIT
 
 #endif
 
@@ -83,23 +83,13 @@ typedef pthread_once_t      aoclsparse_pthread_once_t;
 
 // -- pthread_mutex_*() --
 
-aoclsparse_int aoclsparse_pthread_mutex_lock
-     (
-       aoclsparse_pthread_mutex_t* mutex
-     );
+aoclsparse_int aoclsparse_pthread_mutex_lock(aoclsparse_pthread_mutex_t *mutex);
 
-aoclsparse_int aoclsparse_pthread_mutex_unlock
-     (
-       aoclsparse_pthread_mutex_t* mutex
-     );
+aoclsparse_int aoclsparse_pthread_mutex_unlock(aoclsparse_pthread_mutex_t *mutex);
 
 // -- pthread_once() --
 
-void aoclsparse_pthread_once
-     (
-       aoclsparse_pthread_once_t* once,
-       void              (*init)(void)
-     );
+void aoclsparse_pthread_once(aoclsparse_pthread_once_t *once, void (*init)(void));
 
 /******************************************************************************************
  * \brief aoclsparse_context is a structure holding the number of threads, ISA information
@@ -109,8 +99,8 @@ typedef struct _aoclsparse_context
 {
     // num of threads
     aoclsparse_int num_threads = 0;
-    bool is_avx512 = false;
-}aoclsparse_context;
+    bool           is_avx512   = false;
+} aoclsparse_context;
 
 extern aoclsparse_context global_context;
 
@@ -119,6 +109,6 @@ extern aoclsparse_context global_context;
  *
  *  \retval none.
  */
-void aoclsparse_init_once( );
+void aoclsparse_init_once();
 
 #endif // AOCLSPARSE_THREAD_H

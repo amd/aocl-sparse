@@ -25,53 +25,39 @@
 
 #include "aoclsparse.h"
 #include "aoclsparse_descr.h"
+
 #include "iostream"
 
 template <typename T>
-aoclsparse_status aoclsparse_csrsv_template(const T                   alpha,
-                                  aoclsparse_int             m,
-                                  const T*                   csr_val,
-                                  const aoclsparse_int*      csr_col_ind,
-                                  const aoclsparse_int*      csr_row_ptr,
-                                  const aoclsparse_mat_descr descr,
-                                  const T*                   x,
-                                  T*                         y
-        )
+aoclsparse_status aoclsparse_csrsv_template(const T                    alpha,
+                                            aoclsparse_int             m,
+                                            const T                   *csr_val,
+                                            const aoclsparse_int      *csr_col_ind,
+                                            const aoclsparse_int      *csr_row_ptr,
+                                            const aoclsparse_mat_descr descr,
+                                            const T                   *x,
+                                            T                         *y)
 {
     if(descr->fill_mode == aoclsparse_fill_mode_lower)
     {
-        aoclsparse_csr_lsolve(alpha,
-                m,
-                csr_val,
-                csr_col_ind,
-                csr_row_ptr,
-                x,
-                y,
-                descr->diag_type);
+        aoclsparse_csr_lsolve(alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, y, descr->diag_type);
     }
     else
     {
-        aoclsparse_csr_usolve(alpha,
-                m,
-                csr_val,
-                csr_col_ind,
-                csr_row_ptr,
-                x,
-                y,
-                descr->diag_type);
+        aoclsparse_csr_usolve(alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, y, descr->diag_type);
     }
     return aoclsparse_status_success;
 }
 
 template <typename T>
-static inline void aoclsparse_csr_lsolve(const T             alpha,
-                                  aoclsparse_int             m,
-                                  const T*                   csr_val,
-                                  const aoclsparse_int*      csr_col_ind,
-                                  const aoclsparse_int*      csr_row_ptr,
-                                  const T*                   x,
-                                  T*                         y,
-                                  aoclsparse_diag_type       diag_type )
+static inline void aoclsparse_csr_lsolve(const T               alpha,
+                                         aoclsparse_int        m,
+                                         const T              *csr_val,
+                                         const aoclsparse_int *csr_col_ind,
+                                         const aoclsparse_int *csr_row_ptr,
+                                         const T              *x,
+                                         T                    *y,
+                                         aoclsparse_diag_type  diag_type)
 {
     aoclsparse_int diag_j = 0;
 
@@ -107,17 +93,15 @@ static inline void aoclsparse_csr_lsolve(const T             alpha,
     }
 }
 
-
-
 template <typename T>
-static inline void aoclsparse_csr_usolve(const T             alpha,
-                                  aoclsparse_int             m,
-                                  const T*                   csr_val,
-                                  const aoclsparse_int*      csr_col_ind,
-                                  const aoclsparse_int*      csr_row_ptr,
-                                  const T*                   x,
-                                  T*                         y,
-                                  aoclsparse_diag_type       diag_type )
+static inline void aoclsparse_csr_usolve(const T               alpha,
+                                         aoclsparse_int        m,
+                                         const T              *csr_val,
+                                         const aoclsparse_int *csr_col_ind,
+                                         const aoclsparse_int *csr_row_ptr,
+                                         const T              *x,
+                                         T                    *y,
+                                         aoclsparse_diag_type  diag_type)
 {
     aoclsparse_int diag_j = 0;
 
@@ -150,4 +134,3 @@ static inline void aoclsparse_csr_usolve(const T             alpha,
 }
 
 #endif // AOCLSPARSE_CSRSV_HPP
-

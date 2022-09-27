@@ -23,8 +23,8 @@
 #ifndef AOCLSPARSE_BSRMV_HPP
 #define AOCLSPARSE_BSRMV_HPP
 
-#include "aoclsparse_descr.h"
 #include "aoclsparse.h"
+#include "aoclsparse_descr.h"
 
 #if defined(_WIN32) || defined(_WIN64)
 //Windows equivalent of gcc c99 type qualifier __restrict__
@@ -32,16 +32,16 @@
 #endif
 
 template <typename T>
-aoclsparse_status aoclsparse_bsrmv_general(T  alpha,
-        aoclsparse_int mb,
-        aoclsparse_int nb,
-        aoclsparse_int bsr_dim,
-        const T* __restrict__ bsr_val,
-        const aoclsparse_int* __restrict__ bsr_col_ind,
-        const aoclsparse_int* __restrict__ bsr_row_ptr,
-        const T* __restrict__ x,
-        T beta,
-        T* __restrict__ y)
+aoclsparse_status aoclsparse_bsrmv_general(T              alpha,
+                                           aoclsparse_int mb,
+                                           aoclsparse_int nb,
+                                           aoclsparse_int bsr_dim,
+                                           const T *__restrict__ bsr_val,
+                                           const aoclsparse_int *__restrict__ bsr_col_ind,
+                                           const aoclsparse_int *__restrict__ bsr_row_ptr,
+                                           const T *__restrict__ x,
+                                           T beta,
+                                           T *__restrict__ y)
 {
     // Loop over the block rows
     for(aoclsparse_int ai = 0; ai < mb; ++ai)
@@ -59,10 +59,10 @@ aoclsparse_status aoclsparse_bsrmv_general(T  alpha,
             {
                 // Column index into x vector
                 aoclsparse_int col = bsr_col_ind[aj];
-                const T *bsr_val_ptr;
-                const T *x_ptr;
+                const T       *bsr_val_ptr;
+                const T       *x_ptr;
                 bsr_val_ptr = bsr_val + (bsr_dim * bsr_dim * aj) + bi;
-                x_ptr = x + (bsr_dim * col);
+                x_ptr       = x + (bsr_dim * col);
                 // Loop over the columns of the BSR block
                 for(aoclsparse_int bj = 0; bj < bsr_dim; ++bj)
                 {
@@ -89,15 +89,15 @@ aoclsparse_status aoclsparse_bsrmv_general(T  alpha,
 }
 
 template <typename T>
-aoclsparse_status aoclsparse_bsrmv_2x2(T  alpha,
-        aoclsparse_int mb,
-        aoclsparse_int nb,
-        const T* __restrict__ bsr_val,
-        const aoclsparse_int* __restrict__ bsr_col_ind,
-        const aoclsparse_int* __restrict__ bsr_row_ptr,
-        const T* __restrict__ x,
-        T beta,
-        T* __restrict__ y)
+aoclsparse_status aoclsparse_bsrmv_2x2(T              alpha,
+                                       aoclsparse_int mb,
+                                       aoclsparse_int nb,
+                                       const T *__restrict__ bsr_val,
+                                       const aoclsparse_int *__restrict__ bsr_col_ind,
+                                       const aoclsparse_int *__restrict__ bsr_row_ptr,
+                                       const T *__restrict__ x,
+                                       T beta,
+                                       T *__restrict__ y)
 {
     // BSR block dimension
     static constexpr int bsr_dim = 2;
@@ -117,10 +117,10 @@ aoclsparse_status aoclsparse_bsrmv_2x2(T  alpha,
         {
             // Column index into x vector
             aoclsparse_int col = bsr_col_ind[aj];
-            const T *bsr_val_ptr;
-            const T *x_ptr;
-            bsr_val_ptr = bsr_val + (bsr_dim * bsr_dim * aj) ;
-            x_ptr = x + (bsr_dim * col);
+            const T       *bsr_val_ptr;
+            const T       *x_ptr;
+            bsr_val_ptr = bsr_val + (bsr_dim * bsr_dim * aj);
+            x_ptr       = x + (bsr_dim * col);
             // Compute the sum of the two rows within the BSR blocks of the current
             // BSR row
             sum0 += *bsr_val_ptr * *x_ptr;
@@ -149,15 +149,15 @@ aoclsparse_status aoclsparse_bsrmv_2x2(T  alpha,
 }
 
 template <typename T>
-aoclsparse_status aoclsparse_bsrmv_3x3(T  alpha,
-        aoclsparse_int mb,
-        aoclsparse_int nb,
-        const T* __restrict__ bsr_val,
-        const aoclsparse_int* __restrict__ bsr_col_ind,
-        const aoclsparse_int* __restrict__ bsr_row_ptr,
-        const T* __restrict__ x,
-        T beta,
-        T* __restrict__ y)
+aoclsparse_status aoclsparse_bsrmv_3x3(T              alpha,
+                                       aoclsparse_int mb,
+                                       aoclsparse_int nb,
+                                       const T *__restrict__ bsr_val,
+                                       const aoclsparse_int *__restrict__ bsr_col_ind,
+                                       const aoclsparse_int *__restrict__ bsr_row_ptr,
+                                       const T *__restrict__ x,
+                                       T beta,
+                                       T *__restrict__ y)
 {
     // BSR block dimension
     static constexpr int bsr_dim = 3;
@@ -178,10 +178,10 @@ aoclsparse_status aoclsparse_bsrmv_3x3(T  alpha,
         {
             // Column index into x vector
             aoclsparse_int col = bsr_col_ind[aj];
-            const T *bsr_val_ptr;
-            const T *x_ptr;
-            bsr_val_ptr = bsr_val + (bsr_dim * bsr_dim * aj) ;
-            x_ptr = x + (bsr_dim * col);
+            const T       *bsr_val_ptr;
+            const T       *x_ptr;
+            bsr_val_ptr = bsr_val + (bsr_dim * bsr_dim * aj);
+            x_ptr       = x + (bsr_dim * col);
 
             // Compute the sum of the three rows within the BSR blocks of the current
             // BSR row
@@ -219,17 +219,16 @@ aoclsparse_status aoclsparse_bsrmv_3x3(T  alpha,
     return aoclsparse_status_success;
 }
 
-
 template <typename T>
-aoclsparse_status aoclsparse_bsrmv_4x4(T  alpha,
-        aoclsparse_int mb,
-        aoclsparse_int nb,
-        const T* __restrict__ bsr_val,
-        const aoclsparse_int* __restrict__ bsr_col_ind,
-        const aoclsparse_int* __restrict__ bsr_row_ptr,
-        const T* __restrict__ x,
-        T beta,
-        T* __restrict__ y)
+aoclsparse_status aoclsparse_bsrmv_4x4(T              alpha,
+                                       aoclsparse_int mb,
+                                       aoclsparse_int nb,
+                                       const T *__restrict__ bsr_val,
+                                       const aoclsparse_int *__restrict__ bsr_col_ind,
+                                       const aoclsparse_int *__restrict__ bsr_row_ptr,
+                                       const T *__restrict__ x,
+                                       T beta,
+                                       T *__restrict__ y)
 {
     // BSR block dimension
     static constexpr int bsr_dim = 4;
@@ -251,10 +250,10 @@ aoclsparse_status aoclsparse_bsrmv_4x4(T  alpha,
         {
             // Column index into x vector
             aoclsparse_int col = bsr_col_ind[aj];
-            const T *bsr_val_ptr;
-            const T *x_ptr;
-            bsr_val_ptr = bsr_val + (bsr_dim * bsr_dim * aj) ;
-            x_ptr = x + (bsr_dim * col);
+            const T       *bsr_val_ptr;
+            const T       *x_ptr;
+            bsr_val_ptr = bsr_val + (bsr_dim * bsr_dim * aj);
+            x_ptr       = x + (bsr_dim * col);
 
             // Compute the sum of the four rows within the BSR blocks of the current
             // BSR row
@@ -274,7 +273,6 @@ aoclsparse_status aoclsparse_bsrmv_4x4(T  alpha,
             sum1 += *(bsr_val_ptr + 13) * *(x_ptr + 3);
             sum2 += *(bsr_val_ptr + 14) * *(x_ptr + 3);
             sum3 += *(bsr_val_ptr + 15) * *(x_ptr + 3);
-
         }
         // Perform alpha * A * x
         if(alpha != static_cast<float>(1))

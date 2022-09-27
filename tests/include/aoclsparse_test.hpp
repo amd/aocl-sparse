@@ -25,20 +25,19 @@
 #ifndef AOCLSPARSE_TEST_HPP
 #define AOCLSPARSE_TEST_HPP
 
+#include "aoclsparse.h"
 #include "aoclsparse_arguments.hpp"
 
 #include <algorithm>
 #include <cstdio>
 #include <iostream>
-#include <aoclsparse.h>
 #include <sstream>
 #include <string>
 #include <type_traits>
 #include <unordered_map>
 #include <utility>
 
-
-inline const char* aoclsparse_status_to_string(aoclsparse_status status)
+inline const char *aoclsparse_status_to_string(aoclsparse_status status)
 {
     switch(status)
     {
@@ -68,7 +67,6 @@ inline void aoclsparse_expect_status(aoclsparse_status status, aoclsparse_status
     }
 }
 
-
 #define EXPECT_AOCLSPARSE_STATUS aoclsparse_expect_status
 
 #define CHECK_AOCLSPARSE_ERROR2(STATUS) EXPECT_AOCLSPARSE_STATUS(STATUS, aoclsparse_status_success)
@@ -88,7 +86,7 @@ struct aoclsparse_test_invalid
     }
 
     // If this specialization is actually called, print fatal error message
-    void operator()(const Arguments&)
+    void operator()(const Arguments &)
     {
         static constexpr char msg[] = "Internal error: Test called with invalid types\n";
 

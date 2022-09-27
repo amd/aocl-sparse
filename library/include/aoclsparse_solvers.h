@@ -90,7 +90,7 @@
 
 #include "aoclsparse.h"
 
-typedef struct _aoclsparse_itsol_handle* aoclsparse_itsol_handle;
+typedef struct _aoclsparse_itsol_handle *aoclsparse_itsol_handle;
 
 #ifdef __cplusplus
 extern "C" {
@@ -102,11 +102,13 @@ extern "C" {
  */
 typedef enum aoclsparse_itsol_rci_job_
 {
-    aoclsparse_rci_interrupt = -1,     /**< if set by the user, signals the solver to terminate. This is never set by the solver. Terminate. */
-    aoclsparse_rci_stop = 0,           /**< found a solution within specified tolerance (see options "cg rel tolerance", "cg abs tolerance", "gmres rel tolerance", and "gmres abs tolerance" in \ref anchor_itsol_options). Terminate, vector \p x contains the solution. */
-    aoclsparse_rci_start,              /**< initial value of the \p ircomm flag, no action required. Call solver. */
-    aoclsparse_rci_mv,                 /**< perform the matrix-vector product \f$ v = Au\f$. Return control to solver. */
-    aoclsparse_rci_precond,            /**< perform a preconditioning step on the vector \f$u\f$ and store in \f$v\f$. If the preconditioner \f$M\f$ has explicit matrix form, then applying the preconditioner would result in the operations \f$ v=Mu \f$ or \f$v=M^{-1}u\f$. The latter would be performed by solving the linear system of equations \f$Mv=u\f$. Return control to solver. */
+    aoclsparse_rci_interrupt
+    = -1, /**< if set by the user, signals the solver to terminate. This is never set by the solver. Terminate. */
+    aoclsparse_rci_stop
+    = 0, /**< found a solution within specified tolerance (see options "cg rel tolerance", "cg abs tolerance", "gmres rel tolerance", and "gmres abs tolerance" in \ref anchor_itsol_options). Terminate, vector \p x contains the solution. */
+    aoclsparse_rci_start, /**< initial value of the \p ircomm flag, no action required. Call solver. */
+    aoclsparse_rci_mv, /**< perform the matrix-vector product \f$ v = Au\f$. Return control to solver. */
+    aoclsparse_rci_precond, /**< perform a preconditioning step on the vector \f$u\f$ and store in \f$v\f$. If the preconditioner \f$M\f$ has explicit matrix form, then applying the preconditioner would result in the operations \f$ v=Mu \f$ or \f$v=M^{-1}u\f$. The latter would be performed by solving the linear system of equations \f$Mv=u\f$. Return control to solver. */
     aoclsparse_rci_stopping_criterion, /**< perform a monitoring step and check for custom stopping criteria. If using a positive tolerance value for the convergence options (see \ref aoclsparse_rci_stop), then this step can be ignored and control can be returned to solver. */
 } aoclsparse_itsol_rci_job;
 
@@ -192,9 +194,9 @@ void aoclsparse_itsol_handle_prn_options(aoclsparse_itsol_handle handle);
  * \retval aoclsparse_status_internal_error an unexpected error occurred.
  */
 DLL_PUBLIC
-aoclsparse_status aoclsparse_itsol_option_set(aoclsparse_itsol_handle& handle,
-                                              const char*              option,
-                                              const char*              value);
+aoclsparse_status aoclsparse_itsol_option_set(aoclsparse_itsol_handle &handle,
+                                              const char              *option,
+                                              const char              *value);
 
 /*! \ingroup solvers_module
  * \brief Initialize a problem \p handle ( \c aoclsparse_itsol_handle) for the iterative solvers suite of the library.
@@ -215,10 +217,10 @@ aoclsparse_status aoclsparse_itsol_option_set(aoclsparse_itsol_handle& handle,
  * \ref aoclsparse_itsol_destroy.
  *@{*/
 DLL_PUBLIC
-aoclsparse_status aoclsparse_itsol_d_init(aoclsparse_itsol_handle* handle);
+aoclsparse_status aoclsparse_itsol_d_init(aoclsparse_itsol_handle *handle);
 
 DLL_PUBLIC
-aoclsparse_status aoclsparse_itsol_s_init(aoclsparse_itsol_handle* handle);
+aoclsparse_status aoclsparse_itsol_s_init(aoclsparse_itsol_handle *handle);
 /**@}*/
 
 /*! \ingroup solvers_module
@@ -234,7 +236,7 @@ aoclsparse_status aoclsparse_itsol_s_init(aoclsparse_itsol_handle* handle);
  * @param[inout] handle pointer to a problem handle.
  */
 DLL_PUBLIC
-void aoclsparse_itsol_destroy(aoclsparse_itsol_handle* handle);
+void aoclsparse_itsol_destroy(aoclsparse_itsol_handle *handle);
 
 /*! \ingroup solvers_module
  * \brief Store partial data of the linear system of equations into the problem \p handle.
@@ -262,11 +264,11 @@ void aoclsparse_itsol_destroy(aoclsparse_itsol_handle* handle);
 /**@{*/
 DLL_PUBLIC
 aoclsparse_status
-    aoclsparse_itsol_d_rci_input(aoclsparse_itsol_handle handle, aoclsparse_int n, const double* b);
+    aoclsparse_itsol_d_rci_input(aoclsparse_itsol_handle handle, aoclsparse_int n, const double *b);
 
 DLL_PUBLIC
 aoclsparse_status
-    aoclsparse_itsol_s_rci_input(aoclsparse_itsol_handle handle, aoclsparse_int n, const float* b);
+    aoclsparse_itsol_s_rci_input(aoclsparse_itsol_handle handle, aoclsparse_int n, const float *b);
 /**@}*/
 
 /*! \ingroup solvers_module
@@ -322,18 +324,18 @@ aoclsparse_status
 /**@{*/
 DLL_PUBLIC
 aoclsparse_status aoclsparse_itsol_d_rci_solve(aoclsparse_itsol_handle   handle,
-                                               aoclsparse_itsol_rci_job* ircomm,
-                                               double**                  u,
-                                               double**                  v,
-                                               double*                   x,
+                                               aoclsparse_itsol_rci_job *ircomm,
+                                               double                  **u,
+                                               double                  **v,
+                                               double                   *x,
                                                double                    rinfo[100]);
 
 DLL_PUBLIC
 aoclsparse_status aoclsparse_itsol_s_rci_solve(aoclsparse_itsol_handle   handle,
-                                               aoclsparse_itsol_rci_job* ircomm,
-                                               float**                   u,
-                                               float**                   v,
-                                               float*                    x,
+                                               aoclsparse_itsol_rci_job *ircomm,
+                                               float                   **u,
+                                               float                   **v,
+                                               float                    *x,
                                                float                     rinfo[100]);
 /**@}*/
 
@@ -397,12 +399,12 @@ aoclsparse_status aoclsparse_itsol_d_solve(
     aoclsparse_int             n,
     aoclsparse_matrix          mat,
     const aoclsparse_mat_descr descr,
-    const double*              b,
-    double*                    x,
+    const double              *b,
+    double                    *x,
     double                     rinfo[100],
-    aoclsparse_int precond(aoclsparse_int flag, const double* u, double* v, void* udata),
-    aoclsparse_int monit(const double* x, const double* r, double rinfo[100], void* udata),
-    void*          udata);
+    aoclsparse_int precond(aoclsparse_int flag, const double *u, double *v, void *udata),
+    aoclsparse_int monit(const double *x, const double *r, double rinfo[100], void *udata),
+    void          *udata);
 
 DLL_PUBLIC
 aoclsparse_status aoclsparse_itsol_s_solve(
@@ -410,12 +412,12 @@ aoclsparse_status aoclsparse_itsol_s_solve(
     aoclsparse_int             n,
     aoclsparse_matrix          mat,
     const aoclsparse_mat_descr descr,
-    const float*               b,
-    float*                     x,
+    const float               *b,
+    float                     *x,
     float                      rinfo[100],
-    aoclsparse_int             precond(aoclsparse_int flag, const float* u, float* v, void* udata),
-    aoclsparse_int             monit(const float* x, const float* r, float rinfo[100], void* udata),
-    void*                      udata);
+    aoclsparse_int             precond(aoclsparse_int flag, const float *u, float *v, void *udata),
+    aoclsparse_int             monit(const float *x, const float *r, float rinfo[100], void *udata),
+    void                      *udata);
 /**@}*/
 
 #ifdef __cplusplus

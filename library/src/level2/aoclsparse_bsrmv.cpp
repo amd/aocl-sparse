@@ -31,18 +31,17 @@
  */
 
 extern "C" aoclsparse_status aoclsparse_sbsrmv(aoclsparse_operation       trans,
-        const float*              alpha,
-        aoclsparse_int             mb,
-        aoclsparse_int             nb,
-        aoclsparse_int             bsr_dim,
-        const float*              bsr_val,
-        const aoclsparse_int*      bsr_col_ind,
-        const aoclsparse_int*      bsr_row_ptr,
-        const aoclsparse_mat_descr descr,
-        const float*             x,
-        const float*             beta,
-        float*                   y
-        )
+                                               const float               *alpha,
+                                               aoclsparse_int             mb,
+                                               aoclsparse_int             nb,
+                                               aoclsparse_int             bsr_dim,
+                                               const float               *bsr_val,
+                                               const aoclsparse_int      *bsr_col_ind,
+                                               const aoclsparse_int      *bsr_row_ptr,
+                                               const aoclsparse_mat_descr descr,
+                                               const float               *x,
+                                               const float               *beta,
+                                               float                     *y)
 {
     if(descr == nullptr)
     {
@@ -83,7 +82,7 @@ extern "C" aoclsparse_status aoclsparse_sbsrmv(aoclsparse_operation       trans,
     }
 
     // Quick return if possible
-    if(mb == 0 || nb == 0 )
+    if(mb == 0 || nb == 0)
     {
         return aoclsparse_status_success;
     }
@@ -111,61 +110,28 @@ extern "C" aoclsparse_status aoclsparse_sbsrmv(aoclsparse_operation       trans,
     }
 
     if(bsr_dim == 2)
-        return aoclsparse_bsrmv_2x2(*alpha,
-                mb,
-                nb,
-                bsr_val,
-                bsr_col_ind,
-                bsr_row_ptr,
-                x,
-                *beta,
-                y);
+        return aoclsparse_bsrmv_2x2(*alpha, mb, nb, bsr_val, bsr_col_ind, bsr_row_ptr, x, *beta, y);
     else if(bsr_dim == 3)
-        return aoclsparse_bsrmv_3x3(*alpha,
-                mb,
-                nb,
-                bsr_val,
-                bsr_col_ind,
-                bsr_row_ptr,
-                x,
-                *beta,
-                y);
+        return aoclsparse_bsrmv_3x3(*alpha, mb, nb, bsr_val, bsr_col_ind, bsr_row_ptr, x, *beta, y);
     else if(bsr_dim == 4)
-        return aoclsparse_bsrmv_4x4(*alpha,
-                mb,
-                nb,
-                bsr_val,
-                bsr_col_ind,
-                bsr_row_ptr,
-                x,
-                *beta,
-                y);
+        return aoclsparse_bsrmv_4x4(*alpha, mb, nb, bsr_val, bsr_col_ind, bsr_row_ptr, x, *beta, y);
     else
-        return aoclsparse_bsrmv_general(*alpha,
-                mb,
-                nb,
-                bsr_dim,
-                bsr_val,
-                bsr_col_ind,
-                bsr_row_ptr,
-                x,
-                *beta,
-                y);
+        return aoclsparse_bsrmv_general(
+            *alpha, mb, nb, bsr_dim, bsr_val, bsr_col_ind, bsr_row_ptr, x, *beta, y);
 }
 
 extern "C" aoclsparse_status aoclsparse_dbsrmv(aoclsparse_operation       trans,
-        const double*              alpha,
-        aoclsparse_int             mb,
-        aoclsparse_int             nb,
-        aoclsparse_int             bsr_dim,
-        const double*              bsr_val,
-        const aoclsparse_int*      bsr_col_ind,
-        const aoclsparse_int*      bsr_row_ptr,
-        const aoclsparse_mat_descr descr,
-        const double*             x,
-        const double*             beta,
-        double*                   y
-        )
+                                               const double              *alpha,
+                                               aoclsparse_int             mb,
+                                               aoclsparse_int             nb,
+                                               aoclsparse_int             bsr_dim,
+                                               const double              *bsr_val,
+                                               const aoclsparse_int      *bsr_col_ind,
+                                               const aoclsparse_int      *bsr_row_ptr,
+                                               const aoclsparse_mat_descr descr,
+                                               const double              *x,
+                                               const double              *beta,
+                                               double                    *y)
 {
     if(descr == nullptr)
     {
@@ -206,7 +172,7 @@ extern "C" aoclsparse_status aoclsparse_dbsrmv(aoclsparse_operation       trans,
     }
 
     // Quick return if possible
-    if(mb == 0 || nb == 0 )
+    if(mb == 0 || nb == 0)
     {
         return aoclsparse_status_success;
     }
@@ -233,45 +199,12 @@ extern "C" aoclsparse_status aoclsparse_dbsrmv(aoclsparse_operation       trans,
         return aoclsparse_status_invalid_pointer;
     }
     if(bsr_dim == 2)
-        return aoclsparse_bsrmv_2x2(*alpha,
-                mb,
-                nb,
-                bsr_val,
-                bsr_col_ind,
-                bsr_row_ptr,
-                x,
-                *beta,
-                y);
+        return aoclsparse_bsrmv_2x2(*alpha, mb, nb, bsr_val, bsr_col_ind, bsr_row_ptr, x, *beta, y);
     else if(bsr_dim == 3)
-        return aoclsparse_bsrmv_3x3(*alpha,
-                mb,
-                nb,
-                bsr_val,
-                bsr_col_ind,
-                bsr_row_ptr,
-                x,
-                *beta,
-                y);
+        return aoclsparse_bsrmv_3x3(*alpha, mb, nb, bsr_val, bsr_col_ind, bsr_row_ptr, x, *beta, y);
     else if(bsr_dim == 4)
-        return aoclsparse_bsrmv_4x4(*alpha,
-                mb,
-                nb,
-                bsr_val,
-                bsr_col_ind,
-                bsr_row_ptr,
-                x,
-                *beta,
-                y);
+        return aoclsparse_bsrmv_4x4(*alpha, mb, nb, bsr_val, bsr_col_ind, bsr_row_ptr, x, *beta, y);
     else
-        return aoclsparse_bsrmv_general(*alpha,
-                mb,
-                nb,
-                bsr_dim,
-                bsr_val,
-                bsr_col_ind,
-                bsr_row_ptr,
-                x,
-                *beta,
-                y);
+        return aoclsparse_bsrmv_general(
+            *alpha, mb, nb, bsr_dim, bsr_val, bsr_col_ind, bsr_row_ptr, x, *beta, y);
 }
-

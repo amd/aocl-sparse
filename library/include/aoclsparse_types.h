@@ -69,7 +69,7 @@ typedef struct
  *  descriptor must be passed to all subsequent library calls that involve the matrix.
  *  It should be destroyed at the end using aoclsparse_destroy_mat_descr().
  */
-typedef struct _aoclsparse_mat_descr* aoclsparse_mat_descr;
+typedef struct _aoclsparse_mat_descr *aoclsparse_mat_descr;
 
 /*! \ingroup types_module
  *  \brief CSR matrix storage format.
@@ -81,14 +81,14 @@ typedef struct _aoclsparse_mat_descr* aoclsparse_mat_descr;
  *  using aoclsparse_destroy().
  */
 
-typedef struct _aoclsparse_csr*         aoclsparse_csr;
-typedef struct _aoclsparse_ell*         aoclsparse_ell;
-typedef struct _aoclsparse_ell_csr_hyb* aoclsparse_ell_csr_hyb;
-typedef struct _aoclsparse_matrix*      aoclsparse_matrix;
+typedef struct _aoclsparse_csr         *aoclsparse_csr;
+typedef struct _aoclsparse_ell         *aoclsparse_ell;
+typedef struct _aoclsparse_ell_csr_hyb *aoclsparse_ell_csr_hyb;
+typedef struct _aoclsparse_matrix      *aoclsparse_matrix;
 
 /* TBD To be deprecated structure and API
  */
-typedef struct _aoclsparse_matrix* aoclsparse_mat_csr;
+typedef struct _aoclsparse_matrix *aoclsparse_mat_csr;
 #define aoclsparse_destroy_mat_csr aoclsparse_destroy;
 #ifdef __cplusplus
 extern "C" {
@@ -243,12 +243,13 @@ typedef enum aoclsparse_status_
     aoclsparse_status_internal_error      = 4, /**< internal library failure. */
     aoclsparse_status_invalid_value       = 5, /**< invalid parameter value. */
     aoclsparse_status_invalid_index_value = 6, /**< invalid index value. */
-    aoclsparse_status_maxit               = 7, /**< function stopped after reaching number of iteration limit. */
-    aoclsparse_status_user_stop           = 8, /**< user requested termination. */
-    aoclsparse_status_wrong_type          = 9, /**< function called on the wrong type (double/float). */
-    aoclsparse_status_memory_error        = 10, /**< memory allocation failure. */
-    aoclsparse_status_numerical_error     = 11, /**< numerical error, e.g., matrix is not positive definite, divide-by-zero error */
-    aoclsparse_status_invalid_operation   = 12, /**< cannot proceed with the request at this point. */
+    aoclsparse_status_maxit = 7, /**< function stopped after reaching number of iteration limit. */
+    aoclsparse_status_user_stop    = 8, /**< user requested termination. */
+    aoclsparse_status_wrong_type   = 9, /**< function called on the wrong type (double/float). */
+    aoclsparse_status_memory_error = 10, /**< memory allocation failure. */
+    aoclsparse_status_numerical_error
+    = 11, /**< numerical error, e.g., matrix is not positive definite, divide-by-zero error */
+    aoclsparse_status_invalid_operation = 12, /**< cannot proceed with the request at this point. */
 } aoclsparse_status;
 
 /*! \ingroup types_module

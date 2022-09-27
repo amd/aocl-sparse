@@ -30,17 +30,17 @@
  * ===========================================================================
  */
 extern "C" aoclsparse_status aoclsparse_sdiamv(aoclsparse_operation       trans,
-                                   const float*              alpha,
-                                   aoclsparse_int             m,
-                                   aoclsparse_int             n,
-                                   aoclsparse_int             nnz,
-                                   const float*              dia_val,
-                                   const aoclsparse_int*      dia_offset,
-                                   aoclsparse_int      dia_num_diag,
-                                   const aoclsparse_mat_descr descr,
-                                   const float*             x,
-                                   const float*            beta,
-                                   float*                   y )
+                                               const float               *alpha,
+                                               aoclsparse_int             m,
+                                               aoclsparse_int             n,
+                                               aoclsparse_int             nnz,
+                                               const float               *dia_val,
+                                               const aoclsparse_int      *dia_offset,
+                                               aoclsparse_int             dia_num_diag,
+                                               const aoclsparse_mat_descr descr,
+                                               const float               *x,
+                                               const float               *beta,
+                                               float                     *y)
 {
     if(descr == nullptr)
     {
@@ -109,30 +109,22 @@ extern "C" aoclsparse_status aoclsparse_sdiamv(aoclsparse_operation       trans,
         return aoclsparse_status_invalid_pointer;
     }
 
-    return aoclsparse_diamv_template(*alpha,
-                            m,
-                            n,
-                            nnz,
-                            dia_val,
-                            dia_offset,
-                            dia_num_diag,
-                            x,
-                            *beta,
-                            y);
+    return aoclsparse_diamv_template(
+        *alpha, m, n, nnz, dia_val, dia_offset, dia_num_diag, x, *beta, y);
 }
 
 extern "C" aoclsparse_status aoclsparse_ddiamv(aoclsparse_operation       trans,
-                                   const double*              alpha,
-                                   aoclsparse_int             m,
-                                   aoclsparse_int             n,
-                                   aoclsparse_int             nnz,
-                                   const double*              dia_val,
-                                   const aoclsparse_int*      dia_offset,
-                                   aoclsparse_int      dia_num_diag,
-                                   const aoclsparse_mat_descr descr,
-                                   const double*             x,
-                                   const double*            beta,
-                                   double*                   y )
+                                               const double              *alpha,
+                                               aoclsparse_int             m,
+                                               aoclsparse_int             n,
+                                               aoclsparse_int             nnz,
+                                               const double              *dia_val,
+                                               const aoclsparse_int      *dia_offset,
+                                               aoclsparse_int             dia_num_diag,
+                                               const aoclsparse_mat_descr descr,
+                                               const double              *x,
+                                               const double              *beta,
+                                               double                    *y)
 {
     if(descr == nullptr)
     {
@@ -201,14 +193,6 @@ extern "C" aoclsparse_status aoclsparse_ddiamv(aoclsparse_operation       trans,
         return aoclsparse_status_invalid_pointer;
     }
 
-    return aoclsparse_diamv_template(*alpha,
-                            m,
-                            n,
-                            nnz,
-                            dia_val,
-                            dia_offset,
-                            dia_num_diag,
-                            x,
-                            *beta,
-                            y);
+    return aoclsparse_diamv_template(
+        *alpha, m, n, nnz, dia_val, dia_offset, dia_num_diag, x, *beta, y);
 }

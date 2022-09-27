@@ -1,4 +1,5 @@
 #include "aoclsparse.h"
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -22,24 +23,24 @@ enum matrix_id
 };
 
 template <typename T>
-aoclsparse_status create_aoclsparse_matrix(aoclsparse_matrix&           A,
-                                     aoclsparse_int               m,
-                                     aoclsparse_int               n,
-                                     aoclsparse_int               nnz,
-                                     std::vector<aoclsparse_int>& icrow,
-                                     std::vector<aoclsparse_int>& icol,
-                                     std::vector<T>&              aval);
+aoclsparse_status create_aoclsparse_matrix(aoclsparse_matrix           &A,
+                                           aoclsparse_int               m,
+                                           aoclsparse_int               n,
+                                           aoclsparse_int               nnz,
+                                           std::vector<aoclsparse_int> &icrow,
+                                           std::vector<aoclsparse_int> &icol,
+                                           std::vector<T>              &aval);
 
 template <typename T>
 aoclsparse_status create_matrix(matrix_id                    mid,
-                                aoclsparse_int&              m,
-                                aoclsparse_int&              n,
-                                aoclsparse_int&              nnz,
-                                std::vector<aoclsparse_int>& icrow,
-                                std::vector<aoclsparse_int>& icol,
-                                std::vector<T>&              aval,
-                                aoclsparse_matrix&           A,
-                                aoclsparse_mat_descr&        descr,
+                                aoclsparse_int              &m,
+                                aoclsparse_int              &n,
+                                aoclsparse_int              &nnz,
+                                std::vector<aoclsparse_int> &icrow,
+                                std::vector<aoclsparse_int> &icol,
+                                std::vector<T>              &aval,
+                                aoclsparse_matrix           &A,
+                                aoclsparse_mat_descr        &descr,
                                 aoclsparse_int               verbose)
 {
     aoclsparse_index_base base = aoclsparse_index_base_zero;
@@ -201,7 +202,7 @@ aoclsparse_status create_matrix(matrix_id                    mid,
 
 template <typename T>
 void comp_exact_vec(
-    std::string id, aoclsparse_int n, T* v1, T* v2, bool& pass, aoclsparse_int verbose)
+    std::string id, aoclsparse_int n, T *v1, T *v2, bool &pass, aoclsparse_int verbose)
 {
     pass = true;
     for(aoclsparse_int i = 0; i < n; i++)
@@ -219,7 +220,7 @@ void comp_exact_vec(
 
 template <typename T>
 void comp_tol_vec(
-    std::string id, T tol, aoclsparse_int n, T* v1, T* v2, bool& pass, aoclsparse_int verbose)
+    std::string id, T tol, aoclsparse_int n, T *v1, T *v2, bool &pass, aoclsparse_int verbose)
 {
     pass = true;
     for(aoclsparse_int i = 0; i < n; i++)
@@ -241,20 +242,20 @@ aoclsparse_status
                 aoclsparse_int             n,
                 aoclsparse_matrix          mat,
                 const aoclsparse_mat_descr descr,
-                const T*                   b,
-                T*                         x,
+                const T                   *b,
+                T                         *x,
                 T                          rinfo[100],
-                aoclsparse_int precond(aoclsparse_int flag, const T* u, T* v, void* udata),
-                aoclsparse_int monit(const T* x, const T* r, T rinfo[100], void* udata),
-                void*          udata);
+                aoclsparse_int precond(aoclsparse_int flag, const T *u, T *v, void *udata),
+                aoclsparse_int monit(const T *x, const T *r, T rinfo[100], void *udata),
+                void          *udata);
 
 template <typename T>
 aoclsparse_status itsol_rci_solve(aoclsparse_itsol_handle   handle,
-                                  aoclsparse_itsol_rci_job* ircomm,
-                                  T**                       u,
-                                  T**                       v,
-                                  T*                        x,
+                                  aoclsparse_itsol_rci_job *ircomm,
+                                  T                       **u,
+                                  T                       **v,
+                                  T                        *x,
                                   T                         rinfo[100]);
 
 template <typename T>
-aoclsparse_status itsol_init(aoclsparse_itsol_handle* handle);
+aoclsparse_status itsol_init(aoclsparse_itsol_handle *handle);

@@ -29,10 +29,11 @@
 #define AOCLSPARSE_UTILITY_HPP
 
 #include "aoclsparse.h"
-#include <string>
+
 #include <cfloat>
-#include <vector>
 #include <sstream>
+#include <string>
+#include <vector>
 
 /* ==================================================================================== */
 /*! \brief  local matrix descriptor which is automatically created and destroyed  */
@@ -51,11 +52,11 @@ public:
     }
 
     // Allow aoclsparse_local_mat_descr to be used anywhere aoclsparse_mat_descr is expected
-    operator aoclsparse_mat_descr&()
+    operator aoclsparse_mat_descr &()
     {
         return descr;
     }
-    operator const aoclsparse_mat_descr&() const
+    operator const aoclsparse_mat_descr &() const
     {
         return descr;
     }
@@ -69,10 +70,10 @@ std::string aoclsparse_exepath();
 
 /*! \brief  CPU Timer(in second): return wall time
 */
-double aoclsparse_clock( void );
-double aoclsparse_clock_min_diff( double time_min, double time_start );
+double aoclsparse_clock(void);
+double aoclsparse_clock_min_diff(double time_min, double time_start);
 
-double aoclsparse_clock_helper( void );
+double aoclsparse_clock_helper(void);
 
 /**
  * Utility for parsing command line arguments
@@ -80,35 +81,38 @@ double aoclsparse_clock_helper( void );
 struct aoclsparse_command_line_args
 {
 
-    std::vector<std::string>    keys;
-    std::vector<std::string>    values;
-    std::vector<std::string>    args;
+    std::vector<std::string> keys;
+    std::vector<std::string> values;
+    std::vector<std::string> args;
 
     /**
      * Constructor
      */
-    aoclsparse_command_line_args(aoclsparse_int argc, char **argv) :
-        keys(4),
-        values(4)
+    aoclsparse_command_line_args(aoclsparse_int argc, char **argv)
+        : keys(4)
+        , values(4)
     {
         using namespace std;
 
-        for (aoclsparse_int i = 1; i < argc; i++)
+        for(aoclsparse_int i = 1; i < argc; i++)
         {
             string arg = argv[i];
 
-            if ((arg[0] != '-') || (arg[1] != '-'))
+            if((arg[0] != '-') || (arg[1] != '-'))
             {
                 args.push_back(arg);
                 continue;
             }
 
             string::size_type pos;
-            string key, val;
-            if ((pos = arg.find('=')) == string::npos) {
+            string            key, val;
+            if((pos = arg.find('=')) == string::npos)
+            {
                 key = string(arg, 2, arg.length() - 2);
                 val = "";
-            } else {
+            }
+            else
+            {
                 key = string(arg, 2, pos - 2);
                 val = string(arg, pos + 1, arg.length() - 1);
             }
@@ -118,118 +122,115 @@ struct aoclsparse_command_line_args
         }
     }
 
-
     /**
      * Checks whether a flag "--<flag>" is present in the commandline
      */
-    bool aoclsparse_check_cmdline_flag(const char* arg_name)
+    bool aoclsparse_check_cmdline_flag(const char *arg_name)
     {
         using namespace std;
 
-        for (aoclsparse_int i = 0; i < aoclsparse_int(keys.size()); ++i)
+        for(aoclsparse_int i = 0; i < aoclsparse_int(keys.size()); ++i)
         {
-            if (keys[i] == string(arg_name))
+            if(keys[i] == string(arg_name))
                 return true;
         }
         return false;
     }
 
-
     /**
      * Returns number of naked (non-flag and non-key-value) commandline parameters
      */
     template <typename T>
-        aoclsparse_int aoclsparse_num_naked_args()
-        {
-            return args.size();
-        }
-
+    aoclsparse_int aoclsparse_num_naked_args()
+    {
+        return args.size();
+    }
 
     /**
      * Returns the commandline parameter for a given index (not including flags)
      */
     template <typename T>
-        void aoclsparse_get_cmdline_argument(aoclsparse_int index, T &val)
+    void aoclsparse_get_cmdline_argument(aoclsparse_int index, T &val)
+    {
+        using namespace std;
+        if(index < args.size())
         {
-            using namespace std;
-            if (index < args.size()) {
-                istringstream str_stream(args[index]);
-                str_stream >> val;
-            }
+            istringstream str_stream(args[index]);
+            str_stream >> val;
         }
+    }
 
     /**
      * Returns the value specified for a given commandline parameter --<flag>=<value>
      */
     template <typename T>
-        void aoclsparse_get_cmdline_argument(const char *arg_name, T &val)
-        {
-            using namespace std;
+    void aoclsparse_get_cmdline_argument(const char *arg_name, T &val)
+    {
+        using namespace std;
 
-            for (aoclsparse_int i = 0; i < aoclsparse_int(keys.size()); ++i)
+        for(aoclsparse_int i = 0; i < aoclsparse_int(keys.size()); ++i)
+        {
+            if(keys[i] == string(arg_name))
             {
-                if (keys[i] == string(arg_name))
-                {
-                    istringstream str_stream(values[i]);
-                    str_stream >> val;
-                }
+                istringstream str_stream(values[i]);
+                str_stream >> val;
             }
         }
-
+    }
 
     /**
      * Returns the values specified for a given commandline parameter --<flag>=<value>,<value>*
      */
     template <typename T>
-        void aoclsparse_get_cmdline_arguments(const char *arg_name, std::vector<T> &vals)
+    void aoclsparse_get_cmdline_arguments(const char *arg_name, std::vector<T> &vals)
+    {
+        using namespace std;
+
+        if(aoclsparse_check_cmdline_flag(arg_name))
         {
-            using namespace std;
+            // Clear any default values
+            vals.clear();
 
-            if (aoclsparse_check_cmdline_flag(arg_name))
+            // Recover from multi-value string
+            for(aoclsparse_int i = 0; i < keys.size(); ++i)
             {
-                // Clear any default values
-                vals.clear();
-
-                // Recover from multi-value string
-                for (aoclsparse_int i = 0; i < keys.size(); ++i)
+                if(keys[i] == string(arg_name))
                 {
-                    if (keys[i] == string(arg_name))
+                    string            val_string(values[i]);
+                    istringstream     str_stream(val_string);
+                    string::size_type old_pos = 0;
+                    string::size_type new_pos = 0;
+
+                    // Iterate comma-separated values
+                    T val;
+                    while((new_pos = val_string.find(',', old_pos)) != string::npos)
                     {
-                        string val_string(values[i]);
-                        istringstream str_stream(val_string);
-                        string::size_type old_pos = 0;
-                        string::size_type new_pos = 0;
-
-                        // Iterate comma-separated values
-                        T val;
-                        while ((new_pos = val_string.find(',', old_pos)) != string::npos)
+                        if(new_pos != old_pos)
                         {
-                            if (new_pos != old_pos)
-                            {
-                                str_stream.width(new_pos - old_pos);
-                                str_stream >> val;
-                                vals.push_back(val);
-                            }
-
-                            // skip over comma
-                            str_stream.ignore(1);
-                            old_pos = new_pos + 1;
+                            str_stream.width(new_pos - old_pos);
+                            str_stream >> val;
+                            vals.push_back(val);
                         }
 
-                        // Read last value
-                        str_stream >> val;
-                        vals.push_back(val);
+                        // skip over comma
+                        str_stream.ignore(1);
+                        old_pos = new_pos + 1;
                     }
+
+                    // Read last value
+                    str_stream >> val;
+                    vals.push_back(val);
                 }
             }
         }
+    }
 
     /**
      * The number of pairs parsed
      */
     aoclsparse_int aoclsparse_parsed_argc()
     {
-        return (aoclsparse_int) keys.size();
+        return (aoclsparse_int)keys.size();
     }
 };
 

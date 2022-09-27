@@ -29,13 +29,13 @@
  *   C wrapper
  * ===========================================================================
  */
-extern "C" aoclsparse_status aoclsparse_silu_smoother(aoclsparse_operation      op,	
-                                                    aoclsparse_matrix           A,
-                                                    const aoclsparse_mat_descr  descr,
-                                                    float                      **precond_csr_val,
-                                                    const float*                approx_inv_diag,                                                       
-                                                    float*                      x,
-                                                    const float*                b)
+extern "C" aoclsparse_status aoclsparse_silu_smoother(aoclsparse_operation       op,
+                                                      aoclsparse_matrix          A,
+                                                      const aoclsparse_mat_descr descr,
+                                                      float                    **precond_csr_val,
+                                                      const float               *approx_inv_diag,
+                                                      float                     *x,
+                                                      const float               *b)
 {
     if(descr == nullptr)
     {
@@ -66,22 +66,16 @@ extern "C" aoclsparse_status aoclsparse_silu_smoother(aoclsparse_operation      
         return aoclsparse_status_invalid_pointer;
     }
 
-    return aoclsparse_ilu_template<float>(op,
-                            A,
-                            descr,
-                            precond_csr_val,
-                            approx_inv_diag,                            
-                            x,
-                            b);
+    return aoclsparse_ilu_template<float>(op, A, descr, precond_csr_val, approx_inv_diag, x, b);
 }
 
-extern "C" aoclsparse_status aoclsparse_dilu_smoother(aoclsparse_operation      op,	
-                                                    aoclsparse_matrix           A,
-                                                    const aoclsparse_mat_descr  descr,
-                                                    double                     **precond_csr_val,
-                                                    const double*               approx_inv_diag,                                                    
-                                                    double*                     x,
-                                                    const double*               b)
+extern "C" aoclsparse_status aoclsparse_dilu_smoother(aoclsparse_operation       op,
+                                                      aoclsparse_matrix          A,
+                                                      const aoclsparse_mat_descr descr,
+                                                      double                   **precond_csr_val,
+                                                      const double              *approx_inv_diag,
+                                                      double                    *x,
+                                                      const double              *b)
 {
     if(descr == nullptr)
     {
@@ -111,12 +105,6 @@ extern "C" aoclsparse_status aoclsparse_dilu_smoother(aoclsparse_operation      
     {
         return aoclsparse_status_invalid_pointer;
     }
-     
-    return aoclsparse_ilu_template<double>(op,                            
-                            A,
-                            descr,
-                            precond_csr_val,
-                            approx_inv_diag,                                      
-                            x,
-                            b);
+
+    return aoclsparse_ilu_template<double>(op, A, descr, precond_csr_val, approx_inv_diag, x, b);
 }

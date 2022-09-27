@@ -34,8 +34,8 @@ extern "C" aoclsparse_status aoclsparse_strsv(aoclsparse_operation       trans,
                                               const float                alpha,
                                               aoclsparse_matrix          A,
                                               const aoclsparse_mat_descr descr,
-                                              const float*               b,
-                                              float*                     x)
+                                              const float               *b,
+                                              float                     *x)
 {
     aoclsparse_int avxversion = 0; // Use AVX2 extensions TODO use CPUID
 
@@ -46,8 +46,8 @@ extern "C" aoclsparse_status aoclsparse_dtrsv(aoclsparse_operation       trans,
                                               const double               alpha,
                                               aoclsparse_matrix          A,
                                               const aoclsparse_mat_descr descr,
-                                              const double*              b,
-                                              double*                    x)
+                                              const double              *b,
+                                              double                    *x)
 {
     aoclsparse_int avxversion = 1; // Use AVX2 extensions TODO use CPUID
 

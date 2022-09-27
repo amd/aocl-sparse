@@ -23,35 +23,32 @@
 #ifndef AOCLSPARSE_OPTMV_HPP
 #define AOCLSPARSE_OPTMV_HPP
 
-#include <immintrin.h>
 #include "aoclsparse.h"
-#include "aoclsparse_descr.h"
 #include "aoclsparse_context.h"
+#include "aoclsparse_descr.h"
 #include "aoclsparse_mat_structures.h"
 #include "aoclsparse_csr_util.hpp"
 #include "aoclsparse_csrmv.hpp"
 
+#include <immintrin.h>
 
 template <typename T>
-aoclsparse_status aoclsparse_dcsr_mat_br4(aoclsparse_operation op,
-                                          const T              alpha,
-                                          aoclsparse_matrix    A,
+aoclsparse_status aoclsparse_dcsr_mat_br4(aoclsparse_operation       op,
+                                          const T                    alpha,
+                                          aoclsparse_matrix          A,
                                           const aoclsparse_mat_descr descr,
-                                          const T*             x,
-                                          const T              beta,
-                                          T*                   y );
+                                          const T                   *x,
+                                          const T                    beta,
+                                          T                         *y);
 
 template <typename T>
-aoclsparse_status aoclsparse_mv_general(aoclsparse_operation  op,
-                                         const T               alpha,
-                                         aoclsparse_matrix     A,
-                                         const aoclsparse_mat_descr descr,
-                                         const T*              x,
-                                         const T               beta,
-                                         T*                    y);
-
-
-
+aoclsparse_status aoclsparse_mv_general(aoclsparse_operation       op,
+                                        const T                    alpha,
+                                        aoclsparse_matrix          A,
+                                        const aoclsparse_mat_descr descr,
+                                        const T                   *x,
+                                        const T                    beta,
+                                        T                         *y);
 
 /* templated version to dispach optimized SPMV
  * Note, the assumption is that x&y are compatible with the size of A
@@ -62,13 +59,13 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
                                 T                          alpha,
                                 aoclsparse_matrix          A,
                                 const aoclsparse_mat_descr descr,
-                                const T*                   x,
+                                const T                   *x,
                                 T                          beta,
-                                T*                         y)
+                                T                         *y)
 {
-	aoclsparse_status status; 
+    aoclsparse_status status;
 
-	// still check A, in case the template is called directly
+    // still check A, in case the template is called directly
     // now A->mat_type should match T
     if(A == nullptr)
         return aoclsparse_status_invalid_pointer;
@@ -103,7 +100,7 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
     if(descr->type == aoclsparse_matrix_type_general)
     {
         // TODO trigger appropriate optimization?
-		return aoclsparse_mv_general(op, alpha, A, descr, x, beta, y);
+        return aoclsparse_mv_general(op, alpha, A, descr, x, beta, y);
     }
     else
     {
@@ -111,8 +108,8 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
         if(!A->opt_csr_ready)
         {
             status = aoclsparse_csr_optimize<T>(A);
-            if (status)
-            	return status;
+            if(status)
+                return status;
         }
         if(descr->type == aoclsparse_matrix_type_symmetric)
             // can dispatch our data directly
@@ -121,7 +118,7 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
                                                   A->m,
                                                   descr->diag_type,
                                                   descr->fill_mode,
-                                                  (T*)A->opt_csr_mat.csr_val,
+                                                  (T *)A->opt_csr_mat.csr_val,
                                                   A->opt_csr_mat.csr_col_ptr,
                                                   A->opt_csr_mat.csr_row_ptr,
                                                   A->idiag,
@@ -129,11 +126,8 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
                                                   x,
                                                   beta,
                                                   y);
-
     }
     return aoclsparse_status_success;
 }
 
-
 #endif // AOCLSPARSE_OPTMV_HPP
-

@@ -96,7 +96,7 @@ enum gmres_rc_task
     task_gmres_start = 0,
     task_gmres_init_res,
     task_gmres_init_precond,
-    task_gmres_start_iter,    
+    task_gmres_start_iter,
     task_gmres_end_iter,
     task_gmres_x_update,
     task_gmres_restart_cycle
@@ -126,15 +126,15 @@ template <typename T>
 struct gmres_data
 {
     /* Working vectors and values */
-    T        *v = 0, *h = 0, *g = 0;
-    T        *c = 0, *s = 0, *z = 0;
-    T        rnorm2, bnorm2, brtol;
+    T *v = 0, *h = 0, *g = 0;
+    T *c = 0, *s = 0, *z = 0;
+    T  rnorm2, bnorm2, brtol;
     /* GMRES algorithm state */
-    gmres_rc_task     task;
+    gmres_rc_task  task;
     aoclsparse_int niter;
     aoclsparse_int j;
     /* Restart iteration count for the GMRES problem: Needed for working buffer allocation */
-    aoclsparse_int restart_iters;       
+    aoclsparse_int restart_iters;
 
     /* GMRES algorithm options */
     T              rtol, atol;
@@ -153,7 +153,7 @@ struct aoclsparse_itsol_data
     /* dimension of the problem */
     aoclsparse_int n;
     /* right hand side*/
-    T* b;
+    T *b;
     /* option settings for all solvers */
     aoclsparse_options::OptionRegistry<T> opts;
 
@@ -164,9 +164,9 @@ struct aoclsparse_itsol_data
     aoclsparse_int solver;
 
     /* Conjugate Gradient Method (CGM) solver's data */
-    cg_data<T>* cg;
+    cg_data<T> *cg;
     /* GMRES solver's data */
-    gmres_data<T>* gmres;
+    gmres_data<T> *gmres;
 };
 
 struct _aoclsparse_itsol_handle
@@ -175,8 +175,8 @@ struct _aoclsparse_itsol_handle
     aoclsparse_matrix_data_type type;
     /* Pointer to the templated itsolve_data, only the one matching type
        will be used. */
-    aoclsparse_itsol_data<float>*  itsol_s;
-    aoclsparse_itsol_data<double>* itsol_d;
+    aoclsparse_itsol_data<float>  *itsol_s;
+    aoclsparse_itsol_data<double> *itsol_d;
 };
 
 #endif

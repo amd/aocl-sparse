@@ -27,20 +27,20 @@
 #include "aoclsparse_descr.h"
 #include "aoclsparse_mat_structures.h"
 #include "aoclsparse_types.h"
-#include "aoclsparse_ilu0.hpp"
 #include "aoclsparse_analysis.hpp"
-#include <immintrin.h>
+#include "aoclsparse_ilu0.hpp"
 
-#include<iostream>
+#include <immintrin.h>
+#include <iostream>
 
 template <typename T>
-aoclsparse_status aoclsparse_ilu_template(aoclsparse_operation          op,
-                                    aoclsparse_matrix                   A,
-                                    const aoclsparse_mat_descr          descr,
-                                    T                   	    **precond_csr_val,
-                                    const T*                   	approx_inv_diag,                                    
-                                    T*                             x,
-                                    const T*                       b )
+aoclsparse_status aoclsparse_ilu_template(aoclsparse_operation       op,
+                                          aoclsparse_matrix          A,
+                                          const aoclsparse_mat_descr descr,
+                                          T                        **precond_csr_val,
+                                          const T                   *approx_inv_diag,
+                                          T                         *x,
+                                          const T                   *b)
 {
     aoclsparse_status ret = aoclsparse_status_success;
 
@@ -55,30 +55,29 @@ aoclsparse_status aoclsparse_ilu_template(aoclsparse_operation          op,
 
     switch(A->ilu_info.ilu_fact_type)
     {
-        case 0:
-            //Invoke ILU0 API for CSR storage format
-                aoclsparse_ilu0_template<T>(A->m,
-                                        A->n,
-                                        A->nnz,
-                                        A->ilu_info.lu_diag_ptr,
-                                        A->ilu_info.col_idx_mapper,
-                                        &(A->ilu_info.ilu_factorized),
-                                        &(A->ilu_info.ilu_fact_type),
-                                        (T *)A->ilu_info.precond_csr_val,                
-                                        A->csr_mat.csr_row_ptr,
-                                        A->csr_mat.csr_col_ptr,
-                                        precond_csr_val,
-                                        approx_inv_diag,             
-                                        x,
-                                        b);                       
-            break;
-        default:
-            ret = aoclsparse_status_invalid_value;
-            break;
+    case 0:
+        //Invoke ILU0 API for CSR storage format
+        aoclsparse_ilu0_template<T>(A->m,
+                                    A->n,
+                                    A->nnz,
+                                    A->ilu_info.lu_diag_ptr,
+                                    A->ilu_info.col_idx_mapper,
+                                    &(A->ilu_info.ilu_factorized),
+                                    &(A->ilu_info.ilu_fact_type),
+                                    (T *)A->ilu_info.precond_csr_val,
+                                    A->csr_mat.csr_row_ptr,
+                                    A->csr_mat.csr_col_ptr,
+                                    precond_csr_val,
+                                    approx_inv_diag,
+                                    x,
+                                    b);
+        break;
+    default:
+        ret = aoclsparse_status_invalid_value;
+        break;
     }
-    
+
     return ret;
 }
 
 #endif // AOCLSPARSE_ILU_HPP
-

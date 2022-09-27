@@ -22,6 +22,7 @@
  * ************************************************************************ */
 
 #include "aoclsparse.h"
+
 #include <iomanip>
 #include <iostream>
 #include <math.h>
@@ -32,7 +33,7 @@ void printer(float rinfo[100], bool header)
 {
     std::ios_base::fmtflags fmt = std::cout.flags();
     fmt |= std::cout.scientific | std::cout.right;
-    if (header)
+    if(header)
         std::cout << std::setw(5) << std::right << " iter"
                   << " " << std::setw(16) << std::right << "optim"
                   << "  " << std::setw(3) << std::endl;
@@ -45,17 +46,17 @@ int main()
 {
     // CSR symmetric matrix. Only the lower triangle is stored
     std::vector<aoclsparse_int> icrow, icol;
-    std::vector<float> aval;
-    aoclsparse_int n = 8, nnz = 18;
+    std::vector<float>          aval;
+    aoclsparse_int              n = 8, nnz = 18;
     icrow.assign({0, 1, 2, 5, 6, 8, 11, 15, 18});
     icol.assign({0, 1, 0, 1, 2, 3, 1, 4, 0, 4, 5, 0, 3, 4, 6, 2, 5, 7});
     aval.assign({19, 10, 1, 8, 11, 13, 2, 11, 2, 1, 9, 7, 9, 5, 12, 5, 5, 9});
 
     // Create aocl sparse matrix and its descriptor
-    aoclsparse_matrix A;
+    aoclsparse_matrix     A;
     aoclsparse_index_base base = aoclsparse_index_base_zero;
-    aoclsparse_mat_descr descr_a;
-    aoclsparse_operation trans = aoclsparse_operation_none;
+    aoclsparse_mat_descr  descr_a;
+    aoclsparse_operation  trans = aoclsparse_operation_none;
     aoclsparse_create_scsr(A, base, n, n, nnz, icrow.data(), icol.data(), aval.data());
     aoclsparse_create_mat_descr(&descr_a);
     aoclsparse_set_mat_type(descr_a, aoclsparse_matrix_type_symmetric);
@@ -68,7 +69,10 @@ int main()
     aoclsparse_itsol_s_init(&handle);
 
     // Change options (update to use )
-    if (aoclsparse_itsol_option_set(handle, "CG Rel Tolerance", "1.0e-06") != aoclsparse_status_success || aoclsparse_itsol_option_set(handle, "CG preconditioner", "user") != aoclsparse_status_success)
+    if(aoclsparse_itsol_option_set(handle, "CG Rel Tolerance", "1.0e-06")
+           != aoclsparse_status_success
+       || aoclsparse_itsol_option_set(handle, "CG preconditioner", "user")
+              != aoclsparse_status_success)
         std::cout << "Warning an option could not be set" << std::endl;
 
     // Initialize initial point x0 and right hand side b
@@ -85,23 +89,23 @@ int main()
 
     // Call CG solver
     aoclsparse_itsol_rci_job ircomm = aoclsparse_rci_start;
-    aoclsparse_status status;
-    float *u = nullptr;
-    float *v = nullptr;
-    float rinfo[100];
-    float tol = 1.0e-5;
-    bool hdr;
+    aoclsparse_status        status;
+    float                   *u = nullptr;
+    float                   *v = nullptr;
+    float                    rinfo[100];
+    float                    tol = 1.0e-5;
+    bool                     hdr;
     std::cout << std::endl;
-    while (ircomm != aoclsparse_rci_stop)
+    while(ircomm != aoclsparse_rci_stop)
     {
         status = aoclsparse_itsol_s_rci_solve(handle, &ircomm, &u, &v, x.data(), rinfo);
-        if (status != aoclsparse_status_success)
+        if(status != aoclsparse_status_success)
             break;
-        switch (ircomm)
+        switch(ircomm)
         {
         case aoclsparse_rci_mv:
             // Compute v = Au
-            beta = 0.0;
+            beta  = 0.0;
             alpha = 1.0;
             aoclsparse_smv(trans, &alpha, A, descr_a, u, &beta, v);
             break;
@@ -110,7 +114,7 @@ int main()
             // apply Symmetric Gauss-Seidel preconditioner step
             aoclsparse_status stat;
             stat = aoclsparse_strsv(aoclsparse_operation_none, alpha, A, descr_a, u, y.data());
-            for (aoclsparse_int i = 0; i < n; i++)
+            for(aoclsparse_int i = 0; i < n; i++)
                 y[i] *= aval[icrow[i + 1] - 1];
             stat = aoclsparse_strsv(aoclsparse_operation_transpose, alpha, A, descr_a, y.data(), v);
             break;
@@ -122,7 +126,7 @@ int main()
             hdr = ((int)rinfo[30] % 100) == 0;
             printer(rinfo, hdr);
             // request solver to stop if custom criterion is met
-            if (rinfo[0] < tol)
+            if(rinfo[0] < tol)
             {
                 std::cout << "User stop. Final residual: " << rinfo[0] << std::endl;
                 ircomm = aoclsparse_rci_interrupt;
@@ -134,7 +138,7 @@ int main()
         }
     }
     // Print the final results if the internal stopping criterion or the user defined one were met
-    switch (status)
+    switch(status)
     {
     case aoclsparse_status_user_stop:
     case aoclsparse_status_success:
@@ -145,11 +149,11 @@ int main()
                   << "Solution found: (residual = " << rinfo[0] << " in " << (int)rinfo[30]
                   << " iterations)" << std::endl
                   << "   Final X* = ";
-        for (int i = 0; i < n; i++)
+        for(int i = 0; i < n; i++)
             std::cout << std::setw(9) << x[i] << " ";
         std::cout << std::endl;
         std::cout << "Expected X* = ";
-        for (int i = 0; i < n; i++)
+        for(int i = 0; i < n; i++)
             std::cout << std::setw(9) << expected_sol[i] << " ";
         std::cout << std::endl;
         break;

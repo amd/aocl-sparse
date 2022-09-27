@@ -21,8 +21,8 @@
  *
  * ************************************************************************ */
 
-#include "aoclsparse_mv.hpp"
 #include "aoclsparse.h"
+#include "aoclsparse_mv.hpp"
 
 /* Template specializations */
 template <>
@@ -30,9 +30,9 @@ aoclsparse_status aoclsparse_dcsr_mat_br4(aoclsparse_operation       op,
                                           const double               alpha,
                                           aoclsparse_matrix          A,
                                           const aoclsparse_mat_descr descr,
-                                          const double*              x,
+                                          const double              *x,
                                           const double               beta,
-                                          double*                    y)
+                                          double                    *y)
 {
     // Read the environment variables to update global variable
     // This function updates the num_threads only once.
@@ -48,11 +48,11 @@ aoclsparse_status aoclsparse_dcsr_mat_br4(aoclsparse_operation       op,
     vb  = _mm256_set1_pd(beta);
     res = _mm256_setzero_pd();
 
-    aoclsparse_int* tcptr = (aoclsparse_int*)A->csr_mat_br4.csr_col_ptr;
-    aoclsparse_int* rptr  = (aoclsparse_int*)A->csr_mat_br4.csr_row_ptr;
-    aoclsparse_int* cptr;
-    double*         tvptr = (double*)A->csr_mat_br4.csr_val;
-    double*         vptr;
+    aoclsparse_int *tcptr = (aoclsparse_int *)A->csr_mat_br4.csr_col_ptr;
+    aoclsparse_int *rptr  = (aoclsparse_int *)A->csr_mat_br4.csr_row_ptr;
+    aoclsparse_int *cptr;
+    double         *tvptr = (double *)A->csr_mat_br4.csr_val;
+    double         *vptr;
     aoclsparse_int  blk        = 4;
     aoclsparse_int  chunk_size = (A->m) / (blk * context.num_threads);
 
@@ -64,7 +64,7 @@ aoclsparse_status aoclsparse_dcsr_mat_br4(aoclsparse_operation       op,
     {
 
         aoclsparse_int r = rptr[i * blk];
-        vptr             = (double*)(tvptr + r);
+        vptr             = (double *)(tvptr + r);
         cptr             = tcptr + r;
 
         res = _mm256_setzero_pd();
@@ -73,7 +73,7 @@ aoclsparse_status aoclsparse_dcsr_mat_br4(aoclsparse_operation       op,
         for(aoclsparse_int j = 0; j < nnz; ++j)
         {
             aoclsparse_int off = j * blk;
-            vvals              = _mm256_loadu_pd((double const*)(vptr + off));
+            vvals              = _mm256_loadu_pd((double const *)(vptr + off));
 
             vx = _mm256_set_pd(
                 x[*(cptr + off + 3)], x[*(cptr + off + 2)], x[*(cptr + off + 1)], x[*(cptr + off)]);
@@ -116,7 +116,7 @@ aoclsparse_status aoclsparse_dcsr_mat_br4(aoclsparse_operation       op,
         for(aoclsparse_int j = A->csr_mat_br4.csr_row_ptr[k]; j < A->csr_mat_br4.csr_row_ptr[k + 1];
             ++j)
         {
-            result += ((double*)A->csr_mat_br4.csr_val)[j] * x[A->csr_mat_br4.csr_col_ptr[j]];
+            result += ((double *)A->csr_mat_br4.csr_val)[j] * x[A->csr_mat_br4.csr_col_ptr[j]];
         }
 
         if(alpha != static_cast<double>(1))
@@ -139,21 +139,21 @@ aoclsparse_status aoclsparse_dcsr_mat_br4(aoclsparse_operation       op,
                                           const float                alpha,
                                           aoclsparse_matrix          A,
                                           const aoclsparse_mat_descr descr,
-                                          const float*               x,
+                                          const float               *x,
                                           const float                beta,
-                                          float*                     y)
+                                          float                     *y)
 {
     return aoclsparse_status_not_implemented;
 }
 
 template <>
 aoclsparse_status aoclsparse_mv_general(aoclsparse_operation       op,
-                                         const float                alpha,
-                                         aoclsparse_matrix          A,
-                                         const aoclsparse_mat_descr descr,
-                                         const float*               x,
-                                         const float                beta,
-                                         float*                     y)
+                                        const float                alpha,
+                                        aoclsparse_matrix          A,
+                                        const aoclsparse_mat_descr descr,
+                                        const float               *x,
+                                        const float                beta,
+                                        float                     *y)
 {
     // ToDo: optimized float versions need to be implemented
     if(A->mat_type == aoclsparse_csr_mat)
@@ -163,7 +163,7 @@ aoclsparse_status aoclsparse_mv_general(aoclsparse_operation       op,
                                   A->m,
                                   A->n,
                                   A->nnz,
-                                  (float*)A->csr_mat.csr_val,
+                                  (float *)A->csr_mat.csr_val,
                                   A->csr_mat.csr_col_ptr,
                                   A->csr_mat.csr_row_ptr,
                                   descr,
@@ -179,12 +179,12 @@ aoclsparse_status aoclsparse_mv_general(aoclsparse_operation       op,
 
 template <>
 aoclsparse_status aoclsparse_mv_general(aoclsparse_operation       op,
-                                         const double               alpha,
-                                         aoclsparse_matrix          A,
-                                         const aoclsparse_mat_descr descr,
-                                         const double*              x,
-                                         const double               beta,
-                                         double*                    y)
+                                        const double               alpha,
+                                        aoclsparse_matrix          A,
+                                        const aoclsparse_mat_descr descr,
+                                        const double              *x,
+                                        const double               beta,
+                                        double                    *y)
 {
     if(A->mat_type == aoclsparse_csr_mat)
     {
@@ -194,7 +194,7 @@ aoclsparse_status aoclsparse_mv_general(aoclsparse_operation       op,
                                   A->m,
                                   A->n,
                                   A->nnz,
-                                  (double*)A->csr_mat.csr_val,
+                                  (double *)A->csr_mat.csr_val,
                                   A->csr_mat.csr_col_ptr,
                                   A->csr_mat.csr_row_ptr,
                                   descr,
@@ -209,11 +209,11 @@ aoclsparse_status aoclsparse_mv_general(aoclsparse_operation       op,
                                       A->m,
                                       A->n,
                                       A->nnz,
-                                      (double*)A->ell_csr_hyb_mat.ell_val,
+                                      (double *)A->ell_csr_hyb_mat.ell_val,
                                       A->ell_csr_hyb_mat.ell_col_ind,
                                       A->ell_csr_hyb_mat.ell_width,
                                       A->ell_csr_hyb_mat.ell_m,
-                                      (double*)A->ell_csr_hyb_mat.csr_val,
+                                      (double *)A->ell_csr_hyb_mat.csr_val,
                                       A->csr_mat.csr_row_ptr,
                                       A->csr_mat.csr_col_ptr,
                                       nullptr,
@@ -239,24 +239,24 @@ aoclsparse_status aoclsparse_mv_general(aoclsparse_operation       op,
  * ===========================================================================
  */
 extern "C" aoclsparse_status aoclsparse_smv(aoclsparse_operation       op,
-                                            const float*               alpha,
+                                            const float               *alpha,
                                             aoclsparse_matrix          A,
                                             const aoclsparse_mat_descr descr,
-                                            const float*               x,
-                                            const float*               beta,
-                                            float*                     y)
+                                            const float               *x,
+                                            const float               *beta,
+                                            float                     *y)
 {
     // All input checks are done in the templated version
     return aoclsparse_mv(op, *alpha, A, descr, x, *beta, y);
 }
 
 extern "C" aoclsparse_status aoclsparse_dmv(aoclsparse_operation       op,
-                                            const double*              alpha,
+                                            const double              *alpha,
                                             aoclsparse_matrix          A,
                                             const aoclsparse_mat_descr descr,
-                                            const double*              x,
-                                            const double*              beta,
-                                            double*                    y)
+                                            const double              *x,
+                                            const double              *beta,
+                                            double                    *y)
 {
     // All input checks are done in the templated version
     return aoclsparse_mv(op, *alpha, A, descr, x, *beta, y);

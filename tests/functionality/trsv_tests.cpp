@@ -46,18 +46,18 @@
 
 using namespace std;
 
-bool test_aoclsparse_trsv(const aoclsparse_int       testid,
-                          const string               testdesc,
-                          const double               alpha,
+bool test_aoclsparse_trsv(const aoclsparse_int        testid,
+                          const string                testdesc,
+                          const double                alpha,
                           aoclsparse_matrix          &A,
                           const aoclsparse_mat_descr &descr,
-                          const double*              b,
-                          double*                    x,
-                          const aoclsparse_operation trans,
-                          const aoclsparse_int       avxversion,
-                          const double*              xref,
-                          const double               tol,
-                          const aoclsparse_int       verbose)
+                          const double               *b,
+                          double                     *x,
+                          const aoclsparse_operation  trans,
+                          const aoclsparse_int        avxversion,
+                          const double               *xref,
+                          const double                tol,
+                          const aoclsparse_int        verbose)
 {
     aoclsparse_status ret;
     aoclsparse_int    n = A->n;
@@ -98,18 +98,18 @@ bool test_aoclsparse_trsv(const aoclsparse_int       testid,
 }
 
 bool get_data(const aoclsparse_int    id,
-              string&                 title,
-              aoclsparse_operation&   trans,
-              aoclsparse_matrix&      A,
-              aoclsparse_mat_descr&   descr,
-              double&                 alpha,
-              vector<double>&         b,
-              vector<double>&         x,
-              vector<double>&         xref,
-              double&                 xtol,
-              vector<aoclsparse_int>& icrowa,
-              vector<aoclsparse_int>& icola,
-              vector<double>&         aval)
+              string                 &title,
+              aoclsparse_operation   &trans,
+              aoclsparse_matrix      &A,
+              aoclsparse_mat_descr   &descr,
+              double                 &alpha,
+              vector<double>         &b,
+              vector<double>         &x,
+              vector<double>         &xref,
+              double                 &xtol,
+              vector<aoclsparse_int> &icrowa,
+              vector<aoclsparse_int> &icola,
+              vector<double>         &aval)
 {
     aoclsparse_int        n, nnz;
     aoclsparse_diag_type  diag;
@@ -224,7 +224,7 @@ bool get_data(const aoclsparse_int    id,
         else
             xref = {-0.5, 0.5, 8. / 3., 1.0, 1. / 7., 11. / 9., 0.75};
         // xref *= alpha;
-        transform(xref.begin(), xref.end(), xref.begin(), [alpha](double& d) { return alpha * d; });
+        transform(xref.begin(), xref.end(), xref.begin(), [alpha](double &d) { return alpha * d; });
         break;
 
     case 8: // small m test set
@@ -326,7 +326,7 @@ bool get_data(const aoclsparse_int    id,
             break;
         }
         alpha = 1.3334;
-        transform(xref.begin(), xref.end(), xref.begin(), [alpha](double& d) { return alpha * d; });
+        transform(xref.begin(), xref.end(), xref.begin(), [alpha](double &d) { return alpha * d; });
         n   = 7;
         nnz = 34;
         b.resize(n);
@@ -498,7 +498,7 @@ bool get_data(const aoclsparse_int    id,
         }
         xtol  = 5.e-4;
         alpha = 1.17;
-        transform(xref.begin(), xref.end(), xref.begin(), [alpha](double& d) { return alpha * d; });
+        transform(xref.begin(), xref.end(), xref.begin(), [alpha](double &d) { return alpha * d; });
         n   = 25;
         nnz = 335;
         b.resize(n);

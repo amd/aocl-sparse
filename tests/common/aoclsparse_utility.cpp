@@ -21,16 +21,17 @@
  *
  * ************************************************************************ */
 
-#include "aoclsparse_utility.hpp"
 #include "aoclsparse_random.hpp"
 #include "aoclsparse_test.hpp"
+#include "aoclsparse_utility.hpp"
+
 #include <cstdlib>
 #include <cstring>
 
-#if defined (_WIN32) || defined (_WIN64)
-    #include <windows.h>
+#if defined(_WIN32) || defined(_WIN64)
+#include <windows.h>
 #else
-    #include <time.h>
+#include <time.h>
 #endif
 
 // Random number generator
@@ -44,20 +45,22 @@ aoclsparse_rng_t aoclsparse_seed(aoclsparse_rng);
 std::string aoclsparse_exepath()
 {
     std::string pathstr;
-#if defined (_WIN32) || defined (_WIN64)
-    char* path = (char*) malloc(MAX_PATH * sizeof(char));
-    char*    pgmptr;
-    if (_get_pgmptr(&pgmptr) == 0) {
+#if defined(_WIN32) || defined(_WIN64)
+    char *path = (char *)malloc(MAX_PATH * sizeof(char));
+    char *pgmptr;
+    if(_get_pgmptr(&pgmptr) == 0)
+    {
         strcpy(path, pgmptr);
         pgmptr = NULL;
     }
-    else {
+    else
+    {
         free(path);
     }
 
     if(path)
     {
-        char* p = strrchr(path, '\\');
+        char *p = strrchr(path, '\\');
         if(p)
         {
             p[1]    = 0;
@@ -66,10 +69,10 @@ std::string aoclsparse_exepath()
         free(path);
     }
 #else
-    char*       path = realpath("/proc/self/exe", 0);
+    char *path = realpath("/proc/self/exe", 0);
     if(path)
     {
-        char* p = strrchr(path, '/');
+        char *p = strrchr(path, '/');
         if(p)
         {
             p[1]    = 0;
@@ -87,12 +90,12 @@ std::string aoclsparse_exepath()
 /*! \brief  CPU Timer(in second) return wall time */
 static double gtod_ref_time_sec = 0.0;
 
-double aoclsparse_clock( void )
+double aoclsparse_clock(void)
 {
     return aoclsparse_clock_helper();
 }
 
-double aoclsparse_clock_min_diff( double time_min, double time_start )
+double aoclsparse_clock_min_diff(double time_min, double time_start)
 {
     double time_min_prev;
     double time_diff;
@@ -102,14 +105,16 @@ double aoclsparse_clock_min_diff( double time_min, double time_start )
 
     time_diff = aoclsparse_clock() - time_start;
 
-    time_min = (std::min)( time_min, time_diff );
+    time_min = (std::min)(time_min, time_diff);
 
     // Assume that anything:
     // - under or equal to zero,
     // - under a nanosecond
     // is actually garbled due to the clocks being taken too closely together.
-    if      ( time_min <= 0.0    ) time_min = time_min_prev;
-    else if ( time_min <  1.0e-9 ) time_min = time_min_prev;
+    if(time_min <= 0.0)
+        time_min = time_min_prev;
+    else if(time_min < 1.0e-9)
+        time_min = time_min_prev;
 
     return time_min;
 }
@@ -124,21 +129,21 @@ double aoclsparse_clock_helper()
     LARGE_INTEGER clock_val;
     BOOL          r_val;
 
-    r_val = QueryPerformanceFrequency( &clock_freq );
+    r_val = QueryPerformanceFrequency(&clock_freq);
 
-    if ( r_val == 0 )
+    if(r_val == 0)
     {
         CHECK_AOCLSPARSE_ERROR(aoclsparse_status_internal_error);
     }
 
-    r_val = QueryPerformanceCounter( &clock_val );
+    r_val = QueryPerformanceCounter(&clock_val);
 
-    if ( r_val == 0 )
+    if(r_val == 0)
     {
         CHECK_AOCLSPARSE_ERROR(aoclsparse_status_internal_error);
     }
 
-    return ( ( double) clock_val.QuadPart / ( double) clock_freq.QuadPart );
+    return ((double)clock_val.QuadPart / (double)clock_freq.QuadPart);
 }
 
 // --- End Windows build definitions -------------------------------------------
@@ -150,12 +155,12 @@ double aoclsparse_clock_helper()
     double the_time, norm_sec;
     struct timespec ts;
 
-    clock_gettime( CLOCK_MONOTONIC, &ts );
+    clock_gettime(CLOCK_MONOTONIC, &ts);
 
-    if ( gtod_ref_time_sec == 0.0 )
-        gtod_ref_time_sec = ( double ) ts.tv_sec;
+    if(gtod_ref_time_sec == 0.0)
+        gtod_ref_time_sec = (double)ts.tv_sec;
 
-    norm_sec = ( double ) ts.tv_sec - gtod_ref_time_sec;
+    norm_sec = (double)ts.tv_sec - gtod_ref_time_sec;
 
     the_time = norm_sec + ts.tv_nsec * 1.0e-9;
 

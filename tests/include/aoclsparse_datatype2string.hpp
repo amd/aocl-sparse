@@ -25,7 +25,7 @@
 #ifndef AOCLSPARSE_DATATYPE2STRING_HPP
 #define AOCLSPARSE_DATATYPE2STRING_HPP
 
-#include <aoclsparse.h>
+#include "aoclsparse.h"
 
 typedef enum aoclsparse_datatype_
 {
@@ -37,9 +37,9 @@ typedef enum aoclsparse_datatype_
 
 typedef enum aoclsparse_matrix_init_
 {
-    aoclsparse_matrix_random          = 0, /**< Random initialization */
-    aoclsparse_matrix_file_mtx        = 1, /**< Read from .mtx (matrix market) file */
-    aoclsparse_matrix_file_bin        = 2 /**< Read from .csr (csr binary) file */
+    aoclsparse_matrix_random   = 0, /**< Random initialization */
+    aoclsparse_matrix_file_mtx = 1, /**< Read from .mtx (matrix market) file */
+    aoclsparse_matrix_file_bin = 2 /**< Read from .csr (csr binary) file */
 } aoclsparse_matrix_init;
 
 constexpr auto aoclsparse_matrix2string(aoclsparse_matrix_init matrix)
@@ -73,6 +73,5 @@ constexpr auto aoclsparse_datatype2string(aoclsparse_datatype type)
         return "invalid";
     }
 }
-
 
 #endif // AOCLSPARSE_DATATYPE2STRING_HPP

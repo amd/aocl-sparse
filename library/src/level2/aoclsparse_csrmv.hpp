@@ -23,10 +23,11 @@
 #ifndef AOCLSPARSE_CSRMV_HPP
 #define AOCLSPARSE_CSRMV_HPP
 
-#include <immintrin.h>
 #include "aoclsparse.h"
-#include "aoclsparse_descr.h"
 #include "aoclsparse_context.h"
+#include "aoclsparse_descr.h"
+
+#include <immintrin.h>
 
 #if defined(_WIN32) || defined(_WIN64)
 //Windows equivalent of gcc c99 type qualifier __restrict__
@@ -38,56 +39,57 @@ aoclsparse_status aoclsparse_csrmv_vectorized(const T        alpha,
                                               aoclsparse_int m,
                                               aoclsparse_int n,
                                               aoclsparse_int nnz,
-                                              const T* __restrict__ csr_val,
-                                              const aoclsparse_int* __restrict__ csr_col_ind,
-                                              const aoclsparse_int* __restrict__ csr_row_ptr,
-                                              const T* __restrict__ x,
+                                              const T *__restrict__ csr_val,
+                                              const aoclsparse_int *__restrict__ csr_col_ind,
+                                              const aoclsparse_int *__restrict__ csr_row_ptr,
+                                              const T *__restrict__ x,
                                               const T beta,
-                                              T* __restrict__ y,
-                                              aoclsparse_context* context);
+                                              T *__restrict__ y,
+                                              aoclsparse_context *context);
 
 template <typename T>
 aoclsparse_status aoclsparse_csrmv_vectorized_avx2(const T        alpha,
-                                              aoclsparse_int m,
-                                              aoclsparse_int n,
-                                              aoclsparse_int nnz,
-                                              const T* __restrict__ csr_val,
-                                              const aoclsparse_int* __restrict__ csr_col_ind,
-                                              const aoclsparse_int* __restrict__ csr_row_ptr,
-                                              const T* __restrict__ x,
-                                              const T beta,
-                                              T* __restrict__ y,
-                                              aoclsparse_context* context);
+                                                   aoclsparse_int m,
+                                                   aoclsparse_int n,
+                                                   aoclsparse_int nnz,
+                                                   const T *__restrict__ csr_val,
+                                                   const aoclsparse_int *__restrict__ csr_col_ind,
+                                                   const aoclsparse_int *__restrict__ csr_row_ptr,
+                                                   const T *__restrict__ x,
+                                                   const T beta,
+                                                   T *__restrict__ y,
+                                                   aoclsparse_context *context);
 
 template <typename T>
 aoclsparse_status aoclsparse_csrmv_vectorized_avx512(const T        alpha,
-                                              aoclsparse_int m,
-                                              aoclsparse_int n,
-                                              aoclsparse_int nnz,
-                                              const T* __restrict__ csr_val,
-                                              const aoclsparse_int* __restrict__ csr_col_ind,
-                                              const aoclsparse_int* __restrict__ csr_row_ptr,
-                                              const T* __restrict__ x,
-                                              const T beta,
-                                              T* __restrict__ y,
-                                              aoclsparse_context* context);
+                                                     aoclsparse_int m,
+                                                     aoclsparse_int n,
+                                                     aoclsparse_int nnz,
+                                                     const T *__restrict__ csr_val,
+                                                     const aoclsparse_int *__restrict__ csr_col_ind,
+                                                     const aoclsparse_int *__restrict__ csr_row_ptr,
+                                                     const T *__restrict__ x,
+                                                     const T beta,
+                                                     T *__restrict__ y,
+                                                     aoclsparse_context *context);
 
 template <typename T>
 aoclsparse_status aoclsparse_csrmv_general(const T        alpha,
                                            aoclsparse_int m,
                                            aoclsparse_int n,
                                            aoclsparse_int nnz,
-                                           const T* __restrict__ csr_val,
-                                           const aoclsparse_int* __restrict__ csr_col_ind,
-                                           const aoclsparse_int* __restrict__ csr_row_ptr,
-                                           const T* __restrict__ x,
+                                           const T *__restrict__ csr_val,
+                                           const aoclsparse_int *__restrict__ csr_col_ind,
+                                           const aoclsparse_int *__restrict__ csr_row_ptr,
+                                           const T *__restrict__ x,
                                            const T beta,
-                                           T* __restrict__ y,
-                                           aoclsparse_context* context)
+                                           T *__restrict__ y,
+                                           aoclsparse_context *context)
 {
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(context->num_threads) schedule(dynamic, m / context->num_threads)
+#pragma omp parallel for num_threads(context->num_threads) \
+    schedule(dynamic, m / context->num_threads)
 #endif
     // Iterate over each row of the input matrix and
     // Perform matrix-vector product for each non-zero of the ith row
@@ -123,12 +125,12 @@ aoclsparse_status aoclsparse_csrmv_symm(const T        alpha,
                                         aoclsparse_int m,
                                         aoclsparse_int n,
                                         aoclsparse_int nnz,
-                                        const T* __restrict__ csr_val,
-                                        const aoclsparse_int* __restrict__ csr_col_ind,
-                                        const aoclsparse_int* __restrict__ csr_row_ptr,
-                                        const T* __restrict__ x,
+                                        const T *__restrict__ csr_val,
+                                        const aoclsparse_int *__restrict__ csr_col_ind,
+                                        const aoclsparse_int *__restrict__ csr_row_ptr,
+                                        const T *__restrict__ x,
                                         const T beta,
-                                        T* __restrict__ y)
+                                        T *__restrict__ y)
 {
     // Perform (beta * y)
     if(beta != static_cast<double>(1))
@@ -183,14 +185,14 @@ aoclsparse_status aoclsparse_csrmv_symm_internal(T                    alpha,
                                                  aoclsparse_int       m,
                                                  aoclsparse_diag_type diag_type,
                                                  aoclsparse_fill_mode fill_mode,
-                                                 const T* __restrict__ csr_val,
-                                                 const aoclsparse_int* __restrict__ csr_icol,
-                                                 const aoclsparse_int* __restrict__ csr_icrow,
-                                                 const aoclsparse_int* __restrict__ csr_idiag,
-                                                 const aoclsparse_int* __restrict__ csr_iurow,
-                                                 const T* __restrict__ x,
+                                                 const T *__restrict__ csr_val,
+                                                 const aoclsparse_int *__restrict__ csr_icol,
+                                                 const aoclsparse_int *__restrict__ csr_icrow,
+                                                 const aoclsparse_int *__restrict__ csr_idiag,
+                                                 const aoclsparse_int *__restrict__ csr_iurow,
+                                                 const T *__restrict__ x,
                                                  T beta,
-                                                 T* __restrict__ y)
+                                                 T *__restrict__ y)
 {
     // TODO test pointers & etc? Perhaps not needed, this will be called above optimized data
     // so probably just what came from the user, i.e., x & y?

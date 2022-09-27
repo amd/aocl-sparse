@@ -21,14 +21,15 @@
  *
  * ************************************************************************ */
 
-#include "aoclsparse_descr.h"
 #include "aoclsparse.h"
+#include "aoclsparse_descr.h"
 #include "aoclsparse_mat_structures.h"
 #include "aoclsparse_types.h"
-#include "aoclsparse_optimize_data.hpp"
 #include "aoclsparse_auxiliary.hpp"
-#include <string>
+#include "aoclsparse_optimize_data.hpp"
+
 #include <cstring>
+#include <string>
 
 #define VERSION_MAKE_STR(x) _VERSION_MAKE_STR(x)
 #define _VERSION_MAKE_STR(x) #x
@@ -40,17 +41,14 @@ extern "C" {
 /********************************************************************************
  * \brief Get aoclsparse version
  *******************************************************************************/
-char * aoclsparse_get_version()
+char *aoclsparse_get_version()
 {
-    std::string build_date(VERSION_MAKE_STR(AOCL_SPARSE_BUILD_DATE)); 
-    std::string ver = "AOCL-Sparse " + 
-                      std::to_string(AOCLSPARSE_VERSION_MAJOR) + "."
+    std::string build_date(VERSION_MAKE_STR(AOCL_SPARSE_BUILD_DATE));
+    std::string ver = "AOCL-Sparse " + std::to_string(AOCLSPARSE_VERSION_MAJOR) + "."
                       + std::to_string(AOCLSPARSE_VERSION_MINOR) + "."
-                      + std::to_string(AOCLSPARSE_VERSION_PATCH)
-                      + " Build "
-                      + build_date;
+                      + std::to_string(AOCLSPARSE_VERSION_PATCH) + " Build " + build_date;
 
-    char* version = strcpy(new char[ver.length() + 1], ver.c_str());
+    char *version = strcpy(new char[ver.length() + 1], ver.c_str());
     return version;
 }
 
@@ -61,7 +59,7 @@ char * aoclsparse_get_version()
  * calls that involve the matrix.
  * It should be destroyed at the end using aoclsparse_destroy_mat_descr().
  *******************************************************************************/
-aoclsparse_status aoclsparse_create_mat_descr(aoclsparse_mat_descr* descr)
+aoclsparse_status aoclsparse_create_mat_descr(aoclsparse_mat_descr *descr)
 {
     if(descr == nullptr)
     {
@@ -74,7 +72,7 @@ aoclsparse_status aoclsparse_create_mat_descr(aoclsparse_mat_descr* descr)
         {
             *descr = new _aoclsparse_mat_descr;
         }
-        catch(const aoclsparse_status& status)
+        catch(const aoclsparse_status &status)
         {
             return status;
         }
@@ -85,7 +83,8 @@ aoclsparse_status aoclsparse_create_mat_descr(aoclsparse_mat_descr* descr)
 /********************************************************************************
  * \brief copy matrix descriptor
  *******************************************************************************/
-aoclsparse_status aoclsparse_copy_mat_descr(aoclsparse_mat_descr dest, const aoclsparse_mat_descr src)
+aoclsparse_status aoclsparse_copy_mat_descr(aoclsparse_mat_descr       dest,
+                                            const aoclsparse_mat_descr src)
 {
     if(dest == nullptr)
     {
@@ -114,7 +113,7 @@ aoclsparse_status aoclsparse_destroy_mat_descr(aoclsparse_mat_descr descr)
     {
         delete descr;
     }
-    catch(const aoclsparse_status& status)
+    catch(const aoclsparse_status &status)
     {
         return status;
     }
@@ -124,7 +123,8 @@ aoclsparse_status aoclsparse_destroy_mat_descr(aoclsparse_mat_descr descr)
 /********************************************************************************
  * \brief Set the index base of the matrix descriptor.
  *******************************************************************************/
-aoclsparse_status aoclsparse_set_mat_index_base(aoclsparse_mat_descr descr, aoclsparse_index_base base)
+aoclsparse_status aoclsparse_set_mat_index_base(aoclsparse_mat_descr  descr,
+                                                aoclsparse_index_base base)
 {
     // Check if descriptor is valid
     if(descr == nullptr)
@@ -185,7 +185,7 @@ aoclsparse_matrix_type aoclsparse_get_mat_type(const aoclsparse_mat_descr descr)
 }
 
 aoclsparse_status aoclsparse_set_mat_fill_mode(aoclsparse_mat_descr descr,
-                                             aoclsparse_fill_mode fill_mode)
+                                               aoclsparse_fill_mode fill_mode)
 {
     // Check if descriptor is valid
     if(descr == nullptr)
@@ -211,7 +211,7 @@ aoclsparse_fill_mode aoclsparse_get_mat_fill_mode(const aoclsparse_mat_descr des
 }
 
 aoclsparse_status aoclsparse_set_mat_diag_type(aoclsparse_mat_descr descr,
-                                             aoclsparse_diag_type diag_type)
+                                               aoclsparse_diag_type diag_type)
 {
     // Check if descriptor is valid
     if(descr == nullptr)
@@ -239,48 +239,51 @@ aoclsparse_diag_type aoclsparse_get_mat_diag_type(const aoclsparse_mat_descr des
 /********************************************************************************
  * \brief aoclsparse_create_scsr sets the sparse matrix in the csr format.
  ********************************************************************************/
-aoclsparse_status aoclsparse_create_scsr(aoclsparse_matrix &mat,
-                    aoclsparse_index_base   base,
-                    aoclsparse_int          M,
-                    aoclsparse_int          N,
-                    aoclsparse_int          csr_nnz,
-                    aoclsparse_int*         csr_row_ptr,
-                    aoclsparse_int*         csr_col_ptr,
-                    float*                   csr_val)
+aoclsparse_status aoclsparse_create_scsr(aoclsparse_matrix    &mat,
+                                         aoclsparse_index_base base,
+                                         aoclsparse_int        M,
+                                         aoclsparse_int        N,
+                                         aoclsparse_int        csr_nnz,
+                                         aoclsparse_int       *csr_row_ptr,
+                                         aoclsparse_int       *csr_col_ptr,
+                                         float                *csr_val)
 {
 
     // Validate the input parameters
-    if (M < 0 || N < 0) {
-      return aoclsparse_status_invalid_size;
+    if(M < 0 || N < 0)
+    {
+        return aoclsparse_status_invalid_size;
     }
-    if (csr_row_ptr == nullptr)
+    if(csr_row_ptr == nullptr)
         return aoclsparse_status_invalid_pointer;
-    if (csr_col_ptr == nullptr)
+    if(csr_col_ptr == nullptr)
         return aoclsparse_status_invalid_pointer;
-    if (csr_val == nullptr)
+    if(csr_val == nullptr)
         return aoclsparse_status_invalid_pointer;
 
     // check if the column indicies are within bounds
-    for(aoclsparse_int i = 0; i < M; i++) {
-       for(aoclsparse_int j =  csr_row_ptr[i] ; j < csr_row_ptr[i + 1] ; j++ ) {
-          if ((csr_col_ptr[j] >= (N+base)) || (csr_col_ptr[j] < base))
-                  return aoclsparse_status_invalid_index_value;
-       }
+    for(aoclsparse_int i = 0; i < M; i++)
+    {
+        for(aoclsparse_int j = csr_row_ptr[i]; j < csr_row_ptr[i + 1]; j++)
+        {
+            if((csr_col_ptr[j] >= (N + base)) || (csr_col_ptr[j] < base))
+                return aoclsparse_status_invalid_index_value;
+        }
     }
-	
+
     // Default values
     mat = new _aoclsparse_matrix;
     aoclsparse_init_csrmat(mat);
-    mat->m = M;
-    mat->n = N;
-    mat->nnz = csr_nnz;
-    mat->base = base;
-    mat->val_type = aoclsparse_smat;
+    mat->m                   = M;
+    mat->n                   = N;
+    mat->nnz                 = csr_nnz;
+    mat->base                = base;
+    mat->val_type            = aoclsparse_smat;
     mat->csr_mat.csr_row_ptr = csr_row_ptr;
     mat->csr_mat.csr_col_ptr = csr_col_ptr;
-    mat->csr_mat.csr_val = csr_val;
-    mat->csr_mat_is_users = true;
-    mat->opt_csr_is_users = true;
+    mat->csr_mat.csr_val     = csr_val;
+    mat->csr_mat_is_users    = true;
+    mat->opt_csr_is_users    = true;
 
     return aoclsparse_status_success;
 }
@@ -288,65 +291,66 @@ aoclsparse_status aoclsparse_create_scsr(aoclsparse_matrix &mat,
 /********************************************************************************
  * \brief aoclsparse_create_dcsr sets the sparse matrix in the csr format.
  ********************************************************************************/
-aoclsparse_status aoclsparse_create_dcsr(aoclsparse_matrix &mat,
-                    aoclsparse_index_base   base,
-                    aoclsparse_int          M,
-                    aoclsparse_int          N,
-                    aoclsparse_int          csr_nnz,
-                    aoclsparse_int*         csr_row_ptr,
-                    aoclsparse_int*         csr_col_ptr,
-                    double*                   csr_val)
+aoclsparse_status aoclsparse_create_dcsr(aoclsparse_matrix    &mat,
+                                         aoclsparse_index_base base,
+                                         aoclsparse_int        M,
+                                         aoclsparse_int        N,
+                                         aoclsparse_int        csr_nnz,
+                                         aoclsparse_int       *csr_row_ptr,
+                                         aoclsparse_int       *csr_col_ptr,
+                                         double               *csr_val)
 {
 
     // Validate the input parameters
-    if (M < 0 || N < 0) {
-      return aoclsparse_status_invalid_size;
+    if(M < 0 || N < 0)
+    {
+        return aoclsparse_status_invalid_size;
     }
-    if (csr_row_ptr == nullptr)
-	return aoclsparse_status_invalid_pointer;
-    if (csr_col_ptr == nullptr)
+    if(csr_row_ptr == nullptr)
         return aoclsparse_status_invalid_pointer;
-    if (csr_val == nullptr)
+    if(csr_col_ptr == nullptr)
+        return aoclsparse_status_invalid_pointer;
+    if(csr_val == nullptr)
         return aoclsparse_status_invalid_pointer;
 
     // check if the column indicies are within bounds
-    for(aoclsparse_int i = 0; i < M; i++) {
-       for(aoclsparse_int j =  csr_row_ptr[i] ; j < csr_row_ptr[i + 1] ; j++ ) {
-          if ((csr_col_ptr[j] >= (N+base)) || (csr_col_ptr[j] < base))
-		  return aoclsparse_status_invalid_index_value; 
-       }
+    for(aoclsparse_int i = 0; i < M; i++)
+    {
+        for(aoclsparse_int j = csr_row_ptr[i]; j < csr_row_ptr[i + 1]; j++)
+        {
+            if((csr_col_ptr[j] >= (N + base)) || (csr_col_ptr[j] < base))
+                return aoclsparse_status_invalid_index_value;
+        }
     }
     mat = new _aoclsparse_matrix;
     aoclsparse_init_csrmat(mat);
-    mat->m = M;
-    mat->n = N;
-    mat->nnz = csr_nnz;
-    mat->base = base;
+    mat->m                   = M;
+    mat->n                   = N;
+    mat->nnz                 = csr_nnz;
+    mat->base                = base;
     mat->csr_mat.csr_row_ptr = csr_row_ptr;
     mat->csr_mat.csr_col_ptr = csr_col_ptr;
-    mat->csr_mat.csr_val = csr_val;
-    mat->csr_mat_is_users = true;
-    mat->opt_csr_is_users = true;
+    mat->csr_mat.csr_val     = csr_val;
+    mat->csr_mat_is_users    = true;
+    mat->opt_csr_is_users    = true;
 
     return aoclsparse_status_success;
 }
-
 
 /********************************************************************************
  * \brief aoclsparse_create_ell sets the sparse matrix in the ell format.
  * This function can be called after the matrix "mat" is initialized.
  ********************************************************************************/
 aoclsparse_status aoclsparse_create_ell(aoclsparse_matrix mat,
-		            aoclsparse_int          ell_width,
-                    aoclsparse_int*         ell_col_ind,
-                    void*                   ell_val)
+                                        aoclsparse_int    ell_width,
+                                        aoclsparse_int   *ell_col_ind,
+                                        void             *ell_val)
 {
-    mat->ell_mat.ell_width = ell_width;
+    mat->ell_mat.ell_width   = ell_width;
     mat->ell_mat.ell_col_ind = ell_col_ind;
-    mat->ell_mat.ell_val = ell_val;
+    mat->ell_mat.ell_val     = ell_val;
     return aoclsparse_status_success;
 }
-
 
 /********************************************************************************
  * \brief aoclsparse_create_ell_csr_hyb sets the sparse matrix in the hybrid format.
@@ -354,47 +358,45 @@ aoclsparse_status aoclsparse_create_ell(aoclsparse_matrix mat,
  * initializes the csr format by default)
  ********************************************************************************/
 aoclsparse_status aoclsparse_create_ell_csr_hyb(aoclsparse_matrix mat,
-                    aoclsparse_int          ell_width,
-                    aoclsparse_int          ell_m,
-                    aoclsparse_int*         ell_col_ind,
-                    aoclsparse_int*         csr_row_id_map,
-                    void*                   ell_val)
+                                                aoclsparse_int    ell_width,
+                                                aoclsparse_int    ell_m,
+                                                aoclsparse_int   *ell_col_ind,
+                                                aoclsparse_int   *csr_row_id_map,
+                                                void             *ell_val)
 {
-    mat->ell_csr_hyb_mat.ell_width = ell_width;
-    mat->ell_csr_hyb_mat.ell_m = ell_m;
-    mat->ell_csr_hyb_mat.ell_col_ind = ell_col_ind;
-    mat->ell_csr_hyb_mat.ell_val = ell_val;
+    mat->ell_csr_hyb_mat.ell_width      = ell_width;
+    mat->ell_csr_hyb_mat.ell_m          = ell_m;
+    mat->ell_csr_hyb_mat.ell_col_ind    = ell_col_ind;
+    mat->ell_csr_hyb_mat.ell_val        = ell_val;
     mat->ell_csr_hyb_mat.csr_row_id_map = csr_row_id_map;
-    mat->ell_csr_hyb_mat.csr_col_ptr = mat->csr_mat.csr_col_ptr;
-    mat->ell_csr_hyb_mat.csr_val = mat->csr_mat.csr_val;
+    mat->ell_csr_hyb_mat.csr_col_ptr    = mat->csr_mat.csr_col_ptr;
+    mat->ell_csr_hyb_mat.csr_val        = mat->csr_mat.csr_val;
 
     return aoclsparse_status_success;
 }
-
 
 /********************************************************************************
  * \brief aoclsparse_matrix is a structure holding the aoclsparse csr matrix.
  * Use this routine to export the contents of this straucture
  ********************************************************************************/
-aoclsparse_status aoclsparse_export_mat_csr(aoclsparse_matrix &csr,
-	aoclsparse_index_base   *base,
-	aoclsparse_int          *M,
-	aoclsparse_int          *N,
-	aoclsparse_int          *csr_nnz,
-	aoclsparse_int*         *csr_row_ptr,
-	aoclsparse_int*         *csr_col_ind,
-	void*                   *csr_val)
+aoclsparse_status aoclsparse_export_mat_csr(aoclsparse_matrix     &csr,
+                                            aoclsparse_index_base *base,
+                                            aoclsparse_int        *M,
+                                            aoclsparse_int        *N,
+                                            aoclsparse_int        *csr_nnz,
+                                            aoclsparse_int       **csr_row_ptr,
+                                            aoclsparse_int       **csr_col_ind,
+                                            void                 **csr_val)
 {
-    *M = csr->m ;
-    *N = csr->n ;
-    *csr_nnz = csr->nnz ;
-    *csr_row_ptr = csr->csr_mat.csr_row_ptr ;
-    *csr_col_ind = csr->csr_mat.csr_col_ptr ;
-    *csr_val = csr->csr_mat.csr_val ;
-    *base = aoclsparse_index_base_zero;
+    *M           = csr->m;
+    *N           = csr->n;
+    *csr_nnz     = csr->nnz;
+    *csr_row_ptr = csr->csr_mat.csr_row_ptr;
+    *csr_col_ind = csr->csr_mat.csr_col_ptr;
+    *csr_val     = csr->csr_mat.csr_val;
+    *base        = aoclsparse_index_base_zero;
     return aoclsparse_status_success;
 }
-
 
 /********************************************************************************
  * \brief aoclsparse_matrix is a structure holding the sparse matrix A in CSR,
@@ -404,7 +406,7 @@ aoclsparse_status aoclsparse_export_mat_csr(aoclsparse_matrix &csr,
 aoclsparse_status aoclsparse_destroy_mv(aoclsparse_matrix A)
 {
 
-    if (A->mat_type == aoclsparse_ellt_csr_hyb_mat)     // // ELL-CSR-HYB
+    if(A->mat_type == aoclsparse_ellt_csr_hyb_mat) // // ELL-CSR-HYB
     {
         aoclsparse_ell_csr_hyb ell_csr_hyb_mat = &(A->ell_csr_hyb_mat);
 
@@ -424,7 +426,7 @@ aoclsparse_status aoclsparse_destroy_mv(aoclsparse_matrix A)
             ell_csr_hyb_mat->csr_row_id_map = NULL;
         }
     }
-    else if (A->mat_type == aoclsparse_csr_mat_br4) // vectorized csr blocked format for AVX2
+    else if(A->mat_type == aoclsparse_csr_mat_br4) // vectorized csr blocked format for AVX2
     {
         aoclsparse_csr csr_mat_br4 = &(A->csr_mat_br4);
 
@@ -453,7 +455,7 @@ aoclsparse_status aoclsparse_destroy_mv(aoclsparse_matrix A)
  *******************************************************************************/
 aoclsparse_status aoclsparse_destroy_2m(aoclsparse_matrix A)
 {
-    if (!A->csr_mat_is_users)
+    if(!A->csr_mat_is_users)
     {
         if(A->csr_mat.csr_row_ptr != NULL)
         {
@@ -497,7 +499,7 @@ aoclsparse_status aoclsparse_destroy_ilu(_aoclsparse_ilu *ilu_info)
         {
             free(ilu_info->precond_csr_val);
             ilu_info->precond_csr_val = NULL;
-        }   		
+        }
         ilu_info = NULL;
     }
     return aoclsparse_status_success;
@@ -505,18 +507,18 @@ aoclsparse_status aoclsparse_destroy_ilu(_aoclsparse_ilu *ilu_info)
 
 aoclsparse_status aoclsparse_destroy_opt_csr(aoclsparse_matrix A)
 {
-    if (!A->opt_csr_is_users)
+    if(!A->opt_csr_is_users)
     {
-        if (A->opt_csr_mat.csr_col_ptr)
+        if(A->opt_csr_mat.csr_col_ptr)
             free(A->opt_csr_mat.csr_col_ptr);
-        if (A->opt_csr_mat.csr_row_ptr)
+        if(A->opt_csr_mat.csr_row_ptr)
             free(A->opt_csr_mat.csr_row_ptr);
-        if (A->opt_csr_mat.csr_val)
+        if(A->opt_csr_mat.csr_val)
             free(A->opt_csr_mat.csr_val);
     }
-    if (A->idiag)
+    if(A->idiag)
         free(A->idiag);
-    if (A->iurow)
+    if(A->iurow)
         free(A->iurow);
     return aoclsparse_status_success;
 }
@@ -530,9 +532,9 @@ aoclsparse_status aoclsparse_destroy_opt_csr(aoclsparse_matrix A)
 aoclsparse_status aoclsparse_destroy(aoclsparse_matrix &A)
 {
     aoclsparse_status ret = aoclsparse_status_success;
-    aoclsparse_int mv_hint, trsv_hint, mm_hint, twom_hint, ilu_hint;
+    aoclsparse_int    mv_hint, trsv_hint, mm_hint, twom_hint, ilu_hint;
 
-    if (A)
+    if(A)
     {
         aoclsparse_optimize_destroy(A->optim_data);
         aoclsparse_destroy_opt_csr(A);
@@ -552,18 +554,18 @@ aoclsparse_status aoclsparse_destroy(aoclsparse_matrix &A)
 void aoclsparse_init_csrmat(aoclsparse_matrix A)
 {
     // Default values for CSR matrices
-    if (!A)
+    if(!A)
         return;
-    
-    A->optimized = false;
-    A->base = aoclsparse_index_base_zero;
-    A->val_type = aoclsparse_dmat;
-    A->mat_type = aoclsparse_csr_mat;
-    A->optim_data = nullptr;
-    A->csr_mat_is_users = true;
+
+    A->optimized               = false;
+    A->base                    = aoclsparse_index_base_zero;
+    A->val_type                = aoclsparse_dmat;
+    A->mat_type                = aoclsparse_csr_mat;
+    A->optim_data              = nullptr;
+    A->csr_mat_is_users        = true;
     A->ilu_info.col_idx_mapper = nullptr;
-    A->ilu_info.lu_diag_ptr = nullptr;
-    A->opt_csr_ready = false;
-    A->idiag=nullptr;
-    A->iurow=nullptr;
+    A->ilu_info.lu_diag_ptr    = nullptr;
+    A->opt_csr_ready           = false;
+    A->idiag                   = nullptr;
+    A->iurow                   = nullptr;
 }

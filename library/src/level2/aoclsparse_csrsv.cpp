@@ -31,14 +31,14 @@
  */
 
 extern "C" aoclsparse_status aoclsparse_scsrsv(aoclsparse_operation       trans,
-                                              const float*                alpha,
-                                              aoclsparse_int              m,
-                                              const float*                csr_val,
-                                              const aoclsparse_int*       csr_col_ind,
-                                              const aoclsparse_int*       csr_row_ptr,
-                                              const aoclsparse_mat_descr  descr,
-                                              const float*                x,
-                                              float*                      y )
+                                               const float               *alpha,
+                                               aoclsparse_int             m,
+                                               const float               *csr_val,
+                                               const aoclsparse_int      *csr_col_ind,
+                                               const aoclsparse_int      *csr_row_ptr,
+                                               const aoclsparse_mat_descr descr,
+                                               const float               *x,
+                                               float                     *y)
 {
     if(descr == nullptr)
     {
@@ -52,7 +52,8 @@ extern "C" aoclsparse_status aoclsparse_scsrsv(aoclsparse_operation       trans,
         return aoclsparse_status_not_implemented;
     }
 
-    if((descr->type != aoclsparse_matrix_type_general) && (descr->type != aoclsparse_matrix_type_symmetric))
+    if((descr->type != aoclsparse_matrix_type_general)
+       && (descr->type != aoclsparse_matrix_type_symmetric))
     {
         // TODO
         return aoclsparse_status_not_implemented;
@@ -71,7 +72,7 @@ extern "C" aoclsparse_status aoclsparse_scsrsv(aoclsparse_operation       trans,
     }
 
     // Quick return if possible
-    if(m == 0 )
+    if(m == 0)
     {
         return aoclsparse_status_success;
     }
@@ -97,25 +98,18 @@ extern "C" aoclsparse_status aoclsparse_scsrsv(aoclsparse_operation       trans,
     {
         return aoclsparse_status_invalid_pointer;
     }
-    return aoclsparse_csrsv_template(*alpha,
-            m,
-            csr_val,
-            csr_col_ind,
-            csr_row_ptr,
-            descr,
-            x,
-            y);
+    return aoclsparse_csrsv_template(*alpha, m, csr_val, csr_col_ind, csr_row_ptr, descr, x, y);
 }
 
 extern "C" aoclsparse_status aoclsparse_dcsrsv(aoclsparse_operation       trans,
-                                              const double*               alpha,
-                                              aoclsparse_int              m,
-                                              const double*               csr_val,
-                                              const aoclsparse_int*       csr_col_ind,
-                                              const aoclsparse_int*       csr_row_ptr,
-                                              const aoclsparse_mat_descr  descr,
-                                              const double*               x,
-                                              double*                     y )
+                                               const double              *alpha,
+                                               aoclsparse_int             m,
+                                               const double              *csr_val,
+                                               const aoclsparse_int      *csr_col_ind,
+                                               const aoclsparse_int      *csr_row_ptr,
+                                               const aoclsparse_mat_descr descr,
+                                               const double              *x,
+                                               double                    *y)
 {
     if(descr == nullptr)
     {
@@ -129,7 +123,8 @@ extern "C" aoclsparse_status aoclsparse_dcsrsv(aoclsparse_operation       trans,
         return aoclsparse_status_not_implemented;
     }
 
-    if((descr->type != aoclsparse_matrix_type_general) && (descr->type != aoclsparse_matrix_type_symmetric))
+    if((descr->type != aoclsparse_matrix_type_general)
+       && (descr->type != aoclsparse_matrix_type_symmetric))
     {
         // TODO
         return aoclsparse_status_not_implemented;
@@ -148,7 +143,7 @@ extern "C" aoclsparse_status aoclsparse_dcsrsv(aoclsparse_operation       trans,
     }
 
     // Quick return if possible
-    if(m == 0 )
+    if(m == 0)
     {
         return aoclsparse_status_success;
     }
@@ -174,13 +169,5 @@ extern "C" aoclsparse_status aoclsparse_dcsrsv(aoclsparse_operation       trans,
     {
         return aoclsparse_status_invalid_pointer;
     }
-    return aoclsparse_csrsv_template(*alpha,
-            m,
-            csr_val,
-            csr_col_ind,
-            csr_row_ptr,
-            descr,
-            x,
-            y);
+    return aoclsparse_csrsv_template(*alpha, m, csr_val, csr_col_ind, csr_row_ptr, descr, x, y);
 }
-
