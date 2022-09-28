@@ -20,7 +20,7 @@ typedef struct
 
 /* Define itsol callbacks */
 template <typename T>
-aoclsparse_int precond(aoclsparse_int flag, const T *u, T *v, void *udata)
+aoclsparse_int precond(aoclsparse_int flag, aoclsparse_int n, const T *u, T *v, void *udata)
 {
     user_data *ud = (user_data *)udata;
 
@@ -39,7 +39,7 @@ aoclsparse_int precond(aoclsparse_int flag, const T *u, T *v, void *udata)
 }
 
 template <typename T>
-aoclsparse_int monit(const T *x, const T *r, T rinfo[100], void *udata)
+aoclsparse_int monit(aoclsparse_int n, const T *x, const T *r, T rinfo[100], void *udata)
 {
     aoclsparse_int itest;
     user_data     *ud = (user_data *)udata;

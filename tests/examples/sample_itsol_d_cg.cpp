@@ -28,10 +28,9 @@
 #include <math.h>
 #include <vector>
 
-aoclsparse_int monit(const double *x, const double *r, double *rinfo, void *udata)
+aoclsparse_int monit(aoclsparse_int n, const double *x, const double *r, double *rinfo, void *udata)
 {
     int                     it  = (int)rinfo[30];
-    int                     n   = *(int *)(udata);
     std::ios_base::fmtflags fmt = std::cout.flags();
     fmt |= std::ios_base::scientific | std::ios_base::right | std::ios_base::showpos;
     if(!(it % 10))

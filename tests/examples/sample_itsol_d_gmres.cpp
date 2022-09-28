@@ -61,10 +61,9 @@ double calculate_l2Norm_solvers(const double *xvRef, const double *xvTest, aocls
     return norm;
 }
 
-aoclsparse_int monit(const double *x, const double *r, double *rinfo, void *udata)
+aoclsparse_int monit(aoclsparse_int n, const double *x, const double *r, double *rinfo, void *udata)
 {
     int    it  = (int)rinfo[30];
-    int    n   = *(int *)(udata);
     double tol = DOUBLE_PRECISION_TOLERANCE;
 
     if(rinfo[0] < tol || it >= 50) // check for premature stop

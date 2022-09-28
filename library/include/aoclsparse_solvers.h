@@ -311,7 +311,7 @@ aoclsparse_status
  *                process. If there is no good initial estimate guess then any arbitrary but finite 
  *                values can be used. On output, it contains an estimate to the solution of the linear system of equations up 
  *                to the requested tolerance, e.g. see "cg rel tolerance" or "cg abs tolerance" in \ref anchor_itsol_options.
- * @param [out] rinfo (optional, can be nullptr) vector containing information and stats related to the iterative solve, see 
+ * @param [out] rinfo vector containing information and stats related to the iterative solve, see 
  *                \ref anchor_rinfo. This parameter can be used to monitor progress and define a custom stopping criterion when 
  *               the solver returns control to user with \p ircomm = \ref aoclsparse_rci_stopping_criterion.
  * 
@@ -373,20 +373,21 @@ aoclsparse_status aoclsparse_itsol_s_rci_solve(aoclsparse_itsol_handle   handle,
  *                process. If there is no good initial estimate guess then any arbitrary but finite 
  *                values can be used. On output, it contains an estimate to the solution of the linear system of equations up 
  *                to the requested tolerance, e.g. see "cg rel tolerance" or "cg abs tolerance" in \ref anchor_itsol_options.
- * @param [out]   rinfo (optional, can be nullptr) vector containing information and stats related to the iterative solve, see 
+ * @param [out]   rinfo vector containing information and stats related to the iterative solve, see 
  *                \ref anchor_rinfo. 
  * @param [in]    precond (optional, can be nullptr) function pointer to a user routine that applies the preconditioning step
- * \f[ v = Mu \text{or} v = M^{-1}u,\f] 
+ * \f[ v = Mu \text{or } v = M^{-1}u,\f] 
  * where \f$v\f$ is the resulting vector of applying a preconditioning step on the vector \f$u\f$ and \f$M\f$ refers to the  
  * user specified preconditioner in matrix form and need not be explicitly available. The void pointer udata, is a convenience pointer that can be used by the user
  * to point to user data and is not used by the itsol framework. If the user requests to use a predefined preconditioner already
  * available in the suite (refer to e.g. "cg preconditioner" or "gmres preconditioner" in \ref anchor_itsol_options), then this parameter need not be provided.
  * @param [in]    monit (optional, can be nullptr) function pointer to a user monitoring routine. If provided, then at each
  *                iteration, the routine is called and can be used to define a custom stopping criteria or to oversee the 
- *                convergence process. In general, this function need not be provided. If provided then the solver will pass
- *                \p x containing the current iterate, r stores the current residual vector (\f$r = Ax-b\f$),
- *                \p rinfo contains the current stats, see \ref anchor_rinfo, and \p udata is a convenience pointer that can be used by the user
- * to point to user data and is not used by the itsol framework.
+ *                convergence process. In general, this function need not be provided. If provided then the solver provides
+ *                \p n the problem size,
+ *                \p x the current iterate, \p r the current residual vector (\f$r = Ax-b\f$),
+ *                \p rinfo the current solver's stats, see \ref anchor_rinfo, and \p udata a convenience pointer that can be used by the user
+ *                to point to arbitrary user data and is not used by the itsol framework.
  * @param [inout] udata (optional, can be nullptr) user convenience pointer, it can be used by the user to pass a pointer to user data.
  *                It is not modified by the solver.
  * 
@@ -402,9 +403,11 @@ aoclsparse_status aoclsparse_itsol_d_solve(
     const double              *b,
     double                    *x,
     double                     rinfo[100],
-    aoclsparse_int precond(aoclsparse_int flag, const double *u, double *v, void *udata),
-    aoclsparse_int monit(const double *x, const double *r, double rinfo[100], void *udata),
-    void          *udata);
+    aoclsparse_int             precond(
+        aoclsparse_int flag, aoclsparse_int n, const double *u, double *v, void *udata),
+    aoclsparse_int monit(
+        aoclsparse_int n, const double *x, const double *r, double rinfo[100], void *udata),
+    void *udata);
 
 DLL_PUBLIC
 aoclsparse_status aoclsparse_itsol_s_solve(
@@ -415,9 +418,11 @@ aoclsparse_status aoclsparse_itsol_s_solve(
     const float               *b,
     float                     *x,
     float                      rinfo[100],
-    aoclsparse_int             precond(aoclsparse_int flag, const float *u, float *v, void *udata),
-    aoclsparse_int             monit(const float *x, const float *r, float rinfo[100], void *udata),
-    void                      *udata);
+    aoclsparse_int             precond(
+        aoclsparse_int flag, aoclsparse_int n, const float *u, float *v, void *udata),
+    aoclsparse_int monit(
+        aoclsparse_int n, const float *x, const float *r, float rinfo[100], void *udata),
+    void *udata);
 /**@}*/
 
 #ifdef __cplusplus

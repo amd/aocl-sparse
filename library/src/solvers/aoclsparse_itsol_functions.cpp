@@ -215,9 +215,11 @@ aoclsparse_status aoclsparse_itsol_d_solve(
     const double              *b,
     double                    *x,
     double                     rinfo[100],
-    aoclsparse_int precond(aoclsparse_int flag, const double *u, double *v, void *udata),
-    aoclsparse_int monit(const double *x, const double *r, double rinfo[100], void *udata),
-    void          *udata)
+    aoclsparse_int             precond(
+        aoclsparse_int flag, aoclsparse_int n, const double *u, double *v, void *udata),
+    aoclsparse_int monit(
+        aoclsparse_int n, const double *x, const double *r, double rinfo[100], void *udata),
+    void *udata)
 {
     if(!handle)
         return aoclsparse_status_invalid_pointer;
@@ -235,9 +237,11 @@ aoclsparse_status aoclsparse_itsol_s_solve(
     const float               *b,
     float                     *x,
     float                      rinfo[100],
-    aoclsparse_int             precond(aoclsparse_int flag, const float *u, float *v, void *udata),
-    aoclsparse_int             monit(const float *x, const float *r, float rinfo[100], void *udata),
-    void                      *udata)
+    aoclsparse_int             precond(
+        aoclsparse_int flag, aoclsparse_int n, const float *u, float *v, void *udata),
+    aoclsparse_int monit(
+        aoclsparse_int n, const float *x, const float *r, float rinfo[100], void *udata),
+    void *udata)
 {
     if(!handle)
         return aoclsparse_status_invalid_pointer;

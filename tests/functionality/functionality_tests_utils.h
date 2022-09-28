@@ -237,17 +237,17 @@ void comp_tol_vec(
 }
 
 template <typename T>
-aoclsparse_status
-    itsol_solve(aoclsparse_itsol_handle    handle,
-                aoclsparse_int             n,
-                aoclsparse_matrix          mat,
-                const aoclsparse_mat_descr descr,
-                const T                   *b,
-                T                         *x,
-                T                          rinfo[100],
-                aoclsparse_int precond(aoclsparse_int flag, const T *u, T *v, void *udata),
-                aoclsparse_int monit(const T *x, const T *r, T rinfo[100], void *udata),
-                void          *udata);
+aoclsparse_status itsol_solve(
+    aoclsparse_itsol_handle    handle,
+    aoclsparse_int             n,
+    aoclsparse_matrix          mat,
+    const aoclsparse_mat_descr descr,
+    const T                   *b,
+    T                         *x,
+    T                          rinfo[100],
+    aoclsparse_int precond(aoclsparse_int flag, aoclsparse_int n, const T *u, T *v, void *udata),
+    aoclsparse_int monit(aoclsparse_int n, const T *x, const T *r, T rinfo[100], void *udata),
+    void          *udata);
 
 template <typename T>
 aoclsparse_status itsol_rci_solve(aoclsparse_itsol_handle   handle,

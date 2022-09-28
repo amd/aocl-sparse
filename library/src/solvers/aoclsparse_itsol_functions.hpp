@@ -516,9 +516,9 @@ aoclsparse_status aoclsparse_itsol_solve(
     const T                   *b,
     T                         *x,
     T                          rinfo[100],
-    aoclsparse_int             precond(aoclsparse_int flag, const T *u, T *v, void *udata),
-    aoclsparse_int             monit(const T *x, const T *r, T rinfo[100], void *udata),
-    void                      *udata)
+    aoclsparse_int precond(aoclsparse_int flag, aoclsparse_int n, const T *u, T *v, void *udata),
+    aoclsparse_int monit(aoclsparse_int n, const T *x, const T *r, T rinfo[100], void *udata),
+    void          *udata)
 {
     aoclsparse_status status;
     if(itsol == nullptr)
@@ -1268,15 +1268,15 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
 }
 
 template <typename T>
-aoclsparse_status
-    aoclsparse_cg_solve(aoclsparse_itsol_data<T>  *itsol,
-                        aoclsparse_matrix          mat,
-                        const aoclsparse_mat_descr descr,
-                        T                         *x,
-                        T                          rinfo[100],
-                        aoclsparse_int precond(aoclsparse_int flag, const T *u, T *v, void *udata),
-                        aoclsparse_int monit(const T *x, const T *r, T rinfo[100], void *udata),
-                        void          *udata)
+aoclsparse_status aoclsparse_cg_solve(
+    aoclsparse_itsol_data<T>  *itsol,
+    aoclsparse_matrix          mat,
+    const aoclsparse_mat_descr descr,
+    T                         *x,
+    T                          rinfo[100],
+    aoclsparse_int precond(aoclsparse_int flag, aoclsparse_int n, const T *u, T *v, void *udata),
+    aoclsparse_int monit(aoclsparse_int n, const T *x, const T *r, T rinfo[100], void *udata),
+    void          *udata)
 {
     /* CG solver in direct communication interface
      * Possible exits:
@@ -1348,7 +1348,7 @@ aoclsparse_status
             case 1:
                 // User defined preconditioner, call precond(...)
                 // precond pointer was already verified
-                flag = precond(0, u, v, udata);
+                flag = precond(0, n, u, v, udata);
                 // if the user indicates that preconditioner could not be applied
                 // what to do: recovery or terminate?
                 // skip precond step?
@@ -1376,7 +1376,7 @@ aoclsparse_status
         case aoclsparse_rci_stopping_criterion:
             if(monit)
             {
-                flag = monit(u, v, rinfo, udata);
+                flag = monit(n, u, v, rinfo, udata);
                 if(flag != 0)
                     ircomm = aoclsparse_rci_interrupt;
             }
@@ -1405,9 +1405,10 @@ aoclsparse_status aoclsparse_gmres_solve(
     const aoclsparse_mat_descr descr,
     T                         *x,
     T                          rinfo[100],
-    aoclsparse_int             precond(aoclsparse_int flag, const T *io1, T *io2, void *udata),
-    aoclsparse_int             monit(const T *x, const T *r, T rinfo[100], void *udata),
-    void                      *udata)
+    aoclsparse_int             precond(
+        aoclsparse_int flag, aoclsparse_int n, const T *io1, T *io2, void *udata),
+    aoclsparse_int monit(aoclsparse_int n, const T *x, const T *r, T rinfo[100], void *udata),
+    void          *udata)
 {
     aoclsparse_int           nnz, flag;
     aoclsparse_int           n      = itsol->n;
@@ -1458,7 +1459,7 @@ aoclsparse_status aoclsparse_gmres_solve(
             {
             case 1: // User defined preconditioner, call precond(...)
                 // precond pointer was already verified
-                flag = precond(0, io1, io2, udata);
+                flag = precond(0, n, io1, io2, udata);
                 // if the user indicates that preconditioner could not be applied
                 // what to do: recovery or terminate?
                 // skip precond step?
@@ -1487,7 +1488,7 @@ aoclsparse_status aoclsparse_gmres_solve(
         case aoclsparse_rci_stopping_criterion:
             if(monit)
             {
-                flag = monit(io1, io2, rinfo, udata);
+                flag = monit(n, io1, io2, rinfo, udata);
                 if(flag != 0)
                     ircomm = aoclsparse_rci_interrupt;
             }
