@@ -21,8 +21,8 @@
  *
  * ************************************************************************ */
 /*! \file
- *  \brief aoclsparse_functions.h provides Sparse Linear Algebra Subprograms
- *  of Level 1, 2 and 3, for AMD CPU hardware.
+ *  \brief aoclsparse_functions.h provides sparse linear algebra subprograms
+ *  of level 1, 2 and 3, for AMD CPU hardware.
  */
 #ifndef AOCLSPARSE_FUNCTIONS_H_
 #define AOCLSPARSE_FUNCTIONS_H_
@@ -48,9 +48,9 @@ extern "C" {
  *  \f[
  *    op(A) = \left\{
  *    \begin{array}{ll}
- *        A,   & \text{if trans == aoclsparse_operation_none} \\
- *        A^T, & \text{if trans == aoclsparse_operation_transpose} \\
- *        A^H, & \text{if trans == aoclsparse_operation_conjugate_transpose}
+ *        A,   & \text{if trans = aoclsparse\_operation\_none} \\
+ *        A^T, & \text{if trans = aoclsparse\_operation\_transpose} \\
+ *        A^H, & \text{if trans = aoclsparse\_operation\_conjugate\_transpose}
  *    \end{array}
  *    \right.
  *  \f]
@@ -68,8 +68,8 @@ extern "C" {
  *  \endcode
  *
  *  \note
- *  Currently, only \p trans == \ref aoclsparse_operation_none is supported.
- *  Currently, for \ref aoclsparse_matrix_type == \ref aoclsparse_matrix_type_symmetric,
+ *  Currently, only \p trans = \ref aoclsparse\_operation\_none is supported.
+ *  Currently, for \ref aoclsparse_matrix_type = \ref aoclsparse_matrix_type_symmetric,
  *  only lower triangular matrices are supported.
  *
  *  @param[in]
@@ -95,23 +95,23 @@ extern "C" {
  *              \ref aoclsparse_matrix_type_general and
  *              \ref aoclsparse_matrix_type_symmetric is supported.
  *  @param[in]
- *  x           array of \p n elements (\f$op(A) == A\f$) or \p m elements
- *              (\f$op(A) == A^T\f$ or \f$op(A) == A^H\f$).
+ *  x           array of \p n elements (\f$op(A) = A\f$) or \p m elements
+ *              (\f$op(A) = A^T\f$ or \f$op(A) = A^H\f$).
  *  @param[in]
  *  beta        scalar \f$\beta\f$.
  *  @param[inout]
- *  y           array of \p m elements (\f$op(A) == A\f$) or \p n elements
- *              (\f$op(A) == A^T\f$ or \f$op(A) == A^H\f$).
+ *  y           array of \p m elements (\f$op(A) = A\f$) or \p n elements
+ *              (\f$op(A) = A^T\f$ or \f$op(A) = A^H\f$).
  *
  *  \retval     aoclsparse_status_success the operation completed successfully.
  *  \retval     aoclsparse_status_invalid_size \p m, \p n or \p nnz is invalid.
  *  \retval     aoclsparse_status_invalid_pointer \p descr, \p alpha, \p csr_val,
- *              \p csr_row_ptr, \p csr_col_ind, \p x, \p beta or \p y pointer is
+ *              \p csr\_row\_ptr, \p csr\_col\_ind, \p x, \p beta or \p y pointer is
  *              invalid.
  *  \retval     aoclsparse_status_not_implemented
- *              \p trans != \ref aoclsparse_operation_none or
- *              \ref aoclsparse_matrix_type != \ref aoclsparse_matrix_type_general.
- *              \ref aoclsparse_matrix_type != \ref aoclsparse_matrix_type_symmetric.
+ *              \p trans is not \ref aoclsparse_operation_none or
+ *              \ref aoclsparse_matrix_type is not \ref aoclsparse_matrix_type_general, or
+ *              \ref aoclsparse_matrix_type is not \ref aoclsparse_matrix_type_symmetric.
  *
  *  \par Example
  *  This example performs a sparse matrix vector multiplication in CSR format
@@ -181,9 +181,9 @@ aoclsparse_status aoclsparse_dcsrmv(aoclsparse_operation       trans,
  *  \f[
  *    op(A) = \left\{
  *    \begin{array}{ll}
- *        A,   & \text{if trans == aoclsparse_operation_none} \\
- *        A^T, & \text{if trans == aoclsparse_operation_transpose} \\
- *        A^H, & \text{if trans == aoclsparse_operation_conjugate_transpose}
+ *        A,   & \text{if trans = aoclsparse\_operation\_none} \\
+ *        A^T, & \text{if trans = aoclsparse\_operation\_transpose} \\
+ *        A^H, & \text{if trans = aoclsparse\_operation\_conjugate\_transpose}
  *    \end{array}
  *    \right.
  *  \f]
@@ -206,7 +206,7 @@ aoclsparse_status aoclsparse_dcsrmv(aoclsparse_operation       trans,
  *  \endcode
  *
  *  \note
- *  Currently, only \p trans == \ref aoclsparse_operation_none is supported.
+ *  Currently, only \p trans = \ref aoclsparse_operation_none is supported.
  *
  *  @param[in]
  *  trans       matrix operation type.
@@ -230,13 +230,13 @@ aoclsparse_status aoclsparse_dcsrmv(aoclsparse_operation       trans,
  *  @param[in]
  *  ell_width   number of non-zero elements per row of the sparse ELL matrix.
  *  @param[in]
- *  x           array of \p n elements (\f$op(A) == A\f$) or \p m elements
- *              (\f$op(A) == A^T\f$ or \f$op(A) == A^H\f$).
+ *  x           array of \p n elements (\f$op(A) = A\f$) or \p m elements
+ *              (\f$op(A) = A^T\f$ or \f$op(A) = A^H\f$).
  *  @param[in]
  *  beta        scalar \f$\beta\f$.
  *  @param[inout]
- *  y           array of \p m elements (\f$op(A) == A\f$) or \p n elements
- *              (\f$op(A) == A^T\f$ or \f$op(A) == A^H\f$).
+ *  y           array of \p m elements (\f$op(A) = A\f$) or \p n elements
+ *              (\f$op(A) = A^T\f$ or \f$op(A) = A^H\f$).
  *
  *  \retval     aoclsparse_status_success the operation completed successfully.
  *  \retval     aoclsparse_status_invalid_size \p m, \p n or \p ell_width is invalid.
@@ -363,15 +363,15 @@ aoclsparse_status aoclsparse_dellthybmv(aoclsparse_operation       trans,
  *  \f[
  *    op(A) = \left\{
  *    \begin{array}{ll}
- *        A,   & \text{if trans == aoclsparse_operation_none} \\
- *        A^T, & \text{if trans == aoclsparse_operation_transpose} \\
- *        A^H, & \text{if trans == aoclsparse_operation_conjugate_transpose}
+ *        A,   & \text{if trans} = \text{aoclsparse\_operation\_none} \\
+ *        A^T, & \text{if trans} = \text{aoclsparse\_operation\_transpose} \\
+ *        A^H, & \text{if trans} = \text{aoclsparse\_operation\_conjugate\_transpose}
  *    \end{array}
  *    \right.
  *  \f]
  *
  *  \note
- *  Currently, only \p trans == \ref aoclsparse_operation_none is supported.
+ *  Currently, only \p trans = \ref aoclsparse_operation_none is supported.
  *
  *  @param[in]
  *  trans       matrix operation type.
@@ -395,13 +395,13 @@ aoclsparse_status aoclsparse_dellthybmv(aoclsparse_operation       trans,
  *  @param[in]
  *  dia_num_diag  number of diagonals in the sparse DIA matrix.
  *  @param[in]
- *  x           array of \p n elements (\f$op(A) == A\f$) or \p m elements
- *              (\f$op(A) == A^T\f$ or \f$op(A) == A^H\f$).
+ *  x           array of \p n elements (\f$op(A) = A\f$) or \p m elements
+ *              (\f$op(A) = A^T\f$ or \f$op(A) = A^H\f$).
  *  @param[in]
  *  beta        scalar \f$\beta\f$.
  *  @param[inout]
- *  y           array of \p m elements (\f$op(A) == A\f$) or \p n elements
- *              (\f$op(A) == A^T\f$ or \f$op(A) == A^H\f$).
+ *  y           array of \p m elements (\f$op(A) = A\f$) or \p n elements
+ *              (\f$op(A) = A^T\f$ or \f$op(A) = A^H\f$).
  *
  *  \retval     aoclsparse_status_success the operation completed successfully.
  *  \retval     aoclsparse_status_invalid_size \p m, \p n or \p ell_width is invalid.
@@ -446,7 +446,7 @@ aoclsparse_status aoclsparse_ddiamv(aoclsparse_operation       trans,
 *
 *  \details
 *  \p aoclsparse_bsrmv multiplies the scalar \f$\alpha\f$ with a sparse
-*  \f$(mb \cdot \text{bsr_dim}) \times (nb \cdot \text{bsr_dim})\f$
+*  \f$(mb \cdot \text{bsr\_dim}) \times (nb \cdot \text{bsr\_dim})\f$
 *  matrix, defined in BSR storage format, and the dense vector \f$x\f$ and adds the
 *  result to the dense vector \f$y\f$ that is multiplied by the scalar \f$\beta\f$,
 *  such that
@@ -457,15 +457,15 @@ aoclsparse_status aoclsparse_ddiamv(aoclsparse_operation       trans,
 *  \f[
 *    op(A) = \left\{
 *    \begin{array}{ll}
-*        A,   & \text{if trans == aoclsparse_operation_none} \\
-*        A^T, & \text{if trans == aoclsparse_operation_transpose} \\
-*        A^H, & \text{if trans == aoclsparse_operation_conjugate_transpose}
+*        A,   & \text{if trans = aoclsparse\_operation\_none} \\
+*        A^T, & \text{if trans = aoclsparse\_operation\_transpose} \\
+*        A^H, & \text{if trans = aoclsparse\_operation\_conjugate\_transpose}
 *    \end{array}
 *    \right.
 *  \f]
 *
 *  \note
-*  Currently, only \p trans == \ref aoclsparse_operation_none is supported.
+*  Currently, only \p trans = \ref aoclsparse_operation_none is supported.
 *
 *  @param[in]
 *  trans       matrix operation type.
@@ -554,17 +554,17 @@ aoclsparse_status aoclsparse_dbsrmv(aoclsparse_operation       trans,
  *  \f[
  *    op(A) = \left\{
  *    \begin{array}{ll}
- *        A,   & \text{if\: trans == aoclsparse\_operation\_none} \\
- *        A^T, & \text{if\: trans == aoclsparse\_operation\_transpose} \\
- *        A^H, & \text{if\: trans == aoclsparse\_operation\_conjugate\_transpose}
+ *        A,   & \text{if trans} = \text{aoclsparse\_operation\_none} \\
+ *        A^T, & \text{if trans} = \text{aoclsparse\_operation\_transpose} \\
+ *        A^H, & \text{if trans} = \text{aoclsparse\_operation\_conjugate\_transpose}
  *    \end{array}
  *    \right.
  *  \f]
  *
  *
  *  \note
- *  Currently, only \p trans == \ref aoclsparse_operation_none is supported.
- *  Currently, for \ref aoclsparse_matrix_type == \ref aoclsparse_matrix_type_symmetric,
+ *  Currently, only \p trans = \ref aoclsparse_operation_none is supported.
+ *  Currently, for \ref aoclsparse_matrix_type = \ref aoclsparse_matrix_type_symmetric,
  *  only lower triangular matrices are supported.
  *
  *  @param[in]
@@ -579,13 +579,13 @@ aoclsparse_status aoclsparse_dbsrmv(aoclsparse_operation       trans,
  *              \ref aoclsparse_matrix_type_general and
  *              \ref aoclsparse_matrix_type_symmetric is supported.
  *  @param[in]
- *  x           array of \p n elements (\f$op(A) == A\f$) or \p m elements
- *              (\f$op(A) == A^T\f$ or \f$op(A) == A^H\f$).
+ *  x           array of \p n elements (\f$op(A) = A\f$) or \p m elements
+ *              (\f$op(A) = A^T\f$ or \f$op(A) = A^H\f$).
  *  @param[in]
  *  beta        scalar \f$\beta\f$.
  *  @param[inout]
- *  y           array of \p m elements (\f$op(A) == A\f$) or \p n elements
- *              (\f$op(A) == A^T\f$ or \f$op(A) == A^H\f$).
+ *  y           array of \p m elements (\f$op(A) = A\f$) or \p n elements
+ *              (\f$op(A) = A^T\f$ or \f$op(A) = A^H\f$).
  *
  *  \retval     aoclsparse_status_success the operation completed successfully.
  *  \retval     aoclsparse_status_invalid_size \p m, \p n or \p nnz is invalid.
@@ -642,7 +642,7 @@ aoclsparse_status aoclsparse_dmv(aoclsparse_operation       op,
  *      data precisions.
  *
  *  \details
- *  \p aoclsparse_csrsv solves a sparse triangular linear system of a sparse
+ *  \p aoclsparse_?srsv solves a sparse triangular linear system of a sparse
  *  \f$m \times m\f$ matrix, defined in CSR storage format, a dense solution vector
  *  \f$y\f$ and the right-hand side \f$x\f$ that is multiplied by \f$\alpha\f$, such that
  *  \f[
@@ -652,15 +652,15 @@ aoclsparse_status aoclsparse_dmv(aoclsparse_operation       op,
  *  \f[
  *    op(A) = \left\{
  *    \begin{array}{ll}
- *        A,   & \text{if trans == aoclsparse_operation_none} \\
- *        A^T, & \text{if trans == aoclsparse_operation_transpose} \\
- *        A^H, & \text{if trans == aoclsparse_operation_conjugate_transpose}
+ *        A,   & \text{if trans} = \text{aoclsparse\_operation\_none} \\
+ *        A^T, & \text{if trans} = \text{aoclsparse\_operation\_transpose} \\
+ *        A^H, & \text{if trans} = \text{aoclsparse\_operation\_conjugate\_transpose}
  *    \end{array}
  *    \right.
  *  \f]
  *
  *  \note
- *  Currently, only \p trans == \ref aoclsparse_operation_none is supported.
+ *  Currently, only \p trans = \ref aoclsparse_operation_none is supported.
  *
  *  \note
  *  The input matrix has to be sparse upper or lower triangular matrix
@@ -695,9 +695,9 @@ aoclsparse_status aoclsparse_dmv(aoclsparse_operation       op,
  *              \p csr_row_ptr, \p csr_col_ind, \p x or \p y pointer is invalid.
  *  \retval     aoclsparse_status_internal_error an internal error occurred.
  *  \retval     aoclsparse_status_not_implemented
- *              \p trans == \ref aoclsparse_operation_conjugate_transpose or
- *              \p trans == \ref aoclsparse_operation_transpose or
- *              \ref aoclsparse_matrix_type != \ref aoclsparse_matrix_type_general.
+ *              \p trans = \ref aoclsparse_operation_conjugate_transpose or
+ *              \p trans = \ref aoclsparse_operation_transpose or
+ *              \ref aoclsparse_matrix_type is not \ref aoclsparse_matrix_type_general.
  *
  */
 /**@{*/
@@ -730,22 +730,22 @@ aoclsparse_status aoclsparse_dcsrsv(aoclsparse_operation       trans,
  *  \details
  *  \p aoclsparse_strsv and \p aoclsparse_dtrsv solve a sparse lower (or upper)
  *  triangular linear system of equations. The system is defined by the sparse
- *  \f$m \times m\f$ matrix \f$A\f$, the dense solution \f$m\$-vector
- *  \f$x\f$, and the right-hand side dense \f$m\$-vector \f$b\f$. Vector \f$b\f$ is
+ *  \f$m \times m\f$ matrix \f$A\f$, the dense solution \f$m\f$-vector
+ *  \f$x\f$, and the right-hand side dense \f$m\f$-vector \f$b\f$. Vector \f$b\f$ is
  *  multiplied by \f$\alpha\f$. The solution \f$x\f$ is estimated by solving
  *  \f[
- *    op(L) \cdot x = \alpha \cdot b, \mbox{or}\\
- *    op(U) \cdot x = \alpha \cdot b, \mbox{or}\\
+ *    op(L) \cdot x = \alpha \cdot b, \quad \text{ or } \quad
+ *    op(U) \cdot x = \alpha \cdot b,
  *  \f]
- *  with
- *  \f$L = tril(A)\f$ lower triangle of matrix \f$A\f$, similarly,
- *  \f$U = triu(A)\f$ upper triangle of matrix \f$A\f$. the operator
+ *  where
+ *  \f$L = \text{tril}(A)\f$ is the lower triangle of matrix \f$A\f$, similarly,
+ *  \f$U = \text{triu}(A)\f$ is the upper triangle of matrix \f$A\f$. The operator
  *  \f$op()\f$ is regarded as the matrix transposition operation,
  *  \f[
  *    op(B) = \left\{
  *    \begin{array}{ll}
- *        B,       & \mbox{ if \ref trans == \ref aoclsparse_operation_none } \\
- *        B^T,     & \mbox{ if \ref trans == \ref aoclsparse_operation_transpose }\\
+ *        B,       & \text{ if trans} = \text{aoclsparse\_operation\_none } \\
+ *        B^T,     & \text{ if trans} = \text{aoclsparse\_operation\_transpose }\\
  *    \end{array}
  *    \right.
  *  \f]
@@ -757,10 +757,10 @@ aoclsparse_status aoclsparse_dcsrsv(aoclsparse_operation       trans,
  *
  *  \note
  *  The input matrix need not be (upper or lower) triangular matrix, \p descr \p fill_mode specifies
- *  which triangle to consider, namely, if \p fill_mode == \ref aoclsparse_fill_mode_lower, then
+ *  which triangle to consider, namely, if \p fill_mode = \ref aoclsparse_fill_mode_lower, then
  *  \f[
  *    op(L) \cdot x = \alpha \cdot b,
- *  \f] otherwise, if \p fill_mode == \ref aoclsparse_fill_mode_upper, then
+ *  \f] otherwise, if \p fill_mode = \ref aoclsparse_fill_mode_upper, then
  *  \f[
  *    op(U) \cdot x = \alpha \cdot b
  *  \f]
@@ -826,9 +826,9 @@ aoclsparse_status aoclsparse_dtrsv(aoclsparse_operation       trans,
  *  \f[
  *    op(A) = \left\{
  *    \begin{array}{ll}
- *        A,   & \text{if trans_A == aoclsparse_operation_none} \\
- *        A^T, & \text{if trans_A == aoclsparse_operation_transpose} \\
- *        A^H, & \text{if trans_A == aoclsparse_operation_conjugate_transpose}
+ *        A,   & \text{if trans\_A} = \text{aoclsparse\_operation\_none} \\
+ *        A^T, & \text{if trans\_A} = \text{aoclsparse\_operation\_transpose} \\
+ *        A^H, & \text{if trans\_A} = \text{aoclsparse\_operation\_conjugate\_transpose}
  *    \end{array}
  *    \right.
  *  \f]
@@ -867,16 +867,16 @@ aoclsparse_status aoclsparse_dtrsv(aoclsparse_operation       trans,
  *  n           number of columns of the dense matrix \f$B\f$ and \f$C\f$.
  *  @param[in]
  *  ldb         leading dimension of \f$B\f$, must be at least \f$\max{(1, k)}\f$
- *              (\f$op(A) == A\f$) or \f$\max{(1, m)}\f$ (\f$op(A) == A^T\f$ or
- *              \f$op(A) == A^H\f$).
+ *              (\f$op(A) = A\f$) or \f$\max{(1, m)}\f$ (\f$op(A) = A^T\f$ or
+ *              \f$op(A) = A^H\f$).
  *  @param[in]
  *  beta        scalar \f$\beta\f$.
  *  @param[inout]
  *  C           array of dimension \f$ldc \times n\f$.
  *  @param[in]
  *  ldc         leading dimension of \f$C\f$, must be at least \f$\max{(1, m)}\f$
- *              (\f$op(A) == A\f$) or \f$\max{(1, k)}\f$ (\f$op(A) == A^T\f$ or
- *              \f$op(A) == A^H\f$).
+ *              (\f$op(A) = A\f$) or \f$\max{(1, k)}\f$ (\f$op(A) = A^T\f$ or
+ *              \f$op(A) = A^H\f$).
  *
  *  \retval     aoclsparse_status_success the operation completed successfully.
  *  \retval     aoclsparse_status_invalid_size \p m, \p n, \p k, \p nnz, \p ldb or \p ldc
@@ -884,7 +884,7 @@ aoclsparse_status aoclsparse_dtrsv(aoclsparse_operation       trans,
  *  \retval     aoclsparse_status_invalid_pointer \p descr, \p alpha, \p csr,
  *              \p B, \p beta or \p C pointer is invalid.
  *  \retval     aoclsparse_status_not_implemented
- *              \ref aoclsparse_matrix_type != \ref aoclsparse_matrix_type_general.
+ *              \ref aoclsparse_matrix_type is not \ref aoclsparse_matrix_type_general.
  *
 */
 /**@{*/
@@ -930,9 +930,9 @@ aoclsparse_status aoclsparse_dcsrmm(aoclsparse_operation       trans_A,
  *  \f[
  *     op(A) = \left\{
  *     \begin{array}{ll}
- *         A,   & \text{if trans_A == aoclsparse_operation_none} \\
- *         A^T, & \text{if trans_A == aoclsparse_operation_transpose} \\
- *         A^H, & \text{if trans_A == aoclsparse_operation_conjugate_transpose}
+ *         A,   & \text{if trans\_A} = \text{aoclsparse\_operation\_none} \\
+ *         A^T, & \text{if trans\_A} = \text{aoclsparse\_operation\_transpose} \\
+ *         A^H, & \text{if trans\_A} = \text{aoclsparse\_operation\_conjugate\_transpose}
  *     \end{array}
  *     \right.
  *  \f]
@@ -940,9 +940,9 @@ aoclsparse_status aoclsparse_dcsrmm(aoclsparse_operation       trans_A,
  *  \f[
  *    op(B) = \left\{
  *    \begin{array}{ll}
- *        B,   & \text{if trans_B == aoclsparse_operation_none} \\
- *        B^T, & \text{if trans_B == aoclsparse_operation_transpose} \\
- *        B^H, & \text{if trans_B == aoclsparse_operation_conjugate_transpose}
+ *        B,   & \text{if trans\_B} = \text{aoclsparse\_operation\_none} \\
+ *        B^T, & \text{if trans\_B} = \text{aoclsparse\_operation\_transpose} \\
+ *        B^H, & \text{if trans\_B} = \text{aoclsparse\_operation\_conjugate\_transpose}
  *    \end{array}
  *    \right.
  *  \f]
@@ -981,7 +981,7 @@ aoclsparse_status aoclsparse_dcsrmm(aoclsparse_operation       trans_A,
  *  \retval     aoclsparse_status_invalid_pointer \p descrA,  \p csr,
  *              \p descrB,  \p csrB, \p csrC is invalid.
  *  \retval     aoclsparse_status_not_implemented
- *              \ref aoclsparse_matrix_type != \ref aoclsparse_matrix_type_general.
+ *              \ref aoclsparse_matrix_type is not \ref aoclsparse_matrix_type_general.
  *
  *  \par Example
  *  Shows multiplication of 2 sparse matrices to give a newly allocated sparse matrix
@@ -1063,22 +1063,22 @@ aoclsparse_status aoclsparse_scsr2m(aoclsparse_operation       trans_A,
  *  approx_inv_diag     It is unused as of now.
  *  @param[out]
  *  x           array of \p n element vector found using the known values of CSR matrix \p A and
- *              resultant vector product \p b in Ax = b. Every call to the API gives an iterative
+ *              resultant vector product \p b in \f$Ax = b\f$. Every call to the API gives an iterative
  *              update of \p x, whcih is used to find norm during LU solve phase.
- *              Norm and Relative Error % decides the convergence of \p x wrt \p x_ref
+ *              Norm and Relative Error % decides the convergence of \p x with respect to \p x_ref
  *  @param[in]
- *  b           array of \p m elements which is the result of \p A and \p x in Ax = b. b is calculated
- *              using a known reference \p x vector, which is then used to find norm for iterative
- *              \p x during LU solve phase. Norm and Relative Error % decides the convergence
+ *  b           array of \p m elements which is the result of \p A and \p x in \f$Ax = b\f$. \p b is calculated
+ *              using a known reference \p x vector, which is then used to find the norm for iterative
+ *              \p x during LU solve phase. Norm and Relative Error percentage decides the convergence
  *
  *
  *  \retval     aoclsparse_status_success the operation completed successfully.
  *  \retval     aoclsparse_status_invalid_size input parameters contain an invalid value.
  *  \retval     aoclsparse_status_invalid_pointer \p descr,  \p A is invalid.
  *  \retval     aoclsparse_status_not_implemented
- *              \ref aoclsparse_matrix_type != \ref aoclsparse_matrix_type_symmetric.
+ *              \ref aoclsparse_matrix_type is not \ref aoclsparse_matrix_type_symmetric.
  *
- *  \par Refer to ILU Example from tests/include
+ *  \par Refer to ILU Example from tests/include.
  *
 */
 

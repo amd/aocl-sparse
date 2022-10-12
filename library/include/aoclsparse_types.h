@@ -64,7 +64,7 @@ typedef struct
  *  \brief Descriptor of the matrix.
  *
  *  \details
- *  The aoclSPARSE matrix descriptor is a structure holding all properties of a matrix.
+ *  The aoclsparse_mat_descr  is a structure holding all properties of a matrix.
  *  It must be initialized using aoclsparse_create_mat_descr() and the returned
  *  descriptor must be passed to all subsequent library calls that involve the matrix.
  *  It should be destroyed at the end using aoclsparse_destroy_mat_descr().
@@ -75,7 +75,7 @@ typedef struct _aoclsparse_mat_descr *aoclsparse_mat_descr;
  *  \brief CSR matrix storage format.
  *
  *  \details
- *  The aoclSPARSE CSR matrix structure holds the CSR matrix. It must be initialized using
+ *  The aoclsparse CSR matrix structure holds the CSR matrix. It must be initialized using
  *  aoclsparse_create_(d/s)csr() and the returned CSR matrix must be passed to all
  *  subsequent library calls that involve the matrix. It should be destroyed at the end
  *  using aoclsparse_destroy().
@@ -264,7 +264,7 @@ typedef enum aoclsparse_request_
     aoclsparse_stage_nnz_count
     = 0, /**< Only rowIndex array of the CSR matrix is computed internally. */
     aoclsparse_stage_finalize
-    = 1, /**< Finalize computation. Has to be called only after csr2m call with aoclsparse_stage_nnz_count parameter. */
+    = 1, /**< Finalize computation. Has to be called only after csr2m call with aoclsparse\_stage\_nnz\_count parameter. */
     aoclsparse_stage_full_computation = 2, /**< Perform the entire computation in a single step. */
 } aoclsparse_request;
 
