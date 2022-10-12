@@ -183,7 +183,7 @@ aoclsparse_matrix_type aoclsparse_get_mat_type(const aoclsparse_mat_descr descr)
  *
  *  \retval aoclsparse_status_success the operation completed successfully.
  *  \retval aoclsparse_status_invalid_pointer \p descr pointer is invalid.
- *  \retval aoclsparse_status_invalid_value \p fill_mode is invalid.
+ *  \retval aoclsparse_status_invalid_value \p fill\_mode is invalid.
  */
 DLL_PUBLIC
 aoclsparse_status aoclsparse_set_mat_fill_mode(aoclsparse_mat_descr descr,

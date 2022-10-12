@@ -21,7 +21,7 @@
  *
  * ************************************************************************ */
 /*! \file
- *  \brief aoclsparse_convert.h provides Sparse Format conversion Subprograms
+ *  \brief aoclsparse_convert.h provides sparse format conversion subprograms
  */
 #ifndef AOCLSPARSE_CONVERT_H_
 #define AOCLSPARSE_CONVERT_H_
@@ -52,8 +52,8 @@ extern "C" {
 *
 *  \retval     aoclsparse_status_success the operation completed successfully.
 *  \retval     aoclsparse_status_invalid_size \p m is invalid.
-*  \retval     aoclsparse_status_invalid_pointer  \p csr_row_ptr, or
-*              \p ell_width pointer is invalid.
+*  \retval     aoclsparse_status_invalid_pointer  \p csr\_row\_ptr, or
+*              \p ell\_width pointer is invalid.
 *  \retval     aoclsparse_status_internal_error an internal error occurred.
 */
 DLL_PUBLIC
@@ -79,7 +79,7 @@ aoclsparse_status aoclsparse_csr2ellthyb_width(
 *  \p aoclsparse_csr2ell converts a CSR matrix into an ELL matrix. It is assumed,
 *  that \p ell_val and \p ell_col_ind are allocated. Allocation size is computed by the
 *  number of rows times the number of ELL non-zero elements per row, such that
-*  \f$\text{nnz}_{\text{ELL}} = m \cdot \text{ell_width}\f$. The number of ELL
+*  \f$\text{nnz}_{\text{ELL}} = m \cdot \text{ell\_width}\f$. The number of ELL
 *  non-zero elements per row is obtained by aoclsparse_csr2ell_width().
 *
 *  @param[in]
@@ -101,10 +101,10 @@ aoclsparse_status aoclsparse_csr2ellthyb_width(
 *
 *  \retval     aoclsparse_status_success the operation completed successfully.
 *  \retval     aoclsparse_status_invalid_handle the library context was not initialized.
-*  \retval     aoclsparse_status_invalid_size \p m or \p ell_width is invalid.
-*  \retval     aoclsparse_status_invalid_pointer \p csr_val,
-*              \p csr_row_ptr, \p csr_col_ind,  \p ell_val or
-*              \p ell_col_ind pointer is invalid.
+*  \retval     aoclsparse_status_invalid_size \p m or \p ell\_width is invalid.
+*  \retval     aoclsparse_status_invalid_pointer \p csr\_val,
+*              \p csr_row_ptr, \p csr\_col\_ind,  \p ell\_val or
+*              \p ell\_col\_ind pointer is invalid.
 *
 */
 /**@{*/
@@ -200,8 +200,8 @@ aoclsparse_status aoclsparse_dcsr2ellthyb(
 *
 *  \retval     aoclsparse_status_success the operation completed successfully.
 *  \retval     aoclsparse_status_invalid_size \p m is invalid.
-*  \retval     aoclsparse_status_invalid_pointer  \p csr_row_ptr, or
-*              \p ell_width pointer is invalid.
+*  \retval     aoclsparse_status_invalid_pointer  \p csr\_row\_ptr, or
+*              \p ell\_width pointer is invalid.
 *  \retval     aoclsparse_status_internal_error an internal error occurred.
 */
 DLL_PUBLIC
@@ -243,10 +243,10 @@ aoclsparse_status aoclsparse_csr2dia_ndiag(
 *
 *  \retval     aoclsparse_status_success the operation completed successfully.
 *  \retval     aoclsparse_status_invalid_handle the library context was not initialized.
-*  \retval     aoclsparse_status_invalid_size \p m or \p ell_width is invalid.
-*  \retval     aoclsparse_status_invalid_pointer \p csr_val,
-*              \p csr_row_ptr, \p csr_col_ind,  \p ell_val or
-*              \p ell_col_ind pointer is invalid.
+*  \retval     aoclsparse_status_invalid_size \p m or \p ell\_width is invalid.
+*  \retval     aoclsparse_status_invalid_pointer \p csr\_val,
+*              \p csr\_row\_ptr, \p csr\_col\_ind,  \p ell\_val or
+*              \p ell\_col\_ind pointer is invalid.
 *
 */
 /**@{*/
@@ -300,8 +300,8 @@ aoclsparse_status aoclsparse_dcsr2dia(
 *  bsr_nnz     total number of nonzero elements in device or host memory.
 *
 *  \retval     aoclsparse_status_success the operation completed successfully.
-*  \retval     aoclsparse_status_invalid_size \p m or \p n or \p block_dim is invalid.
-*  \retval     aoclsparse_status_invalid_pointer \p csr_row_ptr or \p csr_col_ind or \p bsr_row_ptr or \p bsr_nnz
+*  \retval     aoclsparse_status_invalid_size \p m or \p n or \p block\_dim is invalid.
+*  \retval     aoclsparse_status_invalid_pointer \p csr\_row\_ptr or \p csr\_col\_ind or \p bsr\_row\_ptr or \p bsr\_nnz
 *              pointer is invalid.
 */
 DLL_PUBLIC
@@ -346,10 +346,10 @@ aoclsparse_status aoclsparse_csr2bsr_nnz(
 *  bsr_col_ind  array of \p nnzb elements containing the block column indices of the sparse BSR matrix.
 *
 *  \retval     aoclsparse_status_success the operation completed successfully.
-*  \retval     aoclsparse_status_invalid_size \p m or \p n or \p block_dim is invalid.
-*  \retval     aoclsparse_status_invalid_pointer \p bsr_val,
-*              \p bsr_row_ptr, \p bsr_col_ind, \p csr_val, \p csr_row_ptr or
-*              \p csr_col_ind pointer is invalid.
+*  \retval     aoclsparse_status_invalid_size \p m or \p n or \p block\_dim is invalid.
+*  \retval     aoclsparse_status_invalid_pointer \p bsr\_val,
+*              \p bsr\_row\_ptr, \p bsr\_col_ind, \p csr\_val, \p csr\_row\_ptr or
+*              \p csr\_col\_ind pointer is invalid.
 *
 */
 /**@{*/
@@ -414,8 +414,8 @@ aoclsparse_status aoclsparse_dcsr2bsr(
 *
 *  \retval     aoclsparse_status_success the operation completed successfully.
 *  \retval     aoclsparse_status_invalid_size \p m, \p n or \p nnz is invalid.
-*  \retval     aoclsparse_status_invalid_pointer \p csr_val, \p csr_row_ptr,
-*              \p csr_col_ind, \p csc_val, \p csc_row_ind, \p csc_col_ptr
+*  \retval     aoclsparse_status_invalid_pointer \p csr\_val, \p csr\_row\_ptr,
+*              \p csr\_col\_ind, \p csc\_val, \p csc\_row\_ind, \p csc\_col\_ptr
 *              is invalid.
 *
 */
@@ -475,7 +475,7 @@ aoclsparse_status aoclsparse_dcsr2csc(
  *
  *  \retval     aoclsparse_status_success the operation completed successfully.
  *  \retval     aoclsparse_status_invalid_size \p m or \p n or \p ld is invalid.
- *  \retval     aoclsparse_status_invalid_pointer \p A or \p csr_val \p csr_row_ptr or \p csr_col_ind
+ *  \retval     aoclsparse_status_invalid_pointer \p A or \p csr\_val \p csr_row_ptr or \p csr_col_ind
  *              pointer is invalid.
  */
 /**@{*/

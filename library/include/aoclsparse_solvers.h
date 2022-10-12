@@ -180,7 +180,7 @@ void aoclsparse_itsol_handle_prn_options(aoclsparse_itsol_handle handle);
  * | |||
  * | **gmres preconditioner** | string | \f$ s = \f$ `none` |
  * | Choose preconditioner to use with gmres method|||
- * | Valid values: \f$s =\f$ `ilu`, `none`, or `user`. |||
+ * | Valid values: \f$s =\f$ `ilu0`, `none`, or `user`. |||
  *
  * \note It is worth noting that only some options apply to each specific
  * solver, e.g. name of options that begin with "cg" affect the behaviour of the CG solver.

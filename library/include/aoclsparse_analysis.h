@@ -21,7 +21,7 @@
  *
  * ************************************************************************ */
 /*! \file
- *  \brief aoclsparse_analysis.h provides Sparse Format analysis Subprograms
+ *  \brief aoclsparse_analysis.h provides sparse format analysis subprograms
  */
 #ifndef AOCLSPARSE_ANALYSIS_H_
 #define AOCLSPARSE_ANALYSIS_H_

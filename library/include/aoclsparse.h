@@ -23,6 +23,24 @@
 #ifndef AOCLSPARSE_H_
 #define AOCLSPARSE_H_
 
+/** \mainpage AOCL-Sparse Introduction
+*AOCL-Sparse is a library that contains basic linear algebra subroutines for sparse matrices and vectors
+*optimized for AMD EPYC family of processors. It is designed to be used with C and C++.
+*The current functionality of AOCL-Sparse is organized in the following categories:
+* <ol><li>Sparse Level 3 functions describe the operations between a matrix in sparse format and a
+*          matrix in dense/sparse format.</li>
+* <li>Sparse Level 2 functions describe the operations between a matrix in sparse format and a
+*   vector in dense format.</li>
+* <li>Sparse Solver functions that perform matrix factorization and solution phases.</li>
+* <li>Analysis and execute functionalities for performing optimized Sparse Matrix-Dense Vector
+* multiplication and Sparse Solver.</li>
+* <li>Sparse Format Conversion functions describe operations on a matrix in sparse format to
+* obtain a different matrix format.</li>
+*<li>Sparse Auxiliary Functions describe auxiliary functions.</li></ol>
+
+*  
+*/
+
 #include "aoclsparse_analysis.h"
 #include "aoclsparse_auxiliary.h"
 #include "aoclsparse_convert.h"
