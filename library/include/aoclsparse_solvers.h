@@ -76,14 +76,14 @@
  * \c tests/examples/ folder.
  * | Solver | Precision | Filename | Description |
  * |:-------|:---------:|:---------|:------------|
- * | itsol forward communication interface | double | \c sample_itsol_d_cg.cpp | Solves a linear system of equations using the <a href="https://en.wikipedia.org/wiki/Conjugate_gradient_method">Conjugate Gradient method</a>. | 
+ * | itsol forward communication interface | double | \c sample_itsol_d_cg.cpp | Solves a linear system of equations using the Conjugate Gradient method. | 
  * || single | \c sample_itsol_s_cg.cpp ||
- * | itsol reverse communication interface | double | \c sample_itsol_d_cg_rci.cpp | Solves a linear system of equations using the <a href="https://en.wikipedia.org/wiki/Conjugate_gradient_method">Conjugate Gradient method</a>. | 
+ * | itsol reverse communication interface | double | \c sample_itsol_d_cg_rci.cpp | Solves a linear system of equations using the Conjugate Gradient method. | 
  * || single | \c sample_itsol_s_cg_rci.cpp  ||
  * \subsection ref References
  * -# Yousef Saad, _Iterative Methods for Sparse Linear Systems_. 2nd ed. 2003. pp xxi + 547.
- * -# Conjugate gradients, method of. Encyclopedia of Mathematics. URL: <a href="http://encyclopediaofmath.org/index.php?title=Conjugate_gradients,_method_of&oldid=46470">Conjugate Gradients method</a>.
- * -# Acceleration methods. Encyclopedia of Mathematics. URL: <a href="http://encyclopediaofmath.org/index.php?title=Acceleration_methods&oldid=52131">Acceleration methods</a>.
+ * -# Conjugate gradients, method of. Encyclopedia of Mathematics. URL: <a href="https://encyclopediaofmath.org/index.php?title=Conjugate_gradients,_method_of&oldid=46470">Conjugate Gradients method</a>.
+ * -# Acceleration methods. Encyclopedia of Mathematics. URL: <a href="https://encyclopediaofmath.org/index.php?title=Acceleration_methods&oldid=52131">Acceleration methods</a>.
  */
 #ifndef AOCLSPARSE_SOLVERS_H_
 #define AOCLSPARSE_SOLVERS_H_
@@ -278,9 +278,9 @@ aoclsparse_status
  * \f[ Ax=b, \f]
  * where the matrix of coefficients \f$A\f$ is not required to be provided explicitly. The right hand-side is the dense vector \p b and 
  * the vector of unknowns is \p x. If \f$A\f$ is symmetric and positive definite then set the option "iterative method" to "cg"
- * to solve the problem using the <a href="https://en.wikipedia.org/wiki/Conjugate_gradient_method">Conjugate Gradient 
+ * to solve the problem using the <a href="https://encyclopediaofmath.org/index.php?title=Conjugate_gradients,_method_of&oldid=46470">Conjugate Gradient 
  * method</a>, alternatively set the option to "gmres" to solve 
- * using <a href="https://en.wikipedia.org/wiki/Generalized_minimal_residual_method">GMRes</a>. See the \ref anchor_itsol_options
+ * using <a href="https://mathworld.wolfram.com/GeneralizedMinimalResidualMethod.html">GMRes</a>. See the \ref anchor_itsol_options
  * for a list of available options to modify the behaviour of each solver.
  * 
  * The reverse communication interface (RCI), also know as _matrix-free_ interface does not require the user to explicitly provide the matrix \f$A\f$. 
@@ -346,9 +346,9 @@ aoclsparse_status aoclsparse_itsol_s_rci_solve(aoclsparse_itsol_handle   handle,
  * \f[ Ax=b, \f]
  * where the matrix of coefficients \f$A\f$ is defined by \p mat. The right hand-side is the dense vector \p b and 
  * the vector of unknowns is \p x. If \f$A\f$ is symmetric and positive definite then set the option "iterative method" to "cg"
- * to solve the problem using the <a href="https://en.wikipedia.org/wiki/Conjugate_gradient_method">Conjugate Gradient 
+ * to solve the problem using the <a href="https://encyclopediaofmath.org/index.php?title=Conjugate_gradients,_method_of&oldid=46470">Conjugate Gradient 
  * method</a>, alternatively set the option to "gmres" to solve 
- * using <a href="https://en.wikipedia.org/wiki/Generalized_minimal_residual_method">GMRes</a>. See the \ref anchor_itsol_options
+ * using <a href="https://mathworld.wolfram.com/GeneralizedMinimalResidualMethod.html">GMRes</a>. See the \ref anchor_itsol_options
  * for a list of available options to modify the behaviour of each solver.
  *
  * The expected workflow is as follows:
