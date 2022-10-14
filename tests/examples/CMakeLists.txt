@@ -77,3 +77,17 @@ else()
     add_executable(sample_itsol_s_gmres sample_itsol_s_gmres.cpp)
     target_link_libraries(sample_itsol_s_gmres aoclsparse pthread)
 endif()
+set(EXAMPLE_EXECUTABLES
+    sample_spmv
+    sample_csr2m
+    sample_dtrsv
+    sample_itsol_d_cg_rci
+    sample_itsol_d_cg
+    sample_itsol_s_cg_rci
+    sample_itsol_s_cg
+    sample_itsol_d_gmres_rci
+    sample_itsol_d_gmres
+    sample_itsol_s_gmres_rci
+    sample_itsol_s_gmres
+)
+install(TARGETS ${EXAMPLE_EXECUTABLES} RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/examples)
