@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022-2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -671,7 +671,7 @@ aoclsparse_status aoclsparse_cg_rci_solve(aoclsparse_itsol_data<T> *itsol,
 
             // continue without break to check convergence
             cg->task = task_check_conv;
-            __attribute__ ((fallthrough));
+            __attribute__((fallthrough));
 
         case task_check_conv:
             // check convergence via internal stopping criteria and
@@ -729,7 +729,7 @@ aoclsparse_status aoclsparse_cg_rci_solve(aoclsparse_itsol_data<T> *itsol,
                 *v      = cg->z;
                 break;
             }
-            __attribute__ ((fallthrough));
+            __attribute__((fallthrough));
 
         case task_compute_beta:
             // Compute beta and new search direction p
@@ -935,6 +935,7 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
             }
             rinfo[RINFO_RHS_NORM] = gmres->bnorm2;
             gmres->brtol          = gmres->rtol * gmres->bnorm2;
+            rinfo[RINFO_RHS_NORM] = gmres->brtol;
             //step 1.1
             exit_status = aoclsparse_wxmy<T>(n, itsol->b, v, v);
             if(exit_status != aoclsparse_status_success)
@@ -984,8 +985,8 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
             {
                 *ircomm     = aoclsparse_rci_precond;
                 gmres->task = task_gmres_init_precond;
-                *io1        = z + j * n;
-                *io2        = v + j * n;
+                *io1        = v + j * n; //const input
+                *io2        = z + j * n; //r-w output
             }
             break;
 
@@ -1035,13 +1036,15 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
             }
 
             is_value_zero = aoclsparse_zerocheck(hh);
-            if(is_value_zero)
+            if(!is_value_zero)
             {
-                exit_status = aoclsparse_status_numerical_error;
-                printf("Possible Divide-by-zero error!!\n");
-                break;
+                exit_status = aoclsparse_scale<T>(n, v + (j + 1) * n, (1.0 / hh));
             }
-            exit_status = aoclsparse_scale<T>(n, v + (j + 1) * n, (1.0 / hh));
+            else
+            {
+                hh = 0.0;
+            }
+
             /* plane rotations */
 
             for(int i = 0; i < j; i++)
@@ -1065,39 +1068,6 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
 
             rinfo[RINFO_ITER]     = (T)gmres->niter;
             rinfo[RINFO_RES_NORM] = gmres->rnorm2;
-            // check for convergence
-            // Absolute tolerance ||Ax_k - b|| < atol
-            is_residnorm_below_abs_tolerance
-                = (0.0 < gmres->atol) && (gmres->rnorm2 <= gmres->atol);
-
-            is_rhsnorm_below_rel_tolerance
-                = (0.0 < gmres->rnorm2) && (gmres->rnorm2 <= gmres->brtol);
-
-            is_max_iters_reached = ((gmres->maxit > 0) && ((gmres->niter + j) >= gmres->maxit));
-
-            // Absolute tolerance ||Ax_k - b|| < atol
-            if(is_residnorm_below_abs_tolerance)
-            {
-                gmres->niter += j;
-                gmres->task = task_gmres_x_update;
-                loop        = true;
-                break;
-            }
-            // Relative tolerance ||Ax_k - b|| / ||b|| < rtol
-            if(is_rhsnorm_below_rel_tolerance)
-            {
-                gmres->niter += j;
-                gmres->task = task_gmres_x_update;
-                loop        = true;
-                break;
-            }
-            if(is_max_iters_reached)
-            {
-                gmres->niter += j;
-                gmres->task = task_gmres_x_update;
-                loop        = true;
-                break;
-            }
 
             //control should come here only if (j < restart_iters) and inner loop is still iterating
             gmres->j++; //increment inner loop index (restart cycle loop)
@@ -1125,8 +1095,8 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
             {
                 *ircomm     = aoclsparse_rci_precond;
                 gmres->task = task_gmres_end_iter;
-                *io1        = z + j * n;
-                *io2        = v + j * n;
+                *io1        = v + j * n; //const input
+                *io2        = z + j * n; //r-w output
             }
             break;
         case task_gmres_end_iter:
@@ -1147,6 +1117,7 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
             break;
 
         case task_gmres_x_update:
+            j = gmres->j;
             /* 3. form the approximate solution */
             // M . x = b, solve for x using backward pass of triangular solve
             // h . c = g, solve for c from Solver point of view
@@ -1187,7 +1158,8 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
                     }
                 }
             }
-            gmres->rnorm2         = fabs(g[j /*m*/]); /* residual */
+            gmres->rnorm2 = fabs(g[j /*m*/]); /* residual */
+            gmres->niter += j; //update iterations
             rinfo[RINFO_ITER]     = (T)gmres->niter;
             rinfo[RINFO_RES_NORM] = gmres->rnorm2;
 
@@ -1200,51 +1172,37 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
             is_rhsnorm_below_rel_tolerance
                 = (0.0 < gmres->rnorm2) && (gmres->rnorm2 <= gmres->brtol);
 
-            is_max_iters_reached = ((gmres->maxit > 0) && ((gmres->niter + j) >= gmres->maxit));
+            is_max_iters_reached = ((gmres->maxit > 0) && (gmres->niter >= gmres->maxit));
 
+            //check if restart loop has ended
+            //if yes then restart the whole process again using the newly updated x
+            if(j >= m)
+            {
+                gmres->j = 0;
+            }
             // Absolute tolerance ||Ax_k - b|| < atol
             if(is_residnorm_below_abs_tolerance)
             {
-                //*ircomm    = aoclsparse_rci_stopping_criterion;
-                //gmres->task = task_gmres_restart_cycle;
-
-                exit_status = aoclsparse_status_success;
-                *ircomm     = aoclsparse_rci_stop;
+                *ircomm     = aoclsparse_rci_stopping_criterion;
+                gmres->task = task_gmres_convergence_check;
                 break;
             }
             // Relative tolerance ||Ax_k - b|| / ||b|| < rtol
             if(is_rhsnorm_below_rel_tolerance)
             {
-                //*ircomm    = aoclsparse_rci_stopping_criterion;
-                //gmres->task = task_gmres_restart_cycle;
-                exit_status = aoclsparse_status_success;
-                *ircomm     = aoclsparse_rci_stop;
+                *ircomm     = aoclsparse_rci_stopping_criterion;
+                gmres->task = task_gmres_convergence_check;
                 break;
             }
             if(is_max_iters_reached)
             {
-                //*ircomm    = aoclsparse_rci_stopping_criterion;
-                //gmres->task = task_gmres_restart_cycle;
-                //exit_status = aoclsparse_status_maxit;
-
-                exit_status = aoclsparse_status_maxit;
-                *ircomm     = aoclsparse_rci_stop;
+                *ircomm     = aoclsparse_rci_stopping_criterion;
+                gmres->task = task_gmres_convergence_check;
                 break;
             }
-            gmres->niter += j;
 
-            is_restart_cycled_ended = (j >= m);
-            //check if restart loop has ended
-            //if yes then restart the whole process again using the newly updated x
-            if(is_restart_cycled_ended)
-            {
-
-                gmres->j = 0;
-            }
-            rinfo[RINFO_ITER]     = (T)gmres->niter;
-            rinfo[RINFO_RES_NORM] = gmres->rnorm2;
-            *ircomm               = aoclsparse_rci_stopping_criterion;
-            gmres->task           = task_gmres_restart_cycle;
+            *ircomm     = aoclsparse_rci_stopping_criterion;
+            gmres->task = task_gmres_restart_cycle;
             break;
         case task_gmres_restart_cycle:
             // Request v = A*x_est
@@ -1253,6 +1211,36 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
 
             *ircomm     = aoclsparse_rci_mv;
             gmres->task = task_gmres_init_res;
+            break;
+        case task_gmres_convergence_check:
+            is_residnorm_below_abs_tolerance
+                = (0.0 < gmres->atol) && (gmres->rnorm2 <= gmres->atol);
+
+            is_rhsnorm_below_rel_tolerance
+                = (0.0 < gmres->rnorm2) && (gmres->rnorm2 <= gmres->brtol);
+
+            is_max_iters_reached = ((gmres->maxit > 0) && (gmres->niter >= gmres->maxit));
+
+            // Absolute tolerance ||Ax_k - b|| < atol
+            if(is_residnorm_below_abs_tolerance)
+            {
+                exit_status = aoclsparse_status_success;
+                *ircomm     = aoclsparse_rci_stop;
+                break;
+            }
+            // Relative tolerance ||Ax_k - b|| / ||b|| < rtol
+            if(is_rhsnorm_below_rel_tolerance)
+            {
+                exit_status = aoclsparse_status_success;
+                *ircomm     = aoclsparse_rci_stop;
+                break;
+            }
+            if(is_max_iters_reached)
+            {
+                exit_status = aoclsparse_status_maxit;
+                *ircomm     = aoclsparse_rci_stop;
+                break;
+            }
             break;
         default:
             // this shouldn't happen
@@ -1473,12 +1461,12 @@ aoclsparse_status aoclsparse_gmres_solve(
                                         descr,
                                         &precond_data,
                                         (const T *)approx_inv_diag,
-                                        io1, //x = ?, io1 = z+j*n,
-                                        (const T *)io2); //rhs, io2 = v+j*n
+                                        io2, //x = ?, io1 = z+j*n,
+                                        (const T *)io1); //rhs, io2 = v+j*n
                 break;
             default: // None
                 for(aoclsparse_int i = 0; i < n; i++)
-                    io1[i] = io2[i];
+                    io2[i] = io1[i];
                 break;
             }
 

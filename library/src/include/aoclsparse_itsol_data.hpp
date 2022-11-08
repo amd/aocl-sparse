@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022-2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -99,7 +99,8 @@ enum gmres_rc_task
     task_gmres_start_iter,
     task_gmres_end_iter,
     task_gmres_x_update,
-    task_gmres_restart_cycle
+    task_gmres_restart_cycle,
+    task_gmres_convergence_check
 };
 /*
  * Strucure holding the working memory for the CG algorithm

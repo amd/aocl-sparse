@@ -1,5 +1,5 @@
 # ########################################################################
-# Copyright (c) 2020-2022 Advanced Micro Devices, Inc.
+# Copyright (c) 2020-2023 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -59,10 +59,14 @@ if(BUILD_CLIENTS_BENCHMARKS)
   add_subdirectory(benchmarks)
 endif()
 
-if (BUILD_CLIENTS_TESTS)
-  add_subdirectory(functionality)
-endif()
-
 if (BUILD_CLIENTS_SAMPLES)
   add_subdirectory(examples)
 endif()
+
+if (BUILD_UNIT_TESTS)  
+  # TODO: trsv and hint tests need to be merged into google unit testing framework eventually
+  # and remove the folder ./tests/functionality
+  add_subdirectory(functionality)
+  add_subdirectory(unit_tests)
+endif()
+

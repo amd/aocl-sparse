@@ -1,5 +1,5 @@
 # ########################################################################
-# Copyright (c) 2020 Advanced Micro Devices, Inc.
+# Copyright (c) 2020-2023 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -81,3 +81,34 @@ endif()
 
 # Set benchmark output directory
 set_target_properties(aoclsparse-bench PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/staging")
+
+# Add selected matrix operations on small matrices as test targets
+
+# Run all functions on these sizes
+# set common matrix sizes for square matrices "m n nnz"
+set(SQMATRIXSIZES 
+  "1 1 1"
+  "2 2 2"
+  "100 100 500"
+  "103 103 499"
+)
+foreach(MATSIZE ${SQMATRIXSIZES})
+  # split MATSIZE string to individual tokens
+  string(REGEX MATCHALL "[0-9]+" MATSIZE_LIST ${MATSIZE})
+  list(GET MATSIZE_LIST 0 SIZEM)
+  list(GET MATSIZE_LIST 1 SIZEN)
+  list(GET MATSIZE_LIST 2 SIZENNZ)
+
+  foreach(PREC "d") # TODO add "f", so far failing the tests
+    #message(STATUS "PREC=${PREC}: MATSIZE=${MATSIZE} MATSIZE_LIST=${MATSIZE_LIST} ${SIZEM}x${SIZEN}x${SIZENNZ}")
+
+    foreach(FUNCTION "csrmv") # TODO add back "csrsv", so far failing the tests
+      add_test(Bench.${FUNCTION}-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ} ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --verify=1)
+    endforeach(FUNCTION)
+
+  endforeach(PREC)
+endforeach(MATSIZE)
+
+# Add extra function on matrix sizes
+# TODO adjust these as needed
+add_test(Bench.csrmv-d-100x99x333 ../staging/aoclsparse-bench  --function=csrmv --precision=d --sizem=100 --sizen=99 --sizennz=333 --verify=1)

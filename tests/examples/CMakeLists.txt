@@ -1,5 +1,5 @@
 # ########################################################################
-#Copyright(c) 2020 - 2022 Advanced Micro Devices, Inc.
+#Copyright(c) 2020-2023 Advanced Micro Devices, Inc.
 #
 #Permission is hereby granted, free of charge, to any person obtaining a copy
 #of this software and associated documentation files(the "Software"), to deal
@@ -131,3 +131,21 @@ if(NOT BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
     install(FILES README.md DESTINATION ${EXAMPLES_INSTALL_DIR})
     install(FILES CMakeLists.txt DESTINATION ${EXAMPLES_INSTALL_DIR})    
 endif()
+set(EXAMPLE_EXECUTABLES
+    sample_spmv
+    sample_csr2m
+    sample_dtrsv
+    sample_itsol_d_cg_rci
+    sample_itsol_d_cg
+    sample_itsol_s_cg_rci
+    sample_itsol_s_cg
+    sample_itsol_d_gmres_rci
+    sample_itsol_d_gmres
+    sample_itsol_s_gmres_rci
+    sample_itsol_s_gmres
+)
+# Take all sample executables also as test targets
+foreach(SNAME ${EXAMPLE_EXECUTABLES})
+    string(REPLACE "sample_" "" SNAMESHORT ${SNAME})
+    add_test(Sample.${SNAMESHORT} ${SNAME})
+endforeach()

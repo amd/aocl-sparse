@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022-2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -213,8 +213,9 @@ int main()
                                      descr_a,
                                      &pcsr_val,
                                      NULL,
-                                     io1, //x = ?, io1 = z+j*n,
-                                     io2); //rhs, io2 = v+j*n
+                                     io2, //x = ?, io1 = z+j*n,
+                                     (const float *)io1); //rhs, io2 = v+j*n
+
             break;
 
         case aoclsparse_rci_stopping_criterion:
@@ -250,6 +251,7 @@ int main()
     clear_local_resource(expected_sol);
     clear_local_resource(x);
     clear_local_resource(b);
+    aoclsparse_destroy_mat_descr(descr_a);
     aoclsparse_itsol_destroy(&handle);
     aoclsparse_destroy(A);
     printf("\n");

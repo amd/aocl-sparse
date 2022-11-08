@@ -73,8 +73,14 @@ option(BUILD_ILP64 "ILP64 Support" OFF)
 option(USE_AVX512 "AVX512 Support" OFF)
 set(ENABLE_SET_BUILD_DATE OFF CACHE STRING "Set library build date")
 option(BUILD_CLIENTS_SAMPLES "Build sparse examples" ON)
-option(BUILD_CLIENTS_TESTS "Build sparse unit tests" OFF)
+option(BUILD_UNIT_TESTS "Build sparse unit tests" OFF)
 option(BUILD_DOCS "Build the documentation" OFF)
+set(ASAN OFF)
+
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux" AND CMAKE_BUILD_TYPE MATCHES "Debug")
+  # Switch on ASAN
+  set(ASAN ON)
+endif()
 
 # Dependencies
 include(cmake/Dependencies.cmake)
@@ -121,6 +127,9 @@ endif(BUILD_ILP64)
 
 # Set explicit compiler flags
 set(CMAKE_CXX_FLAGS_RELEASE "")
+
+# ASAN is an INTERNAL variable and 
+# is not exposed to the user and by default is only ON when Debug/Linux build is selected.
 set(CMAKE_CXX_FLAGS_DEBUG "")
 # Check for CL compatibility layer of clang
 get_filename_component(COMPILER_BASENAME "${CMAKE_CXX_COMPILER}" NAME)
@@ -136,7 +145,12 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR (CMAKE_CXX_COMPILER_ID STREQUAL "Clan
   # Release flags
   set(COMPILER_FLAGS_RELEASE "-DNDEBUG;-O3;-ftree-vectorize;-ffp-contract=fast")
   # Debug flags
-  set(COMPILER_FLAGS_DEBUG "-O0;-gdwarf-5;-g3;-Wall;-Wextra")
+  set(COMPILER_FLAGS_DEBUG "-O0;-gdwarf-5;-g3;-Wall;-Wextra;")
+  if(ASAN)
+    set(CMAKE_CXX_FLAGS_DEBUG "-fsanitize=address")
+    set(COMPILER_FLAGS_DEBUG "${COMPILER_FLAGS_DEBUG};${CMAKE_CXX_FLAGS_DEBUG}")
+  endif()
+
   if(COVERAGE)
     # Add flags for gcov
     # TODO add dependecies and targets
@@ -179,17 +193,17 @@ elseif(CMAKE_BUILD_TYPE MATCHES "Release")
 endif()
 
 if(USE_AVX512)
-  message(STATUS "USE_AVX512 = ON")
   add_definitions(-DUSE_AVX512)
 endif(USE_AVX512)
 
 # aoclsparse library
 add_subdirectory(library)
 
-if(BUILD_CLIENTS_SAMPLES OR BUILD_CLIENTS_BENCHMARKS OR BUILD_CLIENTS_TESTS)
+if(BUILD_CLIENTS_SAMPLES OR BUILD_CLIENTS_BENCHMARKS OR BUILD_UNIT_TESTS)
   # Internal state variable indicating that tests are to be build inside the
   # source tree and not as an independent project
   set(ENABLE_OUTOFSRCTREE OFF)
+  enable_testing()
   add_subdirectory(tests)
 endif()
 
@@ -203,11 +217,13 @@ message (STATUS "Build Configuration for AOCL-Sparse")
 message (STATUS "  Current Generator <CMAKE_GENERATOR>..............${CMAKE_GENERATOR}")
 message (STATUS "  Install Prefix <CMAKE_INSTALL_PREFIX>............${CMAKE_INSTALL_PREFIX}")
 message (STATUS "  Build Type <CMAKE_BUILD_TYPE>....................${CMAKE_BUILD_TYPE}")
-message (STATUS "  Verbose flag <CMAKE_VERBOSE_MAKEFILE>....................${CMAKE_VERBOSE_MAKEFILE}")
-message (STATUS "  AOCL-Sparse Version ...............${AOCLSPARSE_VERSION_MAJOR}.${AOCLSPARSE_VERSION_MINOR}.${AOCLSPARSE_VERSION_PATCH}.${AOCLSPARSE_VERSION_TWEAK}")
-message (STATUS "  Static/Dynamic Build <BUILD_SHARED_LIBS>...................${BUILD_SHARED_LIBS}")
+message (STATUS "  Address SANitization (only Linux/Debug) <ASAN>...${ASAN}")
+message (STATUS "  Verbose flag <CMAKE_VERBOSE_MAKEFILE>............${CMAKE_VERBOSE_MAKEFILE}")
+message (STATUS "  AOCL-Sparse Version .............................${AOCLSPARSE_VERSION_MAJOR}.${AOCLSPARSE_VERSION_MINOR}.${AOCLSPARSE_VERSION_PATCH}.${AOCLSPARSE_VERSION_TWEAK}")
+message (STATUS "  Static/Dynamic Build <BUILD_SHARED_LIBS>.........${BUILD_SHARED_LIBS}")
 message (STATUS "  ILP64 Build Type <BUILD_ILP64>...................${BUILD_ILP64}")
-message (STATUS "  Sparse Performance Benchmark tests <BUILD_CLIENTS_BENCHMARKS>.............${BUILD_CLIENTS_BENCHMARKS}")
-message (STATUS "  Sparse examples <BUILD_CLIENTS_SAMPLES>.............${BUILD_CLIENTS_SAMPLES}")
-message (STATUS "  Sparse Functionality tests <BUILD_CLIENTS_TESTS>.............${BUILD_CLIENTS_TESTS}")
-message (STATUS "  Sparse Doxygen configuration and API guide build target <BUILD_DOCS>.............${BUILD_DOCS}")
+message (STATUS "  Use AVX512 instructions <USE_AVX512>.............${USE_AVX512}")
+message (STATUS "  Examples <BUILD_CLIENTS_SAMPLES>.................${BUILD_CLIENTS_SAMPLES}")
+message (STATUS "  Unit tests <BUILD_UNIT_TESTS>.............${BUILD_UNIT_TESTS}")
+message (STATUS "  Performance benchmark <BUILD_CLIENTS_BENCHMARKS>.${BUILD_CLIENTS_BENCHMARKS}")
+message (STATUS "  Doxygen configuration and doc build <BUILD_DOCS>.${BUILD_DOCS}")

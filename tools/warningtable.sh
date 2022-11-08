@@ -32,7 +32,7 @@ function print_usage (){
   echo -e "    $BIN /tmp/make-sup.log\n"
   echo "Where make-sup.log file is produced with a command similar to:"
   echo -e "    cd \$AOCL_ROOT/build && cmake .. -DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=Debug \\"
-  echo "    -DBUILD_CLIENTS_TESTS=On -DBUILD_CLIENTS_SAMPLES=On && make clean && make -j 1 \\"
+  echo "    -DBUILD_UNIT_TESTS=ON -DBUILD_CLIENTS_SAMPLES=ON && make clean && make -j 1 \\"
   echo "    VERBOSE=1 2>&1 | tee /tmp/make-sup.log"
   exit 1
 }
