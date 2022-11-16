@@ -69,6 +69,7 @@ OPTION(USE_AVX512 "AVX512 Support" OFF)
 set(ENABLE_SET_BUILD_DATE OFF CACHE STRING  "Set library build date")
 option(BUILD_CLIENTS_SAMPLES "Build sparse examples" OFF)
 option(BUILD_CLIENTS_TESTS "Build sparse unit tests" OFF)
+option(BUILD_DOCS "Build the documentation" OFF)
 
 # Dependencies
 include(cmake/Dependencies.cmake)
@@ -138,3 +139,8 @@ add_subdirectory(library)
 if(BUILD_CLIENTS_SAMPLES OR BUILD_CLIENTS_BENCHMARKS OR BUILD_CLIENTS_TESTS)
 add_subdirectory(tests)
 endif()
+
+if(BUILD_DOCS)
+add_subdirectory(docs)
+endif()
+
