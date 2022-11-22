@@ -71,9 +71,11 @@ option(BUILD_CLIENTS_BENCHMARKS "Build benchmarks (requires Boost) " OFF)
 option(BUILD_ILP64 "ILP64 Support" OFF)
 option(USE_AVX512 "AVX512 Support" OFF)
 set(ENABLE_SET_BUILD_DATE OFF CACHE STRING "Set library build date")
-option(BUILD_CLIENTS_SAMPLES "Build sparse examples" OFF)
+option(BUILD_CLIENTS_SAMPLES "Build sparse examples" ON)
 option(BUILD_CLIENTS_TESTS "Build sparse unit tests" OFF)
 option(BUILD_DOCS "Build the documentation" OFF)
+set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
+set(CMAKE_VERBOSE_MAKEFILE "True" CACHE STRING "" FORCE)
 
 # Dependencies
 include(cmake/Dependencies.cmake)
@@ -102,8 +104,6 @@ endif()
 set(AOCLSPARSE_VERSION "${AOCLSPARSE_VERSION_MAJOR}.${AOCLSPARSE_VERSION_MINOR}.${AOCLSPARSE_VERSION_PATCH}.${AOCLSPARSE_VERSION_TWEAK}")
 string(TIMESTAMP BUILD_DATE "%Y%m%d")
 
-message(STATUS "AOCLSPARSE_VERSION= ${AOCLSPARSE_VERSION}")
-message(STATUS "CMAKE_BUILD_TYPE= ${CMAKE_BUILD_TYPE}")
 set(aoclsparse_SOVERSION ${AOCLSPARSE_VERSION})
 
 if(ENABLE_SET_BUILD_DATE)
@@ -188,9 +188,28 @@ endif(USE_AVX512)
 add_subdirectory(library)
 
 if(BUILD_CLIENTS_SAMPLES OR BUILD_CLIENTS_BENCHMARKS OR BUILD_CLIENTS_TESTS)
+  # Internal state variable indicating that tests are to be build inside the
+  # source tree and not as an independent project
+  set(ENABLE_OUTOFSRCTREE OFF)
   add_subdirectory(tests)
 endif()
 
 if(BUILD_DOCS)
   add_subdirectory(docs)
 endif()
+
+## Configured Info
+message (STATUS "Filename: ${CMAKE_CURRENT_LIST_FILE}\n")
+
+message (STATUS "Build Configuration for AOCL-Sparse")
+message (STATUS "  Current Generator <CMAKE_GENERATOR>..............${CMAKE_GENERATOR}")
+message (STATUS "  Install Prefix <CMAKE_INSTALL_PREFIX>............${CMAKE_INSTALL_PREFIX}")
+message (STATUS "  Build Type <CMAKE_BUILD_TYPE>....................${CMAKE_BUILD_TYPE}")
+message (STATUS "  Verbose flag <CMAKE_VERBOSE_MAKEFILE>....................${CMAKE_VERBOSE_MAKEFILE}")
+message (STATUS "  AOCL-Sparse Version ...............${AOCLSPARSE_VERSION_MAJOR}.${AOCLSPARSE_VERSION_MINOR}.${AOCLSPARSE_VERSION_PATCH}.${AOCLSPARSE_VERSION_TWEAK}")
+message (STATUS "  Static/Dynamic Build <BUILD_SHARED_LIBS>...................${BUILD_SHARED_LIBS}")
+message (STATUS "  ILP64 Build Type <BUILD_ILP64>...................${BUILD_ILP64}")
+message (STATUS "  Sparse Performance Benchmark tests <BUILD_CLIENTS_BENCHMARKS>.............${BUILD_CLIENTS_BENCHMARKS}")
+message (STATUS "  Sparse examples <BUILD_CLIENTS_SAMPLES>.............${BUILD_CLIENTS_SAMPLES}")
+message (STATUS "  Sparse Functionality tests <BUILD_CLIENTS_TESTS>.............${BUILD_CLIENTS_TESTS}")
+message (STATUS "  Sparse Doxygen configuration and API guide build target <BUILD_DOCS>.............${BUILD_DOCS}")

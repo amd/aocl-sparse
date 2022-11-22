@@ -20,7 +20,7 @@ cd build/release
 #   BUILD_SHARED_LIBS        - build AOCL-Sparse as a shared library (Default: ON)
 #   BUILD_ILP64              - ILP64 Support (Default: OFF)
 #   SUPPORT_OMP              - OpenMP Support (Default: ON)
-#   BUILD_CLIENTS_SAMPLES    - build examples (Default: OFF)
+#   BUILD_CLIENTS_SAMPLES    - build examples (Default: ON)
 #   BUILD_CLIENTS_TESTS      - build unit tests (Default: OFF)
 #   BUILD_CLIENTS_BENCHMARKS - build benchmarks (Default: OFF)
 #   BUILD_DOCS               - build the PDF documentation (Default: OFF)
@@ -53,11 +53,8 @@ During installation, these basic examples are copied to the destination under th
 This folder also contains instructions on how to compile the examples, view the `README.md` inside
 the `examples` folder for further details.
 
-<!-- Update required [769643] -->
-Currently for the examples to be installed, the library needs to be built with the
-`BUILD_CLIENTS_SAMPLES` turned on,
 ```
-cmake -DBUILD_CLIENTS_SAMPLES=ON ../../
+cmake ../../
 make install
 ```
 then, the examples can be found in the installation directory under

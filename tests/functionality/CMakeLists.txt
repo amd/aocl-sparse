@@ -30,10 +30,3 @@ else()
     add_executable(cg_tests cg_tests.cpp ${utils_source})
     target_link_libraries(cg_tests aoclsparse pthread)
 endif()
-
-set(FUNCTIONALITY_TEST_EXECUTABLES
-    hint_tests
-    trsv_tests
-    cg_tests
-)
-install(TARGETS ${FUNCTIONALITY_TEST_EXECUTABLES} RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/functionality)

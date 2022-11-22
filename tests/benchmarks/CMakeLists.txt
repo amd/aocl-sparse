@@ -81,5 +81,3 @@ endif()
 
 # Set benchmark output directory
 set_target_properties(aoclsparse-bench PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/staging")
-
-install(TARGETS aoclsparse-bench RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/benchmarks)
