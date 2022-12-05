@@ -189,7 +189,6 @@ aoclsparse_status aoclsparse_ilu0_template(aoclsparse_int             n,
         }
         *precond_csr_val = csr_val;
     }
-
     if(ret == aoclsparse_status_success)
     {
         aoclsparse_ilu_solve<T>(n, lu_diag_ptr, csr_val, csr_row_ptr, csr_col_ind, x, b);

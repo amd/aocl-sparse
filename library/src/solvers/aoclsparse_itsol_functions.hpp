@@ -868,6 +868,7 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
     aoclsparse_int i = 0, n = 0, m = 0, j = 0, k = 0;
     gmres_data<T> *gmres;
     T              hv = 0.0, rr = 0.0, hh = 0.0, r1 = 0.0, r2 = 0.0, g0 = 0.0;
+    T              alpha = 1.0, beta = -1.0;
     bool           loop = false;
 
     gmres = itsol->gmres;
@@ -921,12 +922,8 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
             v1 = v/g[0] = v/||v||
             */
             //Compute b norm for relative tolerance checks
-            gmres->bnorm2 = 0.0;
-            for(i = 0; i < n; i++)
-            {
-                gmres->bnorm2 += itsol->b[i] * itsol->b[i];
-            }
-            gmres->bnorm2 = sqrt(gmres->bnorm2);
+            gmres->bnorm2 = blis::cblas_nrm2(n, itsol->b, 1);
+
             if(std::isnan(gmres->bnorm2)) // test for NaN
             {
                 return aoclsparse_status_invalid_value; // vector b is rubbish
@@ -945,17 +942,12 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
             }
 
             //step 1.1
-            exit_status = aoclsparse_wxmy<T>(n, itsol->b, v, v);
-            if(exit_status != aoclsparse_status_success)
-            {
-                break;
-            }
+            //v = b - v
+            alpha = 1.0;
+            beta  = -1.0;
+            blis::cblas_axpby(n, alpha, itsol->b, 1, beta, v, 1);
             //step 1.2
-            exit_status = aoclsparse_dnorm2<T>(n, v, g[0]);
-            if(exit_status != aoclsparse_status_success)
-            {
-                break;
-            }
+            g[0] = blis::cblas_nrm2(n, v, 1);
             //step 1.3
             gmres->rnorm2         = g[0];
             rinfo[RINFO_RES_NORM] = gmres->rnorm2;
@@ -975,11 +967,7 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
                 rinfo[RINFO_ITER] = (T)gmres->niter;
                 break;
             }
-            exit_status = aoclsparse_scale<T>(n, v, (1.0 / g[0]));
-            if(exit_status != aoclsparse_status_success)
-            {
-                break;
-            }
+            blis::cblas_scal(n, (1.0 / g[0]), v, 1);
 
             if(!gmres->precond)
             {
@@ -1021,32 +1009,19 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
             //step 2.2
             for(int i = 0; i <= j; i++)
             {
-                exit_status = aoclsparse_ddot<T>(n, v + (j + 1) * n, v + i * n, h[i * m + j]);
-                if(exit_status != aoclsparse_status_success)
-                {
-                    break;
-                }
+                h[i * m + j] = blis::cblas_dot(n, v + (j + 1) * n, 1, v + i * n, 1);
             }
             //step 2.3
             for(k = 0; k < n; k++)
             {
-                hv = 0.0;
-                for(int i = 0; i <= j; i++)
-                {
-                    hv += h[i * m + j] * v[i * n + k];
-                }
+                hv = blis::cblas_dot(j + 1, h + j, m, v + k, n);
                 v[(j + 1) * n + k] -= hv;
             }
-            exit_status = aoclsparse_dnorm2<T>(n, v + (j + 1) * n, hh);
-            if(exit_status != aoclsparse_status_success)
-            {
-                break;
-            }
-
+            hh                            = blis::cblas_nrm2(n, v + (j + 1) * n, 1);
             is_residual_vector_orthogonal = (hh < gmres->atol) || (hh < gmres->brtol);
             if(!is_residual_vector_orthogonal)
             {
-                exit_status = aoclsparse_scale<T>(n, v + (j + 1) * n, (1.0 / hh));
+                blis::cblas_scal(n, (1.0 / hh), v + (j + 1) * n, 1);
             }
             else
             {
@@ -1075,11 +1050,9 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
                 h[(i + 1) * m + j] = s[i] * r1 + c[i] * r2;
             }
             rr = h[j * m + j];
-            hv = sqrt(rr * rr + hh * hh); /* temporary variable */
+            hh = -hh;
 
-            c[j]         = rr / hv;
-            s[j]         = -hh / hv;
-            h[j * m + j] = hv; /* resultant (after rotated) element */
+            aoclsparse_givens_rotation(rr, hh, c[j], s[j], h[j * m + j]);
 
             g0            = g[j];
             g[j]          = c[j] * g0;
@@ -1162,20 +1135,14 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
             {
                 for(int i = 0; i < n; i++)
                 {
-                    for(k = 0; k < m; k++)
-                    {
-                        x[i] += v[k * n + i] * c[k];
-                    }
+                    x[i] += blis::cblas_dot(m, v + i, n, c, 1);
                 }
             }
             else
             {
                 for(int i = 0; i < n; i++)
                 {
-                    for(k = 0; k < m; k++)
-                    {
-                        x[i] += z[k * n + i] * c[k];
-                    }
+                    x[i] += blis::cblas_dot(m, z + i, n, c, 1);
                 }
             }
             gmres->rnorm2 = fabs(g[j /*m*/]); /* residual */

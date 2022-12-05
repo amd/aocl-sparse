@@ -54,6 +54,8 @@ add_executable(aoclsparse-bench ${AOCLSPARSE_BENCHMARK_SOURCES} ${AOCLSPARSE_CLI
 target_include_directories(aoclsparse-bench
   PRIVATE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
+    ${LAPACK_INCLUDE_DIRS}
+    ${BLIS_INCLUDE_DIRS}
     ${Boost_INCLUDE_DIRS}
 )
 
@@ -78,6 +80,8 @@ endif()
 if(OPENMP_FOUND)
   target_link_libraries(aoclsparse-bench PRIVATE OpenMP::OpenMP_CXX)
 endif()
+
+target_link_libraries(aoclsparse-bench PUBLIC ${LAPACK_LIBRARIES})
 
 # Set benchmark output directory
 set_target_properties(aoclsparse-bench PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/staging")

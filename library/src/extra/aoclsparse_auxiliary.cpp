@@ -590,7 +590,7 @@ aoclsparse_int aoclsparse_get_vec_extn_context(void)
 {
     aoclsparse_init_once();
     aoclsparse_context context;
-    context.is_avx512 = global_context.is_avx512;
+    context.is_avx512 = sparse_global_context.is_avx512;
     if(context.is_avx512)
         return 1;
     return 0;

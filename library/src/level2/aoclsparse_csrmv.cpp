@@ -326,7 +326,7 @@ extern "C" aoclsparse_status aoclsparse_scsrmv(aoclsparse_operation       trans,
     aoclsparse_init_once();
 
     aoclsparse_context context;
-    context.num_threads = global_context.num_threads;
+    context.num_threads = sparse_global_context.num_threads;
 
     if(descr == nullptr)
     {
@@ -426,8 +426,8 @@ extern "C" aoclsparse_status aoclsparse_dcsrmv(aoclsparse_operation       trans,
     aoclsparse_init_once();
 
     aoclsparse_context context;
-    context.num_threads = global_context.num_threads;
-    context.is_avx512   = global_context.is_avx512;
+    context.num_threads = sparse_global_context.num_threads;
+    context.is_avx512   = sparse_global_context.is_avx512;
 
     if(descr == nullptr)
     {

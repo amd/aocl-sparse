@@ -114,7 +114,7 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
     double fill_ratio = ((double)(tnnz - ell_nnz) / tnnz) * 100;
     aoclsparse_init_once();
     aoclsparse_context context;
-    context.is_avx512 = global_context.is_avx512;
+    context.is_avx512 = sparse_global_context.is_avx512;
     if(context.is_avx512)
     {
         if(nnza >= 10)

@@ -214,11 +214,11 @@ int main()
         norm = calculate_l2Norm_solvers(expected_sol, x, n);
         printf("input = %s\n", filename.c_str());
         printf("solver = %s\n", gmres_sol);
-        printf("no of rows = %d\n", m);
-        printf("no of cols = %d\n", n);
-        printf("no of nnz = %d\n", nnz);
+        printf("no of rows = %d\n", (int)m);
+        printf("no of cols = %d\n", (int)n);
+        printf("no of nnz = %d\n", (int)nnz);
         printf("monitoring tolerance = %e\n", tol);
-        printf("restart iterations = %d\n", rs_iters);
+        printf("restart iterations = %d\n", (int)rs_iters);
         printf("residual achieved = %e\n", rinfo[0]);
         printf("total iterations = %d\n", (int)rinfo[30]);
         printf("l2 Norm = %e\n", norm);

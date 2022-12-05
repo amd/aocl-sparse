@@ -62,7 +62,10 @@ add_library(aocl::aoclsparse ALIAS aoclsparse)
 
 # Target link libraries
 if(SUPPORT_OMP)
-target_link_libraries(aoclsparse PRIVATE OpenMP::OpenMP_CXX)
+target_link_libraries(aoclsparse PRIVATE OpenMP::OpenMP_CXX
+                                 PUBLIC ${LAPACK_LIBRARIES})
+else()
+target_link_libraries(aoclsparse PUBLIC ${LAPACK_LIBRARIES})
 endif()
 
 # Target include directories
@@ -73,6 +76,8 @@ target_include_directories(aoclsparse
                                    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/extra>
                            PUBLIC  $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/library/include>
                                    $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
+                                   $<BUILD_INTERFACE:${LAPACK_INCLUDE_DIRS}>
+                                   $<BUILD_INTERFACE:${BLIS_INCLUDE_DIRS}>
                                    $<INSTALL_INTERFACE:include>
 )
 

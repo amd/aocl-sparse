@@ -25,88 +25,35 @@
 #define AOCLSPARSE_AUXILIARY_HPP
 
 #include "aoclsparse_mat_structures.h"
+#include "blis.h"
+#include "cblas.hh"
+#include "FLAME.h"
 
 #include <cmath>
 #include <limits>
 
+
 void aoclsparse_init_csrmat(aoclsparse_matrix A);
 
-/* 
-    subtraction of 2 vectors
-*/
-template <typename T>
-aoclsparse_status aoclsparse_wxmy(const aoclsparse_int n, const T *xv, const T *yv, T *wv)
+/********************************************************************************
+ * \brief generates a plane rotation with cosine and sine. Slower and more accurate
+ * version of BLAS's DROTG performs the Givens Rotation. The mathematical formulas 
+ * used for C and S are
+        hv = sqrt(rr^2 + hh^2)
+        c = rr/hv
+        s = hh/hv
+        h_mj_j = hv
+ * 
+ *******************************************************************************/
+inline void aoclsparse_givens_rotation(double &rr, double &hh, double &c, double &s, double &h_mj_j)
 {
-    aoclsparse_status exit_status = aoclsparse_status_success;
-    if(xv == NULL || yv == NULL || wv == NULL)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    for(aoclsparse_int i = 0; i < n; i++)
-    {
-        wv[i] = xv[i] - yv[i];
-    }
-
-    return exit_status;
+    dlartg_(&rr, &hh, &c, &s, &h_mj_j);
+}
+inline void aoclsparse_givens_rotation(float &rr, float &hh, float &c, float &s, float &h_mj_j)
+{
+    slartg_(&rr, &hh, &c, &s, &h_mj_j);
 }
 
-/* 
-    Computes dot product of 2 vectors
-*/
-template <typename T>
-aoclsparse_status aoclsparse_ddot(const aoclsparse_int n, const T *xv, const T *yv, T &result)
-{
-    aoclsparse_status exit_status  = aoclsparse_status_success;
-    T                 local_result = 0.0;
-    if(xv == NULL || yv == NULL)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    for(aoclsparse_int i = 0; i < n; i++)
-    {
-        local_result += xv[i] * yv[i];
-    }
-    result = local_result;
-    return exit_status;
-}
-
-/* 
-    Computes norm-2 of 2 vectors
-*/
-template <typename T>
-aoclsparse_status aoclsparse_dnorm2(const aoclsparse_int n, const T *xv, T &result)
-{
-    aoclsparse_status exit_status = aoclsparse_status_success;
-    if(xv == NULL)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    T sum = 0.0;
-    for(aoclsparse_int i = 0; i < n; i++)
-    {
-        sum += xv[i] * xv[i];
-    }
-    result = sqrt(sum);
-    return exit_status;
-}
-
-/* 
-    scales a vector by a specific value provided
-*/
-template <typename T>
-aoclsparse_status aoclsparse_scale(const aoclsparse_int n, T *xv, T sfactor)
-{
-    aoclsparse_status exit_status = aoclsparse_status_success;
-    if(xv == NULL)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    for(aoclsparse_int i = 0; i < n; i++)
-    {
-        xv[i] = xv[i] * sfactor;
-    }
-    return exit_status;
-}
 /* 
     Perform a comparison test to determine if the value is near zero
 */

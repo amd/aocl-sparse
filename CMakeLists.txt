@@ -78,6 +78,7 @@ option(BUILD_DOCS "Build the documentation" OFF)
 option(COVERAGE "Do source code coverage (only GCC/Debug build)" OFF)
 option(ASAN "Enable Address SANitizer (only Debug/Linux build)" OFF)
 option(VALGRIND "Enable Valgrind checks (only Debug. Incompatible with ASAN=ON)" OFF)
+set(CMAKE_AOCL_ROOT OFF CACHE STRING "Provide AOCL_ROOT via CMake Configuration")
 
 if (NOT (${ASAN} AND ${CMAKE_SYSTEM_NAME} MATCHES "Linux" AND CMAKE_BUILD_TYPE MATCHES "Debug"))
   # Switch off ASAN: target not supported
@@ -99,9 +100,17 @@ if (${VALGRIND} AND CMAKE_BUILD_TYPE MATCHES "Debug")
   endif()
 endif()
 
+#TODO: Remove 
+IF(NOT DEFINED ENV{AOCL_ROOT})
+  #check if the CMake variable exists and if its contents is a valid directory
+  if((DEFINED CMAKE_AOCL_ROOT) AND (IS_DIRECTORY "${CMAKE_AOCL_ROOT}"))
+    set(ENV{AOCL_ROOT} ${CMAKE_AOCL_ROOT}) 
+  endif()
+ENDIF()
 
 # Dependencies
-include(Dependencies)
+include(cmake/Dependencies.cmake)
+include(cmake/find_blis_lapack.cmake)
 
 # Define a version for the aocl-sparse code.
 if(NOT DEFINED AOCLSPARSE_VERSION_MAJOR)
@@ -248,4 +257,5 @@ message (STATUS "  Examples <BUILD_CLIENTS_SAMPLES>.................${BUILD_CLIE
 message (STATUS "  Unit tests <BUILD_UNIT_TESTS>....................${BUILD_UNIT_TESTS}")
 message (STATUS "  Performance benchmark <BUILD_CLIENTS_BENCHMARKS>.${BUILD_CLIENTS_BENCHMARKS}")
 message (STATUS "  Doxygen configuration and doc build <BUILD_DOCS>.${BUILD_DOCS}")
-
+message (STATUS  "  AOCL_ROOT(Environment Variable)..................$ENV{AOCL_ROOT}")
+message (STATUS  "  CMAKE_AOCL_ROOT..................................${AOCL_ROOT}")

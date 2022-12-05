@@ -1042,7 +1042,7 @@ aoclsparse_status
             usekid = kid;
             break;
         case 3: // AVX-512F 512b
-            if(global_context.is_avx512)
+            if(sparse_global_context.is_avx512)
                 usekid = kid;
             // Requested kid not available on host,
             // stay with kid suggested by CPU ID...

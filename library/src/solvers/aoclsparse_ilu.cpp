@@ -57,6 +57,11 @@ extern "C" aoclsparse_status aoclsparse_silu_smoother(aoclsparse_operation      
         // TODO
         return aoclsparse_status_not_implemented;
     }
+    if(approx_inv_diag != NULL)
+    {
+        // TODO: argument for future use. expect this to be NULL
+        return aoclsparse_status_not_implemented;
+    }
     // Check sizes
     if((A->m < 0) || (A->n < 0))
     {
@@ -103,6 +108,11 @@ extern "C" aoclsparse_status aoclsparse_dilu_smoother(aoclsparse_operation      
     if(op != aoclsparse_operation_none)
     {
         // TODO
+        return aoclsparse_status_not_implemented;
+    }
+    if(approx_inv_diag != NULL)
+    {
+        // TODO: argument for future use. expect this to be NULL
         return aoclsparse_status_not_implemented;
     }
     // Check sizes

@@ -121,7 +121,7 @@ void aoclsparse_pthread_once(aoclsparse_pthread_once_t *once, void (*init)(void)
 #endif // !defined(AOCLSPARSE_DISABLE_SYSTEM) && !defined(_MSC_VER)
 
 // The global aoclsparse_context structure, which holds the global thread,ISA settings
-aoclsparse_context global_context;
+aoclsparse_context sparse_global_context;
 
 // A mutex to allow synchronous access to global_thread.
 aoclsparse_pthread_mutex_t global_thread_mutex = AOCLSPARSE_PTHREAD_MUTEX_INITIALIZER;
@@ -185,10 +185,10 @@ void aoclsparse_context_init(void)
 {
     // Read the environment variables and use them to initialize the
     // global runtime object.
-    aoclsparse_thread_init_rntm_from_env(&global_context);
+    aoclsparse_thread_init_rntm_from_env(&sparse_global_context);
 
     // Read target ISA if it supports avx512
-    aoclsparse_isa_init(&global_context);
+    aoclsparse_isa_init(&sparse_global_context);
 }
 
 // -----------------------------------------------------------------------------
@@ -219,7 +219,7 @@ aoclsparse_int aoclsparse_thread_get_num_threads(void)
     // We must ensure that global_rntm has been initialized.
     aoclsparse_init_once();
 
-    return global_context.num_threads;
+    return sparse_global_context.num_threads;
 }
 
 void aoclsparse_thread_set_num_threads(aoclsparse_int n_threads)
@@ -230,7 +230,7 @@ void aoclsparse_thread_set_num_threads(aoclsparse_int n_threads)
     // Acquire the mutex protecting global_thread.
     aoclsparse_pthread_mutex_lock(&global_thread_mutex);
 
-    global_context.num_threads = n_threads;
+    sparse_global_context.num_threads = n_threads;
 
     // Release the mutex protecting global_thread.
     aoclsparse_pthread_mutex_unlock(&global_thread_mutex);

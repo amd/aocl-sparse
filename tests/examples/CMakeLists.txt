@@ -52,6 +52,10 @@ if (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
         # FIXME this needs to the "hardcoded" from main CMAKE at install time
         set(SPARSE_ARTIFACTS_DIR ${CMAKE_INSTALL_PREFIX})
     ENDIF()
+    
+    # During out-of-source-tree build of examples, Blis and Libflame artifacts need to be found explicitly. 
+    # So we call find_blis_lapack.cmake under if (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE) condition
+    include(${CMAKE_SOURCE_DIR}/cmake/find_blis_lapack.cmake)
 
     if(SUPPORT_OMP)
         find_package(OpenMP)
@@ -121,10 +125,10 @@ foreach( sample_example_source ${SPARSE_SAMPLES})
     string( REPLACE ".cpp" "" new_name ${sample_example_source})
     get_filename_component(sample_target ${new_name} NAME)
     add_executable( ${sample_target} ${sample_example_source})
-    target_include_directories(${sample_target} PUBLIC ${SPARSE_INCLUDE_DIR})
-    target_link_libraries(${sample_target} ${SPARSE_LIBRARY} ${MT_LIBRARIES})
-    target_compile_options(${sample_target} PUBLIC ${COMPILER_OPTIONS})
-    if(NOT BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
+    target_include_directories(${sample_target} PUBLIC ${SPARSE_INCLUDE_DIR} ${LAPACK_INCLUDE_DIRS} ${BLIS_INCLUDE_DIRS})
+    target_link_libraries(${sample_target} ${SPARSE_LIBRARY} ${LAPACK_LIBRARIES} ${MT_LIBRARIES})
+    target_compile_options(${sample_target} PUBLIC ${COMPILER_OPTIONS}) 
+    if(NOT BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)    
         install(FILES ${sample_example_source} DESTINATION ${CMAKE_INSTALL_PREFIX}/examples)
     endif()
 endforeach( sample_example_source ${SPARSE_SAMPLES} )

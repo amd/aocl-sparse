@@ -400,8 +400,8 @@ extern "C" aoclsparse_status aoclsparse_dblkcsrmv(aoclsparse_operation       tra
     // This function updates the num_threads only once.
     aoclsparse_init_once();
     aoclsparse_context context;
-    context.num_threads = global_context.num_threads;
-    context.is_avx512   = global_context.is_avx512;
+    context.num_threads = sparse_global_context.num_threads;
+    context.is_avx512   = sparse_global_context.is_avx512;
     if(descr == nullptr)
     {
         return aoclsparse_status_invalid_pointer;

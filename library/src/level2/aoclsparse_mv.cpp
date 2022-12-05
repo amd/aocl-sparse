@@ -39,7 +39,7 @@ aoclsparse_status aoclsparse_dcsr_mat_br4(aoclsparse_operation       op,
     aoclsparse_init_once();
 
     aoclsparse_context context;
-    context.num_threads = global_context.num_threads;
+    context.num_threads = sparse_global_context.num_threads;
 
     __m256d res, vvals, vx, vy, va, vb;
 

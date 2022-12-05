@@ -45,6 +45,14 @@ include_directories(${CMAKE_SOURCE_DIR}/library/src/include
                     ${CMAKE_SOURCE_DIR}/library/src/extra
                     ${CMAKE_SOURCE_DIR}/tests/include)
 
+set(MT_LIBRARIES "OpenMP::OpenMP_CXX")
+set(PTHREAD_LIBRARY "pthread")
+
+if(WIN32)
+ELSE()
+    list(APPEND MT_LIBRARIES ${PTHREAD_LIBRARY})
+ENDIF()
+
 set(GTEST_EXECUTABLES
     gmres_tests
     cg_tests
@@ -62,9 +70,9 @@ set(GTEST_EXECUTABLES
 )
 foreach(TNAME ${GTEST_EXECUTABLES})
     add_executable(${TNAME} ${TNAME}.cpp ${utils_source})
-    target_link_libraries(${TNAME} aoclsparse GTest::gtest_main)
+    target_link_libraries(${TNAME} aoclsparse ${MT_LIBRARIES} ${LAPACK_LIBRARIES} GTest::gtest_main)
+    target_include_directories(${TNAME} PUBLIC ${LAPACK_INCLUDE_DIRS} ${BLIS_INCLUDE_DIRS})
 endforeach()
-
 
 include(GoogleTest)
 foreach(TNAME ${GTEST_EXECUTABLES})

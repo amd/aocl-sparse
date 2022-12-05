@@ -121,7 +121,7 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
     aoclsparse_init_once();
 
     aoclsparse_context context;
-    context.num_threads = global_context.num_threads;
+    context.num_threads = sparse_global_context.num_threads;
 
     // Dispatcher
     if(descr->type == aoclsparse_matrix_type_general)

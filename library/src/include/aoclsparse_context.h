@@ -104,7 +104,7 @@ typedef struct _aoclsparse_context
     bool           is_avx512   = false;
 } aoclsparse_context;
 
-extern aoclsparse_context global_context;
+extern aoclsparse_context sparse_global_context;
 
 /*! \ingroup aux_module
  *  \brief Initialise number of threads from environment variables

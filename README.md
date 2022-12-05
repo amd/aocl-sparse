@@ -1,19 +1,25 @@
 # AOCL-Sparse
-AOCL-Sparse exposes a common interface that provides Basic Linear Algebra Subroutines for sparse computation implemented for AMD's CPUs.
+AOCL-Sparse exposes a common interface that provides Basic Linear Algebra Subroutines for sparse computation implemented for AMD's CPUs. AOCL-Sparse is built with cmake, using the supported compilers GNU and AOCC on Linux and clang/MSVC on Windows. AOCL-Sparse is dependent on BLAS and LAPACK currently.
 
 ## Requirements
 * CMake (3.5 or later)
 
 ## Quickstart AOCL-Sparse build and install
 
-#### CMake
-All compiler specifications are determined automatically.
-
-After cloning AOCL-Sparse, move into the `aocl-sparse` directory and create the build directory `build/release`,
+#### Building on Windows
+1. Install Visual Studio 2022 (the free version) and cmake 
+2. Install AOCL provided Blis and Libflame
+3. Define the environment variable AOCL_ROOT to point to AOCL libs installation
+```
+set "AOCL_ROOT=C:\Program Files\AMD\AOCL-Windows"	
+```
+4. Navigate to checkout `aocl-sparse` directory
 ```
 cd aocl-sparse
-mkdir -p build/release
-cd build/release
+```
+5. Configure the project along with the following options depending on the build that is required:
+```
+cmake S . -B build_directory -T ClangCL -G "Visual Studio 17 2022" -DCMAKE_CXX_COMPILER=ClangCl -DCMAKE_INSTALL_PREFIX="<aoclsparse_install_path>"
 
 # Configure AOCL-Sparse
 # Build options:
@@ -21,28 +27,59 @@ cd build/release
 #   BUILD_ILP64              - ILP64 Support (Default: OFF)
 #   SUPPORT_OMP              - OpenMP Support (Default: ON)
 #   BUILD_CLIENTS_SAMPLES    - build examples (Default: ON)
-#   BUILD_CLIENTS_TESTS      - build unit tests (Default: OFF)
+#   BUILD_UNIT_TESTS      	 - build unit tests (Default: OFF)
 #   BUILD_CLIENTS_BENCHMARKS - build benchmarks (Default: OFF)
 #   BUILD_DOCS               - build the PDF documentation (Default: OFF)
 ```
-**Note** If `CMAKE_INSTALL_PREFIX` is not provided then `/opt/aoclsparse/` is chosen as the default installation location.
-Inside it will contain the `lib`, `include`, and `examples` directories and associated files.
+6. Build the project
+```
+cmake --build build_directory --config Release --target install --verbose
+```
+7. To run the tests/examples, export the paths for Blis, Libflame and Sparse binaries
+```
+set PATH=C:\Users\Program Files\AMD\AOCL-Windows\amd-blis\include;%PATH%
+set PATH=C:\Users\Program Files\AMD\AOCL-Windows\amd-blis\lib;%PATH%
+set PATH=C:\Users\Program Files\AMD\AOCL-Windows\amd-libflame\include;%PATH%
+set PATH=C:\Users\Program Files\AMD\AOCL-Windows\amd-libflame\lib;%PATH%
+```
+8. Run the examples after exporting the required library/headers paths
+```
+build_directory\tests\examples\sample_spmv.exe 
+```
 
-#### Building the shared library
-
+#### Building on Linux
+1. Install AOCL provided Blis and Libflame
+2. Define the environment variable AOCL_ROOT to point to AOCL libs installation
+```
+export AOCL_ROOT=/opt/aocl
+```
+3. Change directory to `aocl-sparse` and create the build directory `build/release`
+```
+cd aocl-sparse
+mkdir -p build/release
+cd build/release
+```
+4. Configure the project by typing cmake ../../ along with (or none) of the following options depending on the build that is required:
 ```
 cmake ../.. -DCMAKE_INSTALL_PREFIX="<aoclsparse_install_path>"
-make
-[sudo] make install
-```
 
-#### Building the static library
-The static version of the library can be built by turning off the option `BUILD_SHARED_LIBS`,
+# Configure AOCL-Sparse
+# Build options:
+#   BUILD_SHARED_LIBS        - build AOCL-Sparse as a shared library (Default: ON)
+#   BUILD_ILP64              - ILP64 Support (Default: OFF)
+#   SUPPORT_OMP              - OpenMP Support (Default: ON)
+#   BUILD_CLIENTS_SAMPLES    - build examples (Default: ON)
+#   BUILD_UNIT_TESTS      	 - build unit tests (Default: OFF)
+#   BUILD_CLIENTS_BENCHMARKS - build benchmarks (Default: OFF)
+#   BUILD_DOCS               - build the PDF documentation (Default: OFF)
 ```
-cmake ../../ -DBUILD_SHARED_LIBS=OFF
-make
+**Note** If `CMAKE_INSTALL_PREFIX` is not provided then `/opt/aoclsparse/` is chosen as the default installation location. Inside it will contain the `lib`, `include`, and `examples` directories and associated files.
+5. Build the project by typing make. To install the binaries, do make install
+```
+make 
 [sudo] make install
 ```
+6. Refer the sections below to run examples/tests and to build documentation
 
 #### Running basic examples
 To get acquainted on how to use the library, a variety of small illustrative examples
@@ -53,11 +90,7 @@ During installation, these basic examples are copied to the destination under th
 This folder also contains instructions on how to compile the examples, view the `README.md` inside
 the `examples` folder for further details.
 
-```
-cmake ../../
-make install
-```
-then, the examples can be found in the installation directory under
+The examples can be found in the installation directory under
 `"<aoclsparse_install_path>/examples` folder along with a `README.md`
 instructions on how to compile.
 
@@ -65,15 +98,19 @@ instructions on how to compile.
 The library is equipped with a set of *stringent tests programs* (STP) and *unit tests* that
 verify the correct functioning of the built library.
 
-The STP and unit tests are located in the `aocl-sparse/tests/functionality` folder and are
+The STP and unit tests are located in the `aocl-sparse/tests/unit_tests` folder and are
 intended to be executed from the building directory and are not copied during installation.
-
-
+Tests can be run using ctest.
+```
+make test
+or
+ctest -V -R <string_to_find_particular_set_of_tests>
+```
 
 #### Benchmarks
 To run the provided benchmarks, AOCL-Sparse has to be built with option `BUILD_CLIENTS_BENCHMARKS` turned on,
 ```
-cmake -DBUILD_CLIENTS_BENCHMARKS=ON ../../
+cmake ../../ -DBUILD_CLIENTS_BENCHMARKS=ON 
 make
 ```
 

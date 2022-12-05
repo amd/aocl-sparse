@@ -47,7 +47,7 @@ extern "C" aoclsparse_status aoclsparse_sellmv(aoclsparse_operation       trans,
     aoclsparse_init_once();
 
     aoclsparse_context context;
-    context.num_threads = global_context.num_threads;
+    context.num_threads = sparse_global_context.num_threads;
 
     if(descr == nullptr)
     {
@@ -138,8 +138,8 @@ extern "C" aoclsparse_status aoclsparse_dellmv(aoclsparse_operation       trans,
     aoclsparse_init_once();
 
     aoclsparse_context context;
-    context.num_threads = global_context.num_threads;
-    context.is_avx512   = global_context.is_avx512;
+    context.num_threads = sparse_global_context.num_threads;
+    context.is_avx512   = sparse_global_context.is_avx512;
 
     if(descr == nullptr)
     {
@@ -239,7 +239,7 @@ extern "C" aoclsparse_status aoclsparse_selltmv(aoclsparse_operation       trans
     aoclsparse_init_once();
 
     aoclsparse_context context;
-    context.num_threads = global_context.num_threads;
+    context.num_threads = sparse_global_context.num_threads;
 
     if(descr == nullptr)
     {
@@ -330,8 +330,8 @@ extern "C" aoclsparse_status aoclsparse_delltmv(aoclsparse_operation       trans
     aoclsparse_init_once();
 
     aoclsparse_context context;
-    context.num_threads = global_context.num_threads;
-    context.is_avx512   = global_context.is_avx512;
+    context.num_threads = sparse_global_context.num_threads;
+    context.is_avx512   = sparse_global_context.is_avx512;
 
     if(descr == nullptr)
     {
@@ -437,7 +437,7 @@ extern "C" aoclsparse_status aoclsparse_sellthybmv(aoclsparse_operation       tr
     aoclsparse_init_once();
 
     aoclsparse_context context;
-    context.num_threads = global_context.num_threads;
+    context.num_threads = sparse_global_context.num_threads;
 
     return aoclsparse_ellthybmv_template(*alpha,
                                          m,
@@ -482,8 +482,8 @@ extern "C" aoclsparse_status aoclsparse_dellthybmv(aoclsparse_operation       tr
     aoclsparse_init_once();
 
     aoclsparse_context context;
-    context.num_threads = global_context.num_threads;
-    context.is_avx512   = global_context.is_avx512;
+    context.num_threads = sparse_global_context.num_threads;
+    context.is_avx512   = sparse_global_context.is_avx512;
 
 #if USE_AVX512
     if(context.is_avx512)
