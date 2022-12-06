@@ -377,12 +377,8 @@ aoclsparse_status
     aoclsparse_copy_mat_descr(&descr_cpy, descr);
     aoclsparse_set_mat_type(&descr_cpy, aoclsparse_matrix_type_triangular);
 
-    // triangle solve avx is not yet implemented for single precision.
-    // TODO remove when switches to different avx implementations are written.
-    if(A->val_type == aoclsparse_dmat)
-        avxversion = 1;
-    else
-        avxversion = 0;
+    // Use default AVX extension
+    avxversion = -1;
 
     // (L+D)y := r
     if(descr->type == aoclsparse_matrix_type_general
@@ -1303,6 +1299,7 @@ aoclsparse_status aoclsparse_cg_solve(
     if(descr->type != aoclsparse_matrix_type_symmetric)
         return aoclsparse_status_invalid_value;
     if(descr->fill_mode != aoclsparse_fill_mode_lower)
+        // TODO: support fill upper
         // symmetric matrix-vector product only work for lower triangular matrices...
         return aoclsparse_status_invalid_value;
 
@@ -1313,7 +1310,7 @@ aoclsparse_status aoclsparse_cg_solve(
     if((itsol->cg)->precond == 3) // Add other preconds here...
     {
         // Symmetric Gauss-Seidel requested, allocate some memory
-        if(!mat->opt_csr_full_diag && !descr->diag_type == aoclsparse_diag_type_unit)
+        if(!(mat->opt_csr_full_diag) && descr->diag_type != aoclsparse_diag_type_unit)
             // Gauss-Seidel needs a full diagonal to perform the triangle solve
             return aoclsparse_status_invalid_value;
         y = (T *)malloc(n * sizeof(T));
