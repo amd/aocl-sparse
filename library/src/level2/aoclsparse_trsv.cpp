@@ -37,9 +37,9 @@ extern "C" aoclsparse_status aoclsparse_strsv(aoclsparse_operation       trans,
                                               const float               *b,
                                               float                     *x)
 {
-    aoclsparse_int avxversion = 0; // Use AVX2 extensions TODO use CPUID
+    const aoclsparse_int kid = -1; /* auto */
 
-    return aoclsparse_trsv(trans, alpha, A, descr, b, x, avxversion);
+    return aoclsparse_trsv(trans, alpha, A, descr, b, x, kid);
 }
 
 extern "C" aoclsparse_status aoclsparse_dtrsv(aoclsparse_operation       trans,
@@ -49,7 +49,29 @@ extern "C" aoclsparse_status aoclsparse_dtrsv(aoclsparse_operation       trans,
                                               const double              *b,
                                               double                    *x)
 {
-    aoclsparse_int avxversion = 1; // Use AVX2 extensions TODO use CPUID
+    const aoclsparse_int kid = -1; /* auto */
 
-    return aoclsparse_trsv(trans, alpha, A, descr, b, x, avxversion);
+    return aoclsparse_trsv(trans, alpha, A, descr, b, x, kid);
+}
+
+extern "C" aoclsparse_status aoclsparse_strsv_kid(aoclsparse_operation        trans,
+                                                   const float                alpha,
+                                                   aoclsparse_matrix          A,
+                                                   const aoclsparse_mat_descr descr,
+                                                   const float               *b,
+                                                   float                     *x,
+                                                   const aoclsparse_int       kid)
+{
+    return aoclsparse_trsv(trans, alpha, A, descr, b, x, kid);
+}
+
+extern "C" aoclsparse_status aoclsparse_dtrsv_kid(aoclsparse_operation        trans,
+                                                   const double               alpha,
+                                                   aoclsparse_matrix          A,
+                                                   const aoclsparse_mat_descr descr,
+                                                   const double              *b,
+                                                   double                    *x,
+                                                   const aoclsparse_int       kid)
+{
+    return aoclsparse_trsv(trans, alpha, A, descr, b, x, kid);
 }

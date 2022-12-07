@@ -769,7 +769,7 @@ aoclsparse_status aoclsparse_dcsrsv(aoclsparse_operation       trans,
  *
  *  \note
  *  If the matrix descriptor \p descr specifies that the matrix \f$A\f$ is to be regarded has
- *  having a unitary diagonal, then the main diagonal entries of matrix \f$A\f$ are not accessed and 
+ *  having a unitary diagonal, then the main diagonal entries of matrix \f$A\f$ are not accessed and
  *  are considered to all be unitary.
  *
  *  \note
@@ -788,6 +788,15 @@ aoclsparse_status aoclsparse_dcsrsv(aoclsparse_operation       trans,
  *  sides \f$b\f$'s, then it is encouraged to provide hints using \p aoclsparse_set_sv_hint and \p aoclsparse_optimize,
  *  otherwise the optimiziation for the matrix will be done by the solver on entry.
  *
+ *  \note
+ *  There is `_kid` (Kernel ID) variation of TRSV, namely with a suffix of `_kid`, this solver allows to choose which
+ *  TRSV kernel to use (if possible). Currently the possible choices are:
+ *  `kid=0` Reference implementation (No explicit AVX instructions).
+ *  `kid=1` Reference AVX 256bit implementation.
+ *  `kid=2` Kernel Templated version using AVX/AVX2 extensions (analog to `kid=1`).
+ *  `kid=3` Kernel Templated version using AVX512F/AVX512VL and AXV512DQ extensions.
+ *  Any other Kernel ID value will default to `kid=0`.
+ *
  *  @param[in]
  *  trans       matrix operation type, either \ref aoclsparse_operation_none or \ref aoclsparse_operation_transpose.
  *  @param[in]
@@ -800,8 +809,10 @@ aoclsparse_status aoclsparse_dcsrsv(aoclsparse_operation       trans,
  *  b           array of \p m elements, storing the right-hand side.
  *  @param[out]
  *  x           array of \p m elements, storing the solution if solver returns \ref aoclsparse_status_success.
+ *  @param[in]
+ *  kid         Kernel ID, hints a request on which TRSV kernel to use.
  *
- *  \retval     aoclsparse_status_success the operation completed successfully and  \f$x\f$ contains the solution 
+ *  \retval     aoclsparse_status_success the operation completed successfully and  \f$x\f$ contains the solution
  *              to the linear system of equations.
  *  \retval     aoclsparse_status_invalid_size matrix \f$A\f$ or \f$op(A)\f$ is invalid.
  *  \retval     aoclsparse_status_invalid_pointer One or more of \p A,  \p descr, \p x, \p b are invalid pointers.
@@ -826,6 +837,23 @@ aoclsparse_status aoclsparse_dtrsv(aoclsparse_operation       trans,
                                    const aoclsparse_mat_descr descr,
                                    const double              *b,
                                    double                    *x);
+DLL_PUBLIC
+aoclsparse_status aoclsparse_strsv_kid(aoclsparse_operation   trans,
+                                   const float                alpha,
+                                   aoclsparse_matrix          A,
+                                   const aoclsparse_mat_descr descr,
+                                   const float               *b,
+                                   float                     *x,
+                                   const aoclsparse_int       kid);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_dtrsv_kid(aoclsparse_operation   trans,
+                                   const double               alpha,
+                                   aoclsparse_matrix          A,
+                                   const aoclsparse_mat_descr descr,
+                                   const double              *b,
+                                   double                    *x,
+                                   const aoclsparse_int       kid);
 /**@}*/
 
 /*! \ingroup level3_module

@@ -27,6 +27,7 @@
  */
 
 #include "aoclsparse.h"
+#include "aoclsparse_context.h"
 #include "aoclsparse_descr.h"
 #include "aoclsparse_mat_structures.h"
 
@@ -36,52 +37,108 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <sstream>
-#include <stdio.h>
+#include <type_traits>
 #include <vector>
 
-#define NONE 0 // fallback
-#define AVX 1
-#define AVX2 1 // Milan
-#define AVX512 2 // Genoa
+#define NONE 0 // fallback - reference implementation (no AVX)
+#define COREAVX 1 // reference implementation AVX2 256b
+#define AVX2 2 // AVX2 256b (Milan)
+#define AVX512 3 // AVX-512F 512b (Genoa)
+
+// Number of test for TRSV
+#define NTEST_TRSV 23
+// Number of test for Hinting for TRSV
+#define NTEST_TRSV_HINT (NTEST_TRSV + 5)
+
+template <typename T>
+struct XTOL
+{
+    constexpr operator T() const noexcept
+    {
+        return std::sqrt((T)2.0 * std::numeric_limits<T>::epsilon());
+    }
+};
+
+// ?trsv_kid wrapper
+template <typename T>
+aoclsparse_status aoclsparse_trsv_kid_wrapper();
+
+template <typename T>
+aoclsparse_status aoclsparse_trsv_kid_wrapper(const aoclsparse_operation transpose,
+                                              const T                    alpha,
+                                              aoclsparse_matrix          A,
+                                              const aoclsparse_mat_descr descr,
+                                              const T                   *b,
+                                              T                         *x,
+                                              const aoclsparse_int       kid);
+
+template <>
+aoclsparse_status aoclsparse_trsv_kid_wrapper<double>(const aoclsparse_operation transpose,
+                                                      const double               alpha,
+                                                      aoclsparse_matrix          A,
+                                                      const aoclsparse_mat_descr descr,
+                                                      const double              *b,
+                                                      double                    *x,
+                                                      const aoclsparse_int       kid)
+{
+    return aoclsparse_dtrsv_kid(transpose, alpha, A, descr, b, x, kid);
+}
+
+template <>
+aoclsparse_status aoclsparse_trsv_kid_wrapper<float>(const aoclsparse_operation transpose,
+                                                     const float                alpha,
+                                                     aoclsparse_matrix          A,
+                                                     const aoclsparse_mat_descr descr,
+                                                     const float               *b,
+                                                     float                     *x,
+                                                     const aoclsparse_int       kid)
+{
+    return aoclsparse_strsv_kid(transpose, alpha, A, descr, b, x, kid);
+}
 
 using namespace std;
 
+template <typename T>
 bool test_aoclsparse_trsv(const aoclsparse_int        testid,
                           const string                testdesc,
-                          const double                alpha,
+                          const T                     alpha,
                           aoclsparse_matrix          &A,
                           const aoclsparse_mat_descr &descr,
-                          const double               *b,
-                          double                     *x,
+                          const T                    *b,
+                          T                          *x,
                           const aoclsparse_operation  trans,
-                          const aoclsparse_int        avxversion,
-                          const double               *xref,
-                          const double                tol,
+                          const aoclsparse_int        kid,
+                          const T                    *xref,
+                          const T                     tol,
                           const aoclsparse_int        verbose)
 {
     aoclsparse_status ret;
-    aoclsparse_int    n = A->n;
+    aoclsparse_int    n        = A->n;
+    aoclsparse_int    isdouble = std::is_same_v<T, double>;
     if(verbose)
     {
-        bool         unit       = descr->diag_type == aoclsparse_diag_type_unit;
-        const string avxlabs[3] = {"NONE (reference)", "AVX2", "AVX512"};
+        bool         unit = descr->diag_type == aoclsparse_diag_type_unit;
+        const string avxlabs[4]
+            = {"NONE (reference)", "AVX2 (reference 256b)", "AVX2 (KT 256b)", "AVX-512 (KT 512b)"};
+        const string typelabs[2] = {"Float ", "Double"};
         cout << endl << "TEST #" << testid << " " << testdesc << endl;
         cout << "Configuration: unit=" << (unit ? "UNIT" : "NON-UNIT")
              << " trans=" << (trans == aoclsparse_operation_transpose ? "TRANSPOSE" : "NO")
-             << " avxversion=" << avxlabs[avxversion] << endl;
+             << " Kernel ID=\"" << avxlabs[kid] << "\" Type: " << typelabs[isdouble] << endl;
     }
-    // ret = aoclsparse_trsv(trans, alpha, A, descr, b, x, avxversion);
-    ret = aoclsparse_dtrsv(trans, alpha, A, descr, b, x);
+    ret = aoclsparse_trsv_kid_wrapper<T>(trans, alpha, A, descr, b, x, kid);
+
     if(ret != aoclsparse_status_success)
     {
-        cout << "Test failed with unexpected return from aoclsparse_dtrsv, status = " << ret
+        cout << "Test failed with unexpected return from aoclsparse_?trsv, status = " << ret
              << endl;
     }
-    bool pass = ret == aoclsparse_status_success;
+    bool pass = (ret == aoclsparse_status_success);
     if(pass)
     {
-        double err = 0.0;
+        T err = 0.0;
         for(int i = 0; i < n; i++)
             err += (x[i] - xref[i]) * (x[i] - xref[i]);
         err  = sqrt(err);
@@ -128,33 +185,70 @@ bool test_aoclsparse_set_sv_hint(const aoclsparse_int        testid,
     return pass;
 }
 
+template <typename T>
+aoclsparse_status aoclsparse_create_csr(aoclsparse_matrix    &mat,
+                                        aoclsparse_index_base base,
+                                        aoclsparse_int        M,
+                                        aoclsparse_int        N,
+                                        aoclsparse_int        csr_nnz,
+                                        aoclsparse_int       *csr_row_ptr,
+                                        aoclsparse_int       *csr_col_ptr,
+                                        T                    *csr_val);
+template <>
+aoclsparse_status aoclsparse_create_csr<double>(aoclsparse_matrix    &mat,
+                                                aoclsparse_index_base base,
+                                                aoclsparse_int        M,
+                                                aoclsparse_int        N,
+                                                aoclsparse_int        csr_nnz,
+                                                aoclsparse_int       *csr_row_ptr,
+                                                aoclsparse_int       *csr_col_ptr,
+                                                double               *csr_val)
+{
+    return aoclsparse_create_dcsr(mat, base, M, N, csr_nnz, csr_row_ptr, csr_col_ptr, csr_val);
+}
+
+template <>
+aoclsparse_status aoclsparse_create_csr<float>(aoclsparse_matrix    &mat,
+                                               aoclsparse_index_base base,
+                                               aoclsparse_int        M,
+                                               aoclsparse_int        N,
+                                               aoclsparse_int        csr_nnz,
+                                               aoclsparse_int       *csr_row_ptr,
+                                               aoclsparse_int       *csr_col_ptr,
+                                               float                *csr_val)
+{
+    return aoclsparse_create_scsr(mat, base, M, N, csr_nnz, csr_row_ptr, csr_col_ptr, csr_val);
+}
+
+template <typename T>
 bool get_data(const aoclsparse_int       id,
               string                    &title,
               aoclsparse_operation      &trans,
               aoclsparse_matrix         &A,
               aoclsparse_mat_descr      &descr,
-              double                    &alpha,
-              vector<double>            &b,
-              vector<double>            &x,
-              vector<double>            &xref,
-              double                    &xtol,
+              T                         &alpha,
+              vector<T>                 &b,
+              vector<T>                 &x,
+              vector<T>                 &xref,
+              T                         &xtol,
               vector<aoclsparse_int>    &icrowa,
               vector<aoclsparse_int>    &icola,
-              vector<double>            &aval,
+              vector<T>                 &aval,
               array<aoclsparse_int, 10> &iparm,
-              array<double, 10>         &dparm,
+              array<T, 10>              &dparm,
               aoclsparse_status         &exp_status)
 {
     aoclsparse_int        n, nnz;
     aoclsparse_diag_type  diag;
     aoclsparse_fill_mode  fill_mode;
     aoclsparse_index_base base = aoclsparse_index_base_zero;
-    alpha                      = 1.0;
-    xtol                       = 1.0e-8;
+    alpha                      = (T)1.0;
+    xtol                       = (T)10.0 * XTOL<T>();
     exp_status                 = aoclsparse_status_success;
     std::fill(iparm.begin(), iparm.end(), 0);
     std::fill(dparm.begin(), dparm.end(), 0.0);
-    title = "";
+    title               = "";
+    bool const isdouble = std::is_same_v<T, double>;
     switch(id)
     {
     case 0:
@@ -170,6 +264,7 @@ bool get_data(const aoclsparse_int       id,
         {
         case 24:
             title = " (sv hint)";
+            __attribute__((fallthrough));
         case 0: // diag test set
             /*
                       Solve a   Dx = b
@@ -215,7 +310,7 @@ bool get_data(const aoclsparse_int       id,
             diag      = aoclsparse_diag_type_non_unit;
             break;
         case 5:
-            title     = "diag: [tril(U,1) + I]x = alpha*b";
+            title     = "diag: [triu(U,1) + I]x = alpha*b";
             fill_mode = aoclsparse_fill_mode_upper;
             trans     = aoclsparse_operation_none;
             diag      = aoclsparse_diag_type_unit;
@@ -227,7 +322,7 @@ bool get_data(const aoclsparse_int       id,
             diag      = aoclsparse_diag_type_non_unit;
             break;
         case 7:
-            title     = "diag: [tril(U,1) + I]'x = alpha*b";
+            title     = "diag: [triu(U,1) + I]'x = alpha*b";
             fill_mode = aoclsparse_fill_mode_upper;
             trans     = aoclsparse_operation_transpose;
             diag      = aoclsparse_diag_type_unit;
@@ -236,21 +331,21 @@ bool get_data(const aoclsparse_int       id,
             return false;
             break;
         }
-        alpha = -9.845233;
+        alpha = (T)-9.845233;
         n     = 7;
         nnz   = 7;
         b.resize(n);
-        b = {1.0, -2.0, 8.0, 5.0, -1.0, 11.0, 3.0};
+        b = {(T)1.0, -(T)2.0, (T)8.0, (T)5.0, (T)-1.0, (T)11.0, (T)3.0};
         x.resize(n);
-        std::fill(x.begin(), x.end(), 0.0);
+        std::fill(x.begin(), x.end(), (T)0.0);
         xref.resize(n);
         icrowa.resize(n + 1);
         icrowa = {0, 1, 2, 3, 4, 5, 6, 7};
         icola.resize(nnz);
         icola = {0, 1, 2, 3, 4, 5, 6};
         aval.resize(nnz);
-        aval = {-2.0, -4.0, 3.0, 5.0, -7.0, 9.0, 4.0};
-        if(aoclsparse_create_dcsr(A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
+        aval = {(T)-2.0, (T)-4.0, (T)3.0, (T)5.0, (T)-7.0, (T)9.0, (T)4.0};
+        if(aoclsparse_create_csr(A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
            != aoclsparse_status_success)
             return false;
 
@@ -261,11 +356,11 @@ bool get_data(const aoclsparse_int       id,
         descr->fill_mode = fill_mode;
         descr->diag_type = diag;
         if(diag == aoclsparse_diag_type_unit)
-            xref = {1.0, -2.0, 8.0, 5.0, -1.0, 11.0, 3.0};
+            xref = {(T)1.0, (T)-2.0, (T)8.0, (T)5.0, (T)-1.0, (T)11.0, (T)3.0};
         else
-            xref = {-0.5, 0.5, 8. / 3., 1.0, 1. / 7., 11. / 9., 0.75};
+            xref = {(T)-0.5, (T)0.5, (T)(8. / 3.), (T)1.0, (T)(1. / 7.), (T)(11. / 9.), (T)0.75};
         // xref *= alpha;
-        transform(xref.begin(), xref.end(), xref.begin(), [alpha](double &d) { return alpha * d; });
+        transform(xref.begin(), xref.end(), xref.begin(), [alpha](T &d) { return alpha * d; });
         break;
 
     case 8: // small m test set
@@ -281,7 +376,7 @@ bool get_data(const aoclsparse_int       id,
         case 0: // small m test set
             /*
             Solve a   Ax = b
-                    0   1  2   3   4   5    6      #cols  #row start #row end  #idiag  #iurow
+                      0   1  2   3   4   5    6      #cols  #row start #row end  #idiag  #iurow
             A  =  [  -2   1  0   0   3   7   -1;      5      0          4         0       1
                     2  -4  1   2   0   4    0;      5      5          9         6       7
                     0   6  -2  9   1   0    9;      6     10         14        11      12
@@ -297,8 +392,13 @@ bool get_data(const aoclsparse_int       id,
             trans     = aoclsparse_operation_none;
             diag      = aoclsparse_diag_type_non_unit;
             xref.resize(7);
-            xref = {
-                -5.0e-01, 2.5e-01, 7.5e-01, 1.625, 3.0625, -5.535714285714286e-01, -1.828125e+01};
+            xref = {(T)-5.0e-01,
+                    (T)2.5e-01,
+                    (T)7.5e-01,
+                    (T)1.625,
+                    (T)3.0625,
+                    (T)-5.535714285714286e-01,
+                    (T)-1.828125e+01};
             break;
         case 1:
             title     = "small m: [tril(L,-1) + I]x = alpha*b";
@@ -306,7 +406,7 @@ bool get_data(const aoclsparse_int       id,
             trans     = aoclsparse_operation_none;
             diag      = aoclsparse_diag_type_unit;
             xref.resize(7);
-            xref = {1.0, -4.0, 24.0, -13.0, -4.0, -65.0, 45.0};
+            xref = {(T)1.0, (T)-4.0, (T)24.0, (T)-13.0, (T)-4.0, (T)-65.0, (T)45.0};
             break;
         case 2:
             title     = "small m: L'x = alpha*b";
@@ -314,7 +414,7 @@ bool get_data(const aoclsparse_int       id,
             trans     = aoclsparse_operation_transpose;
             diag      = aoclsparse_diag_type_non_unit;
             xref.resize(7);
-            xref = {2.03125, 34.59375, 1.30625e+01, 7.125, 7.25, 0, 1.5};
+            xref = {(T)2.03125, (T)34.59375, (T)1.30625e+01, (T)7.125, (T)7.25, (T)0.0, (T)1.5};
             break;
         case 3:
             title     = "small m: [tril(L,-1) + I]'x = alpha*b";
@@ -322,7 +422,7 @@ bool get_data(const aoclsparse_int       id,
             trans     = aoclsparse_operation_transpose;
             diag      = aoclsparse_diag_type_unit;
             xref.resize(7);
-            xref = {85.0, 12.0, 35.0, 12.0, -28.0, 0.0, 3.0};
+            xref = {(T)85.0, (T)12.0, (T)35.0, (T)12.0, (T)-28.0, (T)0.0, (T)3.0};
             break;
         case 4:
             title     = "small m: Ux = alpha*b";
@@ -330,15 +430,15 @@ bool get_data(const aoclsparse_int       id,
             trans     = aoclsparse_operation_none;
             diag      = aoclsparse_diag_type_non_unit;
             xref.resize(7);
-            xref = {0.625, 2.25, 7.0, 0.0, 0.5, 0.0, 1.5};
+            xref = {(T)0.625, (T)2.25, (T)7.0, (T)0.0, (T)0.5, (T)0.0, (T)1.5};
             break;
         case 5:
-            title     = "small m: [tril(U,1) + I]x = alpha*b";
+            title     = "small m: [triu(U,1) + I]x = alpha*b";
             fill_mode = aoclsparse_fill_mode_upper;
             trans     = aoclsparse_operation_none;
             diag      = aoclsparse_diag_type_unit;
             xref.resize(7);
-            xref = {-17.0, 24.0, -26.0, 0.0, -1.0, 0.0, 3.0};
+            xref = {(T)-17.0, (T)24.0, (T)-26.0, (T)0.0, (T)-1.0, (T)0.0, (T)3.0};
             break;
         case 6:
             title     = "small m: U'x = alpha*b";
@@ -346,44 +446,45 @@ bool get_data(const aoclsparse_int       id,
             trans     = aoclsparse_operation_transpose;
             diag      = aoclsparse_diag_type_non_unit;
             xref.resize(7);
-            xref = {-5.0e-1,
-                    3.75e-1,
-                    1.875e-1,
-                    2.1875e-1,
-                    -4.6875e-2,
-                    2.678571428571428e-1,
-                    2.96875e-1};
+            xref = {(T)-5.0e-1,
+                    (T)3.75e-1,
+                    (T)1.875e-1,
+                    (T)2.1875e-1,
+                    (T)-4.6875e-2,
+                    (T)2.678571428571428e-1,
+                    (T)2.96875e-1};
             break;
         case 7:
-            title     = "small m: [tril(U,1) + I]'x = alpha*b";
+            title     = "small m: [triu(U,1) + I]'x = alpha*b";
             fill_mode = aoclsparse_fill_mode_upper;
             trans     = aoclsparse_operation_transpose;
             diag      = aoclsparse_diag_type_unit;
             xref.resize(7);
-            xref = {1.0, -3.0, 3.0, -19.0, 12.0, 0.0, -4.0};
+            xref = {(T)1.0, (T)-3.0, (T)3.0, (T)-19.0, (T)12.0, (T)0.0, (T)-4.0};
             break;
         default:
             return false;
             break;
         }
-        alpha = 1.3334;
-        transform(xref.begin(), xref.end(), xref.begin(), [alpha](double &d) { return alpha * d; });
+        alpha = (T)1.3334;
+        transform(xref.begin(), xref.end(), xref.begin(), [alpha](T &d) { return alpha * d; });
         n   = 7;
         nnz = 34;
         b.resize(n);
-        b = {1.0, -2.0, 0.0, 2.0, -1.0, 0.0, 3.0};
+        b = {(T)1.0, (T)-2.0, (T)0.0, (T)2.0, (T)-1.0, (T)0.0, (T)3.0};
         x.resize(n);
-        std::fill(x.begin(), x.end(), 0.0);
+        std::fill(x.begin(), x.end(), (T)0.0);
         icrowa.resize(n + 1);
         icrowa = {0, 5, 10, 15, 21, 26, 30, 34};
         icola.resize(nnz);
         icola = {0, 1, 4, 5, 6, 0, 1, 2, 3, 5, 1, 2, 3, 4, 6, 0, 2,
                  3, 4, 5, 6, 1, 2, 3, 4, 5, 0, 2, 3, 5, 2, 3, 4, 6};
         aval.resize(nnz);
-        aval = {-2.0, 1.0, 3.0, 7.0,  -1.0, 2.0,  -4.0, 1.0, 2.0, 4.0, 6.0, -2.0,
-                9.0,  1.0, 9.0, -9.0, 1.0,  -2.0, 1.0,  1.0, 1.0, 8.0, 2.0, 1.0,
-                -2.0, 2.0, 8.0, 4.0,  3.0,  7.0,  3.0,  6.0, 9.0, 2.0};
-        if(aoclsparse_create_dcsr(A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
+        aval = {(T)-2.0, (T)1.0, (T)3.0,  (T)7.0, -(T)1.0, (T)2.0, (T)-4.0, (T)1.0, (T)2.0,
+                (T)4.0,  (T)6.0, (T)-2.0, (T)9.0, (T)1.0,  (T)9.0, -(T)9.0, (T)1.0, (T)-2.0,
+                (T)1.0,  (T)1.0, (T)1.0,  (T)8.0, (T)2.0,  (T)1.0, (T)-2.0, (T)2.0, (T)8.0,
+                (T)4.0,  (T)3.0, (T)7.0,  (T)3.0, (T)6.0,  (T)9.0, (T)2.0};
+        if(aoclsparse_create_csr(A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
            != aoclsparse_status_success)
             return false;
 
@@ -395,7 +496,7 @@ bool get_data(const aoclsparse_int       id,
         descr->diag_type = diag;
         break;
 
-    case 16: // small m test set
+    case 16: // large m test set
     case 17:
     case 18:
     case 19:
@@ -403,195 +504,225 @@ bool get_data(const aoclsparse_int       id,
     case 21:
     case 22:
     case 23:
+        xref.resize(25);
+        alpha = (T)2.0;
         switch(id - 16)
         {
         case 0: // large m test set
-
             title     = "large m: Lx = alpha*b";
             fill_mode = aoclsparse_fill_mode_lower;
             trans     = aoclsparse_operation_none;
             diag      = aoclsparse_diag_type_non_unit;
-            xref.resize(25);
-            xref = {22.50000000,     -29.59158416,     0.60344828,      7.36902949,
-                    0.35313901,      6.96098318,       -3.22325028,     4.36270955,
-                    -41.25004375,    418.11611572,     641.78764582,    -1.76990937,
-                    -1520.45079758,  -67.79837748,     -3253.64596006,  536.33671084,
-                    40956.42016049,  -240315.33122282, 108048.96797262, -142.25127350,
-                    41.03239512,     -249085.87884931, 256238.41460554, -547689.07187637,
-                    1832933.45174056};
+            // TRIL(A) \ x = b
+            xref = {(T)2.8694405, (T)2.8234737, (T)2.796182,  (T)2.6522445, (T)2.6045138,
+                    (T)2.6003519, (T)2.6008353, (T)2.3046048, (T)2.43224,   (T)2.2662551,
+                    (T)2.3948101, (T)2.076541,  (T)2.5212212, (T)2.1300172, (T)2.0418797,
+                    (T)2.1804297, (T)2.0745273, (T)2.1919066, (T)1.7710128, (T)2.0428122,
+                    (T)1.4405187, (T)1.8362006, (T)1.7075999, (T)1.443063,  (T)1.5821274};
             break;
         case 1:
             title     = "large m: [tril(L,-1) + I]x = alpha*b";
             fill_mode = aoclsparse_fill_mode_lower;
             trans     = aoclsparse_operation_none;
             diag      = aoclsparse_diag_type_unit;
-            xref.resize(25);
-            xref = {3.15000000,           -22.39650000,        3.15000000,
-                    21.06720000,          3.15000000,          -141.06890700,
-                    97.12111500,          777.99517677,        -5514.52102232,
-                    25551.34154355,       39691.17075985,      288.48038121,
-                    -333746.10858156,     -28449.33410860,     -41808.32818536,
-                    1167397.49342707,     2740030.82395464,    -20826876.87800828,
-                    79462783.32178056,    303906.03635735,     126695.45699191,
-                    -541221946.86130440,  4451957552.04631233, -38065059811.08203888,
-                    160061850136.86447144};
+            // [TRIL(A,-1)+I] \ x = b
+            xref = {(T)6,          (T)5.616,     (T)5.500368,  (T)5.045679,  (T)4.7335167,
+                    (T)4.7174108,  (T)4.8435437, (T)3.4059263, (T)4.016664,  (T)3.7183309,
+                    (T)4.0277302,  (T)2.8618217, (T)4.2833461, (T)3.125947,  (T)2.7968869,
+                    (T)3.0935508,  (T)3.0170354, (T)3.4556542, (T)1.9581833, (T)3.0960567,
+                    (T)0.84321483, (T)2.4842384, (T)2.0155569, (T)1.1194741, (T)1.4286963};
             break;
         case 2:
             title     = "large m: L'x = alpha*b";
             fill_mode = aoclsparse_fill_mode_lower;
             trans     = aoclsparse_operation_transpose;
             diag      = aoclsparse_diag_type_non_unit;
-            xref.resize(25);
-            xref = {
-                1109946.57447404, 8320.22836232,   49608.59974037, 15392.72484029,  18342.60735427,
-                -17342.60041707,  -10303.87031452, 21888.38859196, -14398.43244835, 10521.91066968,
-                5945.38745655,    254.50168851,    -770.82846866,  -138.69537858,   93.50972554,
-                9.93719186,       341.77562392,    -10.73709417,   2.57693312,      -0.70901009,
-                6.12185399,       -4.10547785,     1.12600628,     -0.84855313,     1.27016129};
+            // TRIL(A)^T \ x = b
+            xref = {(T)1.6955307, (T)1.848481,  (T)1.7244022, (T)1.763537,  (T)1.5746618,
+                    (T)1.4425858, (T)1.6341808, (T)2.1487072, (T)2.1772862, (T)1.9986702,
+                    (T)2.0781942, (T)2.228435,  (T)2.3520746, (T)2.1954149, (T)2.5435454,
+                    (T)2.371718,  (T)2.355061,  (T)2.3217005, (T)2.4406206, (T)2.5581752,
+                    (T)2.7305435, (T)2.6135037, (T)2.7653322, (T)2.8550883, (T)2.9673591};
             break;
         case 3:
             title     = "large m: [tril(L,-1) + I]'x = alpha*b";
             fill_mode = aoclsparse_fill_mode_lower;
             trans     = aoclsparse_operation_transpose;
             diag      = aoclsparse_diag_type_unit;
-            xref.resize(25);
-            xref = {6935464282.41652679,
-                    3042481822.58313370,
-                    36182521907.10009766,
-                    41854296751.45114136,
-                    44682619196.94413757,
-                    -4649203128.03015041,
-                    -2576033902.18770599,
-                    554009582.16372883,
-                    -70119029.18721765,
-                    5392625.93657788,
-                    6142855.13668140,
-                    4801989.23532077,
-                    -1216547.16999674,
-                    -1359885.61384011,
-                    154714.66071554,
-                    76733.55435697,
-                    133560.80130906,
-                    -18140.65366431,
-                    4639.38339413,
-                    -17.19900000,
-                    7328.16068494,
-                    -801.44613360,
-                    90.57132000,
-                    -9.67050000,
-                    3.15000000};
+            // [TRIL(A,-1)+I]^T \ x = b
+            xref = {(T)2.1495739,  (T)2.2359359, (T)2.2242253, (T)2.253681,  (T)1.4580321,
+                    (T)0.90891908, (T)1.5083596, (T)3.0297651, (T)3.2326871, (T)2.8348607,
+                    (T)2.9481561,  (T)3.3924716, (T)3.7099236, (T)3.3144706, (T)4.588616,
+                    (T)3.6591345,  (T)3.7313403, (T)3.7752722, (T)4.0853448, (T)4.6445086,
+                    (T)5.287742,   (T)4.861812,  (T)5.448,     (T)5.922,     (T)6};
             break;
         case 4:
             title     = "large m: Ux = alpha*b";
             fill_mode = aoclsparse_fill_mode_upper;
             trans     = aoclsparse_operation_none;
             diag      = aoclsparse_diag_type_non_unit;
-            xref.resize(25);
-            xref = {8422.64682503, -385.32336118, 359.63019091, 203.73603215, 17.99742920,
-                    -390.82672167, 116.45563268,  -29.40255322, 108.87470697, 1.60549241,
-                    -58.35652677,  -12.83135054,  53.18109227,  -0.85679764,  -48.43414031,
-                    -0.81695457,   10.50000000,   10.77389595,  -0.68813786,  0.10688594,
-                    -1.77747358,   0.78791787,    -0.82852204,  1.32352941,   1.27016129};
+            // TRIU(A) \ x = b
+            xref = {(T)1.6820205, (T)1.5182902, (T)1.7779084, (T)1.5514784, (T)1.6709507,
+                    (T)1.3941567, (T)2.0238063, (T)1.8176034, (T)2.1365065, (T)1.9042648,
+                    (T)1.9035674, (T)2.4770427, (T)2.1084998, (T)2.2295349, (T)1.9961781,
+                    (T)2.2324927, (T)2.3696066, (T)2.2939014, (T)2.5115299, (T)2.5909073,
+                    (T)2.616432,  (T)2.7148834, (T)2.7772147, (T)2.8394556, (T)2.9673591};
             break;
         case 5:
-            title     = "large m: [tril(U,1) + I]x = alpha*b";
+            title     = "large m: [triu(U,1) + I]x = alpha*b";
             fill_mode = aoclsparse_fill_mode_upper;
             trans     = aoclsparse_operation_none;
             diag      = aoclsparse_diag_type_unit;
-            xref.resize(25);
-            xref = {548827936.82895064, -89971900.29543361, 19736045.24593790, 2838202.78574788,
-                    627279.35216463,    -3813589.00964278,  478983.46059670,   -182634.07952505,
-                    51577.85584669,     -104.47400880,      -9276.75779773,    -12131.57642582,
-                    -10633.27457233,    -1783.44530412,     8293.84481121,     -1551.75222699,
-                    3.15000000,         2589.26855670,      -79.33023000,      -2.77200000,
-                    -345.54030840,      59.12172000,        -23.37300000,      3.15000000,
-                    3.15000000};
+            // [TRIU(A,+1)+I] \ x = b
+            xref = {(T)2.1403777,  (T)1.1981332, (T)2.3704862, (T)1.5934843, (T)1.8240657,
+                    (T)0.59309717, (T)3.0075404, (T)2.015312,  (T)3.2820111, (T)2.5256976,
+                    (T)2.3395546,  (T)4.5188939, (T)2.8162071, (T)3.6641606, (T)2.4795398,
+                    (T)3.2170294,  (T)3.8526006, (T)3.6686584, (T)4.3818473, (T)4.7803937,
+                    (T)4.8157353,  (T)5.2821178, (T)5.49432,   (T)5.856,     (T)6};
             break;
         case 6:
             title     = "large m: U'x = alpha*b";
             fill_mode = aoclsparse_fill_mode_upper;
             trans     = aoclsparse_operation_transpose;
             diag      = aoclsparse_diag_type_non_unit;
-            xref.resize(25);
-            xref = {22.50000000,    -23.91089109,  11.80593490,   -2.69407573,    24.98966380,
-                    -6.66851489,    39.45390422,   -15.62441784,  20.02412821,    118.44503254,
-                    -662.20402523,  42.58098933,   -15.41034592,  -54.26686484,   -70.82489049,
-                    85.02988016,    1869.52057717, 1863.41258056, -1373.90871739, 369.61754662,
-                    -2169.14708417, -475.98770556, 1091.99336450, 4642.25731391,  3047.76386992};
+            // TRIU(A)^T \ x = b
+            xref = {(T)2.8694405, (T)2.8513323, (T)2.7890509, (T)2.7133004, (T)2.6831241,
+                    (T)2.6308583, (T)2.4989068, (T)2.4098153, (T)2.3941426, (T)2.3030199,
+                    (T)2.213122,  (T)2.3404009, (T)2.3446515, (T)1.9607205, (T)2.2188761,
+                    (T)1.6943958, (T)1.8582681, (T)1.7539545, (T)1.7230434, (T)1.5025302,
+                    (T)1.6208129, (T)1.5838626, (T)1.7347633, (T)1.6944515, (T)1.7187472};
             break;
         case 7:
-            title     = "large m: [tril(U,1) + I]'x = alpha*b";
+            title     = "large m: [triu(U,1) + I]'x = alpha*b";
             fill_mode = aoclsparse_fill_mode_upper;
             trans     = aoclsparse_operation_transpose;
             diag      = aoclsparse_diag_type_unit;
-            xref.resize(25);
-            xref = {3.15000000,        -17.57700000,      70.10451000,        29.51046000,
-                    128.16548640,      -426.53947442,     3854.16377714,      -9476.91018578,
-                    40199.53283129,    27848.49828622,    -367024.74933116,   70054.38281425,
-                    -56623.14116001,   -143863.79672409,  34409.37920797,     213495.19529202,
-                    -5838.00204054,    320880.31544025,   -2965469.35362804,  24755926.05339951,
-                    -4463690.91167807, 28170687.84895727, -63940055.40049978, 537417949.93606544,
-                    -40536128.32094885};
+            // [TRIU(A,+1)+I]^T \ x = b
+            xref = {(T)6,         (T)5.736,     (T)5.4732,    (T)5.29908,   (T)5.0535487,
+                    (T)4.8266117, (T)4.4104285, (T)3.7795686, (T)3.8814496, (T)3.7293536,
+                    (T)3.3889675, (T)3.8192886, (T)3.6467563, (T)2.4584425, (T)3.5099871,
+                    (T)1.5469311, (T)2.2524797, (T)2.1773924, (T)1.9585843, (T)1.3946507,
+                    (T)1.5683126, (T)1.5643115, (T)2.1974827, (T)2.0979256, (T)1.9465109};
             break;
         default:
             return false;
             break;
         }
-        xtol  = 5.e-4;
-        alpha = 1.17;
-        transform(xref.begin(), xref.end(), xref.begin(), [alpha](double &d) { return alpha * d; });
+        // transform(xref.begin(), xref.end(), xref.begin(), [alpha](T &d) { return alpha * d; });
+        // === START PART 1 Content autogenerated = make_trsvmat.m START ===
         n   = 25;
-        nnz = 335;
+        nnz = 565;
+        // === END PART 1 Content autogenerated = make_trsvmat.m END ===
         b.resize(n);
-        std::fill(b.begin(), b.end(), 3.15);
+        std::fill(b.begin(), b.end(), (T)3.0);
         x.resize(n);
-        std::fill(x.begin(), x.end(), 0.0);
+        std::fill(x.begin(), x.end(), (T)0.0);
         icrowa.resize(n + 1);
-        icrowa = {0,   12,  31,  37,  56,  61,  82,  96,  113, 135, 142, 153, 160,
-                  178, 186, 202, 223, 226, 243, 255, 260, 268, 288, 302, 319, 335};
         icola.resize(nnz);
-        icola = {0,  1,  2,  3,  8,  9,  10, 12, 14, 18, 19, 20, 0,  1,  2,  3,  4,  5,  6,  8,  9,
-                 10, 11, 13, 14, 15, 16, 19, 21, 22, 24, 2,  5,  6,  14, 20, 24, 1,  3,  4,  5,  6,
-                 8,  9,  10, 11, 12, 14, 15, 16, 18, 19, 20, 21, 22, 23, 4,  5,  9,  10, 21, 0,  1,
-                 2,  3,  4,  5,  6,  7,  8,  9,  11, 12, 13, 15, 17, 18, 19, 20, 21, 22, 24, 0,  1,
-                 4,  6,  7,  8,  10, 13, 14, 18, 20, 21, 22, 24, 1,  3,  5,  6,  7,  8,  9,  11, 12,
-                 13, 14, 15, 16, 18, 19, 20, 23, 0,  1,  2,  4,  5,  6,  7,  8,  10, 11, 12, 13, 14,
-                 15, 16, 17, 19, 20, 21, 22, 23, 24, 0,  4,  8,  9,  19, 21, 23, 1,  4,  6,  8,  10,
-                 13, 17, 18, 19, 22, 23, 4,  5,  11, 13, 17, 21, 22, 0,  3,  6,  7,  9,  10, 11, 12,
-                 13, 14, 15, 16, 18, 19, 20, 22, 23, 24, 0,  1,  3,  7,  9,  11, 13, 17, 1,  2,  3,
-                 5,  6,  9,  10, 11, 13, 14, 15, 16, 18, 19, 20, 22, 0,  1,  2,  3,  4,  6,  7,  9,
-                 10, 11, 12, 13, 15, 16, 17, 18, 19, 20, 21, 22, 24, 0,  12, 16, 6,  7,  9,  10, 11,
-                 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 23, 24, 0,  3,  4,  8,  10, 11, 17, 18, 19,
-                 21, 22, 24, 4,  9,  12, 19, 24, 3,  4,  11, 13, 20, 21, 23, 24, 0,  1,  2,  3,  4,
-                 5,  6,  7,  8,  9,  10, 13, 14, 15, 16, 18, 20, 21, 22, 24, 0,  1,  2,  5,  7,  10,
-                 16, 17, 18, 20, 21, 22, 23, 24, 0,  1,  2,  3,  7,  8,  9,  11, 12, 14, 15, 16, 18,
-                 20, 21, 22, 23, 1,  2,  4,  5,  6,  10, 11, 13, 14, 15, 18, 19, 20, 21, 23, 24};
         aval.resize(nnz);
-        aval = {0.14, 6.58, 1.79, 2.68, 4.93, 3.97, 2.81, 4.48, 9.04, 4.19, 7.41, 4.39, 8.11,  6.06,
-                4.13, 1.98, 9.06, 1.57, 5.62, 9.31, 5.35, 5.95, 2.48, 1.12, 8.51, 5.59, 0.79,  4.99,
-                8.87, 4.16, 6.11, 5.22, 5.70, 4.14, 2.50, 6.72, 3.54, 0.80, 3.64, 1.16, 1.26,  2.64,
-                2.39, 2.84, 8.36, 7.78, 1.54, 6.88, 9.00, 2.06, 4.25, 9.20, 8.84, 9.55, 6.51,  0.88,
-                8.92, 0.16, 4.54, 1.83, 5.90, 1.85, 4.89, 7.65, 9.61, 6.78, 4.08, 9.66, 4.34,  2.95,
-                8.44, 7.95, 6.32, 1.09, 8.93, 3.66, 7.64, 2.31, 5.49, 8.33, 2.84, 8.58, 8.68,  6.11,
-                4.93, 4.06, 2.94, 2.31, 8.35, 5.03, 3.04, 2.13, 0.11, 6.18, 5.78, 4.48, 3.60,  5.12,
-                9.61, 5.70, 5.37, 5.04, 2.62, 8.92, 2.40, 3.52, 8.32, 2.72, 0.29, 8.02, 4.87,  3.45,
-                8.48, 9.40, 0.82, 8.80, 7.57, 9.78, 8.93, 7.67, 6.42, 8.32, 0.44, 2.04, 10.00, 7.78,
-                2.49, 2.06, 4.99, 3.57, 9.64, 5.98, 7.31, 7.16, 5.91, 3.30, 9.14, 4.64, 0.28,  5.15,
-                2.04, 0.41, 3.06, 2.93, 8.73, 7.34, 0.66, 0.17, 3.81, 0.92, 8.01, 8.79, 5.91,  0.33,
-                2.03, 6.27, 5.39, 8.41, 1.06, 3.89, 4.41, 1.40, 8.93, 8.34, 4.25, 5.47, 2.24,  3.55,
-                9.87, 4.95, 7.34, 6.71, 3.14, 4.34, 3.35, 1.97, 2.77, 2.93, 2.88, 6.82, 9.08,  4.42,
-                0.95, 2.40, 5.00, 0.69, 7.63, 4.35, 8.58, 7.69, 6.89, 5.28, 3.11, 4.18, 7.64,  1.09,
-                3.82, 6.96, 0.70, 1.69, 6.56, 2.48, 5.11, 7.97, 3.40, 9.08, 9.33, 8.59, 0.56,  4.15,
-                0.47, 7.19, 3.62, 3.07, 7.02, 0.31, 1.82, 7.04, 2.67, 7.81, 2.03, 0.99, 2.90,  8.85,
-                8.21, 0.30, 7.78, 4.43, 3.38, 2.28, 3.26, 8.69, 4.64, 8.45, 3.92, 7.10, 1.06,  6.31,
-                7.24, 7.50, 8.83, 0.86, 0.42, 9.37, 1.21, 8.51, 2.71, 8.00, 5.17, 3.83, 8.47,  8.35,
-                2.50, 2.69, 6.57, 0.80, 7.96, 1.52, 7.13, 1.88, 5.56, 0.65, 3.21, 4.49, 6.63,  5.47,
-                7.97, 0.06, 6.32, 0.81, 6.16, 4.11, 7.21, 3.56, 6.44, 3.10, 4.74, 5.26, 2.73,  8.05,
-                1.70, 7.02, 6.21, 6.48, 9.26, 3.84, 2.64, 1.82, 3.70, 2.76, 6.11, 2.15, 0.09,  9.45,
-                2.46, 4.14, 6.13, 1.71, 8.98, 9.61, 7.82, 0.60, 1.32, 3.90, 5.29, 8.06, 6.07,  8.54,
-                7.83, 0.46, 9.40, 7.65, 0.47, 0.50, 0.08, 7.29, 4.04, 9.04, 2.38, 2.15, 4.49,  1.14,
-                5.26, 9.17, 3.60, 5.55, 5.58, 4.27, 3.70, 0.86, 6.46, 3.81, 9.63, 4.07, 2.48};
-        if(aoclsparse_create_dcsr(A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
+        // === START PART 2 Content autogenerated = make_trsvmat.m START ===
+        icrowa = {0,   24,  48,  70,  94,  118, 141, 163, 186, 208, 230, 254, 277,
+                  296, 318, 342, 365, 386, 406, 429, 453, 476, 499, 521, 541, 565};
+        icola = {0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
+                 22, 23, 24, 0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14, 15, 16, 17,
+                 18, 20, 21, 22, 23, 24, 0,  1,  2,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14, 15,
+                 16, 17, 18, 19, 21, 22, 24, 0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13,
+                 14, 16, 17, 18, 19, 20, 21, 22, 23, 24, 0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10,
+                 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 23, 24, 0,  1,  2,  4,  5,  6,  7,  9,
+                 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 0,  1,  2,  3,  4,  6,
+                 7,  8,  9,  10, 12, 13, 14, 15, 16, 17, 18, 19, 20, 22, 23, 24, 0,  1,  2,  3,  4,
+                 5,  6,  7,  8,  10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 23, 24, 0,  2,  3,
+                 4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 23, 24, 1,  2,
+                 3,  4,  5,  6,  7,  8,  9,  10, 12, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 0,
+                 1,  2,  3,  4,  5,  7,  8,  9,  10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
+                 23, 24, 0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14, 15, 16, 17, 18,
+                 19, 20, 22, 23, 0,  2,  3,  5,  7,  8,  9,  12, 13, 15, 16, 17, 18, 19, 20, 21, 22,
+                 23, 24, 1,  2,  3,  4,  5,  6,  8,  9,  10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21,
+                 22, 23, 24, 0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14, 15, 16, 17,
+                 19, 20, 21, 22, 23, 24, 0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 14, 15,
+                 16, 17, 18, 19, 20, 21, 22, 23, 0,  2,  3,  4,  5,  6,  7,  10, 11, 12, 13, 15, 16,
+                 17, 18, 19, 20, 21, 22, 23, 24, 0,  2,  3,  4,  5,  6,  7,  9,  12, 13, 15, 16, 17,
+                 18, 19, 20, 21, 22, 23, 24, 0,  1,  2,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14,
+                 15, 16, 17, 18, 19, 20, 21, 23, 24, 0,  1,  2,  3,  4,  5,  6,  8,  9,  10, 11, 12,
+                 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 0,  1,  2,  3,  4,  5,  6,  7,  8,
+                 9,  10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 0,  2,  3,  4,  5,  6,  7,
+                 8,  9,  10, 11, 12, 13, 14, 15, 16, 17, 18, 20, 21, 22, 23, 24, 1,  3,  4,  5,  6,
+                 7,  8,  9,  10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 0,  1,  2,  4,
+                 5,  6,  7,  8,  9,  11, 12, 13, 15, 16, 17, 18, 19, 21, 23, 24, 0,  1,  2,  3,  4,
+                 5,  6,  7,  8,  10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24};
+        aval  = {(T)2.091, (T)0.044, (T)0.040, (T)0.026, (T)0.047, (T)0.065, (T)0.034, (T)0.014,
+                 (T)0.023, (T)0.070, (T)0.052, (T)0.074, (T)0.066, (T)0.021, (T)0.085, (T)0.090,
+                 (T)0.032, (T)0.029, (T)0.048, (T)0.095, (T)0.033, (T)0.060, (T)0.055, (T)0.027,
+                 (T)0.064, (T)2.060, (T)0.050, (T)0.095, (T)0.018, (T)0.017, (T)0.075, (T)0.053,
+                 (T)0.049, (T)0.038, (T)0.031, (T)0.060, (T)0.012, (T)0.058, (T)0.021, (T)0.087,
+                 (T)0.028, (T)0.025, (T)0.096, (T)0.077, (T)0.090, (T)0.085, (T)0.080, (T)0.096,
+                 (T)0.058, (T)0.027, (T)2.059, (T)0.058, (T)0.018, (T)0.039, (T)0.090, (T)0.078,
+                 (T)0.075, (T)0.083, (T)0.081, (T)0.016, (T)0.092, (T)0.059, (T)0.073, (T)0.044,
+                 (T)0.045, (T)0.018, (T)0.058, (T)0.083, (T)0.039, (T)0.017, (T)0.060, (T)0.050,
+                 (T)0.057, (T)2.084, (T)0.046, (T)0.087, (T)0.043, (T)0.092, (T)0.084, (T)0.042,
+                 (T)0.022, (T)0.032, (T)0.077, (T)0.092, (T)0.061, (T)0.028, (T)0.065, (T)0.099,
+                 (T)0.086, (T)0.081, (T)0.060, (T)0.033, (T)0.044, (T)0.056, (T)0.078, (T)0.014,
+                 (T)0.074, (T)0.062, (T)2.060, (T)0.025, (T)0.032, (T)0.091, (T)0.068, (T)0.088,
+                 (T)0.093, (T)0.059, (T)0.014, (T)0.046, (T)0.026, (T)0.044, (T)0.082, (T)0.043,
+                 (T)0.069, (T)0.079, (T)0.048, (T)0.099, (T)0.041, (T)0.065, (T)0.068, (T)0.011,
+                 (T)0.097, (T)0.059, (T)2.057, (T)0.073, (T)0.021, (T)0.082, (T)0.025, (T)0.086,
+                 (T)0.079, (T)0.098, (T)0.043, (T)0.035, (T)0.082, (T)0.088, (T)0.088, (T)0.066,
+                 (T)0.082, (T)0.099, (T)0.087, (T)0.081, (T)0.080, (T)0.029, (T)0.027, (T)0.011,
+                 (T)0.087, (T)0.070, (T)2.075, (T)0.066, (T)0.030, (T)0.022, (T)0.051, (T)0.011,
+                 (T)0.031, (T)0.062, (T)0.063, (T)0.064, (T)0.034, (T)0.017, (T)0.073, (T)0.082,
+                 (T)0.060, (T)0.029, (T)0.066, (T)0.026, (T)0.100, (T)0.026, (T)0.080, (T)0.088,
+                 (T)0.094, (T)0.097, (T)2.010, (T)0.093, (T)0.034, (T)0.099, (T)0.052, (T)0.050,
+                 (T)0.095, (T)0.086, (T)0.023, (T)0.064, (T)0.059, (T)0.077, (T)0.026, (T)0.099,
+                 (T)0.052, (T)0.068, (T)0.032, (T)0.093, (T)0.041, (T)0.033, (T)0.096, (T)0.081,
+                 (T)0.021, (T)2.033, (T)0.016, (T)0.063, (T)0.022, (T)0.059, (T)0.060, (T)0.040,
+                 (T)0.071, (T)0.045, (T)0.075, (T)0.035, (T)0.074, (T)0.093, (T)0.030, (T)0.023,
+                 (T)0.039, (T)0.073, (T)0.041, (T)0.069, (T)0.099, (T)0.039, (T)0.030, (T)0.092,
+                 (T)2.094, (T)0.097, (T)0.017, (T)0.021, (T)0.096, (T)0.081, (T)0.066, (T)0.064,
+                 (T)0.065, (T)0.081, (T)0.073, (T)0.062, (T)0.077, (T)0.021, (T)0.052, (T)0.065,
+                 (T)0.029, (T)0.084, (T)0.027, (T)0.066, (T)0.034, (T)0.015, (T)0.026, (T)2.066,
+                 (T)0.015, (T)0.053, (T)0.041, (T)0.025, (T)0.100, (T)0.036, (T)0.086, (T)0.048,
+                 (T)0.089, (T)0.066, (T)0.029, (T)0.091, (T)0.066, (T)0.077, (T)0.034, (T)0.050,
+                 (T)0.046, (T)0.066, (T)0.078, (T)0.087, (T)0.084, (T)0.058, (T)0.017, (T)0.069,
+                 (T)0.089, (T)2.054, (T)0.046, (T)0.039, (T)0.040, (T)0.080, (T)0.020, (T)0.011,
+                 (T)0.062, (T)0.031, (T)0.026, (T)0.010, (T)0.023, (T)0.062, (T)0.043, (T)0.027,
+                 (T)0.096, (T)0.065, (T)0.038, (T)0.039, (T)2.003, (T)0.074, (T)0.097, (T)0.068,
+                 (T)0.067, (T)0.054, (T)0.052, (T)0.028, (T)0.051, (T)0.098, (T)0.049, (T)0.063,
+                 (T)0.022, (T)0.088, (T)0.054, (T)0.092, (T)0.096, (T)0.100, (T)0.043, (T)0.051,
+                 (T)0.038, (T)0.037, (T)2.071, (T)0.063, (T)0.096, (T)0.089, (T)0.034, (T)0.081,
+                 (T)0.062, (T)0.062, (T)0.033, (T)0.013, (T)0.017, (T)0.018, (T)0.076, (T)0.010,
+                 (T)0.078, (T)0.096, (T)0.051, (T)0.032, (T)0.049, (T)0.037, (T)0.046, (T)0.050,
+                 (T)0.041, (T)0.068, (T)0.033, (T)0.048, (T)2.058, (T)0.052, (T)0.065, (T)0.099,
+                 (T)0.082, (T)0.048, (T)0.099, (T)0.085, (T)0.094, (T)0.096, (T)0.056, (T)0.016,
+                 (T)0.045, (T)0.053, (T)0.080, (T)0.079, (T)0.047, (T)0.055, (T)0.038, (T)0.087,
+                 (T)0.023, (T)0.013, (T)0.036, (T)0.014, (T)2.006, (T)0.070, (T)0.091, (T)0.100,
+                 (T)0.090, (T)0.024, (T)0.058, (T)0.100, (T)0.058, (T)0.027, (T)0.037, (T)0.037,
+                 (T)0.041, (T)0.064, (T)0.084, (T)0.044, (T)0.099, (T)0.073, (T)0.068, (T)0.084,
+                 (T)0.070, (T)2.042, (T)0.078, (T)0.076, (T)0.076, (T)0.073, (T)0.012, (T)0.055,
+                 (T)0.057, (T)0.019, (T)0.098, (T)0.090, (T)0.027, (T)0.025, (T)0.040, (T)0.019,
+                 (T)0.020, (T)0.032, (T)0.059, (T)0.016, (T)0.062, (T)0.081, (T)2.086, (T)0.058,
+                 (T)0.073, (T)0.078, (T)0.089, (T)0.037, (T)0.075, (T)0.040, (T)0.041, (T)0.087,
+                 (T)0.062, (T)0.096, (T)0.019, (T)0.068, (T)0.028, (T)0.064, (T)0.079, (T)0.048,
+                 (T)0.064, (T)0.087, (T)0.071, (T)0.082, (T)0.013, (T)0.011, (T)0.050, (T)2.056,
+                 (T)0.084, (T)0.038, (T)0.099, (T)0.037, (T)0.049, (T)0.033, (T)0.025, (T)0.022,
+                 (T)0.025, (T)0.011, (T)0.062, (T)0.038, (T)0.056, (T)0.088, (T)0.028, (T)0.015,
+                 (T)0.048, (T)0.072, (T)0.048, (T)0.011, (T)0.094, (T)0.039, (T)0.033, (T)2.080,
+                 (T)0.027, (T)0.014, (T)0.043, (T)0.046, (T)0.085, (T)0.091, (T)0.095, (T)0.042,
+                 (T)0.079, (T)0.058, (T)0.099, (T)0.071, (T)0.011, (T)0.084, (T)0.084, (T)0.066,
+                 (T)0.045, (T)0.042, (T)0.040, (T)0.051, (T)0.044, (T)0.090, (T)0.096, (T)0.080,
+                 (T)2.065, (T)0.056, (T)0.094, (T)0.062, (T)0.022, (T)0.024, (T)0.011, (T)0.095,
+                 (T)0.058, (T)0.082, (T)0.061, (T)0.012, (T)0.010, (T)0.052, (T)0.083, (T)0.098,
+                 (T)0.055, (T)0.033, (T)0.038, (T)0.014, (T)0.096, (T)0.068, (T)0.032, (T)2.080,
+                 (T)0.032, (T)0.069, (T)0.023, (T)0.099, (T)0.056, (T)0.091, (T)0.033, (T)0.065,
+                 (T)0.044, (T)0.053, (T)0.070, (T)0.090, (T)0.044, (T)0.053, (T)0.014, (T)0.079,
+                 (T)0.032, (T)0.016, (T)0.080, (T)0.062, (T)0.035, (T)0.062, (T)2.071, (T)0.030,
+                 (T)0.055, (T)0.030, (T)0.092, (T)0.014, (T)0.090, (T)0.094, (T)0.097, (T)0.082,
+                 (T)0.049, (T)0.045, (T)0.095, (T)0.056, (T)0.093, (T)0.095, (T)0.099, (T)0.083,
+                 (T)0.060, (T)0.068, (T)0.046, (T)2.088, (T)0.024, (T)0.072, (T)0.085, (T)0.063,
+                 (T)0.086, (T)0.025, (T)0.053, (T)0.045, (T)0.079, (T)0.028, (T)0.094, (T)0.013,
+                 (T)0.024, (T)0.023, (T)0.059, (T)0.049, (T)0.070, (T)0.053, (T)0.022, (T)0.032,
+                 (T)0.061, (T)0.088, (T)0.092, (T)0.013, (T)2.022};
+        // === END PART 2 Content autogenerated = make_trsvmat.m END ===
+        if(aoclsparse_create_csr(A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
            != aoclsparse_status_success)
             return false;
 
@@ -619,7 +750,7 @@ bool get_data(const aoclsparse_int       id,
         icrowa[1] = 1;
         icola[0]  = 0;
         aval[0]   = 1.0;
-        if(aoclsparse_create_dcsr(A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
+        if(aoclsparse_create_csr(A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
            != aoclsparse_status_success)
             return false;
         descr      = nullptr;
@@ -636,7 +767,7 @@ bool get_data(const aoclsparse_int       id,
         icrowa[1] = 1;
         icola[0]  = 0;
         aval[0]   = 1.0;
-        if(aoclsparse_create_dcsr(A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
+        if(aoclsparse_create_csr(A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
            != aoclsparse_status_success)
             return false;
         if(aoclsparse_create_mat_descr(&descr) != aoclsparse_status_success)
@@ -655,7 +786,7 @@ bool get_data(const aoclsparse_int       id,
         icrowa[1] = 1;
         icola[0]  = 0;
         aval[0]   = 1.0;
-        if(aoclsparse_create_dcsr(A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
+        if(aoclsparse_create_csr(A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
            != aoclsparse_status_success)
             return false;
         if(aoclsparse_create_mat_descr(&descr) != aoclsparse_status_success)
@@ -669,114 +800,206 @@ bool get_data(const aoclsparse_int       id,
         return false;
         break;
     }
+    title = title + " [" + (isdouble ? "D" : "S") + "]";
     return true;
 }
 
-int main(void)
+// If kid > 0 then force to only test the specified KID, otherwise
+// cycle through all of them
+template <typename T>
+bool trsv_kid_driver(aoclsparse_int &testid, aoclsparse_int kid = -1)
 {
-    aoclsparse_int       testid = 0;
-    bool                 okload, ok = true;
-    aoclsparse_int       verbose    = 1;
-    aoclsparse_int       avxversion = NONE; // NONE=0 AVX=1 (AVX2=1) and AVX512=2
-    string               title      = "unknown";
-    double               alpha;
+    bool                 ok      = true;
+    aoclsparse_int       verbose = 1;
+    aoclsparse_int       KID; // (AVX2=2) and AVX512=3
+    string               title = "unknown";
+    T                    alpha;
     aoclsparse_matrix    A;
     aoclsparse_mat_descr descr;
-    vector<double>       b;
-    vector<double>       x;
-    vector<double>       xref;
-    double               xtol;
+    vector<T>            b;
+    vector<T>            x;
+    vector<T>            xref;
+    T                    xtol;
     aoclsparse_operation trans;
     // permanent storage of matrix data
-    vector<double>            aval;
+    vector<T>                 aval;
     vector<aoclsparse_int>    icola;
     vector<aoclsparse_int>    icrowa;
     array<aoclsparse_int, 10> iparm;
-    array<double, 10>         dparm;
+    array<T, 10>              dparm;
     aoclsparse_status         exp_status;
+    bool                      isdouble(std::is_same_v<T, double>);
 
-    cout << endl << "================================================" << endl;
-    cout << "   AOCLSPARSE TRSV TESTS" << endl;
-    cout << "================================================" << endl;
-    aoclsparse_int ntrsv   = 23;
-    aoclsparse_int nsvhint = ntrsv + 1;
-
-    do
+    if(testid <= NTEST_TRSV)
     {
         // fail on getting data or gone beyond last testid
-        okload = get_data(testid,
-                          title,
-                          trans,
-                          A,
-                          descr,
-                          alpha,
-                          b,
-                          x,
-                          xref,
-                          xtol,
-                          icrowa,
-                          icola,
-                          aval,
-                          iparm,
-                          dparm,
-                          exp_status);
-        if(okload)
+        ok = get_data<T>(testid,
+                         title,
+                         trans,
+                         A,
+                         descr,
+                         alpha,
+                         b,
+                         x,
+                         xref,
+                         xtol,
+                         icrowa,
+                         icola,
+                         aval,
+                         iparm,
+                         dparm,
+                         exp_status);
+        if(ok)
         {
-            // TODO PASS_BY-REFERENCE!!!
+            // Set default to AVX2
+            KID = AVX2;
+#if USE_AVX512
+            if(global_context.is_avx512)
+                KID = AVX512;
+#endif
+
             // Call test as many times as available kernels
-            // only run on AVX2 until calling non-public APIs is possible
-            // TODO change when testing framework is adopted
-            for(int avxversion = AVX2; avxversion <= AVX2; avxversion++)
+            for(aoclsparse_int ikid = 0; ikid <= KID; ikid++)
             {
-                ok &= test_aoclsparse_trsv(testid,
-                                           title,
-                                           alpha,
-                                           A,
-                                           descr,
-                                           &b[0],
-                                           &x[0],
-                                           trans,
-                                           avxversion,
-                                           &xref[0],
-                                           xtol,
-                                           verbose);
+                if(kid >= 0)
+                    ikid = kid;
+                // AVX Reference does not implement float type
+                if(!(!isdouble && ikid == 1))
+                {
+                    ok &= test_aoclsparse_trsv<T>(testid,
+                                                  title,
+                                                  alpha,
+                                                  A,
+                                                  descr,
+                                                  &b[0],
+                                                  &x[0],
+                                                  trans,
+                                                  ikid,
+                                                  &xref[0],
+                                                  xtol,
+                                                  verbose);
+                }
+                if(kid >= 0)
+                {
+                    testid = -1;
+                    return ok;
+                }
             }
             ++testid;
         }
-    } while(okload && ok && testid <= ntrsv);
+    }
+    else
+    {
+        testid = -1;
+    }
+    return ok;
+}
 
-    cout << endl << "================================================" << endl;
-    cout << "   AOCLSPARSE SV_HINT TESTS" << endl;
-    cout << "================================================" << endl;
+template <typename T>
+bool trsv_hint_driver(aoclsparse_int &testid)
+{
+    bool                 ok      = true;
+    aoclsparse_int       verbose = 1;
+    string               title;
+    T                    alpha;
+    aoclsparse_matrix    A;
+    aoclsparse_mat_descr descr;
+    vector<T>            b;
+    vector<T>            x;
+    vector<T>            xref;
+    T                    xtol;
+    aoclsparse_operation trans;
+    // permanent storage of matrix data
+    vector<T>                 aval;
+    vector<aoclsparse_int>    icola;
+    vector<aoclsparse_int>    icrowa;
+    array<aoclsparse_int, 10> iparm;
+    array<T, 10>              dparm;
+    aoclsparse_status         exp_status;
 
-    do
+    if(NTEST_TRSV < testid && testid <= NTEST_TRSV_HINT)
     {
         // fail on getting data or gone beyond last testid
-        okload = get_data(testid,
-                          title,
-                          trans,
-                          A,
-                          descr,
-                          alpha,
-                          b,
-                          x,
-                          xref,
-                          xtol,
-                          icrowa,
-                          icola,
-                          aval,
-                          iparm,
-                          dparm,
-                          exp_status);
-        if(okload)
+        ok = get_data<T>(testid,
+                         title,
+                         trans,
+                         A,
+                         descr,
+                         alpha,
+                         b,
+                         x,
+                         xref,
+                         xtol,
+                         icrowa,
+                         icola,
+                         aval,
+                         iparm,
+                         dparm,
+                         exp_status);
+        if(ok)
         {
             ok &= test_aoclsparse_set_sv_hint(
                 testid, title, A, descr, trans, iparm[0], exp_status, verbose);
             ++testid;
         }
-    } while(okload && ok);
+        else
+        {
+            testid = -1;
+        }
+    }
+    else
+    {
+        testid = -1;
+    }
+    return ok;
+}
 
-    cout << endl << "================================================" << endl;
+int main(void)
+{
+    bool           ok     = true;
+    aoclsparse_int testid = 0, itest = -1;
+    // set this to the id you want to test/debug
+    // will run only this test with the given kid >= 0,
+    // if kid<0 then all kernels are tested.
+    aoclsparse_int debug_testid = -1;
+    aoclsparse_int kid          = -1;
+
+    // Read the environment variables to update global variable
+    // This function updates the num_threads only once.
+    aoclsparse_init_once();
+
+    // Run Tests -> Call driver
+    cout << endl;
+    cout << "================================================" << endl;
+    cout << "   AOCLSPARSE TRSV TESTS" << endl;
+    cout << "================================================" << endl;
+    if(0 <= debug_testid && debug_testid <= NTEST_TRSV)
+        testid = debug_testid;
+    do
+    {
+        itest = testid;
+        ok &= trsv_kid_driver<double>(testid, kid);
+        testid = itest;
+        ok &= trsv_kid_driver<float>(testid, kid);
+    } while(testid >= 0 && debug_testid < 0);
+
+    cout << endl;
+    cout << "================================================" << endl;
+    cout << "   AOCLSPARSE SV_HINT TESTS" << endl;
+    cout << "================================================" << endl;
+    testid = NTEST_TRSV + 1;
+    if(NTEST_TRSV <= debug_testid && debug_testid <= NTEST_TRSV_HINT)
+        testid = debug_testid;
+    do
+    {
+        itest = testid;
+        ok &= trsv_hint_driver<double>(testid);
+        testid = itest;
+        ok &= trsv_hint_driver<float>(testid);
+    } while(testid >= 0 && debug_testid < 0);
+
+    cout << endl;
+    cout << "================================================" << endl;
     cout << "   OVERALL TESTS : " << (ok ? "ALL PASSSED" : "FAILED") << endl;
     cout << "================================================" << endl;
 
