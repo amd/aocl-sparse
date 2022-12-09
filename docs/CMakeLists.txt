@@ -63,7 +63,7 @@ add_custom_target( latexdeps.pdf
 # 3. Run pdflatex
 # 4. Move and rename the pdf file
 
-add_custom_target( AOCL-Sparse_API_Guide.pdf ALL
+add_custom_target( docs
   COMMAND sed -i -e "s/^\\(PROJECT_NUMBER[[:space:]]*=\\).*$/\\1 \"version ${AOCLSPARSE_VERSION} (${BUILD_DATE})\"/" -e "s+^\\(OUTPUT_DIRECTORY[[:space:]]*=\\).*$+\\1 ${PROJECT_BINARY_DIR}+" Doxyfile &&
   cd ../library && doxygen ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile && cd ${PROJECT_BINARY_DIR}/latex/ && make && cp -v refman.pdf ${CMAKE_CURRENT_SOURCE_DIR}/AOCL-Sparse_API_Guide.pdf
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
