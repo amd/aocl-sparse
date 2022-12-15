@@ -123,7 +123,7 @@ endif(BUILD_ILP64)
 # Set explicit compiler flags
 set(CMAKE_CXX_FLAGS_RELEASE "")
 set(CMAKE_CXX_FLAGS_DEBUG "")
-# "^(.+-)?(clang\\+\\+|[gc]\\+\\+|clang-cl)(-[0-9]+(\\.[0-9]+)*)?(-[^.]+)?(\\.exe)?$")
+# Check for CL compatibility layer of clang
 if(COMPILER_BASENAME MATCHES "^(.+-)?(clang-cl)(-[0-9]+(\\.[0-9]+)*)?(-[^.]+)?(\\.exe)?$")
   set(CLANG_OPTIONS_STYLE "MSVC")
 else()
@@ -147,10 +147,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR (CMAKE_CXX_COMPILER_ID STREQUAL "Clan
   if(USE_AVX512)
     set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};-mavx512f;-mavx512dq;-mavx512vl")
   endif()
-  if(SUPPORT_OMP)
-    set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};${OpenMP_CXX_FLAGS}")
-  endif()
-elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CLANG_OPTIONS_STYLE STREQUAL "MSVC"))
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CLANG_OPTIONS_STYLE STREQUAL "MSVC")
   # Clang with MSVC style compiler options
   # Common flags
   if(USE_AVX512)
@@ -163,24 +160,18 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR (CMAKE_CXX_COMPILER_ID STREQUAL 
   # Debug flags
   # TODO add "/Wall"
   set(COMPILER_FLAGS_DEBUG "/Od;/Zi")
-  if(SUPPORT_OMP)
-    # Note: OpenMP find_package(OpenMP)
-    # Currently is setting Clang-cl.exe MSVC style option as -openmp instead of /openmp, so me
-    # manully override it here
-    set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};/openmp")
-  endif()
 else()
   message(WARNING "Explicit flags for ${CMAKE_CXX_COMPILER_ID} have NOT been set. Update the top-level CMakeList.txt!")
   message(WARNING "Continuing compilation using tentative CXX flags...")
   set(COMPILER_FLAGS_DEBUG "-g")
   set(COMPILER_FLAGS_RELEASE "-O3;-NDEBUG")
-  set(COMPILER_FLAGS_COMMON "-mtune=native;-mavx2;-mfma;")
+  set(COMPILER_FLAGS_COMMON "-mtune=native;-mavx2;-mfma")
   if(USE_AVX512)
     set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};-mavx512f;-mavx512dq;-mavx512vl")
   endif()
-  if(SUPPORT_OMP)
-    set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};${OpenMP_CXX_FLAGS}")
-  endif()
+endif()
+if(SUPPORT_OMP)
+  set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};${OpenMP_CXX_FLAGS}")
 endif()
 add_compile_options("$<$<CONFIG:Release>:${COMPILER_FLAGS_COMMON};${COMPILER_FLAGS_RELEASE}>")
 add_compile_options("$<$<CONFIG:Debug>:${COMPILER_FLAGS_COMMON};${COMPILER_FLAGS_DEBUG}>")
