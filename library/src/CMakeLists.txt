@@ -49,3 +49,4 @@ set(AOCLSPARSE_SOURCES
   src/analysis/aoclsparse_csr_util.cpp
 )
 
+include(Suppressions)

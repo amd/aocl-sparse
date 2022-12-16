@@ -124,12 +124,12 @@ endif(BUILD_ILP64)
 set(CMAKE_CXX_FLAGS_RELEASE "")
 set(CMAKE_CXX_FLAGS_DEBUG "")
 # Check for CL compatibility layer of clang
+get_filename_component(COMPILER_BASENAME "${CMAKE_CXX_COMPILER}" NAME)
 if(COMPILER_BASENAME MATCHES "^(.+-)?(clang-cl)(-[0-9]+(\\.[0-9]+)*)?(-[^.]+)?(\\.exe)?$")
   set(CLANG_OPTIONS_STYLE "MSVC")
 else()
   set(CLANG_OPTIONS_STYLE "GNU")
 endif()
-get_filename_component(COMPILER_BASENAME "${CMAKE_CXX_COMPILER}" NAME)
 message(STATUS "CXX Compiler ID= ${CMAKE_CXX_COMPILER_ID} (${COMPILER_BASENAME}) platform id: ${CMAKE_CXX_PLATFORM_ID}")
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CLANG_OPTIONS_STYLE STREQUAL "GNU"))
   # Common flags
@@ -137,8 +137,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR (CMAKE_CXX_COMPILER_ID STREQUAL "Clan
   # Release flags
   set(COMPILER_FLAGS_RELEASE "-DNDEBUG;-O3;-ftree-vectorize;-ffp-contract=fast")
   # Debug flags
-  # TODO add "-Wall and -Wextra"
-  set(COMPILER_FLAGS_DEBUG "-O0;-gdwarf-5;-g3")
+  set(COMPILER_FLAGS_DEBUG "-O0;-gdwarf-5;-g3;-Wall;-Wextra")
   if(COVERAGE)
     # Add flags for gcov
     # TODO add dependecies and targets
@@ -158,7 +157,6 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CLANG_OPTIONS_STYLE STREQUAL "
   # Release flags
   set(COMPILER_FLAGS_RELEASE "/Ox;/Qpar;/fp:fast")
   # Debug flags
-  # TODO add "/Wall"
   set(COMPILER_FLAGS_DEBUG "/Od;/Zi")
 else()
   message(WARNING "Explicit flags for ${CMAKE_CXX_COMPILER_ID} have NOT been set. Update the top-level CMakeList.txt!")

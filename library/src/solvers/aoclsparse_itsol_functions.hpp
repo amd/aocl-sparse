@@ -671,6 +671,7 @@ aoclsparse_status aoclsparse_cg_rci_solve(aoclsparse_itsol_data<T> *itsol,
 
             // continue without break to check convergence
             cg->task = task_check_conv;
+            __attribute__ ((fallthrough));
 
         case task_check_conv:
             // check convergence via internal stopping criteria and
@@ -728,6 +729,7 @@ aoclsparse_status aoclsparse_cg_rci_solve(aoclsparse_itsol_data<T> *itsol,
                 *v      = cg->z;
                 break;
             }
+            __attribute__ ((fallthrough));
 
         case task_compute_beta:
             // Compute beta and new search direction p
