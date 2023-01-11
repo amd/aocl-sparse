@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2021 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020-2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -43,6 +43,7 @@ struct Arguments
     aoclsparse_int N;
     aoclsparse_int K;
     aoclsparse_int nnz;
+    aoclsparse_int blk;
     aoclsparse_int block_dim;
 
     double alpha;

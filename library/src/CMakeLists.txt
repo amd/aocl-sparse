@@ -1,5 +1,5 @@
 # ########################################################################
-# Copyright (c) 2020-2022 Advanced Micro Devices, Inc.
+# Copyright (c) 2020-2023 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -23,6 +23,7 @@
 
 set(AOCLSPARSE_SOURCES
   src/level2/aoclsparse_csrmv.cpp
+  src/level2/aoclsparse_blkcsrmv.cpp
   src/level2/aoclsparse_ellmv.cpp
   src/level2/aoclsparse_mv.cpp
   src/level2/aoclsparse_diamv.cpp

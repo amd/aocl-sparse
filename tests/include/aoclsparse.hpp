@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020-2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -92,6 +92,22 @@ aoclsparse_status aoclsparse_ellmv(aoclsparse_operation       trans,
                                    const T                   *x,
                                    const T                   *beta,
                                    T                         *y);
+
+template <typename T>
+aoclsparse_status aoclsparse_blkcsrmv(aoclsparse_operation       trans,
+                                    const T *                  alpha,
+                                    aoclsparse_int             m,
+                                    aoclsparse_int             n,
+                                    aoclsparse_int             nnz,
+                                    const uint8_t *            masks,
+                                    const T *                  blk_csr_val,
+                                    const aoclsparse_int *     blk_col_ind,
+                                    const aoclsparse_int *     blk_row_ptr,
+                                    const aoclsparse_mat_descr descr,
+                                    const T *                  x,
+                                    const T *                  beta,
+                                    T *                        y,
+                                    aoclsparse_int             nRowsblk = 1);
 
 template <typename T>
 aoclsparse_status aoclsparse_elltmv(aoclsparse_operation       trans,

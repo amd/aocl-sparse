@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2022 Advanced Micro Devices, Inc.All rights reserved.
+ * Copyright (c) 2020-2023 Advanced Micro Devices, Inc.All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,6 +35,7 @@
 #include "aoclsparse.h"
 
 // Level2
+#include "testing_blkcsrmv.hpp"
 #include "testing_bsrmv.hpp"
 #include "testing_csrmv.hpp"
 #include "testing_csrsv.hpp"
@@ -59,6 +60,7 @@ int main(int argc, char *argv[])
     arg.N          = 128; //default value
     arg.K          = 128; //default value
     arg.nnz        = 0; //default value
+    arg.blk        = 4; //default value
     arg.block_dim  = 2; //default value
     arg.alpha      = 1.0; //default value
     arg.beta       = 0.0; //default value
@@ -90,6 +92,8 @@ int main(int argc, char *argv[])
             "--sizek=<Number of columns> \t  SPARSE-2 & SPARSE-3: the number of columns"
             "\n\t"
             "--sizennz=<Number of non-zeroes> \t  Number of the non-zeroes in sparse matrix/vector"
+            "\n\t"
+            "--sizeblk=<Blocking factor> \t  Specifies the size of blocking for blkcsr"
             "\n\t"
             "--mtx=<matrix market (.mtx)> \t  Read from matrix market (.mtx) format. This  will "
             "override parameters -sizem, -sizen, and -sizennz."
@@ -128,6 +132,7 @@ int main(int argc, char *argv[])
     args.aoclsparse_get_cmdline_argument("sizen", arg.N);
     args.aoclsparse_get_cmdline_argument("sizek", arg.K);
     args.aoclsparse_get_cmdline_argument("sizennz", arg.nnz);
+    args.aoclsparse_get_cmdline_argument("sizeblk", arg.blk);
     args.aoclsparse_get_cmdline_argument("blockdim", arg.block_dim);
     args.aoclsparse_get_cmdline_argument("mtx", arg.filename);
     args.aoclsparse_get_cmdline_argument("alpha", arg.alpha);
@@ -195,6 +200,13 @@ int main(int argc, char *argv[])
         else if(precision == 'd')
             testing_csrmv<double>(arg);
     }
+#if USE_AVX512    
+    else if(strcmp(arg.function, "blkcsrmv") == 0)
+    {
+        if(precision == 'd')
+            testing_blkcsrmv<double>(arg);
+    }
+#endif    
     else if(strcmp(arg.function, "ellmv") == 0)
     {
         if(precision == 's')

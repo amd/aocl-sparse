@@ -26,17 +26,112 @@
 
 #include <algorithm>
 #include <cmath>
-#include <limits>
+#include <limits.h>
 
 /*
  *===========================================================================
  *   C wrapper
  * ===========================================================================
  */
+
+aoclsparse_status aoclsparse_csr2blkcsr(aoclsparse_int        M,
+                                        const aoclsparse_int *csr_row_ptr,
+                                        const aoclsparse_int *csr_col_ind,
+                                        const double *        csr_val,
+                                        aoclsparse_int *      blk_row_ptr,
+                                        aoclsparse_int *      blk_col_ind,
+                                        double *              blk_csr_val,
+                                        uint8_t *             masks,
+                                        aoclsparse_int        nRowsblk)
+{
+    //Initialize block width
+    const aoclsparse_int blk_width = 8;
+
+    std::vector<aoclsparse_int> blk_row_ptr_local(csr_row_ptr, csr_row_ptr + M + 1);
+    std::vector<aoclsparse_int> blk_col_ind_local;
+    std::vector<double>         blk_csr_val_local;
+    std::vector<uint8_t>        masks_local;
+    aoclsparse_int              total_num_blks = 0;
+
+    for(int iRow = 0; iRow < M; iRow += nRowsblk)
+    {
+        int num_cur_blks = 0;
+        int iVal[nRowsblk];
+        memset(iVal, 0, nRowsblk * sizeof(int));
+
+        //Store the indexes from the value array for each row of the block
+        for(int iSubRow = 0; (iSubRow < nRowsblk) && (iRow + iSubRow < M); iSubRow++)
+            iVal[iSubRow] = csr_row_ptr[iRow + iSubRow];
+
+        //Continue this loop until all blocks that can be made on the matrix
+        while(true)
+        {
+            bool blockComplete = true;
+            int  iCol          = INT_MAX;
+
+            //For each block, traverse each subrow to find the column index of the first nnz
+            for(int iSubRow = 0; (iSubRow < nRowsblk) && (iRow + iSubRow < M); iSubRow++)
+            {
+                if(iVal[iSubRow] < blk_row_ptr_local[iRow + iSubRow + 1])
+                {
+                    blockComplete = false;
+                    iCol          = std::min<int>(iCol, csr_col_ind[iVal[iSubRow]]);
+                }
+            }
+            if(blockComplete)
+                break;
+
+            uint8_t mask[nRowsblk];
+            memset(mask, 0u, nRowsblk * sizeof(uint8_t));
+
+            for(int iSubRow = 0; (iSubRow < nRowsblk) && (iRow + iSubRow < M); iSubRow++)
+            {
+                while(iVal[iSubRow] < blk_row_ptr_local[iRow + iSubRow + 1]
+                      && csr_col_ind[iVal[iSubRow]] < iCol + blk_width)
+                {
+                    //Reorder and store subrows(in block) sequentially to for requred blocks from the original CSR val array
+                    blk_csr_val_local.insert(blk_csr_val_local.end(), csr_val[iVal[iSubRow]]);
+
+                    //Calculate the mask for each subrow in the block
+                    mask[iSubRow] |= (1u << (csr_col_ind[iVal[iSubRow]] - iCol));
+                    iVal[iSubRow] += 1;
+                }
+            }
+
+            //Store the column indexes for each block in a vector
+            blk_col_ind_local.insert(blk_col_ind_local.end(), iCol);
+            //Store masks_local for all subrows in a block
+            masks_local.insert(masks_local.end(), &mask[0], &mask[nRowsblk]);
+
+            //Count the number of blocks in the current row block
+            num_cur_blks += 1;
+        }
+
+        //Update the row pointers for all the blocked subrows
+        blk_row_ptr_local[iRow] = total_num_blks;
+        total_num_blks += num_cur_blks;
+
+        //This loop is needed to update row pointers when the number of rows in a block > 1
+        for(int iSubRow = 1; (iSubRow < nRowsblk) && (iRow + iSubRow < M); iSubRow++)
+            blk_row_ptr_local[iRow + iSubRow] = total_num_blks;
+    }
+
+    //Storing total number of blocks as last element in a row pointer vector
+    blk_row_ptr_local[M] = total_num_blks;
+
+    //Return after copying new values to output vector
+    copy(blk_row_ptr_local.begin(), blk_row_ptr_local.end(), blk_row_ptr);
+    copy(blk_col_ind_local.begin(), blk_col_ind_local.end(), blk_col_ind);
+    copy(blk_csr_val_local.begin(), blk_csr_val_local.end(), blk_csr_val);
+    copy(masks_local.begin(), masks_local.end(), masks);
+
+    return aoclsparse_status_success;
+}
+
 aoclsparse_status aoclsparse_csr2ell_width(aoclsparse_int        m,
                                            aoclsparse_int        nnz,
                                            const aoclsparse_int *csr_row_ptr,
-                                           aoclsparse_int       *ell_width)
+                                           aoclsparse_int *      ell_width)
 {
     // Check sizes
     if(m < 0)
@@ -72,8 +167,8 @@ aoclsparse_status aoclsparse_csr2ell_width(aoclsparse_int        m,
 aoclsparse_status aoclsparse_csr2ellthyb_width(aoclsparse_int        m,
                                                aoclsparse_int        nnz,
                                                const aoclsparse_int *csr_row_ptr,
-                                               aoclsparse_int       *ell_m,
-                                               aoclsparse_int       *ell_width)
+                                               aoclsparse_int *      ell_m,
+                                               aoclsparse_int *      ell_width)
 {
     // Check sizes
     if(m < 0)
@@ -131,9 +226,9 @@ aoclsparse_status aoclsparse_csr2ellthyb_width(aoclsparse_int        m,
 extern "C" aoclsparse_status aoclsparse_scsr2ell(aoclsparse_int        m,
                                                  const aoclsparse_int *csr_row_ptr,
                                                  const aoclsparse_int *csr_col_ind,
-                                                 const float          *csr_val,
-                                                 aoclsparse_int       *ell_col_ind,
-                                                 float                *ell_val,
+                                                 const float *         csr_val,
+                                                 aoclsparse_int *      ell_col_ind,
+                                                 float *               ell_val,
                                                  aoclsparse_int        ell_width)
 {
     return aoclsparse_csr2ell_template(
@@ -143,9 +238,9 @@ extern "C" aoclsparse_status aoclsparse_scsr2ell(aoclsparse_int        m,
 extern "C" aoclsparse_status aoclsparse_dcsr2ell(aoclsparse_int        m,
                                                  const aoclsparse_int *csr_row_ptr,
                                                  const aoclsparse_int *csr_col_ind,
-                                                 const double         *csr_val,
-                                                 aoclsparse_int       *ell_col_ind,
-                                                 double               *ell_val,
+                                                 const double *        csr_val,
+                                                 aoclsparse_int *      ell_col_ind,
+                                                 double *              ell_val,
                                                  aoclsparse_int        ell_width)
 {
     return aoclsparse_csr2ell_template(
@@ -155,9 +250,9 @@ extern "C" aoclsparse_status aoclsparse_dcsr2ell(aoclsparse_int        m,
 extern "C" aoclsparse_status aoclsparse_scsr2ellt(aoclsparse_int        m,
                                                   const aoclsparse_int *csr_row_ptr,
                                                   const aoclsparse_int *csr_col_ind,
-                                                  const float          *csr_val,
-                                                  aoclsparse_int       *ell_col_ind,
-                                                  float                *ell_val,
+                                                  const float *         csr_val,
+                                                  aoclsparse_int *      ell_col_ind,
+                                                  float *               ell_val,
                                                   aoclsparse_int        ell_width)
 {
     return aoclsparse_csr2ellt_template(
@@ -167,9 +262,9 @@ extern "C" aoclsparse_status aoclsparse_scsr2ellt(aoclsparse_int        m,
 extern "C" aoclsparse_status aoclsparse_dcsr2ellt(aoclsparse_int        m,
                                                   const aoclsparse_int *csr_row_ptr,
                                                   const aoclsparse_int *csr_col_ind,
-                                                  const double         *csr_val,
-                                                  aoclsparse_int       *ell_col_ind,
-                                                  double               *ell_val,
+                                                  const double *        csr_val,
+                                                  aoclsparse_int *      ell_col_ind,
+                                                  double *              ell_val,
                                                   aoclsparse_int        ell_width)
 {
     return aoclsparse_csr2ellt_template(
@@ -177,14 +272,14 @@ extern "C" aoclsparse_status aoclsparse_dcsr2ellt(aoclsparse_int        m,
 }
 
 extern "C" aoclsparse_status aoclsparse_scsr2ellthyb(aoclsparse_int        m,
-                                                     aoclsparse_int       *ell_m,
+                                                     aoclsparse_int *      ell_m,
                                                      const aoclsparse_int *csr_row_ptr,
                                                      const aoclsparse_int *csr_col_ind,
-                                                     const float          *csr_val,
-                                                     aoclsparse_int       *row_idx_map,
-                                                     aoclsparse_int       *csr_row_idx_map,
-                                                     aoclsparse_int       *ell_col_ind,
-                                                     float                *ell_val,
+                                                     const float *         csr_val,
+                                                     aoclsparse_int *      row_idx_map,
+                                                     aoclsparse_int *      csr_row_idx_map,
+                                                     aoclsparse_int *      ell_col_ind,
+                                                     float *               ell_val,
                                                      aoclsparse_int        ell_width)
 {
     return aoclsparse_csr2ellthybrid_template(m,
@@ -200,14 +295,14 @@ extern "C" aoclsparse_status aoclsparse_scsr2ellthyb(aoclsparse_int        m,
 }
 
 extern "C" aoclsparse_status aoclsparse_dcsr2ellthyb(aoclsparse_int        m,
-                                                     aoclsparse_int       *ell_m,
+                                                     aoclsparse_int *      ell_m,
                                                      const aoclsparse_int *csr_row_ptr,
                                                      const aoclsparse_int *csr_col_ind,
-                                                     const double         *csr_val,
-                                                     aoclsparse_int       *row_idx_map,
-                                                     aoclsparse_int       *csr_row_idx_map,
-                                                     aoclsparse_int       *ell_col_ind,
-                                                     double               *ell_val,
+                                                     const double *        csr_val,
+                                                     aoclsparse_int *      row_idx_map,
+                                                     aoclsparse_int *      csr_row_idx_map,
+                                                     aoclsparse_int *      ell_col_ind,
+                                                     double *              ell_val,
                                                      aoclsparse_int        ell_width)
 {
     return aoclsparse_csr2ellthybrid_template(m,
@@ -227,7 +322,7 @@ extern "C" aoclsparse_status aoclsparse_csr2dia_ndiag(aoclsparse_int        m,
                                                       aoclsparse_int        nnz,
                                                       const aoclsparse_int *csr_row_ptr,
                                                       const aoclsparse_int *csr_col_ind,
-                                                      aoclsparse_int       *dia_num_diag)
+                                                      aoclsparse_int *      dia_num_diag)
 {
 
     // Check sizes
@@ -276,10 +371,10 @@ extern "C" aoclsparse_status aoclsparse_scsr2dia(aoclsparse_int        m,
                                                  aoclsparse_int        n,
                                                  const aoclsparse_int *csr_row_ptr,
                                                  const aoclsparse_int *csr_col_ind,
-                                                 const float          *csr_val,
+                                                 const float *         csr_val,
                                                  aoclsparse_int        dia_num_diag,
-                                                 aoclsparse_int       *dia_offset,
-                                                 float                *dia_val)
+                                                 aoclsparse_int *      dia_offset,
+                                                 float *               dia_val)
 {
     return aoclsparse_csr2dia_template(
         m, n, csr_row_ptr, csr_col_ind, csr_val, dia_num_diag, dia_offset, dia_val);
@@ -289,10 +384,10 @@ extern "C" aoclsparse_status aoclsparse_dcsr2dia(aoclsparse_int        m,
                                                  aoclsparse_int        n,
                                                  const aoclsparse_int *csr_row_ptr,
                                                  const aoclsparse_int *csr_col_ind,
-                                                 const double         *csr_val,
+                                                 const double *        csr_val,
                                                  aoclsparse_int        dia_num_diag,
-                                                 aoclsparse_int       *dia_offset,
-                                                 double               *dia_val)
+                                                 aoclsparse_int *      dia_offset,
+                                                 double *              dia_val)
 {
     return aoclsparse_csr2dia_template(
         m, n, csr_row_ptr, csr_col_ind, csr_val, dia_num_diag, dia_offset, dia_val);
@@ -303,8 +398,8 @@ extern "C" aoclsparse_status aoclsparse_csr2bsr_nnz(aoclsparse_int        m,
                                                     const aoclsparse_int *csr_row_ptr,
                                                     const aoclsparse_int *csr_col_ind,
                                                     aoclsparse_int        block_dim,
-                                                    aoclsparse_int       *bsr_row_ptr,
-                                                    aoclsparse_int       *bsr_nnz)
+                                                    aoclsparse_int *      bsr_row_ptr,
+                                                    aoclsparse_int *      bsr_nnz)
 {
     // Check sizes
     if(m < 0 || n < 0 || block_dim < 0)
@@ -401,13 +496,13 @@ extern "C" aoclsparse_status aoclsparse_csr2bsr_nnz(aoclsparse_int        m,
 
 extern "C" aoclsparse_status aoclsparse_scsr2bsr(aoclsparse_int        m,
                                                  aoclsparse_int        n,
-                                                 const float          *csr_val,
+                                                 const float *         csr_val,
                                                  const aoclsparse_int *csr_row_ptr,
                                                  const aoclsparse_int *csr_col_ind,
                                                  aoclsparse_int        block_dim,
-                                                 float                *bsr_val,
-                                                 aoclsparse_int       *bsr_row_ptr,
-                                                 aoclsparse_int       *bsr_col_ind)
+                                                 float *               bsr_val,
+                                                 aoclsparse_int *      bsr_row_ptr,
+                                                 aoclsparse_int *      bsr_col_ind)
 {
     return aoclsparse_csr2bsr_template(
         m, n, csr_val, csr_row_ptr, csr_col_ind, block_dim, bsr_val, bsr_row_ptr, bsr_col_ind);
@@ -415,13 +510,13 @@ extern "C" aoclsparse_status aoclsparse_scsr2bsr(aoclsparse_int        m,
 
 extern "C" aoclsparse_status aoclsparse_dcsr2bsr(aoclsparse_int        m,
                                                  aoclsparse_int        n,
-                                                 const double         *csr_val,
+                                                 const double *        csr_val,
                                                  const aoclsparse_int *csr_row_ptr,
                                                  const aoclsparse_int *csr_col_ind,
                                                  aoclsparse_int        block_dim,
-                                                 double               *bsr_val,
-                                                 aoclsparse_int       *bsr_row_ptr,
-                                                 aoclsparse_int       *bsr_col_ind)
+                                                 double *              bsr_val,
+                                                 aoclsparse_int *      bsr_row_ptr,
+                                                 aoclsparse_int *      bsr_col_ind)
 {
     return aoclsparse_csr2bsr_template(
         m, n, csr_val, csr_row_ptr, csr_col_ind, block_dim, bsr_val, bsr_row_ptr, bsr_col_ind);
@@ -432,10 +527,10 @@ extern "C" aoclsparse_status aoclsparse_scsr2csc(aoclsparse_int        m,
                                                  aoclsparse_int        nnz,
                                                  const aoclsparse_int *csr_row_ptr,
                                                  const aoclsparse_int *csr_col_ind,
-                                                 const float          *csr_val,
-                                                 aoclsparse_int       *csc_row_ind,
-                                                 aoclsparse_int       *csc_col_ptr,
-                                                 float                *csc_val)
+                                                 const float *         csr_val,
+                                                 aoclsparse_int *      csc_row_ind,
+                                                 aoclsparse_int *      csc_col_ptr,
+                                                 float *               csc_val)
 {
     return aoclsparse_csr2csc_template(
         m, n, nnz, csr_row_ptr, csr_col_ind, csr_val, csc_row_ind, csc_col_ptr, csc_val);
@@ -446,10 +541,10 @@ extern "C" aoclsparse_status aoclsparse_dcsr2csc(aoclsparse_int        m,
                                                  aoclsparse_int        nnz,
                                                  const aoclsparse_int *csr_row_ptr,
                                                  const aoclsparse_int *csr_col_ind,
-                                                 const double         *csr_val,
-                                                 aoclsparse_int       *csc_row_ind,
-                                                 aoclsparse_int       *csc_col_ptr,
-                                                 double               *csc_val)
+                                                 const double *        csr_val,
+                                                 aoclsparse_int *      csc_row_ind,
+                                                 aoclsparse_int *      csc_col_ptr,
+                                                 double *              csc_val)
 {
     return aoclsparse_csr2csc_template(
         m, n, nnz, csr_row_ptr, csr_col_ind, csr_val, csc_row_ind, csc_col_ptr, csc_val);
@@ -458,10 +553,10 @@ extern "C" aoclsparse_status aoclsparse_dcsr2csc(aoclsparse_int        m,
 extern "C" aoclsparse_status aoclsparse_scsr2dense(aoclsparse_int             m,
                                                    aoclsparse_int             n,
                                                    const aoclsparse_mat_descr descr,
-                                                   const float               *csr_val,
-                                                   const aoclsparse_int      *csr_row_ptr,
-                                                   const aoclsparse_int      *csr_col_ind,
-                                                   float                     *A,
+                                                   const float *              csr_val,
+                                                   const aoclsparse_int *     csr_row_ptr,
+                                                   const aoclsparse_int *     csr_col_ind,
+                                                   float *                    A,
                                                    aoclsparse_int             ld,
                                                    aoclsparse_order           order)
 {
@@ -472,10 +567,10 @@ extern "C" aoclsparse_status aoclsparse_scsr2dense(aoclsparse_int             m,
 extern "C" aoclsparse_status aoclsparse_dcsr2dense(aoclsparse_int             m,
                                                    aoclsparse_int             n,
                                                    const aoclsparse_mat_descr descr,
-                                                   const double              *csr_val,
-                                                   const aoclsparse_int      *csr_row_ptr,
-                                                   const aoclsparse_int      *csr_col_ind,
-                                                   double                    *A,
+                                                   const double *             csr_val,
+                                                   const aoclsparse_int *     csr_row_ptr,
+                                                   const aoclsparse_int *     csr_col_ind,
+                                                   double *                   A,
                                                    aoclsparse_int             ld,
                                                    aoclsparse_order           order)
 {

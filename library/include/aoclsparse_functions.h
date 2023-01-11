@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2022 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2023 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -164,6 +164,7 @@ aoclsparse_status aoclsparse_dcsrmv(aoclsparse_operation       trans,
                                     const double              *x,
                                     const double              *beta,
                                     double                    *y);
+
 /**@}*/
 
 /*! \ingroup level2_module
@@ -345,6 +346,22 @@ aoclsparse_status aoclsparse_dellthybmv(aoclsparse_operation       trans,
                                         const double              *x,
                                         const double              *beta,
                                         double                    *y);
+
+DLL_PUBLIC
+        aoclsparse_status aoclsparse_dblkcsrmv(aoclsparse_operation       trans,
+                        const double*              alpha,
+                        aoclsparse_int             m,
+                        aoclsparse_int             n,
+                        aoclsparse_int             nnz,
+                        const uint8_t*             masks,
+                        const double*              csr_val,
+                        const aoclsparse_int*      csr_col_ind,
+                        const aoclsparse_int*      csr_row_ptr,
+                        const aoclsparse_mat_descr descr,
+                        const double*             x,
+                        const double*             beta,
+                        double*                   y,
+                        aoclsparse_int            nRowsblk);
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 

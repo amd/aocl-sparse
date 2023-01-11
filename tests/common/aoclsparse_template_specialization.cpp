@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022-2023 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -117,6 +117,28 @@ aoclsparse_status aoclsparse_csrmv(aoclsparse_operation       trans,
     return aoclsparse_dcsrmv(
         trans, alpha, m, n, nnz, csr_val, csr_col_ind, csr_row_ptr, descr, x, beta, y);
 }
+
+#if USE_AVX512
+template <>
+aoclsparse_status aoclsparse_blkcsrmv(aoclsparse_operation       trans,
+                                    const double *             alpha,
+                                    aoclsparse_int             m,
+                                    aoclsparse_int             n,
+                                    aoclsparse_int             nnz,
+                                    const uint8_t *            masks,
+                                    const double *             blk_csr_val,
+                                    const aoclsparse_int *     blk_col_ind,
+                                    const aoclsparse_int *     blk_row_ptr,
+                                    const aoclsparse_mat_descr descr,
+                                    const double *             x,
+                                    const double *             beta,
+                                    double *                   y,
+                                    aoclsparse_int             nRowsblk)
+{
+    return aoclsparse_dblkcsrmv(
+		    trans, alpha, m, n, nnz, masks, blk_csr_val, blk_col_ind, blk_row_ptr, descr, x, beta, y, nRowsblk);
+}
+#endif
 
 template <>
 aoclsparse_status aoclsparse_ellmv(aoclsparse_operation       trans,

@@ -484,6 +484,17 @@ aoclsparse_status aoclsparse_dcsr2dense(aoclsparse_int             m,
                                         aoclsparse_order           order);
 /**@}*/
 
+DLL_PUBLIC
+aoclsparse_status aoclsparse_csr2blkcsr(aoclsparse_int        m,
+                                        const aoclsparse_int  *csr_row_ptr,
+                                        const aoclsparse_int  *csr_col_ind,
+                                        const double          *csr_val,
+                                        aoclsparse_int        *blk_row_ptr,
+                                        aoclsparse_int        *blk_col_ind,
+                                        double                *blk_csr_val,
+                                        uint8_t               *masks,
+                                        aoclsparse_int        nRowsblk);
+
 #ifdef __cplusplus
 }
 #endif
