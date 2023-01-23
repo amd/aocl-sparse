@@ -1,5 +1,5 @@
 # ########################################################################
-# Copyright (c) 2020-2022 Advanced Micro Devices, Inc.
+# Copyright (c) 2020-2023 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -135,7 +135,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR (CMAKE_CXX_COMPILER_ID STREQUAL "Clan
   # Common flags
   set(COMPILER_FLAGS_COMMON "-mtune=native;-mavx2;-mfma")
   # Release flags
-  set(COMPILER_FLAGS_RELEASE "-DNDEBUG;-O3;-ffast-math;-ftree-vectorize;-funroll-loops;-ffp-contract=fast")
+  set(COMPILER_FLAGS_RELEASE "-DNDEBUG;-O3;-ftree-vectorize;-ffp-contract=fast")
   # Debug flags
   # TODO add "-Wall and -Wextra"
   set(COMPILER_FLAGS_DEBUG "-O0;-gdwarf-5;-g3")
