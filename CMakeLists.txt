@@ -48,6 +48,7 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build." FORCE)
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "" "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
 endif()
+# set(CMAKE_VERBOSE_MAKEFILE "True" CACHE STRING "" FORCE)
 
 # Honor per-config flags in try_compile() source-file signature. cmake v3.7 and up
 if(POLICY CMP0066)
@@ -74,8 +75,6 @@ set(ENABLE_SET_BUILD_DATE OFF CACHE STRING "Set library build date")
 option(BUILD_CLIENTS_SAMPLES "Build sparse examples" ON)
 option(BUILD_CLIENTS_TESTS "Build sparse unit tests" OFF)
 option(BUILD_DOCS "Build the documentation" OFF)
-set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
-set(CMAKE_VERBOSE_MAKEFILE "True" CACHE STRING "" FORCE)
 
 # Dependencies
 include(cmake/Dependencies.cmake)
@@ -199,8 +198,7 @@ if(BUILD_DOCS)
 endif()
 
 ## Configured Info
-message (STATUS "Filename: ${CMAKE_CURRENT_LIST_FILE}\n")
-
+message (STATUS "Filename: ${CMAKE_CURRENT_LIST_FILE}")
 message (STATUS "Build Configuration for AOCL-Sparse")
 message (STATUS "  Current Generator <CMAKE_GENERATOR>..............${CMAKE_GENERATOR}")
 message (STATUS "  Install Prefix <CMAKE_INSTALL_PREFIX>............${CMAKE_INSTALL_PREFIX}")
