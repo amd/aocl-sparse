@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2022 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2023 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,14 +27,124 @@
 #include <algorithm>
 #include <cmath>
 #include <limits.h>
-
 /*
  *===========================================================================
  *   C wrapper
  * ===========================================================================
  */
+aoclsparse_int aoclsparse_opt_blksize(aoclsparse_int        m,
+                                      aoclsparse_int        nnz,
+                                      const aoclsparse_int *csr_row_ptr,
+                                      const aoclsparse_int *csr_col_ind,
+                                      aoclsparse_int *      total_blks)
+{
+    // Check sizes
+    if((m < 0) || (nnz < 0))
+    {
+        return aoclsparse_status_invalid_size;
+    }
 
-aoclsparse_status aoclsparse_csr2blkcsr(aoclsparse_int        M,
+    // Check pointer arguments
+    if((csr_row_ptr == nullptr) || (csr_col_ind == nullptr))
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+
+    //Initialize block width
+    const aoclsparse_int blk_width = 8;
+    aoclsparse_int       optimal_blk;
+    aoclsparse_int       nBlk_factor[3] = {1, 2, 4};
+    aoclsparse_int       total_nBlk[3];
+    double               perBlk[3];
+    double               blkUtil[3];
+
+    //Variables to track number of blocks increasing as we change block size
+    double pc_blks_inc[2];
+    double pc_diff_blks    = 0;
+    double pc_diff_blkutil = 0;
+    double nnzpr           = nnz / m;
+
+    for(int i = 0; i < 3; i++)
+    {
+        aoclsparse_int total_num_blks = 0;
+
+        for(int iRow = 0; iRow < m; iRow += nBlk_factor[i])
+        {
+            int num_cur_blks = 0;
+            int iVal[nBlk_factor[i]];
+            memset(iVal, 0, nBlk_factor[i] * sizeof(int));
+
+            //Store the indexes from the value array for each row of the block
+            for(int iSubRow = 0; (iSubRow < nBlk_factor[i]) && (iRow + iSubRow < m); iSubRow++)
+                iVal[iSubRow] = csr_row_ptr[iRow + iSubRow];
+
+            //Continue this loop until all blocks that can be made on the matrix
+            while(true)
+            {
+                bool blockComplete = true;
+                int  iCol          = INT_MAX;
+
+                //For each block, traverse each subrow to find the column index of the first nnz
+                for(int iSubRow = 0; (iSubRow < nBlk_factor[i]) && (iRow + iSubRow < m); iSubRow++)
+                {
+                    if(iVal[iSubRow] < csr_row_ptr[iRow + iSubRow + 1])
+                    {
+                        blockComplete = false;
+                        iCol          = std::min<int>(iCol, csr_col_ind[iVal[iSubRow]]);
+                    }
+                }
+                if(blockComplete)
+                    break;
+
+                for(int iSubRow = 0; (iSubRow < nBlk_factor[i]) && (iRow + iSubRow < m); iSubRow++)
+                    while(iVal[iSubRow] < csr_row_ptr[iRow + iSubRow + 1]
+                          && csr_col_ind[iVal[iSubRow]] < iCol + blk_width)
+                        iVal[iSubRow] += 1;
+                //Count the number of blocks in the current row block
+                num_cur_blks += 1;
+            }
+            //Update the total number of blocks
+            total_num_blks += num_cur_blks;
+        }
+
+        total_nBlk[i]     = total_num_blks;
+        perBlk[i]  = double(nnz) / double(total_num_blks);
+        blkUtil[i] = (perBlk[i] / ((double)nBlk_factor[i] * 8)) * 100;
+
+        if((nnzpr < 30 && blkUtil[0] < 40) || (nnzpr > 30 && blkUtil[0] < 50))
+            return 0;
+
+        double dip_blks;
+        if(i != 0)
+        {
+            dip_blks           = (double(total_nBlk[i]) / double(total_nBlk[i - 1])) * 100;
+            pc_blks_inc[i - 1] = (double(perBlk[i] - perBlk[i - 1]) / double(perBlk[i - 1])) * 100;
+        }
+    }
+    pc_diff_blks    = abs(pc_blks_inc[0] - pc_blks_inc[1]);
+    pc_diff_blkutil = abs(blkUtil[1] - blkUtil[2]);
+
+    //The percentages and cutoffs are derived based on empirical evaluation. Potential issue: overfitting
+    if((blkUtil[2] > 24) && (pc_diff_blks < 12.5 || pc_diff_blkutil < 12.5)
+       && (pc_blks_inc[1] > 51))
+    {
+        *total_blks = total_nBlk[2];
+        optimal_blk = 4;
+        return optimal_blk;
+    }
+    else if(blkUtil[1] > 28)
+    {
+        *total_blks = total_nBlk[1];
+        optimal_blk = 2;
+        return optimal_blk;
+    }
+
+    return 0;
+}
+
+aoclsparse_status aoclsparse_csr2blkcsr(aoclsparse_int        m,
+                                        aoclsparse_int        n,
+                                        aoclsparse_int        nnz,
                                         const aoclsparse_int *csr_row_ptr,
                                         const aoclsparse_int *csr_col_ind,
                                         const double *        csr_val,
@@ -44,23 +154,39 @@ aoclsparse_status aoclsparse_csr2blkcsr(aoclsparse_int        M,
                                         uint8_t *             masks,
                                         aoclsparse_int        nRowsblk)
 {
+    // Check sizes
+    if((m < 0) || (n < 8) || (nnz < 0))
+    {
+        return aoclsparse_status_invalid_size;
+    }
+
+    // Check pointer arguments
+    if((csr_row_ptr == nullptr) || (csr_col_ind == nullptr) || (csr_val == nullptr))
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+
+    if((blk_row_ptr == nullptr) || (blk_col_ind == nullptr) || (blk_csr_val == nullptr) || (masks == nullptr))
+    {
+        return aoclsparse_status_invalid_pointer;
+    }	
+
     //Initialize block width
     const aoclsparse_int blk_width = 8;
-
-    std::vector<aoclsparse_int> blk_row_ptr_local(csr_row_ptr, csr_row_ptr + M + 1);
+    std::vector<aoclsparse_int> blk_row_ptr_local(csr_row_ptr, csr_row_ptr + m + 1);
     std::vector<aoclsparse_int> blk_col_ind_local;
     std::vector<double>         blk_csr_val_local;
     std::vector<uint8_t>        masks_local;
     aoclsparse_int              total_num_blks = 0;
 
-    for(int iRow = 0; iRow < M; iRow += nRowsblk)
+    for(int iRow = 0; iRow < m; iRow += nRowsblk)
     {
         int num_cur_blks = 0;
         int iVal[nRowsblk];
         memset(iVal, 0, nRowsblk * sizeof(int));
 
         //Store the indexes from the value array for each row of the block
-        for(int iSubRow = 0; (iSubRow < nRowsblk) && (iRow + iSubRow < M); iSubRow++)
+        for(int iSubRow = 0; (iSubRow < nRowsblk) && (iRow + iSubRow < m); iSubRow++)
             iVal[iSubRow] = csr_row_ptr[iRow + iSubRow];
 
         //Continue this loop until all blocks that can be made on the matrix
@@ -70,7 +196,7 @@ aoclsparse_status aoclsparse_csr2blkcsr(aoclsparse_int        M,
             int  iCol          = INT_MAX;
 
             //For each block, traverse each subrow to find the column index of the first nnz
-            for(int iSubRow = 0; (iSubRow < nRowsblk) && (iRow + iSubRow < M); iSubRow++)
+            for(int iSubRow = 0; (iSubRow < nRowsblk) && (iRow + iSubRow < m); iSubRow++)
             {
                 if(iVal[iSubRow] < blk_row_ptr_local[iRow + iSubRow + 1])
                 {
@@ -83,8 +209,10 @@ aoclsparse_status aoclsparse_csr2blkcsr(aoclsparse_int        M,
 
             uint8_t mask[nRowsblk];
             memset(mask, 0u, nRowsblk * sizeof(uint8_t));
+            uint8_t newmask[nRowsblk];
+            memset(newmask, 0u, nRowsblk * sizeof(uint8_t));
 
-            for(int iSubRow = 0; (iSubRow < nRowsblk) && (iRow + iSubRow < M); iSubRow++)
+            for(int iSubRow = 0; (iSubRow < nRowsblk) && (iRow + iSubRow < m); iSubRow++)
             {
                 while(iVal[iSubRow] < blk_row_ptr_local[iRow + iSubRow + 1]
                       && csr_col_ind[iVal[iSubRow]] < iCol + blk_width)
@@ -94,14 +222,24 @@ aoclsparse_status aoclsparse_csr2blkcsr(aoclsparse_int        M,
 
                     //Calculate the mask for each subrow in the block
                     mask[iSubRow] |= (1u << (csr_col_ind[iVal[iSubRow]] - iCol));
+
+		    //Calculate mask for with modified column index (resized block to prevent out of bound reads)
+		    //Applicable only for the last block of the rows
+                    if(iCol+blk_width > n)
+                            newmask[iSubRow] = mask[iSubRow] << (blk_width-(n-iCol));
                     iVal[iSubRow] += 1;
                 }
             }
 
-            //Store the column indexes for each block in a vector
-            blk_col_ind_local.insert(blk_col_ind_local.end(), iCol);
-            //Store masks_local for all subrows in a block
-            masks_local.insert(masks_local.end(), &mask[0], &mask[nRowsblk]);
+            //Store masks and column indexes for each block in a vector
+            if(iCol+blk_width > n) {
+                    blk_col_ind_local.insert(blk_col_ind_local.end(), (n-blk_width));
+                    masks_local.insert(masks_local.end(), &newmask[0], &newmask[nRowsblk]);
+            }
+	    else {
+		    blk_col_ind_local.insert(blk_col_ind_local.end(), iCol);
+		    masks_local.insert(masks_local.end(), &mask[0], &mask[nRowsblk]);
+	    }
 
             //Count the number of blocks in the current row block
             num_cur_blks += 1;
@@ -112,13 +250,12 @@ aoclsparse_status aoclsparse_csr2blkcsr(aoclsparse_int        M,
         total_num_blks += num_cur_blks;
 
         //This loop is needed to update row pointers when the number of rows in a block > 1
-        for(int iSubRow = 1; (iSubRow < nRowsblk) && (iRow + iSubRow < M); iSubRow++)
+        for(int iSubRow = 1; (iSubRow < nRowsblk) && (iRow + iSubRow < m); iSubRow++)
             blk_row_ptr_local[iRow + iSubRow] = total_num_blks;
     }
 
     //Storing total number of blocks as last element in a row pointer vector
-    blk_row_ptr_local[M] = total_num_blks;
-
+    blk_row_ptr_local[m] = total_num_blks;
     //Return after copying new values to output vector
     copy(blk_row_ptr_local.begin(), blk_row_ptr_local.end(), blk_row_ptr);
     copy(blk_col_ind_local.begin(), blk_col_ind_local.end(), blk_col_ind);

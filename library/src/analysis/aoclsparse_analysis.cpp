@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022-2023 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,8 +27,8 @@
 #include "aoclsparse_optimize_data.hpp"
 
 #include <algorithm>
+#include <climits>
 #include <cmath>
-#include <limits>
 
 /*
  *===========================================================================
@@ -121,8 +121,59 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
     }
     double prctg_rows_lt_10 = (double)(csr_lt_10 / m) * 100;
     double fill_ratio       = ((double)(tnnz - ell_nnz) / tnnz) * 100;
+#if USE_AVX512
+    if(nnza >= 10)
+    {
+        aoclsparse_int total_blks = 0;
+        aoclsparse_int nRowsblk   = aoclsparse_opt_blksize(
+            A->m, A->nnz, A->csr_mat.csr_row_ptr, A->csr_mat.csr_col_ptr, &total_blks);
+        if(nRowsblk != 0)
+        {
+            const aoclsparse_int blk_width = 8;
+            aoclsparse_int *     blk_row_ptr;
+            aoclsparse_int *     blk_col_ptr;
+            double *             blk_val;
+            uint8_t *            masks;
 
-    if(ell_width <= 30)
+            blk_row_ptr = (aoclsparse_int *)malloc((m + 1) * sizeof(aoclsparse_int));
+            if(blk_row_ptr == NULL)
+                return aoclsparse_status_internal_error;
+
+            blk_col_ptr = (aoclsparse_int *)malloc(nnz * sizeof(aoclsparse_int));
+            if(blk_col_ptr == NULL)
+                return aoclsparse_status_internal_error;
+
+            blk_val = (double *)malloc(nnz * sizeof(double) + (nRowsblk * blk_width));
+            if(blk_val == NULL)
+                return aoclsparse_status_internal_error;
+
+            masks = (uint8_t *)malloc(total_blks * nRowsblk * sizeof(uint8_t));
+            if(masks == NULL)
+                return aoclsparse_status_internal_error;
+
+            aoclsparse_csr2blkcsr(A->m,
+                                  A->n,
+                                  A->nnz,
+                                  A->csr_mat.csr_row_ptr,
+                                  A->csr_mat.csr_col_ptr,
+                                  (double *)A->csr_mat.csr_val,
+                                  blk_row_ptr,
+                                  blk_col_ptr,
+                                  blk_val,
+                                  masks,
+                                  nRowsblk);
+            A->csr_mat.blk_row_ptr = blk_row_ptr;
+            A->csr_mat.blk_col_ptr = blk_col_ptr;
+            A->csr_mat.blk_val     = blk_val;
+            A->csr_mat.masks       = masks;
+            A->csr_mat.nRowsblk    = nRowsblk;
+            A->blk_optimized       = true;
+            A->mat_type            = aoclsparse_csr_mat;
+        }
+    }
+#endif
+
+    if(!A->blk_optimized && ell_width <= 30)
     { // ToDo: why this cutoff?
         if(fill_ratio < -0.1)
         {
@@ -144,33 +195,13 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
             }
         }
     }
-    else
-    {
-#if USE_AVX512
-        // This is used to choose between csrmv avx512 and br4 implementation
-        double fill_ratio_avx512 = ((double)(tnnz - nnz) / tnnz) * 100;
-        if(fill_ratio_avx512 > CSR512_BR4_THRESHOLD)
-            A->mat_type = aoclsparse_csr_mat;
-        else
-            A->mat_type = aoclsparse_csr_mat_br4;
-#else
-        if(prctg_rows_lt_10 < CSR512_BR4_THRESHOLD)
-        {
-            A->mat_type = aoclsparse_csr_mat; // CSR
-        }
-        else
-        {
-            A->mat_type = aoclsparse_csr_mat_br4; // CSR-BT-AVX2
-        }
-#endif
-    }
 
     if(A->mat_type == aoclsparse_ellt_csr_hyb_mat)
     {
 
         aoclsparse_int *ell_col_ind;
-        double         *ell_dval;
-        float          *ell_sval;
+        double *        ell_dval;
+        float *         ell_sval;
         aoclsparse_int *csr_row_idx_map;
         aoclsparse_int *row_idx_map;
         aoclsparse_int  ell_width;
@@ -179,7 +210,8 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
         // get the ell_width
         aoclsparse_csr2ellthyb_width(A->m, A->nnz, A->csr_mat.csr_row_ptr, &ell_m, &ell_width);
 
-        if (ell_width == 0){
+        if(ell_width == 0)
+        {
             A->mat_type = aoclsparse_csr_mat;
             return aoclsparse_status_success;
         }
@@ -256,7 +288,7 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
         aoclsparse_int *col_ptr;
         aoclsparse_int *row_ptr;
         aoclsparse_int *trow_ptr; // ToDo: need to replace row_ptr with trow_ptr
-        void           *csr_val;
+        void *          csr_val;
         aoclsparse_int  row_nnz;
 
         // populate row_nnz
@@ -343,7 +375,7 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
         }
         tc                   = 0;
         aoclsparse_int *cptr = (aoclsparse_int *)col_ptr;
-        double         *vptr = (double *)csr_val;
+        double *        vptr = (double *)csr_val;
         for(i = 0; i < A->m; i += 4)
         {
             cptr               = col_ptr + tc;
@@ -399,8 +431,8 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
 aoclsparse_status aoclsparse_optimize_ilu0(aoclsparse_matrix A)
 {
     aoclsparse_status ret            = aoclsparse_status_success;
-    aoclsparse_int   *lu_diag_ptr    = NULL;
-    aoclsparse_int   *col_idx_mapper = NULL;
+    aoclsparse_int *  lu_diag_ptr    = NULL;
+    aoclsparse_int *  col_idx_mapper = NULL;
     aoclsparse_int    nrows          = A->m;
 
     lu_diag_ptr = (aoclsparse_int *)malloc(sizeof(aoclsparse_int) * nrows);
@@ -438,8 +470,8 @@ aoclsparse_status aoclsparse_optimize_ilu0(aoclsparse_matrix A)
 aoclsparse_status aoclsparse_optimize_ilu(aoclsparse_matrix A)
 {
     aoclsparse_status ret = aoclsparse_status_success;
-    double           *ilu_dval;
-    float            *ilu_sval;
+    double *          ilu_dval;
+    float *           ilu_sval;
     //If already allocated, then no need to reallocate. So return. Need to happen only once in the beginning
     if(A->ilu_info.ilu_ready == true)
     {
@@ -619,11 +651,11 @@ aoclsparse_status aoclsparse_set_sv_hint(aoclsparse_matrix          A,
                                          aoclsparse_int             expected_no_of_calls)
 {
     // Check inputs
-    if (!A || !descr)
+    if(!A || !descr)
     {
         return aoclsparse_status_invalid_pointer;
     }
-    if (expected_no_of_calls < 0)
+    if(expected_no_of_calls < 0)
     {
         return aoclsparse_status_invalid_value;
     }

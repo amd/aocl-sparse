@@ -119,6 +119,8 @@ void testing_blkcsrmv(const Arguments &arg)
 
     //Function to convert csr to blkcsr 
     aoclsparse_csr2blkcsr(M,
+		          N,
+		          nnz,
                           csr_row_ptr.data(),
                           csr_col_ind.data(),
                           csr_val.data(),

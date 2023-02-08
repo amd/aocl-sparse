@@ -210,7 +210,7 @@ aoclsparse_status
         if(beta != static_cast<double>(0))
         {
             sum[0] += beta * y[iRow];
-            if( y[iRow + 1] < m) 
+            if( iRow + 1 < m) 
 		    sum[1] += beta * y[iRow + 1];
         }
 
@@ -356,11 +356,11 @@ aoclsparse_status
         if(beta != static_cast<double>(0))
         {
             sum[0] += beta * y[iRow];
-            if( y[iRow + 1] < m) 
+            if( iRow + 1 < m) 
 		    sum[1] += beta * y[iRow + 1];
-            if( y[iRow + 2] < m) 
+            if( iRow + 2 < m) 
 		    sum[2] += beta * y[iRow + 2];
-            if( y[iRow + 3] < m) 
+            if( iRow + 3 < m) 
 		    sum[3] += beta * y[iRow + 3];
         }
 
@@ -436,7 +436,7 @@ extern "C" aoclsparse_status aoclsparse_dblkcsrmv(aoclsparse_operation       tra
     {
         return aoclsparse_status_invalid_size;
     }
-    else if(n < 0)
+    else if(n < 8)
     {
         return aoclsparse_status_invalid_size;
     }

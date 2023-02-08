@@ -444,6 +444,7 @@ aoclsparse_status aoclsparse_destroy_mv(aoclsparse_matrix A)
             csr_mat_br4->csr_val = NULL;
         }
     }
+
     return aoclsparse_status_success;
 }
 /********************************************************************************
@@ -518,6 +519,20 @@ aoclsparse_status aoclsparse_destroy_opt_csr(aoclsparse_matrix A)
         free(A->idiag);
     if(A->iurow)
         free(A->iurow);
+
+#if USE_AVX512 
+    if(A->blk_optimized)
+    {
+	if(A->csr_mat.blk_row_ptr)
+		free(A->csr_mat.blk_row_ptr);
+	if(A->csr_mat.blk_col_ptr)
+		free(A->csr_mat.blk_col_ptr);
+	if(A->csr_mat.blk_val)
+		free(A->csr_mat.blk_val);
+	if(A->csr_mat.masks)
+		free(A->csr_mat.masks);
+    }
+#endif
     return aoclsparse_status_success;
 }
 

@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022-2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -189,6 +189,23 @@ aoclsparse_status aoclsparse_mv_general(aoclsparse_operation       op,
     if(A->mat_type == aoclsparse_csr_mat)
     {
         //Invoke SPMV API for CSR storage format(double precision)
+#if USE_AVX512
+	if(A->blk_optimized)
+		return aoclsparse_dblkcsrmv(op,
+                                   &alpha,
+                                   A->m,
+                                   A->n,
+                                   A->nnz,
+                                   A->csr_mat.masks,
+                                   (double *)A->csr_mat.blk_val,
+                                   A->csr_mat.blk_col_ptr,
+                                   A->csr_mat.blk_row_ptr,
+                                   descr,
+                                   x,
+                                   &beta,
+                                   y,
+                                   A->csr_mat.nRowsblk);
+	else
         return (aoclsparse_dcsrmv(op,
                                   &alpha,
                                   A->m,
@@ -201,6 +218,21 @@ aoclsparse_status aoclsparse_mv_general(aoclsparse_operation       op,
                                   x,
                                   &beta,
                                   y));
+
+#else
+        return (aoclsparse_dcsrmv(op,
+                                  &alpha,
+                                  A->m,
+                                  A->n,
+                                  A->nnz,
+                                  (double *)A->csr_mat.csr_val,
+                                  A->csr_mat.csr_col_ptr,
+                                  A->csr_mat.csr_row_ptr,
+                                  descr,
+                                  x,
+                                  &beta,
+                                  y));
+#endif
     }
     else if(A->mat_type == aoclsparse_ellt_csr_hyb_mat)
     {

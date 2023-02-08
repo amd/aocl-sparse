@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2022 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2023 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -486,6 +486,8 @@ aoclsparse_status aoclsparse_dcsr2dense(aoclsparse_int             m,
 
 DLL_PUBLIC
 aoclsparse_status aoclsparse_csr2blkcsr(aoclsparse_int        m,
+                                        aoclsparse_int        n,
+                                        aoclsparse_int        nnz,
                                         const aoclsparse_int  *csr_row_ptr,
                                         const aoclsparse_int  *csr_col_ind,
                                         const double          *csr_val,
@@ -494,6 +496,14 @@ aoclsparse_status aoclsparse_csr2blkcsr(aoclsparse_int        m,
                                         double                *blk_csr_val,
                                         uint8_t               *masks,
                                         aoclsparse_int        nRowsblk);
+
+DLL_PUBLIC
+aoclsparse_int aoclsparse_opt_blksize(aoclsparse_int        m,
+                                      aoclsparse_int        nnz,
+                                      const aoclsparse_int *csr_row_ptr,
+                                      const aoclsparse_int *csr_col_ind,
+                                      aoclsparse_int *total_blks);
+
 
 #ifdef __cplusplus
 }

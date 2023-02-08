@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022-2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -41,6 +41,13 @@ struct _aoclsparse_csr
     aoclsparse_int *csr_row_ptr = nullptr;
     aoclsparse_int *csr_col_ptr = nullptr;
     void           *csr_val     = nullptr;
+#if USE_AVX512
+    aoclsparse_int *blk_row_ptr = nullptr;
+    aoclsparse_int *blk_col_ptr = nullptr;
+    void           *blk_val     = nullptr;
+    uint8_t        *masks       = nullptr;
+    aoclsparse_int nRowsblk     = 0;
+#endif
 };
 
 /********************************************************************************
@@ -138,6 +145,8 @@ struct _aoclsparse_matrix
     // the original matrix had full (nonzero) diagonal, so the matrix
     // is safe for TRSVs
     bool opt_csr_full_diag;
+    // store if the matrix has already been optimized for this blocked SpMV
+    bool blk_optimized = false;
     // position where the diagonal is located in every row
     aoclsparse_int *idiag;
     // position where the first strictly upper triangle element is/would be located in every row
