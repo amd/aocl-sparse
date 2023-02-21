@@ -6,10 +6,10 @@
 #in the Software without restriction, including without limitation the rights
 #to use, copy, modify, merge, publish, distribute, sublicense, and / or sell
 #copies of the Software, and to permit persons to whom the Software is
-#furnished to do so, subject to the following                       conditions:
+#furnished to do so, subject to the following conditions:
 #
 #The above copyright notice and this permission notice shall be included in
-#all copies or substantial portions of the                               Software.
+#all copies or substantial portions of the Software.
 #
 #THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 #IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -21,29 +21,35 @@
 #
 # ########################################################################
 
-#Only define out - of - src - tree build if not defined previously
+# Only define out-of-src-tree build if not defined previously
 if(NOT DEFINED ENABLE_OUTOFSRCTREE)
     SET(ENABLE_OUTOFSRCTREE ON)
 endif()
+
 ## Common config
 option (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE "Allow out-of-source tree build for Sparse examples" ${ENABLE_OUTOFSRCTREE})
 set(MT_LIBRARIES "OpenMP::OpenMP_CXX")
 set(PTHREAD_LIBRARY "pthread")
 set(COMPILER_OPTIONS)
-
-## Setup the pre-requisites for out-of-source-tree build 
+if(CMAKE_BUILD_TYPE MATCHES "Debug")
+  add_compile_options("$<$<CONFIG:Debug>:${COMPILER_FLAGS_COMMON};${COMPILER_FLAGS_DEBUG}>")
+elseif(CMAKE_BUILD_TYPE MATCHES "Release")
+  add_compile_options("$<$<CONFIG:Release>:${COMPILER_FLAGS_COMMON};${COMPILER_FLAGS_RELEASE}>")
+endif()
+## Setup the pre-requisites for out-of-source-tree build
 if (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
     cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 #sparse examples project
     project(aoclsparse_examples LANGUAGES CXX)
-    
+
     OPTION(BUILD_SHARED_LIBS "Build aocl-sparse as a shared library" ON)
     OPTION(BUILD_ILP64 "ILP64 Support" OFF)
     OPTION(SUPPORT_OMP "Compile with OpenMP support." ON)
-    
-    if(DEFINED ENV{AOCL_ROOT})        
+
+    if(DEFINED ENV{AOCL_ROOT})
         set(SPARSE_ARTIFACTS_DIR $ENV{AOCL_ROOT})
     ELSE()
+        # FIXME this needs to the "hardcoded" from main CMAKE at install time
         set(SPARSE_ARTIFACTS_DIR ${CMAKE_INSTALL_PREFIX})
     ENDIF()
 
@@ -51,12 +57,9 @@ if (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
         find_package(OpenMP)
         if (NOT OPENMP_FOUND)
             message("-- OpenMP not found.")
-        endif()    
+        endif()
     endif()
-    set(COMPILER_OPTIONS ${OpenMP_CXX_FLAGS})
-
-    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
-    set(CMAKE_VERBOSE_MAKEFILE "True" CACHE STRING "" FORCE) 
+    list ( APPEND COMPILER_OPTIONS ${OpenMP_CXX_FLAGS})
 
     ## Change default installation path
     if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -75,42 +78,42 @@ ELSE(WIN32)
 ENDIF(WIN32)
 
 if (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
-    IF(BUILD_ILP64) 
-        list(APPEND COMPILER_OPTIONS "-Daoclsparse_ILP64")            
+    IF(BUILD_ILP64)
+        list(APPEND COMPILER_OPTIONS "-Daoclsparse_ILP64")
         find_library(SPARSE_LIBRARY
-                    NAMES aoclsparse
+                    NAMES "aoclsparse" "aoclsparse-d"
                     HINTS ${SPARSE_ARTIFACTS_DIR}
-                    PATH_SUFFIXES "lib" "lib/ILP64")       
+                    PATH_SUFFIXES "lib" "lib/ILP64")
 
         find_path(SPARSE_INCLUDE_DIR
                 NAMES "aoclsparse.h"
                 PATHS ${SPARSE_ARTIFACTS_DIR}
-                PATH_SUFFIXES "include")                  
+                PATH_SUFFIXES "include")
 
-    ELSE(BUILD_ILP64)    
+    ELSE(BUILD_ILP64)
         find_library(SPARSE_LIBRARY
-                    NAMES aoclsparse
+                    NAMES "aoclsparse" "aoclsparse-d"
                     HINTS ${SPARSE_ARTIFACTS_DIR}
-                    PATH_SUFFIXES "lib" "lib/LP64")   
+                    PATH_SUFFIXES "lib" "lib/LP64")
 
         find_path(SPARSE_INCLUDE_DIR
                 NAMES "aoclsparse.h"
                 PATHS ${SPARSE_ARTIFACTS_DIR}
-                PATH_SUFFIXES "include")                  
-    ENDIF(BUILD_ILP64)  
-    
-    if(NOT SPARSE_LIBRARY)        
+                PATH_SUFFIXES "include")
+    ENDIF(BUILD_ILP64)
+
+    if(NOT SPARSE_LIBRARY)
         message (FATAL_ERROR "Error: could not find a suitable installation of AOCL-Sparse in \$AOCL_ROOT=${AOCL_ROOT}")
     endif()
     if(NOT SPARSE_INCLUDE_DIR)
         message (FATAL_ERROR "Error: could not find AOCL-Sparse header files in \$AOCL_ROOT=${AOCL_ROOT}/include")
     endif()
-    message(STATUS "Headers and library linkages defined")
-    message(STATUS "Headers = ${SPARSE_INCLUDE_DIR}")
-    message(STATUS "Library = ${SPARSE_LIBRARY}")    
-else (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)  
+    message(STATUS "AOCL-Sparse header and library locations")
+    message(STATUS "Headers: ${SPARSE_INCLUDE_DIR}")
+    message(STATUS "Library: ${SPARSE_LIBRARY}")
+else (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
     set(SPARSE_LIBRARY "aoclsparse")
-    set(SPARSE_INCLUDE_DIR "")  
+    set(SPARSE_INCLUDE_DIR "")
 endif (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
 
 file(GLOB_RECURSE SPARSE_SAMPLES sample_*.cpp)
@@ -121,15 +124,15 @@ foreach( sample_example_source ${SPARSE_SAMPLES})
     target_include_directories(${sample_target} PUBLIC ${SPARSE_INCLUDE_DIR})
     target_link_libraries(${sample_target} ${SPARSE_LIBRARY} ${MT_LIBRARIES})
     target_compile_options(${sample_target} PUBLIC ${COMPILER_OPTIONS})
-    if(NOT BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)    
+    if(NOT BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
         install(FILES ${sample_example_source} DESTINATION ${CMAKE_INSTALL_PREFIX}/examples)
-    endif()   
+    endif()
 endforeach( sample_example_source ${SPARSE_SAMPLES} )
 
 if(NOT BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
     set(EXAMPLES_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/examples")
     install(FILES README.md DESTINATION ${EXAMPLES_INSTALL_DIR})
-    install(FILES CMakeLists.txt DESTINATION ${EXAMPLES_INSTALL_DIR})    
+    install(FILES CMakeLists.txt DESTINATION ${EXAMPLES_INSTALL_DIR})
 endif()
 set(EXAMPLE_EXECUTABLES
     sample_spmv
@@ -148,4 +151,6 @@ set(EXAMPLE_EXECUTABLES
 foreach(SNAME ${EXAMPLE_EXECUTABLES})
     string(REPLACE "sample_" "" SNAMESHORT ${SNAME})
     add_test(Sample.${SNAMESHORT} ${SNAME})
+    # set_property(TEST Sample.${SNAMESHORT} PROPERTY ENVIRONMENT_MODIFICATION ASAN_OPTIONS="log_path=ASANlogger.${SNAME}")
 endforeach()
+

@@ -104,6 +104,7 @@ foreach(MATSIZE ${SQMATRIXSIZES})
 
     foreach(FUNCTION "csrmv") # TODO add back "csrsv", so far failing the tests
       add_test(Bench.${FUNCTION}-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ} ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --verify=1)
+      # set_property(TEST Bench.${FUNCTION}-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ} PROPERTY ENVIRONMENT ASAN_OPTIONS="log_path=ASANlogger.Bench.${FUNCTION}-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ}")
     endforeach(FUNCTION)
 
   endforeach(PREC)
@@ -112,3 +113,4 @@ endforeach(MATSIZE)
 # Add extra function on matrix sizes
 # TODO adjust these as needed
 add_test(Bench.csrmv-d-100x99x333 ../staging/aoclsparse-bench  --function=csrmv --precision=d --sizem=100 --sizen=99 --sizennz=333 --verify=1)
+# set_property(TEST Bench.csrmv-d-100x99x333 PROPERTY ENVIRONMENT "ASAN_OPTIONS="log_path=ASANlogger.Bench.csrmv-d-100x99x333")

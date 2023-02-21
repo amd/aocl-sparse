@@ -75,15 +75,33 @@ set(ENABLE_SET_BUILD_DATE OFF CACHE STRING "Set library build date")
 option(BUILD_CLIENTS_SAMPLES "Build sparse examples" ON)
 option(BUILD_UNIT_TESTS "Build sparse unit tests" OFF)
 option(BUILD_DOCS "Build the documentation" OFF)
-set(ASAN OFF)
+option(COVERAGE "Do source code coverage (only GCC/Debug build)" OFF)
+option(ASAN "Enable Address SANitizer (only Debug/Linux build)" OFF)
+option(VALGRIND "Enable Valgrind checks (only Debug. Incompatible with ASAN=ON)" OFF)
 
-if (${CMAKE_SYSTEM_NAME} MATCHES "Linux" AND CMAKE_BUILD_TYPE MATCHES "Debug")
-  # Switch on ASAN
-  set(ASAN ON)
+if (NOT (${ASAN} AND ${CMAKE_SYSTEM_NAME} MATCHES "Linux" AND CMAKE_BUILD_TYPE MATCHES "Debug"))
+  # Switch off ASAN: target not supported
+  set(ASAN OFF)
+endif()
+if (NOT (${COVERAGE} AND ${CMAKE_SYSTEM_NAME} MATCHES "Linux" AND CMAKE_BUILD_TYPE MATCHES "Debug"))
+  # Switch off GCOV: target not supported
+  set(COVERAGE OFF)
+endif()
+if (${VALGRIND} AND CMAKE_BUILD_TYPE MATCHES "Debug")
+  if (${ASAN})
+    set (VALGRIND OFF)
+    message(WARNING "VALGRIND and ASAN options are mutually exclusive. Resetting VALGRIND=OFF")
+  else()
+    set( MEMORYCHECK_COMMAND_OPTIONS "--xml=yes --xml-file=ctest-valgrind-%p.xml --trace-children=yes --leak-check=full --child-silent-after-fork=yes --show-reachable=yes --track-origins=yes" )
+    # Let CTest take care of MemChecker
+    include(CTest) # Default to using valgrind
+    # To run all registered tests with valgrind use "ctest -T memcheck"
+  endif()
 endif()
 
+
 # Dependencies
-include(cmake/Dependencies.cmake)
+include(Dependencies)
 
 # Define a version for the aocl-sparse code.
 if(NOT DEFINED AOCLSPARSE_VERSION_MAJOR)
@@ -128,8 +146,6 @@ endif(BUILD_ILP64)
 # Set explicit compiler flags
 set(CMAKE_CXX_FLAGS_RELEASE "")
 
-# ASAN is an INTERNAL variable and 
-# is not exposed to the user and by default is only ON when Debug/Linux build is selected.
 set(CMAKE_CXX_FLAGS_DEBUG "")
 # Check for CL compatibility layer of clang
 get_filename_component(COMPILER_BASENAME "${CMAKE_CXX_COMPILER}" NAME)
@@ -150,11 +166,12 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR (CMAKE_CXX_COMPILER_ID STREQUAL "Clan
     set(CMAKE_CXX_FLAGS_DEBUG "-fsanitize=address")
     set(COMPILER_FLAGS_DEBUG "${COMPILER_FLAGS_DEBUG};${CMAKE_CXX_FLAGS_DEBUG}")
   endif()
-
-  if(COVERAGE)
-    # Add flags for gcov
-    # TODO add dependecies and targets
-    set(COMPILER_FLAGS_DEBUG "${COMPILER_FLAGS_DEBUG};-fprofile-arcs;-ftest-coverage")
+  if(COVERAGE AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    include(Coverage)
+    set(COMPILER_FLAGS_DEBUG "${COMPILER_FLAGS_DEBUG};--coverage")
+    add_link_options("$<$<CONFIG:Debug>:--coverage>")
+  else()
+    set(COVERAGE OFF)
   endif()
   if(USE_AVX512)
     set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};-mavx512f;-mavx512dq;-mavx512vl")
@@ -217,13 +234,18 @@ message (STATUS "Build Configuration for AOCL-Sparse")
 message (STATUS "  Current Generator <CMAKE_GENERATOR>..............${CMAKE_GENERATOR}")
 message (STATUS "  Install Prefix <CMAKE_INSTALL_PREFIX>............${CMAKE_INSTALL_PREFIX}")
 message (STATUS "  Build Type <CMAKE_BUILD_TYPE>....................${CMAKE_BUILD_TYPE}")
-message (STATUS "  Address SANitization (only Linux/Debug) <ASAN>...${ASAN}")
+if(CMAKE_BUILD_TYPE MATCHES "Debug")
+  message (STATUS "  Address SANitization (only Linux/Debug) <ASAN>...${ASAN}")
+  message (STATUS "  Source code coverage (only Debug/GCC) <COVERAGE>.${COVERAGE}")
+  message (STATUS "  Valgrind checks (only Debug)......... <VALGRIND>.${VALGRIND}")
+endif()
 message (STATUS "  Verbose flag <CMAKE_VERBOSE_MAKEFILE>............${CMAKE_VERBOSE_MAKEFILE}")
 message (STATUS "  AOCL-Sparse Version .............................${AOCLSPARSE_VERSION_MAJOR}.${AOCLSPARSE_VERSION_MINOR}.${AOCLSPARSE_VERSION_PATCH}.${AOCLSPARSE_VERSION_TWEAK}")
 message (STATUS "  Static/Dynamic Build <BUILD_SHARED_LIBS>.........${BUILD_SHARED_LIBS}")
 message (STATUS "  ILP64 Build Type <BUILD_ILP64>...................${BUILD_ILP64}")
 message (STATUS "  Use AVX512 instructions <USE_AVX512>.............${USE_AVX512}")
 message (STATUS "  Examples <BUILD_CLIENTS_SAMPLES>.................${BUILD_CLIENTS_SAMPLES}")
-message (STATUS "  Unit tests <BUILD_UNIT_TESTS>.............${BUILD_UNIT_TESTS}")
+message (STATUS "  Unit tests <BUILD_UNIT_TESTS>....................${BUILD_UNIT_TESTS}")
 message (STATUS "  Performance benchmark <BUILD_CLIENTS_BENCHMARKS>.${BUILD_CLIENTS_BENCHMARKS}")
 message (STATUS "  Doxygen configuration and doc build <BUILD_DOCS>.${BUILD_DOCS}")
+
