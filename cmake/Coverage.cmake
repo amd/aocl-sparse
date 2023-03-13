@@ -40,7 +40,7 @@ add_custom_target( coverage-run
   COMMAND ${CMAKE_MAKE_PROGRAM} all
   COMMAND ${CMAKE_MAKE_PROGRAM} coverage-clean
   COMMAND CLICOLOR=0 ASAN_OPTIONS="log_path=ASANlogger" ctest --timeout 20 --output-junit Testing/Temporary/LastTest_JUnit.xml || true
-  COMMAND ../tools/collate_asan.sh
+  COMMAND ${CMAKE_SOURCE_DIR}/tools/collate_asan.sh
   WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
   COMMENT "Running Code Coverage (ctest + collate_asan)"
 )
