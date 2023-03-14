@@ -14,8 +14,8 @@ if(WIN32)
     target_link_libraries(trsv_tests aoclsparse)
 
     # CG TESTS
-    add_executable(cg_tests cg_tests.cpp ${utils_source})
-    target_link_libraries(cg_tests aoclsparse)
+    add_executable(cg_ftests cg_tests.cpp ${utils_source})
+    target_link_libraries(cg_ftests aoclsparse)
 
 else()
     # HINT TESTS
@@ -27,6 +27,6 @@ else()
     target_link_libraries(trsv_tests aoclsparse pthread)
 
     # CG TESTS
-    add_executable(cg_tests cg_tests.cpp ${utils_source})
-    target_link_libraries(cg_tests aoclsparse pthread)
+    add_executable(cg_ftests cg_tests.cpp ${utils_source})
+    target_link_libraries(cg_ftests aoclsparse pthread)
 endif()
