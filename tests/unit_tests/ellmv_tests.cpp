@@ -21,8 +21,8 @@
  *
  * ************************************************************************ */
 #include "aoclsparse.h"
+#include "common_data_utils.h"
 #include "gtest/gtest.h"
-#include "solver_data_utils.h"
 #include "aoclsparse.hpp"
 
 namespace

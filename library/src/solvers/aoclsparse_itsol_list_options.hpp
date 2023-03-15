@@ -88,12 +88,20 @@
  *  Doxygen documentation for all the options is generated using the
  *  OptionRegistry.PrintDetails() method (see aoclsparse_itsol_options.hpp).
  */
+
+template <typename T>
+T tolerance(T scale = (T)1.0)
+{
+    constexpr T macheps      = std::numeric_limits<T>::epsilon();
+    constexpr T safe_macheps = (T)2.0 * macheps;
+    return (T)(scale * sqrt(safe_macheps));
+};
+
 template <typename T>
 int register_options(aoclsparse_options::OptionRegistry<T> &opts)
 {
     using namespace aoclsparse_options;
-    T macheps = std::numeric_limits<T>::epsilon();
-    T tol     = pow(2.0 * macheps, 0.3334) / 7.0;
+
     {
         OptionString o("iterative method",
                        3,
@@ -132,7 +140,7 @@ int register_options(aoclsparse_options::OptionRegistry<T> &opts)
                         greaterequal,
                         1.0,
                         p_inf,
-                        tol);
+                        tolerance((T)2.0));
         if(opts.Register(o))
             return 2;
     }
@@ -146,7 +154,7 @@ int register_options(aoclsparse_options::OptionRegistry<T> &opts)
                         greaterequal,
                         1.0,
                         p_inf,
-                        0.0);
+                        tolerance<T>());
         if(opts.Register(o))
             return 2;
     }
@@ -191,7 +199,7 @@ int register_options(aoclsparse_options::OptionRegistry<T> &opts)
                         greaterequal,
                         1.0,
                         p_inf,
-                        tol);
+                        tolerance((T)2.0));
         if(opts.Register(o))
             return 2;
     }
@@ -205,7 +213,7 @@ int register_options(aoclsparse_options::OptionRegistry<T> &opts)
                         greaterequal,
                         1.0,
                         p_inf,
-                        1e-6);
+                        tolerance<T>());
         if(opts.Register(o))
             return 2;
     }

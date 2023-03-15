@@ -51,7 +51,7 @@ namespace
          nullptr,
          nullptr,
          nullptr,
-         {}},
+         {{"CG Abs Tolerance", "1.0e-4"}, {"CG Rel Tolerance", "0"}}},
         {"SmallMatNoPrecond",
          aoclsparse_status_success,
          sample_cg_mat,
@@ -59,7 +59,7 @@ namespace
          precond_dummy<double>,
          monit_print<float>,
          monit_print<double>,
-         {}},
+         {{"CG Abs Tolerance", "1.0e-4"}, {"CG Rel Tolerance", "0"}}},
         {"SmallMatSymgsPrecond",
          aoclsparse_status_success,
          sample_cg_mat,
@@ -67,7 +67,10 @@ namespace
          precond_dummy<double>,
          monit_dummy<float>,
          monit_dummy<double>,
-         {{"CG Preconditioner", "SGS"}, {"CG Iteration Limit", "6"}}},
+         {{"CG Preconditioner", "SGS"},
+          {"CG Iteration Limit", "6"},
+          {"CG Abs Tolerance", "1.0e-4"},
+          {"CG Rel Tolerance", "0"}}},
         {"SmallMatUsrIPrecond",
          aoclsparse_status_success,
          sample_cg_mat,
@@ -75,7 +78,10 @@ namespace
          precond_identity<double>,
          monit_dummy<float>,
          monit_dummy<double>,
-         {{"CG Preconditioner", "User"}, {"CG Iteration Limit", "8"}}},
+         {{"CG Preconditioner", "User"},
+          {"CG Iteration Limit", "8"},
+          {"CG Abs Tolerance", "0"},
+          {"CG Rel Tolerance", "1.0e-5"}}},
         {"SmallMatUsrMonitStop",
          aoclsparse_status_user_stop,
          sample_cg_mat,
@@ -83,7 +89,10 @@ namespace
          nullptr,
          monit_tolstop<float>,
          monit_tolstop<double>,
-         {{"Iterative Method", "CG"}, {"CG Rel Tolerance", "0"}, {"CG Iteration Limit", "10"}}}
+         {{"Iterative Method", "CG"},
+          {"CG Abs Tolerance", "1.0e-12"},
+          {"CG Rel Tolerance", "0"},
+          {"CG Iteration Limit", "10"}}}
         // turn off the default tolerance check and use monit to check convergence which triggers stop --> acurate solution should be obtained but different return status
     };
 
@@ -165,7 +174,6 @@ namespace
         const CgDDParamType &param = GetParam();
         test_cg_positive<float>(
             param.mid, param.opts, param.precondf, param.monitf, param.status_exp);
-        // TODO FIXME float tests need to adjust tolerances (default relative is too coarse to satisfy abs tol check)
     }
 
     INSTANTIATE_TEST_SUITE_P(CgSuitePos, CgDDTestPos, testing::ValuesIn(CGTestPosValues));

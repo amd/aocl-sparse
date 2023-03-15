@@ -21,34 +21,14 @@
  *
  * ************************************************************************ */
 #include "aoclsparse.h"
+#include "common_data_utils.h"
 #include "gtest/gtest.h"
-#include "solver_data_utils.h"
 #include "aoclsparse.hpp"
 #include "aoclsparse_itsol_functions.hpp"
 
 #include <iostream>
 
 #define VERBOSE 1
-
-#define EXPECT_ARR_NEAR(n, x, y, abs_error) \
-    for(int j = 0; j < (n); j++)            \
-    EXPECT_NEAR((x[j]), (y[j]), abs_error)  \
-        << "Vectors " #x " and " #y " different at index j=" << j << "."
-
-// Helper to define precision to which we expect the results match
-template <typename T>
-T expected_precision(T scale = (T)1.0);
-template <>
-double expected_precision<double>(double scale)
-{
-    return scale * 1e-5;
-}
-
-template <>
-float expected_precision<float>(float scale)
-{
-    return scale * 5e-1f; // TODO FIXME
-}
 
 typedef struct
 {
@@ -85,13 +65,6 @@ aoclsparse_int precond_dummy(aoclsparse_int flag, aoclsparse_int n, const T *u, 
     return 1;
 }
 
-// Dummy monitoring function doing nothing
-template <typename T>
-aoclsparse_int monit_dummy(aoclsparse_int n, const T *x, const T *r, T rinfo[100], void *udata)
-{
-    return 0;
-}
-
 // Monitoring function printing progress
 template <typename T>
 aoclsparse_int monit_print(aoclsparse_int n, const T *x, const T *r, T rinfo[100], void *udata)
@@ -99,6 +72,16 @@ aoclsparse_int monit_print(aoclsparse_int n, const T *x, const T *r, T rinfo[100
     std::cout << "Iteration " << (aoclsparse_int)rinfo[30] << ": rel. tolerance "
               << rinfo[0] / rinfo[1] << ", abs. tolerance " << rinfo[0] << std::endl;
 
+    return 0;
+}
+
+// Dummy monitoring function doing nothing
+template <typename T>
+aoclsparse_int monit_dummy(aoclsparse_int n, const T *x, const T *r, T rinfo[100], void *udata)
+{
+#if(VERBOSE > 0)
+    monit_print(n, x, r, rinfo, udata);
+#endif
     return 0;
 }
 
@@ -117,8 +100,10 @@ aoclsparse_int monit_stopit2(aoclsparse_int n, const T *x, const T *r, T rinfo[1
 template <typename T>
 aoclsparse_int monit_tolstop(aoclsparse_int n, const T *x, const T *r, T rinfo[100], void *udata)
 {
-    T tol = expected_precision<T>(0.1);
-
+    T tol = expected_precision<T>((T)2.0);
+#if(VERBOSE > 0)
+    monit_print(n, x, r, rinfo, udata);
+#endif
     if(rinfo[30] > 1 && rinfo[0] < tol) // check for (premature) stop
         return 1; // Request user stop
 
@@ -184,40 +169,64 @@ void test_cg_double_call()
     T                           rinfo[100];
     void                       *udata   = nullptr;
     PrecondType<T>              precond = nullptr;
-    MonitType<T>                monit   = nullptr;
+#if(VERBOSE > 0)
+    MonitType<T> monit = monit_print<T>;
+#else
+    MonitType<T> monit = nullptr;
+#endif
 
     matrix_id mid = sample_cg_mat;
     ASSERT_EQ(create_matrix(mid, m, n, nnz, icrow, icol, aval, A, descr, VERBOSE),
               aoclsparse_status_success);
     b = {1, 1, 1, 1, 1, 1, 1, 1};
     x = {1, 1, 1, 1, 1, 1, 1, 1};
+    x_exp.resize(n);
+
+    // Set expected solution and compute b
+    for(aoclsparse_int i = 0; i < n; i++)
+        x_exp[i] = i;
+    T alpha = 1.0, beta = 0.0;
+    EXPECT_EQ(aoclsparse_mv(aoclsparse_operation_none, &alpha, A, descr, &x_exp[0], &beta, &b[0]),
+              aoclsparse_status_success);
 
     // Create the iteartive solver handle
     aoclsparse_itsol_handle handle = nullptr;
     itsol_init<T>(&handle);
 
+    // Explicitly set the tolerance to something that works for both types
+    // This magic number works because on a neighborhood of 1.e-4 the solver
+    // make the last iteration in which it takes a huge jump towards the solution
+    // redicing the norm from 1.e-3 to 1.e-10. This happens with both data types
+    // If mid problem and/or RHS changes then possibly this needs to change individually
+    // for each data type.
+    std::vector<itsol_opts> opts = {{"CG Abs Tolerance", "1.0e-4"}, {"CG Rel Tolerance", "0"}};
+    for(auto op : opts)
+    {
+        EXPECT_EQ(aoclsparse_itsol_option_set(handle, op.option.c_str(), op.value.c_str()),
+                  aoclsparse_status_success)
+            << "Options " << op.option << "could not be set to " << op.value << std::endl;
+    }
+#if(VERBOSE > 0)
+    aoclsparse_itsol_handle_prn_options(handle);
+#endif
     // Call the CG solver for the first time
-    EXPECT_EQ(itsol_solve(handle, n, A, descr, &b[0], &x[0], rinfo, precond, monit, udata),
+    EXPECT_EQ(itsol_solve(handle, n, A, descr, &b[0], &x[0], rinfo, precond, monit_dummy, udata),
               aoclsparse_status_success);
 
-    // Initialize rhs and initial point for the second call
-    T alpha = 1.0, beta = 0.0;
-    b.resize(n);
-    x.resize(n);
-    x_exp.resize(n);
+    // Check against expected solution
+    EXPECT_ARR_NEAR(n, x_exp, x, expected_precision<T>());
+
+    // In the 2nd call, test against the previous solution
     for(aoclsparse_int i = 0; i < n; i++)
     {
-        x_exp[i] = i;
-        x[i]     = 1.0;
+        x_exp[i] = x[i];
+        x[i]     = 1.;
     }
-    EXPECT_EQ(aoclsparse_mv(aoclsparse_operation_none, &alpha, A, descr, &x_exp[0], &beta, &b[0]),
-              aoclsparse_status_success);
 
     // Second call of the CG solver
     EXPECT_EQ(itsol_solve(handle, n, A, descr, &b[0], &x[0], rinfo, precond, monit, udata),
               aoclsparse_status_success);
 
-    // test expected solution
     EXPECT_ARR_NEAR(n, x_exp, x, expected_precision<T>());
 
     aoclsparse_destroy(A);
@@ -271,6 +280,10 @@ void test_cg_positive(matrix_id               mid,
                   aoclsparse_status_success)
             << "Options " << op.option << "could not be set to " << op.value << std::endl;
     }
+
+#if(VERBOSE > 0)
+    aoclsparse_itsol_handle_prn_options(handle);
+#endif
 
     // Call the CG solver
     EXPECT_EQ(itsol_solve(handle, n, A, descr, &b[0], &x[0], rinfo, precond, monit, udata),

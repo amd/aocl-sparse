@@ -23,7 +23,7 @@
 
 #include "aoclsparse.h"
 #include "gtest/gtest.h"
-#include "solver_data_utils.h"
+#include "common_data_utils.h"
 #include "aoclsparse.hpp"
 
 #include <cfloat>
@@ -39,20 +39,6 @@ typedef struct
     std::string option;
     std::string value;
 } itsol_opts;
-
-template <typename T>
-T expected_precision(T scale = (T)1.0);
-template <>
-double expected_precision<double>(double scale)
-{
-    return scale * 1e-6;
-}
-
-template <>
-float expected_precision<float>(float scale)
-{
-    return scale * 1e-4;
-}
 
 // precond template ('type') alias
 template <typename T>

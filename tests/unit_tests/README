@@ -12,7 +12,7 @@ Date: Nov 02, 2022
 ## Steps ##
  1. Make sure BUILD_UNIT_TESTS is enabled while configuring the project
  2. Create 3 categories of source files covering input-data/utils, unit test backbone and the actual google unit tests
-		1. input data/utils: contains the input data that is needed for unit testing of sparse API. The files can also have any custom interfaces needed to call the actual APIs. Refer solver_data_utils.cpp/hpp
+		1. input data/utils: contains the input data that is needed for unit testing of sparse API. The files can also have any custom interfaces needed to call the actual APIs. Refer common_data_utils.cpp/hpp
 		2. backbone: this should implement the API by consuming the input provided in (1). This will be similar to test code in tests/include or tests/examples. Refer cg_ut_functions in CG tests, gmres_ut_functions in Gmres tests.
 		3. gtest files: The test macros provided by Google Testing framework get defined here. We can use either the simple TEST() macros that have no test fixtures or TEST_F() macros which refer to a test fixture class that we are supposed to define. Gmres unit tests use this fixture and CG tests use a simple TEST() macro. Refer cg_tests.cc in CG tests and gmres_tests.cc in GMRES tests
 3. Adding CMake commands to include the unit test as part of aocl-sparse's CMakebuild system
