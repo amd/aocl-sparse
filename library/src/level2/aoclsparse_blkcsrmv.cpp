@@ -23,8 +23,8 @@
 
 #include "aoclsparse.h"
 #include "aoclsparse_blkcsrmv.hpp"
-#include <immintrin.h>
 
+#include <immintrin.h>
 #ifdef _MSC_VER_
 #include <intrin.h>
 #endif
@@ -42,21 +42,21 @@ int bits_set(uint8_t x)
 template <>
 aoclsparse_status
     aoclsparse_blkcsrmv_1x8_vectorized_avx512(const double   alpha,
-                                            aoclsparse_int m,
-                                            aoclsparse_int n,
-                                            aoclsparse_int nnz,
-                                            const uint8_t *__restrict__ masks,
-                                            const double *__restrict__ blk_csr_val,
-                                            const aoclsparse_int *__restrict__ blk_col_ind,
-                                            const aoclsparse_int *__restrict__ blk_row_ptr,
-                                            const double *__restrict__ x,
-                                            const double beta,
-                                            double *__restrict__ y,
-                                            aoclsparse_context *context)
+                                              aoclsparse_int m,
+                                              aoclsparse_int n,
+                                              aoclsparse_int nnz,
+                                              const uint8_t *__restrict__ masks,
+                                              const double *__restrict__ blk_csr_val,
+                                              const aoclsparse_int *__restrict__ blk_col_ind,
+                                              const aoclsparse_int *__restrict__ blk_row_ptr,
+                                              const double *__restrict__ x,
+                                              const double beta,
+                                              double *__restrict__ y,
+                                              aoclsparse_context *context)
 {
     const int nRowsblk = 1;
-    __m512d vec_vals_512, vec_x_512, vec_y_512, zero_msk;
-    __m256d vec_y;
+    __m512d   vec_vals_512, vec_x_512, vec_y_512, zero_msk;
+    __m256d   vec_y;
     zero_msk = _mm512_setzero_pd();
     int iVal = 0;
 
@@ -98,6 +98,19 @@ aoclsparse_status
 #else
         sum += sse_sum[0];
 #endif
+
+	// Perform alpha * A * x
+        if(alpha != static_cast<double>(1))
+        {
+            sum = alpha * sum;
+        }
+
+        // Perform (beta * y) + (alpha * A * x)
+        if(beta != static_cast<double>(0))
+        {
+            sum += beta * y[iRow];
+        }
+
         y[iRow] = sum;
     }
 
@@ -107,21 +120,21 @@ aoclsparse_status
 template <>
 aoclsparse_status
     aoclsparse_blkcsrmv_2x8_vectorized_avx512(const double   alpha,
-                                            aoclsparse_int m,
-                                            aoclsparse_int n,
-                                            aoclsparse_int nnz,
-                                            const uint8_t *__restrict__ masks,
-                                            const double *__restrict__ blk_csr_val,
-                                            const aoclsparse_int *__restrict__ blk_col_ind,
-                                            const aoclsparse_int *__restrict__ blk_row_ptr,
-                                            const double *__restrict__ x,
-                                            const double beta,
-                                            double *__restrict__ y,
-                                            aoclsparse_context *context)
+                                              aoclsparse_int m,
+                                              aoclsparse_int n,
+                                              aoclsparse_int nnz,
+                                              const uint8_t *__restrict__ masks,
+                                              const double *__restrict__ blk_csr_val,
+                                              const aoclsparse_int *__restrict__ blk_col_ind,
+                                              const aoclsparse_int *__restrict__ blk_row_ptr,
+                                              const double *__restrict__ x,
+                                              const double beta,
+                                              double *__restrict__ y,
+                                              aoclsparse_context *context)
 {
     const int nRowsblk = 2;
-    __m512d vec_vals_512[nRowsblk], vec_y_512[nRowsblk], zero_msk, vec_x_512;
-    __m256d vec_y;
+    __m512d   vec_vals_512[nRowsblk], vec_y_512[nRowsblk], zero_msk, vec_x_512;
+    __m256d   vec_y;
     zero_msk = _mm512_setzero_pd();
     int iVal = 0;
 
@@ -172,12 +185,8 @@ aoclsparse_status
 #else
         sum[0] += sse_sum[0];
 #endif
-        y[iRow] = sum[0];
 
-        //Doing horizontal sum for 2nd row (if present)
-        if(iRow + 1 == m)
-            break;
-
+        //Doing horizontal sum for 2nd row
         vec_y   = _mm256_add_pd(_mm512_extractf64x4_pd(vec_y_512[1], 0x0),
                               _mm512_extractf64x4_pd(vec_y_512[1], 0x1));
         vec_y   = _mm256_hadd_pd(vec_y, vec_y);
@@ -189,6 +198,25 @@ aoclsparse_status
 #else
         sum[1] += sse_sum[0];
 #endif
+
+        // Perform alpha * A * x
+        if(alpha != static_cast<double>(1))
+        {
+            sum[0] = alpha * sum[0];
+            sum[1] = alpha * sum[1];
+        }
+
+        // Perform (beta * y) + (alpha * A * x)
+        if(beta != static_cast<double>(0))
+        {
+            sum[0] += beta * y[iRow];
+            if( y[iRow + 1] < m) 
+		    sum[1] += beta * y[iRow + 1];
+        }
+
+        y[iRow] = sum[0];
+        if(iRow + 1 == m)
+            break;
         y[iRow + 1] = sum[1];
     }
 
@@ -198,21 +226,21 @@ aoclsparse_status
 template <>
 aoclsparse_status
     aoclsparse_blkcsrmv_4x8_vectorized_avx512(const double   alpha,
-                                            aoclsparse_int m,
-                                            aoclsparse_int n,
-                                            aoclsparse_int nnz,
-                                            const uint8_t *__restrict__ masks,
-                                            const double *__restrict__ blk_csr_val,
-                                            const aoclsparse_int *__restrict__ blk_col_ind,
-                                            const aoclsparse_int *__restrict__ blk_row_ptr,
-                                            const double *__restrict__ x,
-                                            const double beta,
-                                            double *__restrict__ y,
-                                            aoclsparse_context *context)
+                                              aoclsparse_int m,
+                                              aoclsparse_int n,
+                                              aoclsparse_int nnz,
+                                              const uint8_t *__restrict__ masks,
+                                              const double *__restrict__ blk_csr_val,
+                                              const aoclsparse_int *__restrict__ blk_col_ind,
+                                              const aoclsparse_int *__restrict__ blk_row_ptr,
+                                              const double *__restrict__ x,
+                                              const double beta,
+                                              double *__restrict__ y,
+                                              aoclsparse_context *context)
 {
     const int nRowsblk = 4;
-    __m512d vec_vals_512[nRowsblk], vec_y_512[nRowsblk], zero_msk, vec_x_512;
-    __m256d vec_y;
+    __m512d   vec_vals_512[nRowsblk], vec_y_512[nRowsblk], zero_msk, vec_x_512;
+    __m256d   vec_y;
     zero_msk = _mm512_setzero_pd();
     int iVal = 0;
 
@@ -275,12 +303,8 @@ aoclsparse_status
 #else
         sum[0] += sse_sum[0];
 #endif
-        y[iRow] = sum[0];
 
-        //Doing horizontal sum for 2nd row (if present)
-        if(iRow + 1 == m)
-            break;
-
+        //Doing horizontal sum for 2nd row
         vec_y   = _mm256_add_pd(_mm512_extractf64x4_pd(vec_y_512[1], 0x0),
                               _mm512_extractf64x4_pd(vec_y_512[1], 0x1));
         vec_y   = _mm256_hadd_pd(vec_y, vec_y);
@@ -292,12 +316,8 @@ aoclsparse_status
 #else
         sum[1] += sse_sum[0];
 #endif
-        y[iRow + 1] = sum[1];
 
-        //Doing horizontal sum for 3rd row (if present)
-        if(iRow + 2 == m)
-            break;
-
+        //Doing horizontal sum for 3rd row
         vec_y   = _mm256_add_pd(_mm512_extractf64x4_pd(vec_y_512[2], 0x0),
                               _mm512_extractf64x4_pd(vec_y_512[2], 0x1));
         vec_y   = _mm256_hadd_pd(vec_y, vec_y);
@@ -309,12 +329,8 @@ aoclsparse_status
 #else
         sum[2] += sse_sum[0];
 #endif
-        y[iRow + 2] = sum[2];
 
-        //Doing horizontal sum for 4th row (if present)
-        if(iRow + 3 == m)
-            break;
-
+        //Doing horizontal sum for 4th row
         vec_y   = _mm256_add_pd(_mm512_extractf64x4_pd(vec_y_512[3], 0x0),
                               _mm512_extractf64x4_pd(vec_y_512[3], 0x1));
         vec_y   = _mm256_hadd_pd(vec_y, vec_y);
@@ -326,30 +342,60 @@ aoclsparse_status
 #else
         sum[3] += sse_sum[0];
 #endif
+
+	// Perform alpha * A * x
+        if(alpha != static_cast<double>(1))
+        {
+            sum[0] = alpha * sum[0];
+            sum[1] = alpha * sum[1];
+            sum[2] = alpha * sum[2];
+            sum[3] = alpha * sum[3];
+        }
+
+        // Perform (beta * y) + (alpha * A * x)
+        if(beta != static_cast<double>(0))
+        {
+            sum[0] += beta * y[iRow];
+            if( y[iRow + 1] < m) 
+		    sum[1] += beta * y[iRow + 1];
+            if( y[iRow + 2] < m) 
+		    sum[2] += beta * y[iRow + 2];
+            if( y[iRow + 3] < m) 
+		    sum[3] += beta * y[iRow + 3];
+        }
+
+        y[iRow] = sum[0];
+        if(iRow + 1 == m)
+            break;
+        y[iRow + 1] = sum[1];
+        if(iRow + 2 == m)
+            break;
+        y[iRow + 2] = sum[2];
+        if(iRow + 3 == m)
+            break;
         y[iRow + 3] = sum[3];
     }
 
     return aoclsparse_status_success;
 }
 
-
 //This routine performs sparse-matrix multiplication on matrices stored in blocked CSR format.
 //Supports blocking factors of size 1x8, 2x8 and 4x8. Blocking size is chosen depending on the matrix characteristics.
 //We currently support blocked SpMV for only single threaded usecases.
 extern "C" aoclsparse_status aoclsparse_dblkcsrmv(aoclsparse_operation       trans,
-                                                const double *             alpha,
-                                                aoclsparse_int             m,
-                                                aoclsparse_int             n,
-                                                aoclsparse_int             nnz,
-                                                const uint8_t *            masks,
-                                                const double *             blk_csr_val,
-                                                const aoclsparse_int *     blk_col_ind,
-                                                const aoclsparse_int *     blk_row_ptr,
-                                                const aoclsparse_mat_descr descr,
-                                                const double *             x,
-                                                const double *             beta,
-                                                double *                   y,
-                                                aoclsparse_int             nRowsblk)
+                                                  const double *             alpha,
+                                                  aoclsparse_int             m,
+                                                  aoclsparse_int             n,
+                                                  aoclsparse_int             nnz,
+                                                  const uint8_t *            masks,
+                                                  const double *             blk_csr_val,
+                                                  const aoclsparse_int *     blk_col_ind,
+                                                  const aoclsparse_int *     blk_row_ptr,
+                                                  const aoclsparse_mat_descr descr,
+                                                  const double *             x,
+                                                  const double *             beta,
+                                                  double *                   y,
+                                                  aoclsparse_int             nRowsblk)
 {
 
     // Read the environment variables to update global variable
@@ -418,6 +464,10 @@ extern "C" aoclsparse_status aoclsparse_dblkcsrmv(aoclsparse_operation       tra
     {
         return aoclsparse_status_invalid_pointer;
     }
+    else if(masks == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
     else if(x == nullptr)
     {
         return aoclsparse_status_invalid_pointer;
@@ -426,18 +476,61 @@ extern "C" aoclsparse_status aoclsparse_dblkcsrmv(aoclsparse_operation       tra
     {
         return aoclsparse_status_invalid_pointer;
     }
+
+    //Check if the invalid blocksize is passed and return 
+    switch(nRowsblk)
+    {
+    case 1:
+    case 2:
+    case 4:
+        break;
+    default:
+	return aoclsparse_status_invalid_size;
+    }
+
     if(context.is_avx512)
     {
         if(nRowsblk == 1)
-            return aoclsparse_blkcsrmv_1x8_vectorized_avx512(
-                *alpha, m, n, nnz, masks, blk_csr_val, blk_col_ind, blk_row_ptr, x, *beta, y, &context);
+            return aoclsparse_blkcsrmv_1x8_vectorized_avx512(*alpha,
+                                                             m,
+                                                             n,
+                                                             nnz,
+                                                             masks,
+                                                             blk_csr_val,
+                                                             blk_col_ind,
+                                                             blk_row_ptr,
+                                                             x,
+                                                             *beta,
+                                                             y,
+                                                             &context);
         if(nRowsblk == 2)
-            return aoclsparse_blkcsrmv_2x8_vectorized_avx512(
-                *alpha, m, n, nnz, masks, blk_csr_val, blk_col_ind, blk_row_ptr, x, *beta, y, &context);
+            return aoclsparse_blkcsrmv_2x8_vectorized_avx512(*alpha,
+                                                             m,
+                                                             n,
+                                                             nnz,
+                                                             masks,
+                                                             blk_csr_val,
+                                                             blk_col_ind,
+                                                             blk_row_ptr,
+                                                             x,
+                                                             *beta,
+                                                             y,
+                                                             &context);
         if(nRowsblk == 4)
-            return aoclsparse_blkcsrmv_4x8_vectorized_avx512(
-                *alpha, m, n, nnz, masks, blk_csr_val, blk_col_ind, blk_row_ptr, x, *beta, y, &context);
-	else return aoclsparse_status_invalid_size;
+            return aoclsparse_blkcsrmv_4x8_vectorized_avx512(*alpha,
+                                                             m,
+                                                             n,
+                                                             nnz,
+                                                             masks,
+                                                             blk_csr_val,
+                                                             blk_col_ind,
+                                                             blk_row_ptr,
+                                                             x,
+                                                             *beta,
+                                                             y,
+                                                             &context);
+        else
+            return aoclsparse_status_invalid_size;
     }
 }
 #endif
