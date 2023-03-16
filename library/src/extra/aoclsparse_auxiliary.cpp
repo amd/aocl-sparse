@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020-2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,8 +31,12 @@
 #include <cstring>
 #include <string>
 
-#define VERSION_MAKE_STR(x) _VERSION_MAKE_STR(x)
-#define _VERSION_MAKE_STR(x) #x
+#define STRINGIFY(x) _STRINGIFY(x)
+#define _STRINGIFY(x) #x
+
+static const char aoclsparse_version[]
+    = "AOCL-Sparse " STRINGIFY(AOCLSPARSE_VERSION_MAJOR) "." STRINGIFY(AOCLSPARSE_VERSION_MINOR) "." STRINGIFY(
+        AOCLSPARSE_VERSION_PATCH) " Build " STRINGIFY(AOCL_SPARSE_BUILD_DATE);
 
 #ifdef __cplusplus
 extern "C" {
@@ -41,15 +45,9 @@ extern "C" {
 /********************************************************************************
  * \brief Get aoclsparse version
  *******************************************************************************/
-char *aoclsparse_get_version()
+const char *aoclsparse_get_version()
 {
-    std::string build_date(VERSION_MAKE_STR(AOCL_SPARSE_BUILD_DATE));
-    std::string ver = "AOCL-Sparse " + std::to_string(AOCLSPARSE_VERSION_MAJOR) + "."
-                      + std::to_string(AOCLSPARSE_VERSION_MINOR) + "."
-                      + std::to_string(AOCLSPARSE_VERSION_PATCH) + " Build " + build_date;
-
-    char *version = strcpy(new char[ver.length() + 1], ver.c_str());
-    return version;
+    return aoclsparse_version;
 }
 
 /********************************************************************************
