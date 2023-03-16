@@ -41,19 +41,6 @@ void clear_local_resource(T *x)
         x = NULL;
     }
 }
-// Define custom log printer
-void printer(double rinfo[100], bool header)
-{
-    std::ios_base::fmtflags fmt = std::cout.flags();
-    fmt |= std::cout.scientific | std::cout.right;
-    if(header)
-        std::cout << std::setw(5) << std::right << " iter"
-                  << " " << std::setw(16) << std::right << "optim"
-                  << "  " << std::setw(3) << std::endl;
-    std::cout << std::setw(5) << std::right << (int)rinfo[30] << " " << std::setw(16) << std::right
-              << std::scientific << rinfo[0] << "  " << std::endl;
-    std::resetiosflags(fmt);
-}
 
 double calculate_l2Norm_solvers(const double *xSol, const double *x, aoclsparse_int n)
 {
@@ -75,7 +62,7 @@ int main()
     std::vector<aoclsparse_int> csr_col_ind;
     std::vector<double>         csr_val;
 
-    aoclsparse_int    m, n, nnz;
+    int    m, n, nnz;
     aoclsparse_status exit_status = aoclsparse_status_success;
 
     std::string filename = "cage4.mtx";
@@ -93,13 +80,13 @@ int main()
                     0.05, 0.14, 0.11, 0.55, 0.25, 0.08, 0.08, 0.09, 0.08, 0.17});
 
     // create matrix descriptor
-    aoclsparse_matrix     mat;
     aoclsparse_matrix     A;
     aoclsparse_index_base base = aoclsparse_index_base_zero;
     aoclsparse_mat_descr  descr_a;
     aoclsparse_operation  trans = aoclsparse_operation_none;
     aoclsparse_create_dcsr(
-        A, base, n, n, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data());
+        A, base, (aoclsparse_int)n, (aoclsparse_int)n, (aoclsparse_int)nnz, 
+        csr_row_ptr.data(), csr_col_ind.data(), csr_val.data());
     aoclsparse_create_mat_descr(&descr_a);
     aoclsparse_set_mat_type(descr_a, aoclsparse_matrix_type_symmetric);
     aoclsparse_set_mat_fill_mode(descr_a, aoclsparse_fill_mode_lower);
@@ -113,7 +100,7 @@ int main()
     double        *b            = NULL;
     double         alpha = 1.0, beta = 0.;
     double         norm     = 0.0;
-    aoclsparse_int rs_iters = (int)20;
+    int rs_iters = 7;
     char           rs_iters_string[16];
 
     expected_sol = (double *)malloc(sizeof(double) * n);
@@ -160,7 +147,7 @@ int main()
         printf("Warning gmres iteration limit option could not be set, exit status = %d\n",
                exit_status);
 
-    rs_iters = (int)20;
+    rs_iters = 20;
     sprintf(rs_iters_string, "%d", rs_iters);
     exit_status = aoclsparse_itsol_option_set(handle, "gmres restart iterations", rs_iters_string);
     if(exit_status != aoclsparse_status_success)
@@ -178,13 +165,8 @@ int main()
     double                     *io1 = nullptr;
     double                     *io2 = nullptr;
     double                      rinfo[100];
-    double                      tol               = PREMATURE_STOP_TOLERANCE;
-    bool                        precond_done_flag = false;
-    std::vector<aoclsparse_int> diag_offset(n);
-    std::vector<aoclsparse_int> nnz_entries(n, 0);
-    std::vector<double>         precond_csr_val;
-    precond_csr_val  = csr_val;
-    double *pcsr_val = precond_csr_val.data();
+    double                      tol               = PREMATURE_STOP_TOLERANCE;     
+    double *pcsr_val = nullptr;
 
     while(ircomm != aoclsparse_rci_stop)
     {
@@ -213,6 +195,7 @@ int main()
                                      NULL,
                                      io2, //x = ?, io1 = z+j*n,
                                      (const double *)io1); //rhs, io2 = v+j*n
+            break;
 
         case aoclsparse_rci_stopping_criterion:
             if(rinfo[0] < tol)

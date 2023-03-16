@@ -52,34 +52,8 @@ inline void aoclsparse_init(
             for(size_t j = 0; j < N; ++j)
                 A[i + j * lda + i_batch * stride] = random_generator_normal<T>();
 }
-// Initialize vector with a specific value
-template <typename T>
-inline void aoclsparse_set_vector(T *v, T value, aoclsparse_int M)
-{
-    for(aoclsparse_int i = 0; i < M; ++i)
-    {
-        v[i] = value;
-    }
-}
-// Copy vector to another vector
-template <typename T>
-inline void aoclsparse_copy_vector(T *v, T *w, aoclsparse_int M)
-{
-    for(aoclsparse_int i = 0; i < M; ++i)
-    {
-        w[i] = v[i];
-    }
-}
 
-// Initialize vector with a random value
-template <typename T>
-inline void aoclsparse_random_vector(T *v, aoclsparse_int M)
-{
-    for(aoclsparse_int i = 0; i < M; ++i)
-    {
-        v[i] = random_generator_normal<T>();
-    }
-}
+
 // Initializes sparse index vector with nnz entries ranging from start to end
 inline void
     aoclsparse_init_index(std::vector<aoclsparse_int> &x, size_t nnz, size_t start, size_t end)

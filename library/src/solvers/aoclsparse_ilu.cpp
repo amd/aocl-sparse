@@ -41,7 +41,10 @@ extern "C" aoclsparse_status aoclsparse_silu_smoother(aoclsparse_operation      
     {
         return aoclsparse_status_invalid_pointer;
     }
-
+    if(A == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
     // Check index base
     if(descr->base != aoclsparse_index_base_zero)
     {
@@ -55,18 +58,22 @@ extern "C" aoclsparse_status aoclsparse_silu_smoother(aoclsparse_operation      
         return aoclsparse_status_not_implemented;
     }
     // Check sizes
-    if((A->m <= 0) || (A->n <= 0))
+    if((A->m < 0) || (A->n < 0))
     {
         return aoclsparse_status_invalid_size;
     }
-
+    // Quick return if possible
+    if(A->m == 0 || A->n == 0 || A->nnz == 0)
+    {
+        return aoclsparse_status_success;
+    }
     // Check pointer arguments
     if((x == nullptr) || (b == nullptr))
     {
         return aoclsparse_status_invalid_pointer;
     }
 
-    return aoclsparse_ilu_template<float>(op, A, descr, precond_csr_val, approx_inv_diag, x, b);
+    return aoclsparse_ilu_template<float>(A, precond_csr_val, x, b);
 }
 
 extern "C" aoclsparse_status aoclsparse_dilu_smoother(aoclsparse_operation       op,
@@ -81,6 +88,10 @@ extern "C" aoclsparse_status aoclsparse_dilu_smoother(aoclsparse_operation      
     {
         return aoclsparse_status_invalid_pointer;
     }
+    if(A == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
 
     // Check index base
     if(descr->base != aoclsparse_index_base_zero)
@@ -95,16 +106,20 @@ extern "C" aoclsparse_status aoclsparse_dilu_smoother(aoclsparse_operation      
         return aoclsparse_status_not_implemented;
     }
     // Check sizes
-    if((A->m <= 0) || (A->n <= 0))
+    if((A->m < 0) || (A->n < 0))
     {
         return aoclsparse_status_invalid_size;
     }
-
+    // Quick return if possible
+    if(A->m == 0 || A->n == 0 || A->nnz == 0)
+    {
+        return aoclsparse_status_success;
+    }
     // Check pointer arguments
     if((x == nullptr) || (b == nullptr))
     {
         return aoclsparse_status_invalid_pointer;
     }
 
-    return aoclsparse_ilu_template<double>(op, A, descr, precond_csr_val, approx_inv_diag, x, b);
+    return aoclsparse_ilu_template<double>(A, precond_csr_val, x, b);
 }

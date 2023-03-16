@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022-2023 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,11 +34,8 @@
 #include <iostream>
 
 template <typename T>
-aoclsparse_status aoclsparse_ilu_template(aoclsparse_operation       op,
-                                          aoclsparse_matrix          A,
-                                          const aoclsparse_mat_descr descr,
+aoclsparse_status aoclsparse_ilu_template(aoclsparse_matrix          A,
                                           T                        **precond_csr_val,
-                                          const T                   *approx_inv_diag,
                                           T                         *x,
                                           const T                   *b)
 {
@@ -57,9 +54,7 @@ aoclsparse_status aoclsparse_ilu_template(aoclsparse_operation       op,
     {
     case 0:
         //Invoke ILU0 API for CSR storage format
-        aoclsparse_ilu0_template<T>(A->m,
-                                    A->n,
-                                    A->nnz,
+        aoclsparse_ilu0_template<T>(A->n,
                                     A->ilu_info.lu_diag_ptr,
                                     A->ilu_info.col_idx_mapper,
                                     &(A->ilu_info.ilu_factorized),
@@ -68,7 +63,6 @@ aoclsparse_status aoclsparse_ilu_template(aoclsparse_operation       op,
                                     A->csr_mat.csr_row_ptr,
                                     A->csr_mat.csr_col_ptr,
                                     precond_csr_val,
-                                    approx_inv_diag,
                                     x,
                                     b);
         break;

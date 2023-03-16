@@ -231,6 +231,31 @@ foreach(FUNCTION "csr2m")
   endforeach(PREC)
 endforeach(FUNCTION)
 
+# matrix sizes for ILU tests
+set(ILU_SQUARE_MATRIX_SIZES 
+  "1 1 1"
+  "4 4 6"
+  "47 47 110"    
+  "47 47 513"    
+  "100 100 500"
+  "103 103 499"
+  "1000 1000 2000"
+)
+foreach(FUNCTION "ilu")
+  foreach(PREC "d" "s")
+    foreach(MATSIZE ${ILU_SQUARE_MATRIX_SIZES})
+      # split MATSIZE string to individual tokens
+      string(REGEX MATCHALL "[0-9]+" MATSIZE_LIST ${MATSIZE})
+      list(GET MATSIZE_LIST 0 SIZEM)
+      list(GET MATSIZE_LIST 1 SIZEN)
+      list(GET MATSIZE_LIST 2 SIZENNZ)
+
+      add_test(FuncTest.${FUNCTION}-${PREC}-${SIZEM}-${SIZEM}x${SIZEN}x${SIZENNZ} ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=${SIZEM} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --verify=1)
+
+    endforeach(MATSIZE)
+  endforeach(PREC)
+endforeach(FUNCTION)     
+
 # Add extra function on matrix sizes
 # TODO adjust these as needed
 # excersice nonstandard multipliers alpha, beta

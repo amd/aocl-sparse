@@ -59,10 +59,29 @@ float calculate_l2Norm_solvers(const float *xSol, const float *x, aoclsparse_int
 
 aoclsparse_int monit(aoclsparse_int n, const float *x, const float *r, float *rinfo, void *udata)
 {
+    int                     it  = (int)rinfo[30];    
     float tol = PREMATURE_STOP_TOLERANCE;
+    std::ios_base::fmtflags fmt = std::cout.flags();
+    fmt |= std::ios_base::scientific | std::ios_base::right | std::ios_base::showpos;
+
+    if(!(it % 10))
+    {
+        std::cout << std::setw(5) << std::right << " iter"
+                  << " " << std::setw(16) << std::right << "optim";
+        for(int i = 0; i < n; i++)
+            std::cout << std::setw(8) << std::right << "x[" << i << "]";
+        std::cout << std::endl;
+    }
+    std::cout << std::setw(5) << std::right << (int)rinfo[30] << " " << std::setw(16) << std::right
+              << std::scientific << std::setprecision(8) << rinfo[0];
+    std::cout << std::setprecision(2) << std::showpos;
+    for(int i = 0; i < n; i++)
+        std::cout << " " << x[i];
+    std::cout << std::endl;
+    std::cout << std::resetiosflags(fmt);
 
     if(rinfo[0] < tol) // check for premature stop
-    {
+    {   
         return 1; // request to interrupt
     }
     return 0;
@@ -75,7 +94,7 @@ int main()
     std::vector<aoclsparse_int> csr_col_ind;
     std::vector<float>          csr_val;
 
-    aoclsparse_int    m, n, nnz;
+    int    m, n, nnz;
     aoclsparse_status exit_status = aoclsparse_status_success;
 
     std::string filename = "cage4.mtx";
@@ -98,7 +117,8 @@ int main()
     aoclsparse_mat_descr  descr_a;
     aoclsparse_operation  trans = aoclsparse_operation_none;
     aoclsparse_create_scsr(
-        A, base, n, n, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data());
+        A, base, (aoclsparse_int)n, (aoclsparse_int)n, (aoclsparse_int)nnz, 
+        csr_row_ptr.data(), csr_col_ind.data(), csr_val.data());
     aoclsparse_create_mat_descr(&descr_a);
     aoclsparse_set_mat_type(descr_a, aoclsparse_matrix_type_symmetric);
     aoclsparse_set_mat_fill_mode(descr_a, aoclsparse_fill_mode_lower);
@@ -112,7 +132,7 @@ int main()
     float          norm         = 0.0;
     float          rinfo[100];
     float          alpha = 1.0, beta = 0.;
-    aoclsparse_int rs_iters = (int)20;
+    int rs_iters = 7;
     char           rs_iters_string[16];
 
     expected_sol = (float *)malloc(sizeof(float) * n);

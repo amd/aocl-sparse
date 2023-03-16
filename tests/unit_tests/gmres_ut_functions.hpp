@@ -143,7 +143,6 @@ void test_gmres(matrix_id               mid,
                 MonitType<T>            monit      = nullptr,
                 aoclsparse_status       status_exp = aoclsparse_status_success)
 {
-    aoclsparse_status           status = aoclsparse_status_success;
     std::vector<aoclsparse_int> csr_row_ptr;
     std::vector<aoclsparse_int> csr_col_ind;
     std::vector<T>              csr_val;

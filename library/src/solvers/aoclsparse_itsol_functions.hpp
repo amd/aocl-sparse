@@ -862,10 +862,10 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
                                              T                        *x,
                                              T                         rinfo[100])
 {
-    aoclsparse_status exit_status = aoclsparse_status_success, status;
+    aoclsparse_status exit_status = aoclsparse_status_success;
     bool is_residnorm_below_abs_tolerance, is_rhsnorm_below_rel_tolerance, is_max_iters_reached;
     bool is_restart_cycled_ended, is_value_zero;
-    T   *v = NULL, *h = NULL, *g = NULL, *c = NULL, *s = NULL, *z = NULL, *b = NULL;
+    T   *v = NULL, *h = NULL, *g = NULL, *c = NULL, *s = NULL, *z = NULL;
     aoclsparse_int i = 0, n = 0, m = 0, j = 0, k = 0;
     gmres_data<T> *gmres;
     T              hv = 0.0, rr = 0.0, hh = 0.0, r1 = 0.0, r2 = 0.0, g0 = 0.0;
@@ -880,7 +880,6 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
     g     = gmres->g;
     c     = gmres->c;
     s     = gmres->s;
-    b     = itsol->b;
 
     // Check for user's request to stop (but ignore on the first input)
     if(gmres->task != task_gmres_start && *ircomm == aoclsparse_rci_interrupt)
@@ -1398,21 +1397,19 @@ aoclsparse_status aoclsparse_gmres_solve(
     aoclsparse_int monit(aoclsparse_int n, const T *x, const T *r, T rinfo[100], void *udata),
     void          *udata)
 {
-    aoclsparse_int           nnz, flag;
+    aoclsparse_int           flag;
     aoclsparse_int           n      = itsol->n;
     aoclsparse_itsol_rci_job ircomm = aoclsparse_rci_start;
     T                       *io1    = nullptr;
     T                       *io2    = nullptr;
-    T                        alpha = 1.0, beta = 0., timing = 0.;
-    T                       *precond_data = NULL, *approx_inv_diag = NULL;
-    aoclsparse_operation     trans       = aoclsparse_operation_none;
+    T                        alpha = 1.0, beta = 0.;
+    T                       *precond_data = NULL;
     aoclsparse_status        exit_status = aoclsparse_status_success;
     aoclsparse_status        status;
 
     if(mat->m != n || mat->n != n)
         return aoclsparse_status_invalid_size;
 
-    nnz = mat->nnz;
     if(itsol->gmres->precond == 1 && precond == nullptr)
     {
         //user requested his/her own precond but valid function pointer not provided
@@ -1457,11 +1454,8 @@ aoclsparse_status aoclsparse_gmres_solve(
             case 2:
                 //Run ILU Preconditioner only once in the beginning
                 //Run Triangular Solve using ILU0 factorization
-                aoclsparse_ilu_template(trans,
-                                        mat, //precond martix M
-                                        descr,
+                aoclsparse_ilu_template(mat, //precond martix M
                                         &precond_data,
-                                        (const T *)approx_inv_diag,
                                         io2, //x = ?, io1 = z+j*n,
                                         (const T *)io1); //rhs, io2 = v+j*n
                 break;

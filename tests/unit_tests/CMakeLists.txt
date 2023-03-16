@@ -53,26 +53,16 @@ set(GTEST_EXECUTABLES
     blkcsrmv_tests
     csrmm_tests
     csr2m_tests
+    hint_tests
+    ilu_tests
 )
 foreach(TNAME ${GTEST_EXECUTABLES})
     add_executable(${TNAME} ${TNAME}.cpp ${utils_source})
     target_link_libraries(${TNAME} aoclsparse GTest::gtest_main)
 endforeach()
 
-#add_executable(gmres_utests gmres_tests.cpp ${utils_source})
-#target_link_libraries(gmres_utests aoclsparse GTest::gtest_main)
-
-#add_executable(cg_utests cg_tests.cpp ${utils_source})
-#target_link_libraries(cg_utests aoclsparse GTest::gtest_main)
-
-#add_executable(csrmv_tests csrmv_tests.cpp ${utils_source})
-#target_link_libraries(csrmv_tests aoclsparse GTest::gtest_main)
 
 include(GoogleTest)
 foreach(TNAME ${GTEST_EXECUTABLES})
   gtest_discover_tests(${TNAME})
 endforeach()
-#gtest_discover_tests(gmres_utests)
-#gtest_discover_tests(cg_utests)
-# gtest_discover_tests(gmres_utests PROPERTIES ENVIRONMENT "ASAN_OPTIONS=\"log_path=ASANlogger-gmres_utests\"")
-# gtest_discover_tests(cg_utests PROPERTIES ENVIRONMENT "ASAN_OPTIONS=\"log_path=ASANlogger-cg_utests\"")

@@ -34,8 +34,7 @@
 #endif
 
 template <typename T>
-aoclsparse_status aoclsparse_ilu0_factorization(aoclsparse_int m,
-                                                aoclsparse_int n,
+aoclsparse_status aoclsparse_ilu0_factorization(aoclsparse_int n,
                                                 aoclsparse_int *__restrict__ lu_diag_ptr,
                                                 aoclsparse_int *__restrict__ col_idx_mapper,
                                                 T *__restrict__ csr_val,
@@ -43,11 +42,10 @@ aoclsparse_status aoclsparse_ilu0_factorization(aoclsparse_int m,
                                                 const aoclsparse_int *__restrict__ csr_col_ind)
 {
     aoclsparse_status ret   = aoclsparse_status_success;
-    aoclsparse_int    nrows = m;
     aoclsparse_int    i, j, jj, j1, j2, k, mn;
     bool              is_value_zero = false;
 
-    for(i = 0; i < nrows; i++)
+    for(i = 0; i < n; i++)
     {
         j1 = csr_row_ptr[i];
         j2 = csr_row_ptr[i + 1];
@@ -111,8 +109,7 @@ aoclsparse_status aoclsparse_ilu0_factorization(aoclsparse_int m,
 }
 
 template <typename T>
-aoclsparse_status aoclsparse_ilu_solve(aoclsparse_int m,
-                                       aoclsparse_int n,
+aoclsparse_status aoclsparse_ilu_solve(aoclsparse_int n,
                                        aoclsparse_int *__restrict__ lu_diag_ptr,
                                        T *__restrict__ csr_val,
                                        const aoclsparse_int *__restrict__ row_offsets,
@@ -126,7 +123,7 @@ aoclsparse_status aoclsparse_ilu_solve(aoclsparse_int m,
 
     //Forward Solve
     //Solve L . y = b
-    for(i = 0; i < m; i++)
+    for(i = 0; i < n; i++)
     {
         T sum = bv[i];
         for(k = row_offsets[i]; k < lu_diag_ptr[i]; k++)
@@ -141,7 +138,7 @@ aoclsparse_status aoclsparse_ilu_solve(aoclsparse_int m,
 
     //Backward Solve
     // Solve: U . x = y
-    for(i = m - 1; i >= 0; i--)
+    for(i = n - 1; i >= 0; i--)
     {
         aoclsparse_int diag_idx = lu_diag_ptr[i];
         T              diag_elem;
@@ -163,9 +160,7 @@ aoclsparse_status aoclsparse_ilu_solve(aoclsparse_int m,
 }
 
 template <typename T>
-aoclsparse_status aoclsparse_ilu0_template(aoclsparse_int             m,
-                                           aoclsparse_int             n,
-                                           aoclsparse_int             nnz,
+aoclsparse_status aoclsparse_ilu0_template(aoclsparse_int             n,
                                            aoclsparse_int            *lu_diag_ptr,
                                            aoclsparse_int            *col_idx_mapper,
                                            bool                      *is_ilu0_factorized,
@@ -174,7 +169,6 @@ aoclsparse_status aoclsparse_ilu0_template(aoclsparse_int             m,
                                            const aoclsparse_int      *csr_row_ptr,
                                            const aoclsparse_int      *csr_col_ind,
                                            T                        **precond_csr_val,
-                                           const T                   *approx_inv_diag,
                                            T                         *x,
                                            const T                   *b)
 {
@@ -186,7 +180,7 @@ aoclsparse_status aoclsparse_ilu0_template(aoclsparse_int             m,
         {
         case aoclsparse_ilu0:
             ret = aoclsparse_ilu0_factorization<T>(
-                m, n, lu_diag_ptr, col_idx_mapper, csr_val, csr_row_ptr, csr_col_ind);
+                n, lu_diag_ptr, col_idx_mapper, csr_val, csr_row_ptr, csr_col_ind);
             *is_ilu0_factorized = true;
             break;
         default:
@@ -196,7 +190,10 @@ aoclsparse_status aoclsparse_ilu0_template(aoclsparse_int             m,
         *precond_csr_val = csr_val;
     }
 
-    aoclsparse_ilu_solve<T>(m, n, lu_diag_ptr, csr_val, csr_row_ptr, csr_col_ind, x, b);
+    if(ret == aoclsparse_status_success)
+    {
+        aoclsparse_ilu_solve<T>(n, lu_diag_ptr, csr_val, csr_row_ptr, csr_col_ind, x, b);
+    }    
 
     return ret;
 }
