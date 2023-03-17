@@ -1279,7 +1279,7 @@ aoclsparse_status aoclsparse_cg_solve(
     T                       *u      = nullptr;
     T                       *v      = nullptr;
     T                        alpha = 1.0, beta = 0., timing = 0.;
-    T                       *y;
+    T                       *y           = nullptr;
     aoclsparse_operation     trans       = aoclsparse_operation_none;
     aoclsparse_status        exit_status = aoclsparse_status_success;
     aoclsparse_status        status;
@@ -1373,6 +1373,7 @@ aoclsparse_status aoclsparse_cg_solve(
             break;
         }
     }
+    free(y);
 
     return exit_status;
 }
