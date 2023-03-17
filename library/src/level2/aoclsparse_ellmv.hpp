@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2022 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2023 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -55,7 +55,6 @@ aoclsparse_status aoclsparse_ellmv_template(const float           alpha,
         {
             aoclsparse_int idx = i * ell_width + p;
             aoclsparse_int col = ell_col_ind[idx];
-
             if(col >= 0)
             {
                 result += (ell_val[idx] * x[col]);
@@ -117,7 +116,7 @@ aoclsparse_status aoclsparse_ellmv_template_avx512(const double          alpha,
         //Loop over in multiple of 4
         for(aoclsparse_int p = 0; p < k_iter; ++p)
         {
-            aoclsparse_int col = *pell_col_ind;
+            aoclsparse_int col = *(pell_col_ind+7);;
             // Multiply only the valid non-zeroes, column index = -1 for padded
             // zeroes
             if(col >= 0)
@@ -140,6 +139,7 @@ aoclsparse_status aoclsparse_ellmv_template_avx512(const double          alpha,
             }
             else
             {
+                k_rem = 8;
                 break;
             }
         }
@@ -238,7 +238,7 @@ aoclsparse_status aoclsparse_ellmv_template_avx2(const double          alpha,
         // Loop over in multiple of 4
         for(aoclsparse_int p = 0; p < k_iter; ++p)
         {
-            aoclsparse_int col = *pell_col_ind;
+            aoclsparse_int col = *(pell_col_ind+3);
             // Multiply only the valid non-zeroes, column index = -1 for padded
             // zeroes
             if(col >= 0)
@@ -247,9 +247,9 @@ aoclsparse_status aoclsparse_ellmv_template_avx2(const double          alpha,
                 vec_vals = _mm256_loadu_pd((double const *)pell_val);
 
                 vec_x = _mm256_set_pd(x[*(pell_col_ind + 3)],
-                                      x[*(pell_col_ind + 2)],
-                                      x[*(pell_col_ind + 1)],
-                                      x[*(pell_col_ind)]);
+                                        x[*(pell_col_ind + 2)],
+                                        x[*(pell_col_ind + 1)],
+                                        x[*(pell_col_ind)]);
 
                 vec_y = _mm256_fmadd_pd(vec_vals, vec_x, vec_y);
 
@@ -258,6 +258,7 @@ aoclsparse_status aoclsparse_ellmv_template_avx2(const double          alpha,
             }
             else
             {
+                k_rem = 4;
                 break;
             }
         }
@@ -293,7 +294,6 @@ aoclsparse_status aoclsparse_ellmv_template_avx2(const double          alpha,
         for(aoclsparse_int p = 0; p < k_rem; ++p)
         {
             aoclsparse_int col = *pell_col_ind;
-
             if(col >= 0)
             {
                 result += (*pell_val++ * x[*pell_col_ind++]);

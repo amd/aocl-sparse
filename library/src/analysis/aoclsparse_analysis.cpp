@@ -179,6 +179,11 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
         // get the ell_width
         aoclsparse_csr2ellthyb_width(A->m, A->nnz, A->csr_mat.csr_row_ptr, &ell_m, &ell_width);
 
+        if (ell_width == 0){
+            A->mat_type = aoclsparse_csr_mat;
+            return aoclsparse_status_success;
+        }
+
         ell_col_ind = (aoclsparse_int *)malloc(sizeof(aoclsparse_int) * ell_width * A->m);
         if(NULL == ell_col_ind)
         {
