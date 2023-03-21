@@ -50,7 +50,7 @@ set(GTEST_EXECUTABLES
     cg_tests
     csrmv_tests
     ellmv_tests
-    hint_tests
+    blkcsrmv_tests
 )
 foreach(TNAME ${GTEST_EXECUTABLES})
     add_executable(${TNAME} ${TNAME}.cpp ${utils_source})

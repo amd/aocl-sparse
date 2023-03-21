@@ -64,7 +64,7 @@ void testing_blkcsrmv(const Arguments &arg)
     case 4:
         break;
     default:
-        std::cout << "Invalid block size! Setting it to default size 4.\n";
+        std::cout << "Block size "<< nRowsblk <<" is currently not supported, setting it to the default size 4.\n";
         nRowsblk = 4;
     }
 
@@ -94,8 +94,8 @@ void testing_blkcsrmv(const Arguments &arg)
     const aoclsparse_int blk_width = 8;
 
     // Allocate memory for vectors
-    std::vector<T> x(N + (blk_width - 1)); //Reserving extra memory to handle corner cases like out of bound reads
-    std::vector<T> y(M + (nRowsblk - 1)); //Reserving extra memory to handle corner cases like out of bound reads
+    std::vector<T> x(N);
+    std::vector<T> y(M);
     std::vector<T> y_gold(M);
 
     // Initialize data
@@ -109,12 +109,12 @@ void testing_blkcsrmv(const Arguments &arg)
     std::vector<uint8_t>        masks;
     blk_row_ptr.reserve(csr_row_ptr.size());
     blk_col_ind.reserve(csr_col_ind.size());
-    blk_csr_val.reserve(csr_val.size());
+    //Reserving extra memory to handle out of bound reads in the value array
+    //Useful only when (M % nRowsblk != 0)
+    blk_csr_val.reserve(csr_val.size() + (nRowsblk * blk_width)); 
 
-    //To be addressed:
-    //The accurate allocation should be total_num_blks*nRowsblk.
-    //Since we do not know at this point, we will have to allocate assuming worst case of 1 nnz/block.
-    //This has to be corrected during analysis framework.
+    //Assuming worst case of 1 nnz/block.
+    //Analysis framework will reserve (total_num_blocks * nRowsblk).
     masks.reserve(nnz * nRowsblk);
 
     //Function to convert csr to blkcsr 
@@ -197,6 +197,8 @@ void testing_blkcsrmv(const Arguments &arg)
               << cpu_gbyte << std::setw(12) << std::scientific << cpu_time_used * 1e3
               << std::setw(12) << number_hot_calls << std::setw(12)
               << (arg.unit_check ? "yes" : "no") << std::endl;
+
+    aoclsparse_destroy(A);
 }
 
 #endif // TESTING_BLKCSR_HPP
