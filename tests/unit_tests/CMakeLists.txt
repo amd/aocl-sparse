@@ -35,12 +35,12 @@ if(NOT googletest_POPULATED)
   FetchContent_Populate(googletest)
   # Avoid installing gtest libs/headers by default
   add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR} EXCLUDE_FROM_ALL)
-endif() 
+endif()
 
 set(utils_source common_data_utils.cpp ../common/aoclsparse_template_specialization.cpp)
 include_directories(${CMAKE_SOURCE_DIR}/library/src/include
                     ${CMAKE_SOURCE_DIR}/library/src/solvers
-                    ${CMAKE_SOURCE_DIR}/library/src/analysis 
+                    ${CMAKE_SOURCE_DIR}/library/src/analysis
                     ${CMAKE_SOURCE_DIR}/library/src/level2
                     ${CMAKE_SOURCE_DIR}/library/src/extra
                     ${CMAKE_SOURCE_DIR}/tests/include)
@@ -51,6 +51,8 @@ set(GTEST_EXECUTABLES
     csrmv_tests
     ellmv_tests
     blkcsrmv_tests
+    csrmm_tests
+    csr2m_tests
 )
 foreach(TNAME ${GTEST_EXECUTABLES})
     add_executable(${TNAME} ${TNAME}.cpp ${utils_source})

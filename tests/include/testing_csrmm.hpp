@@ -205,34 +205,37 @@ void testing_csrmm(const Arguments &arg)
         CHECK_AOCLSPARSE_ERROR(aoclsparse_csrmm(
             transA, &alpha, csr, descr, order, B.data(), B_n, ldb, &beta, C.data(), ldc));
         // Reference SPMM CSR implementation
-        if(order == aoclsparse_order_column)
-            aoclsparse_csrmm_col_major_ref<T>(&alpha,
-                                              csr_val.data(),
-                                              csr_col_ind.data(),
-                                              csr_row_ptr.data(),
-                                              A_m,
-                                              A_n,
-                                              B.data(),
-                                              B_n,
-                                              ldb,
-                                              &beta,
-                                              C_gold.data(),
-                                              ldc);
-        else
-            aoclsparse_csrmm_row_major_ref<T>(&alpha,
-                                              csr_val.data(),
-                                              csr_col_ind.data(),
-                                              csr_row_ptr.data(),
-                                              A_m,
-                                              A_n,
-                                              B.data(),
-                                              B_n,
-                                              ldb,
-                                              &beta,
-                                              C_gold.data(),
-                                              ldc);
+	if(order == aoclsparse_order_column){
+	    aoclsparse_csrmm_col_major_ref<T>(&alpha,
+		    csr_val.data(),
+		    csr_col_ind.data(),
+		    csr_row_ptr.data(),
+		    A_m,
+		    A_n,
+		    B.data(),
+		    B_n,
+		    ldb,
+		    &beta,
+		    C_gold.data(),
+		    ldc);
+	    near_check_general<T>(nrowC, ncolC, ldc, C_gold.data(), C.data());
+	}
+	else{
+	    aoclsparse_csrmm_row_major_ref<T>(&alpha,
+		    csr_val.data(),
+		    csr_col_ind.data(),
+		    csr_row_ptr.data(),
+		    A_m,
+		    A_n,
+		    B.data(),
+		    B_n,
+		    ldb,
+		    &beta,
+		    C_gold.data(),
+		    ldc);
 
-        near_check_general<T>(nrowC, ncolC, ldc, C_gold.data(), C.data());
+	    near_check_general<T>(ncolC, nrowC, ldc, C_gold.data(), C.data());
+	}
     }
     number_hot_calls = arg.iters;
 
