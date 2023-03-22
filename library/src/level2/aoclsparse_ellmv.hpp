@@ -105,6 +105,7 @@ aoclsparse_status aoclsparse_ellmv_template_avx512(const double          alpha,
     {
         double         result = 0.0;
         aoclsparse_int idx    = i * ell_width;
+        k_rem  = ell_width % 8;
 
         const aoclsparse_int *pell_col_ind;
         const double         *pell_val;
