@@ -25,6 +25,7 @@ cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 project(aoclsparse-lcov-coverage)
 
 find_program(LCOV NAMES lcov HINTS "/usr" PATH_SUFFIXES "bin" DOC "lcov - a graphical GCOV front-end" REQUIRED)
+find_program(GCOV NAMES $ENV{GCOV_NAME} gcov HINTS "/usr" PATH_SUFFIXES "bin" DOC "GNU gcov binary" REQUIRED)
 find_program(GENHTML NAMES genhtml HINTS "/usr" PATH_SUFFIXES "bin" DOC "genhtml - Generate HTML view from LCOV coverage data files" REQUIRED)
 
 message( STATUS "Code Coverage Module (LCOV)" )
@@ -47,8 +48,8 @@ add_custom_target( coverage-run
 
 add_custom_target( coverage-report
   COMMAND ${CMAKE_COMMAND} -E make_directory coverage/
-  COMMAND ${LCOV} -d . -c -o coverage/coverage.info
-  COMMAND ${LCOV} --remove   coverage/coverage.info -o coverage/coverage_filtered.info '/usr/*' '/*/_deps/*'
+  COMMAND ${LCOV} -d . -c -o coverage/coverage.info --gcov-tool ${GCOV}
+  COMMAND ${LCOV} --remove   coverage/coverage.info --gcov-tool ${GCOV} -o coverage/coverage_filtered.info '/usr/*' '/*/_deps/*'
   COMMAND ${GENHTML} coverage/coverage_filtered.info --output coverage/html --title "AOCL-Sparse Code Coverage Report" --legend
   WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
   COMMENT "Building Code Coverage Report (LCOV)"
