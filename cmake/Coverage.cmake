@@ -55,3 +55,12 @@ add_custom_target( coverage-report
   COMMENT "Building Code Coverage Report (LCOV)"
 )
 
+# Alias (only Makefile/Linux)
+add_custom_target( coverage
+  DEPENDS coverage-report
+)
+
+add_custom_target( cleanall
+  COMMAND ${CMAKE_MAKE_PROGRAM} clean
+  DEPENDS coverage-clean
+)
