@@ -216,7 +216,15 @@ aoclsparse_status aoclsparse_csr2ellthybrid_template(
     else if(ell_col_ind == nullptr)
     {
         return aoclsparse_status_invalid_pointer;
-    }
+    } 
+    else if(csr_row_idx_map == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    } 
+    else if(ell_m == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    } 
 
     // Find the number of rows that will be in the ell format
     aoclsparse_int m_ell = 0;

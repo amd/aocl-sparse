@@ -128,6 +128,44 @@ namespace
 
         aoclsparse_destroy_mat_descr(descr);
     }
+    template <typename T>
+    void test_ellmv_not_implemented()
+    {
+        aoclsparse_operation trans = aoclsparse_operation_none;
+
+        aoclsparse_int                M = 2, N = 3, nnz = 1;
+        aoclsparse_int                ell_width     = 1;
+        aoclsparse_int                ell_col_ind[] = {-1, 1};
+        T                             ell_val[]     = {0., 42.};
+        T                             alpha = 2.3, beta = 11.2;
+        T                             x[] = {1.0, -2.0, 3.0};
+        T                             y[] = {0.1, 0.2};
+        struct _aoclsparse_mat_descr *descr;
+        // aoclsparse_create_mat_descr set aoclsparse_matrix_type to aoclsparse_matrix_type_general
+        // and aoclsparse_index_base to aoclsparse_index_base_zero.
+        aoclsparse_create_mat_descr(&descr);
+        aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_one);
+        EXPECT_EQ(
+            aoclsparse_ellmv(
+                trans, &alpha, M, N, nnz, ell_val, ell_col_ind, ell_width, descr, x, &beta, y),
+            aoclsparse_status_not_implemented);
+
+        aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_zero);
+        aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_symmetric);
+        EXPECT_EQ(
+            aoclsparse_ellmv(
+                trans, &alpha, M, N, nnz, ell_val, ell_col_ind, ell_width, descr, x, &beta, y),
+            aoclsparse_status_not_implemented);
+
+        aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_general);
+        trans = aoclsparse_operation_transpose;
+        EXPECT_EQ(
+            aoclsparse_ellmv(
+                trans, &alpha, M, N, nnz, ell_val, ell_col_ind, ell_width, descr, x, &beta, y),
+            aoclsparse_status_not_implemented);
+
+        aoclsparse_destroy_mat_descr(descr);
+    }
 
     template <typename T>
     void test_ellmv_do_nothing()
@@ -260,6 +298,96 @@ namespace
                                             ell_val,
                                             ell_width),
                   aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_csr2ellthyb<T>(M,
+                                            nullptr,
+                                            csr_row_ptr,
+                                            csr_col_ind,
+                                            csr_val,
+                                            nullptr,
+                                            csr_row_idx_map,
+                                            ell_col_ind,
+                                            ell_val,
+                                            ell_width),
+                  aoclsparse_status_invalid_pointer);
+        EXPECT_EQ(aoclsparse_csr2ellthyb<T>(M,
+                                            &ell_m,
+                                            nullptr,
+                                            csr_col_ind,
+                                            csr_val,
+                                            nullptr,
+                                            csr_row_idx_map,
+                                            ell_col_ind,
+                                            ell_val,
+                                            ell_width),
+                  aoclsparse_status_invalid_pointer);
+        EXPECT_EQ(aoclsparse_csr2ellthyb<T>(M,
+                                            &ell_m,
+                                            csr_row_ptr,
+                                            nullptr,
+                                            csr_val,
+                                            nullptr,
+                                            csr_row_idx_map,
+                                            ell_col_ind,
+                                            ell_val,
+                                            ell_width),
+                  aoclsparse_status_invalid_pointer);
+        EXPECT_EQ(aoclsparse_csr2ellthyb<T>(M,
+                                            &ell_m,
+                                            csr_row_ptr,
+                                            csr_col_ind,
+                                            nullptr,
+                                            nullptr,
+                                            csr_row_idx_map,
+                                            ell_col_ind,
+                                            ell_val,
+                                            ell_width),
+                  aoclsparse_status_invalid_pointer);
+
+        EXPECT_EQ(aoclsparse_csr2ellthyb<T>(M,
+                                            &ell_m,
+                                            csr_row_ptr,
+                                            csr_col_ind,
+                                            csr_val,
+                                            nullptr,
+                                            nullptr,
+                                            ell_col_ind,
+                                            ell_val,
+                                            ell_width),
+                  aoclsparse_status_invalid_pointer);
+
+        EXPECT_EQ(aoclsparse_csr2ellthyb<T>(M,
+                                            &ell_m,
+                                            csr_row_ptr,
+                                            csr_col_ind,
+                                            csr_val,
+                                            nullptr,
+                                            csr_row_idx_map,
+                                            nullptr,
+                                            ell_val,
+                                            ell_width),
+                  aoclsparse_status_invalid_pointer);
+        EXPECT_EQ(aoclsparse_csr2ellthyb<T>(M,
+                                            &ell_m,
+                                            csr_row_ptr,
+                                            csr_col_ind,
+                                            csr_val,
+                                            nullptr,
+                                            csr_row_idx_map,
+                                            ell_col_ind,
+                                            nullptr,
+                                            ell_width),
+                  aoclsparse_status_invalid_pointer);
+        EXPECT_EQ(aoclsparse_csr2ellthyb<T>(-1,
+                                            &ell_m,
+                                            csr_row_ptr,
+                                            csr_col_ind,
+                                            csr_val,
+                                            nullptr,
+                                            csr_row_idx_map,
+                                            ell_col_ind,
+                                            ell_val,
+                                            ell_width),
+                  aoclsparse_status_invalid_size);
     }
 
     template <typename T>
@@ -285,6 +413,180 @@ namespace
             aoclsparse_elltmv<T>(
                 trans, &alpha, M, N, nnz, ell_val, ell_col_ind, ell_width, descr, x, &beta, y),
             aoclsparse_status_success);
+
+        aoclsparse_destroy_mat_descr(descr);
+    }
+    template <typename T>
+    void test_elltmv_not_implemented()
+    {
+        aoclsparse_operation trans = aoclsparse_operation_none;
+
+        aoclsparse_int                M = 2, N = 3, nnz = 1;
+        aoclsparse_int                ell_width     = 1;
+        aoclsparse_int                ell_col_ind[] = {-1, 1};
+        T                             ell_val[]     = {0., 42.};
+        T                             alpha = 2.3, beta = 11.2;
+        T                             x[] = {1.0, -2.0, 3.0};
+        T                             y[] = {0.1, 0.2};
+        struct _aoclsparse_mat_descr *descr;
+        // aoclsparse_create_mat_descr set aoclsparse_matrix_type to aoclsparse_matrix_type_general
+        // and aoclsparse_index_base to aoclsparse_index_base_zero.
+        aoclsparse_create_mat_descr(&descr);
+        aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_one);
+        EXPECT_EQ(
+            aoclsparse_elltmv(
+                trans, &alpha, M, N, nnz, ell_val, ell_col_ind, ell_width, descr, x, &beta, y),
+            aoclsparse_status_not_implemented);
+
+        aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_zero);
+        aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_symmetric);
+        EXPECT_EQ(
+            aoclsparse_elltmv(
+                trans, &alpha, M, N, nnz, ell_val, ell_col_ind, ell_width, descr, x, &beta, y),
+            aoclsparse_status_not_implemented);
+
+        aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_general);
+        trans = aoclsparse_operation_transpose;
+        EXPECT_EQ(
+            aoclsparse_elltmv(
+                trans, &alpha, M, N, nnz, ell_val, ell_col_ind, ell_width, descr, x, &beta, y),
+            aoclsparse_status_not_implemented);
+
+        aoclsparse_destroy_mat_descr(descr);
+    }
+
+    template <typename T>
+    void test_elltmv_nullptr()
+    {
+        aoclsparse_operation trans = aoclsparse_operation_none;
+        aoclsparse_int       M = 2, N = 3, nnz = 1;
+        aoclsparse_int       ell_width     = 1;
+        aoclsparse_int       ell_col_ind[] = {-1, 1};
+        T                    ell_val[]     = {0., 42.};
+        T                    alpha = 2.3, beta = 11.2;
+        T                    x[] = {1.0, -2.0, 3.0};
+        T                    y[] = {0.1, 0.2};
+        aoclsparse_mat_descr descr;
+        // aoclsparse_create_mat_descr set aoclsparse_matrix_type to aoclsparse_matrix_type_general
+        // and aoclsparse_index_base to aoclsparse_index_base_zero.
+        aoclsparse_create_mat_descr(&descr);
+
+        //     EXPECT_EQ(aoclsparse_ellmv(trans, &alpha, M, N, nnz, ell_val, ell_col_ind, ell_width, descr, x, &beta, y), aoclsparse_status_success);
+
+        // pass nullptr and expect pointer error
+        EXPECT_EQ(
+            aoclsparse_elltmv<T>(
+                trans, &alpha, M, N, nnz, nullptr, ell_col_ind, ell_width, descr, x, &beta, y),
+            aoclsparse_status_invalid_pointer);
+
+        EXPECT_EQ(aoclsparse_elltmv<T>(
+                      trans, &alpha, M, N, nnz, ell_val, nullptr, ell_width, descr, x, &beta, y),
+                  aoclsparse_status_invalid_pointer);
+
+        EXPECT_EQ(aoclsparse_elltmv<T>(trans,
+                                       &alpha,
+                                       M,
+                                       N,
+                                       nnz,
+                                       ell_val,
+                                       ell_col_ind,
+                                       ell_width,
+                                       descr,
+                                       nullptr,
+                                       &beta,
+                                       y),
+                  aoclsparse_status_invalid_pointer);
+
+        EXPECT_EQ(aoclsparse_elltmv<T>(trans,
+                                       &alpha,
+                                       M,
+                                       N,
+                                       nnz,
+                                       ell_val,
+                                       ell_col_ind,
+                                       ell_width,
+                                       descr,
+                                       x,
+                                       &beta,
+                                       nullptr),
+                  aoclsparse_status_invalid_pointer);
+
+        // FIXME: crashes EXPECT_EQ(aoclsparse_ellmv<T>(trans, nullptr, M, N, nnz, ell_val, ell_col_ind, ell_width, descr, x, &beta, y), aoclsparse_status_invalid_pointer);
+        // FIXME: crashes EXPECT_EQ(aoclsparse_ellmv<T>(trans, &alpha, M, N, nnz, ell_val, ell_col_ind, ell_width, descr, x, nullptr, y), aoclsparse_status_invalid_pointer);
+
+        EXPECT_EQ(
+            aoclsparse_elltmv<T>(
+                trans, &alpha, M, N, nnz, ell_val, ell_col_ind, ell_width, nullptr, x, &beta, y),
+            aoclsparse_status_invalid_pointer);
+
+        aoclsparse_destroy_mat_descr(descr);
+    }
+
+    template <typename T>
+    void test_elltmv_wrong_size()
+    {
+        aoclsparse_operation trans = aoclsparse_operation_none;
+
+        aoclsparse_int       M = 2, N = 3, nnz = 1;
+        aoclsparse_int       ell_width     = 1;
+        aoclsparse_int       ell_col_ind[] = {-1, 1};
+        T                    ell_val[]     = {0., 42.};
+        T                    alpha = 2.3, beta = 11.2;
+        T                    x[] = {1.0, -2.0, 3.0};
+        T                    y[] = {0.1, 0.2};
+        aoclsparse_mat_descr descr;
+        // aoclsparse_create_mat_descr set aoclsparse_matrix_type to aoclsparse_matrix_type_general
+        // and aoclsparse_index_base to aoclsparse_index_base_zero.
+        aoclsparse_create_mat_descr(&descr);
+        EXPECT_EQ(
+            aoclsparse_elltmv(
+                trans, &alpha, -1, N, nnz, ell_val, ell_col_ind, ell_width, descr, x, &beta, y),
+            aoclsparse_status_invalid_size);
+
+        EXPECT_EQ(
+            aoclsparse_elltmv(
+                trans, &alpha, M, -1, nnz, ell_val, ell_col_ind, ell_width, descr, x, &beta, y),
+            aoclsparse_status_invalid_size);
+
+        EXPECT_EQ(aoclsparse_elltmv(
+                      trans, &alpha, M, N, nnz, ell_val, ell_col_ind, -1, descr, x, &beta, y),
+                  aoclsparse_status_invalid_size);
+
+        aoclsparse_destroy_mat_descr(descr);
+    }
+
+    template <typename T>
+    void test_elltmv_do_nothing()
+    {
+        aoclsparse_operation trans = aoclsparse_operation_none;
+
+        aoclsparse_int       M = 2, N = 3, nnz = 1;
+        aoclsparse_int       ell_width     = 1;
+        aoclsparse_int       ell_col_ind[] = {-1, 1};
+        T                    ell_val[]     = {0., 42.};
+        T                    alpha = 2.3, beta = 11.2;
+        T                    x[] = {1.0, -2.0, 3.0};
+        T                    y[] = {0.1, 0.2};
+        aoclsparse_mat_descr descr;
+        // aoclsparse_create_mat_descr set aoclsparse_matrix_type to aoclsparse_matrix_type_general
+        // and aoclsparse_index_base to aoclsparse_index_base_zero.
+        aoclsparse_create_mat_descr(&descr);
+        EXPECT_EQ(
+            aoclsparse_elltmv(
+                trans, &alpha, 0, N, nnz, ell_val, ell_col_ind, ell_width, descr, x, &beta, y),
+            aoclsparse_status_invalid_size);
+
+        EXPECT_EQ(
+            aoclsparse_elltmv(
+                trans, &alpha, M, 0, nnz, ell_val, ell_col_ind, ell_width, descr, x, &beta, y),
+            aoclsparse_status_invalid_size);
+        EXPECT_EQ(aoclsparse_elltmv(
+                      trans, &alpha, M, 0, nnz, ell_val, ell_col_ind, 0, descr, x, &beta, y),
+                  aoclsparse_status_success);
+
+        EXPECT_EQ(aoclsparse_elltmv(
+                      trans, &alpha, M, N, nnz, ell_val, ell_col_ind, 0, descr, x, &beta, y),
+                  aoclsparse_status_success);
 
         aoclsparse_destroy_mat_descr(descr);
     }
@@ -355,7 +657,14 @@ namespace
     {
         test_ellmv_wrong_size<float>();
     }
-
+    TEST(ellmv, NotImplDouble)
+    {
+        test_ellmv_not_implemented<double>();
+    }
+    TEST(ellmv, NotImplFloat)
+    {
+        test_ellmv_not_implemented<float>();
+    }
     TEST(ellmv, DoNothingDouble)
     {
         test_ellmv_do_nothing<double>();
@@ -363,6 +672,40 @@ namespace
     TEST(ellmv, DoNothingFloat)
     {
         test_ellmv_do_nothing<float>();
+    }
+
+    TEST(ellmv, ELLTMVNotImplDouble)
+    {
+        test_elltmv_not_implemented<double>();
+    }
+    TEST(ellmv, ELLTMVNotImplFloat)
+    {
+        test_elltmv_not_implemented<float>();
+    }
+    TEST(ellmv, ELLTNullArgDouble)
+    {
+        test_elltmv_nullptr<double>();
+    }
+    TEST(ellmv, ELLTNullArgFloat)
+    {
+        test_elltmv_nullptr<float>();
+    }
+
+    TEST(ellmv, ELLTWrongSizeDouble)
+    {
+        test_elltmv_wrong_size<double>();
+    }
+    TEST(ellmv, ELLTWrongSizeFloat)
+    {
+        test_elltmv_wrong_size<float>();
+    }
+    TEST(ellmv, ELLTDoNothingDouble)
+    {
+        test_elltmv_do_nothing<double>();
+    }
+    TEST(ellmv, ELLTDoNothingFloat)
+    {
+        test_elltmv_do_nothing<float>();
     }
 
     TEST(ellmv, ConversionDouble)
