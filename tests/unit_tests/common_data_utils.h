@@ -21,16 +21,17 @@
  *
  * ************************************************************************ */
 #include "aoclsparse.h"
-#include "aoclsparse_mat_structures.h"
 #include "aoclsparse_descr.h"
+#include "aoclsparse_mat_structures.h"
 #include "gtest/gtest.h"
+#include "aoclsparse.hpp"
 
 #include <array>
+#include <cmath>
 #include <iostream>
+#include <limits>
 #include <string>
 #include <vector>
-#include <limits>
-#include <cmath>
 
 // Utilities to compare real scalars and vectors =============================================
 
@@ -66,14 +67,26 @@
 
 // Define precision to which we expect the results to match ==================================
 
-template <typename T> struct safeguard {};
+template <typename T>
+struct safeguard
+{
+};
 // Add safeguarding scaling (may differ for each data type)
-template <> struct safeguard<double> { static constexpr double value = 1.0; };
-template <> struct safeguard<float> { static constexpr float value = 2.0f; };
+template <>
+struct safeguard<double>
+{
+    static constexpr double value = 1.0;
+};
+template <>
+struct safeguard<float>
+{
+    static constexpr float value = 2.0f;
+};
 
-template <typename T> constexpr
-T expected_precision(T scale = (T)1.0) noexcept {
-    const T macheps = std::numeric_limits<T>::epsilon();
+template <typename T>
+constexpr T expected_precision(T scale = (T)1.0) noexcept
+{
+    const T macheps      = std::numeric_limits<T>::epsilon();
     const T safe_macheps = (T)2.0 * macheps;
     return scale * safeguard<T>::value * sqrt(safe_macheps);
 }
@@ -104,7 +117,6 @@ aoclsparse_status itsol_rci_solve(aoclsparse_itsol_handle   handle,
 template <typename T>
 aoclsparse_status itsol_init(aoclsparse_itsol_handle *handle);
 
-
 template <typename T>
 aoclsparse_status create_aoclsparse_matrix(aoclsparse_matrix           &A,
                                            aoclsparse_int               m,
@@ -113,7 +125,6 @@ aoclsparse_status create_aoclsparse_matrix(aoclsparse_matrix           &A,
                                            std::vector<aoclsparse_int> &csr_row_ptr,
                                            std::vector<aoclsparse_int> &csr_col_ind,
                                            std::vector<T>              &csr_val);
-
 
 // Problem DATABASES =========================================================================
 // DB for matrices: returns a matrix
@@ -166,8 +177,8 @@ enum linear_system_id
     // matrix 25x25
     N25_Lx_aB, // 16
     N25_LL_Ix_aB, // 17
-    N15_LTx_aB, // 18
-    N15_LL_ITx_aB, // 19
+    N25_LTx_aB, // 18
+    N25_LL_ITx_aB, // 19
     N25_Ux_aB, // 20
     N25_UU_Ix_aB, // 21
     N25_UTx_aB, // 22
@@ -228,7 +239,7 @@ aoclsparse_status create_matrix(matrix_id                    mid,
         //  1  0  0  2  0
         //  0  3  0  0  0
         //  0  0  4  0  0
-        //  0  5  9  6  7 -> stored as (9,5 | 6 | 7) so 9 and 5 are swaped 
+        //  0  5  9  6  7 -> stored as (9,5 | 6 | 7) so 9 and 5 are swaped
         //  0  0  0  0  8
         n = m       = 5;
         nnz         = 9;
@@ -413,6 +424,7 @@ aoclsparse_status create_matrix(matrix_id                    mid,
 
 template <typename T>
 aoclsparse_status create_linear_system(linear_system_id                id,
+                                       std::string                    &title,
                                        aoclsparse_operation           &trans,
                                        aoclsparse_matrix              &A,
                                        aoclsparse_mat_descr           &descr,
@@ -452,8 +464,11 @@ aoclsparse_status create_linear_system(linear_system_id                id,
         switch(id)
         {
         case D7Lx_aB_hint:
-            // title = " (sv hint)";
-            // __attribute__((fallthrough));
+            title     = "Lx=b  SV hint";
+            fill_mode = aoclsparse_fill_mode_lower;
+            trans     = aoclsparse_operation_none;
+            diag      = aoclsparse_diag_type_non_unit;
+            break;
         case D7_Lx_aB: // diag test set
             /*
                       Solve a   Dx = b
@@ -469,49 +484,49 @@ aoclsparse_status create_linear_system(linear_system_id                id,
             b = [1.0  -2.0  8.0  5.0  -1.0 11.0 3.0]'
             Dx = b ==> x* = [-1/2, 1/2, 8/3, 1, 1/7, 11/9, 3/4]
             */
-            // title     = "diag: Lx = alpha*b" + title;
+            title     = "diag: Lx = alpha*b" + title;
             fill_mode = aoclsparse_fill_mode_lower;
             trans     = aoclsparse_operation_none;
             diag      = aoclsparse_diag_type_non_unit;
             break;
         case D7_LL_Ix_aB:
-            // title     = "diag: [tril(L,-1) + I]x = alpha*b";
+            title     = "diag: [tril(L,-1) + I]x = alpha*b";
             fill_mode = aoclsparse_fill_mode_lower;
             trans     = aoclsparse_operation_none;
             diag      = aoclsparse_diag_type_unit;
             break;
         case D7_LTx_aB:
-            // title     = "diag: L'x = alpha*b";
+            title     = "diag: L'x = alpha*b";
             fill_mode = aoclsparse_fill_mode_lower;
             trans     = aoclsparse_operation_transpose;
             diag      = aoclsparse_diag_type_non_unit;
             break;
         case D7_LL_ITx_aB:
-            // title     = "diag: [tril(L,-1) + I]'x = alpha*b";
+            title     = "diag: [tril(L,-1) + I]'x = alpha*b";
             fill_mode = aoclsparse_fill_mode_lower;
             trans     = aoclsparse_operation_transpose;
             diag      = aoclsparse_diag_type_unit;
             break;
         case D7_Ux_aB:
-            // title     = "diag: Ux = alpha*b";
+            title     = "diag: Ux = alpha*b";
             fill_mode = aoclsparse_fill_mode_upper;
             trans     = aoclsparse_operation_none;
             diag      = aoclsparse_diag_type_non_unit;
             break;
         case D7_UU_Ix_aB:
-            // title     = "diag: [triu(U,1) + I]x = alpha*b";
+            title     = "diag: [triu(U,1) + I]x = alpha*b";
             fill_mode = aoclsparse_fill_mode_upper;
             trans     = aoclsparse_operation_none;
             diag      = aoclsparse_diag_type_unit;
             break;
         case D7_UTx_aB:
-            // title     = "diag: U'x = alpha*b";
+            title     = "diag: U'x = alpha*b";
             fill_mode = aoclsparse_fill_mode_upper;
             trans     = aoclsparse_operation_transpose;
             diag      = aoclsparse_diag_type_non_unit;
             break;
         case D7_UU_ITx_aB:
-            // title     = "diag: [triu(U,1) + I]'x = alpha*b";
+            title     = "diag: [triu(U,1) + I]'x = alpha*b";
             fill_mode = aoclsparse_fill_mode_upper;
             trans     = aoclsparse_operation_transpose;
             diag      = aoclsparse_diag_type_unit;
@@ -574,7 +589,7 @@ aoclsparse_status create_linear_system(linear_system_id                id,
              *
              * b = [1.0 -2.0 0.0 2.0 -1.0 0.0 3.0]'
              */
-            // title     = "small m: Lx = alpha*b";
+            title     = "small m: Lx = alpha*b";
             fill_mode = aoclsparse_fill_mode_lower;
             trans     = aoclsparse_operation_none;
             diag      = aoclsparse_diag_type_non_unit;
@@ -588,7 +603,7 @@ aoclsparse_status create_linear_system(linear_system_id                id,
                     (T)-1.828125e+01};
             break;
         case S7_LL_Ix_aB:
-            // title     = "small m: [tril(L,-1) + I]x = alpha*b";
+            title     = "small m: [tril(L,-1) + I]x = alpha*b";
             fill_mode = aoclsparse_fill_mode_lower;
             trans     = aoclsparse_operation_none;
             diag      = aoclsparse_diag_type_unit;
@@ -596,7 +611,7 @@ aoclsparse_status create_linear_system(linear_system_id                id,
             xref = {(T)1.0, (T)-4.0, (T)24.0, (T)-13.0, (T)-4.0, (T)-65.0, (T)45.0};
             break;
         case S7_LTx_aB:
-            // title     = "small m: L'x = alpha*b";
+            title     = "small m: L'x = alpha*b";
             fill_mode = aoclsparse_fill_mode_lower;
             trans     = aoclsparse_operation_transpose;
             diag      = aoclsparse_diag_type_non_unit;
@@ -604,7 +619,7 @@ aoclsparse_status create_linear_system(linear_system_id                id,
             xref = {(T)2.03125, (T)34.59375, (T)1.30625e+01, (T)7.125, (T)7.25, (T)0.0, (T)1.5};
             break;
         case S7_LL_ITx_aB:
-            // title     = "small m: [tril(L,-1) + I]'x = alpha*b";
+            title     = "small m: [tril(L,-1) + I]'x = alpha*b";
             fill_mode = aoclsparse_fill_mode_lower;
             trans     = aoclsparse_operation_transpose;
             diag      = aoclsparse_diag_type_unit;
@@ -612,7 +627,7 @@ aoclsparse_status create_linear_system(linear_system_id                id,
             xref = {(T)85.0, (T)12.0, (T)35.0, (T)12.0, (T)-28.0, (T)0.0, (T)3.0};
             break;
         case S7_Ux_aB:
-            // title     = "small m: Ux = alpha*b";
+            title     = "small m: Ux = alpha*b";
             fill_mode = aoclsparse_fill_mode_upper;
             trans     = aoclsparse_operation_none;
             diag      = aoclsparse_diag_type_non_unit;
@@ -620,7 +635,7 @@ aoclsparse_status create_linear_system(linear_system_id                id,
             xref = {(T)0.625, (T)2.25, (T)7.0, (T)0.0, (T)0.5, (T)0.0, (T)1.5};
             break;
         case S7_UU_Ix_aB:
-            // title     = "small m: [triu(U,1) + I]x = alpha*b";
+            title     = "small m: [triu(U,1) + I]x = alpha*b";
             fill_mode = aoclsparse_fill_mode_upper;
             trans     = aoclsparse_operation_none;
             diag      = aoclsparse_diag_type_unit;
@@ -628,7 +643,7 @@ aoclsparse_status create_linear_system(linear_system_id                id,
             xref = {(T)-17.0, (T)24.0, (T)-26.0, (T)0.0, (T)-1.0, (T)0.0, (T)3.0};
             break;
         case S7_UTx_aB:
-            // title     = "small m: U'x = alpha*b";
+            title     = "small m: U'x = alpha*b";
             fill_mode = aoclsparse_fill_mode_upper;
             trans     = aoclsparse_operation_transpose;
             diag      = aoclsparse_diag_type_non_unit;
@@ -642,7 +657,7 @@ aoclsparse_status create_linear_system(linear_system_id                id,
                     (T)2.96875e-1};
             break;
         case S7_UU_ITx_aB:
-            // title     = "small m: [triu(U,1) + I]'x = alpha*b";
+            title     = "small m: [triu(U,1) + I]'x = alpha*b";
             fill_mode = aoclsparse_fill_mode_upper;
             trans     = aoclsparse_operation_transpose;
             diag      = aoclsparse_diag_type_unit;
@@ -684,8 +699,8 @@ aoclsparse_status create_linear_system(linear_system_id                id,
 
     case N25_Lx_aB: // large m test set
     case N25_LL_Ix_aB:
-    case N15_LTx_aB:
-    case N15_LL_ITx_aB:
+    case N25_LTx_aB:
+    case N25_LL_ITx_aB:
     case N25_Ux_aB:
     case N25_UU_Ix_aB:
     case N25_UTx_aB:
@@ -695,7 +710,7 @@ aoclsparse_status create_linear_system(linear_system_id                id,
         switch(id)
         {
         case N25_Lx_aB: // large m test set
-            // title     = "large m: Lx = alpha*b";
+            title     = "large m: Lx = alpha*b";
             fill_mode = aoclsparse_fill_mode_lower;
             trans     = aoclsparse_operation_none;
             diag      = aoclsparse_diag_type_non_unit;
@@ -707,7 +722,7 @@ aoclsparse_status create_linear_system(linear_system_id                id,
                     (T)1.4405187, (T)1.8362006, (T)1.7075999, (T)1.443063,  (T)1.5821274};
             break;
         case N25_LL_Ix_aB:
-            // title     = "large m: [tril(L,-1) + I]x = alpha*b";
+            title     = "large m: [tril(L,-1) + I]x = alpha*b";
             fill_mode = aoclsparse_fill_mode_lower;
             trans     = aoclsparse_operation_none;
             diag      = aoclsparse_diag_type_unit;
@@ -718,8 +733,8 @@ aoclsparse_status create_linear_system(linear_system_id                id,
                     (T)3.0935508,  (T)3.0170354, (T)3.4556542, (T)1.9581833, (T)3.0960567,
                     (T)0.84321483, (T)2.4842384, (T)2.0155569, (T)1.1194741, (T)1.4286963};
             break;
-        case N15_LTx_aB:
-            // title     = "large m: L'x = alpha*b";
+        case N25_LTx_aB:
+            title     = "large m: L'x = alpha*b";
             fill_mode = aoclsparse_fill_mode_lower;
             trans     = aoclsparse_operation_transpose;
             diag      = aoclsparse_diag_type_non_unit;
@@ -730,8 +745,8 @@ aoclsparse_status create_linear_system(linear_system_id                id,
                     (T)2.371718,  (T)2.355061,  (T)2.3217005, (T)2.4406206, (T)2.5581752,
                     (T)2.7305435, (T)2.6135037, (T)2.7653322, (T)2.8550883, (T)2.9673591};
             break;
-        case N15_LL_ITx_aB:
-            // title     = "large m: [tril(L,-1) + I]'x = alpha*b";
+        case N25_LL_ITx_aB:
+            title     = "large m: [tril(L,-1) + I]'x = alpha*b";
             fill_mode = aoclsparse_fill_mode_lower;
             trans     = aoclsparse_operation_transpose;
             diag      = aoclsparse_diag_type_unit;
@@ -743,7 +758,7 @@ aoclsparse_status create_linear_system(linear_system_id                id,
                     (T)5.287742,   (T)4.861812,  (T)5.448,     (T)5.922,     (T)6};
             break;
         case N25_Ux_aB:
-            // title     = "large m: Ux = alpha*b";
+            title     = "large m: Ux = alpha*b";
             fill_mode = aoclsparse_fill_mode_upper;
             trans     = aoclsparse_operation_none;
             diag      = aoclsparse_diag_type_non_unit;
@@ -755,7 +770,7 @@ aoclsparse_status create_linear_system(linear_system_id                id,
                     (T)2.616432,  (T)2.7148834, (T)2.7772147, (T)2.8394556, (T)2.9673591};
             break;
         case N25_UU_Ix_aB:
-            // title     = "large m: [triu(U,1) + I]x = alpha*b";
+            title     = "large m: [triu(U,1) + I]x = alpha*b";
             fill_mode = aoclsparse_fill_mode_upper;
             trans     = aoclsparse_operation_none;
             diag      = aoclsparse_diag_type_unit;
@@ -767,7 +782,7 @@ aoclsparse_status create_linear_system(linear_system_id                id,
                     (T)4.8157353,  (T)5.2821178, (T)5.49432,   (T)5.856,     (T)6};
             break;
         case N25_UTx_aB:
-            // title     = "large m: U'x = alpha*b";
+            title     = "large m: U'x = alpha*b";
             fill_mode = aoclsparse_fill_mode_upper;
             trans     = aoclsparse_operation_transpose;
             diag      = aoclsparse_diag_type_non_unit;
@@ -779,7 +794,7 @@ aoclsparse_status create_linear_system(linear_system_id                id,
                     (T)1.6208129, (T)1.5838626, (T)1.7347633, (T)1.6944515, (T)1.7187472};
             break;
         case N25_UU_ITx_aB:
-            // title     = "large m: [triu(U,1) + I]'x = alpha*b";
+            title     = "large m: [triu(U,1) + I]'x = alpha*b";
             fill_mode = aoclsparse_fill_mode_upper;
             trans     = aoclsparse_operation_transpose;
             diag      = aoclsparse_diag_type_unit;
@@ -918,13 +933,13 @@ aoclsparse_status create_linear_system(linear_system_id                id,
         break;
 
     case A_nullptr:
-        // title = "Invalid matrix A (ptr NULL)";
+        title      = "Invalid matrix A (ptr NULL)";
         A          = nullptr;
         exp_status = aoclsparse_status_invalid_pointer;
         break;
 
     case D1_descr_nullptr:
-        // title = "eye(1) with null descriptor";
+        title = "eye(1) with null descriptor";
         n = nnz = 1;
         icrowa.resize(2);
         icola.resize(1);
@@ -942,7 +957,7 @@ aoclsparse_status create_linear_system(linear_system_id                id,
         break;
 
     case D1_neg_num_hint:
-        // title = "eye(1) with valid descriptor but negative expected_no_of_calls";
+        title = "eye(1) with valid descriptor but negative expected_no_of_calls";
         n = nnz = 1;
         icrowa.resize(2);
         icola.resize(1);
@@ -961,7 +976,7 @@ aoclsparse_status create_linear_system(linear_system_id                id,
         break;
 
     case D1_mattype_gen_hint:
-        // title = "eye(1) with matrix type set to general";
+        title = "eye(1) with matrix type set to general";
         n = nnz = 1;
         icrowa.resize(2);
         icola.resize(1);

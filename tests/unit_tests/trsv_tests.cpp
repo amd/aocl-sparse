@@ -29,6 +29,8 @@
 #include "aoclsparse_context.h"
 #include "aoclsparse_descr.h"
 #include "aoclsparse_mat_structures.h"
+#include "common_data_utils.h"
+#include "gtest/gtest.h"
 
 #include <algorithm>
 #include <array>
@@ -39,345 +41,539 @@
 #include <limits>
 #include <sstream>
 #include <type_traits>
+#include <typeinfo>
 #include <vector>
 
-#define NONE 0 // fallback - reference implementation (no AVX)
-#define COREAVX 1 // reference implementation AVX2 256b
-#define AVX2 2 // AVX2 256b (Milan)
-#define AVX512 3 // AVX-512F 512b (Genoa)
+#define VERBOSE 1
 
-// Number of test for TRSV
-#define NTEST_TRSV 23 /// <------------------------------------- REMOVE
-// Number of test for Hinting for TRSV
-#define NTEST_TRSV_HINT (NTEST_TRSV + 5)
-
-namespace {
-using namespace std; /// <-------------------- REMOVE
-
-// aoclsparse_?_trsv_kid wrappers
-template <typename T>
-aoclsparse_status aoclsparse_trsv_kid_wrapper();
-
-template <typename T>
-aoclsparse_status aoclsparse_trsv_kid_wrapper(const aoclsparse_operation transpose,
-                                              const T                    alpha,
-                                              aoclsparse_matrix          A,
-                                              const aoclsparse_mat_descr descr,
-                                              const T                   *b,
-                                              T                         *x,
-                                              const aoclsparse_int       kid);
-
-template <>
-aoclsparse_status aoclsparse_trsv_kid_wrapper<double>(const aoclsparse_operation transpose,
-                                                      const double               alpha,
-                                                      aoclsparse_matrix          A,
-                                                      const aoclsparse_mat_descr descr,
-                                                      const double              *b,
-                                                      double                    *x,
-                                                      const aoclsparse_int       kid)
+namespace
 {
-    return aoclsparse_dtrsv_kid(transpose, alpha, A, descr, b, x, kid);
-}
+    template <typename T>
+    aoclsparse_status aoclsparse_trsv_kid(const aoclsparse_operation trans,
+                                          const T                    alpha,
+                                          aoclsparse_matrix          A,
+                                          const aoclsparse_mat_descr descr,
+                                          const T                   *b,
+                                          T                         *x,
+                                          const aoclsparse_int       kid);
 
-template <>
-aoclsparse_status aoclsparse_trsv_kid_wrapper<float>(const aoclsparse_operation transpose,
-                                                     const float                alpha,
-                                                     aoclsparse_matrix          A,
-                                                     const aoclsparse_mat_descr descr,
-                                                     const float               *b,
-                                                     float                     *x,
-                                                     const aoclsparse_int       kid)
-{
-    return aoclsparse_strsv_kid(transpose, alpha, A, descr, b, x, kid);
-}
-
-template <typename T>
-void test_aoclsparse_trsv(const aoclsparse_int        testid,
-                          const string                testdesc,
-                          const T                     alpha,
-                          aoclsparse_matrix          &A,
-                          const aoclsparse_mat_descr &descr,
-                          const T                    *b,
-                          T                          *x,
-                          const aoclsparse_operation  trans,
-                          const aoclsparse_int        kid,
-                          const T                    *xref,
-                          const T                     tol,
-                          const aoclsparse_int        verbose)
-{
-    aoclsparse_status ret;
-    aoclsparse_int    n        = A->n;
-    aoclsparse_int    isdouble = std::is_same_v<T, double>;
-    if(verbose)
+    template <>
+    aoclsparse_status aoclsparse_trsv_kid<double>(const aoclsparse_operation trans,
+                                                  const double               alpha,
+                                                  aoclsparse_matrix          A,
+                                                  const aoclsparse_mat_descr descr,
+                                                  const double              *b,
+                                                  double                    *x,
+                                                  const aoclsparse_int       kid)
     {
-        bool         unit = descr->diag_type == aoclsparse_diag_type_unit;
-        const string avxlabs[4]
-            = {"NONE (reference)", "AVX2 (reference 256b)", "AVX2 (KT 256b)", "AVX-512 (KT 512b)"};
-        const string typelabs[2] = {"Float ", "Double"};
-        cout << endl << "TEST #" << testid << " " << testdesc << endl;
-        cout << "Configuration: unit=" << (unit ? "UNIT" : "NON-UNIT")
-             << " trans=" << (trans == aoclsparse_operation_transpose ? "TRANSPOSE" : "NO")
-             << " Kernel ID=\"" << avxlabs[kid] << "\" Type: " << typelabs[isdouble] << endl;
-    }
-    ret = aoclsparse_trsv_kid_wrapper<T>(trans, alpha, A, descr, b, x, kid);
-
-    if(ret != aoclsparse_status_success)
-    {
-        cout << "Test failed with unexpected return from aoclsparse_?trsv, status = " << ret
-             << endl;
-    }
-    bool pass = (ret == aoclsparse_status_success);
-    if(pass)
-    {
-        T err = 0.0;
-        for(int i = 0; i < n; i++)
-            err += (x[i] - xref[i]) * (x[i] - xref[i]);
-        err  = sqrt(err);
-        pass = err <= tol;
-        if(!pass)
-        {
-            cout << "Test failed with tolerance = " << tol << endl;
-            cout << "||x-xref|| = " << err << endl;
-        }
-    }
-    if(verbose || !pass)
-    {
-        cout << "TEST #" << testid << " : " << (pass ? "PASS" : "FAILED") << endl;
-    }
-    return pass;
-}
-
-bool test_aoclsparse_set_sv_hint(const aoclsparse_int        testid,
-                                 const string                testdesc,
-                                 aoclsparse_matrix          &A,
-                                 const aoclsparse_mat_descr &descr,
-                                 const aoclsparse_operation  trans,
-                                 const aoclsparse_int        ncalls,
-                                 const aoclsparse_status     exp_status,
-                                 const aoclsparse_int        verbose)
-{
-    aoclsparse_status ret;
-    if(verbose)
-    {
-        cout << endl << "TEST #" << testid << " " << testdesc << endl;
-    }
-    ret       = aoclsparse_set_sv_hint(A, trans, descr, ncalls);
-    bool pass = (ret == exp_status);
-    if(!pass)
-    {
-        cout << "Test failed with unexpected return from aoclsparse_set_sv_hint, status = " << ret
-             << endl;
-        cout << "Expected status = " << exp_status << endl;
-    }
-    if(verbose || !pass)
-    {
-        cout << "TEST #" << testid << " : " << (pass ? "PASS" : "FAILED") << endl;
-    }
-    return pass;
-}
-
-
-
-// If kid > 0 then force to only test the specified KID, otherwise
-// cycle through all of them
-template <typename T>
-bool trsv_kid_driver(aoclsparse_int &testid, aoclsparse_int kid = -1)
-{
-    bool                 ok      = true;
-    aoclsparse_int       verbose = 1;
-    aoclsparse_int       KID; // (AVX2=2) and AVX512=3
-    string               title = "unknown";
-    T                    alpha;
-    aoclsparse_matrix    A;
-    aoclsparse_mat_descr descr;
-    vector<T>            b;
-    vector<T>            x;
-    vector<T>            xref;
-    T                    xtol;
-    aoclsparse_operation trans;
-    // permanent storage of matrix data
-    vector<T>                 aval;
-    vector<aoclsparse_int>    icola;
-    vector<aoclsparse_int>    icrowa;
-    array<aoclsparse_int, 10> iparm;
-    array<T, 10>              dparm;
-    aoclsparse_status         exp_status;
-    bool                      isdouble(std::is_same_v<T, double>);
-
-    if(testid <= NTEST_TRSV)
-    {
-        // fail on getting data or gone beyond last testid
-        ok = get_data<T>(testid,
-                         title,
-                         trans,
-                         A,
-                         descr,
-                         alpha,
-                         b,
-                         x,
-                         xref,
-                         xtol,
-                         icrowa,
-                         icola,
-                         aval,
-                         iparm,
-                         dparm,
-                         exp_status);
-        if(ok)
-        {
-            // Set default to AVX2
-            KID = AVX2;
-#if USE_AVX512
-            if(global_context.is_avx512)
-                KID = AVX512;
-#endif
-
-            // Call test as many times as available kernels
-            for(aoclsparse_int ikid = 0; ikid <= KID; ikid++)
-            {
-                if(kid >= 0)
-                    ikid = kid;
-                // AVX Reference does not implement float type
-                if(!(!isdouble && ikid == 1))
-                {
-                    ok &= test_aoclsparse_trsv<T>(testid,
-                                                  title,
-                                                  alpha,
-                                                  A,
-                                                  descr,
-                                                  &b[0],
-                                                  &x[0],
-                                                  trans,
-                                                  ikid,
-                                                  &xref[0],
-                                                  xtol,
-                                                  verbose);
-                }
-                if(kid >= 0)
-                {
-                    testid = -1;
-                    return ok;
-                }
-            }
-            ++testid;
-        }
-    }
-    else
-    {
-        testid = -1;
-    }
-    return ok;
-}
-
-template <typename T>
-bool trsv_hint_driver(aoclsparse_int &testid)
-{
-    bool                 ok      = true;
-    aoclsparse_int       verbose = 1;
-    string               title;
-    T                    alpha;
-    aoclsparse_matrix    A;
-    aoclsparse_mat_descr descr;
-    vector<T>            b;
-    vector<T>            x;
-    vector<T>            xref;
-    T                    xtol;
-    aoclsparse_operation trans;
-    // permanent storage of matrix data
-    vector<T>                 aval;
-    vector<aoclsparse_int>    icola;
-    vector<aoclsparse_int>    icrowa;
-    array<aoclsparse_int, 10> iparm;
-    array<T, 10>              dparm;
-    aoclsparse_status         exp_status;
-
-    if(NTEST_TRSV < testid && testid <= NTEST_TRSV_HINT)
-    {
-        // fail on getting data or gone beyond last testid
-        ok = get_data<T>(testid,
-                         title,
-                         trans,
-                         A,
-                         descr,
-                         alpha,
-                         b,
-                         x,
-                         xref,
-                         xtol,
-                         icrowa,
-                         icola,
-                         aval,
-                         iparm,
-                         dparm,
-                         exp_status);
-        if(ok)
-        {
-            ok &= test_aoclsparse_set_sv_hint(
-                testid, title, A, descr, trans, iparm[0], exp_status, verbose);
-            ++testid;
-        }
+        if(kid >= 0)
+            return aoclsparse_dtrsv_kid(trans, alpha, A, descr, b, x, kid);
         else
+            return aoclsparse_dtrsv(trans, alpha, A, descr, b, x);
+    }
+
+    template <>
+    aoclsparse_status aoclsparse_trsv_kid<float>(const aoclsparse_operation trans,
+                                                 const float                alpha,
+                                                 aoclsparse_matrix          A,
+                                                 const aoclsparse_mat_descr descr,
+                                                 const float               *b,
+                                                 float                     *x,
+                                                 const aoclsparse_int       kid)
+    {
+        if(kid >= 0)
+            return aoclsparse_strsv_kid(trans, alpha, A, descr, b, x, kid);
+        else
+            return aoclsparse_strsv(trans, alpha, A, descr, b, x);
+    }
+
+    // If kid > 0 then force to only test the specified KID, otherwise
+    // cycle through all of them
+    template <typename T>
+    void trsv_driver(linear_system_id  id,
+                     aoclsparse_int    kid,
+                     aoclsparse_status trsv_status = aoclsparse_status_success)
+    {
+        aoclsparse_status    status;
+        std::string          title;
+        T                    alpha;
+        aoclsparse_matrix    A     = nullptr;
+        aoclsparse_mat_descr descr = nullptr;
+        std::vector<T>       b;
+        std::vector<T>       x;
+        std::vector<T>       xref;
+        T                    xtol;
+        aoclsparse_operation trans;
+        // permanent storage of matrix data
+        std::vector<T>                 aval;
+        std::vector<aoclsparse_int>    icola;
+        std::vector<aoclsparse_int>    icrowa;
+        std::array<aoclsparse_int, 10> iparm;
+        std::array<T, 10>              dparm;
+        aoclsparse_status              exp_status;
+
+        status = create_linear_system<T>(id,
+                                         title,
+                                         trans,
+                                         A,
+                                         descr,
+                                         alpha,
+                                         b,
+                                         x,
+                                         xref,
+                                         xtol,
+                                         icrowa,
+                                         icola,
+                                         aval,
+                                         iparm,
+                                         dparm,
+                                         exp_status);
+        ASSERT_EQ(status, aoclsparse_status_success) << "could not find linear system id " << id;
+#if(VERBOSE > 0)
+        std::string dtype = "unknown";
+        if(typeid(T) == typeid(double))
         {
-            testid = -1;
+            dtype = "double";
         }
+        else if(typeid(T) == typeid(float))
+        {
+            dtype = "float";
+        }
+        const bool        unit       = descr->diag_type == aoclsparse_diag_type_unit;
+        aoclsparse_int    kidlabs = std::max<aoclsparse_int>(std::min<aoclsparse_int>(kid, 4), 0);
+        const std::string avxlabs[5] = {"NONE (reference)",
+                                        "AVX2 (reference 256b)",
+                                        "AVX2 (KT 256b)",
+                                        "AVX-512 (KT 512b)",
+                                        "unknown"};
+        std::cout << "Problem id: " << id << " \"" << title << "\"" << std::endl;
+        std::cout << "Configuration: <" << dtype << "> unit=" << (unit ? "Unit" : "Non-unit")
+                  << " trans=" << (trans == aoclsparse_operation_transpose ? "Yes" : "No")
+                  << "   Kernel id=" << kid << " <" << avxlabs[kidlabs] << ">" << std::endl;
+#endif
+        const aoclsparse_int n = A->n;
+        status                 = aoclsparse_trsv_kid<T>(trans, alpha, A, descr, &b[0], &x[0], kid);
+        ASSERT_EQ(status, trsv_status)
+            << "Test failed with unexpected return from aoclsparse_dtrsv";
+        if(status == aoclsparse_status_success)
+        {
+            EXPECT_ARR_NEAR(n, x, xref, expected_precision<T>(10.0));
+        }
+        ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
     }
-    else
+
+    typedef struct
     {
-        testid = -1;
+        linear_system_id  id;
+        std::string       testname;
+        aoclsparse_int    kid;
+    } trsv_list_t;
+
+#define ADD_TEST(ID, KID)             \
+    {                                 \
+        ID, #ID "/kid[" #KID "]", KID \
     }
-    return ok;
-}
 
-int main(void)
-{
-    bool           ok     = true;
-    aoclsparse_int testid = 0, itest = -1;
-    // set this to the id you want to test/debug
-    // will run only this test with the given kid >= 0,
-    // if kid<0 then all kernels are tested.
-    aoclsparse_int debug_testid = -1;
-    aoclsparse_int kid          = -1;
+// Kernel kid=3 fallbacks to kid=2 on non-Zen4 and should not fail
+#define ADD_TEST_BATCH(PRE)                                                                       \
+    ADD_TEST(PRE##_Lx_aB, 0), ADD_TEST(PRE##_Lx_aB, 1), ADD_TEST(PRE##_Lx_aB, 2),                 \
+        ADD_TEST(PRE##_Lx_aB, 3),                                                                 \
+                                                                                                  \
+        ADD_TEST(PRE##_LL_Ix_aB, 0), ADD_TEST(PRE##_LL_Ix_aB, 1), ADD_TEST(PRE##_LL_Ix_aB, 2),    \
+        ADD_TEST(PRE##_LL_Ix_aB, 3),                                                              \
+                                                                                                  \
+        ADD_TEST(PRE##_LTx_aB, 0), ADD_TEST(PRE##_LTx_aB, 1), ADD_TEST(PRE##_LTx_aB, 2),          \
+        ADD_TEST(PRE##_LTx_aB, 3),                                                                \
+                                                                                                  \
+        ADD_TEST(PRE##_LL_ITx_aB, 0), ADD_TEST(PRE##_LL_ITx_aB, 1), ADD_TEST(PRE##_LL_ITx_aB, 2), \
+        ADD_TEST(PRE##_LL_ITx_aB, 3),                                                             \
+                                                                                                  \
+        ADD_TEST(PRE##_Ux_aB, 0), ADD_TEST(PRE##_Ux_aB, 1), ADD_TEST(PRE##_Ux_aB, 2),             \
+        ADD_TEST(PRE##_Ux_aB, 3),                                                                 \
+                                                                                                  \
+        ADD_TEST(PRE##_UU_Ix_aB, 0), ADD_TEST(PRE##_UU_Ix_aB, 1), ADD_TEST(PRE##_UU_Ix_aB, 2),    \
+        ADD_TEST(PRE##_UU_Ix_aB, 3),                                                              \
+                                                                                                  \
+        ADD_TEST(PRE##_UTx_aB, 0), ADD_TEST(PRE##_UTx_aB, 1), ADD_TEST(PRE##_UTx_aB, 2),          \
+        ADD_TEST(PRE##_UTx_aB, 3),                                                                \
+                                                                                                  \
+        ADD_TEST(PRE##_UU_ITx_aB, 0), ADD_TEST(PRE##_UU_ITx_aB, 1), ADD_TEST(PRE##_UU_ITx_aB, 2), \
+        ADD_TEST(PRE##_UU_ITx_aB, 3)
 
-    // Read the environment variables to update global variable
-    // This function updates the num_threads only once.
-    aoclsparse_init_once();
+    trsv_list_t trsv_list[] = {ADD_TEST_BATCH(D7),
+                               ADD_TEST_BATCH(S7),
+                               ADD_TEST_BATCH(N25),
+                               ADD_TEST(D7_Lx_aB, 999),
+                               ADD_TEST(D7_Lx_aB, -1)};
 
-    // Run Tests -> Call driver
-    cout << endl;
-    cout << "================================================" << endl;
-    cout << "   AOCLSPARSE TRSV TESTS" << endl;
-    cout << "================================================" << endl;
-    if(0 <= debug_testid && debug_testid <= NTEST_TRSV)
-        testid = debug_testid;
-    do
+    void PrintTo(const trsv_list_t &param, ::std::ostream *os)
     {
-        itest = testid;
-        ok &= trsv_kid_driver<double>(testid, kid);
-        testid = itest;
-        ok &= trsv_kid_driver<float>(testid, kid);
-    } while(testid >= 0 && debug_testid < 0);
+        *os << param.testname;
+    }
 
-    cout << endl;
-    cout << "================================================" << endl;
-    cout << "   AOCLSPARSE SV_HINT TESTS" << endl;
-    cout << "================================================" << endl;
-    testid = NTEST_TRSV + 1;
-    if(NTEST_TRSV <= debug_testid && debug_testid <= NTEST_TRSV_HINT)
-        testid = debug_testid;
-    do
+    class PosDouble : public testing::TestWithParam<trsv_list_t>
     {
-        itest = testid;
-        ok &= trsv_hint_driver<double>(testid);
-        testid = itest;
-        ok &= trsv_hint_driver<float>(testid);
-    } while(testid >= 0 && debug_testid < 0);
+    };
+    TEST_P(PosDouble, Solver)
+    {
+        const linear_system_id  id          = GetParam().id;
+        const aoclsparse_int    kid         = GetParam().kid;
+#if(VERBOSE > 0)
+        std::cout << "Pos/Double/Solver test name: \"" << GetParam().testname << "\"" << std::endl;
+#endif
+        trsv_driver<double>(id, kid, aoclsparse_status_success);
+    }
+    INSTANTIATE_TEST_SUITE_P(TrsvSuite, PosDouble, ::testing::ValuesIn(trsv_list));
 
-    cout << endl;
-    cout << "================================================" << endl;
-    cout << "   OVERALL TESTS : " << (ok ? "ALL PASSSED" : "FAILED") << endl;
-    cout << "================================================" << endl;
+    class PosFloat : public testing::TestWithParam<trsv_list_t>
+    {
+    };
+    TEST_P(PosFloat, Solver)
+    {
+        const linear_system_id  id  = GetParam().id;
+        const aoclsparse_int    kid = GetParam().kid;
+        const aoclsparse_status trsv_status
+            = kid == 1 ? aoclsparse_status_not_implemented : aoclsparse_status_success;
+#if(VERBOSE > 0)
+        std::cout << "Pos/Float/Solver test name: \"" << GetParam().testname << "\"" << std::endl;
+#endif
+        trsv_driver<float>(id, kid, trsv_status);
+    }
+    INSTANTIATE_TEST_SUITE_P(TrsvSuite, PosFloat, ::testing::ValuesIn(trsv_list));
 
-    return (ok ? 0 : 1);
+    TEST(TrsvSuite, BaseOne)
+    {
+        double                      alpha = 0.0;
+        aoclsparse_matrix           A     = nullptr;
+        aoclsparse_mat_descr        descr = nullptr;
+        double                      b[1], x[1];
+        aoclsparse_int              kid = 0, m, n, nnz;
+        std::vector<double>         aval;
+        std::vector<aoclsparse_int> acol, acrow;
+        aoclsparse_operation        trans = aoclsparse_operation_none;
+        ASSERT_EQ(create_matrix(N5_1_hole, m, n, nnz, acrow, acol, aval, A, descr, 0),
+                  aoclsparse_status_success);
+        // Change to base-1
+        A->base = descr->base = aoclsparse_index_base_one;
+        ASSERT_EQ(aoclsparse_dtrsv_kid(trans, alpha, A, descr, b, x, kid),
+                  aoclsparse_status_not_implemented);
+        ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+    };
+
+    TEST(TrsvSuite, WrongTypeDouble)
+    {
+        float                       alpha = 0.0;
+        aoclsparse_matrix           A     = nullptr;
+        aoclsparse_mat_descr        descr = nullptr;
+        float                       b[1], x[1];
+        aoclsparse_int              kid = 0, m, n, nnz;
+        std::vector<double>         aval;
+        std::vector<aoclsparse_int> acol, acrow;
+        aoclsparse_operation        trans = aoclsparse_operation_none;
+        // Create matrix data for type double
+        ASSERT_EQ(create_matrix<double>(N5_full_sorted, m, n, nnz, acrow, acol, aval, A, descr, 0),
+                  aoclsparse_status_success);
+        // Force it to lower triangular
+        descr->fill_mode = aoclsparse_fill_mode_lower;
+        descr->type      = aoclsparse_matrix_type_triangular;
+        ASSERT_EQ(aoclsparse_set_sv_hint(A, aoclsparse_operation_none, descr, 1),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_optimize(A), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_strsv_kid(trans, alpha, A, descr, b, x, kid),
+                  aoclsparse_status_wrong_type);
+        ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+    };
+
+    TEST(TrsvSuite, WrongTypeFloat)
+    {
+        double                      alpha = 0.0;
+        aoclsparse_matrix           A     = nullptr;
+        aoclsparse_mat_descr        descr = nullptr;
+        double                      b[1], x[1];
+        aoclsparse_int              kid = 0, m, n, nnz;
+        std::vector<float>          aval;
+        std::vector<aoclsparse_int> acol, acrow;
+        aoclsparse_operation        trans = aoclsparse_operation_none;
+        // Create matrix data for type double
+        ASSERT_EQ(create_matrix<float>(N5_full_sorted, m, n, nnz, acrow, acol, aval, A, descr, 0),
+                  aoclsparse_status_success);
+        // Force it to lower triangular
+        descr->fill_mode = aoclsparse_fill_mode_lower;
+        descr->type      = aoclsparse_matrix_type_triangular;
+        ASSERT_EQ(aoclsparse_set_sv_hint(A, aoclsparse_operation_none, descr, 1),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_optimize(A), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_dtrsv_kid(trans, alpha, A, descr, b, x, kid),
+                  aoclsparse_status_wrong_type);
+        ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+    };
+
+    TEST(TrsvSuite, NullPtrA)
+    {
+        double               alpha = 0.0;
+        aoclsparse_matrix    A     = nullptr;
+        aoclsparse_mat_descr descr = nullptr;
+        double               b[1], x[1];
+        aoclsparse_int       kid   = 0;
+        aoclsparse_operation trans = aoclsparse_operation_none;
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_dtrsv_kid(trans, alpha, A, descr, b, x, kid),
+                  aoclsparse_status_invalid_pointer);
+        ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+    };
+
+    TEST(TrsvSuite, NullPtrDesc)
+    {
+        double                      alpha = 0.0;
+        aoclsparse_matrix           A     = nullptr;
+        aoclsparse_mat_descr        descr = nullptr;
+        double                      b[1], x[1];
+        aoclsparse_int              kid = 0, m, n, nnz;
+        std::vector<double>         aval;
+        std::vector<aoclsparse_int> acol, acrow;
+        aoclsparse_operation        trans = aoclsparse_operation_none;
+        ASSERT_EQ(create_matrix(N5_1_hole, m, n, nnz, acrow, acol, aval, A, descr, 0),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_dtrsv_kid(trans, alpha, A, nullptr, b, x, kid),
+                  aoclsparse_status_invalid_pointer);
+        ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+    };
+
+    TEST(TrsvSuite, NullPtrX)
+    {
+        double                      alpha = 0.0;
+        aoclsparse_matrix           A     = nullptr;
+        aoclsparse_mat_descr        descr = nullptr;
+        double                      b[1];
+        aoclsparse_int              kid = 0, m, n, nnz;
+        std::vector<double>         aval;
+        std::vector<aoclsparse_int> acol, acrow;
+        aoclsparse_operation        trans = aoclsparse_operation_none;
+        ASSERT_EQ(create_matrix(N5_1_hole, m, n, nnz, acrow, acol, aval, A, descr, 0),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_dtrsv_kid(trans, alpha, A, descr, b, nullptr, kid),
+                  aoclsparse_status_invalid_pointer);
+        ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+    };
+
+    TEST(TrsvSuite, NullPtrB)
+    {
+        double                      alpha = 0.0;
+        aoclsparse_matrix           A     = nullptr;
+        aoclsparse_mat_descr        descr = nullptr;
+        double                      x[1];
+        aoclsparse_int              kid = 0, m, n, nnz;
+        std::vector<double>         aval;
+        std::vector<aoclsparse_int> acol, acrow;
+        aoclsparse_operation        trans = aoclsparse_operation_none;
+        ASSERT_EQ(create_matrix(N5_1_hole, m, n, nnz, acrow, acol, aval, A, descr, 0),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_dtrsv_kid(trans, alpha, A, descr, nullptr, x, kid),
+                  aoclsparse_status_invalid_pointer);
+        ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+    };
+
+    TEST(TrsvSuite, InvalidRowSize)
+    {
+        double                      alpha = 0.0;
+        aoclsparse_matrix           A     = nullptr;
+        aoclsparse_mat_descr        descr = nullptr;
+        double                      b[1], x[1];
+        aoclsparse_int              kid = 0, m, n, nnz;
+        std::vector<double>         aval;
+        std::vector<aoclsparse_int> acol, acrow;
+        aoclsparse_operation        trans = aoclsparse_operation_none;
+        ASSERT_EQ(create_matrix(N5_1_hole, m, n, nnz, acrow, acol, aval, A, descr, 0),
+                  aoclsparse_status_success);
+        A->m = -1;
+        ASSERT_EQ(aoclsparse_dtrsv_kid(trans, alpha, A, descr, b, x, kid),
+                  aoclsparse_status_invalid_size);
+        ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+    };
+
+    TEST(TrsvSuite, InvalidNNZ)
+    {
+        double                      alpha = 0.0;
+        aoclsparse_matrix           A     = nullptr;
+        aoclsparse_mat_descr        descr = nullptr;
+        double                      b[1], x[1];
+        aoclsparse_int              kid = 0, m, n, nnz;
+        std::vector<double>         aval;
+        std::vector<aoclsparse_int> acol, acrow;
+        aoclsparse_operation        trans = aoclsparse_operation_none;
+        ASSERT_EQ(create_matrix(N5_1_hole, m, n, nnz, acrow, acol, aval, A, descr, 0),
+                  aoclsparse_status_success);
+        A->nnz = -1;
+        ASSERT_EQ(aoclsparse_dtrsv_kid(trans, alpha, A, descr, b, x, kid),
+                  aoclsparse_status_invalid_size);
+        ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+    };
+
+    TEST(TrsvSuite, NotImpletemedOpCT)
+    {
+        double                      alpha = 0.0;
+        aoclsparse_matrix           A     = nullptr;
+        aoclsparse_mat_descr        descr = nullptr;
+        double                      b[1], x[1];
+        aoclsparse_int              kid = 0, m, n, nnz;
+        std::vector<double>         aval;
+        std::vector<aoclsparse_int> acol, acrow;
+        aoclsparse_operation        trans = aoclsparse_operation_conjugate_transpose;
+        ASSERT_EQ(create_matrix(N5_1_hole, m, n, nnz, acrow, acol, aval, A, descr, 0),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_dtrsv_kid(trans, alpha, A, descr, b, x, kid),
+                  aoclsparse_status_not_implemented);
+        ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+    };
+
+    TEST(TrsvSuite, GeneralMatrix)
+    {
+        double                      alpha = 0.0;
+        aoclsparse_matrix           A     = nullptr;
+        aoclsparse_mat_descr        descr = nullptr;
+        double                      b[1], x[1];
+        aoclsparse_int              kid = 0, m, n, nnz;
+        std::vector<double>         aval;
+        std::vector<aoclsparse_int> acol, acrow;
+        aoclsparse_operation        trans = aoclsparse_operation_none;
+        ASSERT_EQ(create_matrix(N5_1_hole, m, n, nnz, acrow, acol, aval, A, descr, 0),
+                  aoclsparse_status_success);
+        descr->type = aoclsparse_matrix_type_general;
+        ASSERT_EQ(aoclsparse_dtrsv_kid(trans, alpha, A, descr, b, x, kid),
+                  aoclsparse_status_invalid_value);
+        ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+    };
+
+    TEST(TrsvSuite, NotSquare)
+    {
+        double                      alpha = 0.0;
+        aoclsparse_matrix           A     = nullptr;
+        aoclsparse_mat_descr        descr = nullptr;
+        double                      b[1], x[1];
+        aoclsparse_int              kid = 0, m, n, nnz;
+        std::vector<double>         aval;
+        std::vector<aoclsparse_int> acol, acrow;
+        aoclsparse_operation        trans = aoclsparse_operation_none;
+        ASSERT_EQ(create_matrix(N5_1_hole, m, n, nnz, acrow, acol, aval, A, descr, 0),
+                  aoclsparse_status_success);
+        A->n = 0;
+        ASSERT_EQ(aoclsparse_dtrsv_kid(trans, alpha, A, descr, b, x, kid),
+                  aoclsparse_status_invalid_value);
+        ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+    };
+
+    TEST(TrsvSuite, GeneralIncompleteRank)
+    {
+        double                      alpha = 0.0;
+        aoclsparse_matrix           A     = nullptr;
+        aoclsparse_mat_descr        descr = nullptr;
+        double                      b[1], x[1];
+        aoclsparse_int              kid = 0, m, n, nnz;
+        std::vector<double>         aval;
+        std::vector<aoclsparse_int> acol, acrow;
+        aoclsparse_operation        trans = aoclsparse_operation_none;
+        ASSERT_EQ(create_matrix(N5_1_hole, m, n, nnz, acrow, acol, aval, A, descr, 0),
+                  aoclsparse_status_success);
+        // Force it to lower triangular
+        descr->fill_mode = aoclsparse_fill_mode_lower;
+        descr->type      = aoclsparse_matrix_type_triangular;
+        ASSERT_EQ(aoclsparse_dtrsv_kid(trans, alpha, A, descr, b, x, kid),
+                  aoclsparse_status_invalid_value);
+        ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+    };
+
+    template <typename T>
+    void trsv_hint_driver(linear_system_id id)
+    {
+        std::string          title;
+        T                    alpha;
+        aoclsparse_matrix    A     = nullptr;
+        aoclsparse_mat_descr descr = nullptr;
+        std::vector<T>       b;
+        std::vector<T>       x;
+        std::vector<T>       xref;
+        T                    xtol;
+        aoclsparse_operation trans;
+        // permanent storage of matrix data
+        std::vector<T>                 aval;
+        std::vector<aoclsparse_int>    icola;
+        std::vector<aoclsparse_int>    icrowa;
+        std::array<aoclsparse_int, 10> iparm;
+        std::array<T, 10>              dparm;
+        aoclsparse_status              status, exp_status;
+
+        status = create_linear_system<T>(id,
+                                         title,
+                                         trans,
+                                         A,
+                                         descr,
+                                         alpha,
+                                         b,
+                                         x,
+                                         xref,
+                                         xtol,
+                                         icrowa,
+                                         icola,
+                                         aval,
+                                         iparm,
+                                         dparm,
+                                         exp_status);
+        ASSERT_EQ(status, aoclsparse_status_success) << "could not find linear system id " << id;
+        aoclsparse_int ncalls = iparm[0];
+        status                = aoclsparse_set_sv_hint(A, trans, descr, ncalls);
+        ASSERT_EQ(status, exp_status)
+            << "failed with unexpected return from aoclsparse_set_sv_hint";
+        ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+    }
+
+#define ADD_TEST_HINT(ID) \
+    {                     \
+        ID, #ID, 0        \
+    }
+    trsv_list_t trsv_hint_list[] = {ADD_TEST_HINT(D7Lx_aB_hint),
+                                    ADD_TEST_HINT(A_nullptr),
+                                    ADD_TEST_HINT(D1_descr_nullptr),
+                                    ADD_TEST_HINT(D1_neg_num_hint),
+                                    ADD_TEST_HINT(D1_mattype_gen_hint)};
+
+    class PosHDouble : public testing::TestWithParam<trsv_list_t>
+    {
+    };
+    TEST_P(PosHDouble, Hint)
+    {
+        const linear_system_id id       = GetParam().id;
+#if(VERBOSE > 0)
+        std::cout << "PosH/Double test name: \"" << GetParam().testname << "\"" << std::endl;
+#endif
+        trsv_hint_driver<double>(id);
+    }
+    INSTANTIATE_TEST_CASE_P(TrsvSuite, PosHDouble, ::testing::ValuesIn(trsv_hint_list));
+
+    class PosHFloat : public testing::TestWithParam<trsv_list_t>
+    {
+    };
+    TEST_P(PosHFloat, Hint)
+    {
+        const linear_system_id id = GetParam().id;
+#if(VERBOSE > 0)
+        std::cout << "PosH/Float test name: \"" << GetParam().testname << "\"" << std::endl;
+#endif
+        trsv_hint_driver<float>(id);
+    }
+    INSTANTIATE_TEST_CASE_P(TrsvSuite, PosHFloat, ::testing::ValuesIn(trsv_hint_list));
 }
-
-} // namespace
+// namespace

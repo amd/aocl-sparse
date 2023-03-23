@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022-2023 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,6 +30,7 @@
 #include "aoclsparse_csr_util.hpp"
 
 #include <immintrin.h>
+#include <type_traits>
 
 #define KT_ADDRESS_TYPE aoclsparse_int
 #include "aoclsparse_kernel_templates.hpp"
@@ -967,6 +968,12 @@ aoclsparse_status
         return aoclsparse_status_invalid_value;
     }
 
+    // Check for base index
+    // There is an issue that zero-based indexing is defined in two separate places and
+    // can lead to ambiguity, for now we check that both are consisten and zero-based.
+    if((A->base != aoclsparse_index_base_zero) || (descr->base != aoclsparse_index_base_zero))
+        return aoclsparse_status_not_implemented;
+
     if(transpose != aoclsparse_operation_none && transpose != aoclsparse_operation_transpose)
         return aoclsparse_status_not_implemented;
 
@@ -984,16 +991,21 @@ aoclsparse_status
         // user did not check the matrix, call optimize
         aoclsparse_status status = aoclsparse_csr_optimize<T>(A);
         if(status != aoclsparse_status_success)
-            return status; // This should not happen...
+            return status; // LCOV_EXCL_LINE
     }
     // From this point on A->opt_csr_ready is true
+
+    // Make sure we have the right type before casting
+    if(!((A->val_type == aoclsparse_dmat && std::is_same_v<T, double>)
+         || (A->val_type == aoclsparse_smat && std::is_same_v<T, float>)))
+        return aoclsparse_status_wrong_type;
+    const T *a = (T *)((A->opt_csr_mat).csr_val);
 
     const bool unit = descr->diag_type == aoclsparse_diag_type_unit;
 
     if(!A->opt_csr_full_diag && !unit) // not of full rank, linear system cannot be solved
         return aoclsparse_status_invalid_value;
 
-    const T              *a    = (T *)((A->opt_csr_mat).csr_val);
     const aoclsparse_int *icol = (A->opt_csr_mat).csr_col_ptr;
     // beggining of the row
     const aoclsparse_int *ilrow = (A->opt_csr_mat).csr_row_ptr;
@@ -1020,10 +1032,10 @@ aoclsparse_status
         case 3: // AVX-512F 512b
             if(global_context.is_avx512)
                 usekid = kid;
-            // Requested instructions that are not available on host,
-            // stay with the extension suggested by CPU ID...
+            // Requested kid not available on host,
+            // stay with kid suggested by CPU ID...
             break;
-        default: // use CPU ID default
+        default: // use kid suggested by CPU ID...
             break;
         }
     }

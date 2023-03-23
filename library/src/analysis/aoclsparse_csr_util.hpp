@@ -31,6 +31,7 @@
 #include <algorithm>
 #include <cstring>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #if defined(_WIN32) || defined(_WIN64)
@@ -267,6 +268,14 @@ template <typename T>
 aoclsparse_status aoclsparse_csr_optimize(aoclsparse_matrix A)
 {
     aoclsparse_status status;
+
+    if(!A)
+        return aoclsparse_status_invalid_pointer;
+
+    // Make sure we have the right type before proceeding
+    if(!((A->val_type == aoclsparse_dmat && std::is_same_v<T, double>)
+         || (A->val_type == aoclsparse_smat && std::is_same_v<T, float>)))
+        return aoclsparse_status_wrong_type;
 
     // Check the user's matrix format
     // First check the matrix is a valid matrix
