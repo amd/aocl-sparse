@@ -814,8 +814,8 @@ bool trsv_kid_driver(aoclsparse_int &testid, aoclsparse_int kid = -1)
     aoclsparse_int       KID; // (AVX2=2) and AVX512=3
     string               title = "unknown";
     T                    alpha;
-    aoclsparse_matrix    A;
-    aoclsparse_mat_descr descr;
+    aoclsparse_matrix    A = nullptr;
+    aoclsparse_mat_descr descr = nullptr;
     vector<T>            b;
     vector<T>            x;
     vector<T>            xref;
@@ -892,6 +892,8 @@ bool trsv_kid_driver(aoclsparse_int &testid, aoclsparse_int kid = -1)
     {
         testid = -1;
     }
+    aoclsparse_destroy_mat_descr(descr);
+    aoclsparse_destroy(A);
     return ok;
 }
 
@@ -902,8 +904,8 @@ bool trsv_hint_driver(aoclsparse_int &testid)
     aoclsparse_int       verbose = 1;
     string               title;
     T                    alpha;
-    aoclsparse_matrix    A;
-    aoclsparse_mat_descr descr;
+    aoclsparse_matrix    A = nullptr;
+    aoclsparse_mat_descr descr = nullptr;
     vector<T>            b;
     vector<T>            x;
     vector<T>            xref;
@@ -951,6 +953,8 @@ bool trsv_hint_driver(aoclsparse_int &testid)
     {
         testid = -1;
     }
+    aoclsparse_destroy_mat_descr(descr);
+    aoclsparse_destroy(A);
     return ok;
 }
 

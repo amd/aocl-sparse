@@ -234,12 +234,14 @@ aoclsparse_status aoclsparse_csr_check_internal(aoclsparse_int       m,
     return aoclsparse_status_success;
 }
 
-/* Given a valid CSR matrix, check if indices are increasingly sorted within rows
- * (thus also there are no duplicates) and if sorted, check also if all diagonal
+/* Given a valid CSR matrix, check if indices are grouped by lower triange,
+ * diagonal, upper triangle within rows, order within groups is not checked,
+ * and if group-ordered, check also if all diagonal
  * elements exist (fulldiag). If (!sorted), diagonal elements are not checked
  * and fulldiag=false is returned.
  *
- * Possible fails: size(m<0), invalid_pointer (input)
+ * Possible fails: invalid_size(m,n<0), invalid_pointer (input),
+ *                 invalid_value (duplicate diagonal element)
  */
 aoclsparse_status aoclsparse_csr_check_sort_diag(
     aoclsparse_int m, aoclsparse_int n, const aoclsparse_csr csr_mat, bool &sorted, bool &fulldiag)
@@ -257,29 +259,45 @@ aoclsparse_status aoclsparse_csr_check_sort_diag(
     sorted   = true;
     fulldiag = true;
     aoclsparse_int i, idx, idxend;
-    bool           found;
+    bool           found, lower;
 
     for(i = 0; i < m; i++)
     {
+        lower = true; // assume the data starts with the lower triangular part
         found  = false;
-        idxend = csr_mat->csr_row_ptr[i + 1] - 1;
+        idxend = csr_mat->csr_row_ptr[i + 1];
         for(idx = csr_mat->csr_row_ptr[i]; idx < idxend; idx++)
         {
-            if(csr_mat->csr_col_ptr[idx] >= csr_mat->csr_col_ptr[idx + 1])
-            {
-                sorted   = false;
+            if (csr_mat->csr_col_ptr[idx] == i) {
+              if (found){
+                // duplicate diagonal
+                return aoclsparse_status_invalid_value;
+              }
+              found = true;
+              sorted = lower;
+              lower = false;
+            } else {
+                if (lower) {
+                    lower = csr_mat->csr_col_ptr[idx] < i;
+                } else {
+                    sorted &= csr_mat->csr_col_ptr[idx] > i;
+                }
+            }
+            if(!sorted) {
+               // early termination
                 fulldiag = false;
                 return aoclsparse_status_success;
             }
-            if(csr_mat->csr_col_ptr[idx] == i)
-                found = true;
         }
-        // check the last element in the row as well
-        if(csr_mat->csr_col_ptr[idxend] == i)
-            found = true;
+
         if(!found && i < n)
         {
             fulldiag = false;
+        }
+        if(!sorted) {
+            // early termination
+            fulldiag = false;
+            return aoclsparse_status_success;
         }
     }
 
