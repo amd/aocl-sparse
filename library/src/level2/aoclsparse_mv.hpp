@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022-2023 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -50,7 +50,7 @@ aoclsparse_status aoclsparse_mv_general(aoclsparse_operation       op,
                                         const T                    beta,
                                         T                         *y);
 
-/* templated version to dispach optimized SPMV
+/* templated version to dispatch optimized SPMV
  * Note, the assumption is that x&y are compatible with the size of A
  * Compute y:= beta*y + alpha*A*x    or   + alpha*A'*x
  */
@@ -73,11 +73,17 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
     if(descr == nullptr)
         return aoclsparse_status_invalid_pointer;
 
+    // Check pointer arguments
+    if(x == nullptr || y == nullptr)
+        return aoclsparse_status_invalid_pointer;
+
     // Check index base
     if(descr->base != aoclsparse_index_base_zero)
         return aoclsparse_status_not_implemented;
+
     if(descr->type != aoclsparse_matrix_type_general
-       && descr->type != aoclsparse_matrix_type_symmetric)
+       && descr->type != aoclsparse_matrix_type_symmetric
+       && descr->type != aoclsparse_matrix_type_triangular)
         return aoclsparse_status_not_implemented;
 
     if(descr->type == aoclsparse_matrix_type_symmetric && A->m != A->n)
@@ -93,41 +99,97 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
     if(A->m == 0 || A->n == 0)
         return aoclsparse_status_success;
 
-    // Check pointer arguments
-    if(x == nullptr || y == nullptr)
-        return aoclsparse_status_invalid_pointer;
+    // In UK/HPCG branch this would be triggered every time
+    // Let's do it only for triangular/symmetric matrices
+    if((descr->type == aoclsparse_matrix_type_triangular ||
+      descr->type == aoclsparse_matrix_type_symmetric)
+      && !A->opt_csr_ready)
+    {
+        status = aoclsparse_csr_optimize<T>(A);
+        if(status)
+            return status;
+    }
 
+    // Read the environment variables to update global variable
+    // This function updates the num_threads only once.
+    aoclsparse_init_once();
+
+    aoclsparse_context context;
+    context.num_threads = global_context.num_threads;
+
+    // Dispatcher
     if(descr->type == aoclsparse_matrix_type_general)
     {
         // TODO trigger appropriate optimization?
         return aoclsparse_mv_general(op, alpha, A, descr, x, beta, y);
+        // In UK/HPCG branch this would go only to AVX2 CSR
+        // y = alpha A * x + beta y
+        /*return aoclsparse_csrmv_vectorized_avx2ptr(alpha,
+                                                   A->m,
+                                                   A->n,
+                                                   A->nnz,
+                                                   (T *)A->opt_csr_mat.csr_val,
+                                                   A->opt_csr_mat.csr_col_ptr,
+                                                   A->opt_csr_mat.csr_row_ptr,
+                                                   &A->opt_csr_mat.csr_row_ptr[1],
+                                                   x,
+                                                   beta,
+                                                   y,
+                                                   &context);*/
     }
-    else
+    else if(descr->type == aoclsparse_matrix_type_triangular
+            && descr->fill_mode == aoclsparse_fill_mode_lower)
     {
-        // Symmetric matrix, we will you optimized CSR
-        if(!A->opt_csr_ready)
-        {
-            status = aoclsparse_csr_optimize<T>(A);
-            if(status)
-                return status;
-        }
-        if(descr->type == aoclsparse_matrix_type_symmetric)
-            // can dispatch our data directly
-            // transposed operation can be ignored
-            return aoclsparse_csrmv_symm_internal(alpha,
-                                                  A->m,
-                                                  descr->diag_type,
-                                                  descr->fill_mode,
-                                                  (T *)A->opt_csr_mat.csr_val,
-                                                  A->opt_csr_mat.csr_col_ptr,
-                                                  A->opt_csr_mat.csr_row_ptr,
-                                                  A->idiag,
-                                                  A->iurow,
-                                                  x,
-                                                  beta,
-                                                  y);
+        // y = alpha L * x + beta y
+        return aoclsparse_csrmv_vectorized_avx2ptr(alpha,
+                                                   A->m,
+                                                   A->n,
+                                                   A->nnz,
+                                                   (T *)A->opt_csr_mat.csr_val,
+                                                   A->opt_csr_mat.csr_col_ptr,
+                                                   A->opt_csr_mat.csr_row_ptr,
+                                                   A->iurow,
+                                                   x,
+                                                   beta,
+                                                   y,
+                                                   &context);
     }
-    return aoclsparse_status_success;
+    else if(descr->type == aoclsparse_matrix_type_triangular
+            && descr->fill_mode == aoclsparse_fill_mode_upper)
+    {
+        // y = alpha U * x + beta y
+        return aoclsparse_csrmv_vectorized_avx2ptr(alpha,
+                                                   A->m,
+                                                   A->n,
+                                                   A->nnz,
+                                                   (T *)A->opt_csr_mat.csr_val,
+                                                   A->opt_csr_mat.csr_col_ptr,
+                                                   A->idiag,
+                                                   &A->opt_csr_mat.csr_row_ptr[1],
+                                                   x,
+                                                   beta,
+                                                   y,
+                                                   &context);
+    }
+    else if(descr->type == aoclsparse_matrix_type_symmetric)
+    {
+        // can dispatch our data directly
+        // transposed operation can be ignored
+        // y = alpha A * x + beta y
+        return aoclsparse_csrmv_symm_internal(alpha,
+                                              A->m,
+                                              descr->diag_type,
+                                              descr->fill_mode,
+                                              (T *)A->opt_csr_mat.csr_val,
+                                              A->opt_csr_mat.csr_col_ptr,
+                                              A->opt_csr_mat.csr_row_ptr,
+                                              A->idiag,
+                                              A->iurow,
+                                              x,
+                                              beta,
+                                              y);
+    }
+    return aoclsparse_status_not_implemented;
 }
 
 #endif // AOCLSPARSE_OPTMV_HPP

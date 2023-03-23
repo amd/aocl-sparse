@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2022 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2023 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -55,6 +55,20 @@ aoclsparse_status aoclsparse_csrmv_vectorized_avx2(const T        alpha,
                                                    const T *__restrict__ csr_val,
                                                    const aoclsparse_int *__restrict__ csr_col_ind,
                                                    const aoclsparse_int *__restrict__ csr_row_ptr,
+                                                   const T *__restrict__ x,
+                                                   const T beta,
+                                                   T *__restrict__ y,
+                                                   aoclsparse_context *context);
+
+template <typename T>
+aoclsparse_status aoclsparse_csrmv_vectorized_avx2ptr(const T   alpha,
+                                                   aoclsparse_int m,
+                                                   aoclsparse_int n,
+                                                   aoclsparse_int nnz,
+                                                   const T *__restrict__ aval,
+                                                   const aoclsparse_int *__restrict__ icol,
+                                                   const aoclsparse_int *__restrict__ crstart,
+                                                   const aoclsparse_int *__restrict__ crend,
                                                    const T *__restrict__ x,
                                                    const T beta,
                                                    T *__restrict__ y,

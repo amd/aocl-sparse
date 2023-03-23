@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2022 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2023 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -529,4 +529,103 @@ extern "C" aoclsparse_status aoclsparse_dcsrmv(aoclsparse_operation       trans,
 #endif
         }
     }
+}
+
+template <>
+aoclsparse_status aoclsparse_csrmv_vectorized_avx2ptr(const float   alpha,
+                                                   aoclsparse_int m,
+                                                   aoclsparse_int n,
+                                                   aoclsparse_int nnz,
+                                                   const float *__restrict__ aval,
+                                                   const aoclsparse_int *__restrict__ icol,
+                                                   const aoclsparse_int *__restrict__ crstart,
+                                                   const aoclsparse_int *__restrict__ crend,
+                                                   const float *__restrict__ x,
+                                                   const float beta,
+                                                   float *__restrict__ y,
+                                                   aoclsparse_context *context)
+{
+    return aoclsparse_status_not_implemented;
+}
+
+template <>
+aoclsparse_status aoclsparse_csrmv_vectorized_avx2ptr(const double   alpha,
+                                                   aoclsparse_int m,
+                                                   aoclsparse_int n,
+                                                   aoclsparse_int nnz,
+                                                   const double *__restrict__ aval,
+                                                   const aoclsparse_int *__restrict__ icol,
+                                                   const aoclsparse_int *__restrict__ crstart,
+                                                   const aoclsparse_int *__restrict__ crend,
+                                                   const double *__restrict__ x,
+                                                   const double beta,
+                                                   double *__restrict__ y,
+                                                   aoclsparse_context *context)
+{
+
+    __m256d vec_vals, vec_x, vec_y;
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(context->num_threads) \
+    schedule(dynamic, m / context->num_threads) private(vec_vals, vec_x, vec_y)
+#endif
+    for(aoclsparse_int i = 0; i < m; i++)
+    {
+        aoclsparse_int j;
+        double         result = 0.0;
+        vec_y                 = _mm256_setzero_pd();
+        // Andrew aoclsparse_int nnz    = csr_row_ptr[i + 1] - csr_row_ptr[i];
+        aoclsparse_int nnz    = crend[i] - crstart[i];
+        aoclsparse_int k_iter = nnz / 4;
+        aoclsparse_int k_rem  = nnz % 4;
+
+        //Loop in multiples of 4 non-zeroes
+        for(j = crstart[i]; j < crend[i] - k_rem; j += 4)
+        {
+            //(csr_val[j] (csr_val[j+1] (csr_val[j+2] (csr_val[j+3]
+            vec_vals = _mm256_loadu_pd((double const *)&aval[j]);
+
+            //Gather the x vector elements from the column indices
+            vec_x = _mm256_set_pd(x[icol[j + 3]],
+                                  x[icol[j + 2]],
+                                  x[icol[j + 1]],
+                                  x[icol[j + 0]]);
+
+            vec_y = _mm256_fmadd_pd(vec_vals, vec_x, vec_y);
+        }
+
+        // Horizontal addition
+        if(k_iter)
+        {
+            // sum[0] += sum[1] ; sum[2] += sum[3]
+            vec_y = _mm256_hadd_pd(vec_y, vec_y);
+            // Cast avx_sum to 128 bit to obtain sum[0] and sum[1]
+            __m128d sum_lo = _mm256_castpd256_pd128(vec_y);
+            // Extract 128 bits to obtain sum[2] and sum[3]
+            __m128d sum_hi = _mm256_extractf128_pd(vec_y, 1);
+            // Add remaining two sums
+            __m128d sse_sum = _mm_add_pd(sum_lo, sum_hi);
+            // Store result
+            /*
+	       __m128d in gcc is typedef as double
+	       but in Windows, this is defined as a struct
+	       */
+#if !defined(__clang__) && (defined(_WIN32) || defined(_WIN64))
+            result = sse_sum.m128d_f64[0];
+#else
+            result = sse_sum[0];
+#endif
+        }
+
+        //Remainder loop for nnz%4
+        for(j = crend[i] - k_rem; j < crend[i]; j++)
+        {
+            result += aval[j] * x[icol[j]];
+        }
+
+        // Perform alpha * A * x
+        result = alpha * result;
+        result += beta * y[i];
+        y[i] = result;
+    }
+    return aoclsparse_status_success;
 }
