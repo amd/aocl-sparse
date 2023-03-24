@@ -60,9 +60,17 @@
             << " rel err: " << abs(((x)[i] - (y)[i]) / (x)[i]) << "."; \
     }
 
-#define EXPECT_ARR_NEAR(n, x, y, abs_error) \
-    for(int j = 0; j < (n); j++)            \
-    EXPECT_NEAR((x[j]), (y[j]), abs_error)  \
+#define EXPECT_EQ_VEC_ERR(n, x, y)                                                                 \
+    for(size_t i = 0; i < n; i++)                                                                  \
+    {                                                                                              \
+        EXPECT_EQ((x)[i], ((y)[i])) << " vectors " #x " and " #y " differ at index i = " << i      \
+                                    << " by abs err: " << abs((x)[i] - ((y)[i]))                   \
+                                    << " rel err: " << abs(((x)[i] - *((y) + i)) / (x)[i]) << "."; \
+    }
+
+#define EXPECT_ARR_NEAR(n, x, y, abs_error)    \
+    for(int j = 0; j < (n); j++)               \
+    EXPECT_NEAR(((x)[j]), ((y)[j]), abs_error) \
         << "Vectors " #x " and " #y " different at index j=" << j << "."
 
 // Define precision to which we expect the results to match ==================================
