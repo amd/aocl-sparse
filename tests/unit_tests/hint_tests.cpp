@@ -95,8 +95,8 @@ namespace
             sol.icrow            = {0, 2, 3, 4, 8, 9};
             sol.icol             = {0, 3, 1, 2, 2, 1, 3, 4, 4};
             sol.aval             = {1, 2, 3, 4, 9, 5, 6, 7, 8};
-            sol.idiag            = {0, 2, 3, 5, 7};
-            sol.iurow            = {1, 3, 4, 6, 8};
+            sol.idiag            = {0, 2, 3, 6, 8};
+            sol.iurow            = {1, 3, 4, 7, 9};
             sol.opt_csr_is_users = true;
             break;
         case N5_1_hole:
