@@ -35,7 +35,7 @@ namespace
     void test_blkcsrmv_nullptr()
     {
         aoclsparse_operation trans = aoclsparse_operation_none;
-        aoclsparse_int       m = 2, n = 3, nnz = 3;
+        aoclsparse_int       m = 2, n = 8, nnz = 3;
         T                    blk_csr_val[] = {3, 2, 1};
         aoclsparse_int       blk_col_ind[] = {1};
         aoclsparse_int       blk_row_ptr[] = {0, 1, 1};
@@ -172,7 +172,7 @@ namespace
     void test_blkcsrmv_wrong_size()
     {
         aoclsparse_operation trans = aoclsparse_operation_none;
-        aoclsparse_int       m = 2, n = 3, nnz = 3, wrong = -1;
+        aoclsparse_int       m = 2, n = 8, nnz = 3, wrong = -1;
         T                    blk_csr_val[] = {3, 2, 1};
         aoclsparse_int       blk_col_ind[] = {1};
         aoclsparse_int       blk_row_ptr[] = {0, 1, 1};
@@ -186,6 +186,21 @@ namespace
 
         for(int i = 0; i < 3; i++)
         {
+            EXPECT_EQ(aoclsparse_blkcsrmv<T>(trans,
+                                             &alpha,
+                                             m,
+                                             5,
+                                             nnz,
+                                             masks,
+                                             blk_csr_val,
+                                             blk_col_ind,
+                                             blk_row_ptr,
+                                             descr,
+                                             x,
+                                             &beta,
+                                             y,
+                                             nRowsblk[i]),
+                      aoclsparse_status_invalid_size);
             EXPECT_EQ(aoclsparse_blkcsrmv<T>(trans,
                                              &alpha,
                                              wrong,
@@ -273,7 +288,7 @@ namespace
     void test_blkcsrmv_do_nothing()
     {
         aoclsparse_operation trans = aoclsparse_operation_none;
-        aoclsparse_int       m = 2, n = 3, nnz = 3;
+        aoclsparse_int       m = 2, n = 8, nnz = 3;
         T                    blk_csr_val[] = {3, 2, 1};
         aoclsparse_int       blk_col_ind[] = {1};
         aoclsparse_int       blk_row_ptr[] = {0, 1, 1};
@@ -306,21 +321,6 @@ namespace
             EXPECT_EQ(aoclsparse_blkcsrmv<T>(trans,
                                              &alpha,
                                              m,
-                                             0,
-                                             nnz,
-                                             masks,
-                                             blk_csr_val,
-                                             blk_col_ind,
-                                             blk_row_ptr,
-                                             descr,
-                                             x,
-                                             &beta,
-                                             y,
-                                             nRowsblk[i]),
-                      aoclsparse_status_success);
-            EXPECT_EQ(aoclsparse_blkcsrmv<T>(trans,
-                                             &alpha,
-                                             m,
                                              n,
                                              0,
                                              masks,
@@ -338,12 +338,12 @@ namespace
         aoclsparse_destroy_mat_descr(descr);
     }
 
-    /*
+    
     //Test cases for analysis and conversion routines
     template <typename T>
     void test_blkcsrmv_conversion()
     {
-        aoclsparse_int       m = 2, n = 3, nnz = 3;
+        aoclsparse_int       m = 2, n = 8, nnz = 3;
         T                    csr_val[]     = {3, 2, 1};
         aoclsparse_int       csr_col_ind[] = {1};
         aoclsparse_int       csr_row_ptr[] = {0, 1, 1};
@@ -509,7 +509,7 @@ namespace
 
         aoclsparse_destroy_mat_descr(descr);
     }
-*/
+
     //TODO add:
     // * not supported/implemented
     // * invalid array data (but we don't test these right now, e.g., col_ind out of bounds)
@@ -531,10 +531,10 @@ namespace
         test_blkcsrmv_do_nothing<double>();
     }
 
-//    TEST(blkcsrmv, Conversion)
-//    {
-//        test_blkcsrmv_conversion<double>();
-//    }
+    TEST(blkcsrmv, Conversion)
+    {
+        test_blkcsrmv_conversion<double>();
+    }
 
 } // namespace
 #endif
