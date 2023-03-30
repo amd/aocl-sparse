@@ -117,14 +117,14 @@ foreach(FUNCTION "csrmv" "ellmv" "diamv" "optmv") # TODO add back "csrsv", so fa
       list(GET MATSIZE_LIST 2 SIZENNZ)
       #message(STATUS "PREC=${PREC}: MATSIZE=${MATSIZE} MATSIZE_LIST=${MATSIZE_LIST} ${SIZEM}x${SIZEN}x${SIZENNZ}")
 
-      add_test(FuncTest.${FUNCTION}-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ} ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --verify=1)
+      add_test(FuncTest.${FUNCTION}-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ} ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --verify=1 --iters=1)
       # set_property(TEST FuncTest.${FUNCTION}-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ} PROPERTY ENVIRONMENT ASAN_OPTIONS="log_path=ASANlogger.FuncTest.${FUNCTION}-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ}")
 
     endforeach(MATSIZE)
 
     # Add extra tests to exercise nonstandard multipliers alpha, beta
-    add_test(FuncTest.${FUNCTION}-${PREC}-100x99x333-mlt ../staging/aoclsparse-bench --function=${FUNCTION} --precision=${PREC} --sizem=100 --sizen=99 --sizennz=333 --alpha=3 --beta=-1.5 --verify=1)
-    add_test(FuncTest.${FUNCTION}-${PREC}-21x49x333-mlt ../staging/aoclsparse-bench --function=${FUNCTION} --precision=${PREC} --sizem=21 --sizen=49 --sizennz=333 --alpha=3 --beta=-1.5 --verify=1)
+    add_test(FuncTest.${FUNCTION}-${PREC}-100x99x333-mlt ../staging/aoclsparse-bench --function=${FUNCTION} --precision=${PREC} --sizem=100 --sizen=99 --sizennz=333 --alpha=3 --beta=-1.5 --verify=1 --iters=1)
+    add_test(FuncTest.${FUNCTION}-${PREC}-21x49x333-mlt ../staging/aoclsparse-bench --function=${FUNCTION} --precision=${PREC} --sizem=21 --sizen=49 --sizennz=333 --alpha=3 --beta=-1.5 --verify=1 --iters=1)
 
   endforeach(PREC)
 endforeach(FUNCTION)
@@ -142,20 +142,20 @@ foreach(FUNCTION "blkcsrmv")
       list(GET MATSIZE_LIST 2 SIZENNZ)
       #message(STATUS "PREC=${PREC}: MATSIZE=${MATSIZE} MATSIZE_LIST=${MATSIZE_LIST} ${SIZEM}x${SIZEN}x${SIZENNZ}")
       if(SIZEN GREATER_EQUAL 8)
-         add_test(FuncTest.${FUNCTION}-${PREC}-${BLK}-${SIZEM}x${SIZEN}x${SIZENNZ} ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizeblk=${BLK} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --verify=1)
+         add_test(FuncTest.${FUNCTION}-${PREC}-${BLK}-${SIZEM}x${SIZEN}x${SIZENNZ} ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizeblk=${BLK} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --verify=1 --iters=1)
       # set_property(TEST FuncTest.${FUNCTION}-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ} PROPERTY ENVIRONMENT ASAN_OPTIONS="log_path=ASANlogger.FuncTest.${FUNCTION}-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ}")
       endif()
     endforeach(MATSIZE)
 
     # Add extra tests to exercise nonstandard multipliers alpha, beta
-    add_test(FuncTest.${FUNCTION}-${PREC}-${BLK}-100x99x333-mlt ../staging/aoclsparse-bench --function=${FUNCTION} --precision=${PREC} --sizeblk=${BLK} --sizem=100 --sizen=99 --sizennz=333 --alpha=3 --beta=-1.5 --verify=1)
-    add_test(FuncTest.${FUNCTION}-${PREC}-${BLK}-21x49x333-mlt ../staging/aoclsparse-bench --function=${FUNCTION} --precision=${PREC} --sizeblk=${BLK} --sizem=21 --sizen=49 --sizennz=333 --alpha=3 --beta=-1.5 --verify=1)
+    add_test(FuncTest.${FUNCTION}-${PREC}-${BLK}-100x99x333-mlt ../staging/aoclsparse-bench --function=${FUNCTION} --precision=${PREC} --sizeblk=${BLK} --sizem=100 --sizen=99 --sizennz=333 --alpha=3 --beta=-1.5 --verify=1 --iters=1)
+    add_test(FuncTest.${FUNCTION}-${PREC}-${BLK}-21x49x333-mlt ../staging/aoclsparse-bench --function=${FUNCTION} --precision=${PREC} --sizeblk=${BLK} --sizem=21 --sizen=49 --sizennz=333 --alpha=3 --beta=-1.5 --verify=1 --iters=1)
 
     endforeach(BLK)
 
     #adding tests with incorrect block size
-    add_test(FuncTest.${FUNCTION}-${PREC}-${BLK}-100x99x333-mlt ../staging/aoclsparse-bench --function=${FUNCTION} --precision=${PREC} --sizeblk=3 --sizem=100 --sizen=99 --sizennz=333 --alpha=3 --beta=-1.5 --verify=1)
-    add_test(FuncTest.${FUNCTION}-${PREC}-${BLK}-21x49x333-mlt ../staging/aoclsparse-bench --function=${FUNCTION} --precision=${PREC} --sizeblk=7 --sizem=21 --sizen=49 --sizennz=333 --alpha=3 --beta=-1.5 --verify=1)
+    add_test(FuncTest.${FUNCTION}-${PREC}-${BLK}-100x99x333-mlt ../staging/aoclsparse-bench --function=${FUNCTION} --precision=${PREC} --sizeblk=3 --sizem=100 --sizen=99 --sizennz=333 --alpha=3 --beta=-1.5 --verify=1 --iters=1)
+    add_test(FuncTest.${FUNCTION}-${PREC}-${BLK}-21x49x333-mlt ../staging/aoclsparse-bench --function=${FUNCTION} --precision=${PREC} --sizeblk=7 --sizem=21 --sizen=49 --sizennz=333 --alpha=3 --beta=-1.5 --verify=1 --iters=1)
 
   endforeach(PREC)
 endforeach(FUNCTION)
@@ -172,12 +172,12 @@ foreach(FUNCTION "bsrmv")
         list(GET MATSIZE_LIST 1 SIZEN)
         list(GET MATSIZE_LIST 2 SIZENNZ)
 
-        add_test(FuncTest.${FUNCTION}-${PREC}-${BLK}-${SIZEM}x${SIZEN}x${SIZENNZ} ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --blockdim=${BLK} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --verify=1)
+        add_test(FuncTest.${FUNCTION}-${PREC}-${BLK}-${SIZEM}x${SIZEN}x${SIZENNZ} ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --blockdim=${BLK} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --verify=1 --iters=1)
       endforeach(MATSIZE)
 
       # Add extra tests to exercise nonstandard multipliers alpha, beta
-      add_test(FuncTest.${FUNCTION}-${PREC}-${BLK}-100x99x333-mlt ../staging/aoclsparse-bench --function=${FUNCTION} --precision=${PREC} --blockdim=${BLK} --sizem=100 --sizen=99 --sizennz=333 --alpha=3 --beta=-1.5 --verify=1)
-      add_test(FuncTest.${FUNCTION}-${PREC}-${BLK}-21x49x333-mlt ../staging/aoclsparse-bench --function=${FUNCTION} --precision=${PREC} --blockdim=${BLK} --sizem=21 --sizen=49 --sizennz=333 --alpha=3 --beta=-1.5 --verify=1)
+      add_test(FuncTest.${FUNCTION}-${PREC}-${BLK}-100x99x333-mlt ../staging/aoclsparse-bench --function=${FUNCTION} --precision=${PREC} --blockdim=${BLK} --sizem=100 --sizen=99 --sizennz=333 --alpha=3 --beta=-1.5 --verify=1 --iters=1)
+      add_test(FuncTest.${FUNCTION}-${PREC}-${BLK}-21x49x333-mlt ../staging/aoclsparse-bench --function=${FUNCTION} --precision=${PREC} --blockdim=${BLK} --sizem=21 --sizen=49 --sizennz=333 --alpha=3 --beta=-1.5 --verify=1 --iters=1)
 
     endforeach(BLK)
   endforeach(PREC)
@@ -193,25 +193,25 @@ foreach(FUNCTION "csrmm")
       list(GET MATSIZE_LIST 1 SIZEN)
       list(GET MATSIZE_LIST 2 SIZENNZ)
 
-      add_test(FuncTest.${FUNCTION}-${PREC}-${SIZEM}x${SIZEN}x${SIZEN}x${SIZENNZ}-co ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=${SIZEN} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --order=1 --verify=1)
-      add_test(FuncTest.${FUNCTION}-${PREC}-${SIZEM}x${SIZEN}x${SIZEN}x${SIZENNZ}-ro ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=${SIZEN} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --order=0 --verify=1)
+      add_test(FuncTest.${FUNCTION}-${PREC}-${SIZEM}x${SIZEN}x${SIZEN}x${SIZENNZ}-co ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=${SIZEN} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --order=1 --verify=1 --iters=1)
+      add_test(FuncTest.${FUNCTION}-${PREC}-${SIZEM}x${SIZEN}x${SIZEN}x${SIZENNZ}-ro ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=${SIZEN} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --order=0 --verify=1 --iters=1)
     endforeach(MATSIZE)
 
       # Add extra tests to exercise nonstandard multipliers alpha, beta
-      add_test(FuncTest.${FUNCTION}-${PREC}-103x103x103x499-co-mlt ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=103 --sizem=103 --sizen=103 --sizennz=499 --order=1 --alpha=3 --beta=-1.5 --verify=1)
-      add_test(FuncTest.${FUNCTION}-${PREC}-103x103x103x499-ro-mlt ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=103 --sizem=103 --sizen=103 --sizennz=499 --order=0 --alpha=3 --beta=-1.5 --verify=1)
-      add_test(FuncTest.${FUNCTION}-${PREC}-103x103x103x499-co-mlt1 ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=103 --sizem=103 --sizen=103 --sizennz=499 --order=1 --alpha=2 --beta=0 --verify=1)
-      add_test(FuncTest.${FUNCTION}-${PREC}-103x103x103x499-ro-mlt1 ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=103 --sizem=103 --sizen=103 --sizennz=499 --order=0 --alpha=2 --beta=0 --verify=1)
+      add_test(FuncTest.${FUNCTION}-${PREC}-103x103x103x499-co-mlt ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=103 --sizem=103 --sizen=103 --sizennz=499 --order=1 --alpha=3 --beta=-1.5 --verify=1 --iters=1)
+      add_test(FuncTest.${FUNCTION}-${PREC}-103x103x103x499-ro-mlt ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=103 --sizem=103 --sizen=103 --sizennz=499 --order=0 --alpha=3 --beta=-1.5 --verify=1 --iters=1)
+      add_test(FuncTest.${FUNCTION}-${PREC}-103x103x103x499-co-mlt1 ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=103 --sizem=103 --sizen=103 --sizennz=499 --order=1 --alpha=2 --beta=0 --verify=1 --iters=1)
+      add_test(FuncTest.${FUNCTION}-${PREC}-103x103x103x499-ro-mlt1 ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=103 --sizem=103 --sizen=103 --sizennz=499 --order=0 --alpha=2 --beta=0 --verify=1 --iters=1)
 
-      add_test(FuncTest.${FUNCTION}-${PREC}-42x42x42x213-co-mlt ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=42 --sizem=42 --sizen=42 --sizennz=213 --order=1 --alpha=3 --beta=-1.5 --verify=1)
-      add_test(FuncTest.${FUNCTION}-${PREC}-42x42x42x213-ro-mlt ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=42 --sizem=42 --sizen=42 --sizennz=213 --order=0 --alpha=3 --beta=-1.5 --verify=1)
-      add_test(FuncTest.${FUNCTION}-${PREC}-42x42x42x213-co-mlt1 ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=42 --sizem=42 --sizen=42 --sizennz=213 --order=1 --alpha=2 --beta=0 --verify=1)
-      add_test(FuncTest.${FUNCTION}-${PREC}-42x42x42x213-ro-mlt1 ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=42 --sizem=42 --sizen=42 --sizennz=213 --order=0 --alpha=2 --beta=0 --verify=1)
+      add_test(FuncTest.${FUNCTION}-${PREC}-42x42x42x213-co-mlt ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=42 --sizem=42 --sizen=42 --sizennz=213 --order=1 --alpha=3 --beta=-1.5 --verify=1 --iters=1)
+      add_test(FuncTest.${FUNCTION}-${PREC}-42x42x42x213-ro-mlt ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=42 --sizem=42 --sizen=42 --sizennz=213 --order=0 --alpha=3 --beta=-1.5 --verify=1 --iters=1)
+      add_test(FuncTest.${FUNCTION}-${PREC}-42x42x42x213-co-mlt1 ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=42 --sizem=42 --sizen=42 --sizennz=213 --order=1 --alpha=2 --beta=0 --verify=1 --iters=1)
+      add_test(FuncTest.${FUNCTION}-${PREC}-42x42x42x213-ro-mlt1 ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=42 --sizem=42 --sizen=42 --sizennz=213 --order=0 --alpha=2 --beta=0 --verify=1 --iters=1)
 
-      add_test(FuncTest.${FUNCTION}-${PREC}-81x81x81x815-co-mlt ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=81 --sizem=81 --sizen=81 --sizennz=815 --order=1 --alpha=3 --beta=-1.5 --verify=1)
-      add_test(FuncTest.${FUNCTION}-${PREC}-81x81x81x815-ro-mlt ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=81 --sizem=81 --sizen=81 --sizennz=815 --order=0 --alpha=3 --beta=-1.5 --verify=1)
-      add_test(FuncTest.${FUNCTION}-${PREC}-81x81x81x815-co-mlt1 ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=81 --sizem=81 --sizen=81 --sizennz=815 --order=1 --alpha=2 --beta=0 --verify=1)
-      add_test(FuncTest.${FUNCTION}-${PREC}-81x81x81x815-ro-mlt1 ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=81 --sizem=81 --sizen=81 --sizennz=815 --order=0 --alpha=2 --beta=0 --verify=1)
+      add_test(FuncTest.${FUNCTION}-${PREC}-81x81x81x815-co-mlt ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=81 --sizem=81 --sizen=81 --sizennz=815 --order=1 --alpha=3 --beta=-1.5 --verify=1 --iters=1)
+      add_test(FuncTest.${FUNCTION}-${PREC}-81x81x81x815-ro-mlt ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=81 --sizem=81 --sizen=81 --sizennz=815 --order=0 --alpha=3 --beta=-1.5 --verify=1 --iters=1)
+      add_test(FuncTest.${FUNCTION}-${PREC}-81x81x81x815-co-mlt1 ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=81 --sizem=81 --sizen=81 --sizennz=815 --order=1 --alpha=2 --beta=0 --verify=1 --iters=1)
+      add_test(FuncTest.${FUNCTION}-${PREC}-81x81x81x815-ro-mlt1 ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=81 --sizem=81 --sizen=81 --sizennz=815 --order=0 --alpha=2 --beta=0 --verify=1 --iters=1)
 
   endforeach(PREC)
 endforeach(FUNCTION)
@@ -225,7 +225,7 @@ foreach(FUNCTION "csr2m")
       list(GET MATSIZE_LIST 1 SIZEN)
       list(GET MATSIZE_LIST 2 SIZENNZ)
 
-      add_test(FuncTest.${FUNCTION}-${PREC}-${SIZEM}x${SIZEN}x${SIZEM}x${SIZENNZ} ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=${SIZEN} --sizem=${SIZEM} --sizen=${SIZEM} --sizennz=${SIZENNZ} --verify=1)
+      add_test(FuncTest.${FUNCTION}-${PREC}-${SIZEM}x${SIZEN}x${SIZEM}x${SIZENNZ} ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=${SIZEN} --sizem=${SIZEM} --sizen=${SIZEM} --sizennz=${SIZENNZ} --verify=1 --iters=1)
 
     endforeach(MATSIZE)
   endforeach(PREC)
@@ -250,20 +250,14 @@ foreach(FUNCTION "ilu")
       list(GET MATSIZE_LIST 1 SIZEN)
       list(GET MATSIZE_LIST 2 SIZENNZ)
 
-      add_test(FuncTest.${FUNCTION}-${PREC}-${SIZEM}-${SIZEM}x${SIZEN}x${SIZENNZ} ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=${SIZEM} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --verify=1)
+      add_test(FuncTest.${FUNCTION}-${PREC}-${SIZEM}-${SIZEM}x${SIZEN}x${SIZENNZ} ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=${SIZEM} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --verify=1 --iters=1)
 
     endforeach(MATSIZE)
   endforeach(PREC)
 endforeach(FUNCTION)     
 
-# Add extra function on matrix sizes
-# TODO adjust these as needed
-# excersice nonstandard multipliers alpha, beta
-#add_test(FuncTest.csrmv-d-100x99x333-mlt ../staging/aoclsparse-bench --function=csrmv --precision=d --sizem=100 --sizen=99 --sizennz=333 --alpha=3 --beta=-1.5 --verify=1)
-#add_test(FuncTest.ellmv-d-21x49x333-mlt ../staging/aoclsparse-bench --function=ellmv --precision=d --sizem=21 --sizen=49 --sizennz=333 --alpha=3 --beta=-1.5 --verify=1)
-#add_test(FuncTest.ellmv-s-21x49x333-mlt ../staging/aoclsparse-bench --function=ellmv --precision=s --sizem=21 --sizen=49 --sizennz=333 --alpha=3 --beta=-1.5 --verify=1)
-
-#add_test(FuncTest.ellthyb-8x8x15-mlt ../staging/aoclsparse-bench --function=optmv --precision=d --mtx=../../mats/test-hyb1.mtx  --alpha=1 --beta=0 --verify=1)
-#add_test(FuncTest.ellthyb-13x13x30-mlt ../staging/aoclsparse-bench --function=optmv --precision=d --mtx=../../mats/test-hyb2.mtx  --alpha=1 --beta=0 --verify=1)
+# Add extra function on matrix sizes as needed
+# For example, excersice nonstandard multipliers alpha, beta
+#add_test(FuncTest.csrmv-d-100x99x333-mlt ../staging/aoclsparse-bench --function=csrmv --precision=d --sizem=100 --sizen=99 --sizennz=333 --alpha=3 --beta=-1.5 --verify=1 --iters=1)
 
 
