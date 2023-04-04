@@ -273,9 +273,9 @@ template<int SZ, typename SUF, kt_avxext, int L> KT_FORCE_INLINE avxvector_t<SZ,
     }
     else if constexpr(SZ==512 && std::is_same_v<SUF,float>) {
         return _mm512_set_ps(pz<SUF,L-16>(v[*(b+15U)]), pz<SUF,L-15>(v[*(b+14U)]), pz<SUF,L-14>(v[*(b+13U)]), pz<SUF,L-13>(v[*(b+12U)]),
-            pz<SUF,L-12>(v[*(b+L-11U)]), pz<SUF,L-11>(v[*(b+L-10U)]), pz<SUF,L-10>(v[*(b+9U)]), pz<SUF,L-9>(v[*(b+8U)]),
-            pz<SUF,L-8>(v[*(b+7U)]), pz<SUF,L-7>(v[*(b+6U)]), pz<SUF,L-6>(v[*(b+5U)]), pz<SUF,L-5>(v[*(b+4U)]),
-            pz<SUF,L-4>(v[*(b+3U)]), pz<SUF,L-3>(v[*(b+2U)]), pz<SUF,L-2>(v[*(b+1U)]), pz<SUF,L-1>(v[*(b+0U)]));
+                             pz<SUF,L-12>(v[*(b+11U)]), pz<SUF,L-11>(v[*(b+10U)]), pz<SUF,L-10>(v[*(b+9U)]),  pz<SUF,L-9> (v[*(b+8U)]),
+                             pz<SUF,L-8> (v[*(b+7U)]),  pz<SUF,L-7> (v[*(b+6U)]),  pz<SUF,L-6> (v[*(b+5U)]),  pz<SUF,L-5> (v[*(b+4U)]),
+                             pz<SUF,L-4> (v[*(b+3U)]),  pz<SUF,L-3> (v[*(b+2U)]),  pz<SUF,L-2> (v[*(b+1U)]),  pz<SUF,L-1> (v[*(b+0U)]));
     }
 #endif
 // if no match then compiler will complain about not returning

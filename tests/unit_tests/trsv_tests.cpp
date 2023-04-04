@@ -128,7 +128,8 @@ namespace
                                          iparm,
                                          dparm,
                                          exp_status);
-        ASSERT_EQ(status, aoclsparse_status_success) << "could not find linear system id " << id;
+        ASSERT_EQ(status, aoclsparse_status_success)
+            << "Error: could not find linear system id " << id << "!";
 #if(VERBOSE > 0)
         std::string dtype = "unknown";
         if(typeid(T) == typeid(double))
@@ -157,7 +158,10 @@ namespace
             << "Test failed with unexpected return from aoclsparse_dtrsv";
         if(status == aoclsparse_status_success)
         {
-            EXPECT_ARR_NEAR(n, x, xref, expected_precision<T>(10.0));
+            if(xtol > 0.0)
+                EXPECT_ARR_NEAR(n, x, xref, expected_precision<T>(xtol));
+            else
+                EXPECT_ARR_NEAR(n, x, xref, expected_precision<T>(10.0));
         }
         ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
@@ -165,9 +169,9 @@ namespace
 
     typedef struct
     {
-        linear_system_id  id;
-        std::string       testname;
-        aoclsparse_int    kid;
+        linear_system_id id;
+        std::string      testname;
+        aoclsparse_int   kid;
     } trsv_list_t;
 
 #define ADD_TEST(ID, KID)             \
@@ -217,8 +221,8 @@ namespace
     };
     TEST_P(PosDouble, Solver)
     {
-        const linear_system_id  id          = GetParam().id;
-        const aoclsparse_int    kid         = GetParam().kid;
+        const linear_system_id id  = GetParam().id;
+        const aoclsparse_int   kid = GetParam().kid;
 #if(VERBOSE > 0)
         std::cout << "Pos/Double/Solver test name: \"" << GetParam().testname << "\"" << std::endl;
 #endif
@@ -555,7 +559,7 @@ namespace
     };
     TEST_P(PosHDouble, Hint)
     {
-        const linear_system_id id       = GetParam().id;
+        const linear_system_id id = GetParam().id;
 #if(VERBOSE > 0)
         std::cout << "PosH/Double test name: \"" << GetParam().testname << "\"" << std::endl;
 #endif

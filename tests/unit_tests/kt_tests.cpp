@@ -622,22 +622,22 @@ namespace TestsKT
         kt_maskz_set_p_param_dir(512, double, d, AVX512F, 8);
 
         // Indirect
-        kt_maskz_set_p_param_indir(512, double, d, AVX512F, 1);
-        kt_maskz_set_p_param_indir(512, double, d, AVX512F, 2);
-        kt_maskz_set_p_param_indir(512, double, d, AVX512F, 3);
-        kt_maskz_set_p_param_indir(512, double, d, AVX512F, 4);
-        kt_maskz_set_p_param_indir(512, double, d, AVX512F, 6);
-        kt_maskz_set_p_param_indir(512, double, d, AVX512F, 7);
-        kt_maskz_set_p_param_indir(512, double, d, AVX512F, 8);
-        kt_maskz_set_p_param_indir(512, double, d, AVX512F, 9);
-        kt_maskz_set_p_param_indir(512, double, d, AVX512F, 9);
-        kt_maskz_set_p_param_indir(512, double, d, AVX512F, 10);
-        kt_maskz_set_p_param_indir(512, double, d, AVX512F, 11);
-        kt_maskz_set_p_param_indir(512, double, d, AVX512F, 12);
-        kt_maskz_set_p_param_indir(512, double, d, AVX512F, 13);
-        kt_maskz_set_p_param_indir(512, double, d, AVX512F, 14);
-        kt_maskz_set_p_param_indir(512, double, d, AVX512F, 15);
-        kt_maskz_set_p_param_indir(512, double, d, AVX512F, 16);
+        kt_maskz_set_p_param_indir(512, float, s, AVX512F, 1);
+        kt_maskz_set_p_param_indir(512, float, s, AVX512F, 2);
+        kt_maskz_set_p_param_indir(512, float, s, AVX512F, 3);
+        kt_maskz_set_p_param_indir(512, float, s, AVX512F, 4);
+        kt_maskz_set_p_param_indir(512, float, s, AVX512F, 6);
+        kt_maskz_set_p_param_indir(512, float, s, AVX512F, 7);
+        kt_maskz_set_p_param_indir(512, float, s, AVX512F, 8);
+        kt_maskz_set_p_param_indir(512, float, s, AVX512F, 9);
+        kt_maskz_set_p_param_indir(512, float, s, AVX512F, 9);
+        kt_maskz_set_p_param_indir(512, float, s, AVX512F, 10);
+        kt_maskz_set_p_param_indir(512, float, s, AVX512F, 11);
+        kt_maskz_set_p_param_indir(512, float, s, AVX512F, 12);
+        kt_maskz_set_p_param_indir(512, float, s, AVX512F, 13);
+        kt_maskz_set_p_param_indir(512, float, s, AVX512F, 14);
+        kt_maskz_set_p_param_indir(512, float, s, AVX512F, 15);
+        kt_maskz_set_p_param_indir(512, float, s, AVX512F, 16);
 
         kt_maskz_set_p_param_indir(512, double, d, AVX512F, 1);
         kt_maskz_set_p_param_indir(512, double, d, AVX512F, 2);

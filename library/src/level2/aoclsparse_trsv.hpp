@@ -636,13 +636,14 @@ inline aoclsparse_status kt_trsv_l(const SUF      alpha,
     aoclsparse_int       i, idx, idxend;
     SUF                  xi;
     avxvector_t<SZ, SUF> avec, xvec, pvec;
-    aoclsparse_int       idxcnt, idxk, idxrem;
+    aoclsparse_int       idxcnt, idxrem;
+    // get the vector length (packet size)
+    const aoclsparse_int idxk = avxvector<SZ, SUF>();
     for(i = 0; i < m; i++)
     {
         idxend = idiag[i];
         xi     = alpha * b[i];
         idxcnt = idxend - ilrow[i];
-        idxk   = avxvector<SZ, SUF>();
         idxrem = idxcnt % idxk;
         pvec   = kt_setzero_p<SZ, SUF>();
         for(idx = ilrow[i]; idx < idxend - idxrem; idx += idxk)
@@ -655,15 +656,17 @@ inline aoclsparse_status kt_trsv_l(const SUF      alpha,
         {
             xi -= kt_hsum_p(pvec);
         }
+        // process remainder
+        // use packet-size -1 with zero paddding -> intrinsic
+        // rest -> use a loop
         switch(idxrem)
         {
-        case(avxvector<SZ, SUF>() - 1):
-        {
-            avec = kt_maskz_set_p<SZ, SUF, EXT, avxvector<SZ, SUF>() - 1>(a, idx);
-            xvec = kt_maskz_set_p<SZ, SUF, EXT, avxvector<SZ, SUF>() - 1>(x, &icol[idx]);
+        case(idxk - 1):
+            idx  = idxend - idxrem;
+            avec = kt_maskz_set_p<SZ, SUF, EXT, idxk - 1>(a, idx);
+            xvec = kt_maskz_set_p<SZ, SUF, EXT, idxk - 1>(x, &icol[idx]);
             xi -= kt_dot_p(avec, xvec);
             break;
-        }
         default:
             for(idx = idxend - idxrem; idx < idxend; idx++)
                 xi -= a[idx] * x[icol[idx]];
@@ -714,9 +717,11 @@ inline aoclsparse_status kt_trsv_lt(const SUF      alpha,
                                     const bool unit)
 {
     aoclsparse_int       i, idx, idxend;
-    aoclsparse_int       idxcnt, idxk, idxrem;
+    aoclsparse_int       idxcnt, idxrem;
     SUF                  xi, mxi;
     avxvector_t<SZ, SUF> avec, xvec, xivec;
+    // get the vector length (packet size)
+    const aoclsparse_int idxk = avxvector<SZ, SUF>();
     if(alpha != (SUF)0.0)
         for(i = 0; i < m; i++)
             x[i] = alpha * b[i];
@@ -728,7 +733,6 @@ inline aoclsparse_status kt_trsv_lt(const SUF      alpha,
         xi     = x[i];
         mxi    = -xi;
         idxcnt = idxend - ilrow[i];
-        idxk   = avxvector<SZ, SUF>();
         idxrem = idxcnt % idxk;
         for(idx = ilrow[i]; idx < idxend - idxrem; idx += idxk)
         {
@@ -736,21 +740,23 @@ inline aoclsparse_status kt_trsv_lt(const SUF      alpha,
             avec  = kt_loadu_p<SZ, SUF>(&a[idx]);
             xivec = kt_set1_p<SZ, SUF>(mxi);
             xvec  = kt_fmadd_p(avec, xivec, xvec);
-            for(size_t k = 0; k < avxvector<SZ, SUF>(); k++)
+            for(size_t k = 0; k < idxk; k++)
                 x[icol[idx + k]] = xvec[k];
         }
+        // process remainder
+        // use packet-size -1 with zero paddding -> intrinsic
+        // rest -> use a loop
         switch(idxrem)
         {
-        case(avxvector<SZ, SUF>() - 1):
-        {
-            xvec  = kt_maskz_set_p<SZ, SUF, EXT, avxvector<SZ, SUF>() - 1>(x, &icol[idx]);
-            avec  = kt_maskz_set_p<SZ, SUF, EXT, avxvector<SZ, SUF>() - 1>(a, idx);
+        case(idxk - 1):
+            idx   = idxend - idxrem;
+            xvec  = kt_maskz_set_p<SZ, SUF, EXT, idxk - 1>(x, &icol[idx]);
+            avec  = kt_maskz_set_p<SZ, SUF, EXT, idxk - 1>(a, idx);
             xivec = kt_set1_p<SZ, SUF>(mxi);
             xvec  = kt_fmadd_p(avec, xivec, xvec);
-            for(size_t k = 0; k < avxvector<SZ, SUF>() - 1; k++)
+            for(size_t k = 0; k < idxk - 1; k++)
                 x[icol[idx + k]] = xvec[k];
             break;
-        }
         default:
             for(idx = idxend - idxrem; idx < idxend; idx++)
                 x[icol[idx]] -= a[idx] * xi;
@@ -798,16 +804,17 @@ inline aoclsparse_status kt_trsv_u(const SUF      alpha,
                                    const bool unit)
 {
     aoclsparse_int       i, idiag, idx, idxstart, idxend;
-    aoclsparse_int       idxcnt, idxk, idxrem;
+    aoclsparse_int       idxcnt, idxrem;
     SUF                  xi;
     avxvector_t<SZ, SUF> avec, xvec, pvec;
+    // get the vector length (packet size)
+    const aoclsparse_int idxk = avxvector<SZ, SUF>();
     for(i = m - 1; i >= 0; i--)
     {
         idxstart = iurow[i];
         idxend   = ilrow[i + 1] - 1;
         xi       = alpha * b[i];
         idxcnt   = idxend - idxstart + 1;
-        idxk     = avxvector<SZ, SUF>();
         idxrem   = idxcnt % idxk;
         pvec     = kt_setzero_p<SZ, SUF>();
         for(idx = idxstart; idx <= idxend - idxrem; idx += idxk)
@@ -820,15 +827,17 @@ inline aoclsparse_status kt_trsv_u(const SUF      alpha,
         {
             xi -= kt_hsum_p(pvec);
         }
+        // process remainder
+        // use packet-size -1 with zero paddding -> intrinsic
+        // rest -> use a loop
         switch(idxrem)
         {
-        case(avxvector<SZ, SUF>() - 1):
-        {
-            xvec = kt_maskz_set_p<SZ, SUF, EXT, avxvector<SZ, SUF>() - 1>(x, &icol[idx]);
-            avec = kt_maskz_set_p<SZ, SUF, EXT, avxvector<SZ, SUF>() - 1>(a, idx);
+        case(idxk - 1):
+            idx  = idxend - idxrem + 1;
+            xvec = kt_maskz_set_p<SZ, SUF, EXT, idxk - 1>(x, &icol[idx]);
+            avec = kt_maskz_set_p<SZ, SUF, EXT, idxk - 1>(a, idx);
             xi -= kt_dot_p(avec, xvec);
             break;
-        }
         default:
             for(idx = idxend - idxrem + 1; idx <= idxend; idx++)
                 xi -= a[idx] * x[icol[idx]];
@@ -882,9 +891,11 @@ inline aoclsparse_status kt_trsv_ut(const SUF      alpha,
                                     const bool unit)
 {
     aoclsparse_int       i, idx, idxstart, idxend, idiag;
-    aoclsparse_int       idxcnt, idxk, idxrem;
+    aoclsparse_int       idxcnt, idxrem;
     SUF                  xi, mxi;
     avxvector_t<SZ, SUF> avec, xivec, xvec;
+    // get the vector length (packet size)
+    const aoclsparse_int idxk = avxvector<SZ, SUF>();
     if(alpha != (SUF)0.0)
         for(i = 0; i < m; i++)
             x[i] = alpha * b[i];
@@ -900,7 +911,6 @@ inline aoclsparse_status kt_trsv_ut(const SUF      alpha,
         xi     = x[i];
         mxi    = -xi;
         idxcnt = idxend - idxstart + 1;
-        idxk   = avxvector<SZ, SUF>();
         idxrem = idxcnt % idxk;
         for(idx = idxstart; idx <= idxend - idxrem; idx += idxk)
         {
@@ -908,21 +918,23 @@ inline aoclsparse_status kt_trsv_ut(const SUF      alpha,
             avec  = kt_loadu_p<SZ, SUF>(&a[idx]);
             xivec = kt_set1_p<SZ, SUF>(mxi);
             xvec  = kt_fmadd_p(avec, xivec, xvec);
-            for(size_t k = 0; k < avxvector<SZ, SUF>(); k++)
+            for(size_t k = 0; k < idxk; k++)
                 x[icol[idx + k]] = xvec[k];
         }
+        // process remainder
+        // use packet-size -1 with zero paddding -> intrinsic
+        // rest -> use a loop
         switch(idxrem)
         {
-        case(avxvector<SZ, SUF>() - 1):
-        {
-            xvec  = kt_maskz_set_p<SZ, SUF, EXT, avxvector<SZ, SUF>() - 1>(x, &icol[idx]);
-            avec  = kt_maskz_set_p<SZ, SUF, EXT, avxvector<SZ, SUF>() - 1>(a, idx);
+        case(idxk - 1):
+            idx   = idxend - idxrem + 1;
+            xvec  = kt_maskz_set_p<SZ, SUF, EXT, idxk - 1>(x, &icol[idx]);
+            avec  = kt_maskz_set_p<SZ, SUF, EXT, idxk - 1>(a, idx);
             xivec = kt_set1_p<SZ, SUF>(mxi);
             xvec  = kt_fmadd_p(avec, xivec, xvec);
-            for(size_t k = 0; k < avxvector<SZ, SUF>() - 1; k++)
+            for(size_t k = 0; k < idxk - 1; k++)
                 x[icol[idx + k]] = xvec[k];
             break;
-        }
         default:
             for(idx = idxend - idxrem + 1; idx <= idxend; idx++)
                 x[icol[idx]] -= a[idx] * xi;
