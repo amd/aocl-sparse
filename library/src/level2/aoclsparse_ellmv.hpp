@@ -105,7 +105,7 @@ aoclsparse_status aoclsparse_ellmv_template_avx512(const double          alpha,
     {
         double         result = 0.0;
         aoclsparse_int idx    = i * ell_width;
-        k_rem  = ell_width % 8;
+        k_rem                 = ell_width % 8;
 
         const aoclsparse_int *pell_col_ind;
         const double         *pell_val;
@@ -117,7 +117,8 @@ aoclsparse_status aoclsparse_ellmv_template_avx512(const double          alpha,
         //Loop over in multiple of 4
         for(aoclsparse_int p = 0; p < k_iter; ++p)
         {
-            aoclsparse_int col = *(pell_col_ind+7);;
+            aoclsparse_int col = *(pell_col_ind + 7);
+            ;
             // Multiply only the valid non-zeroes, column index = -1 for padded
             // zeroes
             if(col >= 0)
@@ -239,7 +240,7 @@ aoclsparse_status aoclsparse_ellmv_template_avx2(const double          alpha,
         // Loop over in multiple of 4
         for(aoclsparse_int p = 0; p < k_iter; ++p)
         {
-            aoclsparse_int col = *(pell_col_ind+3);
+            aoclsparse_int col = *(pell_col_ind + 3);
             // Multiply only the valid non-zeroes, column index = -1 for padded
             // zeroes
             if(col >= 0)
@@ -248,9 +249,9 @@ aoclsparse_status aoclsparse_ellmv_template_avx2(const double          alpha,
                 vec_vals = _mm256_loadu_pd((double const *)pell_val);
 
                 vec_x = _mm256_set_pd(x[*(pell_col_ind + 3)],
-                                        x[*(pell_col_ind + 2)],
-                                        x[*(pell_col_ind + 1)],
-                                        x[*(pell_col_ind)]);
+                                      x[*(pell_col_ind + 2)],
+                                      x[*(pell_col_ind + 1)],
+                                      x[*(pell_col_ind)]);
 
                 vec_y = _mm256_fmadd_pd(vec_vals, vec_x, vec_y);
 
@@ -556,6 +557,22 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx512(const double          alp
             alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, x, beta, y, context);
     }
 
+    // Create a temporary copy of the "y" elements corresponding to csr_row_idx_map.
+    // This step is required when beta is non-zero
+    double *y_tmp;
+    if(beta != static_cast<double>(0))
+    {
+        y_tmp = (double *)malloc(sizeof(double) * (m - ell_m));
+        if(NULL == y_tmp)
+        {
+            return aoclsparse_status_internal_error;
+        }
+        for(aoclsparse_int i = 0; i < m - ell_m; i++)
+        {
+            y_tmp[i] = y[csr_row_idx_map[i]];
+        }
+    }
+
     int blk = 8;
     for(aoclsparse_int j = 0; j < m / blk; j++)
     {
@@ -608,6 +625,17 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx512(const double          alp
         }
 
         y[j] = rd;
+    }
+
+    // reset some of the "y" elements corresponding to csr_row_idx_map.
+    // This step is required when beta is non-zero
+    if(beta != static_cast<double>(0))
+    {
+        for(aoclsparse_int i = 0; i < m - ell_m; i++)
+        {
+            y[csr_row_idx_map[i]] = y_tmp[i];
+        }
+        free(y_tmp);
     }
 
     // perform csr part if present
@@ -724,6 +752,22 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx2(const double          alpha
             alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, x, beta, y, context);
     }
 
+    // Create a temporary copy of the "y" elements corresponding to csr_row_idx_map.
+    // This step is required when beta is non-zero
+    double *y_tmp;
+    if(beta != static_cast<double>(0))
+    {
+        y_tmp = (double *)malloc(sizeof(double) * (m - ell_m));
+        if(NULL == y_tmp)
+        {
+            return aoclsparse_status_internal_error;
+        }
+        for(aoclsparse_int i = 0; i < m - ell_m; i++)
+        {
+            y_tmp[i] = y[csr_row_idx_map[i]];
+        }
+    }
+
     int            blk        = 4;
     aoclsparse_int chunk_size = m / (blk * context->num_threads);
 #ifdef _OPENMP
@@ -787,6 +831,17 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx2(const double          alpha
     const aoclsparse_int *colIndPtr;
     const double         *matValPtr;
     chunk_size = 512;
+    // reset some of the "y" elements corresponding to csr_row_idx_map.
+    // this step is required when beta is non-zero
+    if(beta != static_cast<double>(0))
+    {
+        for(aoclsparse_int i = 0; i < m - ell_m; i++)
+        {
+            y[csr_row_idx_map[i]] = y_tmp[i];
+        }
+        free(y_tmp);
+    }
+
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(context->num_threads) \
     schedule(dynamic, chunk_size) private(vec_vals, vec_x, vec_y, colIndPtr, matValPtr)

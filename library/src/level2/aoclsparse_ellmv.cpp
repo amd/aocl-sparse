@@ -413,7 +413,6 @@ extern "C" aoclsparse_status aoclsparse_delltmv(aoclsparse_operation       trans
 #endif
 }
 
-// Manu - for Hybrid
 extern "C" aoclsparse_status aoclsparse_sellthybmv(aoclsparse_operation       trans,
                                                    const float               *alpha,
                                                    aoclsparse_int             m,

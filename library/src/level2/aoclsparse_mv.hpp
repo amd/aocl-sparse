@@ -77,9 +77,15 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
     if(x == nullptr || y == nullptr)
         return aoclsparse_status_invalid_pointer;
 
+
     // Check index base
-    if(descr->base != aoclsparse_index_base_zero)
+    if((descr->base != aoclsparse_index_base_zero) || (A->base != aoclsparse_index_base_zero))
         return aoclsparse_status_not_implemented;
+
+    // Make sure we have the right type before casting
+    if(!((A->val_type == aoclsparse_dmat && std::is_same_v<T, double>)
+         || (A->val_type == aoclsparse_smat && std::is_same_v<T, float>)))
+        return aoclsparse_status_wrong_type;
 
     if(descr->type != aoclsparse_matrix_type_general
        && descr->type != aoclsparse_matrix_type_symmetric

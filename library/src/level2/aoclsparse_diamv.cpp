@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2021 Advanced Micro Devices, Inc.All rights reserved.
+ * Copyright (c) 2020-2023 Advanced Micro Devices, Inc.All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -47,6 +47,11 @@ extern "C" aoclsparse_status aoclsparse_sdiamv(aoclsparse_operation       trans,
         return aoclsparse_status_invalid_pointer;
     }
 
+    if((alpha == nullptr) || (beta == nullptr))
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+
     // Check index base
     if(descr->base != aoclsparse_index_base_zero)
     {
@@ -75,12 +80,6 @@ extern "C" aoclsparse_status aoclsparse_sdiamv(aoclsparse_operation       trans,
         return aoclsparse_status_invalid_size;
     }
     else if(dia_num_diag < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-
-    // Sanity check
-    if((m == 0 || n == 0) && dia_num_diag != 0)
     {
         return aoclsparse_status_invalid_size;
     }
@@ -131,6 +130,11 @@ extern "C" aoclsparse_status aoclsparse_ddiamv(aoclsparse_operation       trans,
         return aoclsparse_status_invalid_pointer;
     }
 
+    if((alpha == nullptr) || (beta == nullptr))
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+
     // Check index base
     if(descr->base != aoclsparse_index_base_zero)
     {
@@ -159,12 +163,6 @@ extern "C" aoclsparse_status aoclsparse_ddiamv(aoclsparse_operation       trans,
         return aoclsparse_status_invalid_size;
     }
     else if(dia_num_diag < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-
-    // Sanity check
-    if((m == 0 || n == 0) && dia_num_diag != 0)
     {
         return aoclsparse_status_invalid_size;
     }

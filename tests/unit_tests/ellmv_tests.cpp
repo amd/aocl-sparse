@@ -395,13 +395,16 @@ namespace
     {
         aoclsparse_operation trans = aoclsparse_operation_none;
 
-        aoclsparse_int       M = 4, N = 3, nnz = 6;
-        aoclsparse_int       ell_width     = 1;
-        aoclsparse_int       ell_col_ind[] = {0, 1, 2, 1, -1, -1, 2, -1, -1, 2, -1, -1};
-        T                    ell_val[]     = {42., 1, 5, 1, 0, 0, -1, 0, 0, 2, 0, 0};
-        T                    alpha = 2.3, beta = 11.2;
-        T                    x[] = {1.0, -2.0, 3.0};
-        T                    y[] = {0.1, 0.2, 0.4, 0.23};
+        aoclsparse_int M = 5, N = 3, nnz = 5;
+        aoclsparse_int ell_width     = 1;
+        aoclsparse_int ell_col_ind[] = {0, 1, 2, 2, 2};
+        T              ell_val[]     = {1, 1, 1, 1, 1};
+        T              alpha = 2, beta = 2;
+        T              x[]      = {1.0, 1.0, 1.0};
+        T              y[]      = {1.0, 1.0, 1.0, 1.0, 1.0};
+        T              exp_y1[] = {4.0, 4.0, 4.0, 4.0, 4.0};
+        T              exp_y2[] = {1.0, 1.0, 1.0, 1.0, 1.0};
+
         aoclsparse_mat_descr descr;
         // aoclsparse_create_mat_descr set aoclsparse_matrix_type to aoclsparse_matrix_type_general
         // and aoclsparse_index_base to aoclsparse_index_base_zero.
@@ -413,6 +416,13 @@ namespace
             aoclsparse_elltmv<T>(
                 trans, &alpha, M, N, nnz, ell_val, ell_col_ind, ell_width, descr, x, &beta, y),
             aoclsparse_status_success);
+        EXPECT_DOUBLE_EQ_VEC(5, y, exp_y1);
+        alpha = 1, beta = 0;
+        EXPECT_EQ(
+            aoclsparse_elltmv<T>(
+                trans, &alpha, M, N, nnz, ell_val, ell_col_ind, ell_width, descr, x, &beta, y),
+            aoclsparse_status_success);
+        EXPECT_DOUBLE_EQ_VEC(5, y, exp_y2);
 
         aoclsparse_destroy_mat_descr(descr);
     }
@@ -596,20 +606,22 @@ namespace
     {
         aoclsparse_operation trans = aoclsparse_operation_none;
 
-        aoclsparse_int M = 4, N = 3, nnz = 6;
+        aoclsparse_int M = 5, N = 6, nnz = 10;
         aoclsparse_int ell_width     = 1;
-        T              csr_val[]     = {42., 1, 5, 1, -1, 2};
-        aoclsparse_int csr_col_ind[] = {0, 1, 2, 1, 2, 2};
-        aoclsparse_int csr_row_ptr[] = {0, 3, 4, 5, 6};
-        aoclsparse_int ell_col_ind[] = {0, 1, 2, 1, -1, -1, 2, -1, -1, 2, -1, -1};
-        T              ell_val[]     = {42., 1, 5, 1, 0, 0, -1, 0, 0, 2, 0, 0};
-        aoclsparse_int ell_m         = 3;
+        T              csr_val[]     = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+        aoclsparse_int csr_col_ind[] = {0, 1, 0, 1, 2, 3, 4, 5, 2, 2};
+        aoclsparse_int csr_row_ptr[] = {0, 1, 2, 8, 9, 10};
+        aoclsparse_int ell_col_ind[] = {0, 1, 2, 2, 2};
+        T              ell_val[]     = {1, 1, 0, 1, 1};
+        aoclsparse_int ell_m         = 4;
 
-        aoclsparse_int csr_row_idx_map[] = {0};
+        aoclsparse_int csr_row_idx_map[] = {2};
 
-        T                    alpha = 2.3, beta = 11.2;
-        T                    x[] = {1.0, -2.0, 3.0};
-        T                    y[] = {0.1, 0.2, 0.4, 0.23};
+        T                    alpha = 2, beta = 2;
+        T                    x[]      = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
+        T                    y[]      = {1, 1, 1, 1, 1};
+        T                    exp_y1[] = {4, 4, 14, 4, 4};
+        T                    exp_y2[] = {1, 1, 6, 1, 1};
         aoclsparse_mat_descr descr;
         // aoclsparse_create_mat_descr set aoclsparse_matrix_type to aoclsparse_matrix_type_general
         // and aoclsparse_index_base to aoclsparse_index_base_zero.
@@ -636,6 +648,72 @@ namespace
                                           &beta,
                                           y),
                   aoclsparse_status_success);
+        EXPECT_DOUBLE_EQ_VEC(5, y, exp_y1);
+        alpha = 1, beta = 0;
+        EXPECT_EQ(aoclsparse_ellthybmv<T>(trans,
+                                          &alpha,
+                                          M,
+                                          N,
+                                          nnz,
+                                          ell_val,
+                                          ell_col_ind,
+                                          ell_width,
+                                          ell_m,
+                                          csr_val,
+                                          csr_row_ptr,
+                                          csr_col_ind,
+                                          nullptr,
+                                          csr_row_idx_map,
+                                          descr,
+                                          x,
+                                          &beta,
+                                          y),
+                  aoclsparse_status_success);
+        EXPECT_DOUBLE_EQ_VEC(5, y, exp_y2);
+
+        aoclsparse_destroy_mat_descr(descr);
+    }
+
+    template <typename T>
+    void test_ellthybmv_wrong_ellidx()
+    {
+        aoclsparse_int M             = 4;
+        aoclsparse_int ell_width     = 2;
+        T              csr_val[]     = {42., 1, 5, 1, -1, 2};
+        aoclsparse_int csr_col_ind[] = {0, 1, 0, 1, 2, 1};
+        aoclsparse_int csr_row_ptr[] = {0, 1, 2, 5, 6};
+        aoclsparse_int ell_col_ind[]
+            = {1209091209, -129821982, 9120912, 9120912, -7, 18, -1201123, 11};
+        T              ell_val[]         = {42., 1, 5, 1, 1, 2, 3, 4};
+        aoclsparse_int ell_m             = -1;
+        aoclsparse_int csr_row_idx_map[] = {0};
+
+        aoclsparse_int exp_ell_col_ind[] = {0, 1, 2, 1, 0, 1, 2, 1};
+        T              exp_ell_val[]     = {42., 1, 0, 2, 0, 0, 0, 0};
+        aoclsparse_int exp_ell_m         = 3;
+
+        aoclsparse_int exp_csr_row_idx_map[] = {2};
+
+        aoclsparse_mat_descr descr;
+        // aoclsparse_create_mat_descr set aoclsparse_matrix_type to aoclsparse_matrix_type_general
+        // and aoclsparse_index_base to aoclsparse_index_base_zero.
+        aoclsparse_create_mat_descr(&descr);
+
+        EXPECT_EQ(aoclsparse_csr2ellthyb<T>(M,
+                                            &ell_m,
+                                            csr_row_ptr,
+                                            csr_col_ind,
+                                            csr_val,
+                                            nullptr,
+                                            csr_row_idx_map,
+                                            ell_col_ind,
+                                            ell_val,
+                                            ell_width),
+                  aoclsparse_status_success);
+        EXPECT_EQ_VEC(8, ell_col_ind, exp_ell_col_ind);
+        EXPECT_DOUBLE_EQ_VEC(8, ell_val, exp_ell_val);
+        EXPECT_EQ(ell_m, exp_ell_m);
+        EXPECT_EQ_VEC(1, csr_row_idx_map, exp_csr_row_idx_map);
 
         aoclsparse_destroy_mat_descr(descr);
     }
@@ -728,5 +806,10 @@ namespace
     TEST(ellmv, ELLTHYBSuccessDouble)
     {
         test_ellthybmv<double>();
+    }
+
+    TEST(ellmv, ELLTHYBWrongIdx)
+    {
+        test_ellthybmv_wrong_ellidx<double>();
     }
 } // namespace
