@@ -1,0 +1,77 @@
+Template for API documentation
+==============================
+
+Ready to copy-n-paste template above of C function declarations.
+
+Notes
+-----
+
+ * Every Doxygen comment starts with /*
+ * The first command should be \file, this needs to be set only once at the
+   top of the file
+ * Use as many \ref as possible, this make all the difference when navigating
+ * Use \p param to reference a parameter on the function
+ * if description applies to more than one API, the you can group them
+   with \{ and \}, e.g.
+   /**
+     * ...
+     * \{
+     * \brief ...
+     * ....
+   */
+   void fun_d(void);
+   void fun_s(void);
+   /** \} */
+
+Template
+--------
+
+/** \file
+ * \brief <1-liner brief descr>
+ *
+ *  <A single parragraph briefly describing the API>
+ *  <continuation>
+ *  <...>
+ *  <continuation>
+ *
+ * <C API signature and specifications intent may be "in", "out" or "in,out"
+ *
+ * \param[out]    identifier   description ...
+ * \param[in]              x   dense vector ...
+ * \param[in,out]        ptr   a pointer ...
+ *
+ * \return \ref da_status_
+ *
+ * \section uid_errors Error codes
+ *
+ * Bullet point list of return codes and possible fixes, e.g.
+ * * \ref da_status_success               - option was successfully set,
+ * * \ref da_status_option_locked         - cannot change option at this point,
+ *                                          Move option setting to be called before solver
+ * * \ref da_status_option_invalid_value -  cannot set option to an invalid value.
+ *                                          Review value passed to option.
+ *
+ * \section uid_ex Examples
+ *
+ * Description text and link to source code.
+ * Explain the expected output. Make sure the
+ * example also checks the result againt and
+ * expected value an terminates with exit(1)
+ * or exit(0), so the example can be used as a
+ * unit-test/ctest.
+ *
+ * \section uid_det Details
+ *
+ * theory, parallel scaling, requirements
+ *
+ * \section uid_opt Options
+ *
+ * Bullet point list of options
+ *
+ * \section uid_ref References
+ *
+ * biblio
+ *
+ */
+
+
