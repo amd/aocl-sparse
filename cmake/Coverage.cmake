@@ -28,6 +28,10 @@ find_program(LCOV NAMES lcov HINTS "/usr" PATH_SUFFIXES "bin" DOC "lcov - a grap
 find_program(GCOV NAMES $ENV{GCOV_NAME} gcov HINTS "/usr" PATH_SUFFIXES "bin" DOC "GNU gcov binary" REQUIRED)
 find_program(GENHTML NAMES genhtml HINTS "/usr" PATH_SUFFIXES "bin" DOC "genhtml - Generate HTML view from LCOV coverage data files" REQUIRED)
 
+set(LCOV_FILTERS "'/usr/*';'/*/_deps/*';'/*/boost/*'")
+set(LCOV_FLAGS "--rc;lcov_branch_coverage=1")
+set(GENHTML_FLAGS "--branch-coverage;--rc;genhtml_med_limit=80;--rc;genhtml_hi_limit=95;--legend")
+
 message( STATUS "Code Coverage Module (LCOV)" )
 
 add_custom_target( coverage-clean
@@ -48,9 +52,9 @@ add_custom_target( coverage-run
 
 add_custom_target( coverage-report
   COMMAND ${CMAKE_COMMAND} -E make_directory coverage/
-  COMMAND ${LCOV} -d . -c -o coverage/coverage.info --gcov-tool ${GCOV}
-  COMMAND ${LCOV} --remove   coverage/coverage.info --gcov-tool ${GCOV} -o coverage/coverage_filtered.info '/usr/*' '/*/_deps/*'
-  COMMAND ${GENHTML} coverage/coverage_filtered.info --output coverage/html --title "AOCL-Sparse Code Coverage Report" --legend
+  COMMAND ${LCOV} ${LCOV_FLAGS} -d . -c -o coverage/coverage.info --gcov-tool ${GCOV}
+  COMMAND ${LCOV} ${LCOV_FLAGS} --remove   coverage/coverage.info --gcov-tool ${GCOV} -o coverage/coverage_filtered.info ${LCOV_FILTERS}
+  COMMAND ${GENHTML} ${GENHTML_FLAGS} coverage/coverage_filtered.info --output coverage/html --title "AOCL-Sparse Code Coverage Report"
   WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
   COMMENT "Building Code Coverage Report (LCOV)"
 )
