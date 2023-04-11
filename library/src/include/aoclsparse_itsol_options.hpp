@@ -27,6 +27,7 @@
 #include "aoclsparse.h"
 
 #include <cctype>
+#include <cmath>
 #include <cstring>
 #include <iostream>
 #include <limits>
@@ -174,8 +175,6 @@ namespace aoclsparse_options
                   const ubound_t       ubound,
                   const aoclsparse_int vdefault)
         {
-            if(upper != upper || lower != lower)
-                throw invalid_argument("Either lower or upper are not finite.");
             if(upper < lower)
                 throw invalid_argument("Invalid bounds for option value: lower > upper.");
             // Check bounds (special case)
@@ -187,15 +186,8 @@ namespace aoclsparse_options
                 if(!(lbound == greaterequal && ubound == lessequal))
                     throw invalid_argument("Invalid bounds for option.");
             }
-            if(vdefault != vdefault)
-            {
-                throw invalid_argument("Invalid default value.");
-            }
-            else
-            {
-                if(CheckRange(vdefault, lower, lbound, upper, ubound) != 0)
-                    throw invalid_argument("Default value out-of-bounds");
-            }
+            if(CheckRange(vdefault, lower, lbound, upper, ubound) != 0)
+                throw invalid_argument("Default value out-of-bounds");
             SetName(name);
             if(OptionInt::name == "")
                 throw invalid_argument("Invalid name (string reduced to zero-length).");
@@ -327,13 +319,6 @@ namespace aoclsparse_options
         };
         void SetInvegerValue(aoclsparse_int value, aoclsparse_int setby = 0)
         {
-            aoclsparse_int iflag = 0;
-
-            if(value != value)
-            {
-                throw invalid_argument("Passed option value is invalid.");
-            }
-
             if(CheckRange(value, lower, lbound, upper, ubound) != 0)
             {
                 throw out_of_range("Value out-of-bounds.");
@@ -521,9 +506,7 @@ namespace aoclsparse_options
         };
         void SetRealValue(T value, aoclsparse_int setby = 0)
         {
-            aoclsparse_int iflag = 0;
-
-            if(value != value)
+            if(std::isnan(value))
             {
                 throw invalid_argument("Passed option value is invalid.");
             }
@@ -554,8 +537,6 @@ namespace aoclsparse_options
                    const aoclsparse_int pgrp,
                    const bool           vdefault)
         {
-            if(vdefault != vdefault)
-                throw invalid_argument("Default value is not finite.");
             SetName(name);
             if(OptionBool::name == "")
                 throw invalid_argument("Invalid name (string reduced to zero-length).");
@@ -608,10 +589,6 @@ namespace aoclsparse_options
         };
         void SetBoolValue(bool value, aoclsparse_int setby = 0)
         {
-            if(value != value)
-            {
-                throw invalid_argument("passed option value is invalid.");
-            }
             OptionBool::value = value;
             OptionBool::setby = setby ? setby : 0;
         };
@@ -636,7 +613,6 @@ namespace aoclsparse_options
                      const string                      vdefault)
         {
             OptionUtility u;
-            bool          keyok  = false;
             OptionString::id     = id;
             OptionString::desc   = desc;
             OptionString::hidden = hidden;
@@ -696,7 +672,7 @@ namespace aoclsparse_options
                     << "Valid values: \\f$s =\\f$ ";
                 {
                     aoclsparse_int n = labels.size();
-                    for(auto const it : labels)
+                    for(auto const &it : labels)
                     {
                         rec << "`" << it.first << "`";
                         switch(n)
@@ -722,7 +698,7 @@ namespace aoclsparse_options
                 rec << "   Name: '" << name << "'" << endl;
                 rec << "   Value: '" << value << "'     [default: '" << vdefault << "']" << endl;
                 rec << "   Valid values: " << endl;
-                for(auto const it : labels)
+                for(auto const &it : labels)
                 {
                     rec << "      '" << it.first << "' : " << it.second << endl;
                 }
@@ -747,9 +723,8 @@ namespace aoclsparse_options
         }
         void SetStringValue(const string value, const aoclsparse_int setby = 0)
         {
-            OptionUtility  u;
-            aoclsparse_int iflag = 1;
-            string         val(value);
+            OptionUtility u;
+            string        val(value);
             u.PrepareString(val);
 
             // check that value is a valid key

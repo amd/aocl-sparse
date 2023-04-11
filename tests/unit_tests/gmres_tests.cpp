@@ -151,6 +151,8 @@ namespace
     // Alternative to PrintTo to generate test name for ctest, if used PrintTo() on param is added as suffix
     // currently not used
     std::string print_GmresDDTest_name(const testing::TestParamInfo<GmresDDTest::ParamType> &info)
+        __attribute__((unused));
+    std::string print_GmresDDTest_name(const testing::TestParamInfo<GmresDDTest::ParamType> &info)
     {
         return std::string(info.param.testname);
     }

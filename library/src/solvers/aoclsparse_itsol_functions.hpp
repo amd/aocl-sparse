@@ -586,8 +586,7 @@ aoclsparse_status aoclsparse_cg_rci_solve(aoclsparse_itsol_data<T> *itsol,
                                           T                         rinfo[100])
 {
     // all pointers were already checked by the caller --> safe to use them
-
-    aoclsparse_status exit_status = aoclsparse_status_success, status;
+    aoclsparse_status exit_status = aoclsparse_status_success;
     aoclsparse_int    i, n;
     cg_data<T>       *cg;
     T                 pq, rz_new;
@@ -1272,14 +1271,13 @@ aoclsparse_status aoclsparse_cg_solve(
      * - Allocation
      * - internal error: MV failed
      */
-    aoclsparse_int           nnz, flag;
+    aoclsparse_int           flag;
     aoclsparse_int           n      = itsol->n;
     aoclsparse_itsol_rci_job ircomm = aoclsparse_rci_start;
     T                       *u      = nullptr;
     T                       *v      = nullptr;
-    T                        alpha = 1.0, beta = 0., timing = 0.;
+    T                        alpha = 1.0, beta = 0.;
     T                       *y           = nullptr;
-    aoclsparse_operation     trans       = aoclsparse_operation_none;
     aoclsparse_status        exit_status = aoclsparse_status_success;
     aoclsparse_status        status;
 
@@ -1291,8 +1289,6 @@ aoclsparse_status aoclsparse_cg_solve(
         // TODO: support fill upper
         // symmetric matrix-vector product only work for lower triangular matrices...
         return aoclsparse_status_invalid_value;
-
-    nnz = mat->nnz;
 
     if(itsol->cg->precond == 1 && precond == nullptr)
         return aoclsparse_status_invalid_pointer;
@@ -1404,7 +1400,7 @@ aoclsparse_status aoclsparse_gmres_solve(
     T                       *io2    = nullptr;
     T                        alpha = 1.0, beta = 0.;
     T                       *precond_data = NULL;
-    aoclsparse_status        exit_status = aoclsparse_status_success;
+    aoclsparse_status        exit_status  = aoclsparse_status_success;
     aoclsparse_status        status;
 
     if(mat->m != n || mat->n != n)

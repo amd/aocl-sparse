@@ -54,7 +54,6 @@ aoclsparse_status aoclsparse_csrmm_template(aoclsparse_operation       trans,
     }
     aoclsparse_int        m           = csr->m;
     aoclsparse_int        k           = csr->n;
-    aoclsparse_int        nnz         = csr->nnz;
     const T              *csr_val     = static_cast<T *>(csr->csr_mat.csr_val);
     const aoclsparse_int *csr_col_ind = csr->csr_mat.csr_col_ptr;
     const aoclsparse_int *csr_row_ptr = csr->csr_mat.csr_row_ptr;

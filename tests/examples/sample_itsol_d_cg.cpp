@@ -28,7 +28,11 @@
 #include <math.h>
 #include <vector>
 
-aoclsparse_int monit(aoclsparse_int n, const double *x, const double *r, double *rinfo, void *udata)
+aoclsparse_int monit(aoclsparse_int n,
+                     const double  *x,
+                     const double  *r __attribute__((unused)),
+                     double        *rinfo,
+                     void          *udata __attribute((unused)))
 {
     int                     it  = (int)rinfo[30];
     std::ios_base::fmtflags fmt = std::cout.flags();

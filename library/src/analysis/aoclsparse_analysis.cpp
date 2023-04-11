@@ -119,8 +119,7 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
         row_nnz = row_ptr[j + 1] - row_ptr[j];
         tnnz += row_nnz;
     }
-    double prctg_rows_lt_10 = (double)(csr_lt_10 / m) * 100;
-    double fill_ratio       = ((double)(tnnz - ell_nnz) / tnnz) * 100;
+    double fill_ratio = ((double)(tnnz - ell_nnz) / tnnz) * 100;
 #if USE_AVX512
     if(nnza >= 10)
     {
@@ -130,10 +129,10 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
         if(nRowsblk != 0)
         {
             const aoclsparse_int blk_width = 8;
-            aoclsparse_int *     blk_row_ptr;
-            aoclsparse_int *     blk_col_ptr;
-            double *             blk_val;
-            uint8_t *            masks;
+            aoclsparse_int      *blk_row_ptr;
+            aoclsparse_int      *blk_col_ptr;
+            double              *blk_val;
+            uint8_t             *masks;
 
             blk_row_ptr = (aoclsparse_int *)malloc((m + 1) * sizeof(aoclsparse_int));
             if(blk_row_ptr == NULL)
@@ -200,8 +199,8 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
     {
 
         aoclsparse_int *ell_col_ind;
-        double *        ell_dval;
-        float *         ell_sval;
+        double         *ell_dval;
+        float          *ell_sval;
         aoclsparse_int *csr_row_idx_map;
         aoclsparse_int *row_idx_map;
         aoclsparse_int  ell_width;
@@ -288,7 +287,7 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
         aoclsparse_int *col_ptr;
         aoclsparse_int *row_ptr;
         aoclsparse_int *trow_ptr; // ToDo: need to replace row_ptr with trow_ptr
-        void *          csr_val;
+        void           *csr_val;
         aoclsparse_int  row_nnz;
 
         // populate row_nnz
@@ -375,7 +374,7 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
         }
         tc                   = 0;
         aoclsparse_int *cptr = (aoclsparse_int *)col_ptr;
-        double *        vptr = (double *)csr_val;
+        double         *vptr = (double *)csr_val;
         for(i = 0; i < A->m; i += 4)
         {
             cptr               = col_ptr + tc;
@@ -431,8 +430,8 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
 aoclsparse_status aoclsparse_optimize_ilu0(aoclsparse_matrix A)
 {
     aoclsparse_status ret            = aoclsparse_status_success;
-    aoclsparse_int *  lu_diag_ptr    = NULL;
-    aoclsparse_int *  col_idx_mapper = NULL;
+    aoclsparse_int   *lu_diag_ptr    = NULL;
+    aoclsparse_int   *col_idx_mapper = NULL;
     aoclsparse_int    nrows          = A->m;
 
     lu_diag_ptr = (aoclsparse_int *)malloc(sizeof(aoclsparse_int) * nrows);
@@ -470,8 +469,8 @@ aoclsparse_status aoclsparse_optimize_ilu0(aoclsparse_matrix A)
 aoclsparse_status aoclsparse_optimize_ilu(aoclsparse_matrix A)
 {
     aoclsparse_status ret = aoclsparse_status_success;
-    double *          ilu_dval;
-    float *           ilu_sval;
+    double           *ilu_dval;
+    float            *ilu_sval;
     //If already allocated, then no need to reallocate. So return. Need to happen only once in the beginning
     if(A->ilu_info.ilu_ready == true)
     {
@@ -520,7 +519,7 @@ aoclsparse_status aoclsparse_optimize_ilu(aoclsparse_matrix A)
 
 aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
 {
-    aoclsparse_status         ret = aoclsparse_status_success, status;
+    aoclsparse_status         ret = aoclsparse_status_success;
     aoclsparse_optimize_data *optd;
     bool                      optimized;
 

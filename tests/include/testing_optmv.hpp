@@ -64,7 +64,6 @@ void testing_optmv(const Arguments &arg)
     std::vector<T>              csr_val;
     std::vector<aoclsparse_int> ell_col_ind;
     std::vector<T>              ell_val;
-    aoclsparse_int              ell_width;
     aoclsparse_seedrand();
 #if 0
     // Print aoclsparse version

@@ -154,6 +154,8 @@ namespace
     // Alternative to PrintTo to generate test name for ctest, if used PrintTo() on param is added as suffix
     // currently not used
     std::string print_CgDDTest_name(const testing::TestParamInfo<CgDDTestPos::ParamType> &info)
+        __attribute__((unused));
+    std::string print_CgDDTest_name(const testing::TestParamInfo<CgDDTestPos::ParamType> &info)
     {
         return std::string(info.param.testname);
     }

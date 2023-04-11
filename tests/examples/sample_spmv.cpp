@@ -29,7 +29,7 @@
 #define N 5
 #define NNZ 8
 
-int main(int argc, char *argv[])
+int main(void)
 {
     aoclsparse_operation trans = aoclsparse_operation_none;
 

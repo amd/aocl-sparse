@@ -105,18 +105,27 @@ int main()
         {
         case aoclsparse_rci_mv:
             // Compute v = Au
-            beta  = 0.0;
-            alpha = 1.0;
-            aoclsparse_smv(trans, &alpha, A, descr_a, u, &beta, v);
+            beta   = 0.0;
+            alpha  = 1.0;
+            status = aoclsparse_smv(trans, &alpha, A, descr_a, u, &beta, v);
+            if(status != aoclsparse_status_success)
+                ircomm = aoclsparse_rci_stop;
             break;
 
         case aoclsparse_rci_precond:
             // apply Symmetric Gauss-Seidel preconditioner step
-            aoclsparse_status stat;
-            stat = aoclsparse_strsv(aoclsparse_operation_none, alpha, A, descr_a, u, y.data());
+            status = aoclsparse_strsv(aoclsparse_operation_none, alpha, A, descr_a, u, y.data());
+            if(status != aoclsparse_status_success)
+            {
+                ircomm = aoclsparse_rci_stop;
+                break;
+            }
             for(aoclsparse_int i = 0; i < n; i++)
                 y[i] *= aval[icrow[i + 1] - 1];
-            stat = aoclsparse_strsv(aoclsparse_operation_transpose, alpha, A, descr_a, y.data(), v);
+            status
+                = aoclsparse_strsv(aoclsparse_operation_transpose, alpha, A, descr_a, y.data(), v);
+            if(status != aoclsparse_status_success)
+                ircomm = aoclsparse_rci_stop;
             break;
 
         case aoclsparse_rci_stopping_criterion:
@@ -161,6 +170,7 @@ int main()
     case aoclsparse_status_maxit:
         std::cout << "solve stopped after " << (int)rinfo[30] << " iterations" << std::endl
                   << "residual = " << rinfo[0] << std::endl;
+        break;
 
     default:
         std::cout << "Something unexpected happened!" << std::endl;

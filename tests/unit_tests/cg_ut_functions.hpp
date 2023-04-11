@@ -48,8 +48,11 @@ using MonitType
 
 // Identity preconditioner
 template <typename T>
-aoclsparse_int
-    precond_identity(aoclsparse_int flag, aoclsparse_int n, const T *u, T *v, void *udata)
+aoclsparse_int precond_identity([[maybe_unused]] aoclsparse_int flag,
+                                aoclsparse_int                  n,
+                                const T                        *u,
+                                T                              *v,
+                                [[maybe_unused]] void          *udata)
 {
     for(aoclsparse_int i = 0; i < n; i++)
         v[i] = u[i];
@@ -59,7 +62,11 @@ aoclsparse_int
 
 // Dummy preconditioner - only to be used as an argument but it shouldn't be called
 template <typename T>
-aoclsparse_int precond_dummy(aoclsparse_int flag, aoclsparse_int n, const T *u, T *v, void *udata)
+aoclsparse_int precond_dummy([[maybe_unused]] aoclsparse_int flag,
+                             [[maybe_unused]] aoclsparse_int n,
+                             [[maybe_unused]] const T       *u,
+                             [[maybe_unused]] T             *v,
+                             [[maybe_unused]] void          *udata)
 {
     // request stop if called as it shouldn't be called
     return 1;
@@ -67,7 +74,11 @@ aoclsparse_int precond_dummy(aoclsparse_int flag, aoclsparse_int n, const T *u, 
 
 // Monitoring function printing progress
 template <typename T>
-aoclsparse_int monit_print(aoclsparse_int n, const T *x, const T *r, T rinfo[100], void *udata)
+aoclsparse_int monit_print([[maybe_unused]] aoclsparse_int n,
+                           [[maybe_unused]] const T       *x,
+                           [[maybe_unused]] const T       *r,
+                           T                               rinfo[100],
+                           [[maybe_unused]] void          *udata)
 {
     std::cout << "Iteration " << (aoclsparse_int)rinfo[30] << ": rel. tolerance "
               << rinfo[0] / rinfo[1] << ", abs. tolerance " << rinfo[0] << std::endl;
@@ -77,7 +88,11 @@ aoclsparse_int monit_print(aoclsparse_int n, const T *x, const T *r, T rinfo[100
 
 // Dummy monitoring function doing nothing
 template <typename T>
-aoclsparse_int monit_dummy(aoclsparse_int n, const T *x, const T *r, T rinfo[100], void *udata)
+aoclsparse_int monit_dummy([[maybe_unused]] aoclsparse_int n,
+                           [[maybe_unused]] const T       *x,
+                           [[maybe_unused]] const T       *r,
+                           [[maybe_unused]] T              rinfo[100],
+                           [[maybe_unused]] void          *udata)
 {
 #if(VERBOSE > 0)
     monit_print(n, x, r, rinfo, udata);
@@ -87,7 +102,11 @@ aoclsparse_int monit_dummy(aoclsparse_int n, const T *x, const T *r, T rinfo[100
 
 // Monitoring function which requires stop at 2nd iteration
 template <typename T>
-aoclsparse_int monit_stopit2(aoclsparse_int n, const T *x, const T *r, T rinfo[100], void *udata)
+aoclsparse_int monit_stopit2([[maybe_unused]] aoclsparse_int n,
+                             [[maybe_unused]] const T       *x,
+                             [[maybe_unused]] const T       *r,
+                             T                               rinfo[100],
+                             [[maybe_unused]] void          *udata)
 {
     if(rinfo[30] > 1)
         // Test user stop

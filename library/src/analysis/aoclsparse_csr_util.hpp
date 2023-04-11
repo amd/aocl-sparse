@@ -77,7 +77,7 @@ aoclsparse_status aoclsparse_copy_csr(aoclsparse_int       m,
                                       const aoclsparse_csr A,
                                       aoclsparse_csr       As)
 {
-    aoclsparse_int i, idx;
+    aoclsparse_int i;
     T             *aval, *aval_s;
 
     if(m < 0)

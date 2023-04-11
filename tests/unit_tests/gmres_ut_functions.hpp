@@ -22,8 +22,8 @@
  * ************************************************************************ */
 
 #include "aoclsparse.h"
-#include "gtest/gtest.h"
 #include "common_data_utils.h"
+#include "gtest/gtest.h"
 #include "aoclsparse.hpp"
 
 #include <cfloat>
@@ -52,8 +52,11 @@ using MonitType
 
 // Identity preconditioner
 template <typename T>
-aoclsparse_int
-    precond_identity(aoclsparse_int flag, aoclsparse_int n, const T *u, T *v, void *udata)
+aoclsparse_int precond_identity([[maybe_unused]] aoclsparse_int flag,
+                                aoclsparse_int                  n,
+                                const T                        *u,
+                                T                              *v,
+                                [[maybe_unused]] void          *udata)
 {
     for(aoclsparse_int i = 0; i < n; i++)
         v[i] = u[i];
@@ -63,7 +66,11 @@ aoclsparse_int
 
 // Dummy preconditioner - only to be used as an argument but it shouldn't be called
 template <typename T>
-aoclsparse_int precond_dummy(aoclsparse_int flag, aoclsparse_int n, const T *u, T *v, void *udata)
+aoclsparse_int precond_dummy([[maybe_unused]] aoclsparse_int flag,
+                             [[maybe_unused]] aoclsparse_int n,
+                             [[maybe_unused]] const T       *u,
+                             [[maybe_unused]] T             *v,
+                             [[maybe_unused]] void          *udata)
 {
     // request stop if called as it shouldn't be called
     return 1;
@@ -71,14 +78,22 @@ aoclsparse_int precond_dummy(aoclsparse_int flag, aoclsparse_int n, const T *u, 
 
 // Dummy monitoring function doing nothing
 template <typename T>
-aoclsparse_int monit_dummy(aoclsparse_int n, const T *x, const T *r, T rinfo[100], void *udata)
+aoclsparse_int monit_dummy([[maybe_unused]] aoclsparse_int n,
+                           [[maybe_unused]] const T       *x,
+                           [[maybe_unused]] const T       *r,
+                           [[maybe_unused]] T              rinfo[100],
+                           [[maybe_unused]] void          *udata)
 {
     return 0;
 }
 
 // Monitoring function printing progress
 template <typename T>
-aoclsparse_int monit_print(aoclsparse_int n, const T *x, const T *r, T rinfo[100], void *udata)
+aoclsparse_int monit_print([[maybe_unused]] aoclsparse_int n,
+                           [[maybe_unused]] const T       *x,
+                           [[maybe_unused]] const T       *r,
+                           T                               rinfo[100],
+                           [[maybe_unused]] void          *udata)
 {
     std::cout << "Iteration " << (aoclsparse_int)rinfo[30] << ": rel. tolerance "
               << rinfo[0] / rinfo[1] << ", abs. tolerance " << rinfo[0] << std::endl;
@@ -88,7 +103,11 @@ aoclsparse_int monit_print(aoclsparse_int n, const T *x, const T *r, T rinfo[100
 
 // Monitoring function which requires stop at 2nd iteration
 template <typename T>
-aoclsparse_int monit_stopit2(aoclsparse_int n, const T *x, const T *r, T rinfo[100], void *udata)
+aoclsparse_int monit_stopit2([[maybe_unused]] aoclsparse_int n,
+                             [[maybe_unused]] const T       *x,
+                             [[maybe_unused]] const T       *r,
+                             T                               rinfo[100],
+                             [[maybe_unused]] void          *udata)
 {
     if(rinfo[30] > 1)
         // Test user stop
@@ -98,7 +117,11 @@ aoclsparse_int monit_stopit2(aoclsparse_int n, const T *x, const T *r, T rinfo[1
 }
 // Monitoring function requiring stop at predefined tolerance
 template <typename T>
-aoclsparse_int monit_tolstop(aoclsparse_int n, const T *x, const T *r, T rinfo[100], void *udata)
+aoclsparse_int monit_tolstop([[maybe_unused]] aoclsparse_int n,
+                             [[maybe_unused]] const T       *x,
+                             [[maybe_unused]] const T       *r,
+                             T                               rinfo[100],
+                             [[maybe_unused]] void          *udata)
 {
     T tol = expected_precision<T>(100);
 
@@ -219,22 +242,13 @@ void test_gmres(matrix_id               mid,
     std::cout.setf(std::ios::fixed);
     std::cout.setf(std::ios::left);
 
-    std::cout << std::setw(12) << "M" 
-              << std::setw(12) << "N" 
-              << std::setw(12) << "nnz"
-              << std::setw(16) << "expected_tol" 
-              << std::setw(12) << "residual" 
-              << std::setw(18) << "iters to converge" 
-              << std::setw(16) << "L2Norm on x"
-              << std::endl;
+    std::cout << std::setw(12) << "M" << std::setw(12) << "N" << std::setw(12) << "nnz"
+              << std::setw(16) << "expected_tol" << std::setw(12) << "residual" << std::setw(18)
+              << "iters to converge" << std::setw(16) << "L2Norm on x" << std::endl;
 
-    std::cout << std::setw(12) << m 
-              << std::setw(12) << n
-              << std::setw(12) << nnz
-              << std::setw(16) << std::scientific << tol 
-              << std::setw(12) << std::scientific << rinfo[0]
-              << std::setw(18) << (int)rinfo[30] 
-              << std::setw(16) << std::scientific << norm
+    std::cout << std::setw(12) << m << std::setw(12) << n << std::setw(12) << nnz << std::setw(16)
+              << std::scientific << tol << std::setw(12) << std::scientific << rinfo[0]
+              << std::setw(18) << (int)rinfo[30] << std::setw(16) << std::scientific << norm
               << std::endl;
 
     if(expected_sol != NULL)

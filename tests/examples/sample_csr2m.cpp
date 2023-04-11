@@ -34,7 +34,7 @@
 
 #define PRINT_OUTPUT
 
-int main(int argc, char *argv[])
+int main(void)
 {
     aoclsparse_status     status;
     aoclsparse_int        nnz_C;

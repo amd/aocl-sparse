@@ -41,20 +41,19 @@ aoclsparse_status aoclsparse_dcsr_mat_br4(aoclsparse_operation       op,
     aoclsparse_context context;
     context.num_threads = global_context.num_threads;
 
-    aoclsparse_int tc = 0;
-    __m256d        res, vvals, vx, vy, va, vb;
+    __m256d res, vvals, vx, vy, va, vb;
 
     va  = _mm256_set1_pd(alpha);
     vb  = _mm256_set1_pd(beta);
     res = _mm256_setzero_pd();
 
-    aoclsparse_int *tcptr = (aoclsparse_int *)A->csr_mat_br4.csr_col_ptr;
-    aoclsparse_int *rptr  = (aoclsparse_int *)A->csr_mat_br4.csr_row_ptr;
-    aoclsparse_int *cptr;
-    double         *tvptr = (double *)A->csr_mat_br4.csr_val;
-    double         *vptr;
-    aoclsparse_int  blk        = 4;
-    aoclsparse_int  chunk_size = (A->m) / (blk * context.num_threads);
+    aoclsparse_int                 *tcptr = (aoclsparse_int *)A->csr_mat_br4.csr_col_ptr;
+    aoclsparse_int                 *rptr  = (aoclsparse_int *)A->csr_mat_br4.csr_row_ptr;
+    aoclsparse_int                 *cptr;
+    double                         *tvptr = (double *)A->csr_mat_br4.csr_val;
+    double                         *vptr;
+    aoclsparse_int                  blk        = 4;
+    [[maybe_unused]] aoclsparse_int chunk_size = (A->m) / (blk * context.num_threads);
 
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(context.num_threads) \
@@ -190,34 +189,34 @@ aoclsparse_status aoclsparse_mv_general(aoclsparse_operation       op,
     {
         //Invoke SPMV API for CSR storage format(double precision)
 #if USE_AVX512
-	if(A->blk_optimized)
-		return aoclsparse_dblkcsrmv(op,
-                                   &alpha,
-                                   A->m,
-                                   A->n,
-                                   A->nnz,
-                                   A->csr_mat.masks,
-                                   (double *)A->csr_mat.blk_val,
-                                   A->csr_mat.blk_col_ptr,
-                                   A->csr_mat.blk_row_ptr,
-                                   descr,
-                                   x,
-                                   &beta,
-                                   y,
-                                   A->csr_mat.nRowsblk);
-	else
-        return (aoclsparse_dcsrmv(op,
-                                  &alpha,
-                                  A->m,
-                                  A->n,
-                                  A->nnz,
-                                  (double *)A->csr_mat.csr_val,
-                                  A->csr_mat.csr_col_ptr,
-                                  A->csr_mat.csr_row_ptr,
-                                  descr,
-                                  x,
-                                  &beta,
-                                  y));
+        if(A->blk_optimized)
+            return aoclsparse_dblkcsrmv(op,
+                                        &alpha,
+                                        A->m,
+                                        A->n,
+                                        A->nnz,
+                                        A->csr_mat.masks,
+                                        (double *)A->csr_mat.blk_val,
+                                        A->csr_mat.blk_col_ptr,
+                                        A->csr_mat.blk_row_ptr,
+                                        descr,
+                                        x,
+                                        &beta,
+                                        y,
+                                        A->csr_mat.nRowsblk);
+        else
+            return (aoclsparse_dcsrmv(op,
+                                      &alpha,
+                                      A->m,
+                                      A->n,
+                                      A->nnz,
+                                      (double *)A->csr_mat.csr_val,
+                                      A->csr_mat.csr_col_ptr,
+                                      A->csr_mat.csr_row_ptr,
+                                      descr,
+                                      x,
+                                      &beta,
+                                      y));
 
 #else
         return (aoclsparse_dcsrmv(op,

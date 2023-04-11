@@ -739,7 +739,6 @@ aoclsparse_status aoclsparse_csrmm_col_major(const float *alpha,
             float sum[4] = {static_cast<float>(0)};
 
             aoclsparse_int k_iter = (row_end - row_begin) / 4;
-            aoclsparse_int k_rem  = (row_end - row_begin) % 4;
 
             //Iterate over non-zeroes of ith row of A in multiples of 4
             for(aoclsparse_int k = row_begin; k < (row_begin + k_iter * 4); k += 4)
@@ -1393,7 +1392,6 @@ aoclsparse_status aoclsparse_csrmm_row_major(const float *alpha,
             float sum[3] = {static_cast<float>(0)};
 
             aoclsparse_int k_iter = (row_end - row_begin) / 4;
-            aoclsparse_int k_rem  = (row_end - row_begin) % 4;
 
             //Iterate over non-zeroes of ith row of A in multiples of 4
             for(aoclsparse_int k = row_begin; k < (row_begin + k_iter * 4); k += 4)

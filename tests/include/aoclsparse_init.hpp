@@ -53,14 +53,13 @@ inline void aoclsparse_init(
                 A[i + j * lda + i_batch * stride] = random_generator_normal<T>();
 }
 
-
 // Initializes sparse index vector with nnz entries ranging from start to end
 inline void
     aoclsparse_init_index(std::vector<aoclsparse_int> &x, size_t nnz, size_t start, size_t end)
 {
     std::vector<bool> check(end - start, false);
 
-    aoclsparse_int num = 0;
+    size_t num = 0;
 
     while(num < nnz)
     {
@@ -259,7 +258,7 @@ inline void aoclsparse_init_coo_matrix(std::vector<aoclsparse_int> &row_ind,
     // Correct index base accordingly
     if(base == aoclsparse_index_base_one)
     {
-        for(aoclsparse_int i = 0; i < nnz; ++i)
+        for(size_t i = 0; i < nnz; ++i)
         {
             ++row_ind[i];
             ++col_ind[i];
@@ -267,7 +266,7 @@ inline void aoclsparse_init_coo_matrix(std::vector<aoclsparse_int> &row_ind,
     }
 
     // Sample random off-diagonal values
-    for(aoclsparse_int i = 0; i < nnz; ++i)
+    for(size_t i = 0; i < nnz; ++i)
     {
         if(row_ind[i] == col_ind[i])
         {
