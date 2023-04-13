@@ -253,18 +253,14 @@ aoclsparse_status aoclsparse_csr2ellthybrid_template(
             flag = 1;
         }
 
-        // testing
-        //row_idx_map[t_ridx] = i;
-
         // Fill ELL matrix with data
-        // For testing
         m_ell = m;
         if(flag)
         {
-            for(aoclsparse_int j = 0; j < m; ++j)
+            for(aoclsparse_int j = 0; j < ell_width; ++j)
             {
-                ell_col_ind[k * m_ell + t_ridx] = csr_col_ind[row_end - 1];
-                ell_val[k * m_ell + t_ridx]     = static_cast<T>(0);
+                ell_col_ind[j * m_ell + t_ridx] = csr_col_ind[row_end - 1];
+                ell_val[j * m_ell + t_ridx]     = static_cast<T>(0);
             }
         }
         else
@@ -285,11 +281,6 @@ aoclsparse_status aoclsparse_csr2ellthybrid_template(
         }
         t_ridx++;
     }
-    /* testing
-    for (aoclsparse_int k = 0; k < t_csr_ridx; ++k) {
-	row_idx_map[t_ridx++] = csr_row_idx_map[k];
-    }
-    */
     return aoclsparse_status_success;
 }
 
