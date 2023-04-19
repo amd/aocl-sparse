@@ -211,8 +211,10 @@ namespace
         T                    alpha = 1.0;
         T                    beta  = 0.0;
         // Initialise vectors
-        T x[N] = {1.0, 2.0, 3.0, 4.0};
+        T x[N] = {1.0, 1.0, 1.0, 1.0};
         T y[M];
+        T exp_y_l[M] = {1, 3, 4, 18, 8};
+        T exp_y_u[M] = {3, 3, 4, 7, 0};
 
         aoclsparse_mat_descr descr;
         // aoclsparse_create_mat_descr set aoclsparse_matrix_type to aoclsparse_matrix_type_general
@@ -231,10 +233,12 @@ namespace
         aoclsparse_set_mat_fill_mode(descr, aoclsparse_fill_mode_lower);
         EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A, descr, x, &beta, y),
                   aoclsparse_status_success);
+        EXPECT_DOUBLE_EQ_VEC(5, y, exp_y_l);
 
         aoclsparse_set_mat_fill_mode(descr, aoclsparse_fill_mode_upper);
         EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A, descr, x, &beta, y),
                   aoclsparse_status_success);
+        EXPECT_DOUBLE_EQ_VEC(5, y, exp_y_u);
 
         aoclsparse_destroy_mat_descr(descr);
         EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
