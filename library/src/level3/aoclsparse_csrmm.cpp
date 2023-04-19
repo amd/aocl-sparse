@@ -52,6 +52,12 @@ aoclsparse_status aoclsparse_csrmm_template(aoclsparse_operation       trans,
     {
         return aoclsparse_status_invalid_pointer;
     }
+
+    if(!((csr->val_type == aoclsparse_dmat && std::is_same_v<T, double>)
+		|| (csr->val_type == aoclsparse_smat && std::is_same_v<T, float>)))
+    {
+	return aoclsparse_status_wrong_type;
+    }
     aoclsparse_int        m           = csr->m;
     aoclsparse_int        k           = csr->n;
     const T              *csr_val     = static_cast<T *>(csr->csr_mat.csr_val);

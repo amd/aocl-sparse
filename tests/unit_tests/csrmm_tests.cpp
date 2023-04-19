@@ -172,10 +172,11 @@ namespace
               aoclsparse_status_success);
 	aoclsparse_destroy(csr);
 
-        // and expect success for k=0 FAILS AS CREATE_CSR doesnt return success
-	// aoclsparse_create_csr(csr, base, m, 0, nnz, csr_row_ptr, csr_col_ind, csr_val);
-	// EXPECT_EQ(aoclsparse_csrmm<T>(trans, &alpha, csr, descr, order, B, n, k , &beta, C, m ),
-	//      aoclsparse_status_success);
+        // and expect success for k=0
+	aoclsparse_create_csr(csr, base, m, 0, nnz, csr_row_ptr, csr_col_ind, csr_val);
+	EXPECT_EQ(aoclsparse_csrmm<T>(trans, &alpha, csr, descr, order, B, n, k , &beta, C, m ),
+		aoclsparse_status_success);
+	aoclsparse_destroy(csr);
 
         // and expect success for n=0
 	aoclsparse_create_csr(csr, base, m, k, nnz, csr_row_ptr, csr_col_ind, csr_val);
@@ -190,6 +191,94 @@ namespace
 
 	aoclsparse_destroy(csr);
         aoclsparse_destroy_mat_descr(descr);
+    }
+
+    // tests for ldb and ldc greater than minimum
+    template <typename T>
+    void test_csrmm_greater_ld()
+    {
+	aoclsparse_operation trans = aoclsparse_operation_none;
+	aoclsparse_index_base  base = aoclsparse_index_base_zero;
+	aoclsparse_order order = aoclsparse_order_column;
+	aoclsparse_int m = 2, k = 3, n = 2, nnz = 1;
+	T csr_val[] = {42.};
+	aoclsparse_int csr_col_ind[] = {1};
+	aoclsparse_int csr_row_ptr[] = {0, 0, 1};
+	T alpha = 2.3, beta = 11.2;
+	T B[] = {1.0, -2.0, 3.0, 0, 0, 0, 4.0, 5.0, -6.0, 0, 0, 0};
+	T C[] = {0.1, 0.2, 0, 0, 0.3, 0.4, 0, 0};
+	aoclsparse_mat_descr descr;
+	// aoclsparse_create_mat_descr set aoclsparse_matrix_type to aoclsparse_matrix_type_general
+	// and aoclsparse_index_base to aoclsparse_index_base_zero.
+	aoclsparse_create_mat_descr(&descr);
+
+	aoclsparse_matrix csr;
+	aoclsparse_create_csr(csr, base, m, k, nnz, csr_row_ptr, csr_col_ind, csr_val);
+
+	// and expect success for ldb = k*2 and ldc = m*2
+	EXPECT_EQ(aoclsparse_csrmm<T>(trans, &alpha, csr, descr, order, B, n, k*2, &beta, C, m*2),
+		aoclsparse_status_success);
+
+	aoclsparse_destroy_mat_descr(descr);
+	aoclsparse_destroy(csr);
+    }
+
+    // tests for wrong datatype of matrix value (float)
+    void test_csrmm_wrongtype_float()
+    {
+	aoclsparse_operation trans = aoclsparse_operation_none;
+	aoclsparse_index_base  base = aoclsparse_index_base_zero;
+	aoclsparse_order order = aoclsparse_order_column;
+	aoclsparse_int m = 2, k = 3, n = 2, nnz = 1;
+	float csr_val[] = {42.};
+	aoclsparse_int csr_col_ind[] = {1};
+	aoclsparse_int csr_row_ptr[] = {0, 0, 1};
+	double alpha = 2.3, beta = 11.2;
+        double B[] = {1.0, -2.0, 3.0, 4.0, 5.0, -6.0};
+        double C[] = {0.1, 0.2, 0.3, 0.4};
+	aoclsparse_mat_descr descr;
+	// aoclsparse_create_mat_descr set aoclsparse_matrix_type to aoclsparse_matrix_type_general
+	// and aoclsparse_index_base to aoclsparse_index_base_zero.
+	aoclsparse_create_mat_descr(&descr);
+
+	aoclsparse_matrix csr;
+	aoclsparse_create_scsr(csr, base, m, k, nnz, csr_row_ptr, csr_col_ind, csr_val);
+
+	// expect wrong type error for invoking csrmm for double precision with float csr_val
+	EXPECT_EQ(aoclsparse_dcsrmm(trans, &alpha, csr, descr, order, B, n, k, &beta, C, m),
+		aoclsparse_status_wrong_type);
+
+	aoclsparse_destroy_mat_descr(descr);
+	aoclsparse_destroy(csr);
+    }
+
+    // tests for wrong datatype of matrix value (double)
+    void test_csrmm_wrongtype_double()
+    {
+	aoclsparse_operation trans = aoclsparse_operation_none;
+	aoclsparse_index_base  base = aoclsparse_index_base_zero;
+	aoclsparse_order order = aoclsparse_order_column;
+	aoclsparse_int m = 2, k = 3, n = 2, nnz = 1;
+	double csr_val[] = {42.};
+	aoclsparse_int csr_col_ind[] = {1};
+	aoclsparse_int csr_row_ptr[] = {0, 0, 1};
+	float alpha = 2.3, beta = 11.2;
+        float B[] = {1.0, -2.0, 3.0, 4.0, 5.0, -6.0};
+        float C[] = {0.1, 0.2, 0.3, 0.4};
+	aoclsparse_mat_descr descr;
+	// aoclsparse_create_mat_descr set aoclsparse_matrix_type to aoclsparse_matrix_type_general
+	// and aoclsparse_index_base to aoclsparse_index_base_zero.
+	aoclsparse_create_mat_descr(&descr);
+
+	aoclsparse_matrix csr;
+	aoclsparse_create_dcsr(csr, base, m, k, nnz, csr_row_ptr, csr_col_ind, csr_val);
+
+	// expect wrong type error for invoking csrmm for single precision with double csr_val
+	EXPECT_EQ(aoclsparse_scsrmm(trans, &alpha, csr, descr, order, B, n, k, &beta, C, m),
+		aoclsparse_status_wrong_type);
+
+	aoclsparse_destroy_mat_descr(descr);
+	aoclsparse_destroy(csr);
     }
 
     TEST(csrmm, NullArgDouble)
@@ -228,4 +317,21 @@ namespace
         test_csrmm_do_nothing<float>();
     }
 
+    TEST(csrmm, GreaterLDDouble)
+    {
+        test_csrmm_greater_ld<double>();
+    }
+    TEST(csrmm, GreaterLDFloat)
+    {
+        test_csrmm_greater_ld<float>();
+    }
+
+    TEST(csrmm, WrongTypeDouble)
+    {
+        test_csrmm_wrongtype_double();
+    }
+    TEST(csrmm, WrongTypeFloat)
+    {
+        test_csrmm_wrongtype_float();
+    }
 } // namespace

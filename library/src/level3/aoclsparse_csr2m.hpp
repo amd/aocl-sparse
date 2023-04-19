@@ -223,6 +223,18 @@ aoclsparse_status aoclsparse_csr2m_template(aoclsparse_operation       transA,
     {
         return aoclsparse_status_invalid_pointer;
     }
+
+    if(!((csrA->val_type == aoclsparse_dmat && std::is_same_v<T, double>)
+         || (csrA->val_type == aoclsparse_smat && std::is_same_v<T, float>)))
+    {
+	return aoclsparse_status_wrong_type;
+    }
+
+    if(!((csrB->val_type == aoclsparse_dmat && std::is_same_v<T, double>)
+         || (csrB->val_type == aoclsparse_smat && std::is_same_v<T, float>)))
+    {
+	return aoclsparse_status_wrong_type;
+    }
     if(transA != aoclsparse_operation_none)
     {
         // TODO
@@ -235,20 +247,24 @@ aoclsparse_status aoclsparse_csr2m_template(aoclsparse_operation       transA,
     }
 
     // Check index base
-    if(descrA->base != aoclsparse_index_base_zero)
+    if((descrA->base != aoclsparse_index_base_zero) || (descrB->base != aoclsparse_index_base_zero))
     {
         // TODO
         return aoclsparse_status_not_implemented;
     }
 
-    if(descrA->type != aoclsparse_matrix_type_general)
+    if((descrA->type != aoclsparse_matrix_type_general) || (descrB->type != aoclsparse_matrix_type_general))
     {
         // TODO
         return aoclsparse_status_not_implemented;
     }
 
     if(csrA->n != csrB->m)
-        return aoclsparse_status_invalid_value;
+	return aoclsparse_status_invalid_value;
+
+    // Quick return for size 0 matrices, Do nothing
+    if((csrA->m == 0) || (csrA->n == 0) ||(csrB->n == 0) )
+	return aoclsparse_status_success;
 
     switch(request)
     {
@@ -259,6 +275,9 @@ aoclsparse_status aoclsparse_csr2m_template(aoclsparse_operation       transA,
         aoclsparse_int  n             = csrB->n;
         aoclsparse_int  nnz_C         = 0;
         aoclsparse_int *csr_row_ptr_C = (aoclsparse_int *)malloc((m + 1) * sizeof(aoclsparse_int));
+        /* Memory  allocation fail*/
+        if(csr_row_ptr_C == NULL)
+            return aoclsparse_status_memory_error;
 
         aoclsparse_csr2m_nnz_count(m,
                                    n,
@@ -281,6 +300,8 @@ aoclsparse_status aoclsparse_csr2m_template(aoclsparse_operation       transA,
     {
         if(((*csrC)->m == 0) || ((*csrC)->n == 0) || ((*csrC)->nnz == 0))
             return aoclsparse_status_invalid_value;
+        if(((*csrC)->m != csrA->m) || ((*csrC)->n != csrB->n))
+            return aoclsparse_status_invalid_value;
         if((*csrC)->csr_mat.csr_row_ptr == nullptr)
             return aoclsparse_status_invalid_pointer;
 
@@ -294,7 +315,7 @@ aoclsparse_status aoclsparse_csr2m_template(aoclsparse_operation       transA,
 
         /*Insufficient memory for output allocation */
         if((csr_col_ind_C == NULL) || (csr_val_C == NULL))
-            return aoclsparse_status_internal_error;
+            return aoclsparse_status_memory_error;
 
         aoclsparse_csr2m_finalize(m,
                                   n,
@@ -318,6 +339,9 @@ aoclsparse_status aoclsparse_csr2m_template(aoclsparse_operation       transA,
         aoclsparse_int  n             = csrB->n;
         aoclsparse_int  nnz_C         = 0;
         aoclsparse_int *csr_row_ptr_C = (aoclsparse_int *)malloc((m + 1) * sizeof(aoclsparse_int));
+        /* Memory  allocation fail*/
+        if(csr_row_ptr_C == NULL)
+            return aoclsparse_status_memory_error;
 
         aoclsparse_csr2m_nnz_count(m,
                                    n,
@@ -333,7 +357,7 @@ aoclsparse_status aoclsparse_csr2m_template(aoclsparse_operation       transA,
 
         /*Insufficient memory for output allocation */
         if((csr_col_ind_C == NULL) || (csr_val_C == NULL))
-            return aoclsparse_status_internal_error;
+            return aoclsparse_status_memory_error;
 
         aoclsparse_csr2m_finalize(m,
                                   n,

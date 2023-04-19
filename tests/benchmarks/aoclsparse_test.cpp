@@ -64,6 +64,7 @@ int main(int argc, char *argv[])
     arg.block_dim  = 2; //default value
     arg.alpha      = 1.0; //default value
     arg.beta       = 0.0; //default value
+    arg.stage      = 0; //default value
     char precision = 'd';
     char transA    = 'N';
     char transB    = 'N';
@@ -123,6 +124,9 @@ int main(int argc, char *argv[])
             "\n\t"
             "--order=<0/1> \t Indicates whether a dense matrix is laid out in column-major "
             "storage: 1, or row-major storage 0 (default: 1)"
+            "\n\t"
+            "--stage=<0/1> \t Indicates whether csr2m routine performs in single stage: 0 "
+            "or double stage: 1 (default: 0)"
             "\n",
             argv[0]);
 
@@ -147,6 +151,7 @@ int main(int argc, char *argv[])
     args.aoclsparse_get_cmdline_argument("verify", arg.unit_check);
     args.aoclsparse_get_cmdline_argument("iters", arg.iters);
     args.aoclsparse_get_cmdline_argument("order", order);
+    args.aoclsparse_get_cmdline_argument("stage", arg.stage);
 
     if(precision != 's' && precision != 'd')
     {
@@ -200,13 +205,13 @@ int main(int argc, char *argv[])
         else if(precision == 'd')
             testing_csrmv<double>(arg);
     }
-#if USE_AVX512    
+#if USE_AVX512
     else if(strcmp(arg.function, "blkcsrmv") == 0)
     {
         if(precision == 'd')
             testing_blkcsrmv<double>(arg);
     }
-#endif    
+#endif
     else if(strcmp(arg.function, "ellmv") == 0)
     {
         if(precision == 's')

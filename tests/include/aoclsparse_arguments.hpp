@@ -55,6 +55,7 @@ struct Arguments
     aoclsparse_diag_type  diag;
     aoclsparse_fill_mode  uplo;
     aoclsparse_order      order;
+    aoclsparse_int        stage;
 
     aoclsparse_matrix_init matrix;
 

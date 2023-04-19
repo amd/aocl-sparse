@@ -75,6 +75,61 @@ namespace
         aoclsparse_destroy(csrB);
         aoclsparse_destroy(csrC);
     }
+     // Quick return with success when size 0 matrix is passed
+
+    template <typename T>
+    void test_csr2m_do_nothing()
+    {
+	aoclsparse_operation   transA = aoclsparse_operation_none;
+	aoclsparse_operation   transB = aoclsparse_operation_none;
+	aoclsparse_index_base  base   = aoclsparse_index_base_zero;
+	aoclsparse_request     request;
+	aoclsparse_int         m = 2, k = 3, n = 2, nnzA = 1, nnzB = 3;
+	T                      csr_valA[]     = {42.};
+	aoclsparse_int         csr_col_indA[] = {1};
+	aoclsparse_int         csr_row_ptrA[] = {0, 0, 1};
+	T                      csr_valB[]     = {42., 21., 11.};
+	aoclsparse_int         csr_col_indB[] = {1, 0, 1};
+	aoclsparse_int         csr_row_ptrB[] = {0, 1, 2, 3};
+	aoclsparse_mat_descr descrA, descrB;
+	// aoclsparse_create_mat_descr set aoclsparse_matrix_type to aoclsparse_matrix_type_general
+	// and aoclsparse_index_base to aoclsparse_index_base_zero.
+	aoclsparse_create_mat_descr(&descrA);
+	aoclsparse_create_mat_descr(&descrB);
+
+	aoclsparse_matrix csrA;
+	aoclsparse_create_csr(csrA, base, 0, k, nnzA, csr_row_ptrA, csr_col_indA, csr_valA);
+	aoclsparse_matrix csrB;
+	aoclsparse_create_csr(csrB, base, k, n, nnzB, csr_row_ptrB, csr_col_indB, csr_valB);
+	aoclsparse_matrix csrC = NULL;
+	request                = aoclsparse_stage_full_computation;
+	EXPECT_EQ(aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, &csrC),
+		aoclsparse_status_success);
+	aoclsparse_destroy(csrA);
+	aoclsparse_destroy(csrB);
+	aoclsparse_destroy(csrC);
+
+	aoclsparse_create_csr(csrA, base, m, 0, nnzA, csr_row_ptrA, csr_col_indA, csr_valA);
+	aoclsparse_create_csr(csrB, base, 0, n, nnzB, csr_row_ptrB, csr_col_indB, csr_valB);
+	request                = aoclsparse_stage_full_computation;
+	EXPECT_EQ(aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, &csrC),
+		aoclsparse_status_success);
+	aoclsparse_destroy(csrA);
+	aoclsparse_destroy(csrB);
+	aoclsparse_destroy(csrC);
+
+	aoclsparse_create_csr(csrA, base, m, k, nnzA, csr_row_ptrA, csr_col_indA, csr_valA);
+	aoclsparse_create_csr(csrB, base, k, 0, nnzB, csr_row_ptrB, csr_col_indB, csr_valB);
+	request = aoclsparse_stage_full_computation;
+	EXPECT_EQ(aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, &csrC),
+		aoclsparse_status_success);
+	aoclsparse_destroy(csrA);
+	aoclsparse_destroy(csrB);
+	aoclsparse_destroy(csrC);
+
+	aoclsparse_destroy_mat_descr(descrA);
+	aoclsparse_destroy_mat_descr(descrB);
+    }
 
     // tests for Wrong size
     template <typename T>
@@ -156,47 +211,134 @@ namespace
         aoclsparse_create_mat_descr(&descrB);
 
         // and expect not_implemented for aoclsparse_operation_transpose(transA & transB)
-        aoclsparse_matrix csrA;
-        aoclsparse_create_csr(csrA, base, m, k, nnzA, csr_row_ptrA, csr_col_indA, csr_valA);
-        aoclsparse_matrix csrB;
-        aoclsparse_create_csr(csrB, base, k, n, nnzB, csr_row_ptrB, csr_col_indB, csr_valB);
-        aoclsparse_matrix csrC = NULL;
-        request                = aoclsparse_stage_full_computation;
-        EXPECT_EQ(
-            aoclsparse_csr2m<T>(
-                aoclsparse_operation_transpose, descrA, csrA, transB, descrB, csrB, request, &csrC),
-            aoclsparse_status_not_implemented);
-        EXPECT_EQ(
-            aoclsparse_csr2m<T>(
-                transA, descrA, csrA, aoclsparse_operation_transpose, descrB, csrB, request, &csrC),
-            aoclsparse_status_not_implemented);
+	aoclsparse_matrix csrA;
+	aoclsparse_create_csr(csrA, base, m, k, nnzA, csr_row_ptrA, csr_col_indA, csr_valA);
+	aoclsparse_matrix csrB;
+	aoclsparse_create_csr(csrB, base, k , n, nnzB, csr_row_ptrB, csr_col_indB, csr_valB);
+	aoclsparse_matrix csrC = NULL;
+	request                = aoclsparse_stage_full_computation;
+	EXPECT_EQ(
+	    aoclsparse_csr2m<T>(
+	        aoclsparse_operation_transpose, descrA, csrA, transB, descrB, csrB, request, &csrC),
+	    aoclsparse_status_not_implemented);
+	EXPECT_EQ(
+	    aoclsparse_csr2m<T>(
+	        transA, descrA, csrA, aoclsparse_operation_transpose, descrB, csrB, request, &csrC),
+	    aoclsparse_status_not_implemented);
 
-        // FIX ME : Code doesnt check for descr attributes of matrix B
-        // and expect not_implemented for aoclsparse_index_base_one
-        aoclsparse_set_mat_index_base(descrA, aoclsparse_index_base_one);
-        EXPECT_EQ(aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, &csrC),
-                  aoclsparse_status_not_implemented);
+         // and expect not_implemented for aoclsparse_index_base_one for matrix A and B
+         aoclsparse_set_mat_index_base(descrA, aoclsparse_index_base_one);
+         EXPECT_EQ(aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, &csrC),
+               aoclsparse_status_not_implemented);
+         aoclsparse_set_mat_index_base(descrA, aoclsparse_index_base_zero);
+         aoclsparse_set_mat_index_base(descrB, aoclsparse_index_base_one);
+         EXPECT_EQ(aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, &csrC),
+               aoclsparse_status_not_implemented);
 
-        // and expect not_implemented for !aoclsparse_matrix_type_general
-        aoclsparse_set_mat_index_base(descrA, aoclsparse_index_base_zero);
-        aoclsparse_set_mat_type(descrA, aoclsparse_matrix_type_symmetric);
-        EXPECT_EQ(aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, &csrC),
-                  aoclsparse_status_not_implemented);
+         // and expect not_implemented for !aoclsparse_matrix_type_general for matrix A and B
+         aoclsparse_set_mat_index_base(descrB, aoclsparse_index_base_zero);
+         aoclsparse_set_mat_type(descrA, aoclsparse_matrix_type_symmetric);
+         EXPECT_EQ(aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, &csrC),
+               aoclsparse_status_not_implemented);
+         aoclsparse_set_mat_type(descrA, aoclsparse_matrix_type_general);
+         aoclsparse_set_mat_type(descrB, aoclsparse_matrix_type_symmetric);
+         EXPECT_EQ(aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, &csrC),
+               aoclsparse_status_not_implemented);
 
-        aoclsparse_destroy_mat_descr(descrA);
-        aoclsparse_destroy(csrA);
-        aoclsparse_destroy_mat_descr(descrB);
-        aoclsparse_destroy(csrB);
-        aoclsparse_destroy(csrC);
+         aoclsparse_destroy_mat_descr(descrA);
+         aoclsparse_destroy(csrA);
+         aoclsparse_destroy_mat_descr(descrB);
+         aoclsparse_destroy(csrB);
+         aoclsparse_destroy(csrC);
     }
 
+    void test_csr2m_wrong_datatype_float()
+    {
+	aoclsparse_operation   transA = aoclsparse_operation_none;
+	aoclsparse_operation   transB = aoclsparse_operation_none;
+	aoclsparse_index_base  base   = aoclsparse_index_base_zero;
+	aoclsparse_request     request;
+	aoclsparse_int         m = 2, k = 3, n = 2, nnzA = 1, nnzB = 3;
+	float                  csr_valA[]     = {42.};
+	aoclsparse_int         csr_col_indA[] = {1};
+	aoclsparse_int         csr_row_ptrA[] = {0, 0, 1};
+	float                  csr_valB[]     = {42., 21., 11.};
+	aoclsparse_int         csr_col_indB[] = {1, 0, 1};
+	aoclsparse_int         csr_row_ptrB[] = {0, 1, 2, 3};
+	aoclsparse_mat_descr   descrA, descrB;
+	// aoclsparse_create_mat_descr set aoclsparse_matrix_type to aoclsparse_matrix_type_general
+	// and aoclsparse_index_base to aoclsparse_index_base_zero.
+	aoclsparse_create_mat_descr(&descrA);
+	aoclsparse_create_mat_descr(&descrB);
+
+	aoclsparse_matrix csrA;
+	aoclsparse_create_scsr(csrA, base, m, k, nnzA, csr_row_ptrA, csr_col_indA, csr_valA);
+	aoclsparse_matrix csrB;
+	aoclsparse_create_scsr(csrB, base, k, n, nnzB, csr_row_ptrB, csr_col_indB, csr_valB);
+	aoclsparse_matrix csrC = NULL;
+	request                = aoclsparse_stage_full_computation;
+	// For float date type matrices, invoke csr2m for double precision
+	// and expect wrong type error
+	EXPECT_EQ(aoclsparse_dcsr2m(transA, descrA, csrA, transB, descrB, csrB, request, &csrC),
+		aoclsparse_status_wrong_type);
+
+	aoclsparse_destroy_mat_descr(descrA);
+	aoclsparse_destroy(csrA);
+	aoclsparse_destroy_mat_descr(descrB);
+	aoclsparse_destroy(csrB);
+	aoclsparse_destroy(csrC);
+    }
+    void test_csr2m_wrong_datatype_double()
+    {
+	aoclsparse_operation   transA = aoclsparse_operation_none;
+	aoclsparse_operation   transB = aoclsparse_operation_none;
+	aoclsparse_index_base  base   = aoclsparse_index_base_zero;
+	aoclsparse_request     request;
+	aoclsparse_int         m = 2, k = 3, n = 2, nnzA = 1, nnzB = 3;
+	double                 csr_valA[]     = {42.};
+	aoclsparse_int         csr_col_indA[] = {1};
+	aoclsparse_int         csr_row_ptrA[] = {0, 0, 1};
+	double                 csr_valB[]     = {42., 21., 11.};
+	aoclsparse_int         csr_col_indB[] = {1, 0, 1};
+	aoclsparse_int         csr_row_ptrB[] = {0, 1, 2, 3};
+	aoclsparse_mat_descr   descrA, descrB;
+	// aoclsparse_create_mat_descr set aoclsparse_matrix_type to aoclsparse_matrix_type_general
+	// and aoclsparse_index_base to aoclsparse_index_base_zero.
+	aoclsparse_create_mat_descr(&descrA);
+	aoclsparse_create_mat_descr(&descrB);
+
+	aoclsparse_matrix csrA;
+	aoclsparse_create_dcsr(csrA, base, m, k, nnzA, csr_row_ptrA, csr_col_indA, csr_valA);
+	aoclsparse_matrix csrB;
+	aoclsparse_create_dcsr(csrB, base, k, n, nnzB, csr_row_ptrB, csr_col_indB, csr_valB);
+	aoclsparse_matrix csrC = NULL;
+	request                = aoclsparse_stage_full_computation;
+	// For double date type matrices, invoke csr2m for single precision
+	// and expect wrong type error
+	EXPECT_EQ(aoclsparse_scsr2m(transA, descrA, csrA, transB, descrB, csrB, request, &csrC),
+		aoclsparse_status_wrong_type);
+
+	aoclsparse_destroy_mat_descr(descrA);
+	aoclsparse_destroy(csrA);
+	aoclsparse_destroy_mat_descr(descrB);
+	aoclsparse_destroy(csrB);
+	aoclsparse_destroy(csrC);
+    }
     TEST(csr2m, NullArgDouble)
     {
-        test_csr2m_nullptr<double>();
+	test_csr2m_nullptr<double>();
     }
     TEST(csr2m, NullArgFloat)
     {
-        test_csr2m_nullptr<float>();
+	test_csr2m_nullptr<float>();
+    }
+    TEST(csr2m, DoNothingFloat)
+    {
+	test_csr2m_do_nothing<float>();
+    }
+    TEST(csr2m, DoNothingDouble)
+    {
+	test_csr2m_do_nothing<double>();
     }
     TEST(csr2m, WrongSizeDouble)
     {
@@ -206,14 +348,20 @@ namespace
     {
         test_csr2m_wrong_size<float>();
     }
-
     TEST(csr2m, NotImplDouble)
     {
-        test_csr2m_not_implemented<double>();
+	test_csr2m_not_implemented<double>();
     }
     TEST(csr2m, NotImplFloat)
     {
-        test_csr2m_not_implemented<float>();
+	test_csr2m_not_implemented<float>();
     }
-
+    TEST(csr2m, WrongTypeFloat)
+    {
+	test_csr2m_wrong_datatype_float();
+    }
+    TEST(csr2m, WrongTypeDouble)
+    {
+	test_csr2m_wrong_datatype_double();
+    }
 } // namespace

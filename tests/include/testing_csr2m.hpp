@@ -228,17 +228,26 @@ void testing_csr2m(const Arguments &arg)
 
     if(arg.unit_check)
     {
-        request = aoclsparse_stage_nnz_count;
-        CHECK_AOCLSPARSE_ERROR(
-            aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, &csrC));
+	if(arg.stage == 0)
+	{
+	    request = aoclsparse_stage_full_computation;
+	    CHECK_AOCLSPARSE_ERROR(
+		    aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, &csrC));
+	}
+	else if(arg.stage == 1)
+	{
+	    request = aoclsparse_stage_nnz_count;
+	    CHECK_AOCLSPARSE_ERROR(
+		    aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, &csrC));
 
-        request = aoclsparse_stage_finalize;
-        CHECK_AOCLSPARSE_ERROR(
-            aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, &csrC));
-        aoclsparse_export_mat_csr(
-            csrC, &base, &C_M, &C_N, &nnz_C, &csr_row_ptr_C, &csr_col_ind_C, (void **)&csr_val_C);
+	    request = aoclsparse_stage_finalize;
+	    CHECK_AOCLSPARSE_ERROR(
+		    aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, &csrC));
+	}
+	aoclsparse_export_mat_csr(
+		csrC, &base, &C_M, &C_N, &nnz_C, &csr_row_ptr_C, &csr_col_ind_C, (void **)&csr_val_C);
 
-        aoclsparse_order_column_index(C_M, nnz_C, csr_row_ptr_C, csr_col_ind_C, csr_val_C);
+	aoclsparse_order_column_index(C_M, nnz_C, csr_row_ptr_C, csr_col_ind_C, csr_val_C);
 
         /*uBlas reference library sparse prod*/
         ublasCsrC = dMatrixType(C_M, C_N, nnz_C);

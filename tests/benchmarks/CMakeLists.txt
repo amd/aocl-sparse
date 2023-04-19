@@ -106,6 +106,18 @@ set(RCTMATRIXSIZES
   "20 105 600"   # nnz per row > 30
 )
 
+# set common matrix sizes for rectangular matrices A & B "m k n nnz"
+set(RCTMATRIXSIZESMM
+  "1 99 53 77"
+  "103 1 90 83"
+  "4 53 100 110"     # 5% density, ~27nnz per row, 2 per column
+  "53 3 100 111"     # 7% density, ~2nnz per row, 37 per column
+  "29 47 83 500"    # 3% density
+  "50 49 11 490"    # 20% density
+  "20 100 50 800"   # nnz per row > 30
+  "20 105 80 600"   # nnz per row > 30
+)
+
 foreach(FUNCTION "csrmv" "ellmv" "diamv" "optmv") # TODO add back "csrsv", so far failing the tests
   foreach(PREC "d" "s")
 
@@ -197,6 +209,18 @@ foreach(FUNCTION "csrmm")
       add_test(FuncTest.${FUNCTION}-${PREC}-${SIZEM}x${SIZEN}x${SIZEN}x${SIZENNZ}-ro ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=${SIZEN} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --order=0 --verify=1 --iters=1)
     endforeach(MATSIZE)
 
+    foreach(MATSIZE ${RCTMATRIXSIZESMM})
+      # split MATSIZE string to individual tokens
+      string(REGEX MATCHALL "[0-9]+" MATSIZE_LIST ${MATSIZE})
+      list(GET MATSIZE_LIST 0 SIZEM)
+      list(GET MATSIZE_LIST 1 SIZEK)
+      list(GET MATSIZE_LIST 2 SIZEN)
+      list(GET MATSIZE_LIST 3 SIZENNZ)
+
+      add_test(FuncTest.${FUNCTION}-${PREC}-${SIZEM}x${SIZEK}x${SIZEN}x${SIZENNZ}-co ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=${SIZEK} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --order=1 --verify=1 --iters=1)
+      add_test(FuncTest.${FUNCTION}-${PREC}-${SIZEM}x${SIZEK}x${SIZEN}x${SIZENNZ}-ro ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=${SIZEK} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --order=0 --verify=1 --iters=1)
+    endforeach(MATSIZE)
+
       # Add extra tests to exercise nonstandard multipliers alpha, beta
       add_test(FuncTest.${FUNCTION}-${PREC}-103x103x103x499-co-mlt ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=103 --sizem=103 --sizen=103 --sizennz=499 --order=1 --alpha=3 --beta=-1.5 --verify=1 --iters=1)
       add_test(FuncTest.${FUNCTION}-${PREC}-103x103x103x499-ro-mlt ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=103 --sizem=103 --sizen=103 --sizennz=499 --order=0 --alpha=3 --beta=-1.5 --verify=1 --iters=1)
@@ -225,18 +249,32 @@ foreach(FUNCTION "csr2m")
       list(GET MATSIZE_LIST 1 SIZEN)
       list(GET MATSIZE_LIST 2 SIZENNZ)
 
-      add_test(FuncTest.${FUNCTION}-${PREC}-${SIZEM}x${SIZEN}x${SIZEM}x${SIZENNZ} ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=${SIZEN} --sizem=${SIZEM} --sizen=${SIZEM} --sizennz=${SIZENNZ} --verify=1 --iters=1)
+      add_test(FuncTest.${FUNCTION}-${PREC}-${SIZEM}x${SIZEN}x${SIZEM}x${SIZENNZ}-1s ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=${SIZEN} --sizem=${SIZEM} --sizen=${SIZEM} --sizennz=${SIZENNZ} --stage=0 --verify=1 --iters=1)
+      add_test(FuncTest.${FUNCTION}-${PREC}-${SIZEM}x${SIZEN}x${SIZEM}x${SIZENNZ}-2s ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=${SIZEN} --sizem=${SIZEM} --sizen=${SIZEM} --sizennz=${SIZENNZ} --stage=1 --verify=1 --iters=1)
 
     endforeach(MATSIZE)
+
+    foreach(MATSIZE ${RCTMATRIXSIZESMM})
+      # split MATSIZE string to individual tokens
+      string(REGEX MATCHALL "[0-9]+" MATSIZE_LIST ${MATSIZE})
+      list(GET MATSIZE_LIST 0 SIZEM)
+      list(GET MATSIZE_LIST 1 SIZEK)
+      list(GET MATSIZE_LIST 2 SIZEN)
+      list(GET MATSIZE_LIST 3 SIZENNZ)
+
+      add_test(FuncTest.${FUNCTION}-${PREC}-${SIZEM}x${SIZEK}x${SIZEN}x${SIZENNZ}-1s ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=${SIZEK} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --stage=0 --verify=1 --iters=1)
+      add_test(FuncTest.${FUNCTION}-${PREC}-${SIZEM}x${SIZEK}x${SIZEN}x${SIZENNZ}-2s ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=${SIZEK} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --stage=1 --verify=1 --iters=1)
+    endforeach(MATSIZE)
+
   endforeach(PREC)
 endforeach(FUNCTION)
 
 # matrix sizes for ILU tests
-set(ILU_SQUARE_MATRIX_SIZES 
+set(ILU_SQUARE_MATRIX_SIZES
   "1 1 1"
   "4 4 6"
-  "47 47 110"    
-  "47 47 513"    
+  "47 47 110"
+  "47 47 513"
   "100 100 500"
   "103 103 499"
   "1000 1000 2000"
@@ -254,7 +292,7 @@ foreach(FUNCTION "ilu")
 
     endforeach(MATSIZE)
   endforeach(PREC)
-endforeach(FUNCTION)     
+endforeach(FUNCTION)
 
 # Add extra function on matrix sizes as needed
 # For example, excersice nonstandard multipliers alpha, beta
