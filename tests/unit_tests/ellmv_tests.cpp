@@ -400,10 +400,10 @@ namespace
         aoclsparse_int ell_col_ind[] = {0, 1, 2, 2, 2};
         T              ell_val[]     = {1, 1, 1, 1, 1};
         T              alpha = 2, beta = 2;
-        T              x[]      = {1.0, 1.0, 1.0};
+        T              x[]      = {1.0, 2.0, 5.0};
         T              y[]      = {1.0, 1.0, 1.0, 1.0, 1.0};
-        T              exp_y1[] = {4.0, 4.0, 4.0, 4.0, 4.0};
-        T              exp_y2[] = {1.0, 1.0, 1.0, 1.0, 1.0};
+        T              exp_y1[] = {4.0, 6.0, 12.0, 12.0, 12.0};
+        T              exp_y2[] = {1.0, 2.0, 5.0, 5.0, 5.0};
 
         aoclsparse_mat_descr descr;
         // aoclsparse_create_mat_descr set aoclsparse_matrix_type to aoclsparse_matrix_type_general
@@ -616,12 +616,12 @@ namespace
         aoclsparse_int ell_m         = 4;
 
         aoclsparse_int csr_row_idx_map[] = {2};
+        T              alpha = 2, beta = 2;
+        T              x[]      = {2.0, 3.0, 1.0, -1.0, 2.0, 1.0};
+        T              y[]      = {1, 1, 1, 1, 1};
+        T              exp_y1[] = {6, 8, 18, 4, 4};
+        T              exp_y2[] = {2, 3, 8, 1, 1};
 
-        T                    alpha = 2, beta = 2;
-        T                    x[]      = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
-        T                    y[]      = {1, 1, 1, 1, 1};
-        T                    exp_y1[] = {4, 4, 14, 4, 4};
-        T                    exp_y2[] = {1, 1, 6, 1, 1};
         aoclsparse_mat_descr descr;
         // aoclsparse_create_mat_descr set aoclsparse_matrix_type to aoclsparse_matrix_type_general
         // and aoclsparse_index_base to aoclsparse_index_base_zero.

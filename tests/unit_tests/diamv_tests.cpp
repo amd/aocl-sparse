@@ -38,7 +38,7 @@ namespace
         T                    alpha        = 1.0;
         T                    beta         = 0.0;
         // Initialise vectors
-        T x[N] = {1.0, 2.0, 3.0, 4.0, 5.0};
+        T x[] = {1.0, 2.0, 3.0, 4.0, 5.0};
         T y[M];
 
         aoclsparse_mat_descr descr;
@@ -46,15 +46,9 @@ namespace
         // and aoclsparse_index_base to aoclsparse_index_base_zero.
         aoclsparse_create_mat_descr(&descr);
 
-        aoclsparse_int dia_offset[dia_num_diag] = {0};
-        T              dia_val[NNZ]             = {0.1, 0.22, 3.1, 1.0, -1.1};
+        aoclsparse_int dia_offset[] = {0};
+        T              dia_val[]    = {0.1, 0.22, 3.1, 1.0, -1.1};
 
-        /*
-        EXPECT_EQ(
-            aoclsparse_diamv<T>(
-                trans, &alpha, M, N, NNZ, dia_val, dia_offset, dia_num_diag, descr, x, &beta, y),
-            aoclsparse_status_invalid_pointer);
-*/
         EXPECT_EQ(
             aoclsparse_diamv<T>(
                 trans, nullptr, M, N, NNZ, dia_val, dia_offset, dia_num_diag, descr, x, &beta, y),
@@ -114,7 +108,7 @@ namespace
         T                    alpha        = 1.0;
         T                    beta         = 0.0;
         // Initialise vectors
-        T x[N] = {1.0, 2.0, 3.0, 4.0, 5.0};
+        T x[] = {1.0, 2.0, 3.0, 4.0, 5.0};
         T y[M];
 
         aoclsparse_mat_descr descr;
@@ -122,15 +116,9 @@ namespace
         // and aoclsparse_index_base to aoclsparse_index_base_zero.
         aoclsparse_create_mat_descr(&descr);
 
-        aoclsparse_int dia_offset[dia_num_diag] = {0};
-        T              dia_val[NNZ]             = {0.1, 0.22, 3.1, 1.0, -1.1};
+        aoclsparse_int dia_offset[] = {0};
+        T              dia_val[]    = {0.1, 0.22, 3.1, 1.0, -1.1};
 
-        /*
-        EXPECT_EQ(
-            aoclsparse_diamv<T>(
-                trans, &alpha, M, N, NNZ, dia_val, dia_offset, dia_num_diag, descr, x, &beta, y),
-            aoclsparse_status_invalid_pointer);
-*/
         EXPECT_EQ(
             aoclsparse_diamv<T>(
                 trans, &alpha, -1, N, NNZ, dia_val, dia_offset, dia_num_diag, descr, x, &beta, y),
@@ -155,7 +143,7 @@ namespace
         T                    alpha        = 1.0;
         T                    beta         = 0.0;
         // Initialise vectors
-        T x[N] = {1.0, 2.0, 3.0, 4.0, 5.0};
+        T x[] = {1.0, 2.0, 3.0, 4.0, 5.0};
         T y[M];
 
         aoclsparse_mat_descr descr;
@@ -163,15 +151,9 @@ namespace
         // and aoclsparse_index_base to aoclsparse_index_base_zero.
         aoclsparse_create_mat_descr(&descr);
 
-        aoclsparse_int dia_offset[dia_num_diag] = {0};
-        T              dia_val[NNZ]             = {0.1, 0.22, 3.1, 1.0, -1.1};
+        aoclsparse_int dia_offset[] = {0};
+        T              dia_val[]    = {0.1, 0.22, 3.1, 1.0, -1.1};
 
-        /*
-        EXPECT_EQ(
-            aoclsparse_diamv<T>(
-                trans, &alpha, M, N, NNZ, dia_val, dia_offset, dia_num_diag, descr, x, &beta, y),
-            aoclsparse_status_invalid_pointer);
-*/
         aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_one);
         EXPECT_EQ(
             aoclsparse_diamv<T>(
@@ -202,31 +184,32 @@ namespace
         T                    alpha        = 1.0;
         T                    beta         = 0.0;
         // Initialise vectors
-        T x[N] = {1.0, 2.0, 3.0, 4.0, 5.0};
-        T y[M];
+        T x[] = {1.0, 2.0, 3.0, 4.0, 5.0};
+        T y[] = {1.0, 2.0, 3.0, 4.0, 5.0};
+        T exp_y[] = {1.0, 2.0, 3.0, 4.0, 5.0};
 
         aoclsparse_mat_descr descr;
         // aoclsparse_create_mat_descr set aoclsparse_matrix_type to aoclsparse_matrix_type_general
         // and aoclsparse_index_base to aoclsparse_index_base_zero.
         aoclsparse_create_mat_descr(&descr);
 
-        aoclsparse_int dia_offset[dia_num_diag] = {0};
-        T              dia_val[NNZ]             = {0.1, 0.22, 3.1, 1.0, -1.1};
+        aoclsparse_int dia_offset[] = {0};
+        T              dia_val[]    = {0.1, 0.22, 3.1, 1.0, -1.1};
 
         EXPECT_EQ(
             aoclsparse_diamv<T>(
                 trans, &alpha, 0, N, NNZ, dia_val, dia_offset, dia_num_diag, descr, x, &beta, y),
             aoclsparse_status_success);
-
+        EXPECT_DOUBLE_EQ_VEC(5, y, exp_y);
         EXPECT_EQ(
             aoclsparse_diamv<T>(
                 trans, &alpha, M, 0, NNZ, dia_val, dia_offset, dia_num_diag, descr, x, &beta, y),
             aoclsparse_status_success);
-
+        EXPECT_DOUBLE_EQ_VEC(5, y, exp_y);
         EXPECT_EQ(aoclsparse_diamv<T>(
                       trans, &alpha, M, N, NNZ, dia_val, dia_offset, 0, descr, x, &beta, y),
                   aoclsparse_status_success);
-
+        EXPECT_DOUBLE_EQ_VEC(5, y, exp_y);
         aoclsparse_destroy_mat_descr(descr);
     }
 

@@ -37,7 +37,7 @@ namespace
         T                    alpha = 1.0;
         T                    beta  = 0.0;
         // Initialise vectors
-        T x[N] = {1.0, 2.0, 3.0, 4.0, 5.0};
+        T x[] = {1.0, 2.0, 3.0, 4.0, 5.0};
         T y[M];
 
         aoclsparse_mat_descr descr;
@@ -53,9 +53,9 @@ namespace
         //  0  0  4  0  0
         //  0  5  0  6  7
         //  0  0  0  0  8
-        aoclsparse_int    csr_row_ptr[M + 1] = {0, 2, 3, 4, 7, 8};
-        aoclsparse_int    csr_col_ind[NNZ]   = {0, 3, 1, 2, 1, 3, 4, 4};
-        T                 csr_val[NNZ]       = {1, 2, 3, 4, 5, 6, 7, 8};
+        aoclsparse_int    csr_row_ptr[] = {0, 2, 3, 4, 7, 8};
+        aoclsparse_int    csr_col_ind[] = {0, 3, 1, 2, 1, 3, 4, 4};
+        T                 csr_val[]     = {1, 2, 3, 4, 5, 6, 7, 8};
         aoclsparse_matrix A;
         aoclsparse_create_csr<T>(A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
 
@@ -82,7 +82,7 @@ namespace
         T                    alpha = 1.0;
         T                    beta  = 0.0;
         // Initialise vectors
-        T x[N] = {1.0, 2.0, 3.0, 4.0};
+        T x[] = {1.0, 2.0, 3.0, 4.0};
         T y[M];
 
         aoclsparse_mat_descr descr;
@@ -92,9 +92,9 @@ namespace
 
         aoclsparse_index_base base = aoclsparse_index_base_zero;
 
-        aoclsparse_int    csr_row_ptr[M + 1] = {0, 2, 3, 4, 7, 8};
-        aoclsparse_int    csr_col_ind[NNZ]   = {0, 3, 1, 2, 1, 2, 3, 1};
-        T                 csr_val[NNZ]       = {1, 2, 3, 4, 5, 6, 7, 8};
+        aoclsparse_int    csr_row_ptr[] = {0, 2, 3, 4, 7, 8};
+        aoclsparse_int    csr_col_ind[] = {0, 3, 1, 2, 1, 2, 3, 1};
+        T                 csr_val[]     = {1, 2, 3, 4, 5, 6, 7, 8};
         aoclsparse_matrix A;
         aoclsparse_create_csr<T>(A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
 
@@ -133,7 +133,7 @@ namespace
         T              alpha = 1.0;
         T              beta  = 0.0;
         // Initialise vectors
-        T x[N] = {1.0, 2.0, 3.0, 4.0, 5.0};
+        T x[] = {1.0, 2.0, 3.0, 4.0, 5.0};
         T y[M];
 
         aoclsparse_index_base base = aoclsparse_index_base_zero;
@@ -143,9 +143,9 @@ namespace
         aoclsparse_create_mat_descr(&descr);
         aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_one);
 
-        aoclsparse_int    csr_row_ptr[M + 1] = {0, 2, 3, 4, 7, 8};
-        aoclsparse_int    csr_col_ind[NNZ]   = {0, 3, 1, 2, 1, 3, 4, 4};
-        T                 csr_val[NNZ]       = {1, 2, 3, 4, 5, 6, 7, 8};
+        aoclsparse_int    csr_row_ptr[] = {0, 2, 3, 4, 7, 8};
+        aoclsparse_int    csr_col_ind[] = {0, 3, 1, 2, 1, 3, 4, 4};
+        T                 csr_val[]     = {1, 2, 3, 4, 5, 6, 7, 8};
         aoclsparse_matrix A;
         aoclsparse_create_csr<T>(A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
 
@@ -185,9 +185,9 @@ namespace
         aoclsparse_create_mat_descr(&descr);
         aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_zero);
 
-        aoclsparse_int    csr_row_ptr[M + 1] = {0};
-        aoclsparse_int    csr_col_ind[NNZ]   = {0};
-        T                 csr_val[NNZ]       = {0};
+        aoclsparse_int    csr_row_ptr[] = {0};
+        aoclsparse_int    csr_col_ind[] = {0};
+        T                 csr_val[]     = {0};
         aoclsparse_matrix AM0, AN0;
         aoclsparse_create_csr<T>(AM0, base, 0, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
         aoclsparse_create_csr<T>(AN0, base, M, 0, NNZ, csr_row_ptr, csr_col_ind, csr_val);
@@ -211,10 +211,10 @@ namespace
         T                    alpha = 1.0;
         T                    beta  = 0.0;
         // Initialise vectors
-        T x[N] = {1.0, 1.0, 1.0, 1.0};
+        T x[] = {1.0, 2.0, 3.0, 4.0};
         T y[M];
-        T exp_y_l[M] = {1, 3, 4, 18, 8};
-        T exp_y_u[M] = {3, 3, 4, 7, 0};
+        T exp_y_l[] = {1, 6, 12, 56, 8};
+        T exp_y_u[] = {9, 6, 12, 28, 0};
 
         aoclsparse_mat_descr descr;
         // aoclsparse_create_mat_descr set aoclsparse_matrix_type to aoclsparse_matrix_type_general
@@ -223,9 +223,9 @@ namespace
 
         aoclsparse_index_base base = aoclsparse_index_base_zero;
 
-        aoclsparse_int    csr_row_ptr[M + 1] = {0, 2, 3, 4, 7, 8};
-        aoclsparse_int    csr_col_ind[NNZ]   = {0, 3, 1, 2, 1, 2, 3, 1};
-        T                 csr_val[NNZ]       = {1, 2, 3, 4, 5, 6, 7, 8};
+        aoclsparse_int    csr_row_ptr[] = {0, 2, 3, 4, 7, 8};
+        aoclsparse_int    csr_col_ind[] = {0, 3, 1, 2, 1, 2, 3, 1};
+        T                 csr_val[]     = {1, 2, 3, 4, 5, 6, 7, 8};
         aoclsparse_matrix A;
         aoclsparse_create_csr<T>(A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
 

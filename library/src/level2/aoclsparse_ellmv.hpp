@@ -456,7 +456,7 @@ aoclsparse_status aoclsparse_elltmv_template_avx2(const double          alpha,
                                                   double               *y,
                                                   aoclsparse_context   *context)
 {
-    __m256d res, vvals, vx, vy, va, vb, vvals1, vx1, vy1;
+    __m256d res, vvals, vx, vy, va, vb;
 
     va                                         = _mm256_set1_pd(alpha);
     vb                                         = _mm256_set1_pd(beta);
@@ -466,7 +466,7 @@ aoclsparse_status aoclsparse_elltmv_template_avx2(const double          alpha,
     [[maybe_unused]] aoclsparse_int chunk_size = m / (blk * context->num_threads);
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(context->num_threads) \
-    schedule(dynamic, chunk_size) private(res, vvals, vx, vy, va, vb, vvals1, vx1, vy1)
+    schedule(dynamic, chunk_size) private(res, vvals, vx, vy)
 #endif
     for(aoclsparse_int j = 0; j < m / blk; j++)
     {
@@ -772,7 +772,7 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx2(const double          alpha
     [[maybe_unused]] aoclsparse_int chunk_size = m / (blk * context->num_threads);
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(context->num_threads) \
-    schedule(dynamic, chunk_size) private(res, vvals, vx, vy, va, vb)
+    schedule(dynamic, chunk_size) firstprivate(res, vvals, vx, vy)
 #endif
     for(aoclsparse_int j = 0; j < m / blk; j++)
     {
