@@ -113,8 +113,10 @@ aoclsparse_status aoclsparse_scale(const aoclsparse_int n, T *xv, T sfactor)
 template <typename T>
 bool aoclsparse_zerocheck(const T &value)
 {
-    bool is_value_zero = false;
-    is_value_zero      = std::fabs(value) <= std::numeric_limits<T>::epsilon();
+    bool        is_value_zero = false;
+    constexpr T macheps       = std::numeric_limits<T>::epsilon();
+    constexpr T safe_macheps  = (T)2.0 * macheps;
+    is_value_zero             = std::fabs(value) <= safe_macheps;
     return is_value_zero;
 }
 #endif

@@ -863,7 +863,7 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
 {
     aoclsparse_status exit_status = aoclsparse_status_success;
     bool is_residnorm_below_abs_tolerance, is_rhsnorm_below_rel_tolerance, is_max_iters_reached;
-    bool is_restart_cycled_ended, is_value_zero;
+    bool is_restart_cycled_ended, is_value_zero, is_residual_vector_orthogonal;
     T   *v = NULL, *h = NULL, *g = NULL, *c = NULL, *s = NULL, *z = NULL;
     aoclsparse_int i = 0, n = 0, m = 0, j = 0, k = 0;
     gmres_data<T> *gmres;
@@ -931,9 +931,19 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
             {
                 return aoclsparse_status_invalid_value; // vector b is rubbish
             }
+
             rinfo[RINFO_RHS_NORM] = gmres->bnorm2;
             gmres->brtol          = gmres->rtol * gmres->bnorm2;
             rinfo[RINFO_RHS_NORM] = gmres->brtol;
+
+            //exit if both the tolerances are zeroes
+            if((aoclsparse_zerocheck(gmres->atol)) && (aoclsparse_zerocheck(gmres->brtol)))
+            {
+                exit_status = aoclsparse_status_invalid_value;
+                *ircomm     = aoclsparse_rci_stop;
+                break;
+            }
+
             //step 1.1
             exit_status = aoclsparse_wxmy<T>(n, itsol->b, v, v);
             if(exit_status != aoclsparse_status_success)
@@ -1033,14 +1043,26 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
                 break;
             }
 
-            is_value_zero = aoclsparse_zerocheck(hh);
-            if(!is_value_zero)
+            is_residual_vector_orthogonal = (hh < gmres->atol) || (hh < gmres->brtol);
+            if(!is_residual_vector_orthogonal)
             {
                 exit_status = aoclsparse_scale<T>(n, v + (j + 1) * n, (1.0 / hh));
             }
             else
             {
-                hh = 0.0;
+                // this condition means residual vector is already orthogonal
+                // to the previous Krylov subspace vectors
+                // the current approximation of the solution vector (x) is
+                // appropriate as it is the best approximation we have.
+                j += 1; //although convergence is reached while checking, we count the iteration so far
+                gmres->niter += j; //update iterations
+                rinfo[RINFO_ITER] = (T)gmres->niter;
+                //Since hh is zero, it means that the current residual vector is already
+                //orthogonal to the previous j columns of Q.
+                rinfo[RINFO_RES_NORM] = hh;
+                exit_status           = aoclsparse_status_success;
+                *ircomm               = aoclsparse_rci_stop;
+                break;
             }
 
             /* plane rotations */
