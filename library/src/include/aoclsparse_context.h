@@ -46,7 +46,9 @@ typedef aoclsparse_int aoclsparse_pthread_once_t;
 #define AOCLSPARSE_PTHREAD_ONCE_INIT 0
 
 #elif defined(_MSC_VER) // !defined(AOCLSPARSE_DISABLE_SYSTEM)
-
+//Below #define is requried to avoid conflict with min()/max() defined in windows.h
+//Defining NOMINMAX before <windows.h> will ensure min()/max() get resolved with std::min()/std::max()
+#define NOMINMAX
 #include <windows.h>
 // This branch defines a pthread-like API, aoclsparse_pthread_*(), and implements it
 // in terms of Windows API calls.

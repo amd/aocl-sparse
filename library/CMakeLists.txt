@@ -81,6 +81,8 @@ if(SUPPORT_OMP)
   target_compile_options(aoclsparse PUBLIC ${OpenMP_CXX_FLAGS})
 endif()
 
+set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/src/level2/aoclsparse_blkcsrmv.cpp PROPERTIES COMPILE_OPTIONS "-mavx512f;-mavx512vl")
+
 # Target properties
 set_target_properties(aoclsparse PROPERTIES SOVERSION ${aoclsparse_SOVERSION} )
 set_target_properties(aoclsparse PROPERTIES VERSION ${aoclsparse_SOVERSION})

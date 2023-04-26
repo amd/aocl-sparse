@@ -21,11 +21,10 @@
  *
  * ************************************************************************ */
 #include "aoclsparse.h"
-#include "gtest/gtest.h"
 #include "common_data_utils.h"
+#include "gtest/gtest.h"
 #include "aoclsparse.hpp"
 
-#if USE_AVX512
 namespace
 {
 
@@ -248,37 +247,37 @@ namespace
                       aoclsparse_status_invalid_size);
         }
 
-        //test with invalid block size 
-	EXPECT_EQ(aoclsparse_blkcsrmv<T>(trans,
-                                 &alpha,
-                                 m,
-                                 n,
-                                 nnz,
-                                 masks,
-                                 blk_csr_val,
-                                 blk_col_ind,
-                                 blk_row_ptr,
-                                 descr,
-                                 x,
-                                 &beta,
-                                 y,
-                                 wrong),
-        aoclsparse_status_invalid_size);
-	EXPECT_EQ(aoclsparse_blkcsrmv<T>(trans,
-                                 &alpha,
-                                 m,
-                                 n,
-                                 nnz,
-                                 masks,
-                                 blk_csr_val,
-                                 blk_col_ind,
-                                 blk_row_ptr,
-                                 descr,
-                                 x,
-                                 &beta,
-                                 y,
-                                 5),
-        aoclsparse_status_invalid_size);
+        //test with invalid block size
+        EXPECT_EQ(aoclsparse_blkcsrmv<T>(trans,
+                                         &alpha,
+                                         m,
+                                         n,
+                                         nnz,
+                                         masks,
+                                         blk_csr_val,
+                                         blk_col_ind,
+                                         blk_row_ptr,
+                                         descr,
+                                         x,
+                                         &beta,
+                                         y,
+                                         wrong),
+                  aoclsparse_status_invalid_size);
+        EXPECT_EQ(aoclsparse_blkcsrmv<T>(trans,
+                                         &alpha,
+                                         m,
+                                         n,
+                                         nnz,
+                                         masks,
+                                         blk_csr_val,
+                                         blk_col_ind,
+                                         blk_row_ptr,
+                                         descr,
+                                         x,
+                                         &beta,
+                                         y,
+                                         5),
+                  aoclsparse_status_invalid_size);
 
         aoclsparse_destroy_mat_descr(descr);
     }
@@ -338,7 +337,6 @@ namespace
         aoclsparse_destroy_mat_descr(descr);
     }
 
-    
     //Test cases for analysis and conversion routines
     template <typename T>
     void test_blkcsrmv_conversion()
@@ -370,7 +368,8 @@ namespace
         {
             uint8_t masks[nnz * nRowsblk[i]];
 
-            EXPECT_EQ(aoclsparse_csr2blkcsr(m, n,
+            EXPECT_EQ(aoclsparse_csr2blkcsr(m,
+                                            n,
                                             nnz,
                                             csr_row_ptr,
                                             csr_col_ind,
@@ -537,4 +536,3 @@ namespace
     }
 
 } // namespace
-#endif

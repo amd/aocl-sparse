@@ -141,7 +141,6 @@ foreach(FUNCTION "csrmv" "ellmv" "diamv" "optmv") # TODO add back "csrsv", so fa
   endforeach(PREC)
 endforeach(FUNCTION)
 
-if(USE_AVX512)
 foreach(FUNCTION "blkcsrmv")
   foreach(PREC "d")
     foreach(BLK "1" "2" "4")
@@ -171,7 +170,6 @@ foreach(FUNCTION "blkcsrmv")
 
   endforeach(PREC)
 endforeach(FUNCTION)
-endif()
 
 foreach(FUNCTION "bsrmv")
   foreach(PREC "d" "s")

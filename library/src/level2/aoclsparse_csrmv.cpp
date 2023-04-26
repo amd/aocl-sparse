@@ -228,7 +228,6 @@ aoclsparse_status aoclsparse_csrmv_vectorized_avx2(const double   alpha,
                                                    double *__restrict__ y,
                                                    aoclsparse_context *context)
 {
-
     __m256d vec_vals, vec_x, vec_y;
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(context->num_threads) \
@@ -532,35 +531,35 @@ extern "C" aoclsparse_status aoclsparse_dcsrmv(aoclsparse_operation       trans,
 }
 
 template <>
-aoclsparse_status aoclsparse_csrmv_vectorized_avx2ptr(const float   alpha,
-                                                   aoclsparse_int m,
-                                                   aoclsparse_int n,
-                                                   aoclsparse_int nnz,
-                                                   const float *__restrict__ aval,
-                                                   const aoclsparse_int *__restrict__ icol,
-                                                   const aoclsparse_int *__restrict__ crstart,
-                                                   const aoclsparse_int *__restrict__ crend,
-                                                   const float *__restrict__ x,
-                                                   const float beta,
-                                                   float *__restrict__ y,
-                                                   aoclsparse_context *context)
+aoclsparse_status aoclsparse_csrmv_vectorized_avx2ptr(const float    alpha,
+                                                      aoclsparse_int m,
+                                                      aoclsparse_int n,
+                                                      aoclsparse_int nnz,
+                                                      const float *__restrict__ aval,
+                                                      const aoclsparse_int *__restrict__ icol,
+                                                      const aoclsparse_int *__restrict__ crstart,
+                                                      const aoclsparse_int *__restrict__ crend,
+                                                      const float *__restrict__ x,
+                                                      const float beta,
+                                                      float *__restrict__ y,
+                                                      aoclsparse_context *context)
 {
     return aoclsparse_status_not_implemented;
 }
 
 template <>
 aoclsparse_status aoclsparse_csrmv_vectorized_avx2ptr(const double   alpha,
-                                                   aoclsparse_int m,
-                                                   aoclsparse_int n,
-                                                   aoclsparse_int nnz,
-                                                   const double *__restrict__ aval,
-                                                   const aoclsparse_int *__restrict__ icol,
-                                                   const aoclsparse_int *__restrict__ crstart,
-                                                   const aoclsparse_int *__restrict__ crend,
-                                                   const double *__restrict__ x,
-                                                   const double beta,
-                                                   double *__restrict__ y,
-                                                   aoclsparse_context *context)
+                                                      aoclsparse_int m,
+                                                      aoclsparse_int n,
+                                                      aoclsparse_int nnz,
+                                                      const double *__restrict__ aval,
+                                                      const aoclsparse_int *__restrict__ icol,
+                                                      const aoclsparse_int *__restrict__ crstart,
+                                                      const aoclsparse_int *__restrict__ crend,
+                                                      const double *__restrict__ x,
+                                                      const double beta,
+                                                      double *__restrict__ y,
+                                                      aoclsparse_context *context)
 {
 
     __m256d vec_vals, vec_x, vec_y;
@@ -585,10 +584,7 @@ aoclsparse_status aoclsparse_csrmv_vectorized_avx2ptr(const double   alpha,
             vec_vals = _mm256_loadu_pd((double const *)&aval[j]);
 
             //Gather the x vector elements from the column indices
-            vec_x = _mm256_set_pd(x[icol[j + 3]],
-                                  x[icol[j + 2]],
-                                  x[icol[j + 1]],
-                                  x[icol[j + 0]]);
+            vec_x = _mm256_set_pd(x[icol[j + 3]], x[icol[j + 2]], x[icol[j + 1]], x[icol[j + 0]]);
 
             vec_y = _mm256_fmadd_pd(vec_vals, vec_x, vec_y);
         }

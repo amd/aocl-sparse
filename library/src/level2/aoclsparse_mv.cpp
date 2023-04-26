@@ -188,7 +188,6 @@ aoclsparse_status aoclsparse_mv_general(aoclsparse_operation       op,
     if(A->mat_type == aoclsparse_csr_mat)
     {
         //Invoke SPMV API for CSR storage format(double precision)
-#if USE_AVX512
         if(A->blk_optimized)
             return aoclsparse_dblkcsrmv(op,
                                         &alpha,
@@ -217,21 +216,6 @@ aoclsparse_status aoclsparse_mv_general(aoclsparse_operation       op,
                                       x,
                                       &beta,
                                       y));
-
-#else
-        return (aoclsparse_dcsrmv(op,
-                                  &alpha,
-                                  A->m,
-                                  A->n,
-                                  A->nnz,
-                                  (double *)A->csr_mat.csr_val,
-                                  A->csr_mat.csr_col_ptr,
-                                  A->csr_mat.csr_row_ptr,
-                                  descr,
-                                  x,
-                                  &beta,
-                                  y));
-#endif
     }
     else if(A->mat_type == aoclsparse_ellt_csr_hyb_mat)
     {

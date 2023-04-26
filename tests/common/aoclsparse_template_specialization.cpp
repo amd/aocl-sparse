@@ -118,7 +118,6 @@ aoclsparse_status aoclsparse_csrmv(aoclsparse_operation       trans,
         trans, alpha, m, n, nnz, csr_val, csr_col_ind, csr_row_ptr, descr, x, beta, y);
 }
 
-#if USE_AVX512
 template <>
 aoclsparse_status aoclsparse_blkcsrmv(aoclsparse_operation       trans,
                                     const double *             alpha,
@@ -138,7 +137,6 @@ aoclsparse_status aoclsparse_blkcsrmv(aoclsparse_operation       trans,
     return aoclsparse_dblkcsrmv(
 		    trans, alpha, m, n, nnz, masks, blk_csr_val, blk_col_ind, blk_row_ptr, descr, x, beta, y, nRowsblk);
 }
-#endif
 
 template <>
 aoclsparse_status aoclsparse_ellmv(aoclsparse_operation       trans,

@@ -41,13 +41,11 @@ struct _aoclsparse_csr
     aoclsparse_int *csr_row_ptr = nullptr;
     aoclsparse_int *csr_col_ptr = nullptr;
     void           *csr_val     = nullptr;
-#if USE_AVX512
     aoclsparse_int *blk_row_ptr = nullptr;
     aoclsparse_int *blk_col_ptr = nullptr;
     void           *blk_val     = nullptr;
     uint8_t        *masks       = nullptr;
     aoclsparse_int nRowsblk     = 0;
-#endif
 };
 
 /********************************************************************************

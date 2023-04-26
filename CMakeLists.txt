@@ -175,7 +175,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR (CMAKE_CXX_COMPILER_ID STREQUAL "Clan
   endif()
   if(USE_AVX512)
     set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};-mavx512f;-mavx512dq;-mavx512vl")
-  endif()
+  endif()  
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CLANG_OPTIONS_STYLE STREQUAL "MSVC")
   # Clang with MSVC style compiler options
   # Common flags
@@ -196,7 +196,7 @@ else()
   set(COMPILER_FLAGS_COMMON "-mtune=native;-mavx2;-mfma")
   if(USE_AVX512)
     set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};-mavx512f;-mavx512dq;-mavx512vl")
-  endif()
+  endif()  
 endif()
 if(SUPPORT_OMP)
   set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};${OpenMP_CXX_FLAGS}")

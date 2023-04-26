@@ -771,8 +771,8 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx2(const double          alpha
     int                             blk        = 4;
     [[maybe_unused]] aoclsparse_int chunk_size = m / (blk * context->num_threads);
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(context->num_threads) \
-    schedule(dynamic, chunk_size) firstprivate(res, vvals, vx, vy)
+#pragma omp parallel for num_threads(context->num_threads) schedule(dynamic, chunk_size) \
+    firstprivate(res, vvals, vx, vy)
 #endif
     for(aoclsparse_int j = 0; j < m / blk; j++)
     {

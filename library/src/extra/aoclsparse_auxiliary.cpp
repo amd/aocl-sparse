@@ -545,7 +545,6 @@ aoclsparse_status aoclsparse_destroy_opt_csr(aoclsparse_matrix A)
     if(A->iurow)
         free(A->iurow);
 
-#if USE_AVX512 
     if(A->blk_optimized)
     {
 	if(A->csr_mat.blk_row_ptr)
@@ -557,7 +556,6 @@ aoclsparse_status aoclsparse_destroy_opt_csr(aoclsparse_matrix A)
 	if(A->csr_mat.masks)
 		free(A->csr_mat.masks);
     }
-#endif
     return aoclsparse_status_success;
 }
 

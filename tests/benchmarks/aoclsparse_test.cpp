@@ -205,13 +205,11 @@ int main(int argc, char *argv[])
         else if(precision == 'd')
             testing_csrmv<double>(arg);
     }
-#if USE_AVX512
     else if(strcmp(arg.function, "blkcsrmv") == 0)
     {
         if(precision == 'd')
             testing_blkcsrmv<double>(arg);
     }
-#endif
     else if(strcmp(arg.function, "ellmv") == 0)
     {
         if(precision == 's')

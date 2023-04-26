@@ -29,7 +29,6 @@
 #include <intrin.h>
 #endif
 
-#if USE_AVX512
 int bits_set(uint8_t x)
 {
 #if !defined(__clang__) && (defined(_WIN32) || defined(_WIN64))
@@ -99,7 +98,7 @@ aoclsparse_status
         sum += sse_sum[0];
 #endif
 
-	// Perform alpha * A * x
+        // Perform alpha * A * x
         if(alpha != static_cast<double>(1))
         {
             sum = alpha * sum;
@@ -210,8 +209,8 @@ aoclsparse_status
         if(beta != static_cast<double>(0))
         {
             sum[0] += beta * y[iRow];
-            if( iRow + 1 < m) 
-		    sum[1] += beta * y[iRow + 1];
+            if(iRow + 1 < m)
+                sum[1] += beta * y[iRow + 1];
         }
 
         y[iRow] = sum[0];
@@ -343,7 +342,7 @@ aoclsparse_status
         sum[3] += sse_sum[0];
 #endif
 
-	// Perform alpha * A * x
+        // Perform alpha * A * x
         if(alpha != static_cast<double>(1))
         {
             sum[0] = alpha * sum[0];
@@ -356,12 +355,12 @@ aoclsparse_status
         if(beta != static_cast<double>(0))
         {
             sum[0] += beta * y[iRow];
-            if( iRow + 1 < m) 
-		    sum[1] += beta * y[iRow + 1];
-            if( iRow + 2 < m) 
-		    sum[2] += beta * y[iRow + 2];
-            if( iRow + 3 < m) 
-		    sum[3] += beta * y[iRow + 3];
+            if(iRow + 1 < m)
+                sum[1] += beta * y[iRow + 1];
+            if(iRow + 2 < m)
+                sum[2] += beta * y[iRow + 2];
+            if(iRow + 3 < m)
+                sum[3] += beta * y[iRow + 3];
         }
 
         y[iRow] = sum[0];
@@ -397,7 +396,6 @@ extern "C" aoclsparse_status aoclsparse_dblkcsrmv(aoclsparse_operation       tra
                                                   double *                   y,
                                                   aoclsparse_int             nRowsblk)
 {
-
     // Read the environment variables to update global variable
     // This function updates the num_threads only once.
     aoclsparse_init_once();
@@ -477,7 +475,7 @@ extern "C" aoclsparse_status aoclsparse_dblkcsrmv(aoclsparse_operation       tra
         return aoclsparse_status_invalid_pointer;
     }
 
-    //Check if the invalid blocksize is passed and return 
+    //Check if the invalid blocksize is passed and return
     switch(nRowsblk)
     {
     case 1:
@@ -485,7 +483,7 @@ extern "C" aoclsparse_status aoclsparse_dblkcsrmv(aoclsparse_operation       tra
     case 4:
         break;
     default:
-	return aoclsparse_status_invalid_size;
+        return aoclsparse_status_invalid_size;
     }
 
     if(context.is_avx512)
@@ -532,5 +530,6 @@ extern "C" aoclsparse_status aoclsparse_dblkcsrmv(aoclsparse_operation       tra
         else
             return aoclsparse_status_invalid_size;
     }
+    else
+        return aoclsparse_status_not_implemented;
 }
-#endif
