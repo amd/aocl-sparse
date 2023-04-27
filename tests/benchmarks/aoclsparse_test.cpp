@@ -235,7 +235,9 @@ int main(int argc, char *argv[])
     }
     else if(strcmp(arg.function, "blkcsrmv") == 0)
     {
-        if(precision == 'd')
+        // FIXME: don't run these tests if CPU does not
+        // have AVX-512 flags runnable.
+        if(precision == 'd' && aoclsparse_get_vec_extn_context())
             testing_blkcsrmv<double>(arg);
     }
     else if(strcmp(arg.function, "ellmv") == 0)

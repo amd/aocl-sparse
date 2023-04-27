@@ -22,6 +22,7 @@
  * ************************************************************************ */
 
 #include "aoclsparse.h"
+#include "aoclsparse_context.h"
 #include "aoclsparse_descr.h"
 #include "aoclsparse_mat_structures.h"
 #include "aoclsparse_types.h"
@@ -30,6 +31,7 @@
 
 #include <cstring>
 #include <string>
+
 
 #define STRINGIFY(x) _STRINGIFY(x)
 #define _STRINGIFY(x) #x
@@ -274,7 +276,7 @@ aoclsparse_status aoclsparse_create_scsr(aoclsparse_matrix    &mat,
         if(N == 0)
         {
             break;
-        }          
+        }
         for(aoclsparse_int j = csr_row_ptr[i]; j < csr_row_ptr[i + 1]; j++)
         {
             if((csr_col_ptr[j] >= (N + base)) || (csr_col_ptr[j] < base))
@@ -338,7 +340,7 @@ aoclsparse_status aoclsparse_create_dcsr(aoclsparse_matrix    &mat,
         if(N == 0)
         {
             break;
-        }        
+        }
         for(aoclsparse_int j = csr_row_ptr[i]; j < csr_row_ptr[i + 1]; j++)
         {
             if((csr_col_ptr[j] >= (N + base)) || (csr_col_ptr[j] < base))
@@ -547,14 +549,14 @@ aoclsparse_status aoclsparse_destroy_opt_csr(aoclsparse_matrix A)
 
     if(A->blk_optimized)
     {
-	if(A->csr_mat.blk_row_ptr)
-		free(A->csr_mat.blk_row_ptr);
-	if(A->csr_mat.blk_col_ptr)
-		free(A->csr_mat.blk_col_ptr);
-	if(A->csr_mat.blk_val)
-		free(A->csr_mat.blk_val);
-	if(A->csr_mat.masks)
-		free(A->csr_mat.masks);
+        if(A->csr_mat.blk_row_ptr)
+            free(A->csr_mat.blk_row_ptr);
+        if(A->csr_mat.blk_col_ptr)
+            free(A->csr_mat.blk_col_ptr);
+        if(A->csr_mat.blk_val)
+            free(A->csr_mat.blk_val);
+        if(A->csr_mat.masks)
+            free(A->csr_mat.masks);
     }
     return aoclsparse_status_success;
 }
@@ -580,6 +582,18 @@ aoclsparse_status aoclsparse_destroy(aoclsparse_matrix &A)
         A = NULL;
     }
     return ret;
+}
+
+// This function returns 1 if the architecture supports AVX512, else 0
+// ToDo: return type can be an enum covering various vector extensions like SSE, AVX2, AVX512
+aoclsparse_int aoclsparse_get_vec_extn_context(void)
+{
+    aoclsparse_init_once();
+    aoclsparse_context context;
+    context.is_avx512 = global_context.is_avx512;
+    if(context.is_avx512)
+        return 1;
+    return 0;
 }
 
 #ifdef __cplusplus

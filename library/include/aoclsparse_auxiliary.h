@@ -360,6 +360,10 @@ aoclsparse_status aoclsparse_export_mat_csr(aoclsparse_matrix     &csr,
 DLL_PUBLIC
 aoclsparse_status aoclsparse_destroy(aoclsparse_matrix &mat);
 /**@}*/
+
+DLL_PUBLIC
+aoclsparse_int aoclsparse_get_vec_extn_context(void);
+
 #ifdef __cplusplus
 }
 #endif
