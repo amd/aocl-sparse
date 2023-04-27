@@ -49,13 +49,14 @@ struct Arguments
     double alpha;
     double beta;
 
-    aoclsparse_operation  transA;
-    aoclsparse_operation  transB;
-    aoclsparse_index_base baseA;
-    aoclsparse_diag_type  diag;
-    aoclsparse_fill_mode  uplo;
-    aoclsparse_order      order;
-    aoclsparse_int        stage;
+    aoclsparse_operation   transA;
+    aoclsparse_operation   transB;
+    aoclsparse_matrix_type mattypeA;
+    aoclsparse_index_base  baseA;
+    aoclsparse_diag_type   diag;
+    aoclsparse_fill_mode   uplo;
+    aoclsparse_order       order;
+    aoclsparse_int         stage;
 
     aoclsparse_matrix_init matrix;
 

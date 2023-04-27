@@ -32,6 +32,7 @@
 #include "aoclsparse_gbyte.hpp"
 #include "aoclsparse_init.hpp"
 #include "aoclsparse_random.hpp"
+#include "aoclsparse_reference.hpp"
 #include "aoclsparse_test.hpp"
 #include "aoclsparse_utility.hpp"
 
@@ -42,6 +43,9 @@ void testing_csrmv(const Arguments &arg)
     aoclsparse_int         N        = arg.N;
     aoclsparse_int         nnz      = arg.nnz;
     aoclsparse_operation   trans    = arg.transA;
+    aoclsparse_matrix_type mattype  = arg.mattypeA;
+    aoclsparse_fill_mode   fill     = arg.uplo;
+    aoclsparse_diag_type   diag     = arg.diag;
     aoclsparse_index_base  base     = arg.baseA;
     aoclsparse_matrix_init mat      = arg.matrix;
     std::string            filename = arg.filename;
@@ -49,10 +53,12 @@ void testing_csrmv(const Arguments &arg)
     T                      alpha = static_cast<T>(arg.alpha);
     T                      beta  = static_cast<T>(arg.beta);
 
-    // Create matrix descriptor
-    aoclsparse_local_mat_descr descr;
-
-    // Set matrix index base
+    // Create matrix descriptor & set it as requested by command line arguments
+    aoclsparse_mat_descr descr;
+    CHECK_AOCLSPARSE_ERROR(aoclsparse_create_mat_descr(&descr));
+    CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mat_type(descr, mattype));
+    CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mat_fill_mode(descr, fill));
+    CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mat_diag_type(descr, diag));
     CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mat_index_base(descr, base));
 
     std::vector<aoclsparse_int> csr_row_ptr;
@@ -69,13 +75,24 @@ void testing_csrmv(const Arguments &arg)
         csr_row_ptr, csr_col_ind, csr_val, M, N, nnz, base, mat, filename.c_str(), issymm, true);
 
     // Allocate memory for vectors
-    std::vector<T> x(N);
-    std::vector<T> y(M);
-    std::vector<T> y_gold(M);
+    aoclsparse_int xdim, ydim;
+    if(trans == aoclsparse_operation_none)
+    {
+        xdim = N;
+        ydim = M;
+    }
+    else
+    {
+        xdim = M;
+        ydim = N;
+    }
+    std::vector<T> x(xdim);
+    std::vector<T> y(ydim);
+    std::vector<T> y_gold(ydim);
 
     // Initialize data
-    aoclsparse_init<T>(x, 1, N, 1);
-    aoclsparse_init<T>(y, 1, M, 1);
+    aoclsparse_init<T>(x, 1, xdim, 1);
+    aoclsparse_init<T>(y, 1, ydim, 1);
     y_gold = y;
     if(arg.unit_check)
     {
@@ -92,16 +109,61 @@ void testing_csrmv(const Arguments &arg)
                                                 &beta,
                                                 y.data()));
         // Reference SPMV CSR implementation
-        for(int i = 0; i < M; i++)
+        if(mattype == aoclsparse_matrix_type_general)
         {
-            T result = 0.0;
-            for(int j = csr_row_ptr[i] - base; j < csr_row_ptr[i + 1] - base; j++)
-            {
-                result += alpha * csr_val[j] * x[csr_col_ind[j] - base];
-            }
-            y_gold[i] = (beta * y_gold[i]) + result;
+            if(trans == aoclsparse_operation_none)
+                CHECK_AOCLSPARSE_ERROR(ref_csrmv(alpha,
+                                                 M,
+                                                 N,
+                                                 csr_val.data(),
+                                                 csr_col_ind.data(),
+                                                 csr_row_ptr.data(),
+                                                 base,
+                                                 x.data(),
+                                                 beta,
+                                                 y_gold.data()));
+            else
+                CHECK_AOCLSPARSE_ERROR(ref_csrmvt(alpha,
+                                                  M,
+                                                  N,
+                                                  csr_val.data(),
+                                                  csr_col_ind.data(),
+                                                  csr_row_ptr.data(),
+                                                  base,
+                                                  x.data(),
+                                                  beta,
+                                                  y_gold.data()));
         }
-        near_check_general<T>(1, M, 1, y_gold.data(), y.data());
+        else if(mattype == aoclsparse_matrix_type_symmetric)
+        {
+            CHECK_AOCLSPARSE_ERROR(ref_csrmvsym(alpha,
+                                                M,
+                                                csr_val.data(),
+                                                csr_col_ind.data(),
+                                                csr_row_ptr.data(),
+                                                fill,
+                                                diag,
+                                                base,
+                                                x.data(),
+                                                beta,
+                                                y_gold.data()));
+        }
+        else if(mattype == aoclsparse_matrix_type_triangular)
+        {
+            CHECK_AOCLSPARSE_ERROR(ref_csrmvtrg(alpha,
+                                                M,
+                                                N,
+                                                csr_val.data(),
+                                                csr_col_ind.data(),
+                                                csr_row_ptr.data(),
+                                                fill,
+                                                diag,
+                                                base,
+                                                x.data(),
+                                                beta,
+                                                y_gold.data()));
+        }
+        near_check_general<T>(1, ydim, 1, y_gold.data(), y.data());
     }
     int number_hot_calls = arg.iters;
 
@@ -125,6 +187,7 @@ void testing_csrmv(const Arguments &arg)
                                                 y.data()));
         cpu_time_used = aoclsparse_clock_min_diff(cpu_time_used, cpu_time_start);
     }
+    aoclsparse_destroy_mat_descr(descr);
 
     double cpu_gflops = spmv_gflop_count<T>(M, nnz, beta != static_cast<T>(0)) / cpu_time_used;
     double cpu_gbyte  = csrmv_gbyte_count<T>(M, N, nnz, beta != static_cast<T>(0)) / cpu_time_used;

@@ -54,20 +54,22 @@
 int main(int argc, char *argv[])
 {
     Arguments arg;
-    arg.unit_check = 0; //default value
-    arg.iters      = 10; //default value
-    arg.M          = 128; //default value
-    arg.N          = 128; //default value
-    arg.K          = 128; //default value
-    arg.nnz        = 0; //default value
-    arg.blk        = 4; //default value
-    arg.block_dim  = 2; //default value
-    arg.alpha      = 1.0; //default value
-    arg.beta       = 0.0; //default value
-    arg.stage      = 0; //default value
+    // default values
+    arg.unit_check = 0;
+    arg.iters      = 10;
+    arg.M          = 128;
+    arg.N          = 128;
+    arg.K          = 128;
+    arg.nnz        = 0;
+    arg.blk        = 4;
+    arg.block_dim  = 2;
+    arg.alpha      = 1.0;
+    arg.beta       = 0.0;
+    arg.stage      = 0;
     char precision = 'd';
     char transA    = 'N';
     char transB    = 'N';
+    char mattypeA  = 'G';
     int  baseA     = 0;
     char diag      = 'N';
     char uplo      = 'L';
@@ -82,39 +84,47 @@ int main(int argc, char *argv[])
             "aoclsparse test command line options:"
             "\n\t"
             "%s "
-            " --help  produces this help message"
+            "\n\t"
+            " --help \t  produces this help message"
             "\n\t"
             "--sizem=<Number of rows> \t  m is only  applicable to SPARSE-2 & SPARSE-3: the number "
-            " of rows."
+            " of rows (default: 128)"
             "\n\t"
             "--sizen=<Number of columns> \t  SPARSE-1:  the length of the dense vector. SPARSE-2 & "
-            "SPARSE-3: the number of columns"
+            "SPARSE-3: the number of columns (default: 128)"
             "\n\t"
-            "--sizek=<Number of columns> \t  SPARSE-2 & SPARSE-3: the number of columns"
+            "--sizek=<Number of columns> \t  SPARSE-2 & SPARSE-3: the number of columns (default: "
+            "128)"
             "\n\t"
             "--sizennz=<Number of non-zeroes> \t  Number of the non-zeroes in sparse matrix/vector"
             "\n\t"
-            "--sizeblk=<Blocking factor> \t  Specifies the size of blocking for blkcsr"
+            "--sizeblk=<Blocking factor> \t  Specifies the size of blocking for blkcsr (default: 4)"
             "\n\t"
-            "--mtx=<matrix market (.mtx)> \t  Read from matrix market (.mtx) format. This  will "
+            "--blockdim=<block dimension> \t  block dimension for bsrmv (default: 2)"
+            "\n\t"
+            "--mtx=<matrix market (.mtx)> \t  Read from matrix market (.mtx) format. This will "
             "override parameters -sizem, -sizen, and -sizennz."
             "\n\t"
-            "--alpha=<scalar alpha> \t Specifies the scalar alpha"
+            "--alpha=<scalar alpha> \t Specifies the scalar alpha (default: 1.0)"
             "\n\t"
-            "--beta=<scalar beta> \t Specifies the scalar beta"
+            "--beta=<scalar beta> \t Specifies the scalar beta (default: 0.0)"
             "\n\t"
-            "--transposeA=<N/T> \t N = no transpose, T = transpose"
+            "--transposeA=<N/T> \t N = no transpose, T = transpose (default: N)"
             "\n\t"
-            "--indexbaseA=<0/1> \t 0 = zero-based indexing, 1 = one-based indexing, (default: 0)"
+            "--transposeB=<N/T> \t N = no transpose, T = transpose (default: N)"
             "\n\t"
-            "--diag=<N/U> \t N = non-unit diagonal, U = unit diagonal, (default = N)"
+            "--matrixtypeA=<G/S/T> \t G = general (use whole matrix), S = symmetric (use one "
+            "triangle based on uplo & symmetrize), T = triangular (use one triangle based on uplo) "
+            "(default: G)"
             "\n\t"
-            "--uplo=<L/U> \t L = lower fill, U = upper fill, (default = L)"
+            "--indexbaseA=<0/1> \t 0 = zero-based indexing, 1 = one-based indexing (default: 0)"
             "\n\t"
-            "--blockdim=<block dimension> \t block dimension for bsrmv "
+            "--diag=<N/U> \t N = non-unit diagonal, U = unit diagonal (default = N)"
+            "\n\t"
+            "--uplo=<L/U> \t L = lower fill, U = upper fill (default = L)"
             "\n\t"
             "--function=<function to test> \t SPARSE function to test. Options:  Level2: csrmv "
-            "ellmv elltmv diamv csrsymv bsrmv csrsv Level3: csrmm (default: csrmv)"
+            "optmv blkcsrmv ellmv diamv bsrmv csrsv Level3: csrmm csr2m ilu (default: csrmv)"
             "\n\t"
             "--precision=<s/d> \t Options: s,d (default: d)"
             "\n\t"
@@ -143,6 +153,7 @@ int main(int argc, char *argv[])
     args.aoclsparse_get_cmdline_argument("beta", arg.beta);
     args.aoclsparse_get_cmdline_argument("transposeA", transA);
     args.aoclsparse_get_cmdline_argument("transposeB", transB);
+    args.aoclsparse_get_cmdline_argument("matrixtypeA", mattypeA);
     args.aoclsparse_get_cmdline_argument("indexbaseA", baseA);
     args.aoclsparse_get_cmdline_argument("diag", diag);
     args.aoclsparse_get_cmdline_argument("uplo", uplo);
@@ -175,6 +186,23 @@ int main(int argc, char *argv[])
     else if(transB == 'T')
     {
         arg.transB = aoclsparse_operation_transpose;
+    }
+    if(mattypeA == 'G')
+    {
+        arg.mattypeA = aoclsparse_matrix_type_general;
+    }
+    else if(mattypeA == 'S')
+    {
+        arg.mattypeA = aoclsparse_matrix_type_symmetric;
+    }
+    else if(mattypeA == 'T')
+    {
+        arg.mattypeA = aoclsparse_matrix_type_triangular;
+    }
+    else
+    {
+        std::cerr << "Invalid value for --matrixtypeA" << std::endl;
+        return -1;
     }
 
     arg.baseA = (baseA == 0) ? aoclsparse_index_base_zero : aoclsparse_index_base_one;
@@ -230,13 +258,6 @@ int main(int argc, char *argv[])
             testing_diamv<float>(arg);
         else if(precision == 'd')
             testing_diamv<double>(arg);
-    }
-    else if(strcmp(arg.function, "csrsymv") == 0)
-    {
-        if(precision == 'd')
-            testing_csrmv<double>(arg);
-        else if(precision == 's')
-            testing_csrmv<float>(arg);
     }
     else if(strcmp(arg.function, "bsrmv") == 0)
     {
