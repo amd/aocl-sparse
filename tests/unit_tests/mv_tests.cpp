@@ -213,7 +213,7 @@ namespace
         // Initialise vectors
         T x[] = {1.0, 2.0, 3.0, 4.0};
         T y[M];
-        T exp_y_l[] = {1, 6, 12, 56, 8};
+        T exp_y_l[] = {1, 6, 12, 56, 16};
         T exp_y_u[] = {9, 6, 12, 28, 0};
 
         aoclsparse_mat_descr descr;
