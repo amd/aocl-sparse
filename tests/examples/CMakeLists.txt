@@ -38,7 +38,7 @@ elseif(CMAKE_BUILD_TYPE MATCHES "Release")
 endif()
 ## Setup the pre-requisites for out-of-source-tree build
 if (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
-    cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
+    cmake_minimum_required(VERSION 3.11 FATAL_ERROR)
 #sparse examples project
     project(aoclsparse_examples LANGUAGES CXX)
 
