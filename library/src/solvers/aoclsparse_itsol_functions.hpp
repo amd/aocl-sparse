@@ -863,9 +863,9 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
 {
     aoclsparse_status exit_status = aoclsparse_status_success;
     bool is_residnorm_below_abs_tolerance, is_rhsnorm_below_rel_tolerance, is_max_iters_reached;
-    bool is_restart_cycled_ended, is_value_zero, is_residual_vector_orthogonal;
+    bool                             is_restart_cycled_ended, is_residual_vector_orthogonal;
     T   *v = NULL, *h = NULL, *g = NULL, *c = NULL, *s = NULL, *z = NULL;
-    aoclsparse_int i = 0, n = 0, m = 0, j = 0, k = 0;
+    aoclsparse_int                   n = 0, m = 0, j = 0, k = 0;
     gmres_data<T> *gmres;
     T              hv = 0.0, rr = 0.0, hh = 0.0, r1 = 0.0, r2 = 0.0, g0 = 0.0;
     T              alpha = 1.0, beta = -1.0;

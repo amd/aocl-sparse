@@ -26,10 +26,8 @@
 
 // Template specializations
 template <>
-aoclsparse_status aoclsparse_csrmv_vectorized(const float    alpha,
-                                              aoclsparse_int m,
-                                              aoclsparse_int n,
-                                              aoclsparse_int nnz,
+aoclsparse_status aoclsparse_csrmv_vectorized(const float                     alpha,
+                                              aoclsparse_int                  m,
                                               const float *__restrict__ csr_val,
                                               const aoclsparse_int *__restrict__ csr_col_ind,
                                               const aoclsparse_int *__restrict__ csr_row_ptr,
@@ -121,17 +119,14 @@ aoclsparse_status aoclsparse_csrmv_vectorized(const float    alpha,
 
 #if USE_AVX512
 template <>
-aoclsparse_status aoclsparse_csrmv_vectorized_avx512(const double   alpha,
-                                                     aoclsparse_int m,
-                                                     aoclsparse_int n,
-                                                     aoclsparse_int nnz,
+aoclsparse_status aoclsparse_csrmv_vectorized_avx512(const double                    alpha,
+                                                     aoclsparse_int                  m,
                                                      const double *__restrict__ csr_val,
                                                      const aoclsparse_int *__restrict__ csr_col_ind,
                                                      const aoclsparse_int *__restrict__ csr_row_ptr,
                                                      const double *__restrict__ x,
                                                      const double beta,
-                                                     double *__restrict__ y,
-                                                     aoclsparse_context *context)
+                                                     double *__restrict__ y)
 {
     __m256d vec_y;
     __m512d vec_vals_512, vec_x_512, vec_y_512;
@@ -216,10 +211,8 @@ aoclsparse_status aoclsparse_csrmv_vectorized_avx512(const double   alpha,
 #endif
 
 template <>
-aoclsparse_status aoclsparse_csrmv_vectorized_avx2(const double   alpha,
-                                                   aoclsparse_int m,
-                                                   aoclsparse_int n,
-                                                   aoclsparse_int nnz,
+aoclsparse_status aoclsparse_csrmv_vectorized_avx2(const double                    alpha,
+                                                   aoclsparse_int                  m,
                                                    const double *__restrict__ csr_val,
                                                    const aoclsparse_int *__restrict__ csr_col_ind,
                                                    const aoclsparse_int *__restrict__ csr_row_ptr,
@@ -399,12 +392,12 @@ extern "C" aoclsparse_status aoclsparse_scsrmv(aoclsparse_operation       trans,
     if(descr->type == aoclsparse_matrix_type_symmetric)
     {
         return aoclsparse_csrmv_symm(
-            *alpha, m, n, nnz, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
+            *alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
     }
     else
     {
         return aoclsparse_csrmv_vectorized(
-            *alpha, m, n, nnz, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y, &context);
+            *alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y, &context);
     }
 }
 
@@ -500,7 +493,7 @@ extern "C" aoclsparse_status aoclsparse_dcsrmv(aoclsparse_operation       trans,
     if(descr->type == aoclsparse_matrix_type_symmetric)
     {
         return aoclsparse_csrmv_symm(
-            *alpha, m, n, nnz, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
+            *alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
     }
     else
     {
@@ -512,46 +505,47 @@ extern "C" aoclsparse_status aoclsparse_dcsrmv(aoclsparse_operation       trans,
         // it improves performance.
         if(nnz <= (10 * m))
             return aoclsparse_csrmv_general(
-                *alpha, m, n, nnz, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y, &context);
+                *alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y, &context);
         else
         {
 #if USE_AVX512
             if(context.is_avx512)
                 return aoclsparse_csrmv_vectorized_avx512(
-                    *alpha, m, n, nnz, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y, &context);
+                    *alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
             else
                 return aoclsparse_csrmv_vectorized_avx2(
-                    *alpha, m, n, nnz, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y, &context);
+                    *alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y, &context);
 #else
             return aoclsparse_csrmv_vectorized_avx2(
-                *alpha, m, n, nnz, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y, &context);
+                *alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y, &context);
 #endif
         }
     }
 }
 
 template <>
-aoclsparse_status aoclsparse_csrmv_vectorized_avx2ptr(const float    alpha,
-                                                      aoclsparse_int m,
-                                                      aoclsparse_int n,
-                                                      aoclsparse_int nnz,
-                                                      const float *__restrict__ aval,
-                                                      const aoclsparse_int *__restrict__ icol,
-                                                      const aoclsparse_int *__restrict__ crstart,
-                                                      const aoclsparse_int *__restrict__ crend,
-                                                      const float *__restrict__ x,
-                                                      const float beta,
-                                                      float *__restrict__ y,
-                                                      aoclsparse_context *context)
+aoclsparse_status
+    aoclsparse_csrmv_vectorized_avx2ptr([[maybe_unused]] const float    alpha,
+                                        [[maybe_unused]] aoclsparse_int m,
+                                        [[maybe_unused]] aoclsparse_int n,
+                                        [[maybe_unused]] aoclsparse_int nnz,
+                                        [[maybe_unused]] const float *__restrict__ aval,
+                                        [[maybe_unused]] const aoclsparse_int *__restrict__ icol,
+                                        [[maybe_unused]] const aoclsparse_int *__restrict__ crstart,
+                                        [[maybe_unused]] const aoclsparse_int *__restrict__ crend,
+                                        [[maybe_unused]] const float *__restrict__ x,
+                                        [[maybe_unused]] const float beta,
+                                        [[maybe_unused]] float *__restrict__ y,
+                                        [[maybe_unused]] aoclsparse_context *context)
 {
     return aoclsparse_status_not_implemented;
 }
 
 template <>
-aoclsparse_status aoclsparse_csrmv_vectorized_avx2ptr(const double   alpha,
-                                                      aoclsparse_int m,
-                                                      aoclsparse_int n,
-                                                      aoclsparse_int nnz,
+aoclsparse_status aoclsparse_csrmv_vectorized_avx2ptr(const double                    alpha,
+                                                      aoclsparse_int                  m,
+                                                      [[maybe_unused]] aoclsparse_int n,
+                                                      [[maybe_unused]] aoclsparse_int nnz,
                                                       const double *__restrict__ aval,
                                                       const aoclsparse_int *__restrict__ icol,
                                                       const aoclsparse_int *__restrict__ crstart,

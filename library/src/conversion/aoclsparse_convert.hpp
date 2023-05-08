@@ -175,14 +175,13 @@ aoclsparse_status aoclsparse_csr2ellt_template(aoclsparse_int        m,
 template <typename T>
 aoclsparse_status aoclsparse_csr2ellthybrid_template(
     aoclsparse_int        m,
-    aoclsparse_int       *ell_m,
+    aoclsparse_int *      ell_m,
     const aoclsparse_int *csr_row_ptr,
     const aoclsparse_int *csr_col_ind,
-    const T              *csr_val,
-    aoclsparse_int *row_idx_map, // mapping of the overall row indices after hybrid ell conversion
+    const T *             csr_val,
     aoclsparse_int *csr_row_idx_map, // mapping of rows that need to be accessed in the csr format
     aoclsparse_int *ell_col_ind,
-    T              *ell_val,
+    T *             ell_val,
     aoclsparse_int  ell_width)
 {
     // Check sizes

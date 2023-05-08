@@ -245,9 +245,8 @@ struct
     [ALC_CPUID_EAX_8_08] = { 0x80000008, 0x0 }, /* eax = 0x80000008 */
 };
 
-static void
-__get_mfg_info(struct alc_cpuid_regs*   cpuid_regs,
-               struct alc_cpu_mfg_info* mfg_info)
+static void __get_mfg_info([[maybe_unused]] struct alc_cpuid_regs *cpuid_regs,
+                           struct alc_cpu_mfg_info *               mfg_info)
 {
     uint16_t model;
     uint16_t family;

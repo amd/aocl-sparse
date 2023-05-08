@@ -194,7 +194,7 @@ inline void aoclsparse_init_coo_matrix(std::vector<aoclsparse_int> &row_ind,
         do
         {
             rand_row_ind = random_generator<aoclsparse_int>(0, M - 1);
-        } while(occ_row_ind[rand_row_ind] >= N);
+        } while((size_t) occ_row_ind[rand_row_ind] >= N);
         row_ind[i] = rand_row_ind;
         occ_row_ind[rand_row_ind]++;
     }
@@ -232,7 +232,7 @@ inline void aoclsparse_init_coo_matrix(std::vector<aoclsparse_int> &row_ind,
             }
 
             // Repeat if running out of bounds
-            if(rng < 0 || rng > N - 1)
+            if(rng < 0 || (size_t) rng > N - 1)
             {
                 continue;
             }

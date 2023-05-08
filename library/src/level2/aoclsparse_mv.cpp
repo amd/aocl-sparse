@@ -26,13 +26,13 @@
 
 /* Template specializations */
 template <>
-aoclsparse_status aoclsparse_dcsr_mat_br4(aoclsparse_operation       op,
-                                          const double               alpha,
-                                          aoclsparse_matrix          A,
-                                          const aoclsparse_mat_descr descr,
-                                          const double              *x,
-                                          const double               beta,
-                                          double                    *y)
+aoclsparse_status aoclsparse_dcsr_mat_br4([[maybe_unused]] aoclsparse_operation       op,
+                                          const double                                alpha,
+                                          aoclsparse_matrix                           A,
+                                          [[maybe_unused]] const aoclsparse_mat_descr descr,
+                                          const double *                              x,
+                                          const double                                beta,
+                                          double *                                    y)
 {
     // Read the environment variables to update global variable
     // This function updates the num_threads only once.
@@ -134,13 +134,13 @@ aoclsparse_status aoclsparse_dcsr_mat_br4(aoclsparse_operation       op,
 }
 
 template <>
-aoclsparse_status aoclsparse_dcsr_mat_br4(aoclsparse_operation       op,
-                                          const float                alpha,
-                                          aoclsparse_matrix          A,
-                                          const aoclsparse_mat_descr descr,
-                                          const float               *x,
-                                          const float                beta,
-                                          float                     *y)
+aoclsparse_status aoclsparse_dcsr_mat_br4([[maybe_unused]] aoclsparse_operation       op,
+                                          [[maybe_unused]] const float                alpha,
+                                          [[maybe_unused]] aoclsparse_matrix          A,
+                                          [[maybe_unused]] const aoclsparse_mat_descr descr,
+                                          [[maybe_unused]] const float *              x,
+                                          [[maybe_unused]] const float                beta,
+                                          [[maybe_unused]] float *                    y)
 {
     return aoclsparse_status_not_implemented;
 }

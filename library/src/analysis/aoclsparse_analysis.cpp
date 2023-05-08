@@ -190,7 +190,6 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
         double         *ell_dval;
         float          *ell_sval;
         aoclsparse_int *csr_row_idx_map;
-        aoclsparse_int *row_idx_map;
         aoclsparse_int  ell_width;
         aoclsparse_int  ell_m;
         // get the ell_width
@@ -234,7 +233,7 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
                                     A->csr_mat.csr_row_ptr,
                                     A->csr_mat.csr_col_ptr,
                                     (double *)A->csr_mat.csr_val,
-                                    row_idx_map,
+                                    NULL,
                                     csr_row_idx_map,
                                     ell_col_ind,
                                     ell_dval,
@@ -248,7 +247,7 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
                                     A->csr_mat.csr_row_ptr,
                                     A->csr_mat.csr_col_ptr,
                                     (float *)A->csr_mat.csr_val,
-                                    row_idx_map,
+                                    NULL,
                                     csr_row_idx_map,
                                     ell_col_ind,
                                     ell_sval,

@@ -29,18 +29,18 @@
  *   C wrapper
  * ===========================================================================
  */
-extern "C" aoclsparse_status aoclsparse_sellmv(aoclsparse_operation       trans,
-                                               const float               *alpha,
-                                               aoclsparse_int             m,
-                                               aoclsparse_int             n,
-                                               aoclsparse_int             nnz,
-                                               const float               *ell_val,
-                                               const aoclsparse_int      *ell_col_ind,
-                                               aoclsparse_int             ell_width,
-                                               const aoclsparse_mat_descr descr,
-                                               const float               *x,
-                                               const float               *beta,
-                                               float                     *y)
+extern "C" aoclsparse_status aoclsparse_sellmv(aoclsparse_operation            trans,
+                                               const float *                   alpha,
+                                               aoclsparse_int                  m,
+                                               aoclsparse_int                  n,
+                                               [[maybe_unused]] aoclsparse_int nnz,
+                                               const float *                   ell_val,
+                                               const aoclsparse_int *          ell_col_ind,
+                                               aoclsparse_int                  ell_width,
+                                               const aoclsparse_mat_descr      descr,
+                                               const float *                   x,
+                                               const float *                   beta,
+                                               float *                         y)
 {
     // Read the environment variables to update global variable
     // This function updates the num_threads only once.
@@ -117,7 +117,7 @@ extern "C" aoclsparse_status aoclsparse_sellmv(aoclsparse_operation       trans,
     }
 
     return aoclsparse_ellmv_template(
-        *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, x, *beta, y, &context);
+        *alpha, m, ell_val, ell_col_ind, ell_width, x, *beta, y, &context);
 }
 
 extern "C" aoclsparse_status aoclsparse_dellmv(aoclsparse_operation       trans,
@@ -413,24 +413,25 @@ extern "C" aoclsparse_status aoclsparse_delltmv(aoclsparse_operation       trans
 #endif
 }
 
-extern "C" aoclsparse_status aoclsparse_sellthybmv(aoclsparse_operation       trans,
-                                                   const float               *alpha,
-                                                   aoclsparse_int             m,
-                                                   aoclsparse_int             n,
-                                                   aoclsparse_int             nnz,
-                                                   const float               *ell_val,
-                                                   const aoclsparse_int      *ell_col_ind,
-                                                   aoclsparse_int             ell_width,
-                                                   aoclsparse_int             ell_m,
-                                                   const float               *csr_val,
-                                                   const aoclsparse_int      *csr_row_ind,
-                                                   const aoclsparse_int      *csr_col_ind,
-                                                   aoclsparse_int            *row_idx_map,
-                                                   aoclsparse_int            *csr_row_idx_map,
-                                                   const aoclsparse_mat_descr descr,
-                                                   const float               *x,
-                                                   const float               *beta,
-                                                   float                     *y)
+extern "C" aoclsparse_status
+    aoclsparse_sellthybmv([[maybe_unused]] aoclsparse_operation       trans,
+                          const float *                               alpha,
+                          aoclsparse_int                              m,
+                          aoclsparse_int                              n,
+                          aoclsparse_int                              nnz,
+                          const float *                               ell_val,
+                          const aoclsparse_int *                      ell_col_ind,
+                          aoclsparse_int                              ell_width,
+                          aoclsparse_int                              ell_m,
+                          const float *                               csr_val,
+                          const aoclsparse_int *                      csr_row_ind,
+                          const aoclsparse_int *                      csr_col_ind,
+                          aoclsparse_int *                            row_idx_map,
+                          aoclsparse_int *                            csr_row_idx_map,
+                          [[maybe_unused]] const aoclsparse_mat_descr descr,
+                          const float *                               x,
+                          const float *                               beta,
+                          float *                                     y)
 {
     // Read the environment variables to update global variable
     // This function updates the num_threads only once.
@@ -458,24 +459,25 @@ extern "C" aoclsparse_status aoclsparse_sellthybmv(aoclsparse_operation       tr
                                          &context);
 }
 
-extern "C" aoclsparse_status aoclsparse_dellthybmv(aoclsparse_operation       trans,
-                                                   const double              *alpha,
-                                                   aoclsparse_int             m,
-                                                   aoclsparse_int             n,
-                                                   aoclsparse_int             nnz,
-                                                   const double              *ell_val,
-                                                   const aoclsparse_int      *ell_col_ind,
-                                                   aoclsparse_int             ell_width,
-                                                   aoclsparse_int             ell_m,
-                                                   const double              *csr_val,
-                                                   const aoclsparse_int      *csr_row_ind,
-                                                   const aoclsparse_int      *csr_col_ind,
-                                                   aoclsparse_int            *row_idx_map,
-                                                   aoclsparse_int            *csr_row_idx_map,
-                                                   const aoclsparse_mat_descr descr,
-                                                   const double              *x,
-                                                   const double              *beta,
-                                                   double                    *y)
+extern "C" aoclsparse_status
+    aoclsparse_dellthybmv([[maybe_unused]] aoclsparse_operation       trans,
+                          const double *                              alpha,
+                          aoclsparse_int                              m,
+                          aoclsparse_int                              n,
+                          aoclsparse_int                              nnz,
+                          const double *                              ell_val,
+                          const aoclsparse_int *                      ell_col_ind,
+                          aoclsparse_int                              ell_width,
+                          aoclsparse_int                              ell_m,
+                          const double *                              csr_val,
+                          const aoclsparse_int *                      csr_row_ind,
+                          const aoclsparse_int *                      csr_col_ind,
+                          aoclsparse_int *                            row_idx_map,
+                          aoclsparse_int *                            csr_row_idx_map,
+                          [[maybe_unused]] const aoclsparse_mat_descr descr,
+                          const double *                              x,
+                          const double *                              beta,
+                          double *                                    y)
 {
     // Read the environment variables to update global variable
     // This function updates the num_threads only once.

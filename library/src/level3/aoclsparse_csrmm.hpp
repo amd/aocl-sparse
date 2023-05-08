@@ -50,14 +50,14 @@ aoclsparse_status aoclsparse_csrmm_col_major(const double *alpha,
                                              const double *__restrict__ csr_val,
                                              const aoclsparse_int *__restrict__ csr_col_ind,
                                              const aoclsparse_int *__restrict__ csr_row_ptr,
-                                             aoclsparse_int m,
-                                             aoclsparse_int k,
-                                             const double  *B,
-                                             aoclsparse_int n,
-                                             aoclsparse_int ldb,
-                                             const double  *beta,
-                                             double        *C,
-                                             aoclsparse_int ldc)
+                                             aoclsparse_int                  m,
+                                             [[maybe_unused]] aoclsparse_int k,
+                                             const double *                  B,
+                                             aoclsparse_int                  n,
+                                             aoclsparse_int                  ldb,
+                                             const double *                  beta,
+                                             double *                        C,
+                                             aoclsparse_int                  ldc)
 {
     // Number of sub-blocks of 4 columns in B matrix
     aoclsparse_int j_iter = n / 4;
@@ -668,14 +668,14 @@ aoclsparse_status aoclsparse_csrmm_col_major(const float *alpha,
                                              const float *__restrict__ csr_val,
                                              const aoclsparse_int *__restrict__ csr_col_ind,
                                              const aoclsparse_int *__restrict__ csr_row_ptr,
-                                             aoclsparse_int m,
-                                             aoclsparse_int k,
-                                             const float   *B,
-                                             aoclsparse_int n,
-                                             aoclsparse_int ldb,
-                                             const float   *beta,
-                                             float         *C,
-                                             aoclsparse_int ldc)
+                                             aoclsparse_int                  m,
+                                             [[maybe_unused]] aoclsparse_int k,
+                                             const float *                   B,
+                                             aoclsparse_int                  n,
+                                             aoclsparse_int                  ldb,
+                                             const float *                   beta,
+                                             float *                         C,
+                                             aoclsparse_int                  ldc)
 {
     // Number of sub-blocks of 4 columns in B matrix
     aoclsparse_int j_iter = n / 4;
@@ -882,7 +882,6 @@ aoclsparse_status aoclsparse_csrmm_col_major(const float *alpha,
             float sum[3] = {static_cast<float>(0)};
 
             aoclsparse_int k_iter = (row_end - row_begin) / 4;
-            aoclsparse_int k_rem  = (row_end - row_begin) % 4;
 
             //Iterate over non-zeroes of ith row of A in multiples of 4
             for(aoclsparse_int k = row_begin; k < (row_begin + k_iter * 4); k += 4)
@@ -1002,7 +1001,6 @@ aoclsparse_status aoclsparse_csrmm_col_major(const float *alpha,
             float sum[2] = {static_cast<float>(0)};
 
             aoclsparse_int k_iter = (row_end - row_begin) / 4;
-            aoclsparse_int k_rem  = (row_end - row_begin) % 4;
 
             //Iterate over non-zeroes of ith row of A in multiples of 4
             for(aoclsparse_int k = row_begin; k < (row_begin + k_iter * 4); k += 4)
@@ -1100,7 +1098,6 @@ aoclsparse_status aoclsparse_csrmm_col_major(const float *alpha,
             float sum = static_cast<float>(0);
 
             aoclsparse_int k_iter = (row_end - row_begin) / 4;
-            aoclsparse_int k_rem  = (row_end - row_begin) % 4;
 
             //Iterate over non-zeroes of ith row of A in multiples of 4
             for(aoclsparse_int k = row_begin; k < (row_begin + k_iter * 4); k += 4)
@@ -1153,14 +1150,14 @@ aoclsparse_status aoclsparse_csrmm_row_major(const double *alpha,
                                              const double *__restrict__ csr_val,
                                              const aoclsparse_int *__restrict__ csr_col_ind,
                                              const aoclsparse_int *__restrict__ csr_row_ptr,
-                                             aoclsparse_int m,
-                                             aoclsparse_int k,
-                                             const double  *B,
-                                             aoclsparse_int n,
-                                             aoclsparse_int ldb,
-                                             const double  *beta,
-                                             double        *C,
-                                             aoclsparse_int ldc)
+                                             aoclsparse_int                  m,
+                                             [[maybe_unused]] aoclsparse_int k,
+                                             const double *                  B,
+                                             aoclsparse_int                  n,
+                                             aoclsparse_int                  ldb,
+                                             const double *                  beta,
+                                             double *                        C,
+                                             aoclsparse_int                  ldc)
 {
     for(aoclsparse_int i = 0; i < m; ++i)
     {
@@ -1197,14 +1194,14 @@ aoclsparse_status aoclsparse_csrmm_row_major(const float *alpha,
                                              const float *__restrict__ csr_val,
                                              const aoclsparse_int *__restrict__ csr_col_ind,
                                              const aoclsparse_int *__restrict__ csr_row_ptr,
-                                             aoclsparse_int m,
-                                             aoclsparse_int k,
-                                             const float   *B,
-                                             aoclsparse_int n,
-                                             aoclsparse_int ldb,
-                                             const float   *beta,
-                                             float         *C,
-                                             aoclsparse_int ldc)
+                                             aoclsparse_int                  m,
+                                             [[maybe_unused]] aoclsparse_int k,
+                                             const float *                   B,
+                                             aoclsparse_int                  n,
+                                             aoclsparse_int                  ldb,
+                                             const float *                   beta,
+                                             float *                         C,
+                                             aoclsparse_int                  ldc)
 {
     // Number of sub-blocks of 4 columns in B matrix
     aoclsparse_int j_iter = n / 4;
@@ -1254,7 +1251,6 @@ aoclsparse_status aoclsparse_csrmm_row_major(const float *alpha,
             float sum[4] = {static_cast<float>(0)};
 
             aoclsparse_int k_iter = (row_end - row_begin) / 4;
-            aoclsparse_int k_rem  = (row_end - row_begin) % 4;
 
             //Iterate over non-zeroes of ith row of A in multiples of 4
             for(aoclsparse_int k = row_begin; k < (row_begin + k_iter * 4); k += 4)
@@ -1507,7 +1503,6 @@ aoclsparse_status aoclsparse_csrmm_row_major(const float *alpha,
             float sum[2] = {static_cast<float>(0)};
 
             aoclsparse_int k_iter = (row_end - row_begin) / 4;
-            aoclsparse_int k_rem  = (row_end - row_begin) % 4;
 
             //Iterate over non-zeroes of ith row of A in multiples of 4
             for(aoclsparse_int k = row_begin; k < (row_begin + k_iter * 4); k += 4)
@@ -1602,7 +1597,6 @@ aoclsparse_status aoclsparse_csrmm_row_major(const float *alpha,
             float sum = static_cast<float>(0);
 
             aoclsparse_int k_iter = (row_end - row_begin) / 4;
-            aoclsparse_int k_rem  = (row_end - row_begin) % 4;
 
             //Iterate over non-zeroes of ith row of A in multiples of 4
             for(aoclsparse_int k = row_begin; k < (row_begin + k_iter * 4); k += 4)

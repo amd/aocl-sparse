@@ -32,10 +32,10 @@
 #endif
 
 template <typename T>
-aoclsparse_status aoclsparse_bsrmv_general(T              alpha,
-                                           aoclsparse_int mb,
-                                           aoclsparse_int nb,
-                                           aoclsparse_int bsr_dim,
+aoclsparse_status aoclsparse_bsrmv_general(T                               alpha,
+                                           aoclsparse_int                  mb,
+                                           [[maybe_unused]] aoclsparse_int nb,
+                                           aoclsparse_int                  bsr_dim,
                                            const T *__restrict__ bsr_val,
                                            const aoclsparse_int *__restrict__ bsr_col_ind,
                                            const aoclsparse_int *__restrict__ bsr_row_ptr,
@@ -89,9 +89,9 @@ aoclsparse_status aoclsparse_bsrmv_general(T              alpha,
 }
 
 template <typename T>
-aoclsparse_status aoclsparse_bsrmv_2x2(T              alpha,
-                                       aoclsparse_int mb,
-                                       aoclsparse_int nb,
+aoclsparse_status aoclsparse_bsrmv_2x2(T                               alpha,
+                                       aoclsparse_int                  mb,
+                                       [[maybe_unused]] aoclsparse_int nb,
                                        const T *__restrict__ bsr_val,
                                        const aoclsparse_int *__restrict__ bsr_col_ind,
                                        const aoclsparse_int *__restrict__ bsr_row_ptr,
@@ -149,9 +149,9 @@ aoclsparse_status aoclsparse_bsrmv_2x2(T              alpha,
 }
 
 template <typename T>
-aoclsparse_status aoclsparse_bsrmv_3x3(T              alpha,
-                                       aoclsparse_int mb,
-                                       aoclsparse_int nb,
+aoclsparse_status aoclsparse_bsrmv_3x3(T                               alpha,
+                                       aoclsparse_int                  mb,
+                                       [[maybe_unused]] aoclsparse_int nb,
                                        const T *__restrict__ bsr_val,
                                        const aoclsparse_int *__restrict__ bsr_col_ind,
                                        const aoclsparse_int *__restrict__ bsr_row_ptr,
@@ -220,9 +220,9 @@ aoclsparse_status aoclsparse_bsrmv_3x3(T              alpha,
 }
 
 template <typename T>
-aoclsparse_status aoclsparse_bsrmv_4x4(T              alpha,
-                                       aoclsparse_int mb,
-                                       aoclsparse_int nb,
+aoclsparse_status aoclsparse_bsrmv_4x4(T                               alpha,
+                                       aoclsparse_int                  mb,
+                                       [[maybe_unused]] aoclsparse_int nb,
                                        const T *__restrict__ bsr_val,
                                        const aoclsparse_int *__restrict__ bsr_col_ind,
                                        const aoclsparse_int *__restrict__ bsr_row_ptr,

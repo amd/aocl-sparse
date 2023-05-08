@@ -40,18 +40,15 @@ int bits_set(uint8_t x)
 
 template <>
 aoclsparse_status
-    aoclsparse_blkcsrmv_1x8_vectorized_avx512(const double   alpha,
-                                              aoclsparse_int m,
-                                              aoclsparse_int n,
-                                              aoclsparse_int nnz,
+    aoclsparse_blkcsrmv_1x8_vectorized_avx512(const double                    alpha,
+                                              aoclsparse_int                  m,
                                               const uint8_t *__restrict__ masks,
                                               const double *__restrict__ blk_csr_val,
                                               const aoclsparse_int *__restrict__ blk_col_ind,
                                               const aoclsparse_int *__restrict__ blk_row_ptr,
                                               const double *__restrict__ x,
                                               const double beta,
-                                              double *__restrict__ y,
-                                              aoclsparse_context *context)
+                                              double *__restrict__ y)
 {
     const int nRowsblk = 1;
     __m512d   vec_vals_512, vec_x_512, vec_y_512, zero_msk;
@@ -118,18 +115,15 @@ aoclsparse_status
 
 template <>
 aoclsparse_status
-    aoclsparse_blkcsrmv_2x8_vectorized_avx512(const double   alpha,
-                                              aoclsparse_int m,
-                                              aoclsparse_int n,
-                                              aoclsparse_int nnz,
+    aoclsparse_blkcsrmv_2x8_vectorized_avx512(const double                    alpha,
+                                              aoclsparse_int                  m,
                                               const uint8_t *__restrict__ masks,
                                               const double *__restrict__ blk_csr_val,
                                               const aoclsparse_int *__restrict__ blk_col_ind,
                                               const aoclsparse_int *__restrict__ blk_row_ptr,
                                               const double *__restrict__ x,
                                               const double beta,
-                                              double *__restrict__ y,
-                                              aoclsparse_context *context)
+                                              double *__restrict__ y)
 {
     const int nRowsblk = 2;
     __m512d   vec_vals_512[nRowsblk], vec_y_512[nRowsblk], zero_msk, vec_x_512;
@@ -224,18 +218,15 @@ aoclsparse_status
 
 template <>
 aoclsparse_status
-    aoclsparse_blkcsrmv_4x8_vectorized_avx512(const double   alpha,
-                                              aoclsparse_int m,
-                                              aoclsparse_int n,
-                                              aoclsparse_int nnz,
+    aoclsparse_blkcsrmv_4x8_vectorized_avx512(const double                    alpha,
+                                              aoclsparse_int                  m,
                                               const uint8_t *__restrict__ masks,
                                               const double *__restrict__ blk_csr_val,
                                               const aoclsparse_int *__restrict__ blk_col_ind,
                                               const aoclsparse_int *__restrict__ blk_row_ptr,
                                               const double *__restrict__ x,
                                               const double beta,
-                                              double *__restrict__ y,
-                                              aoclsparse_context *context)
+                                              double *__restrict__ y)
 {
     const int nRowsblk = 4;
     __m512d   vec_vals_512[nRowsblk], vec_y_512[nRowsblk], zero_msk, vec_x_512;
@@ -491,42 +482,33 @@ extern "C" aoclsparse_status aoclsparse_dblkcsrmv(aoclsparse_operation       tra
         if(nRowsblk == 1)
             return aoclsparse_blkcsrmv_1x8_vectorized_avx512(*alpha,
                                                              m,
-                                                             n,
-                                                             nnz,
                                                              masks,
                                                              blk_csr_val,
                                                              blk_col_ind,
                                                              blk_row_ptr,
                                                              x,
                                                              *beta,
-                                                             y,
-                                                             &context);
+                                                             y);
         if(nRowsblk == 2)
             return aoclsparse_blkcsrmv_2x8_vectorized_avx512(*alpha,
                                                              m,
-                                                             n,
-                                                             nnz,
                                                              masks,
                                                              blk_csr_val,
                                                              blk_col_ind,
                                                              blk_row_ptr,
                                                              x,
                                                              *beta,
-                                                             y,
-                                                             &context);
+                                                             y);
         if(nRowsblk == 4)
             return aoclsparse_blkcsrmv_4x8_vectorized_avx512(*alpha,
                                                              m,
-                                                             n,
-                                                             nnz,
                                                              masks,
                                                              blk_csr_val,
                                                              blk_col_ind,
                                                              blk_row_ptr,
                                                              x,
                                                              *beta,
-                                                             y,
-                                                             &context);
+                                                             y);
         else
             return aoclsparse_status_invalid_size;
     }

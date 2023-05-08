@@ -40,14 +40,14 @@ aoclsparse_status aoclsparse_csrmm_col_major_ref(const T *alpha,
                                                  const T *__restrict__ csr_val,
                                                  const aoclsparse_int *__restrict__ csr_col_ind,
                                                  const aoclsparse_int *__restrict__ csr_row_ptr,
-                                                 aoclsparse_int m,
-                                                 aoclsparse_int k,
-                                                 const T       *B,
-                                                 aoclsparse_int n,
-                                                 aoclsparse_int ldb,
-                                                 const T       *beta,
-                                                 T             *C,
-                                                 aoclsparse_int ldc)
+                                                 aoclsparse_int                  m,
+                                                 [[maybe_unused]] aoclsparse_int k,
+                                                 const T *                       B,
+                                                 aoclsparse_int                  n,
+                                                 aoclsparse_int                  ldb,
+                                                 const T *                       beta,
+                                                 T *                             C,
+                                                 aoclsparse_int                  ldc)
 {
     for(aoclsparse_int i = 0; i < m; ++i)
     {
@@ -84,14 +84,14 @@ aoclsparse_status aoclsparse_csrmm_row_major_ref(const T *alpha,
                                                  const T *__restrict__ csr_val,
                                                  const aoclsparse_int *__restrict__ csr_col_ind,
                                                  const aoclsparse_int *__restrict__ csr_row_ptr,
-                                                 aoclsparse_int m,
-                                                 aoclsparse_int k,
-                                                 const T       *B,
-                                                 aoclsparse_int n,
-                                                 aoclsparse_int ldb,
-                                                 const T       *beta,
-                                                 T             *C,
-                                                 aoclsparse_int ldc)
+                                                 aoclsparse_int                  m,
+                                                 [[maybe_unused]] aoclsparse_int k,
+                                                 const T *                       B,
+                                                 aoclsparse_int                  n,
+                                                 aoclsparse_int                  ldb,
+                                                 const T *                       beta,
+                                                 T *                             C,
+                                                 aoclsparse_int                  ldc)
 {
     for(aoclsparse_int i = 0; i < m; ++i)
     {
