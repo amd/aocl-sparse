@@ -266,10 +266,10 @@ aoclsparse_status aoclsparse_csr2blkcsr(aoclsparse_int        m,
     return aoclsparse_status_success;
 }
 
-aoclsparse_status aoclsparse_csr2ell_width(aoclsparse_int        m,
-                                           aoclsparse_int        nnz,
-                                           const aoclsparse_int *csr_row_ptr,
-                                           aoclsparse_int       *ell_width)
+aoclsparse_status aoclsparse_csr2ell_width(aoclsparse_int                  m,
+                                           [[maybe_unused]] aoclsparse_int nnz,
+                                           const aoclsparse_int *          csr_row_ptr,
+                                           aoclsparse_int *                ell_width)
 {
     // Check sizes
     if(m < 0)
@@ -406,46 +406,44 @@ extern "C" aoclsparse_status aoclsparse_dcsr2ellt(aoclsparse_int        m,
         m, csr_row_ptr, csr_col_ind, csr_val, ell_col_ind, ell_val, ell_width);
 }
 
-extern "C" aoclsparse_status aoclsparse_scsr2ellthyb(aoclsparse_int        m,
-                                                     aoclsparse_int       *ell_m,
-                                                     const aoclsparse_int *csr_row_ptr,
-                                                     const aoclsparse_int *csr_col_ind,
-                                                     const float          *csr_val,
-                                                     aoclsparse_int       *row_idx_map,
-                                                     aoclsparse_int       *csr_row_idx_map,
-                                                     aoclsparse_int       *ell_col_ind,
-                                                     float                *ell_val,
-                                                     aoclsparse_int        ell_width)
+extern "C" aoclsparse_status aoclsparse_scsr2ellthyb(aoclsparse_int                   m,
+                                                     aoclsparse_int *                 ell_m,
+                                                     const aoclsparse_int *           csr_row_ptr,
+                                                     const aoclsparse_int *           csr_col_ind,
+                                                     const float *                    csr_val,
+                                                     [[maybe_unused]] aoclsparse_int *row_idx_map,
+                                                     aoclsparse_int *csr_row_idx_map,
+                                                     aoclsparse_int *ell_col_ind,
+                                                     float *         ell_val,
+                                                     aoclsparse_int  ell_width)
 {
     return aoclsparse_csr2ellthybrid_template(m,
                                               ell_m,
                                               csr_row_ptr,
                                               csr_col_ind,
                                               csr_val,
-                                              row_idx_map,
                                               csr_row_idx_map,
                                               ell_col_ind,
                                               ell_val,
                                               ell_width);
 }
 
-extern "C" aoclsparse_status aoclsparse_dcsr2ellthyb(aoclsparse_int        m,
-                                                     aoclsparse_int       *ell_m,
-                                                     const aoclsparse_int *csr_row_ptr,
-                                                     const aoclsparse_int *csr_col_ind,
-                                                     const double         *csr_val,
-                                                     aoclsparse_int       *row_idx_map,
-                                                     aoclsparse_int       *csr_row_idx_map,
-                                                     aoclsparse_int       *ell_col_ind,
-                                                     double               *ell_val,
-                                                     aoclsparse_int        ell_width)
+extern "C" aoclsparse_status aoclsparse_dcsr2ellthyb(aoclsparse_int                   m,
+                                                     aoclsparse_int *                 ell_m,
+                                                     const aoclsparse_int *           csr_row_ptr,
+                                                     const aoclsparse_int *           csr_col_ind,
+                                                     const double *                   csr_val,
+                                                     [[maybe_unused]] aoclsparse_int *row_idx_map,
+                                                     aoclsparse_int *csr_row_idx_map,
+                                                     aoclsparse_int *ell_col_ind,
+                                                     double *        ell_val,
+                                                     aoclsparse_int  ell_width)
 {
     return aoclsparse_csr2ellthybrid_template(m,
                                               ell_m,
                                               csr_row_ptr,
                                               csr_col_ind,
                                               csr_val,
-                                              row_idx_map,
                                               csr_row_idx_map,
                                               ell_col_ind,
                                               ell_val,

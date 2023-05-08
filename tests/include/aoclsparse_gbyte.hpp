@@ -88,12 +88,12 @@ constexpr double csrmm_gbyte_count(aoclsparse_int M,
 }
 
 template <typename T>
-constexpr double csr2m_gbyte_count(aoclsparse_int M,
-                                   aoclsparse_int N,
-                                   aoclsparse_int K,
-                                   aoclsparse_int nnz_A,
-                                   aoclsparse_int nnz_B,
-                                   aoclsparse_int nnz_C)
+constexpr double csr2m_gbyte_count(aoclsparse_int                  M,
+                                   [[maybe_unused]] aoclsparse_int N,
+                                   aoclsparse_int                  K,
+                                   aoclsparse_int                  nnz_A,
+                                   aoclsparse_int                  nnz_B,
+                                   aoclsparse_int                  nnz_C)
 {
     double size_A = ((M + 1.0) * sizeof(aoclsparse_int)) + (nnz_A * sizeof(aoclsparse_int))
                     + (nnz_A * sizeof(T));

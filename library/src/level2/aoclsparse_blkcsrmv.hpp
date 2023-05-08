@@ -35,45 +35,36 @@ template <typename T>
 aoclsparse_status
     aoclsparse_blkcsrmv_1x8_vectorized_avx512(const T        alpha,
                                             aoclsparse_int m,
-                                            aoclsparse_int n,
-                                            aoclsparse_int nnz,
                                             const uint8_t *__restrict__ masks,
                                             const T *__restrict__ blk_csr_val,
                                             const aoclsparse_int *__restrict__ blk_col_ind,
                                             const aoclsparse_int *__restrict__ blk_row_ptr,
                                             const T *__restrict__ x,
                                             const T beta,
-                                            T *__restrict__ y,
-                                            aoclsparse_context *context);
+                                            T *__restrict__ y);
 
 template <typename T>
 aoclsparse_status
     aoclsparse_blkcsrmv_2x8_vectorized_avx512(const T        alpha,
                                             aoclsparse_int m,
-                                            aoclsparse_int n,
-                                            aoclsparse_int nnz,
                                             const uint8_t *__restrict__ masks,
                                             const T *__restrict__ blk_csr_val,
                                             const aoclsparse_int *__restrict__ blk_col_ind,
                                             const aoclsparse_int *__restrict__ blk_row_ptr,
                                             const T *__restrict__ x,
                                             const T beta,
-                                            T *__restrict__ y,
-                                            aoclsparse_context *context);
+                                            T *__restrict__ y);
 
 template <typename T>
 aoclsparse_status
     aoclsparse_blkcsrmv_4x8_vectorized_avx512(const T        alpha,
                                             aoclsparse_int m,
-                                            aoclsparse_int n,
-                                            aoclsparse_int nnz,
                                             const uint8_t *__restrict__ masks,
                                             const T *__restrict__ blk_csr_val,
                                             const aoclsparse_int *__restrict__ blk_col_ind,
                                             const aoclsparse_int *__restrict__ blk_row_ptr,
                                             const T *__restrict__ x,
                                             const T beta,
-                                            T *__restrict__ y,
-                                            aoclsparse_context *context);
+                                            T *__restrict__ y);
 
 #endif // AOCLSPARSE_BLKCSRMV_HPP

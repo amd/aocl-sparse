@@ -71,11 +71,11 @@ aoclsparse_status aoclsparse_csr_indices(aoclsparse_int        m,
  * Possible exit: invalid size, invalid pointer, memory alloc
  */
 template <typename T>
-aoclsparse_status aoclsparse_copy_csr(aoclsparse_int       m,
-                                      aoclsparse_int       n,
-                                      aoclsparse_int       nnz,
-                                      const aoclsparse_csr A,
-                                      aoclsparse_csr       As)
+aoclsparse_status aoclsparse_copy_csr(aoclsparse_int                  m,
+                                      [[maybe_unused]] aoclsparse_int n,
+                                      aoclsparse_int                  nnz,
+                                      const aoclsparse_csr            A,
+                                      aoclsparse_csr                  As)
 {
     aoclsparse_int i;
     T             *aval, *aval_s;
@@ -113,8 +113,11 @@ aoclsparse_status aoclsparse_copy_csr(aoclsparse_int       m,
  * Possible exit: memory alloc, invalid pointer
  */
 template <typename T>
-aoclsparse_status aoclsparse_sort_csr(
-    aoclsparse_int m, aoclsparse_int n, aoclsparse_int nnz, aoclsparse_csr A, aoclsparse_csr As)
+aoclsparse_status aoclsparse_sort_csr(aoclsparse_int                  m,
+                                      [[maybe_unused]] aoclsparse_int n,
+                                      aoclsparse_int                  nnz,
+                                      aoclsparse_csr                  A,
+                                      aoclsparse_csr                  As)
 {
     aoclsparse_int i, j, idx, nnzrow;
     T             *aval, *aval_s;
