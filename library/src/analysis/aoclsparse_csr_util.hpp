@@ -220,8 +220,13 @@ aoclsparse_status aoclsparse_csr_fill_diag(aoclsparse_int m,
     icol  = (aoclsparse_int *)malloc(nnz_new * sizeof(aoclsparse_int));
     icrow = (aoclsparse_int *)malloc((m + 1) * sizeof(aoclsparse_int));
     aval  = (T *)malloc(nnz_new * sizeof(T));
-    if(!icol || !aval || !icrow)
+    if(!icol || !aval || !icrow) {
+        free(icol);
+        free(icrow);
+        free(aval);
+        free(missing_diag);
         return aoclsparse_status_memory_error;
+    }
 
     aoclsparse_int n_added = 0, nnz_curr = 0;
     for(i = 0; i < m; i++)
