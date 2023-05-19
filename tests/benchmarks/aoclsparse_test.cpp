@@ -170,6 +170,7 @@ int main(int argc, char *argv[])
         return -1;
     }
 
+    arg.transA = aoclsparse_operation_none;
     if(transA == 'N')
     {
         arg.transA = aoclsparse_operation_none;
@@ -179,6 +180,7 @@ int main(int argc, char *argv[])
         arg.transA = aoclsparse_operation_transpose;
     }
 
+    arg.transB = aoclsparse_operation_none;
     if(transB == 'N')
     {
         arg.transB = aoclsparse_operation_none;

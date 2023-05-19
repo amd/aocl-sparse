@@ -314,8 +314,11 @@ aoclsparse_status aoclsparse_csr2m_template(aoclsparse_operation       transA,
         T              *csr_val_C     = (T *)malloc(nnz_C * sizeof(T));
 
         /*Insufficient memory for output allocation */
-        if((csr_col_ind_C == NULL) || (csr_val_C == NULL))
+        if((csr_col_ind_C == NULL) || (csr_val_C == NULL)) {
+            free(csr_col_ind_C);
+            free(csr_val_C);
             return aoclsparse_status_memory_error;
+        }
 
         aoclsparse_csr2m_finalize(m,
                                   n,
@@ -356,8 +359,11 @@ aoclsparse_status aoclsparse_csr2m_template(aoclsparse_operation       transA,
         T              *csr_val_C     = (T *)malloc(nnz_C * sizeof(T));
 
         /*Insufficient memory for output allocation */
-        if((csr_col_ind_C == NULL) || (csr_val_C == NULL))
+        if((csr_col_ind_C == NULL) || (csr_val_C == NULL)) {
+            free(csr_col_ind_C);
+            free(csr_val_C);
             return aoclsparse_status_memory_error;
+        }
 
         aoclsparse_csr2m_finalize(m,
                                   n,
