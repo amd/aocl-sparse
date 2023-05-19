@@ -202,6 +202,7 @@ void testing_ilu(const Arguments &arg)
         std::cerr << "aoclSPARSE status error: Expected "
                   << aoclsparse_status_to_string(aoclsparse_status_success) << ", received "
                   << aoclsparse_status_to_string(ret) << std::endl;
+        aoclsparse_destroy(A);
         return;
     }
 
