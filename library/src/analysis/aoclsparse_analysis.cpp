@@ -400,29 +400,29 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
 aoclsparse_status aoclsparse_optimize_ilu0(aoclsparse_matrix A)
 {
     aoclsparse_status ret            = aoclsparse_status_success;
-    aoclsparse_int   *lu_diag_ptr    = NULL;
-    aoclsparse_int   *col_idx_mapper = NULL;
+    _aoclsparse_ilu   *ilu_info      = nullptr;
     aoclsparse_int    nrows          = A->m;
-    lu_diag_ptr                      = (aoclsparse_int *)malloc(sizeof(aoclsparse_int) * nrows);
-    if(NULL == lu_diag_ptr)
+
+    ilu_info    = &(A->ilu_info);
+
+    ilu_info->lu_diag_ptr  = (aoclsparse_int *)malloc(sizeof(aoclsparse_int) * nrows);
+    if(ilu_info->lu_diag_ptr == nullptr)
     {
         ret = aoclsparse_status_memory_error;
         return ret;
     }
-    col_idx_mapper = (aoclsparse_int *)malloc(sizeof(aoclsparse_int) * nrows);
-    if(NULL == col_idx_mapper)
+    ilu_info->col_idx_mapper = (aoclsparse_int *)malloc(sizeof(aoclsparse_int) * nrows);
+    if(ilu_info->col_idx_mapper == nullptr)
     {
         ret = aoclsparse_status_memory_error;
         return ret;
     }
     for(aoclsparse_int i = 0; i < nrows; i++)
     {
-        col_idx_mapper[i] = 0;
-        lu_diag_ptr[i]    = 0;
+        ilu_info->col_idx_mapper[i] = 0;
+        ilu_info->lu_diag_ptr[i]    = 0;
     }
     //set members of ILU info
-    A->ilu_info.lu_diag_ptr    = lu_diag_ptr;
-    A->ilu_info.col_idx_mapper = col_idx_mapper;
     A->ilu_info.ilu_factorized = false;
     A->optimized               = true;
     return ret;
