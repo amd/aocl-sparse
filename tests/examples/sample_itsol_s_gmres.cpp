@@ -65,6 +65,10 @@ aoclsparse_int monit(aoclsparse_int n,
 {
     int                     it  = (int)rinfo[30];
     float                   tol = PREMATURE_STOP_TOLERANCE;
+
+    std::ios oldState(nullptr);
+    oldState.copyfmt(std::cout);
+
     std::ios_base::fmtflags fmt = std::cout.flags();
     fmt |= std::ios_base::scientific | std::ios_base::right | std::ios_base::showpos;
 
@@ -83,6 +87,9 @@ aoclsparse_int monit(aoclsparse_int n,
         std::cout << " " << x[i];
     std::cout << std::endl;
     std::cout << std::resetiosflags(fmt);
+
+    //reset std::cout state
+    std::cout.copyfmt(oldState);
 
     if(rinfo[0] < tol) // check for premature stop
     {
