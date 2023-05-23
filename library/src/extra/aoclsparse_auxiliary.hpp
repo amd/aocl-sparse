@@ -32,6 +32,9 @@
 #include <cmath>
 #include <limits>
 
+/* Check that the size of integers in the used libraries is OK. */
+static_assert(sizeof(f77_int)==sizeof(aoclsparse_int),"Error: Incompatible size of ints in blis. Using wrong header or compilation of the library?");
+static_assert(sizeof(integer)==sizeof(aoclsparse_int),"Error: Incompatible size of ints in flame. Using wrong header or compilation of the library?");
 
 void aoclsparse_init_csrmat(aoclsparse_matrix A);
 

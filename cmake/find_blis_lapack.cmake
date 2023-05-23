@@ -36,7 +36,7 @@ function(aocl_libs)
     find_library(AOCL_BLIS_LIB
     NAMES AOCL-LibBlis-Win-MT AOCL-LibBlis-Win-MT-dll AOCL-LibBlis-Win AOCL-LibBlis-Win-dll
     HINTS ${AOCL_ROOT}/blis ${AOCL_ROOT}/amd-blis ${AOCL_ROOT}
-    PATH_SUFFIXES "lib/${ILP_DIR}" "lib"
+    PATH_SUFFIXES "lib/${ILP_DIR}" "lib_${ILP_DIR}" "lib"
     DOC "AOCL Blis library"
     )
 
@@ -44,21 +44,21 @@ function(aocl_libs)
     NAMES AOCL-LibFlame-Win-MT AOCL-LibFlame-Win-MT-dll AOCL-LibFlame-Win AOCL-LibFlame-Win-dll
     NAMES_PER_DIR
     HINTS ${AOCL_ROOT}/libflame ${AOCL_ROOT}/amd-libflame ${AOCL_ROOT}
-    PATH_SUFFIXES "lib/${ILP_DIR}" "lib"
+    PATH_SUFFIXES "lib/${ILP_DIR}" "lib_${ILP_DIR}" "lib"
     DOC "AOCL LIBFLAME library"
     )
     #====Headers
     find_path(AOCL_BLIS_INCLUDE_DIR
     NAMES blis.h  cblas.h
     HINTS ${AOCL_ROOT}/amd-blis ${AOCL_ROOT}/blis ${AOCL_ROOT}
-    PATH_SUFFIXES "include/${ILP_DIR}" "include" "include/blis"
+    PATH_SUFFIXES "include/${ILP_DIR}" "include_${ILP_DIR}" "include" "include/blis"
     DOC "AOCL Blis headers"
     )
 
     find_path(AOCL_LIBFLAME_INCLUDE_DIR
     NAMES FLAME.h  lapacke.h  lapacke_mangling.h  lapack.h  lapacke_config.h lapacke_utils.h
     HINTS ${AOCL_ROOT}/libflame ${AOCL_ROOT}/amd-libflame ${AOCL_ROOT}
-    PATH_SUFFIXES "include/${ILP_DIR}" "include"
+    PATH_SUFFIXES "include/${ILP_DIR}" "include_${ILP_DIR}" "include"
     DOC "AOCL Libflame headers" 
     )
   ELSE(WIN32)   
@@ -72,7 +72,7 @@ function(aocl_libs)
     find_library(AOCL_BLIS_LIB
     NAMES blis-mt blis
     HINTS ${AOCL_ROOT}/blis ${AOCL_ROOT}/amd-blis ${AOCL_ROOT}
-    PATH_SUFFIXES "lib/${ILP_DIR}" "lib"
+    PATH_SUFFIXES "lib/${ILP_DIR}" "lib_${ILP_DIR}" "lib"
     DOC "AOCL Blis library"
     )
     
@@ -80,21 +80,21 @@ function(aocl_libs)
     NAMES flame
     NAMES_PER_DIR
     HINTS ${AOCL_ROOT}/libflame ${AOCL_ROOT}/amd-libflame ${AOCL_ROOT}
-    PATH_SUFFIXES "lib/${ILP_DIR}" "lib"
+    PATH_SUFFIXES "lib/${ILP_DIR}" "lib_${ILP_DIR}" "lib"
     DOC "AOCL LIBFLAME library"
     )
     #====Headers
     find_path(AOCL_BLIS_INCLUDE_DIR
     NAMES blis.h  blis.hh  cblas.h  cblas.hh
     HINTS ${AOCL_ROOT}/blis ${AOCL_ROOT}/amd-blis ${AOCL_ROOT}
-    PATH_SUFFIXES "include/${ILP_DIR}" "include" "include/blis"
+    PATH_SUFFIXES "include/${ILP_DIR}" "include_${ILP_DIR}" "include" "include/blis"
     DOC "AOCL Blis headers"
     )
 
     find_path(AOCL_LIBFLAME_INCLUDE_DIR
     NAMES FLAME.h  lapacke.h  lapacke_mangling.h  lapack.h  libflame.hh  libflame_interface.hh
     HINTS ${AOCL_ROOT}/libflame ${AOCL_ROOT}/amd-libflame ${AOCL_ROOT}
-    PATH_SUFFIXES "include/${ILP_DIR}" "include"
+    PATH_SUFFIXES "include/${ILP_DIR}" "include_${ILP_DIR}" "include"
     DOC "AOCL Libflame headers" 
     )
   ENDIF(WIN32)

@@ -48,12 +48,19 @@ set(AOCLSPARSE_CLIENTS_COMMON
   ../common/aoclsparse_template_specialization.cpp
 )
 
+include_directories(${CMAKE_SOURCE_DIR}/library/include
+                    ${CMAKE_SOURCE_DIR}/library/src/include
+                    ${CMAKE_SOURCE_DIR}/library/src/solvers
+                    ${CMAKE_SOURCE_DIR}/library/src/analysis
+                    ${CMAKE_SOURCE_DIR}/library/src/level2
+                    ${CMAKE_SOURCE_DIR}/library/src/extra
+                    ${CMAKE_SOURCE_DIR}/tests/include)
+
 add_executable(aoclsparse-bench ${AOCLSPARSE_BENCHMARK_SOURCES} ${AOCLSPARSE_CLIENTS_COMMON})
 
 # Internal header includes
 target_include_directories(aoclsparse-bench
   PRIVATE
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
     ${LAPACK_INCLUDE_DIRS}
     ${BLIS_INCLUDE_DIRS}
     ${Boost_INCLUDE_DIRS}
