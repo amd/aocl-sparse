@@ -26,15 +26,15 @@
 
 // Template specializations
 template <>
-aoclsparse_status aoclsparse_csrmv_vectorized(const float                     alpha,
-                                              aoclsparse_int                  m,
+aoclsparse_status aoclsparse_csrmv_vectorized(const float    alpha,
+                                              aoclsparse_int m,
                                               const float *__restrict__ csr_val,
                                               const aoclsparse_int *__restrict__ csr_col_ind,
                                               const aoclsparse_int *__restrict__ csr_row_ptr,
                                               const float *__restrict__ x,
                                               const float beta,
                                               float *__restrict__ y,
-                                              aoclsparse_context *context)
+                                              [[maybe_unused]] aoclsparse_context *context)
 {
     __m256 vec_vals, vec_x, vec_y;
 
@@ -119,8 +119,8 @@ aoclsparse_status aoclsparse_csrmv_vectorized(const float                     al
 
 #if USE_AVX512
 template <>
-aoclsparse_status aoclsparse_csrmv_vectorized_avx512(const double                    alpha,
-                                                     aoclsparse_int                  m,
+aoclsparse_status aoclsparse_csrmv_vectorized_avx512(const double   alpha,
+                                                     aoclsparse_int m,
                                                      const double *__restrict__ csr_val,
                                                      const aoclsparse_int *__restrict__ csr_col_ind,
                                                      const aoclsparse_int *__restrict__ csr_row_ptr,
@@ -211,15 +211,15 @@ aoclsparse_status aoclsparse_csrmv_vectorized_avx512(const double               
 #endif
 
 template <>
-aoclsparse_status aoclsparse_csrmv_vectorized_avx2(const double                    alpha,
-                                                   aoclsparse_int                  m,
+aoclsparse_status aoclsparse_csrmv_vectorized_avx2(const double   alpha,
+                                                   aoclsparse_int m,
                                                    const double *__restrict__ csr_val,
                                                    const aoclsparse_int *__restrict__ csr_col_ind,
                                                    const aoclsparse_int *__restrict__ csr_row_ptr,
                                                    const double *__restrict__ x,
                                                    const double beta,
                                                    double *__restrict__ y,
-                                                   aoclsparse_context *context)
+                                                   [[maybe_unused]] aoclsparse_context *context)
 {
     __m256d vec_vals, vec_x, vec_y;
 #ifdef _OPENMP
@@ -391,8 +391,7 @@ extern "C" aoclsparse_status aoclsparse_scsrmv(aoclsparse_operation       trans,
     }
     if(descr->type == aoclsparse_matrix_type_symmetric)
     {
-        return aoclsparse_csrmv_symm(
-            *alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
+        return aoclsparse_csrmv_symm(*alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
     }
     else
     {
@@ -492,8 +491,7 @@ extern "C" aoclsparse_status aoclsparse_dcsrmv(aoclsparse_operation       trans,
     }
     if(descr->type == aoclsparse_matrix_type_symmetric)
     {
-        return aoclsparse_csrmv_symm(
-            *alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
+        return aoclsparse_csrmv_symm(*alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
     }
     else
     {
@@ -553,7 +551,7 @@ aoclsparse_status aoclsparse_csrmv_vectorized_avx2ptr(const double              
                                                       const double *__restrict__ x,
                                                       const double beta,
                                                       double *__restrict__ y,
-                                                      aoclsparse_context *context)
+                                                      [[maybe_unused]] aoclsparse_context *context)
 {
 
     __m256d vec_vals, vec_x, vec_y;
