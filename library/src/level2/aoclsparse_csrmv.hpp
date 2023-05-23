@@ -57,18 +57,18 @@ aoclsparse_status aoclsparse_csrmv_vectorized_avx2(const T        alpha,
                                                    aoclsparse_context *context);
 
 template <typename T>
-aoclsparse_status aoclsparse_csrmv_vectorized_avx2ptr(const T   alpha,
-                                                   aoclsparse_int m,
-                                                   aoclsparse_int n,
-                                                   aoclsparse_int nnz,
-                                                   const T *__restrict__ aval,
-                                                   const aoclsparse_int *__restrict__ icol,
-                                                   const aoclsparse_int *__restrict__ crstart,
-                                                   const aoclsparse_int *__restrict__ crend,
-                                                   const T *__restrict__ x,
-                                                   const T beta,
-                                                   T *__restrict__ y,
-                                                   aoclsparse_context *context);
+aoclsparse_status aoclsparse_csrmv_vectorized_avx2ptr(const T        alpha,
+                                                      aoclsparse_int m,
+                                                      aoclsparse_int n,
+                                                      aoclsparse_int nnz,
+                                                      const T *__restrict__ aval,
+                                                      const aoclsparse_int *__restrict__ icol,
+                                                      const aoclsparse_int *__restrict__ crstart,
+                                                      const aoclsparse_int *__restrict__ crend,
+                                                      const T *__restrict__ x,
+                                                      const T beta,
+                                                      T *__restrict__ y,
+                                                      aoclsparse_context *context);
 
 template <typename T>
 aoclsparse_status aoclsparse_csrmv_vectorized_avx512(const T        alpha,
@@ -81,15 +81,15 @@ aoclsparse_status aoclsparse_csrmv_vectorized_avx512(const T        alpha,
                                                      T *__restrict__ y);
 
 template <typename T>
-aoclsparse_status aoclsparse_csrmv_general(const T                         alpha,
-                                           aoclsparse_int                  m,
+aoclsparse_status aoclsparse_csrmv_general(const T        alpha,
+                                           aoclsparse_int m,
                                            const T *__restrict__ csr_val,
                                            const aoclsparse_int *__restrict__ csr_col_ind,
                                            const aoclsparse_int *__restrict__ csr_row_ptr,
                                            const T *__restrict__ x,
                                            const T beta,
                                            T *__restrict__ y,
-                                           aoclsparse_context *context)
+                                           [[maybe_unused]] aoclsparse_context *context)
 {
 
 #ifdef _OPENMP
@@ -126,8 +126,8 @@ aoclsparse_status aoclsparse_csrmv_general(const T                         alpha
 }
 
 template <typename T>
-aoclsparse_status aoclsparse_csrmv_symm(const T                         alpha,
-                                        aoclsparse_int                  m,
+aoclsparse_status aoclsparse_csrmv_symm(const T        alpha,
+                                        aoclsparse_int m,
                                         const T *__restrict__ csr_val,
                                         const aoclsparse_int *__restrict__ csr_col_ind,
                                         const aoclsparse_int *__restrict__ csr_row_ptr,

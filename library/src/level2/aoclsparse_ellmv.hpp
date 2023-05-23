@@ -37,7 +37,7 @@ aoclsparse_status aoclsparse_ellmv_template(const float                     alph
                                             const float *                   x,
                                             const float                     beta,
                                             float *                         y,
-                                            aoclsparse_context *            context)
+                                            [[maybe_unused]] aoclsparse_context *            context)
 
 {
     //TODO: Optimisation for float to be done
@@ -212,7 +212,7 @@ aoclsparse_status aoclsparse_ellmv_template_avx2(const double                   
                                                  const double *                  x,
                                                  const double                    beta,
                                                  double *                        y,
-                                                 aoclsparse_context *            context)
+                                                 [[maybe_unused]] aoclsparse_context *            context)
 {
 
     __m256d vec_vals, vec_x, vec_y;
@@ -331,7 +331,7 @@ aoclsparse_status aoclsparse_elltmv_template(const float                     alp
                                              const float *                   x,
                                              const float                     beta,
                                              float *                         y,
-                                             aoclsparse_context *            context)
+                                             [[maybe_unused]] aoclsparse_context *            context)
 {
     aoclsparse_int k = ell_width;
     double         rd;
@@ -374,7 +374,7 @@ aoclsparse_status aoclsparse_elltmv_template_avx512(const double                
                                                     const double *                  x,
                                                     const double                    beta,
                                                     double *                        y,
-                                                    aoclsparse_context *            context)
+                                                    [[maybe_unused]] aoclsparse_context *            context)
 {
 
     __m512d res, vvals, vx, vy, va, vb, vvals1, vx1, vy1;
@@ -452,7 +452,7 @@ aoclsparse_status aoclsparse_elltmv_template_avx2(const double                  
                                                   const double *                  x,
                                                   const double                    beta,
                                                   double *                        y,
-                                                  aoclsparse_context *            context)
+                                                  [[maybe_unused]] aoclsparse_context *            context)
 {
     __m256d res, vvals, vx, vy, va, vb;
 
@@ -541,7 +541,7 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx512(const double             
                                                        const double *      x,
                                                        const double        beta,
                                                        double *            y,
-                                                       aoclsparse_context *context)
+                                                       [[maybe_unused]] aoclsparse_context *context)
 {
 
     __m512d res, vvals, vx, vy, va, vb;
@@ -737,7 +737,7 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx2(const double               
                                                      const double *      x,
                                                      const double        beta,
                                                      double *            y,
-                                                     aoclsparse_context *context)
+                                                     [[maybe_unused]] aoclsparse_context *context)
 {
     __m256d res, vvals, vx, vy, va, vb;
     va               = _mm256_set1_pd(alpha);
