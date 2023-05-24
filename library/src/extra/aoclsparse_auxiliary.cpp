@@ -32,13 +32,12 @@
 #include <cstring>
 #include <string>
 
-
 #define STRINGIFY(x) _STRINGIFY(x)
 #define _STRINGIFY(x) #x
 
 static const char aoclsparse_version[]
     = "AOCL-Sparse " STRINGIFY(AOCLSPARSE_VERSION_MAJOR) "." STRINGIFY(AOCLSPARSE_VERSION_MINOR) "." STRINGIFY(
-        AOCLSPARSE_VERSION_PATCH) " Beta Build " STRINGIFY(AOCL_SPARSE_BUILD_DATE);
+        AOCLSPARSE_VERSION_PATCH) " Build " STRINGIFY(AOCL_SPARSE_BUILD_DATE);
 
 #ifdef __cplusplus
 extern "C" {
