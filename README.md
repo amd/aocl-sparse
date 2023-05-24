@@ -1,14 +1,16 @@
 # AOCL-Sparse
-AOCL-Sparse exposes a common interface that provides Basic Linear Algebra Subroutines for sparse computation implemented for AMD's CPUs. AOCL-Sparse is built with cmake, using the supported compilers GNU and AOCC on Linux and clang/MSVC on Windows. AOCL-Sparse is dependent on BLAS and LAPACK currently.
+AOCL-Sparse exposes a common interface that provides Basic Linear Algebra Subroutines for sparse computation implemented for AMD's CPUs. AOCL-Sparse is built with cmake, using the supported compilers GNU and AOCC on Linux and clang/MSVC on Windows. AOCL-Sparse is dependent on AOCL-BLAS and AOCL-LAPACK.
 
 ## Requirements
-* CMake (3.5 or later)
+* Git
+* CMake versions 3.11 through 3.25
+* Boost library versions 1.65 through 1.77
 
-## Quickstart AOCL-Sparse build and install
+## Build and Installation
 
 #### Building on Windows
 1. Install Visual Studio 2022 (the free version) and cmake 
-2. Install AOCL provided Blis and Libflame
+2. Install AOCL-BLAS and AOCL-LAPACK
 3. Define the environment variable AOCL_ROOT to point to AOCL libs installation
 ```
 set "AOCL_ROOT=C:\Program Files\AMD\AOCL-Windows"	
