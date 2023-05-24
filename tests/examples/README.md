@@ -7,18 +7,18 @@ This directory contains sample source files showing usage of AOCL-Sparse library
 	```
 	cd aocl-sparse/examples
 	```
-2. Set AOCL_ROOT to aocl-sparse package installation path
+2. Set SPARSE_ROOT to aocl-sparse package installation path
 	```
-	export AOCL_ROOT=<path/to/AOCL/Sparse/install/directory>
+	export SPARSE_ROOT=<path/to/AOCL/Sparse/install/directory>
 	```
 	eg:
 	```
-	export AOCL_ROOT=$HOME/amd/aocl-sparse
+	export SPARSE_ROOT=$HOME/amd/aocl-sparse
 	```
 
 2. Add aoclsparse library path to environment path variable $LD_LIBRARY_PATH.
 	```
-	export LD_LIBRARY_PATH=$AOCL_ROOT/lib:$LD_LIBRARY_PATH
+	export LD_LIBRARY_PATH=$SPARSE_ROOT/lib:$LD_LIBRARY_PATH
 	```
 	**Note** Adding the library and headers paths to LD_LIBRARY_PATH is required in case of shared library (.so)
 
@@ -44,13 +44,13 @@ This directory contains sample source files showing usage of AOCL-Sparse library
 	```
 	cd aocl-sparse\examples
 	```
-2. Set AOCL_ROOT to aocl-sparse package installation path
+2. Set SPARSE_ROOT to aocl-sparse package installation path
 	```
-	set AOCL_ROOT=<path\to\AOCL\Sparse\install\directory>
+	set SPARSE_ROOT=<path\to\AOCL\Sparse\install\directory>
 	```
 	eg:
 	```
-	set AOCL_ROOT=%HOME%\amd\aocl-sparse
+	set SPARSE_ROOT=%HOME%\amd\aocl-sparse
 	```
 
 2. Add aoclsparse library path to environment path variable
@@ -71,5 +71,5 @@ This directory contains sample source files showing usage of AOCL-Sparse library
 	```
 	sample_spmv.exe
 	```
-
+**Note** The environment variable "SPARSE_ROOT" takes precedence when searching for sparse library and headers. If the environment variable "SPARSE_ROOT" is not defined, then SPARSE_ROOT inherits the path from AOCL_ROOT and looks for AOCL sparse installation in AOCL_ROOT. If Sparse library/headers are not found either in SPARSE_ROOT or AOCL_ROOT, then an error is returned.
 **Note** The sample compilation requires a python installation: `python 2.7 or later`.

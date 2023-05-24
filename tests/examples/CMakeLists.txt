@@ -46,16 +46,16 @@ if (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
     OPTION(BUILD_ILP64 "ILP64 Support" OFF)
     OPTION(SUPPORT_OMP "Compile with OpenMP support." ON)
 
-    if(DEFINED ENV{AOCL_ROOT})
-        set(SPARSE_ARTIFACTS_DIR $ENV{AOCL_ROOT})
+    IF(DEFINED ENV{SPARSE_ROOT})
+        set(CMAKE_SPARSE_ROOT $ENV{SPARSE_ROOT})
     ELSE()
-        # FIXME this needs to the "hardcoded" from main CMAKE at install time
-        set(SPARSE_ARTIFACTS_DIR ${CMAKE_INSTALL_PREFIX})
+	#Inherit AOCL_ROOT since we assume Sparse artifacts would be present as part of AOCL installation
+        set(CMAKE_SPARSE_ROOT $ENV{AOCL_ROOT})
     ENDIF()
-    
+
     # During out-of-source-tree build of examples, Blis and Libflame artifacts need to be found explicitly. 
     # So we call find_blis_lapack.cmake under if (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE) condition
-    include(${CMAKE_SOURCE_DIR}/cmake/find_blis_lapack.cmake)
+    include(find_blis_lapack.cmake)
 
     if(SUPPORT_OMP)
         find_package(OpenMP)
@@ -82,29 +82,23 @@ ELSE(WIN32)
 ENDIF(WIN32)
 
 if (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
-    IF(BUILD_ILP64)
+    IF(BUILD_ILP64) 
         list(APPEND COMPILER_OPTIONS "-Daoclsparse_ILP64")
-        find_library(SPARSE_LIBRARY
-                    NAMES "aoclsparse" "aoclsparse-d"
-                    HINTS ${SPARSE_ARTIFACTS_DIR}
-                    PATH_SUFFIXES "lib" "lib/ILP64")
-
-        find_path(SPARSE_INCLUDE_DIR
-                NAMES "aoclsparse.h"
-                PATHS ${SPARSE_ARTIFACTS_DIR}
-                PATH_SUFFIXES "include")
-
+        SET(ILP_DIR "ILP64")
     ELSE(BUILD_ILP64)
-        find_library(SPARSE_LIBRARY
-                    NAMES "aoclsparse" "aoclsparse-d"
-                    HINTS ${SPARSE_ARTIFACTS_DIR}
-                    PATH_SUFFIXES "lib" "lib/LP64")
-
-        find_path(SPARSE_INCLUDE_DIR
-                NAMES "aoclsparse.h"
-                PATHS ${SPARSE_ARTIFACTS_DIR}
-                PATH_SUFFIXES "include")
+        SET(ILP_DIR "LP64")
     ENDIF(BUILD_ILP64)
+    find_library(SPARSE_LIBRARY
+    NAMES "aoclsparse" "aoclsparse-d"
+    HINTS  ${CMAKE_SPARSE_ROOT} ${CMAKE_SPARSE_ROOT}/sparse ${CMAKE_SPARSE_ROOT}/amd-sparse
+    PATH_SUFFIXES  "lib/${ILP_DIR}" "lib_${ILP_DIR}" "lib"
+    DOC "AOCL Sparse library")
+
+    find_path(SPARSE_INCLUDE_DIR
+    NAMES "aoclsparse.h"
+    HINTS  ${CMAKE_SPARSE_ROOT} ${CMAKE_SPARSE_ROOT}/sparse ${CMAKE_SPARSE_ROOT}/amd-sparse
+    PATH_SUFFIXES  "include/${ILP_DIR}" "include_${ILP_DIR}" "include"
+    DOC "AOCL Sparse headers")
 
     if(NOT SPARSE_LIBRARY)
         message (FATAL_ERROR "Error: could not find a suitable installation of AOCL-Sparse in \$AOCL_ROOT=${AOCL_ROOT}")
@@ -137,6 +131,7 @@ if(NOT BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
     set(EXAMPLES_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/examples")
     install(FILES README.md DESTINATION ${EXAMPLES_INSTALL_DIR})
     install(FILES CMakeLists.txt DESTINATION ${EXAMPLES_INSTALL_DIR})
+    install(FILES ${CMAKE_SOURCE_DIR}/cmake/find_blis_lapack.cmake DESTINATION ${EXAMPLES_INSTALL_DIR})
 endif()
 set(EXAMPLE_EXECUTABLES
     sample_spmv
