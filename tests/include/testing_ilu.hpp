@@ -149,7 +149,7 @@ void testing_ilu(const Arguments &arg)
     aoclsparse_operation   trans = arg.transA;
     aoclsparse_index_base  base  = arg.baseA;
     bool                   issymm;
-    std::string            filename = arg.filename;
+    std::string            filename        = arg.filename;
     T                     *approx_inv_diag = NULL;
 
     // Create matrix descriptor
@@ -163,8 +163,8 @@ void testing_ilu(const Arguments &arg)
     std::vector<aoclsparse_int> csr_col_ind;
     std::vector<T>              csr_val;
 
-    std::vector<T>              x(N);
-    std::vector<T>              b(N);
+    std::vector<T> x(N);
+    std::vector<T> b(N);
     aoclsparse_seedrand();
 
     aoclsparse_init_csr_matrix(
@@ -178,7 +178,7 @@ void testing_ilu(const Arguments &arg)
         A, base, M, N, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data()));
 
     // Initialize data
-    T     *precond_csr_val = NULL;
+    T *precond_csr_val = NULL;
 
     aoclsparse_int h_analysis_pivot_gold;
     aoclsparse_int h_solve_pivot_gold;
@@ -209,8 +209,8 @@ void testing_ilu(const Arguments &arg)
     // Optimize the matrix, "A"
     CHECK_AOCLSPARSE_ERROR(aoclsparse_optimize(A));
 
-    CHECK_AOCLSPARSE_ERROR(
-        aoclsparse_ilu_smoother(trans, A, descr, &precond_csr_val, approx_inv_diag, x.data(), b.data()));
+    CHECK_AOCLSPARSE_ERROR(aoclsparse_ilu_smoother(
+        trans, A, descr, &precond_csr_val, approx_inv_diag, x.data(), b.data()));
 
     if(arg.unit_check)
     {

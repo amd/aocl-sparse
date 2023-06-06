@@ -21,8 +21,8 @@
  *
  * ************************************************************************ */
 #include "aoclsparse.h"
-#include "gtest/gtest.h"
 #include "common_data_utils.h"
+#include "gtest/gtest.h"
 #include "aoclsparse.hpp"
 
 namespace
@@ -34,38 +34,66 @@ namespace
     void test_csrmv_nullptr()
     {
         aoclsparse_operation trans = aoclsparse_operation_none;
-        aoclsparse_int m = 2, n = 3, nnz = 1;
-        T csr_val[] = {42.};
-        aoclsparse_int csr_col_ind[] = {1};
-        aoclsparse_int csr_row_ptr[] = {0, 0, 1};
-        T alpha = 2.3, beta = 11.2;
-        T x[] = {1.0, -2.0, 3.0};
-        T y[] = {0.1, 0.2};
+        aoclsparse_int       m = 2, n = 3, nnz = 1;
+        T                    csr_val[]     = {42.};
+        aoclsparse_int       csr_col_ind[] = {1};
+        aoclsparse_int       csr_row_ptr[] = {0, 0, 1};
+        T                    alpha = 2.3, beta = 11.2;
+        T                    x[] = {1.0, -2.0, 3.0};
+        T                    y[] = {0.1, 0.2};
         aoclsparse_mat_descr descr;
         // aoclsparse_create_mat_descr set aoclsparse_matrix_type to aoclsparse_matrix_type_general
         // and aoclsparse_index_base to aoclsparse_index_base_zero.
         aoclsparse_create_mat_descr(&descr);
-        
+
         // In turns pass nullptr in every single pointer argument
         // and expect pointer error
         //EXPECT_EQ(aoclsparse_csrmv<T>(trans, &alpha, m, n, nnz, csr_val, csr_col_ind, csr_row_ptr, descr, x, &beta, y),
         //      aoclsparse_status_invalid_pointer);
         //FIXME crashes: EXPECT_EQ(aoclsparse_csrmv<T>(trans, nullptr, m, n, nnz, csr_val, csr_col_ind, csr_row_ptr, descr, x, &beta, y),
         //      aoclsparse_status_invalid_pointer);
-        EXPECT_EQ(aoclsparse_csrmv<T>(trans, &alpha, m, n, nnz, nullptr, csr_col_ind, csr_row_ptr, descr, x, &beta, y),
-              aoclsparse_status_invalid_pointer);
-        EXPECT_EQ(aoclsparse_csrmv<T>(trans, &alpha, m, n, nnz, csr_val, nullptr, csr_row_ptr, descr, x, &beta, y),
-              aoclsparse_status_invalid_pointer);
-        EXPECT_EQ(aoclsparse_csrmv<T>(trans, &alpha, m, n, nnz, csr_val, csr_col_ind, nullptr, descr, x, &beta, y),
-              aoclsparse_status_invalid_pointer);
-        EXPECT_EQ(aoclsparse_csrmv<T>(trans, &alpha, m, n, nnz, csr_val, csr_col_ind, csr_row_ptr, nullptr, x, &beta, y),
-              aoclsparse_status_invalid_pointer);
-        EXPECT_EQ(aoclsparse_csrmv<T>(trans, &alpha, m, n, nnz, csr_val, csr_col_ind, csr_row_ptr, descr, nullptr, &beta, y),
-              aoclsparse_status_invalid_pointer);
+        EXPECT_EQ(
+            aoclsparse_csrmv<T>(
+                trans, &alpha, m, n, nnz, nullptr, csr_col_ind, csr_row_ptr, descr, x, &beta, y),
+            aoclsparse_status_invalid_pointer);
+        EXPECT_EQ(aoclsparse_csrmv<T>(
+                      trans, &alpha, m, n, nnz, csr_val, nullptr, csr_row_ptr, descr, x, &beta, y),
+                  aoclsparse_status_invalid_pointer);
+        EXPECT_EQ(aoclsparse_csrmv<T>(
+                      trans, &alpha, m, n, nnz, csr_val, csr_col_ind, nullptr, descr, x, &beta, y),
+                  aoclsparse_status_invalid_pointer);
+        EXPECT_EQ(
+            aoclsparse_csrmv<T>(
+                trans, &alpha, m, n, nnz, csr_val, csr_col_ind, csr_row_ptr, nullptr, x, &beta, y),
+            aoclsparse_status_invalid_pointer);
+        EXPECT_EQ(aoclsparse_csrmv<T>(trans,
+                                      &alpha,
+                                      m,
+                                      n,
+                                      nnz,
+                                      csr_val,
+                                      csr_col_ind,
+                                      csr_row_ptr,
+                                      descr,
+                                      nullptr,
+                                      &beta,
+                                      y),
+                  aoclsparse_status_invalid_pointer);
         //FIXME crashes: EXPECT_EQ(aoclsparse_csrmv<T>(trans, &alpha, m, n, nnz, csr_val, csr_col_ind, csr_row_ptr, descr, x, nullptr, y),
         //      aoclsparse_status_invalid_pointer);
-        EXPECT_EQ(aoclsparse_csrmv<T>(trans, &alpha, m, n, nnz, csr_val, csr_col_ind, csr_row_ptr, descr, x, &beta, nullptr),
-              aoclsparse_status_invalid_pointer);
+        EXPECT_EQ(aoclsparse_csrmv<T>(trans,
+                                      &alpha,
+                                      m,
+                                      n,
+                                      nnz,
+                                      csr_val,
+                                      csr_col_ind,
+                                      csr_row_ptr,
+                                      descr,
+                                      x,
+                                      &beta,
+                                      nullptr),
+                  aoclsparse_status_invalid_pointer);
 
         aoclsparse_destroy_mat_descr(descr);
     }
@@ -75,25 +103,49 @@ namespace
     void test_csrmv_wrong_size()
     {
         aoclsparse_operation trans = aoclsparse_operation_none;
-        aoclsparse_int m = 2, n = 3, nnz = 1, wrong = -1;
-        T csr_val[] = {42.};
-        aoclsparse_int csr_col_ind[] = {1};
-        aoclsparse_int csr_row_ptr[] = {0, 0, 1};
-        T alpha = 2.3, beta = 11.2;
-        T x[] = {1.0, -2.0, 3.0};
-        T y[] = {0.1, 0.2};
+        aoclsparse_int       m = 2, n = 3, nnz = 1, wrong = -1;
+        T                    csr_val[]     = {42.};
+        aoclsparse_int       csr_col_ind[] = {1};
+        aoclsparse_int       csr_row_ptr[] = {0, 0, 1};
+        T                    alpha = 2.3, beta = 11.2;
+        T                    x[] = {1.0, -2.0, 3.0};
+        T                    y[] = {0.1, 0.2};
         aoclsparse_mat_descr descr;
         aoclsparse_create_mat_descr(&descr);
-        
+
         // In turns pass wrong size in place of n, m, nnz
         //EXPECT_EQ(aoclsparse_csrmv<T>(trans, &alpha, m, n, nnz, csr_val, csr_col_ind, csr_row_ptr, descr, x, &beta, y),
         //      aoclsparse_status_invalid_size);
-        EXPECT_EQ(aoclsparse_csrmv<T>(trans, &alpha, wrong, n, nnz, csr_val, csr_col_ind, csr_row_ptr, descr, x, &beta, y),
-              aoclsparse_status_invalid_size);
-        EXPECT_EQ(aoclsparse_csrmv<T>(trans, &alpha, m, wrong, nnz, csr_val, csr_col_ind, csr_row_ptr, descr, x, &beta, y),
-              aoclsparse_status_invalid_size);
-        EXPECT_EQ(aoclsparse_csrmv<T>(trans, &alpha, m, n, wrong, csr_val, csr_col_ind, csr_row_ptr, descr, x, &beta, y),
-              aoclsparse_status_invalid_size);
+        EXPECT_EQ(aoclsparse_csrmv<T>(trans,
+                                      &alpha,
+                                      wrong,
+                                      n,
+                                      nnz,
+                                      csr_val,
+                                      csr_col_ind,
+                                      csr_row_ptr,
+                                      descr,
+                                      x,
+                                      &beta,
+                                      y),
+                  aoclsparse_status_invalid_size);
+        EXPECT_EQ(aoclsparse_csrmv<T>(trans,
+                                      &alpha,
+                                      m,
+                                      wrong,
+                                      nnz,
+                                      csr_val,
+                                      csr_col_ind,
+                                      csr_row_ptr,
+                                      descr,
+                                      x,
+                                      &beta,
+                                      y),
+                  aoclsparse_status_invalid_size);
+        EXPECT_EQ(
+            aoclsparse_csrmv<T>(
+                trans, &alpha, m, n, wrong, csr_val, csr_col_ind, csr_row_ptr, descr, x, &beta, y),
+            aoclsparse_status_invalid_size);
 
         aoclsparse_destroy_mat_descr(descr);
     }
@@ -103,23 +155,29 @@ namespace
     void test_csrmv_do_nothing()
     {
         aoclsparse_operation trans = aoclsparse_operation_none;
-        aoclsparse_int m = 2, n = 3, nnz = 1;
-        T csr_val[] = {42.};
-        aoclsparse_int csr_col_ind[] = {1};
-        aoclsparse_int csr_row_ptr[] = {0, 0, 1};
-        T alpha = 2.3, beta = 11.2;
-        T x[] = {1.0, -2.0, 3.0};
-        T y[] = {0.1, 0.2};
+        aoclsparse_int       m = 2, n = 3, nnz = 1;
+        T                    csr_val[]     = {42.};
+        aoclsparse_int       csr_col_ind[] = {1};
+        aoclsparse_int       csr_row_ptr[] = {0, 0, 1};
+        T                    alpha = 2.3, beta = 11.2;
+        T                    x[] = {1.0, -2.0, 3.0};
+        T                    y[] = {0.1, 0.2};
         aoclsparse_mat_descr descr;
         aoclsparse_create_mat_descr(&descr);
-        
+
         // Passing zero size matrix should be OK
-        EXPECT_EQ(aoclsparse_csrmv<T>(trans, &alpha, 0, n, nnz, csr_val, csr_col_ind, csr_row_ptr, descr, x, &beta, y),
-              aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_csrmv<T>(trans, &alpha, m, 0, nnz, csr_val, csr_col_ind, csr_row_ptr, descr, x, &beta, y),
-              aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_csrmv<T>(trans, &alpha, m, n, 0, csr_val, csr_col_ind, csr_row_ptr, descr, x, &beta, y),
-              aoclsparse_status_success);
+        EXPECT_EQ(
+            aoclsparse_csrmv<T>(
+                trans, &alpha, 0, n, nnz, csr_val, csr_col_ind, csr_row_ptr, descr, x, &beta, y),
+            aoclsparse_status_success);
+        EXPECT_EQ(
+            aoclsparse_csrmv<T>(
+                trans, &alpha, m, 0, nnz, csr_val, csr_col_ind, csr_row_ptr, descr, x, &beta, y),
+            aoclsparse_status_success);
+        EXPECT_EQ(
+            aoclsparse_csrmv<T>(
+                trans, &alpha, m, n, 0, csr_val, csr_col_ind, csr_row_ptr, descr, x, &beta, y),
+            aoclsparse_status_success);
 
         aoclsparse_destroy_mat_descr(descr);
     }
@@ -159,6 +217,5 @@ namespace
     {
         test_csrmv_do_nothing<float>();
     }
-
 
 } // namespace

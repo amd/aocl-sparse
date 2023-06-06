@@ -25,28 +25,36 @@
 #define AOCLSPARSE_AUXILIARY_HPP
 
 #include "aoclsparse_mat_structures.h"
-#include "blis.h"
-#include "cblas.hh"
-#include "FLAME.h"
 
 #include <cmath>
 #include <limits>
 
+// The fix order of BLIS/Flame headers
+// clang-format off
+#include "blis.h"
+#include "cblas.hh"
+#include "FLAME.h"
+// clang-format on
+
 /* Check that the size of integers in the used libraries is OK. */
-static_assert(sizeof(f77_int)==sizeof(aoclsparse_int),"Error: Incompatible size of ints in blis. Using wrong header or compilation of the library?");
-static_assert(sizeof(integer)==sizeof(aoclsparse_int),"Error: Incompatible size of ints in flame. Using wrong header or compilation of the library?");
+static_assert(
+    sizeof(f77_int) == sizeof(aoclsparse_int),
+    "Error: Incompatible size of ints in blis. Using wrong header or compilation of the library?");
+static_assert(
+    sizeof(integer) == sizeof(aoclsparse_int),
+    "Error: Incompatible size of ints in flame. Using wrong header or compilation of the library?");
 
 void aoclsparse_init_csrmat(aoclsparse_matrix A);
 
 /********************************************************************************
  * \brief generates a plane rotation with cosine and sine. Slower and more accurate
- * version of BLAS's DROTG performs the Givens Rotation. The mathematical formulas 
+ * version of BLAS's DROTG performs the Givens Rotation. The mathematical formulas
  * used for C and S are
         hv = sqrt(rr^2 + hh^2)
         c = rr/hv
         s = hh/hv
         h_mj_j = hv
- * 
+ *
  *******************************************************************************/
 inline void aoclsparse_givens_rotation(double &rr, double &hh, double &c, double &s, double &h_mj_j)
 {
@@ -57,7 +65,7 @@ inline void aoclsparse_givens_rotation(float &rr, float &hh, float &c, float &s,
     slartg_(&rr, &hh, &c, &s, &h_mj_j);
 }
 
-/* 
+/*
     Perform a comparison test to determine if the value is near zero
 */
 template <typename T>

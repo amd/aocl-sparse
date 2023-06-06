@@ -41,7 +41,7 @@ aoclsparse_status aoclsparse_ilu0_factorization(aoclsparse_int n,
                                                 const aoclsparse_int *__restrict__ csr_row_ptr,
                                                 const aoclsparse_int *__restrict__ csr_col_ind)
 {
-    aoclsparse_status ret   = aoclsparse_status_success;
+    aoclsparse_status ret = aoclsparse_status_success;
     aoclsparse_int    i, j, jj, j1, j2, k, mn;
     bool              is_value_zero = false;
 
@@ -192,7 +192,7 @@ aoclsparse_status aoclsparse_ilu0_template(aoclsparse_int             n,
     if(ret == aoclsparse_status_success)
     {
         aoclsparse_ilu_solve<T>(n, lu_diag_ptr, csr_val, csr_row_ptr, csr_col_ind, x, b);
-    }    
+    }
 
     return ret;
 }

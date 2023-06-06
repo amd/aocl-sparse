@@ -22,6 +22,7 @@
  * ************************************************************************ */
 #include "aoclsparse.h"
 #include "common_data_utils.h"
+
 #include <iostream>
 #include <vector>
 

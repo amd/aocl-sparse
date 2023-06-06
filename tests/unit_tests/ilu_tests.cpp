@@ -21,8 +21,8 @@
  *
  * ************************************************************************ */
 #include "aoclsparse.h"
-#include "gtest/gtest.h"
 #include "common_data_utils.h"
+#include "gtest/gtest.h"
 #include "aoclsparse.hpp"
 
 #define VERBOSE 1
@@ -232,7 +232,7 @@ namespace
 
         ASSERT_EQ(create_aoclsparse_matrix<T>(A, m, n, nnz, csr_row_ptr, csr_col_ind, csr_val),
                   aoclsparse_status_success);
-        
+
         /*
             check if the transpose operation is supported
         */
@@ -267,22 +267,22 @@ namespace
         T                           init_x = 1.0;
         T                           alpha = 1.0, beta = 0.0;
         aoclsparse_mat_descr        descr;
-        T                          *x       = NULL;
-        T                          *b       = NULL;
+        T                          *x = NULL;
+        T                          *b = NULL;
 
         /*
             use the 5 matrices from data utils to test positive scenarios
         */
-        enum matrix_id              mids[5] = {sample_gmres_mat_01,
-                                               sample_gmres_mat_02,
-                                               sample_cg_mat,
-                                               N5_full_sorted,
-                                               N5_full_unsorted};
+        enum matrix_id mids[5] = {sample_gmres_mat_01,
+                                  sample_gmres_mat_02,
+                                  sample_cg_mat,
+                                  N5_full_sorted,
+                                  N5_full_unsorted};
         for(aoclsparse_int idx = 0; idx < 5; idx++)
         {
-            A = nullptr;
-            x = nullptr;
-            b = nullptr;
+            A     = nullptr;
+            x     = nullptr;
+            b     = nullptr;
             descr = nullptr;
 
             ASSERT_EQ(

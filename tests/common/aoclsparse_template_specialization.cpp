@@ -120,22 +120,34 @@ aoclsparse_status aoclsparse_csrmv(aoclsparse_operation       trans,
 
 template <>
 aoclsparse_status aoclsparse_blkcsrmv(aoclsparse_operation       trans,
-                                    const double *             alpha,
-                                    aoclsparse_int             m,
-                                    aoclsparse_int             n,
-                                    aoclsparse_int             nnz,
-                                    const uint8_t *            masks,
-                                    const double *             blk_csr_val,
-                                    const aoclsparse_int *     blk_col_ind,
-                                    const aoclsparse_int *     blk_row_ptr,
-                                    const aoclsparse_mat_descr descr,
-                                    const double *             x,
-                                    const double *             beta,
-                                    double *                   y,
-                                    aoclsparse_int             nRowsblk)
+                                      const double              *alpha,
+                                      aoclsparse_int             m,
+                                      aoclsparse_int             n,
+                                      aoclsparse_int             nnz,
+                                      const uint8_t             *masks,
+                                      const double              *blk_csr_val,
+                                      const aoclsparse_int      *blk_col_ind,
+                                      const aoclsparse_int      *blk_row_ptr,
+                                      const aoclsparse_mat_descr descr,
+                                      const double              *x,
+                                      const double              *beta,
+                                      double                    *y,
+                                      aoclsparse_int             nRowsblk)
 {
-    return aoclsparse_dblkcsrmv(
-		    trans, alpha, m, n, nnz, masks, blk_csr_val, blk_col_ind, blk_row_ptr, descr, x, beta, y, nRowsblk);
+    return aoclsparse_dblkcsrmv(trans,
+                                alpha,
+                                m,
+                                n,
+                                nnz,
+                                masks,
+                                blk_csr_val,
+                                blk_col_ind,
+                                blk_row_ptr,
+                                descr,
+                                x,
+                                beta,
+                                y,
+                                nRowsblk);
 }
 
 template <>

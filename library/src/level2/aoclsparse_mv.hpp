@@ -77,7 +77,6 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
     if(x == nullptr || y == nullptr)
         return aoclsparse_status_invalid_pointer;
 
-
     // Check index base
     if((descr->base != aoclsparse_index_base_zero) || (A->base != aoclsparse_index_base_zero))
         return aoclsparse_status_not_implemented;
@@ -107,9 +106,9 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
 
     // In UK/HPCG branch this would be triggered every time
     // Let's do it only for triangular/symmetric matrices
-    if((descr->type == aoclsparse_matrix_type_triangular ||
-      descr->type == aoclsparse_matrix_type_symmetric)
-      && !A->opt_csr_ready)
+    if((descr->type == aoclsparse_matrix_type_triangular
+        || descr->type == aoclsparse_matrix_type_symmetric)
+       && !A->opt_csr_ready)
     {
         status = aoclsparse_csr_optimize<T>(A);
         if(status)

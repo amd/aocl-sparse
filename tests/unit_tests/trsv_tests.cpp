@@ -140,7 +140,7 @@ namespace
         {
             dtype = "float";
         }
-        const bool        unit       = descr->diag_type == aoclsparse_diag_type_unit;
+        const bool        unit    = descr->diag_type == aoclsparse_diag_type_unit;
         aoclsparse_int    kidlabs = std::max<aoclsparse_int>(std::min<aoclsparse_int>(kid, 4), 0);
         const std::string avxlabs[5] = {"NONE (reference)",
                                         "AVX2 (reference 256b)",

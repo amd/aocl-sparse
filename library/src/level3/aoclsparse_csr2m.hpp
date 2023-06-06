@@ -227,13 +227,13 @@ aoclsparse_status aoclsparse_csr2m_template(aoclsparse_operation       transA,
     if(!((csrA->val_type == aoclsparse_dmat && std::is_same_v<T, double>)
          || (csrA->val_type == aoclsparse_smat && std::is_same_v<T, float>)))
     {
-	return aoclsparse_status_wrong_type;
+        return aoclsparse_status_wrong_type;
     }
 
     if(!((csrB->val_type == aoclsparse_dmat && std::is_same_v<T, double>)
          || (csrB->val_type == aoclsparse_smat && std::is_same_v<T, float>)))
     {
-	return aoclsparse_status_wrong_type;
+        return aoclsparse_status_wrong_type;
     }
     if(transA != aoclsparse_operation_none)
     {
@@ -253,18 +253,19 @@ aoclsparse_status aoclsparse_csr2m_template(aoclsparse_operation       transA,
         return aoclsparse_status_not_implemented;
     }
 
-    if((descrA->type != aoclsparse_matrix_type_general) || (descrB->type != aoclsparse_matrix_type_general))
+    if((descrA->type != aoclsparse_matrix_type_general)
+       || (descrB->type != aoclsparse_matrix_type_general))
     {
         // TODO
         return aoclsparse_status_not_implemented;
     }
 
     if(csrA->n != csrB->m)
-	return aoclsparse_status_invalid_value;
+        return aoclsparse_status_invalid_value;
 
     // Quick return for size 0 matrices, Do nothing
-    if((csrA->m == 0) || (csrA->n == 0) ||(csrB->n == 0) )
-	return aoclsparse_status_success;
+    if((csrA->m == 0) || (csrA->n == 0) || (csrB->n == 0))
+        return aoclsparse_status_success;
 
     switch(request)
     {
@@ -314,7 +315,8 @@ aoclsparse_status aoclsparse_csr2m_template(aoclsparse_operation       transA,
         T              *csr_val_C     = (T *)malloc(nnz_C * sizeof(T));
 
         /*Insufficient memory for output allocation */
-        if((csr_col_ind_C == NULL) || (csr_val_C == NULL)) {
+        if((csr_col_ind_C == NULL) || (csr_val_C == NULL))
+        {
             free(csr_col_ind_C);
             free(csr_val_C);
             return aoclsparse_status_memory_error;
@@ -359,7 +361,8 @@ aoclsparse_status aoclsparse_csr2m_template(aoclsparse_operation       transA,
         T              *csr_val_C     = (T *)malloc(nnz_C * sizeof(T));
 
         /*Insufficient memory for output allocation */
-        if((csr_col_ind_C == NULL) || (csr_val_C == NULL)) {
+        if((csr_col_ind_C == NULL) || (csr_val_C == NULL))
+        {
             free(csr_col_ind_C);
             free(csr_val_C);
             return aoclsparse_status_memory_error;

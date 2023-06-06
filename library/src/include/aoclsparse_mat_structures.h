@@ -45,7 +45,7 @@ struct _aoclsparse_csr
     aoclsparse_int *blk_col_ptr = nullptr;
     void           *blk_val     = nullptr;
     uint8_t        *masks       = nullptr;
-    aoclsparse_int nRowsblk     = 0;
+    aoclsparse_int  nRowsblk    = 0;
 };
 
 /********************************************************************************
