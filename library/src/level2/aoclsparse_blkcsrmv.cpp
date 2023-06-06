@@ -40,8 +40,8 @@ int bits_set(uint8_t x)
 
 template <>
 aoclsparse_status
-    aoclsparse_blkcsrmv_1x8_vectorized_avx512(const double                    alpha,
-                                              aoclsparse_int                  m,
+    aoclsparse_blkcsrmv_1x8_vectorized_avx512(const double   alpha,
+                                              aoclsparse_int m,
                                               const uint8_t *__restrict__ masks,
                                               const double *__restrict__ blk_csr_val,
                                               const aoclsparse_int *__restrict__ blk_col_ind,
@@ -115,8 +115,8 @@ aoclsparse_status
 
 template <>
 aoclsparse_status
-    aoclsparse_blkcsrmv_2x8_vectorized_avx512(const double                    alpha,
-                                              aoclsparse_int                  m,
+    aoclsparse_blkcsrmv_2x8_vectorized_avx512(const double   alpha,
+                                              aoclsparse_int m,
                                               const uint8_t *__restrict__ masks,
                                               const double *__restrict__ blk_csr_val,
                                               const aoclsparse_int *__restrict__ blk_col_ind,
@@ -218,8 +218,8 @@ aoclsparse_status
 
 template <>
 aoclsparse_status
-    aoclsparse_blkcsrmv_4x8_vectorized_avx512(const double                    alpha,
-                                              aoclsparse_int                  m,
+    aoclsparse_blkcsrmv_4x8_vectorized_avx512(const double   alpha,
+                                              aoclsparse_int m,
                                               const uint8_t *__restrict__ masks,
                                               const double *__restrict__ blk_csr_val,
                                               const aoclsparse_int *__restrict__ blk_col_ind,
@@ -373,18 +373,18 @@ aoclsparse_status
 //Supports blocking factors of size 1x8, 2x8 and 4x8. Blocking size is chosen depending on the matrix characteristics.
 //We currently support blocked SpMV for only single threaded usecases.
 extern "C" aoclsparse_status aoclsparse_dblkcsrmv(aoclsparse_operation       trans,
-                                                  const double *             alpha,
+                                                  const double              *alpha,
                                                   aoclsparse_int             m,
                                                   aoclsparse_int             n,
                                                   aoclsparse_int             nnz,
-                                                  const uint8_t *            masks,
-                                                  const double *             blk_csr_val,
-                                                  const aoclsparse_int *     blk_col_ind,
-                                                  const aoclsparse_int *     blk_row_ptr,
+                                                  const uint8_t             *masks,
+                                                  const double              *blk_csr_val,
+                                                  const aoclsparse_int      *blk_col_ind,
+                                                  const aoclsparse_int      *blk_row_ptr,
                                                   const aoclsparse_mat_descr descr,
-                                                  const double *             x,
-                                                  const double *             beta,
-                                                  double *                   y,
+                                                  const double              *x,
+                                                  const double              *beta,
+                                                  double                    *y,
                                                   aoclsparse_int             nRowsblk)
 {
     // Read the environment variables to update global variable
@@ -480,35 +480,14 @@ extern "C" aoclsparse_status aoclsparse_dblkcsrmv(aoclsparse_operation       tra
     if(context.is_avx512)
     {
         if(nRowsblk == 1)
-            return aoclsparse_blkcsrmv_1x8_vectorized_avx512(*alpha,
-                                                             m,
-                                                             masks,
-                                                             blk_csr_val,
-                                                             blk_col_ind,
-                                                             blk_row_ptr,
-                                                             x,
-                                                             *beta,
-                                                             y);
+            return aoclsparse_blkcsrmv_1x8_vectorized_avx512(
+                *alpha, m, masks, blk_csr_val, blk_col_ind, blk_row_ptr, x, *beta, y);
         if(nRowsblk == 2)
-            return aoclsparse_blkcsrmv_2x8_vectorized_avx512(*alpha,
-                                                             m,
-                                                             masks,
-                                                             blk_csr_val,
-                                                             blk_col_ind,
-                                                             blk_row_ptr,
-                                                             x,
-                                                             *beta,
-                                                             y);
+            return aoclsparse_blkcsrmv_2x8_vectorized_avx512(
+                *alpha, m, masks, blk_csr_val, blk_col_ind, blk_row_ptr, x, *beta, y);
         if(nRowsblk == 4)
-            return aoclsparse_blkcsrmv_4x8_vectorized_avx512(*alpha,
-                                                             m,
-                                                             masks,
-                                                             blk_csr_val,
-                                                             blk_col_ind,
-                                                             blk_row_ptr,
-                                                             x,
-                                                             *beta,
-                                                             y);
+            return aoclsparse_blkcsrmv_4x8_vectorized_avx512(
+                *alpha, m, masks, blk_csr_val, blk_col_ind, blk_row_ptr, x, *beta, y);
         else
             return aoclsparse_status_invalid_size;
     }

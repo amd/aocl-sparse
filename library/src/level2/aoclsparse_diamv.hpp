@@ -29,15 +29,15 @@
 #include <algorithm>
 
 template <typename T>
-aoclsparse_status aoclsparse_diamv_template(const T                         alpha,
-                                            aoclsparse_int                  m,
-                                            aoclsparse_int                  n,
-                                            const T *                       dia_val,
-                                            const aoclsparse_int *          dia_offset,
-                                            aoclsparse_int                  dia_num_diag,
-                                            const T *                       x,
-                                            const T                         beta,
-                                            T *                             y)
+aoclsparse_status aoclsparse_diamv_template(const T               alpha,
+                                            aoclsparse_int        m,
+                                            aoclsparse_int        n,
+                                            const T              *dia_val,
+                                            const aoclsparse_int *dia_offset,
+                                            aoclsparse_int        dia_num_diag,
+                                            const T              *x,
+                                            const T               beta,
+                                            T                    *y)
 {
     for(aoclsparse_int i = 0; i < m; ++i)
     {

@@ -26,7 +26,6 @@
 #define AOCLSPARSE_CHECK_HPP
 
 #include <aoclsparse.h>
-
 #include <limits>
 
 #define MAX_TOL_MULTIPLIER 4

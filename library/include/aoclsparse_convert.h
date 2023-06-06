@@ -488,13 +488,13 @@ DLL_PUBLIC
 aoclsparse_status aoclsparse_csr2blkcsr(aoclsparse_int        m,
                                         aoclsparse_int        n,
                                         aoclsparse_int        nnz,
-                                        const aoclsparse_int  *csr_row_ptr,
-                                        const aoclsparse_int  *csr_col_ind,
-                                        const double          *csr_val,
-                                        aoclsparse_int        *blk_row_ptr,
-                                        aoclsparse_int        *blk_col_ind,
-                                        double                *blk_csr_val,
-                                        uint8_t               *masks,
+                                        const aoclsparse_int *csr_row_ptr,
+                                        const aoclsparse_int *csr_col_ind,
+                                        const double         *csr_val,
+                                        aoclsparse_int       *blk_row_ptr,
+                                        aoclsparse_int       *blk_col_ind,
+                                        double               *blk_csr_val,
+                                        uint8_t              *masks,
                                         aoclsparse_int        nRowsblk);
 
 DLL_PUBLIC
@@ -502,8 +502,7 @@ aoclsparse_int aoclsparse_opt_blksize(aoclsparse_int        m,
                                       aoclsparse_int        nnz,
                                       const aoclsparse_int *csr_row_ptr,
                                       const aoclsparse_int *csr_col_ind,
-                                      aoclsparse_int *total_blks);
-
+                                      aoclsparse_int       *total_blks);
 
 #ifdef __cplusplus
 }

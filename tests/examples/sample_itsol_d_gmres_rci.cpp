@@ -62,7 +62,7 @@ int main()
     std::vector<aoclsparse_int> csr_col_ind;
     std::vector<double>         csr_val;
 
-    int    m, n, nnz;
+    int               m, n, nnz;
     aoclsparse_status exit_status = aoclsparse_status_success;
 
     std::string filename = "cage4.mtx";
@@ -84,9 +84,14 @@ int main()
     aoclsparse_index_base base = aoclsparse_index_base_zero;
     aoclsparse_mat_descr  descr_a;
     aoclsparse_operation  trans = aoclsparse_operation_none;
-    aoclsparse_create_dcsr(
-        A, base, (aoclsparse_int)n, (aoclsparse_int)n, (aoclsparse_int)nnz, 
-        csr_row_ptr.data(), csr_col_ind.data(), csr_val.data());
+    aoclsparse_create_dcsr(A,
+                           base,
+                           (aoclsparse_int)n,
+                           (aoclsparse_int)n,
+                           (aoclsparse_int)nnz,
+                           csr_row_ptr.data(),
+                           csr_col_ind.data(),
+                           csr_val.data());
     aoclsparse_create_mat_descr(&descr_a);
     aoclsparse_set_mat_type(descr_a, aoclsparse_matrix_type_symmetric);
     aoclsparse_set_mat_fill_mode(descr_a, aoclsparse_fill_mode_lower);
@@ -95,13 +100,13 @@ int main()
     aoclsparse_optimize(A);
 
     // Initialize initial point x0 and right hand side b
-    double        *expected_sol = NULL;
-    double        *x            = NULL;
-    double        *b            = NULL;
-    double         alpha = 1.0, beta = 0.;
-    double         norm     = 0.0;
-    int rs_iters = 7;
-    char           rs_iters_string[16];
+    double *expected_sol = NULL;
+    double *x            = NULL;
+    double *b            = NULL;
+    double  alpha = 1.0, beta = 0.;
+    double  norm     = 0.0;
+    int     rs_iters = 7;
+    char    rs_iters_string[16];
 
     expected_sol = (double *)malloc(sizeof(double) * n);
     if(NULL == expected_sol)
@@ -160,13 +165,13 @@ int main()
     aoclsparse_itsol_d_rci_input(handle, n, b);
 
     // Call GMRES solver
-    aoclsparse_itsol_rci_job    ircomm = aoclsparse_rci_start;
-    aoclsparse_status           status;
-    double                     *io1 = nullptr;
-    double                     *io2 = nullptr;
-    double                      rinfo[100];
-    double                      tol               = PREMATURE_STOP_TOLERANCE;     
-    double *pcsr_val = nullptr;
+    aoclsparse_itsol_rci_job ircomm = aoclsparse_rci_start;
+    aoclsparse_status        status;
+    double                  *io1 = nullptr;
+    double                  *io2 = nullptr;
+    double                   rinfo[100];
+    double                   tol      = PREMATURE_STOP_TOLERANCE;
+    double                  *pcsr_val = nullptr;
 
     while(ircomm != aoclsparse_rci_stop)
     {

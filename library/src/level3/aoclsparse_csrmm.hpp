@@ -52,11 +52,11 @@ aoclsparse_status aoclsparse_csrmm_col_major(const double *alpha,
                                              const aoclsparse_int *__restrict__ csr_row_ptr,
                                              aoclsparse_int                  m,
                                              [[maybe_unused]] aoclsparse_int k,
-                                             const double *                  B,
+                                             const double                   *B,
                                              aoclsparse_int                  n,
                                              aoclsparse_int                  ldb,
-                                             const double *                  beta,
-                                             double *                        C,
+                                             const double                   *beta,
+                                             double                         *C,
                                              aoclsparse_int                  ldc)
 {
     // Number of sub-blocks of 4 columns in B matrix
@@ -670,11 +670,11 @@ aoclsparse_status aoclsparse_csrmm_col_major(const float *alpha,
                                              const aoclsparse_int *__restrict__ csr_row_ptr,
                                              aoclsparse_int                  m,
                                              [[maybe_unused]] aoclsparse_int k,
-                                             const float *                   B,
+                                             const float                    *B,
                                              aoclsparse_int                  n,
                                              aoclsparse_int                  ldb,
-                                             const float *                   beta,
-                                             float *                         C,
+                                             const float                    *beta,
+                                             float                          *C,
                                              aoclsparse_int                  ldc)
 {
     // Number of sub-blocks of 4 columns in B matrix
@@ -1152,11 +1152,11 @@ aoclsparse_status aoclsparse_csrmm_row_major(const double *alpha,
                                              const aoclsparse_int *__restrict__ csr_row_ptr,
                                              aoclsparse_int                  m,
                                              [[maybe_unused]] aoclsparse_int k,
-                                             const double *                  B,
+                                             const double                   *B,
                                              aoclsparse_int                  n,
                                              aoclsparse_int                  ldb,
-                                             const double *                  beta,
-                                             double *                        C,
+                                             const double                   *beta,
+                                             double                         *C,
                                              aoclsparse_int                  ldc)
 {
     for(aoclsparse_int i = 0; i < m; ++i)
@@ -1196,11 +1196,11 @@ aoclsparse_status aoclsparse_csrmm_row_major(const float *alpha,
                                              const aoclsparse_int *__restrict__ csr_row_ptr,
                                              aoclsparse_int                  m,
                                              [[maybe_unused]] aoclsparse_int k,
-                                             const float *                   B,
+                                             const float                    *B,
                                              aoclsparse_int                  n,
                                              aoclsparse_int                  ldb,
-                                             const float *                   beta,
-                                             float *                         C,
+                                             const float                    *beta,
+                                             float                          *C,
                                              aoclsparse_int                  ldc)
 {
     // Number of sub-blocks of 4 columns in B matrix

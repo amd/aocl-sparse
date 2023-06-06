@@ -129,10 +129,10 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
                 A->m, A->nnz, A->csr_mat.csr_row_ptr, A->csr_mat.csr_col_ptr, &total_blks);
             if(nRowsblk != 0)
             {
-                const aoclsparse_int blk_width = 8;
-                struct _aoclsparse_csr *mat_csr = nullptr;
-                mat_csr = &(A->csr_mat);
-                
+                const aoclsparse_int    blk_width = 8;
+                struct _aoclsparse_csr *mat_csr   = nullptr;
+                mat_csr                           = &(A->csr_mat);
+
                 mat_csr->blk_row_ptr = (aoclsparse_int *)malloc((m + 1) * sizeof(aoclsparse_int));
                 if(mat_csr->blk_row_ptr == NULL)
                     return aoclsparse_status_internal_error;
@@ -156,9 +156,9 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
                                       (double *)mat_csr->blk_val,
                                       mat_csr->masks,
                                       nRowsblk);
-                A->csr_mat.nRowsblk    = nRowsblk;
-                A->blk_optimized       = true;
-                A->mat_type            = aoclsparse_csr_mat;
+                A->csr_mat.nRowsblk = nRowsblk;
+                A->blk_optimized    = true;
+                A->mat_type         = aoclsparse_csr_mat;
             }
         }
     }
@@ -186,8 +186,8 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
     }
     if(A->mat_type == aoclsparse_ellt_csr_hyb_mat)
     {
-        aoclsparse_int  ell_width;
-        aoclsparse_int  ell_m;
+        aoclsparse_int                  ell_width;
+        aoclsparse_int                  ell_m;
         struct _aoclsparse_ell_csr_hyb *ell_csr_hyb_mat = &(A->ell_csr_hyb_mat);
         // get the ell_width
         aoclsparse_csr2ellthyb_width(A->m, A->nnz, A->csr_mat.csr_row_ptr, &ell_m, &ell_width);
@@ -196,7 +196,8 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
             A->mat_type = aoclsparse_csr_mat;
             return aoclsparse_status_success;
         }
-        ell_csr_hyb_mat->ell_col_ind = (aoclsparse_int *)malloc(sizeof(aoclsparse_int) * ell_width * A->m);
+        ell_csr_hyb_mat->ell_col_ind
+            = (aoclsparse_int *)malloc(sizeof(aoclsparse_int) * ell_width * A->m);
         if(NULL == ell_csr_hyb_mat->ell_col_ind)
         {
             return aoclsparse_status_internal_error;
@@ -217,7 +218,8 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
                 return aoclsparse_status_internal_error;
             }
         }
-        ell_csr_hyb_mat->csr_row_id_map = (aoclsparse_int *)malloc(sizeof(aoclsparse_int) * (A->m - ell_m));
+        ell_csr_hyb_mat->csr_row_id_map
+            = (aoclsparse_int *)malloc(sizeof(aoclsparse_int) * (A->m - ell_m));
         if(NULL == ell_csr_hyb_mat->csr_row_id_map)
         {
             return aoclsparse_status_internal_error;
@@ -250,15 +252,15 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
                                     ell_width);
         }
         // set appropriate members of "A"
-        ell_csr_hyb_mat->ell_width      = ell_width;
-        ell_csr_hyb_mat->ell_m          = ell_m;
-        ell_csr_hyb_mat->csr_col_ptr    = A->csr_mat.csr_col_ptr;
-        ell_csr_hyb_mat->csr_val        = A->csr_mat.csr_val;
+        ell_csr_hyb_mat->ell_width   = ell_width;
+        ell_csr_hyb_mat->ell_m       = ell_m;
+        ell_csr_hyb_mat->csr_col_ptr = A->csr_mat.csr_col_ptr;
+        ell_csr_hyb_mat->csr_val     = A->csr_mat.csr_val;
     }
     else if(A->mat_type == aoclsparse_csr_mat_br4)
     { // vectorized csr blocked format for AVX2
-        aoclsparse_int *row_ptr;
-        aoclsparse_int  row_nnz;
+        aoclsparse_int         *row_ptr;
+        aoclsparse_int          row_nnz;
         struct _aoclsparse_csr *csr_mat_br4 = &(A->csr_mat_br4);
         // populate row_nnz
         aoclsparse_int i;
@@ -287,7 +289,7 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
                           (A->csr_mat.csr_row_ptr[i + 4] - A->csr_mat.csr_row_ptr[i + 3]));
             row_nnz    = std::max(m1, m2);
             row_ptr[i] = row_ptr[i + 1] = row_ptr[i + 2] = row_ptr[i + 3] = row_nnz;
-            csr_mat_br4->csr_row_ptr[i + 1]                                               = csr_mat_br4->csr_row_ptr[i] + row_nnz;
+            csr_mat_br4->csr_row_ptr[i + 1] = csr_mat_br4->csr_row_ptr[i] + row_nnz;
             csr_mat_br4->csr_row_ptr[i + 2] = csr_mat_br4->csr_row_ptr[i + 1] + row_nnz;
             csr_mat_br4->csr_row_ptr[i + 3] = csr_mat_br4->csr_row_ptr[i + 2] + row_nnz;
             csr_mat_br4->csr_row_ptr[i + 4] = csr_mat_br4->csr_row_ptr[i + 3] + row_nnz;
@@ -297,7 +299,7 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
         {
             row_nnz = A->csr_mat.csr_row_ptr[j + 1] - A->csr_mat.csr_row_ptr[j];
             tnnz += row_nnz;
-            row_ptr[j]      = row_nnz;
+            row_ptr[j]                      = row_nnz;
             csr_mat_br4->csr_row_ptr[j + 1] = csr_mat_br4->csr_row_ptr[j] + row_nnz;
         }
         // create the new csr matrix and convert to the csr-avx2 format
@@ -328,14 +330,14 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
             for(j = 0; j < nz; ++j)
             {
                 ((double *)csr_mat_br4->csr_val)[tc] = ((double *)A->csr_mat.csr_val)[ridx + j];
-                csr_mat_br4->csr_col_ptr[tc]             = A->csr_mat.csr_col_ptr[ridx + j];
+                csr_mat_br4->csr_col_ptr[tc]         = A->csr_mat.csr_col_ptr[ridx + j];
                 tc++;
             }
             if(nz < row_ptr[i])
             { // ToDo -- can remove the if condition
                 for(j = nz; j < row_ptr[i]; ++j)
                 {
-                    csr_mat_br4->csr_col_ptr[tc]             = A->csr_mat.csr_col_ptr[ridx + nz - 1];
+                    csr_mat_br4->csr_col_ptr[tc]         = A->csr_mat.csr_col_ptr[ridx + nz - 1];
                     ((double *)csr_mat_br4->csr_val)[tc] = static_cast<double>(0);
                     tc++;
                 }
@@ -382,7 +384,7 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
         }
         // set appropriate members of "A"
         //        A->csr_mat_br4.csr_row_ptr = row_ptr;
-        free(row_ptr);        
+        free(row_ptr);
     }
     A->optimized = true;
     return aoclsparse_status_success;
@@ -393,13 +395,13 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
 */
 aoclsparse_status aoclsparse_optimize_ilu0(aoclsparse_matrix A)
 {
-    aoclsparse_status ret            = aoclsparse_status_success;
-    _aoclsparse_ilu   *ilu_info      = nullptr;
-    aoclsparse_int    nrows          = A->m;
+    aoclsparse_status ret      = aoclsparse_status_success;
+    _aoclsparse_ilu  *ilu_info = nullptr;
+    aoclsparse_int    nrows    = A->m;
 
-    ilu_info    = &(A->ilu_info);
+    ilu_info = &(A->ilu_info);
 
-    ilu_info->lu_diag_ptr  = (aoclsparse_int *)malloc(sizeof(aoclsparse_int) * nrows);
+    ilu_info->lu_diag_ptr = (aoclsparse_int *)malloc(sizeof(aoclsparse_int) * nrows);
     if(ilu_info->lu_diag_ptr == nullptr)
     {
         ret = aoclsparse_status_memory_error;

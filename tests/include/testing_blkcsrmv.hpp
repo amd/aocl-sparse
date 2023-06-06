@@ -64,7 +64,8 @@ void testing_blkcsrmv(const Arguments &arg)
     case 4:
         break;
     default:
-        std::cout << "Block size "<< nRowsblk <<" is currently not supported, setting it to the default size 4.\n";
+        std::cout << "Block size " << nRowsblk
+                  << " is currently not supported, setting it to the default size 4.\n";
         nRowsblk = 4;
     }
 
@@ -111,16 +112,16 @@ void testing_blkcsrmv(const Arguments &arg)
     blk_col_ind.reserve(csr_col_ind.size());
     //Reserving extra memory to handle out of bound reads in the value array
     //Useful only when (M % nRowsblk != 0)
-    blk_csr_val.reserve(csr_val.size() + (nRowsblk * blk_width)); 
+    blk_csr_val.reserve(csr_val.size() + (nRowsblk * blk_width));
 
     //Assuming worst case of 1 nnz/block.
     //Analysis framework will reserve (total_num_blocks * nRowsblk).
     masks.reserve(nnz * nRowsblk);
 
-    //Function to convert csr to blkcsr 
+    //Function to convert csr to blkcsr
     aoclsparse_csr2blkcsr(M,
-		          N,
-		          nnz,
+                          N,
+                          nnz,
                           csr_row_ptr.data(),
                           csr_col_ind.data(),
                           csr_val.data(),

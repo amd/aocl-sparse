@@ -263,28 +263,36 @@ aoclsparse_status aoclsparse_csr_check_sort_diag(
 
     for(i = 0; i < m; i++)
     {
-        lower = true; // assume the data starts with the lower triangular part
+        lower  = true; // assume the data starts with the lower triangular part
         found  = false;
         idxend = csr_mat->csr_row_ptr[i + 1];
         for(idx = csr_mat->csr_row_ptr[i]; idx < idxend; idx++)
         {
-            if (csr_mat->csr_col_ptr[idx] == i) {
-              if (found){
-                // duplicate diagonal
-                return aoclsparse_status_invalid_value;
-              }
-              found = true;
-              sorted = lower;
-              lower = false;
-            } else {
-                if (lower) {
+            if(csr_mat->csr_col_ptr[idx] == i)
+            {
+                if(found)
+                {
+                    // duplicate diagonal
+                    return aoclsparse_status_invalid_value;
+                }
+                found  = true;
+                sorted = lower;
+                lower  = false;
+            }
+            else
+            {
+                if(lower)
+                {
                     lower = csr_mat->csr_col_ptr[idx] < i;
-                } else {
+                }
+                else
+                {
                     sorted &= csr_mat->csr_col_ptr[idx] > i;
                 }
             }
-            if(!sorted) {
-               // early termination
+            if(!sorted)
+            {
+                // early termination
                 fulldiag = false;
                 return aoclsparse_status_success;
             }
@@ -294,7 +302,8 @@ aoclsparse_status aoclsparse_csr_check_sort_diag(
         {
             fulldiag = false;
         }
-        if(!sorted) {
+        if(!sorted)
+        {
             // early termination
             fulldiag = false;
             return aoclsparse_status_success;

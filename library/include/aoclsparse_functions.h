@@ -348,20 +348,20 @@ aoclsparse_status aoclsparse_dellthybmv(aoclsparse_operation       trans,
                                         double                    *y);
 
 DLL_PUBLIC
-        aoclsparse_status aoclsparse_dblkcsrmv(aoclsparse_operation       trans,
-                        const double*              alpha,
-                        aoclsparse_int             m,
-                        aoclsparse_int             n,
-                        aoclsparse_int             nnz,
-                        const uint8_t*             masks,
-                        const double*              csr_val,
-                        const aoclsparse_int*      csr_col_ind,
-                        const aoclsparse_int*      csr_row_ptr,
-                        const aoclsparse_mat_descr descr,
-                        const double*             x,
-                        const double*             beta,
-                        double*                   y,
-                        aoclsparse_int            nRowsblk);
+aoclsparse_status aoclsparse_dblkcsrmv(aoclsparse_operation       trans,
+                                       const double              *alpha,
+                                       aoclsparse_int             m,
+                                       aoclsparse_int             n,
+                                       aoclsparse_int             nnz,
+                                       const uint8_t             *masks,
+                                       const double              *csr_val,
+                                       const aoclsparse_int      *csr_col_ind,
+                                       const aoclsparse_int      *csr_row_ptr,
+                                       const aoclsparse_mat_descr descr,
+                                       const double              *x,
+                                       const double              *beta,
+                                       double                    *y,
+                                       aoclsparse_int             nRowsblk);
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
@@ -838,22 +838,22 @@ aoclsparse_status aoclsparse_dtrsv(aoclsparse_operation       trans,
                                    const double              *b,
                                    double                    *x);
 DLL_PUBLIC
-aoclsparse_status aoclsparse_strsv_kid(aoclsparse_operation   trans,
-                                   const float                alpha,
-                                   aoclsparse_matrix          A,
-                                   const aoclsparse_mat_descr descr,
-                                   const float               *b,
-                                   float                     *x,
-                                   const aoclsparse_int       kid);
+aoclsparse_status aoclsparse_strsv_kid(aoclsparse_operation       trans,
+                                       const float                alpha,
+                                       aoclsparse_matrix          A,
+                                       const aoclsparse_mat_descr descr,
+                                       const float               *b,
+                                       float                     *x,
+                                       const aoclsparse_int       kid);
 
 DLL_PUBLIC
-aoclsparse_status aoclsparse_dtrsv_kid(aoclsparse_operation   trans,
-                                   const double               alpha,
-                                   aoclsparse_matrix          A,
-                                   const aoclsparse_mat_descr descr,
-                                   const double              *b,
-                                   double                    *x,
-                                   const aoclsparse_int       kid);
+aoclsparse_status aoclsparse_dtrsv_kid(aoclsparse_operation       trans,
+                                       const double               alpha,
+                                       aoclsparse_matrix          A,
+                                       const aoclsparse_mat_descr descr,
+                                       const double              *b,
+                                       double                    *x,
+                                       const aoclsparse_int       kid);
 /**@}*/
 
 /*! \ingroup level3_module

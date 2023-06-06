@@ -54,9 +54,9 @@ aoclsparse_status aoclsparse_csrmm_template(aoclsparse_operation       trans,
     }
 
     if(!((csr->val_type == aoclsparse_dmat && std::is_same_v<T, double>)
-		|| (csr->val_type == aoclsparse_smat && std::is_same_v<T, float>)))
+         || (csr->val_type == aoclsparse_smat && std::is_same_v<T, float>)))
     {
-	return aoclsparse_status_wrong_type;
+        return aoclsparse_status_wrong_type;
     }
     aoclsparse_int        m           = csr->m;
     aoclsparse_int        k           = csr->n;

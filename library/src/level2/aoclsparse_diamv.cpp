@@ -30,17 +30,17 @@
  * ===========================================================================
  */
 extern "C" aoclsparse_status aoclsparse_sdiamv(aoclsparse_operation            trans,
-                                               const float *                   alpha,
+                                               const float                    *alpha,
                                                aoclsparse_int                  m,
                                                aoclsparse_int                  n,
                                                [[maybe_unused]] aoclsparse_int nnz,
-                                               const float *                   dia_val,
-                                               const aoclsparse_int *          dia_offset,
+                                               const float                    *dia_val,
+                                               const aoclsparse_int           *dia_offset,
                                                aoclsparse_int                  dia_num_diag,
                                                const aoclsparse_mat_descr      descr,
-                                               const float *                   x,
-                                               const float *                   beta,
-                                               float *                         y)
+                                               const float                    *x,
+                                               const float                    *beta,
+                                               float                          *y)
 {
     if(descr == nullptr)
     {
@@ -112,17 +112,17 @@ extern "C" aoclsparse_status aoclsparse_sdiamv(aoclsparse_operation            t
 }
 
 extern "C" aoclsparse_status aoclsparse_ddiamv(aoclsparse_operation            trans,
-                                               const double *                  alpha,
+                                               const double                   *alpha,
                                                aoclsparse_int                  m,
                                                aoclsparse_int                  n,
                                                [[maybe_unused]] aoclsparse_int nnz,
-                                               const double *                  dia_val,
-                                               const aoclsparse_int *          dia_offset,
+                                               const double                   *dia_val,
+                                               const aoclsparse_int           *dia_offset,
                                                aoclsparse_int                  dia_num_diag,
                                                const aoclsparse_mat_descr      descr,
-                                               const double *                  x,
-                                               const double *                  beta,
-                                               double *                        y)
+                                               const double                   *x,
+                                               const double                   *beta,
+                                               double                         *y)
 {
     if(descr == nullptr)
     {

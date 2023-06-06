@@ -175,13 +175,13 @@ aoclsparse_status aoclsparse_csr2ellt_template(aoclsparse_int        m,
 template <typename T>
 aoclsparse_status aoclsparse_csr2ellthybrid_template(
     aoclsparse_int        m,
-    aoclsparse_int *      ell_m,
+    aoclsparse_int       *ell_m,
     const aoclsparse_int *csr_row_ptr,
     const aoclsparse_int *csr_col_ind,
-    const T *             csr_val,
+    const T              *csr_val,
     aoclsparse_int *csr_row_idx_map, // mapping of rows that need to be accessed in the csr format
     aoclsparse_int *ell_col_ind,
-    T *             ell_val,
+    T              *ell_val,
     aoclsparse_int  ell_width)
 {
     // Check sizes
@@ -215,15 +215,15 @@ aoclsparse_status aoclsparse_csr2ellthybrid_template(
     else if(ell_col_ind == nullptr)
     {
         return aoclsparse_status_invalid_pointer;
-    } 
+    }
     else if(csr_row_idx_map == nullptr)
     {
         return aoclsparse_status_invalid_pointer;
-    } 
+    }
     else if(ell_m == nullptr)
     {
         return aoclsparse_status_invalid_pointer;
-    } 
+    }
 
     // Find the number of rows that will be in the ell format
     aoclsparse_int m_ell = 0;

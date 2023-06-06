@@ -34,10 +34,8 @@
 #include <iostream>
 
 template <typename T>
-aoclsparse_status aoclsparse_ilu_template(aoclsparse_matrix          A,
-                                          T                        **precond_csr_val,
-                                          T                         *x,
-                                          const T                   *b)
+aoclsparse_status
+    aoclsparse_ilu_template(aoclsparse_matrix A, T **precond_csr_val, T *x, const T *b)
 {
     aoclsparse_status ret = aoclsparse_status_success;
 

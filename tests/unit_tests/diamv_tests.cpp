@@ -184,8 +184,8 @@ namespace
         T                    alpha        = 1.0;
         T                    beta         = 0.0;
         // Initialise vectors
-        T x[] = {1.0, 2.0, 3.0, 4.0, 5.0};
-        T y[] = {1.0, 2.0, 3.0, 4.0, 5.0};
+        T x[]     = {1.0, 2.0, 3.0, 4.0, 5.0};
+        T y[]     = {1.0, 2.0, 3.0, 4.0, 5.0};
         T exp_y[] = {1.0, 2.0, 3.0, 4.0, 5.0};
 
         aoclsparse_mat_descr descr;

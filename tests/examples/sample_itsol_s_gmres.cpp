@@ -63,8 +63,8 @@ aoclsparse_int monit(aoclsparse_int n,
                      float         *rinfo,
                      void          *udata __attribute__((unused)))
 {
-    int                     it  = (int)rinfo[30];
-    float                   tol = PREMATURE_STOP_TOLERANCE;
+    int   it  = (int)rinfo[30];
+    float tol = PREMATURE_STOP_TOLERANCE;
 
     std::ios oldState(nullptr);
     oldState.copyfmt(std::cout);

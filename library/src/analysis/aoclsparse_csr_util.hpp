@@ -220,7 +220,8 @@ aoclsparse_status aoclsparse_csr_fill_diag(aoclsparse_int m,
     icol  = (aoclsparse_int *)malloc(nnz_new * sizeof(aoclsparse_int));
     icrow = (aoclsparse_int *)malloc((m + 1) * sizeof(aoclsparse_int));
     aval  = (T *)malloc(nnz_new * sizeof(T));
-    if(!icol || !aval || !icrow) {
+    if(!icol || !aval || !icrow)
+    {
         free(icol);
         free(icrow);
         free(aval);

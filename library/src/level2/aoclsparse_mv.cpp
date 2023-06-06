@@ -30,9 +30,9 @@ aoclsparse_status aoclsparse_dcsr_mat_br4([[maybe_unused]] aoclsparse_operation 
                                           const double                                alpha,
                                           aoclsparse_matrix                           A,
                                           [[maybe_unused]] const aoclsparse_mat_descr descr,
-                                          const double *                              x,
+                                          const double                               *x,
                                           const double                                beta,
-                                          double *                                    y)
+                                          double                                     *y)
 {
     // Read the environment variables to update global variable
     // This function updates the num_threads only once.
@@ -56,7 +56,7 @@ aoclsparse_status aoclsparse_dcsr_mat_br4([[maybe_unused]] aoclsparse_operation 
     [[maybe_unused]] aoclsparse_int chunk_size = (A->m) / (blk * context.num_threads);
 
 #ifdef _OPENMP
-chunk_size = chunk_size?chunk_size:1;
+    chunk_size = chunk_size ? chunk_size : 1;
 #pragma omp parallel for num_threads(context.num_threads) \
     schedule(dynamic, chunk_size) private(res, vvals, vx, vy, vptr, cptr)
 #endif
@@ -139,9 +139,9 @@ aoclsparse_status aoclsparse_dcsr_mat_br4([[maybe_unused]] aoclsparse_operation 
                                           [[maybe_unused]] const float                alpha,
                                           [[maybe_unused]] aoclsparse_matrix          A,
                                           [[maybe_unused]] const aoclsparse_mat_descr descr,
-                                          [[maybe_unused]] const float *              x,
+                                          [[maybe_unused]] const float               *x,
                                           [[maybe_unused]] const float                beta,
-                                          [[maybe_unused]] float *                    y)
+                                          [[maybe_unused]] float                     *y)
 {
     return aoclsparse_status_not_implemented;
 }
