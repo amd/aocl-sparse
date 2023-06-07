@@ -223,8 +223,9 @@ aoclsparse_status aoclsparse_csrmv_vectorized_avx2(const double   alpha,
 {
     __m256d vec_vals, vec_x, vec_y;
 #ifdef _OPENMP
+    aoclsparse_int chunk = (m / context->num_threads) ? (m / context->num_threads) : 1;
 #pragma omp parallel for num_threads(context->num_threads) \
-    schedule(dynamic, m / context->num_threads) private(vec_vals, vec_x, vec_y)
+    schedule(dynamic, chunk) private(vec_vals, vec_x, vec_y)
 #endif
     for(aoclsparse_int i = 0; i < m; i++)
     {
@@ -556,8 +557,9 @@ aoclsparse_status aoclsparse_csrmv_vectorized_avx2ptr(const double              
 
     __m256d vec_vals, vec_x, vec_y;
 #ifdef _OPENMP
+    aoclsparse_int chunk = (m / context->num_threads) ? (m / context->num_threads) : 1;
 #pragma omp parallel for num_threads(context->num_threads) \
-    schedule(dynamic, m / context->num_threads) private(vec_vals, vec_x, vec_y)
+    schedule(dynamic, chunk) private(vec_vals, vec_x, vec_y)
 #endif
     for(aoclsparse_int i = 0; i < m; i++)
     {

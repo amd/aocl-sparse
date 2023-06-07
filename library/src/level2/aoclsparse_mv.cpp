@@ -56,6 +56,7 @@ aoclsparse_status aoclsparse_dcsr_mat_br4([[maybe_unused]] aoclsparse_operation 
     [[maybe_unused]] aoclsparse_int chunk_size = (A->m) / (blk * context.num_threads);
 
 #ifdef _OPENMP
+chunk_size = chunk_size?chunk_size:1;
 #pragma omp parallel for num_threads(context.num_threads) \
     schedule(dynamic, chunk_size) private(res, vvals, vx, vy, vptr, cptr)
 #endif
