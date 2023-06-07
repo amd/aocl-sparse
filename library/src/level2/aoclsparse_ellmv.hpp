@@ -29,15 +29,15 @@
 
 #include <immintrin.h>
 
-aoclsparse_status aoclsparse_ellmv_template(const float                     alpha,
-                                            aoclsparse_int                  m,
-                                            const float *                   ell_val,
-                                            const aoclsparse_int *          ell_col_ind,
-                                            aoclsparse_int                  ell_width,
-                                            const float *                   x,
-                                            const float                     beta,
-                                            float *                         y,
-                                            [[maybe_unused]] aoclsparse_context *            context)
+aoclsparse_status aoclsparse_ellmv_template(const float                          alpha,
+                                            aoclsparse_int                       m,
+                                            const float                         *ell_val,
+                                            const aoclsparse_int                *ell_col_ind,
+                                            aoclsparse_int                       ell_width,
+                                            const float                         *x,
+                                            const float                          beta,
+                                            float                               *y,
+                                            [[maybe_unused]] aoclsparse_context *context)
 
 {
     //TODO: Optimisation for float to be done
@@ -84,13 +84,13 @@ aoclsparse_status aoclsparse_ellmv_template_avx512(const double                 
                                                    aoclsparse_int                  m,
                                                    [[maybe_unused]] aoclsparse_int n,
                                                    [[maybe_unused]] aoclsparse_int nnz,
-                                                   const double *                  ell_val,
-                                                   const aoclsparse_int *          ell_col_ind,
+                                                   const double                   *ell_val,
+                                                   const aoclsparse_int           *ell_col_ind,
                                                    aoclsparse_int                  ell_width,
-                                                   const double *                  x,
+                                                   const double                   *x,
                                                    const double                    beta,
-                                                   double *                        y,
-                                                   aoclsparse_context *            context)
+                                                   double                         *y,
+                                                   aoclsparse_context             *context)
 {
 
     __m256d vec_y;
@@ -202,17 +202,17 @@ aoclsparse_status aoclsparse_ellmv_template_avx512(const double                 
 }
 #endif
 
-aoclsparse_status aoclsparse_ellmv_template_avx2(const double                    alpha,
-                                                 aoclsparse_int                  m,
-                                                 [[maybe_unused]] aoclsparse_int n,
-                                                 [[maybe_unused]] aoclsparse_int nnz,
-                                                 const double *                  ell_val,
-                                                 const aoclsparse_int *          ell_col_ind,
-                                                 aoclsparse_int                  ell_width,
-                                                 const double *                  x,
-                                                 const double                    beta,
-                                                 double *                        y,
-                                                 [[maybe_unused]] aoclsparse_context *            context)
+aoclsparse_status aoclsparse_ellmv_template_avx2(const double                         alpha,
+                                                 aoclsparse_int                       m,
+                                                 [[maybe_unused]] aoclsparse_int      n,
+                                                 [[maybe_unused]] aoclsparse_int      nnz,
+                                                 const double                        *ell_val,
+                                                 const aoclsparse_int                *ell_col_ind,
+                                                 aoclsparse_int                       ell_width,
+                                                 const double                        *x,
+                                                 const double                         beta,
+                                                 double                              *y,
+                                                 [[maybe_unused]] aoclsparse_context *context)
 {
 
     __m256d vec_vals, vec_x, vec_y;
@@ -321,24 +321,24 @@ aoclsparse_status aoclsparse_ellmv_template_avx2(const double                   
 }
 
 // ToDo: just an outline for now
-aoclsparse_status aoclsparse_elltmv_template(const float                     alpha,
-                                             aoclsparse_int                  m,
-                                             [[maybe_unused]] aoclsparse_int n,
-                                             [[maybe_unused]] aoclsparse_int nnz,
-                                             const float *                   ell_val,
-                                             const aoclsparse_int *          ell_col_ind,
-                                             aoclsparse_int                  ell_width,
-                                             const float *                   x,
-                                             const float                     beta,
-                                             float *                         y,
-                                             [[maybe_unused]] aoclsparse_context *            context)
+aoclsparse_status aoclsparse_elltmv_template(const float                          alpha,
+                                             aoclsparse_int                       m,
+                                             [[maybe_unused]] aoclsparse_int      n,
+                                             [[maybe_unused]] aoclsparse_int      nnz,
+                                             const float                         *ell_val,
+                                             const aoclsparse_int                *ell_col_ind,
+                                             aoclsparse_int                       ell_width,
+                                             const float                         *x,
+                                             const float                          beta,
+                                             float                               *y,
+                                             [[maybe_unused]] aoclsparse_context *context)
 {
     aoclsparse_int k = ell_width;
     double         rd;
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(context->num_threads) \
-    schedule(dynamic, m / context->num_threads) private(rd)
+    aoclsparse_int chunk = (m / context->num_threads) ? (m / context->num_threads) : 1;
+#pragma omp parallel for num_threads(context->num_threads) schedule(dynamic, chunk) private(rd)
 #endif
     for(aoclsparse_int j = 0; j < m; j++)
     {
@@ -368,13 +368,13 @@ aoclsparse_status aoclsparse_elltmv_template_avx512(const double                
                                                     aoclsparse_int                  m,
                                                     [[maybe_unused]] aoclsparse_int n,
                                                     [[maybe_unused]] aoclsparse_int nnz,
-                                                    const double *                  ell_val,
-                                                    const aoclsparse_int *          ell_col_ind,
+                                                    const double                   *ell_val,
+                                                    const aoclsparse_int           *ell_col_ind,
                                                     aoclsparse_int                  ell_width,
-                                                    const double *                  x,
+                                                    const double                   *x,
                                                     const double                    beta,
-                                                    double *                        y,
-                                                    [[maybe_unused]] aoclsparse_context *            context)
+                                                    double                         *y,
+                                                    [[maybe_unused]] aoclsparse_context *context)
 {
 
     __m512d res, vvals, vx, vy, va, vb, vvals1, vx1, vy1;
@@ -442,17 +442,17 @@ aoclsparse_status aoclsparse_elltmv_template_avx512(const double                
 }
 #endif
 
-aoclsparse_status aoclsparse_elltmv_template_avx2(const double                    alpha,
-                                                  aoclsparse_int                  m,
-                                                  [[maybe_unused]] aoclsparse_int n,
-                                                  [[maybe_unused]] aoclsparse_int nnz,
-                                                  const double *                  ell_val,
-                                                  const aoclsparse_int *          ell_col_ind,
-                                                  aoclsparse_int                  ell_width,
-                                                  const double *                  x,
-                                                  const double                    beta,
-                                                  double *                        y,
-                                                  [[maybe_unused]] aoclsparse_context *            context)
+aoclsparse_status aoclsparse_elltmv_template_avx2(const double                         alpha,
+                                                  aoclsparse_int                       m,
+                                                  [[maybe_unused]] aoclsparse_int      n,
+                                                  [[maybe_unused]] aoclsparse_int      nnz,
+                                                  const double                        *ell_val,
+                                                  const aoclsparse_int                *ell_col_ind,
+                                                  aoclsparse_int                       ell_width,
+                                                  const double                        *x,
+                                                  const double                         beta,
+                                                  double                              *y,
+                                                  [[maybe_unused]] aoclsparse_context *context)
 {
     __m256d res, vvals, vx, vy, va, vb;
 
@@ -463,6 +463,7 @@ aoclsparse_status aoclsparse_elltmv_template_avx2(const double                  
     aoclsparse_int                  blk        = 4;
     [[maybe_unused]] aoclsparse_int chunk_size = m / (blk * context->num_threads);
 #ifdef _OPENMP
+    chunk_size = chunk_size ? chunk_size : 1;
 #pragma omp parallel for num_threads(context->num_threads) \
     schedule(dynamic, chunk_size) private(res, vvals, vx, vy)
 #endif
@@ -529,18 +530,18 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx512(const double             
                                                        aoclsparse_int                  m,
                                                        [[maybe_unused]] aoclsparse_int n,
                                                        [[maybe_unused]] aoclsparse_int nnz,
-                                                       const double *                  ell_val,
-                                                       const aoclsparse_int *          ell_col_ind,
+                                                       const double                   *ell_val,
+                                                       const aoclsparse_int           *ell_col_ind,
                                                        aoclsparse_int                  ell_width,
                                                        aoclsparse_int                  ell_m,
-                                                       const double *                  csr_val,
-                                                       const aoclsparse_int *          csr_row_ind,
-                                                       const aoclsparse_int *          csr_col_ind,
-                                                       aoclsparse_int *                row_idx_map,
-                                                       aoclsparse_int *    csr_row_idx_map,
-                                                       const double *      x,
-                                                       const double        beta,
-                                                       double *            y,
+                                                       const double                   *csr_val,
+                                                       const aoclsparse_int           *csr_row_ind,
+                                                       const aoclsparse_int           *csr_col_ind,
+                                                       aoclsparse_int                 *row_idx_map,
+                                                       aoclsparse_int *csr_row_idx_map,
+                                                       const double   *x,
+                                                       const double    beta,
+                                                       double         *y,
                                                        [[maybe_unused]] aoclsparse_context *context)
 {
 
@@ -725,25 +726,25 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx2(const double               
                                                      aoclsparse_int                   m,
                                                      [[maybe_unused]] aoclsparse_int  n,
                                                      [[maybe_unused]] aoclsparse_int  nnz,
-                                                     const double *                   ell_val,
-                                                     const aoclsparse_int *           ell_col_ind,
+                                                     const double                    *ell_val,
+                                                     const aoclsparse_int            *ell_col_ind,
                                                      aoclsparse_int                   ell_width,
                                                      aoclsparse_int                   ell_m,
-                                                     const double *                   csr_val,
-                                                     const aoclsparse_int *           csr_row_ind,
-                                                     const aoclsparse_int *           csr_col_ind,
+                                                     const double                    *csr_val,
+                                                     const aoclsparse_int            *csr_row_ind,
+                                                     const aoclsparse_int            *csr_col_ind,
                                                      [[maybe_unused]] aoclsparse_int *row_idx_map,
-                                                     aoclsparse_int *    csr_row_idx_map,
-                                                     const double *      x,
-                                                     const double        beta,
-                                                     double *            y,
+                                                     aoclsparse_int *csr_row_idx_map,
+                                                     const double   *x,
+                                                     const double    beta,
+                                                     double         *y,
                                                      [[maybe_unused]] aoclsparse_context *context)
 {
     __m256d res, vvals, vx, vy, va, vb;
-    va               = _mm256_set1_pd(alpha);
-    vb               = _mm256_set1_pd(beta);
+    va  = _mm256_set1_pd(alpha);
+    vb  = _mm256_set1_pd(beta);
     res = vvals = vx = vy = _mm256_setzero_pd();
-    aoclsparse_int k = ell_width;
+    aoclsparse_int k      = ell_width;
     if(ell_m == m)
     {
         return aoclsparse_elltmv_template_avx2(
@@ -769,6 +770,7 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx2(const double               
     int                             blk        = 4;
     [[maybe_unused]] aoclsparse_int chunk_size = m / (blk * context->num_threads);
 #ifdef _OPENMP
+    chunk_size = chunk_size ? chunk_size : 1;
 #pragma omp parallel for num_threads(context->num_threads) schedule(dynamic, chunk_size) \
     firstprivate(res, vvals, vx, vy)
 #endif
@@ -919,18 +921,18 @@ aoclsparse_status aoclsparse_ellthybmv_template([[maybe_unused]] const float    
                                                 [[maybe_unused]] aoclsparse_int        m,
                                                 [[maybe_unused]] aoclsparse_int        n,
                                                 [[maybe_unused]] aoclsparse_int        nnz,
-                                                [[maybe_unused]] const float *         ell_val,
+                                                [[maybe_unused]] const float          *ell_val,
                                                 [[maybe_unused]] const aoclsparse_int *ell_col_ind,
                                                 [[maybe_unused]] aoclsparse_int        ell_width,
                                                 [[maybe_unused]] aoclsparse_int        ell_m,
-                                                [[maybe_unused]] const float *         csr_val,
+                                                [[maybe_unused]] const float          *csr_val,
                                                 [[maybe_unused]] const aoclsparse_int *csr_row_ind,
                                                 [[maybe_unused]] const aoclsparse_int *csr_col_ind,
-                                                [[maybe_unused]] aoclsparse_int *      row_idx_map,
+                                                [[maybe_unused]] aoclsparse_int       *row_idx_map,
                                                 [[maybe_unused]] aoclsparse_int *csr_row_idx_map,
-                                                [[maybe_unused]] const float *   x,
+                                                [[maybe_unused]] const float    *x,
                                                 [[maybe_unused]] const float     beta,
-                                                [[maybe_unused]] float *         y,
+                                                [[maybe_unused]] float          *y,
                                                 [[maybe_unused]] aoclsparse_context *context)
 
 {

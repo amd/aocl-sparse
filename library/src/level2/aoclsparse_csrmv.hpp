@@ -93,8 +93,8 @@ aoclsparse_status aoclsparse_csrmv_general(const T        alpha,
 {
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(context->num_threads) \
-    schedule(dynamic, m / context->num_threads)
+    aoclsparse_int chunk = (m / context->num_threads) ? (m / context->num_threads) : 1;
+#pragma omp parallel for num_threads(context->num_threads) schedule(dynamic, chunk)
 #endif
     // Iterate over each row of the input matrix and
     // Perform matrix-vector product for each non-zero of the ith row

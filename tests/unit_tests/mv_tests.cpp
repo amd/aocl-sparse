@@ -216,6 +216,11 @@ namespace
         T exp_y_l[] = {1, 6, 12, 56, 16};
         T exp_y_u[] = {9, 6, 12, 28, 0};
 
+        for(int i = 0; i < M; i++)
+        {
+            y[i] = 0.0;
+        }
+
         aoclsparse_mat_descr descr;
         // aoclsparse_create_mat_descr set aoclsparse_matrix_type to aoclsparse_matrix_type_general
         // and aoclsparse_index_base to aoclsparse_index_base_zero.
@@ -234,7 +239,13 @@ namespace
         EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A, descr, x, &beta, y),
                   aoclsparse_status_success);
         EXPECT_DOUBLE_EQ_VEC(5, y, exp_y_l);
+        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
 
+        for(int i = 0; i < M; i++)
+        {
+            y[i] = 0.0;
+        }
+        aoclsparse_create_csr<T>(A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
         aoclsparse_set_mat_fill_mode(descr, aoclsparse_fill_mode_upper);
         EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A, descr, x, &beta, y),
                   aoclsparse_status_success);
