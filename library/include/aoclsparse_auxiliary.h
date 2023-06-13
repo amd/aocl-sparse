@@ -364,6 +364,81 @@ aoclsparse_status aoclsparse_destroy(aoclsparse_matrix &mat);
 DLL_PUBLIC
 aoclsparse_int aoclsparse_get_vec_extn_context(void);
 
+/*! \ingroup aux_module
+ *  \brief Creates a new \p aoclsparse_matrix based on CSC (Compressed Sparse Column) format.
+ *
+ *  \details
+ *  \p aoclsparse_create_<tt>(s/d/c/z)csc</tt> creates \p aoclsparse_matrix and initializes it with
+ *  input parameters passed. Array data must not be modified by the user while matrix is alive as the
+ *  pointers are copied, not the data. Matrix should be destroyed at the end using aoclsparse_destroy().
+ *
+ *  @param[inout]
+ *  mat         the pointer to the CSC sparse matrix allocated in the API.
+ *  @param[in]
+ *  base        \ref aoclsparse_index_base_zero or \ref aoclsparse_index_base_one.
+ *  @param[in]
+ *  M           number of rows of the sparse CSC matrix.
+ *  @param[in]
+ *  N           number of columns of the sparse CSC matrix.
+ *  @param[in]
+ *  nnz         number of non-zero entries of the sparse CSC matrix.
+ *  @param[in]
+ *  col_ptr     array of \p n+1 elements that points to the start of every column
+ *              in row_idx array of the sparse CSC matrix.
+ *  @param[in]
+ *  row_idx     array of \p nnz elements containing the row indices of the sparse
+ *              CSC matrix.
+ *  @param[in]
+ *  val         array of \p nnz elements of the sparse CSC matrix.
+ *
+ *  \retval aoclsparse_status_success              the operation completed successfully.
+ *  \retval aoclsparse_status_invalid_pointer      \p col_ptr, \p row_idx or \p val pointer is NULL.
+ *  \retval aoclsparse_status_invalid_size         \p M, \p N or \p nnz are negative values.
+ *  \retval aoclsparse_status_invalid_index_value  any \p row_idx value is not within M.
+ *  \retval aoclsparse_status_memory_error         memory allocation for matrix failed.
+ */
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_create_scsc(aoclsparse_matrix    &mat,
+                                         aoclsparse_index_base base,
+                                         aoclsparse_int        M,
+                                         aoclsparse_int        N,
+                                         aoclsparse_int        nnz,
+                                         aoclsparse_int       *col_ptr,
+                                         aoclsparse_int       *row_idx,
+                                         float                *val);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_create_dcsc(aoclsparse_matrix    &mat,
+                                         aoclsparse_index_base base,
+                                         aoclsparse_int        M,
+                                         aoclsparse_int        N,
+                                         aoclsparse_int        nnz,
+                                         aoclsparse_int       *col_ptr,
+                                         aoclsparse_int       *row_idx,
+                                         double               *val);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_create_ccsc(aoclsparse_matrix        &mat,
+                                         aoclsparse_index_base     base,
+                                         aoclsparse_int            M,
+                                         aoclsparse_int            N,
+                                         aoclsparse_int            nnz,
+                                         aoclsparse_int           *col_ptr,
+                                         aoclsparse_int           *row_idx,
+                                         aoclsparse_float_complex *val);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_create_zcsc(aoclsparse_matrix         &mat,
+                                         aoclsparse_index_base      base,
+                                         aoclsparse_int             M,
+                                         aoclsparse_int             N,
+                                         aoclsparse_int             nnz,
+                                         aoclsparse_int            *col_ptr,
+                                         aoclsparse_int            *row_idx,
+                                         aoclsparse_double_complex *val);
+/**@}*/
+
 #ifdef __cplusplus
 }
 #endif

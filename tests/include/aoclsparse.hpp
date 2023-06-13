@@ -292,4 +292,13 @@ aoclsparse_status aoclsparse_create_csr(aoclsparse_matrix    &mat,
                                         aoclsparse_int       *csr_col_ptr,
                                         T                    *csr_val);
 
+template <typename T>
+aoclsparse_status aoclsparse_createcsc(aoclsparse_matrix    &mat,
+                                       aoclsparse_index_base base,
+                                       aoclsparse_int        M,
+                                       aoclsparse_int        N,
+                                       aoclsparse_int        nnz,
+                                       aoclsparse_int       *col_ptr,
+                                       aoclsparse_int       *row_idx,
+                                       T                    *val);
 #endif /*AOCLSPARSE_HPP*/

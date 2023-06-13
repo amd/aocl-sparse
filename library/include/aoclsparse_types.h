@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020-2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -84,7 +84,17 @@ typedef struct _aoclsparse_mat_descr *aoclsparse_mat_descr;
 typedef struct _aoclsparse_csr         *aoclsparse_csr;
 typedef struct _aoclsparse_ell         *aoclsparse_ell;
 typedef struct _aoclsparse_ell_csr_hyb *aoclsparse_ell_csr_hyb;
-typedef struct _aoclsparse_matrix      *aoclsparse_matrix;
+
+/*! \ingroup types_module
+ *  \brief AOCL sparse matrix.
+ *
+ *  \details
+ *  The aoclsparse matrix structure holds the all matrix storage format supported.
+ *  It must be initialized using aoclsparse_create_(s/d/c/z)(csr/csc/coo) and the returned
+ *  matrix must be passed to all subsequent library calls that involve the matrix.
+ *  It should be destroyed at the end using \ref aoclsparse_destroy().
+ */
+typedef struct _aoclsparse_matrix *aoclsparse_matrix;
 
 /* TBD To be deprecated structure and API
  */
@@ -178,7 +188,8 @@ typedef enum aoclsparse_matrix_format_type_
     aoclsparse_ellt_csr_hyb_mat = 3, /**< ELLPACK transpose + CSR hybrid format. */
     aoclsparse_ell_csr_hyb_mat  = 4, /**< ELLPACK + CSR hybrid format. */
     aoclsparse_dia_mat          = 5, /**< diag format. */
-    aoclsparse_csr_mat_br4      = 6 /**< Modified CSR format for AVX2 double. */
+    aoclsparse_csr_mat_br4      = 6, /**< Modified CSR format for AVX2 double. */
+    aoclsparse_csc_mat          = 7 /**< CSC format. */
 } aoclsparse_matrix_format_type;
 
 /*! \ingroup types_module
