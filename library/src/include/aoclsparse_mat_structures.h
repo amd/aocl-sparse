@@ -96,6 +96,22 @@ struct _aoclsparse_ilu
     // true: ILU Optimization/Working-Buffer-Allocation already done, else needs to be performed^M
     bool ilu_ready = false;
 };
+
+/********************************************************************************
+ * \brief aoclsparse_csc is a structure holding the aoclsparse matrix
+ * in csc format. It must be initialized using aoclsparse_create_(s/d/c/z)csc()
+ * and the retured handle must be passed to all subsequent library function
+ * calls that involve the matrix.
+ * It should be destroyed at the end using aoclsparse_destroy_mat_structs().
+ *******************************************************************************/
+struct _aoclsparse_csc
+{
+    // CSC matrix part
+    aoclsparse_int *col_ptr = nullptr;
+    aoclsparse_int *row_idx = nullptr;
+    void           *val     = nullptr;
+};
+
 /********************************************************************************
  * \brief _aoclsparse_matrix is a structure holding generic aoclsparse matrices.
  * It should be used by all the sparse routines to initialize the sparse matrices.
@@ -104,19 +120,22 @@ struct _aoclsparse_ilu
 struct _aoclsparse_matrix
 {
     // generic sparse matrix properties
-    aoclsparse_int                m;
-    aoclsparse_int                n;
-    aoclsparse_int                nnz;
-    bool                          optimized = false;
-    aoclsparse_index_base         base      = aoclsparse_index_base_zero;
-    aoclsparse_matrix_data_type   val_type  = aoclsparse_dmat;
-    aoclsparse_matrix_format_type mat_type  = aoclsparse_csr_mat;
+    aoclsparse_int              m;
+    aoclsparse_int              n;
+    aoclsparse_int              nnz;
+    bool                        optimized = false;
+    aoclsparse_index_base       base;
+    aoclsparse_matrix_data_type val_type;
 
+    // indicates internal matrix representation
+    aoclsparse_matrix_format_type mat_type;
+    // indicates actual matrix passed
+    aoclsparse_matrix_format_type input_format;
     // Optimization hints linked list
     aoclsparse_optimize_data *optim_data = nullptr;
 
     // csr matrix
-    bool                   csr_mat_is_users = true;
+    bool                   csr_mat_is_users = false;
     struct _aoclsparse_csr csr_mat;
 
     // csr matrix for avx2
@@ -136,19 +155,22 @@ struct _aoclsparse_matrix
     // however, some diagonal elements might have been added as zeros
     struct _aoclsparse_csr opt_csr_mat;
     // the matrix has been 'optimized', it can be used
-    bool opt_csr_ready;
+    bool opt_csr_ready = false;
     // if true, user's csr_mat was fine to use so opt_csr_mat points
     // to the same memory. Deallocate only if !opt_csr_is_users
-    bool opt_csr_is_users = true;
+    bool opt_csr_is_users = false;
     // the original matrix had full (nonzero) diagonal, so the matrix
     // is safe for TRSVs
     bool opt_csr_full_diag;
     // store if the matrix has already been optimized for this blocked SpMV
     bool blk_optimized = false;
     // position where the diagonal is located in every row
-    aoclsparse_int *idiag;
+    aoclsparse_int *idiag = nullptr;
     // position where the first strictly upper triangle element is/would be located in every row
-    aoclsparse_int *iurow;
+    aoclsparse_int *iurow = nullptr;
+
+    // csc matrix
+    struct _aoclsparse_csc csc_mat;
 };
 
 #endif // AOCLSPARSE_MAT_STRUCTS_H

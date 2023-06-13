@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022-2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -44,7 +44,22 @@ static_assert(
     sizeof(integer) == sizeof(aoclsparse_int),
     "Error: Incompatible size of ints in flame. Using wrong header or compilation of the library?");
 
-void aoclsparse_init_csrmat(aoclsparse_matrix A);
+void aoclsparse_init_mat(aoclsparse_matrix             A,
+                         aoclsparse_index_base         base,
+                         aoclsparse_int                M,
+                         aoclsparse_int                N,
+                         aoclsparse_int                nnz,
+                         aoclsparse_matrix_format_type matrix_type);
+
+template <typename T>
+aoclsparse_status aoclsparse_create_csc(aoclsparse_matrix    &mat,
+                                        aoclsparse_index_base base,
+                                        aoclsparse_int        M,
+                                        aoclsparse_int        N,
+                                        aoclsparse_int        nnz,
+                                        aoclsparse_int       *col_ptr,
+                                        aoclsparse_int       *row_idx,
+                                        T                    *val);
 
 /********************************************************************************
  * \brief generates a plane rotation with cosine and sine. Slower and more accurate
@@ -77,4 +92,44 @@ bool aoclsparse_zerocheck(const T &value)
     is_value_zero             = std::fabs(value) <= safe_macheps;
     return is_value_zero;
 }
+
+/*
+    Return aoclsparse_matrix_data_type based on the input type (s/d/c/z)
+*/
+template <typename T>
+struct get_data_type
+{
+};
+template <>
+struct get_data_type<float>
+{
+    constexpr operator aoclsparse_matrix_data_type() const
+    {
+        return aoclsparse_smat;
+    }
+};
+template <>
+struct get_data_type<double>
+{
+    constexpr operator aoclsparse_matrix_data_type() const
+    {
+        return aoclsparse_dmat;
+    }
+};
+template <>
+struct get_data_type<aoclsparse_float_complex>
+{
+    constexpr operator aoclsparse_matrix_data_type() const
+    {
+        return aoclsparse_cmat;
+    }
+};
+template <>
+struct get_data_type<aoclsparse_double_complex>
+{
+    constexpr operator aoclsparse_matrix_data_type() const
+    {
+        return aoclsparse_zmat;
+    }
+};
 #endif

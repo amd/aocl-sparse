@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2021-2022 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2021-2023 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -289,11 +289,9 @@ aoclsparse_status aoclsparse_csr2m_template(aoclsparse_operation       transA,
                                    csrB->csr_mat.csr_col_ptr,
                                    csr_row_ptr_C);
         *csrC = new _aoclsparse_matrix;
-        aoclsparse_init_csrmat(*csrC);
-        (*csrC)->csr_mat_is_users    = false;
-        (*csrC)->m                   = m;
-        (*csrC)->n                   = n;
-        (*csrC)->nnz                 = nnz_C;
+        aoclsparse_init_mat(*csrC, descrA->base, m, n, nnz_C, aoclsparse_csr_mat);
+        (*csrC)->mat_type            = aoclsparse_csr_mat;
+        (*csrC)->val_type            = get_data_type<T>();
         (*csrC)->csr_mat.csr_row_ptr = csr_row_ptr_C;
         break;
     }
@@ -380,11 +378,9 @@ aoclsparse_status aoclsparse_csr2m_template(aoclsparse_operation       transA,
                                   csr_col_ind_C,
                                   csr_val_C);
         *csrC = new _aoclsparse_matrix;
-        aoclsparse_init_csrmat(*csrC);
-        (*csrC)->csr_mat_is_users    = false; // mark for deallocation in destroy()
-        (*csrC)->m                   = m;
-        (*csrC)->n                   = n;
-        (*csrC)->nnz                 = nnz_C;
+        aoclsparse_init_mat(*csrC, descrA->base, m, n, nnz_C, aoclsparse_csr_mat);
+        (*csrC)->mat_type            = aoclsparse_csr_mat;
+        (*csrC)->val_type            = get_data_type<T>();
         (*csrC)->csr_mat.csr_row_ptr = csr_row_ptr_C;
         (*csrC)->csr_mat.csr_col_ptr = csr_col_ind_C;
         (*csrC)->csr_mat.csr_val     = csr_val_C;
