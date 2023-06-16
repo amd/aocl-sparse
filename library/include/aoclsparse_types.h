@@ -50,15 +50,19 @@ typedef int64_t aoclsparse_int;
 typedef int32_t aoclsparse_int;
 #endif
 
-typedef struct
+#if !defined(aoclsparse_float_complex)
+typedef struct alignas(2 * sizeof(float))
 {
     float x, y;
 } aoclsparse_float_complex;
+#endif
 
-typedef struct
+#if !defined(aoclsparse_double_complex)
+typedef struct alignas(2 * sizeof(double))
 {
     double x, y;
 } aoclsparse_double_complex;
+#endif
 
 /*! \ingroup types_module
  *  \brief Descriptor of the matrix.

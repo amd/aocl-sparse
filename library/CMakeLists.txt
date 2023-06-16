@@ -73,6 +73,7 @@ target_include_directories(aoclsparse
                            PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/include>
                                    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/analysis>
                                    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/level2>
+                                   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/level1>
                                    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/extra>
                            PUBLIC  $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/library/include>
                                    $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>

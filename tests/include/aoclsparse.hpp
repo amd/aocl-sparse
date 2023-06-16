@@ -32,6 +32,8 @@
 
 #include "aoclsparse.h"
 
+#include <complex>
+
 /*
  * ===========================================================================
  *    level 3 SPARSE
@@ -280,6 +282,20 @@ aoclsparse_status aoclsparse_csr2dense(aoclsparse_int             m,
                                        T                         *A,
                                        aoclsparse_int             ld,
                                        aoclsparse_order           order);
+
+/*
+ * ===========================================================================
+ *    level 1 SPARSE
+ * ===========================================================================
+ */
+template <typename T, typename R>
+R aoclsparse_dot(const aoclsparse_int nnz,
+                 const T *__restrict__ x,
+                 const aoclsparse_int *__restrict__ indx,
+                 const T *__restrict__ y,
+                 T *__restrict__ dot,
+                 bool                 conj,
+                 const aoclsparse_int kid);
 
 /*
  * ===========================================================================

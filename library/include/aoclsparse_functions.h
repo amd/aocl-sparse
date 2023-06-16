@@ -73,7 +73,8 @@ extern "C" {
  *              the non-zero values of \f$x\f$. Indices should range from 0
  *              to \f$m-1\f$, need not be ordered. The elements in this vector
  *              are only checked for non-negativity. The user should make
- *              sure that no index is out-of-bound.
+ *              sure that no index is out-of-bound and that it does not containts any
+ *              duplicates.
  *
  *  \retval     aoclsparse_status_success the operation completed successfully
  *  \retval     aoclsparse_status_invalid_size \p nnz parameter value is negative
@@ -82,7 +83,8 @@ extern "C" {
  *  \retval     aoclsparse_status_invalid_index_value at least one of the indices
  *              in \p indx is negative
  *  \note
- *  These functions assume that the indices stored in \p indx are less than \f$m\f$, and
+ *  These functions assume that the indices stored in \p indx are less than \f$m\f$ without
+ *  duplicate elements, and
  *  that \p x and \p indx are pointers to vectors of size at least \p nnz.
  */
 /**@{*/
@@ -148,7 +150,8 @@ aoclsparse_status
  *              the non-zero values of \f$x\f$. Indices should range from 0
  *              to \f$m-1\f$, need not be ordered. The elements in this vector
  *              are only checked for non-negativity. The user should make
- *              sure that no index is out-of-bound.
+ *              sure that no index is out-of-bound and that it does not containts any
+ *              duplicates.
  *
  *  \retval     aoclsparse_status_success the operation completed successfully
  *  \retval     aoclsparse_status_invalid_size \p nnz parameter value is negative
@@ -157,7 +160,8 @@ aoclsparse_status
  *  \retval     aoclsparse_status_invalid_index_value at least one of the indices
  *              in \p indx is negative
  *  \note
- *  These functions assume that the indices stored in \p indx are less than \f$m\f$, and
+ *  These functions assume that the indices stored in \p indx are less than \f$m\f$ without
+ *  duplicate elements, and
  *  that \p x and \p indx are pointers to vectors of size at least \p nnz.
  */
 /**@{*/
@@ -1291,6 +1295,136 @@ aoclsparse_status aoclsparse_silu_smoother(aoclsparse_operation       op,
                                            float                     *x,
                                            const float               *b);
 /**@}*/
+/*! \ingroup level1_module
+ *  \brief Sparse conjugate dot product for single and double data precision complex types.
+ *
+ *  \details
+ *  \p  aoclsparse_cdotci (complex float) and \p  aoclsparse_zdotci (complex double) compute the dot product of the conjugate of a complex vector stored
+ *  in a compressed format and a complex dense vector.  Let \f$x\f$ and \f$y\f$ be respectively a sparse and dense vectors in \f$C^m\f$ with
+ *  \p indx an indices vector of length at least \f$nnz\f$ that is used to index into the entries of dense vector \f$y\f$, then these functions
+ *  return
+ *
+ *  \f[
+ *    \text{dot} = \sum_{i=0}^{nnz-1} \text{conj}(x_i) * y_{indx_{i}}.
+ *  \f]
+ *
+ *  Note: The contents of the vectors are not checked for NaNs.
+ *
+ *  @param[in]
+ *  nnz       The number of elements (length) of vectors \f$x\f$ and \f$indx\f$.
+ *  @param[in]
+ *  x       Array of at least \f$nnz\f$ complex elements.
+ *  @param[in]
+ *  indx    Vector of indices of length at least \f$nnz\f$. Each entry of this vector must contain a valid index into \f$y\f$ and 
+ *          be unique. The entries of \p indx are not checked for validity.
+ *  @param[in]
+ *  y       Array of at least \f$\max(indx_i, i \in \{ 1,\ldots,nnz\})\f$ complex elements.
+ * @param[out]
+ *  dot     The dot product of conjugate of \f$x\f$ and \f$y\f$ when \f$nnz > 0\f$. If \f$nnz \le 0\f$, \p dot is set to 0.
+ *
+ *  \retval     aoclsparse_status_success The operation completed successfully.
+ *  \retval     aoclsparse_status_invalid_pointer At least one of the pointers \p x, \p indx, \p y, \p dot is invalid.
+ *  \retval     aoclsparse_status_invalid_size Indicates that the provided \p nnz is not positive.
+ *
+ */
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_cdotci(
+    const aoclsparse_int nnz, const void *x, const aoclsparse_int *indx, const void *y, void *dot);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_zdotci(
+    const aoclsparse_int nnz, const void *x, const aoclsparse_int *indx, const void *y, void *dot);
+
+/**@}*/
+
+/*! \ingroup level1_module
+ *  \brief Sparse dot product for single and double data precision complex types.
+ *
+ *  \details
+ *  \p  aoclsparse_cdotui (complex float) and \p  aoclsparse_zdotui (complex double) compute the dot product of a complex vector stored
+ *  in a compressed format and a complex dense vector.  Let \f$x\f$ and \f$y\f$ be respectively a sparse and dense vectors in \f$C^m\f$ with
+ *  \p indx an indices vector of length at least \f$nnz\f$ that is used to index into the entries of dense vector \f$y\f$, then these functions
+ *  return
+ *
+ *  \f[
+ *    \text{dot} = \sum_{i=0}^{nnz-1} x_{i} * y_{indx_{i}}.
+ *  \f]
+ *
+ *  Note: The contents of the vectors are not checked for NaNs.
+ *
+ *  @param[in]
+ *  nnz       The number of elements (length) of vectors \f$x\f$ and \f$indx\f$.
+ *  @param[in]
+ *  x       Array of at least \f$nnz\f$ complex elements.
+ *  @param[in]
+ *  indx    Vector of indices of length at least \f$nnz\f$. Each entry of this vector must contain a valid index into \f$y\f$ and 
+ *          be unique. The entries of \p indx are not checked for validity.
+ *  @param[in]
+ *  y       Array of at least \f$\max(indx_i, i \in \{ 1,\ldots,nnz\})\f$ complex elements.
+ * @param[out]
+ *  dot     The dot product of \f$x\f$ and \f$y\f$ when \f$nnz > 0\f$. If \f$nnz \le 0\f$, \p dot is set to 0.
+ *
+ *  \retval     aoclsparse_status_success The operation completed successfully.
+ *  \retval     aoclsparse_status_invalid_pointer At least one of the pointers \p x, \p indx, \p y, \p dot is invalid.
+ *  \retval     aoclsparse_status_invalid_size Indicates that the provided \p nnz is not positive.
+ *
+ */
+
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_cdotui(
+    const aoclsparse_int nnz, const void *x, const aoclsparse_int *indx, const void *y, void *dot);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_zdotui(
+    const aoclsparse_int nnz, const void *x, const aoclsparse_int *indx, const void *y, void *dot);
+
+/**@}*/
+
+/*! \ingroup level1_module
+ *  \brief Sparse dot product for single and double data precision real types.
+ *
+ *  \details
+ *  \p  aoclsparse_sdoti (float) and \p  aoclsparse_ddoti (double) compute the dot product of a real vector stored
+ *  in a compressed format and a real dense vector.  Let \f$x\f$ and \f$y\f$ be respectively a sparse and dense vectors in \f$R^m\f$ with
+ *  \p indx an indices vector of length at least \f$nnz\f$ that is used to index into the entries of dense vector \f$y\f$, then these functions
+ *  return
+ *
+ *  \f[
+ *    \text{dot} = \sum_{i=0}^{nnz-1} x_{i} * y_{indx_{i}}.
+ *  \f]
+ *
+ *  Note: The contents of the vectors are not checked for NaNs.
+ *
+ *  @param[in]
+ *  nnz       The number of elements (length) of vectors \f$x\f$ and \f$indx\f$.
+ *  @param[in]
+ *  x       Array of at least \f$nnz\f$ real elements.
+ *  @param[in]
+ *  indx    Vector of indices of length at least \f$nnz\f$. Each entry of this vector must contain a valid index into \f$y\f$ and 
+ *          be unique. The entries of \p indx are not checked for validity.
+ *  @param[in]
+ *  y       Array of at least \f$\max(indx_i, i \in \{ 1,\ldots,nnz\})\f$ complex elements.
+ *
+ *  \retval  Float/double Value of the dot product if \p nnz is positive, otherwise it is set to 0.
+ */
+
+/**@{*/
+DLL_PUBLIC
+float aoclsparse_sdoti(const aoclsparse_int  nnz,
+                       const float          *x,
+                       const aoclsparse_int *indx,
+                       const float          *y);
+
+DLL_PUBLIC
+double aoclsparse_ddoti(const aoclsparse_int  nnz,
+                        const double         *x,
+                        const aoclsparse_int *indx,
+                        const double         *y);
+
+/**@}*/
+
 #ifdef __cplusplus
 }
 #endif
