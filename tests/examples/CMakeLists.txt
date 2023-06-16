@@ -146,6 +146,7 @@ set(EXAMPLE_EXECUTABLES
     sample_itsol_d_gmres
     sample_itsol_s_gmres_rci
     sample_itsol_s_gmres
+    sample_dotp
 )
 # Take all sample executables also as test targets
 foreach(SNAME ${EXAMPLE_EXECUTABLES})

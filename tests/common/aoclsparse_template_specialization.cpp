@@ -735,6 +735,72 @@ aoclsparse_status aoclsparse_ilu_smoother(aoclsparse_operation       op,
 }
 
 template <>
+double aoclsparse_dot(const aoclsparse_int nnz,
+                      const double *__restrict__ x,
+                      const aoclsparse_int *__restrict__ indx,
+                      const double *__restrict__ y,
+                      [[maybe_unused]] double *__restrict__ dot,
+                      [[maybe_unused]] bool                 conj,
+                      [[maybe_unused]] const aoclsparse_int kid)
+{
+    double dotp;
+    dotp = aoclsparse_ddoti(nnz, x, indx, y);
+    return dotp;
+}
+
+template <>
+float aoclsparse_dot(const aoclsparse_int nnz,
+                     const float *__restrict__ x,
+                     const aoclsparse_int *__restrict__ indx,
+                     const float *__restrict__ y,
+                     [[maybe_unused]] float *__restrict__ dot,
+                     [[maybe_unused]] bool                 conj,
+                     [[maybe_unused]] const aoclsparse_int kid)
+{
+    float dotp;
+    dotp = aoclsparse_sdoti(nnz, x, indx, y);
+    return dotp;
+}
+
+template <>
+aoclsparse_status aoclsparse_dot(const aoclsparse_int nnz,
+                                 const std::complex<float> *__restrict__ x,
+                                 const aoclsparse_int *__restrict__ indx,
+                                 const std::complex<float> *__restrict__ y,
+                                 std::complex<float> *__restrict__ dot,
+                                 bool                                  conj,
+                                 [[maybe_unused]] const aoclsparse_int kid)
+{
+    if(conj)
+    {
+        return aoclsparse_cdotci(nnz, x, indx, y, dot);
+    }
+    else
+    {
+        return aoclsparse_cdotui(nnz, x, indx, y, dot);
+    }
+}
+
+template <>
+aoclsparse_status aoclsparse_dot(const aoclsparse_int nnz,
+                                 const std::complex<double> *__restrict__ x,
+                                 const aoclsparse_int *__restrict__ indx,
+                                 const std::complex<double> *__restrict__ y,
+                                 std::complex<double> *__restrict__ dot,
+                                 bool                                  conj,
+                                 [[maybe_unused]] const aoclsparse_int kid)
+{
+    if(conj)
+    {
+        return aoclsparse_zdotci(nnz, x, indx, y, dot);
+    }
+    else
+    {
+        return aoclsparse_zdotui(nnz, x, indx, y, dot);
+    }
+}
+
+template <>
 aoclsparse_status aoclsparse_create_csr(aoclsparse_matrix    &mat,
                                         aoclsparse_index_base base,
                                         aoclsparse_int        M,
