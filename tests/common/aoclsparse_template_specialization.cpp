@@ -739,3 +739,53 @@ aoclsparse_status aoclsparse_createcsc(aoclsparse_matrix         &mat,
 {
     return aoclsparse_create_zcsc(mat, base, M, N, nnz, col_ptr, row_idx, val);
 }
+
+template <>
+aoclsparse_status aoclsparse_createcoo(aoclsparse_matrix    &mat,
+                                       aoclsparse_index_base base,
+                                       aoclsparse_int        M,
+                                       aoclsparse_int        N,
+                                       aoclsparse_int        nnz,
+                                       aoclsparse_int       *row_ind,
+                                       aoclsparse_int       *col_ind,
+                                       float                *val)
+{
+    return aoclsparse_create_scoo(mat, base, M, N, nnz, row_ind, col_ind, val);
+};
+
+template <>
+aoclsparse_status aoclsparse_createcoo(aoclsparse_matrix    &mat,
+                                       aoclsparse_index_base base,
+                                       aoclsparse_int        M,
+                                       aoclsparse_int        N,
+                                       aoclsparse_int        nnz,
+                                       aoclsparse_int       *row_ind,
+                                       aoclsparse_int       *col_ind,
+                                       double               *val)
+{
+    return aoclsparse_create_dcoo(mat, base, M, N, nnz, row_ind, col_ind, val);
+};
+template <>
+aoclsparse_status aoclsparse_createcoo(aoclsparse_matrix        &mat,
+                                       aoclsparse_index_base     base,
+                                       aoclsparse_int            M,
+                                       aoclsparse_int            N,
+                                       aoclsparse_int            nnz,
+                                       aoclsparse_int           *row_ind,
+                                       aoclsparse_int           *col_ind,
+                                       aoclsparse_float_complex *val)
+{
+    return aoclsparse_create_ccoo(mat, base, M, N, nnz, row_ind, col_ind, val);
+};
+template <>
+aoclsparse_status aoclsparse_createcoo(aoclsparse_matrix         &mat,
+                                       aoclsparse_index_base      base,
+                                       aoclsparse_int             M,
+                                       aoclsparse_int             N,
+                                       aoclsparse_int             nnz,
+                                       aoclsparse_int            *row_ind,
+                                       aoclsparse_int            *col_ind,
+                                       aoclsparse_double_complex *val)
+{
+    return aoclsparse_create_zcoo(mat, base, M, N, nnz, row_ind, col_ind, val);
+};

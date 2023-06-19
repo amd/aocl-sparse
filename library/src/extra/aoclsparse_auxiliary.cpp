@@ -406,6 +406,56 @@ aoclsparse_status aoclsparse_create_ell_csr_hyb(aoclsparse_matrix mat,
     return aoclsparse_status_success;
 }
 
+aoclsparse_status aoclsparse_create_scoo(aoclsparse_matrix          &mat,
+                                         const aoclsparse_index_base base,
+                                         const aoclsparse_int        M,
+                                         const aoclsparse_int        N,
+                                         const aoclsparse_int        nnz,
+                                         aoclsparse_int             *row_ind,
+                                         aoclsparse_int             *col_ind,
+                                         float                      *val)
+{
+    return aoclsparse_create_coo(mat, base, M, N, nnz, row_ind, col_ind, val);
+}
+
+aoclsparse_status aoclsparse_create_dcoo(aoclsparse_matrix          &mat,
+                                         const aoclsparse_index_base base,
+                                         const aoclsparse_int        M,
+                                         const aoclsparse_int        N,
+                                         const aoclsparse_int        nnz,
+                                         aoclsparse_int             *row_ind,
+                                         aoclsparse_int             *col_ind,
+                                         double                     *val)
+{
+
+    return aoclsparse_create_coo(mat, base, M, N, nnz, row_ind, col_ind, val);
+}
+
+aoclsparse_status aoclsparse_create_ccoo(aoclsparse_matrix          &mat,
+                                         const aoclsparse_index_base base,
+                                         const aoclsparse_int        M,
+                                         const aoclsparse_int        N,
+                                         const aoclsparse_int        nnz,
+                                         aoclsparse_int             *row_ind,
+                                         aoclsparse_int             *col_ind,
+                                         aoclsparse_float_complex   *val)
+{
+    return aoclsparse_create_coo(mat, base, M, N, nnz, row_ind, col_ind, val);
+}
+
+aoclsparse_status aoclsparse_create_zcoo(aoclsparse_matrix          &mat,
+                                         const aoclsparse_index_base base,
+                                         const aoclsparse_int        M,
+                                         const aoclsparse_int        N,
+                                         const aoclsparse_int        nnz,
+                                         aoclsparse_int             *row_ind,
+                                         aoclsparse_int             *col_ind,
+                                         aoclsparse_double_complex  *val)
+{
+
+    return aoclsparse_create_coo(mat, base, M, N, nnz, row_ind, col_ind, val);
+}
+
 /********************************************************************************
  * \brief aoclsparse_matrix is a structure holding the aoclsparse csr matrix.
  * Use this routine to export the contents of this straucture
@@ -748,12 +798,62 @@ aoclsparse_status aoclsparse_create_csc(aoclsparse_matrix    &mat,
         return aoclsparse_status_memory_error;
     }
     aoclsparse_init_mat(mat, base, M, N, nnz, aoclsparse_csc_mat);
-    mat->mat_type         = aoclsparse_csc_mat;
     mat->val_type         = get_data_type<T>();
     mat->csr_mat_is_users = false;
     mat->csc_mat.col_ptr  = col_ptr;
     mat->csc_mat.row_idx  = row_idx;
     mat->csc_mat.val      = val;
+
+    return aoclsparse_status_success;
+}
+template <typename T>
+aoclsparse_status aoclsparse_create_coo(aoclsparse_matrix          &mat,
+                                        const aoclsparse_index_base base,
+                                        const aoclsparse_int        M,
+                                        const aoclsparse_int        N,
+                                        const aoclsparse_int        nnz,
+                                        aoclsparse_int             *row_ind,
+                                        aoclsparse_int             *col_ind,
+                                        T                          *val)
+{
+    if(M < 0)
+        return aoclsparse_status_invalid_size;
+
+    else if(N < 0)
+        return aoclsparse_status_invalid_size;
+
+    else if(nnz < 0)
+        return aoclsparse_status_invalid_size;
+
+    if(row_ind == nullptr)
+        return aoclsparse_status_invalid_pointer;
+    if(col_ind == nullptr)
+        return aoclsparse_status_invalid_pointer;
+    if(val == nullptr)
+        return aoclsparse_status_invalid_pointer;
+
+    // check if codinates given is correct or not
+    for(int i = 0; i < nnz; i++)
+    {
+        if(row_ind[i] < base || row_ind[i] >= (N + base))
+            return aoclsparse_status_invalid_index_value;
+        if(col_ind[i] < base || col_ind[i] >= (M + base))
+            return aoclsparse_status_invalid_index_value;
+    }
+
+    try
+    {
+        mat = new _aoclsparse_matrix;
+    }
+    catch(std::bad_alloc &)
+    {
+        return aoclsparse_status_memory_error;
+    }
+    aoclsparse_init_mat(mat, base, M, N, nnz, aoclsparse_coo_mat);
+    mat->val_type        = get_data_type<T>();
+    mat->coo_mat.row_ind = row_ind;
+    mat->coo_mat.col_ind = col_ind;
+    mat->coo_mat.val     = val;
 
     return aoclsparse_status_success;
 }

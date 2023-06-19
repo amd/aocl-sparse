@@ -82,6 +82,19 @@ struct _aoclsparse_ell_csr_hyb
 };
 
 /********************************************************************************
+ * \brief aoclsparse_coo is a structure holding the aoclsparse matrix
+ * in COO format. It is used internally during the optimization process.
+ * It should be destroyed at the end using aoclsparse_destroy_mat_structs().
+ *******************************************************************************/
+struct _aoclsparse_coo
+{
+    // COO matrix part
+    aoclsparse_int *row_ind = nullptr;
+    aoclsparse_int *col_ind = nullptr;
+    void           *val     = nullptr;
+};
+
+/********************************************************************************
  * \brief _aoclsparse_ilu is a structure holding data members for ILU operation.
  * It is used internally during the optimization process which includes ILU factorization.
  * It should be destroyed at the end using aoclsparse_destroy_mat_structs().
@@ -146,6 +159,9 @@ struct _aoclsparse_matrix
 
     // ell-csr-hyb matrix
     struct _aoclsparse_ell_csr_hyb ell_csr_hyb_mat;
+
+    // coo matrix
+    struct _aoclsparse_coo coo_mat;
 
     //ilu members
     struct _aoclsparse_ilu ilu_info;

@@ -90,7 +90,7 @@ typedef struct _aoclsparse_ell_csr_hyb *aoclsparse_ell_csr_hyb;
  *
  *  \details
  *  The aoclsparse matrix structure holds the all matrix storage format supported.
- *  It must be initialized using aoclsparse_create_(s/d/c/z)(csr/csc/coo) and the returned
+ *  It must be initialized using \p aoclsparse_create_(s/d/c/z)(csr/csc/coo) and the returned
  *  matrix must be passed to all subsequent library calls that involve the matrix.
  *  It should be destroyed at the end using \ref aoclsparse_destroy().
  */
@@ -189,7 +189,8 @@ typedef enum aoclsparse_matrix_format_type_
     aoclsparse_ell_csr_hyb_mat  = 4, /**< ELLPACK + CSR hybrid format. */
     aoclsparse_dia_mat          = 5, /**< diag format. */
     aoclsparse_csr_mat_br4      = 6, /**< Modified CSR format for AVX2 double. */
-    aoclsparse_csc_mat          = 7 /**< CSC format. */
+    aoclsparse_csc_mat          = 7, /**< CSC format. */
+    aoclsparse_coo_mat          = 8 /**< COO format. */
 } aoclsparse_matrix_format_type;
 
 /*! \ingroup types_module
