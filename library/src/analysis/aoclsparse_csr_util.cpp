@@ -126,7 +126,7 @@ aoclsparse_status aoclsparse_csr_check_internal(aoclsparse_int       m,
         return status;
     }
 
-    for(aoclsparse_int i = 1; i < m; i++)
+    for(aoclsparse_int i = 1; i <= m; i++)
     {
         if(csr_mat->csr_row_ptr[i - 1] > csr_mat->csr_row_ptr[i])
         {

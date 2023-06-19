@@ -450,7 +450,7 @@ aoclsparse_status aoclsparse_dcsr2csc(aoclsparse_int        m,
  *  @param[out]
  *  A           array of dimensions (\p ld, \p n)
  *
- *  @param[out]
+ *  @param[in]
  *  ld          leading dimension of dense array \p A.
  *  @param[in]
  *  order       memory layout of a dense matrix \p A.
