@@ -66,6 +66,7 @@ set(GTEST_EXECUTABLES
     ilu_tests
     trsv_tests
     kt_tests
+    ktlvl2_tests
     mv_tests
     diamv_tests
     createcsc_tests

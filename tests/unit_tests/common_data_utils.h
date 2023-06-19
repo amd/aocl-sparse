@@ -36,8 +36,19 @@
 
 // Utilities to compare complex real scalars and vectors =============================================
 
+#define EXPECT_COMPLEX_EQ_VEC(n, x, y)                                           \
+    for(size_t i = 0; i < (size_t)n; i++)                                        \
+    {                                                                            \
+        EXPECT_EQ(std::real(x[i]), std::real(y[i]))                              \
+            << " Real parts of " #x " and " #y " differ at index i = " << i      \
+            << " values are: " << std::real(x[i]) << " and " << std::real(y[i]); \
+        EXPECT_EQ(std::imag(x[i]), std::imag(y[i]))                              \
+            << " Imaginary parts of " #x " and " #y " differ at index i = " << i \
+            << " values are: " << std::imag(x[i]) << " and " << std::imag(y[i]); \
+    }
+
 #define EXPECT_COMPLEX_FLOAT_EQ_VEC(n, x, y)                                     \
-    for(auto i = 0; i < n; i++)                                                  \
+    for(size_t i = 0; i < (size_t)n; i++)                                        \
     {                                                                            \
         EXPECT_FLOAT_EQ(std::real(x[i]), std::real(y[i]))                        \
             << " Real parts of " #x " and " #y " differ at index i = " << i      \
@@ -48,7 +59,7 @@
     }
 
 #define EXPECT_COMPLEX_DOUBLE_EQ_VEC(n, x, y)                                    \
-    for(auto i = 0; i < n; i++)                                                  \
+    for(size_t i = 0; i < (size_t)n; i++)                                        \
     {                                                                            \
         EXPECT_DOUBLE_EQ(std::real(x[i]), std::real(y[i]))                       \
             << " Real parts of " #x " and " #y " differ  at index i = " << i     \
@@ -83,15 +94,15 @@
 // Utilities to compare real scalars and vectors =============================================
 
 #define EXPECT_EQ_VEC(n, x, y)                                                              \
-    for(auto i = 0; i < n; i++)                                                             \
+    for(size_t i = 0; i < (size_t)n; i++)                                                   \
     {                                                                                       \
         EXPECT_EQ((x)[i], (y)[i]) << " vectors " #x " and " #y " differ at index i = " << i \
                                   << " values are: " << (x)[i] << " and " << (y)[i]         \
-                                  << "respectively.";                                       \
+                                  << " respectively.";                                      \
     }
 
 #define EXPECT_FLOAT_EQ_VEC(n, x, y)                                                               \
-    for(auto i = 0; i < n; i++)                                                                    \
+    for(size_t i = 0; i < (size_t)n; i++)                                                          \
     {                                                                                              \
         EXPECT_FLOAT_EQ((x)[i], (y)[i]) << " vectors " #x " and " #y " differ at index i = " << i  \
                                         << " by abs err: " << abs((x)[i] - (y)[i])                 \
@@ -99,7 +110,7 @@
     }
 
 #define EXPECT_DOUBLE_EQ_VEC(n, x, y)                                  \
-    for(auto i = 0; i < n; i++)                                        \
+    for(size_t i = 0; i < (size_t)n; i++)                              \
     {                                                                  \
         EXPECT_DOUBLE_EQ((x)[i], (y)[i])                               \
             << " vectors " #x " and " #y " differ at index i = " << i  \
@@ -108,7 +119,7 @@
     }
 
 #define EXPECT_EQ_VEC_ERR(n, x, y)                                                                 \
-    for(size_t i = 0; i < n; i++)                                                                  \
+    for(size_t i = 0; i < (size_t)n; i++)                                                          \
     {                                                                                              \
         EXPECT_EQ((x)[i], ((y)[i])) << " vectors " #x " and " #y " differ at index i = " << i      \
                                     << " by abs err: " << abs((x)[i] - ((y)[i]))                   \
@@ -116,9 +127,22 @@
     }
 
 #define EXPECT_ARR_NEAR(n, x, y, abs_error)    \
-    for(int j = 0; j < (n); j++)               \
+    for(size_t j = 0; j < (size_t)(n); j++)    \
     EXPECT_NEAR(((x)[j]), ((y)[j]), abs_error) \
         << "Vectors " #x " and " #y " different at index j=" << j << "."
+
+#define EXPECT_COMPLEX_ARR_NEAR(n, x, y, abs_error)                              \
+    for(size_t i = 0; i < (size_t)n; i++)                                        \
+    {                                                                            \
+        EXPECT_NEAR(std::real(x[i]), std::real(y[i]), abs_error)                 \
+            << " Real parts of " #x " and " #y " differ at index i = " << i      \
+            << " values are: " << std::real(x[i]) << " and " << std::real(y[i])  \
+            << " by abs err: " << abs(std::real(x[i]) - std::real(y[i]));        \
+        EXPECT_NEAR(std::imag(x[i]), std::imag(y[i]), abs_error)                 \
+            << " Imaginary parts of " #x " and " #y " differ at index i = " << i \
+            << " values are: " << std::imag(x[i]) << " and " << std::imag(y[i])  \
+            << " by abs err: " << abs(std::real(x[i]) - std::real(y[i]));        \
+    }
 
 // Define precision to which we expect the results to match ==================================
 
