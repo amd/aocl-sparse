@@ -24,6 +24,8 @@
 #include "aoclsparse.h"
 #include "aoclsparse.hpp"
 
+#include <complex>
+
 template <>
 aoclsparse_status aoclsparse_csr2m<double>(aoclsparse_operation       transA,
                                            const aoclsparse_mat_descr descrA,
@@ -424,6 +426,72 @@ aoclsparse_status aoclsparse_csrsv(aoclsparse_operation       trans,
                                    double                    *y)
 {
     return aoclsparse_dcsrsv(trans, alpha, m, csr_val, csr_col_ind, csr_row_ptr, descr, x, y);
+}
+
+template <>
+aoclsparse_status aoclsparse_gthr(const aoclsparse_int  nnz,
+                                  const double         *y,
+                                  double               *x,
+                                  const aoclsparse_int *indx)
+{
+    return aoclsparse_dgthr(nnz, y, x, indx);
+}
+
+template <>
+aoclsparse_status
+    aoclsparse_gthr(const aoclsparse_int nnz, const float *y, float *x, const aoclsparse_int *indx)
+{
+    return aoclsparse_sgthr(nnz, y, x, indx);
+}
+
+template <>
+aoclsparse_status aoclsparse_gthr(const aoclsparse_int        nnz,
+                                  const std::complex<double> *y,
+                                  std::complex<double>       *x,
+                                  const aoclsparse_int       *indx)
+{
+    return aoclsparse_zgthr(nnz, y, x, indx);
+}
+
+template <>
+aoclsparse_status aoclsparse_gthr(const aoclsparse_int       nnz,
+                                  const std::complex<float> *y,
+                                  std::complex<float>       *x,
+                                  const aoclsparse_int      *indx)
+{
+    return aoclsparse_cgthr(nnz, y, x, indx);
+}
+
+template <>
+aoclsparse_status
+    aoclsparse_gthrz(const aoclsparse_int nnz, double *y, double *x, const aoclsparse_int *indx)
+{
+    return aoclsparse_dgthrz(nnz, y, x, indx);
+}
+
+template <>
+aoclsparse_status
+    aoclsparse_gthrz(const aoclsparse_int nnz, float *y, float *x, const aoclsparse_int *indx)
+{
+    return aoclsparse_sgthrz(nnz, y, x, indx);
+}
+
+template <>
+aoclsparse_status aoclsparse_gthrz(const aoclsparse_int  nnz,
+                                   std::complex<double> *y,
+                                   std::complex<double> *x,
+                                   const aoclsparse_int *indx)
+{
+    return aoclsparse_zgthrz(nnz, y, x, indx);
+}
+
+template <>
+aoclsparse_status aoclsparse_gthrz(const aoclsparse_int  nnz,
+                                   std::complex<float>  *y,
+                                   std::complex<float>  *x,
+                                   const aoclsparse_int *indx)
+{
+    return aoclsparse_cgthrz(nnz, y, x, indx);
 }
 
 template <>

@@ -53,7 +53,7 @@ if (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
         set(CMAKE_SPARSE_ROOT $ENV{AOCL_ROOT})
     ENDIF()
 
-    # During out-of-source-tree build of examples, Blis and Libflame artifacts need to be found explicitly. 
+    # During out-of-source-tree build of examples, Blis and Libflame artifacts need to be found explicitly.
     # So we call find_blis_lapack.cmake under if (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE) condition
     include(find_blis_lapack.cmake)
 
@@ -82,7 +82,7 @@ ELSE(WIN32)
 ENDIF(WIN32)
 
 if (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
-    IF(BUILD_ILP64) 
+    IF(BUILD_ILP64)
         list(APPEND COMPILER_OPTIONS "-Daoclsparse_ILP64")
         SET(ILP_DIR "ILP64")
     ELSE(BUILD_ILP64)
@@ -121,8 +121,8 @@ foreach( sample_example_source ${SPARSE_SAMPLES})
     add_executable( ${sample_target} ${sample_example_source})
     target_include_directories(${sample_target} PUBLIC ${SPARSE_INCLUDE_DIR} ${LAPACK_INCLUDE_DIRS} ${BLIS_INCLUDE_DIRS})
     target_link_libraries(${sample_target} ${SPARSE_LIBRARY} ${LAPACK_LIBRARIES} ${MT_LIBRARIES})
-    target_compile_options(${sample_target} PUBLIC ${COMPILER_OPTIONS}) 
-    if(NOT BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)    
+    target_compile_options(${sample_target} PUBLIC ${COMPILER_OPTIONS})
+    if(NOT BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
         install(FILES ${sample_example_source} DESTINATION ${CMAKE_INSTALL_PREFIX}/examples)
     endif()
 endforeach( sample_example_source ${SPARSE_SAMPLES} )
@@ -134,6 +134,7 @@ if(NOT BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
     install(FILES ${CMAKE_SOURCE_DIR}/cmake/find_blis_lapack.cmake DESTINATION ${EXAMPLES_INSTALL_DIR})
 endif()
 set(EXAMPLE_EXECUTABLES
+    sample_zgthr
     sample_spmv
     sample_csr2m
     sample_dtrsv

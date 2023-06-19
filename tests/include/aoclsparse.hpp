@@ -190,6 +190,24 @@ aoclsparse_status aoclsparse_csrsv(aoclsparse_operation       trans,
                                    const T                   *x,
                                    T                         *y);
 
+/*
+ * ===========================================================================
+ *    level 1 SPARSE
+ * ===========================================================================
+ */
+template <typename T>
+aoclsparse_status
+    aoclsparse_gthr(const aoclsparse_int nnz, const T *y, T *x, const aoclsparse_int *indx);
+
+template <typename T>
+aoclsparse_status
+    aoclsparse_gthrz(const aoclsparse_int nnz, T *y, T *x, const aoclsparse_int *indx);
+
+/*
+ * ===========================================================================
+ *    Conversion
+ * ===========================================================================
+ */
 template <typename T>
 aoclsparse_status aoclsparse_csr2ell(aoclsparse_int        m,
                                      const aoclsparse_int *csr_row_ptr,
