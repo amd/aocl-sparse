@@ -33,6 +33,151 @@
 extern "C" {
 #endif
 
+/*! \ingroup level1_module
+ *  \brief Gather elements from a dense vector and store them into a sparse vector.
+ *
+ *  \details
+ *
+ *  The \f$\verb+aoclsparse_?gthr+\f$ is a group of functions that gather the elements
+ *  indexed in \p indx from the dense vector \p y into the sparse vector \p x.
+ *
+ *  Let \f$y\in R^m\f$ (or \f$C^m\f$) be a dense vector, \f$x\f$ be a sparse vector
+ *  from the same space and \f$I_x\f$ be a set of indices of size \f$0<\f$ \p nnz
+ *  \f$\le m\f$ described by \p indx, then
+ *  \f[
+ *     x_i = y_{I_{x_i}}, i\in\{1,\ldots,\text{\ttfamily nnz}\}.
+ *  \f]
+ *  For double precision complex vectors use \p aoclsparse_zgthr and for single
+ *  precision complex vectors use \p aoclsparse_cgthr.
+ *
+ *  A possible C implementation for real vectors could be
+ *
+ *  \code{.c}
+ *    for(i = 0; i < nnz; ++i)
+ *    {
+ *       x[i] = y[indx[i]];
+ *    }
+ *  \endcode
+ *
+ *  @param[in]
+ *  nnz         number of non-zero entries of \f$x\f$.
+ *              If \p nnz is zero, then none of the entries of vectors
+ *              \p x, \p y, and \p indx are touched.
+ *  @param[in]
+ *  y           pointer to dense vector \f$y\f$ of size at least \f$m\f$.
+ *  @param[out]
+ *  x           pointer to sparse vector \f$x\f$ with at least \p nnz
+ *              non-zero elements.
+ *  @param[in]
+ *  indx        index vector of size \p nnz, containing the indices of
+ *              the non-zero values of \f$x\f$. Indices should range from 0
+ *              to \f$m-1\f$, need not be ordered. The elements in this vector
+ *              are only checked for non-negativity. The user should make
+ *              sure that no index is out-of-bound.
+ *
+ *  \retval     aoclsparse_status_success the operation completed successfully
+ *  \retval     aoclsparse_status_invalid_size \p nnz parameter value is negative
+ *  \retval     aoclsparse_status_invalid_pointer at least one of the pointers \p y,
+ *              \p x or \p indx is invalid
+ *  \retval     aoclsparse_status_invalid_index_value at least one of the indices
+ *              in \p indx is negative
+ *  \note
+ *  These functions assume that the indices stored in \p indx are less than \f$m\f$, and
+ *  that \p x and \p indx are pointers to vectors of size at least \p nnz.
+ */
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status
+    aoclsparse_sgthr(aoclsparse_int nnz, const float *y, float *x, const aoclsparse_int *indx);
+
+DLL_PUBLIC
+aoclsparse_status
+    aoclsparse_dgthr(aoclsparse_int nnz, const double *y, double *x, const aoclsparse_int *indx);
+
+DLL_PUBLIC
+aoclsparse_status
+    aoclsparse_cgthr(aoclsparse_int nnz, const void *y, void *x, const aoclsparse_int *indx);
+
+DLL_PUBLIC
+aoclsparse_status
+    aoclsparse_zgthr(aoclsparse_int nnz, const void *y, void *x, const aoclsparse_int *indx);
+/**@}*/
+
+/*! \ingroup level1_module
+ *  \brief Gather and zero out elements from a dense vector and store them into a
+ *  sparse vector.
+ *
+ *  \details
+ *  The \f$\verb+aoclsparse_?gthrz+\f$ is a group of functions that gather the elements
+ * 
+ *  indexed in \p indx from the dense vector \p y into the sparse vector \p x.
+ *  The gathered elements in \f$y\f$ are replaced by zero.
+ *
+ *  Let \f$y\in R^m\f$ (or \f$C^m\f$) be a dense vector, \f$x\f$ be a sparse vector
+ *  from the same space and \f$I_x\f$ be a set of indices of size \f$0<\f$ \p nnz
+ *  \f$\le m\f$ described by \p indx, then
+ *  \f[
+ *     x_i = y_{I_{x_i}}, i\in\{1,\ldots,\text{\ttfamily nnz}\},
+ * \text{ and after the assignment, }
+ *     y_{I_{x_i}}=0, i\in\{1,\ldots,\text{\ttfamily nnz}\}.
+ *  \f]
+ *  For double precision complex vectors use \p aoclsparse_zgthrz and for single
+ *  precision complex vectors use \p aoclsparse_cgthrz.
+ *
+ *  A possible C implementation for real vectors could be
+ *
+ *  \code{.c}
+ *    for(i = 0; i < nnz; ++i)
+ *    {
+ *       x[i] = y[indx[i]];
+ *       y[indx[i]] = 0;
+ *    }
+ *  \endcode
+ *
+ *  @param[in]
+ *  nnz         number of non-zero entries of \f$x\f$.
+ *              If \p nnz is zero, then none of the entries of vectors
+ *              \p x, \p y, and \p indx are touched.
+ *  @param[in]
+ *  y           pointer to dense vector \f$y\f$ of size at least \f$m\f$.
+ *  @param[out]
+ *  x           pointer to sparse vector \f$x\f$ with at least \p nnz
+ *              non-zero elements.
+ *  @param[in]
+ *  indx        index vector of size \p nnz, containing the indices of
+ *              the non-zero values of \f$x\f$. Indices should range from 0
+ *              to \f$m-1\f$, need not be ordered. The elements in this vector
+ *              are only checked for non-negativity. The user should make
+ *              sure that no index is out-of-bound.
+ *
+ *  \retval     aoclsparse_status_success the operation completed successfully
+ *  \retval     aoclsparse_status_invalid_size \p nnz parameter value is negative
+ *  \retval     aoclsparse_status_invalid_pointer at least one of the pointers \p y,
+ *              \p x or \p indx is invalid
+ *  \retval     aoclsparse_status_invalid_index_value at least one of the indices
+ *              in \p indx is negative
+ *  \note
+ *  These functions assume that the indices stored in \p indx are less than \f$m\f$, and
+ *  that \p x and \p indx are pointers to vectors of size at least \p nnz.
+ */
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status
+    aoclsparse_sgthrz(aoclsparse_int nnz, float *y, float *x, const aoclsparse_int *indx);
+
+DLL_PUBLIC
+aoclsparse_status
+    aoclsparse_dgthrz(aoclsparse_int nnz, double *y, double *x, const aoclsparse_int *indx);
+
+DLL_PUBLIC
+aoclsparse_status
+    aoclsparse_cgthrz(aoclsparse_int nnz, void *y, void *x, const aoclsparse_int *indx);
+
+DLL_PUBLIC
+aoclsparse_status
+    aoclsparse_zgthrz(aoclsparse_int nnz, void *y, void *x, const aoclsparse_int *indx);
+/**@}*/
+
 /*! \ingroup level2_module
  *  \brief Single & Double precision sparse matrix vector multiplication using CSR storage format
  *
