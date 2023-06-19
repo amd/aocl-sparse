@@ -650,11 +650,11 @@ inline aoclsparse_status kt_trsv_l(const SUF      alpha,
         {
             avec = kt_loadu_p<SZ, SUF>(&a[idx]);
             xvec = kt_set_p<SZ, SUF>(x, &icol[idx]);
-            pvec = kt_fmadd_p(avec, xvec, pvec);
+            pvec = kt_fmadd_p<SZ, SUF>(avec, xvec, pvec);
         }
         if(idxcnt - idxk >= 0)
         {
-            xi -= kt_hsum_p(pvec);
+            xi -= kt_hsum_p<SZ, SUF>(pvec);
         }
         // process remainder
         // use packet-size -1 with zero paddding -> intrinsic
@@ -739,7 +739,7 @@ inline aoclsparse_status kt_trsv_lt(const SUF      alpha,
             xvec  = kt_set_p<SZ, SUF>(x, &icol[idx]);
             avec  = kt_loadu_p<SZ, SUF>(&a[idx]);
             xivec = kt_set1_p<SZ, SUF>(mxi);
-            xvec  = kt_fmadd_p(avec, xivec, xvec);
+            xvec  = kt_fmadd_p<SZ, SUF>(avec, xivec, xvec);
             for(size_t k = 0; k < idxk; k++)
                 x[icol[idx + k]] = xvec[k];
         }
@@ -753,7 +753,7 @@ inline aoclsparse_status kt_trsv_lt(const SUF      alpha,
             xvec  = kt_maskz_set_p<SZ, SUF, EXT, idxk - 1>(x, &icol[idx]);
             avec  = kt_maskz_set_p<SZ, SUF, EXT, idxk - 1>(a, idx);
             xivec = kt_set1_p<SZ, SUF>(mxi);
-            xvec  = kt_fmadd_p(avec, xivec, xvec);
+            xvec  = kt_fmadd_p<SZ, SUF>(avec, xivec, xvec);
             for(size_t k = 0; k < idxk - 1; k++)
                 x[icol[idx + k]] = xvec[k];
             break;
@@ -821,11 +821,11 @@ inline aoclsparse_status kt_trsv_u(const SUF      alpha,
         {
             xvec = kt_set_p<SZ, SUF>(x, &icol[idx]);
             avec = kt_loadu_p<SZ, SUF>(&a[idx]);
-            pvec = kt_fmadd_p(avec, xvec, pvec);
+            pvec = kt_fmadd_p<SZ, SUF>(avec, xvec, pvec);
         }
         if(idxcnt - idxk >= 0)
         {
-            xi -= kt_hsum_p(pvec);
+            xi -= kt_hsum_p<SZ, SUF>(pvec);
         }
         // process remainder
         // use packet-size -1 with zero paddding -> intrinsic
@@ -917,7 +917,7 @@ inline aoclsparse_status kt_trsv_ut(const SUF      alpha,
             xvec  = kt_set_p<SZ, SUF>(x, &icol[idx]);
             avec  = kt_loadu_p<SZ, SUF>(&a[idx]);
             xivec = kt_set1_p<SZ, SUF>(mxi);
-            xvec  = kt_fmadd_p(avec, xivec, xvec);
+            xvec  = kt_fmadd_p<SZ, SUF>(avec, xivec, xvec);
             for(size_t k = 0; k < idxk; k++)
                 x[icol[idx + k]] = xvec[k];
         }
@@ -931,7 +931,7 @@ inline aoclsparse_status kt_trsv_ut(const SUF      alpha,
             xvec  = kt_maskz_set_p<SZ, SUF, EXT, idxk - 1>(x, &icol[idx]);
             avec  = kt_maskz_set_p<SZ, SUF, EXT, idxk - 1>(a, idx);
             xivec = kt_set1_p<SZ, SUF>(mxi);
-            xvec  = kt_fmadd_p(avec, xivec, xvec);
+            xvec  = kt_fmadd_p<SZ, SUF>(avec, xivec, xvec);
             for(size_t k = 0; k < idxk - 1; k++)
                 x[icol[idx + k]] = xvec[k];
             break;
