@@ -397,45 +397,81 @@ aoclsparse_status aoclsparse_create_zcoo(aoclsparse_matrix          &mat,
                                          aoclsparse_int             *row_ind,
                                          aoclsparse_int             *col_ind,
                                          aoclsparse_double_complex  *val);
+/**@}*/
 
 /*! \ingroup aux_module
- *  \brief Export a \p CSR matrix structure
+ *  \brief Export a \p CSR matrix
  *
  *  \details
- *  \p aoclsparse_export_mat_csr exports a structure that holds the matrix in \p CSR
- *  storage format.
+ *  <tt>aoclsparse_export_(s/d/c/z)csr</tt> exposes the components defining the
+ *  \p CSR matrix in \p mat structure by copying out the data pointers. No additional
+ *  memory is allocated. User should not modify the arrays and once \p aoclsparse_destroy()
+ *  is called to free \p mat, these arrays will become inaccessible. If the matrix is
+ *  not in \p CSR format, an error is obtained. \ref aoclsparse_convert_csr can be used
+ *  to convert non-CSR format to \p CSR format.
  *
  *  @param[in]
- *  csr the pointer to the CSR sparse matrix.
+ *  mat     the pointer to the CSR sparse matrix.
  *  @param[out]
  *  base    \ref aoclsparse_index_base_zero or \ref aoclsparse_index_base_one.
  *  @param[out]
- *  M           number of rows of the sparse CSR matrix.
+ *  m       number of rows of the sparse CSR matrix.
  *  @param[out]
- *  N           number of columns of the sparse CSR matrix.
+ *  n       number of columns of the sparse CSR matrix.
  *  @param[out]
- *  csr_nnz     number of non-zero entries of the sparse CSR matrix.
+ *  nnz     number of non-zero entries of the sparse CSR matrix.
  *  @param[out]
- *  csr_row_ptr array of \p m+1 elements that point to the start
+ *  row_ptr array of \p m+1 elements that point to the start
  *              of every row of the sparse CSR matrix.
  *  @param[out]
- *  csr_col_ind array of \p nnz elements containing the column indices of the sparse
+ *  col_ind array of \p nnz elements containing the column indices of the sparse
  *              CSR matrix.
  *  @param[out]
- *  csr_val     array of \p nnz elements of the sparse CSR matrix.
+ *  val     array of \p nnz elements of the sparse CSR matrix.
  *
- *  \retval aoclsparse_status_success the operation completed successfully.
- *  \retval aoclsparse_status_invalid_pointer \p csr pointer is invalid.
+ *  \retval aoclsparse_status_success           the operation completed successfully.
+ *  \retval aoclsparse_status_invalid_pointer   \p mat or any of the output arguments are NULL.
+ *  \retval aoclsparse_status_invalid_value     \p mat is not in CSR format.
+ *  \retval aoclsparse_status_wrong_type        data type of \p mat does not match the function.
  */
+/**@{*/
 DLL_PUBLIC
-aoclsparse_status aoclsparse_export_mat_csr(aoclsparse_matrix     &csr,
-                                            aoclsparse_index_base *base,
-                                            aoclsparse_int        *M,
-                                            aoclsparse_int        *N,
-                                            aoclsparse_int        *csr_nnz,
-                                            aoclsparse_int       **csr_row_ptr,
-                                            aoclsparse_int       **csr_col_ind,
-                                            void                 **csr_val);
+aoclsparse_status aoclsparse_export_scsr(const aoclsparse_matrix mat,
+                                         aoclsparse_index_base  *base,
+                                         aoclsparse_int         *m,
+                                         aoclsparse_int         *n,
+                                         aoclsparse_int         *nnz,
+                                         aoclsparse_int        **row_ptr,
+                                         aoclsparse_int        **col_ind,
+                                         float                 **val);
+DLL_PUBLIC
+aoclsparse_status aoclsparse_export_dcsr(const aoclsparse_matrix mat,
+                                         aoclsparse_index_base  *base,
+                                         aoclsparse_int         *m,
+                                         aoclsparse_int         *n,
+                                         aoclsparse_int         *nnz,
+                                         aoclsparse_int        **row_ptr,
+                                         aoclsparse_int        **col_ind,
+                                         double                **val);
+DLL_PUBLIC
+aoclsparse_status aoclsparse_export_ccsr(const aoclsparse_matrix    mat,
+                                         aoclsparse_index_base     *base,
+                                         aoclsparse_int            *m,
+                                         aoclsparse_int            *n,
+                                         aoclsparse_int            *nnz,
+                                         aoclsparse_int           **row_ptr,
+                                         aoclsparse_int           **col_ind,
+                                         aoclsparse_float_complex **val);
+DLL_PUBLIC
+aoclsparse_status aoclsparse_export_zcsr(const aoclsparse_matrix     mat,
+                                         aoclsparse_index_base      *base,
+                                         aoclsparse_int             *m,
+                                         aoclsparse_int             *n,
+                                         aoclsparse_int             *nnz,
+                                         aoclsparse_int            **row_ptr,
+                                         aoclsparse_int            **col_ind,
+                                         aoclsparse_double_complex **val);
+/**@}*/
 
 /*! \ingroup aux_module
  *  \brief Destroy a sparse matrix structure
@@ -586,6 +622,78 @@ DLL_PUBLIC
 aoclsparse_status aoclsparse_order_mat(aoclsparse_matrix mat);
 /**@}*/
 
+/*! \ingroup aux_module
+ *  \brief Export \p CSC matrix
+ *
+ *  \details
+ *  <tt>aoclsparse_export_(s/d/c/z)csc</tt> exposes the components defining the
+ *  \p CSC matrix in \p mat structure by copying out the data pointers. No additional
+ *  memory is allocated. User should not modify the arrays and once \p aoclsparse_destroy()
+ *  is called to free \p mat, these arrays will become inaccessible. If the matrix is
+ *  not in \p CSC format, an error is obtained.
+ *
+ *  @param[in]
+ *  mat         the pointer to the CSC sparse matrix.
+ *  @param[out]
+ *  base        \ref aoclsparse_index_base_zero or \ref aoclsparse_index_base_one.
+ *  @param[out]
+ *  m           number of rows of the sparse CSC matrix.
+ *  @param[out]
+ *  n           number of columns of the sparse CSC matrix.
+ *  @param[out]
+ *  nnz         number of non-zero entries of the sparse CSC matrix.
+ *  @param[out]
+ *  col_ptr     array of \p n+1 elements that point to the start
+ *              of every col of the sparse CSC matrix.
+ *  @param[out]
+ *  row_idx     array of \p nnz elements containing the row indices of the sparse
+ *              CSC matrix.
+ *  @param[out]
+ *  val         array of \p nnz elements of the sparse CSC matrix.
+ *
+ *  \retval aoclsparse_status_success           the operation completed successfully.
+ *  \retval aoclsparse_status_invalid_pointer   \p mat or any of the output arguments are NULL.
+ *  \retval aoclsparse_status_invalid_value     \p mat is not in CSC format.
+ *  \retval aoclsparse_status_wrong_type        data type of \p mat does not match the function.
+ */
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_export_scsc(const aoclsparse_matrix mat,
+                                         aoclsparse_index_base  *base,
+                                         aoclsparse_int         *m,
+                                         aoclsparse_int         *n,
+                                         aoclsparse_int         *nnz,
+                                         aoclsparse_int        **col_ptr,
+                                         aoclsparse_int        **row_ind,
+                                         float                 **val);
+DLL_PUBLIC
+aoclsparse_status aoclsparse_export_dcsc(const aoclsparse_matrix mat,
+                                         aoclsparse_index_base  *base,
+                                         aoclsparse_int         *m,
+                                         aoclsparse_int         *n,
+                                         aoclsparse_int         *nnz,
+                                         aoclsparse_int        **col_ptr,
+                                         aoclsparse_int        **row_ind,
+                                         double                **val);
+DLL_PUBLIC
+aoclsparse_status aoclsparse_export_ccsc(const aoclsparse_matrix    mat,
+                                         aoclsparse_index_base     *base,
+                                         aoclsparse_int            *m,
+                                         aoclsparse_int            *n,
+                                         aoclsparse_int            *nnz,
+                                         aoclsparse_int           **col_ptr,
+                                         aoclsparse_int           **row_ind,
+                                         aoclsparse_float_complex **val);
+DLL_PUBLIC
+aoclsparse_status aoclsparse_export_zcsc(const aoclsparse_matrix     mat,
+                                         aoclsparse_index_base      *base,
+                                         aoclsparse_int             *m,
+                                         aoclsparse_int             *n,
+                                         aoclsparse_int             *nnz,
+                                         aoclsparse_int            **col_ptr,
+                                         aoclsparse_int            **row_ind,
+                                         aoclsparse_double_complex **val);
+/**@}*/
 #ifdef __cplusplus
 }
 #endif

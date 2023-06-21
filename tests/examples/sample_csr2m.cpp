@@ -100,10 +100,10 @@ int main(void)
         exit(EXIT_FAILURE);
     }
 
-    aoclsparse_export_mat_csr(
-        csrC, &base, &C_M, &C_N, &nnz_C, &csr_row_ptr_C, &csr_col_ind_C, (void **)&csr_val_C);
+    aoclsparse_export_scsr(
+        csrC, &base, &C_M, &C_N, &nnz_C, &csr_row_ptr_C, &csr_col_ind_C, &csr_val_C);
 
-#ifdef PRINT_OUTPUT
+#if 0
     std::cout << "C_M"
               << "\t"
               << "C_N"
@@ -131,8 +131,8 @@ int main(void)
         std::cout << "ERROR in aoclsparse_scsr2m\n";
         exit(EXIT_FAILURE);
     }
-    aoclsparse_export_mat_csr(
-        csrC, &base, &C_M, &C_N, &nnz_C, &csr_row_ptr_C, &csr_col_ind_C, (void **)&csr_val_C);
+    aoclsparse_export_scsr(
+        csrC, &base, &C_M, &C_N, &nnz_C, &csr_row_ptr_C, &csr_col_ind_C, &csr_val_C);
 
 #ifdef PRINT_OUTPUT
     std::cout << "csr_col_ind_C: " << std::endl;
@@ -160,8 +160,8 @@ int main(void)
         exit(EXIT_FAILURE);
     }
 
-    aoclsparse_export_mat_csr(
-        csrC, &base, &C_M, &C_N, &nnz_C, &csr_row_ptr_C, &csr_col_ind_C, (void **)&csr_val_C);
+    aoclsparse_export_scsr(
+        csrC, &base, &C_M, &C_N, &nnz_C, &csr_row_ptr_C, &csr_col_ind_C, &csr_val_C);
 
 #ifdef PRINT_OUTPUT
     std::cout << "C_M"

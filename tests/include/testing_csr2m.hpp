@@ -264,8 +264,8 @@ void testing_csr2m(const Arguments &arg)
             CHECK_AOCLSPARSE_ERROR(
                 aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, &csrC));
         }
-        aoclsparse_export_mat_csr(
-            csrC, &baseC, &C_M, &C_N, &nnz_C, &csr_row_ptr_C, &csr_col_ind_C, (void **)&csr_val_C);
+        aoclsparse_export_csr<T>(
+            csrC, &base, &C_M, &C_N, &nnz_C, &csr_row_ptr_C, &csr_col_ind_C, &csr_val_C);
 
         aoclsparse_order_column_index(C_M, nnz_C, csr_row_ptr_C, csr_col_ind_C, csr_val_C);
 
@@ -294,8 +294,8 @@ void testing_csr2m(const Arguments &arg)
         cpu_time_used = aoclsparse_clock_min_diff(cpu_time_used, cpu_time_start);
     }
 
-    aoclsparse_export_mat_csr(
-        csrC, &baseC, &C_M, &C_N, &nnz_C, &csr_row_ptr_C, &csr_col_ind_C, (void **)&csr_val_C);
+    aoclsparse_export_csr<T>(
+        csrC, &baseC, &C_M, &C_N, &nnz_C, &csr_row_ptr_C, &csr_col_ind_C, &csr_val_C);
     cpu_gflops = csr2m_gflop_count(
                      M, base, csr_row_ptr_A.data(), csr_col_ind_A.data(), csr_row_ptr_B.data())
                  / cpu_time_used;
