@@ -149,7 +149,7 @@ namespace
         EXPECT_EQ(
             aoclsparse_create_csr<T>(A, base, m, n, 0, row_ptr.data(), col_idx.data(), val.data()),
             aoclsparse_status_invalid_value);
-*/
+        */
         EXPECT_EQ(
             aoclsparse_create_csr<T>(A, base, m, n, -1, row_ptr.data(), col_idx.data(), val.data()),
             aoclsparse_status_invalid_size);
@@ -168,8 +168,16 @@ namespace
             return d + base;
         });
         // invalid column index for one-based indexing
-        EXPECT_EQ(aoclsparse_create_csr<T>(
-                      A, base, m, n, nnz, row_ptr.data(), col_idx.data(), val.data()),
+        row_ptr.assign({1, 3, 4, 5, 8, 9});
+        col_idx.assign({1, 8, 2, 3, 2, 4, 5, 7});
+        EXPECT_EQ(aoclsparse_create_csr<T>(A,
+                                           aoclsparse_index_base_one,
+                                           m,
+                                           n,
+                                           nnz,
+                                           row_ptr.data(),
+                                           col_idx.data(),
+                                           val.data()),
                   aoclsparse_status_invalid_index_value);
     }
 

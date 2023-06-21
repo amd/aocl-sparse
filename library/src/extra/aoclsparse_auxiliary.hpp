@@ -105,6 +105,26 @@ aoclsparse_status aoclsparse_copy_mat(const aoclsparse_matrix src, aoclsparse_ma
 template <typename T>
 aoclsparse_status aoclsparse_sort_mat(aoclsparse_matrix mat);
 
+template <typename T>
+aoclsparse_status aoclsparse_export_csr_t(const aoclsparse_matrix csr,
+                                          aoclsparse_index_base  *base,
+                                          aoclsparse_int         *m,
+                                          aoclsparse_int         *n,
+                                          aoclsparse_int         *nnz,
+                                          aoclsparse_int        **row_ptr,
+                                          aoclsparse_int        **col_ind,
+                                          T                     **val);
+
+template <typename T>
+aoclsparse_status aoclsparse_export_csc_t(const aoclsparse_matrix mat,
+                                          aoclsparse_index_base  *base,
+                                          aoclsparse_int         *m,
+                                          aoclsparse_int         *n,
+                                          aoclsparse_int         *nnz,
+                                          aoclsparse_int        **col_ptr,
+                                          aoclsparse_int        **row_idx,
+                                          T                     **val);
+
 /********************************************************************************
  * \brief generates a plane rotation with cosine and sine. Slower and more accurate
  * version of BLAS's DROTG performs the Givens Rotation. The mathematical formulas

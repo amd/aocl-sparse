@@ -266,14 +266,8 @@ namespace
             aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, &csrC),
                   aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_export_mat_csr(csrC,
-                                            &base,
-                                            &C_M,
-                                            &C_N,
-                                            &nnz_C,
-                                            &csr_row_ptr_C,
-                                            &csr_col_ind_C,
-                                            (void **)&csr_val_C),
+        ASSERT_EQ(aoclsparse_export_csr(
+                      csrC, &base, &C_M, &C_N, &nnz_C, &csr_row_ptr_C, &csr_col_ind_C, &csr_val_C),
                   aoclsparse_status_success);
         EXPECT_EQ(nnz_C, nnz_C_gold);
         EXPECT_ARR_NEAR((C_M + 1), csr_row_ptr_C, csr_row_ptr_C_gold, expected_precision<T>(10.0));
@@ -313,14 +307,8 @@ namespace
             aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, &csrC),
                   aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_export_mat_csr(csrC,
-                                            &base,
-                                            &C_M,
-                                            &C_N,
-                                            &nnz_C,
-                                            &csr_row_ptr_C,
-                                            &csr_col_ind_C,
-                                            (void **)&csr_val_C),
+        ASSERT_EQ(aoclsparse_export_csr(
+                      csrC, &base, &C_M, &C_N, &nnz_C, &csr_row_ptr_C, &csr_col_ind_C, &csr_val_C),
                   aoclsparse_status_success);
         EXPECT_EQ(nnz_C, nnz_C_gold);
         EXPECT_ARR_NEAR((C_M + 1), csr_row_ptr_C, csr_row_ptr_C_gold, expected_precision<T>(10.0));
@@ -369,14 +357,8 @@ namespace
             aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, &csrC),
                   aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_export_mat_csr(csrC,
-                                            &base,
-                                            &C_M,
-                                            &C_N,
-                                            &nnz_C,
-                                            &csr_row_ptr_C,
-                                            &csr_col_ind_C,
-                                            (void **)&csr_val_C),
+        ASSERT_EQ(aoclsparse_export_csr(
+                      csrC, &base, &C_M, &C_N, &nnz_C, &csr_row_ptr_C, &csr_col_ind_C, &csr_val_C),
                   aoclsparse_status_success);
         EXPECT_EQ(nnz_C, nnz_C_gold);
         EXPECT_ARR_NEAR((C_M + 1), csr_row_ptr_C, csr_row_ptr_C_gold, expected_precision<T>(10.0));
@@ -463,14 +445,8 @@ namespace
         EXPECT_EQ(aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, &csrC),
                   aoclsparse_status_success);
 
-        ASSERT_EQ(aoclsparse_export_mat_csr(csrC,
-                                            &base,
-                                            &C_M,
-                                            &C_N,
-                                            &nnz_C,
-                                            &csr_row_ptr_C,
-                                            &csr_col_ind_C,
-                                            (void **)&csr_val_C),
+        ASSERT_EQ(aoclsparse_export_csr(
+                      csrC, &base, &C_M, &C_N, &nnz_C, &csr_row_ptr_C, &csr_col_ind_C, &csr_val_C),
                   aoclsparse_status_success);
 
         EXPECT_EQ(nnz_C, nnz_C_gold);
@@ -541,14 +517,8 @@ namespace
         request = aoclsparse_stage_finalize;
         EXPECT_EQ(aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, &csrC),
                   aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_export_mat_csr(csrC,
-                                            &base,
-                                            &C_M,
-                                            &C_N,
-                                            &nnz_C,
-                                            &csr_row_ptr_C,
-                                            &csr_col_ind_C,
-                                            (void **)&csr_val_C),
+        ASSERT_EQ(aoclsparse_export_csr(
+                      csrC, &base, &C_M, &C_N, &nnz_C, &csr_row_ptr_C, &csr_col_ind_C, &csr_val_C),
                   aoclsparse_status_success);
         EXPECT_EQ(nnz_C, nnz_C_gold);
         EXPECT_ARR_NEAR((C_M + 1), csr_row_ptr_C, csr_row_ptr_C_gold, expected_precision<T>(10.0));
@@ -603,14 +573,8 @@ namespace
         request = aoclsparse_stage_finalize;
         EXPECT_EQ(aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, &csrC),
                   aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_export_mat_csr(csrC,
-                                            &base,
-                                            &C_M,
-                                            &C_N,
-                                            &nnz_C,
-                                            &csr_row_ptr_C,
-                                            &csr_col_ind_C,
-                                            (void **)&csr_val_C),
+        ASSERT_EQ(aoclsparse_export_csr(
+                      csrC, &base, &C_M, &C_N, &nnz_C, &csr_row_ptr_C, &csr_col_ind_C, &csr_val_C),
                   aoclsparse_status_success);
         EXPECT_EQ(nnz_C, nnz_C_gold);
         EXPECT_ARR_NEAR((C_M + 1), csr_row_ptr_C, csr_row_ptr_C_gold, expected_precision<T>(10.0));

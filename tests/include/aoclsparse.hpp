@@ -376,4 +376,23 @@ aoclsparse_status aoclsparse_axpyi(aoclsparse_int nnz,
                                    T *__restrict__ y,
                                    [[maybe_unused]] const aoclsparse_int kid);
 
+template <typename T>
+aoclsparse_status aoclsparse_export_csr(const aoclsparse_matrix mat,
+                                        aoclsparse_index_base  *base,
+                                        aoclsparse_int         *m,
+                                        aoclsparse_int         *n,
+                                        aoclsparse_int         *nnz,
+                                        aoclsparse_int        **row_ptr,
+                                        aoclsparse_int        **col_idx,
+                                        T                     **val);
+
+template <typename T>
+aoclsparse_status aoclsparse_export_csc(const aoclsparse_matrix mat,
+                                        aoclsparse_index_base  *base,
+                                        aoclsparse_int         *m,
+                                        aoclsparse_int         *n,
+                                        aoclsparse_int         *nnz,
+                                        aoclsparse_int        **col_ptr,
+                                        aoclsparse_int        **row_idx,
+                                        T                     **val);
 #endif /*AOCLSPARSE_HPP*/

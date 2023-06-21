@@ -83,6 +83,7 @@ set(GTEST_EXECUTABLES
     conversion_tests
     order_tests
     copy_tests
+    export_mat_tests
 )
 foreach(TNAME ${GTEST_EXECUTABLES})
     add_executable(${TNAME} ${TNAME}.cpp ${utils_source})
