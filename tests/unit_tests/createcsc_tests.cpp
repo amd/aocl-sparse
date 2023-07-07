@@ -42,14 +42,20 @@ namespace
         float                *valf;
     } CreateCSCParamType;
 
-    // test dataset
+    // test dataset. Keeping nnz as 4
     aoclsparse_int col_ptr[]         = {0, 1, 2, 3, 4};
     aoclsparse_int row_idx[]         = {0, 3, 1, 3};
     aoclsparse_int col_ptr_onebase[] = {1, 2, 3, 4, 5};
+    aoclsparse_int row_idx_onebase[] = {1, 4, 2, 4};
     double         val_double[] = {1.000000000000, 6.000000000000, 8.000000000000, 4.000000000000};
     float          val_float[]  = {1.000000, 6.000000, 8.000000, 4.000000};
-    aoclsparse_int row_idx_invalid_zerobase[] = {0, 4, 1, 3};
-    aoclsparse_int row_idx_invalid_onebase[]  = {0, 4, 2, 4};
+    aoclsparse_double_complex val_cd[]                    = {{1, 1}, {2, 2}, {3, 3}, {4, 4}};
+    aoclsparse_float_complex  val_cf[]                    = {{1, 1}, {2, 2}, {3, 3}, {4, 4}};
+    aoclsparse_int            row_idx_invalid_zerobase[]  = {0, 4, 1, 3};
+    aoclsparse_int            row_idx_invalid_onebase[]   = {0, 4, 2, 4};
+    aoclsparse_int            col_ptr_first_ele_invalid[] = {1, 1, 2, 3, 4};
+    aoclsparse_int            col_ptr_last_ele_invalid[]  = {0, 1, 2, 3, 3};
+    aoclsparse_int            col_ptr_invalid_order[]     = {0, 1, 2, 5, 4};
 
     // List of all desired negative tests
     const CreateCSCParamType CreateCSCErrorValues[] = {{"InvalidRowSize",
@@ -131,6 +137,46 @@ namespace
                                                         col_ptr_onebase,
                                                         row_idx_invalid_onebase,
                                                         val_double,
+                                                        val_float},
+                                                       {"InvalidColPtrFirstEle",
+                                                        aoclsparse_status_invalid_value,
+                                                        aoclsparse_index_base_zero,
+                                                        4,
+                                                        4,
+                                                        4,
+                                                        col_ptr_first_ele_invalid,
+                                                        row_idx,
+                                                        val_double,
+                                                        val_float},
+                                                       {"InvalidColPtrLastEle",
+                                                        aoclsparse_status_invalid_value,
+                                                        aoclsparse_index_base_zero,
+                                                        4,
+                                                        4,
+                                                        4,
+                                                        col_ptr_last_ele_invalid,
+                                                        row_idx,
+                                                        val_double,
+                                                        val_float},
+                                                       {"InvalidColPtrOrder",
+                                                        aoclsparse_status_invalid_value,
+                                                        aoclsparse_index_base_zero,
+                                                        4,
+                                                        4,
+                                                        4,
+                                                        col_ptr_invalid_order,
+                                                        row_idx,
+                                                        val_double,
+                                                        val_float},
+                                                       {"ColPtrAndRowIdxBaseDonotMatch",
+                                                        aoclsparse_status_invalid_index_value,
+                                                        aoclsparse_index_base_one,
+                                                        4,
+                                                        4,
+                                                        4,
+                                                        col_ptr_onebase,
+                                                        row_idx,
+                                                        val_double,
                                                         val_float}};
 
     // It is used to when testing::PrintToString(GetParam()) to generate test name for ctest
@@ -147,73 +193,80 @@ namespace
     TEST_P(CreateCSCTestErr, Double)
     {
         const CreateCSCParamType &param = GetParam();
-        test_create_dcsc(param.status_exp,
-                         param.base,
-                         param.M,
-                         param.N,
-                         param.nnz,
-                         param.col_ptr,
-                         param.row_idx,
-                         param.vald);
+        test_create_csc(param.status_exp,
+                        param.base,
+                        param.M,
+                        param.N,
+                        param.nnz,
+                        param.col_ptr,
+                        param.row_idx,
+                        param.vald);
     }
 
     // Error tests with float type
     TEST_P(CreateCSCTestErr, Float)
     {
         const CreateCSCParamType &param = GetParam();
-        test_create_scsc(param.status_exp,
-                         param.base,
-                         param.M,
-                         param.N,
-                         param.nnz,
-                         param.col_ptr,
-                         param.row_idx,
-                         param.valf);
+        test_create_csc(param.status_exp,
+                        param.base,
+                        param.M,
+                        param.N,
+                        param.nnz,
+                        param.col_ptr,
+                        param.row_idx,
+                        param.valf);
     }
 
     INSTANTIATE_TEST_SUITE_P(CreateCSCSuiteErr,
                              CreateCSCTestErr,
                              testing::ValuesIn(CreateCSCErrorValues));
 
-    TEST(CreateCSCTest, CreateCSCTestDoubleSuccess)
+    TEST(CreateCSCTest, Success)
     {
-        test_create_dcsc(aoclsparse_status_success,
-                         aoclsparse_index_base_zero,
-                         4,
-                         4,
-                         4,
-                         col_ptr,
-                         row_idx,
-                         val_double);
-    }
-    TEST(CreateCSCTest, CreateCSCTestFloatSuccess)
-    {
-        test_create_scsc(aoclsparse_status_success,
-                         aoclsparse_index_base_zero,
-                         4,
-                         4,
-                         4,
-                         col_ptr,
-                         row_idx,
-                         val_float);
-    }
-    TEST(CreateCSCTest, CreateCSCTestComplexDoubleSuccess)
-    {
-        aoclsparse_matrix         mat      = NULL;
-        aoclsparse_double_complex val_cd[] = {{1, 1}, {2, 2}, {3, 3}, {4, 4}};
-
-        EXPECT_EQ(aoclsparse_createcsc(
-                      mat, aoclsparse_index_base_zero, 4, 4, 4, col_ptr, row_idx, val_cd),
-                  aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_status_success, aoclsparse_destroy(mat));
-    }
-    TEST(CreateCSCTest, CreateCSCTestComplexFloatSuccess)
-    {
-        aoclsparse_matrix        mat      = NULL;
-        aoclsparse_float_complex val_cf[] = {{1, 1}, {2, 2}, {3, 3}, {4, 4}};
-        EXPECT_EQ(aoclsparse_createcsc(
-                      mat, aoclsparse_index_base_zero, 4, 4, 4, col_ptr, row_idx, val_cf),
-                  aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_status_success, aoclsparse_destroy(mat));
+        // 0-base double
+        test_create_csc(aoclsparse_status_success,
+                        aoclsparse_index_base_zero,
+                        4,
+                        4,
+                        4,
+                        col_ptr,
+                        row_idx,
+                        val_double);
+        // 0-base float
+        test_create_csc(aoclsparse_status_success,
+                        aoclsparse_index_base_zero,
+                        4,
+                        4,
+                        4,
+                        col_ptr,
+                        row_idx,
+                        val_float);
+        // 0-base complex double
+        test_create_csc(aoclsparse_status_success,
+                        aoclsparse_index_base_zero,
+                        4,
+                        4,
+                        4,
+                        col_ptr,
+                        row_idx,
+                        val_cd);
+        // 0-base complex float
+        test_create_csc(aoclsparse_status_success,
+                        aoclsparse_index_base_zero,
+                        4,
+                        4,
+                        4,
+                        col_ptr,
+                        row_idx,
+                        val_cf);
+        // 1-base double
+        test_create_csc(aoclsparse_status_success,
+                        aoclsparse_index_base_one,
+                        4,
+                        4,
+                        4,
+                        col_ptr_onebase,
+                        row_idx_onebase,
+                        val_double);
     }
 } // namespace

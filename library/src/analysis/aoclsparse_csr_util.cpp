@@ -77,15 +77,28 @@ aoclsparse_status aoclsparse_add_hint(aoclsparse_optimize_data *&list,
     return aoclsparse_status_success;
 }
 
-/* Check CSR matrix format (0-based) for correctness
- * shape is used to determine if the matrix is supposed to have a particular structure to enable individual checks
+/* Checks CSR or CSC matrix format for correctness
+ * maj_dim : M (rows) for CSR and N (cols) for CSC
+ * min_dim : N (cols) for CSC and M (rows) for CSR
+ * nnz     : number of non-zeros
+ * idx_ptr : csr_row_ptr[M+1] for CSR and csc_mat_col_ptr[N+1] for CSC
+ * indices : csr_col_ptr[nnz] for CSR and csc_mat.row_idx[nnz] for CSC
+ * val     : csr_val[nnz] for CSR and csc_mat.val[nnz] for CSC
+ * shape   : used to determine if the matrix is supposed to have a particular
+ *           structure to enable individual checks
+ * base    : aoclsparse_index_base_zero or aoclsparse_index_base_one
+ *
  * error_handler is an optional callback for debug purposes:
  * if defined, it gets the status and a string describing the probelm on its interface
+ *
+ * Possible erros: invalid_pointer, invalid_size, invalid_index, invalid_value
  */
-aoclsparse_status aoclsparse_csr_check_internal(aoclsparse_int        m,
-                                                aoclsparse_int        n,
+aoclsparse_status aoclsparse_mat_check_internal(aoclsparse_int        maj_dim,
+                                                aoclsparse_int        min_dim,
                                                 aoclsparse_int        nnz,
-                                                const aoclsparse_csr  csr_mat,
+                                                const aoclsparse_int *idx_ptr,
+                                                const aoclsparse_int *indices,
+                                                const void           *val,
                                                 aoclsparse_shape      shape,
                                                 aoclsparse_index_base base,
                                                 void (*error_handler)(aoclsparse_status status,
@@ -95,57 +108,63 @@ aoclsparse_status aoclsparse_csr_check_internal(aoclsparse_int        m,
     std::ostringstream buffer;
     aoclsparse_status  status;
 
-    if(n < 0 || m < 0 || nnz < 0)
+    if(idx_ptr == nullptr)
+        return aoclsparse_status_invalid_pointer;
+    if(indices == nullptr)
+        return aoclsparse_status_invalid_pointer;
+    if(val == nullptr)
+        return aoclsparse_status_invalid_pointer;
+
+    if((min_dim < 0) || (maj_dim < 0) || (nnz < 0))
+    {
+        status = aoclsparse_status_invalid_size;
+        if(error_handler)
+        {
+            buffer << "Wrong min_dim/maj_dim/nnz";
+            error_handler(status, buffer.str());
+        }
+        return status;
+    }
+    if((idx_ptr[0] - base) != 0)
     {
         status = aoclsparse_status_invalid_value;
         if(error_handler)
         {
-            buffer << "Wrong n/m/nnz";
+            buffer << "Wrong csr_row_ptr[0] or csc.col_ptr[0]";
+            error_handler(status, buffer.str());
+        }
+        return status;
+    }
+    if((idx_ptr[maj_dim] - base) != nnz)
+    {
+        status = aoclsparse_status_invalid_value;
+        if(error_handler)
+        {
+            buffer << "Wrong csr_row_ptr[m]!=nnz or csc.col_ptr[n]!=nnz";
             error_handler(status, buffer.str());
         }
         return status;
     }
 
-    if((csr_mat->csr_row_ptr[0] - base) != 0)
+    for(aoclsparse_int i = 1; i <= maj_dim; i++)
     {
-        status = aoclsparse_status_invalid_value;
-        if(error_handler)
-        {
-            buffer << "Wrong row_ptr[0]";
-            error_handler(status, buffer.str());
-        }
-        return status;
-    }
-    if((csr_mat->csr_row_ptr[m] - base) != nnz)
-    {
-        status = aoclsparse_status_invalid_value;
-        if(error_handler)
-        {
-            buffer << "Wrong row_ptr[m]!=nnz";
-            error_handler(status, buffer.str());
-        }
-        return status;
-    }
-
-    for(aoclsparse_int i = 1; i <= m; i++)
-    {
-        if(csr_mat->csr_row_ptr[i - 1] > csr_mat->csr_row_ptr[i])
+        if(idx_ptr[i - 1] > idx_ptr[i])
         {
             status = aoclsparse_status_invalid_value;
             if(error_handler)
             {
-                buffer << "Wrong row_ptr - not nondecreasing";
+                buffer << "Wrong csr_row_ptr/csc.col_ptr - not nondecreasing";
                 error_handler(status, buffer.str());
             }
             return status;
         }
     }
 
-    aoclsparse_int idxstart, idxend, j, jmin = 0, jmax = n - 1;
-    for(aoclsparse_int i = 0; i < m; i++)
+    aoclsparse_int idxstart, idxend, j, jmin = 0, jmax = min_dim - 1;
+    for(aoclsparse_int i = 0; i < maj_dim; i++)
     {
-        idxend   = csr_mat->csr_row_ptr[i + 1] - base;
-        idxstart = csr_mat->csr_row_ptr[i] - base;
+        idxend   = idx_ptr[i + 1] - base;
+        idxstart = idx_ptr[i] - base;
         if(shape == shape_lower_triangle)
         {
             jmin = 0;
@@ -154,19 +173,19 @@ aoclsparse_status aoclsparse_csr_check_internal(aoclsparse_int        m,
         else if(shape == shape_upper_triangle)
         {
             jmin = i;
-            jmax = n - 1;
+            jmax = min_dim - 1;
         }
         int diag = -1;
         for(aoclsparse_int idx = idxstart; idx < idxend; idx++)
         {
-            j = csr_mat->csr_col_ptr[idx] - base;
+            j = indices[idx] - base;
             if(j < jmin || j > jmax)
             {
-                status = aoclsparse_status_invalid_value;
+                status = aoclsparse_status_invalid_index_value;
                 if(error_handler)
                 {
-                    buffer << "Wrong col_ptr - out of bounds or triangle, @idx=" << idx
-                           << ": j=" << j << ", i=" << i;
+                    buffer << "Wrong index - out of bounds or triangle, @idx=" << idx << ": j=" << j
+                           << ", i=" << i;
                     error_handler(status, buffer.str());
                 }
                 return status;

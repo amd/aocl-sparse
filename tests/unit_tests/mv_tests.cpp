@@ -251,7 +251,7 @@ namespace
     {
         aoclsparse_operation trans = aoclsparse_operation_none;
 
-        aoclsparse_int M = 1, N = 1, NNZ = 1;
+        aoclsparse_int M = 1, N = 1;
         T              alpha = 1.0;
         T              beta  = 0.0;
         // Initialise vectors
@@ -265,13 +265,12 @@ namespace
         aoclsparse_create_mat_descr(&descr);
         aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_zero);
 
-        aoclsparse_int    csr_row_ptr[] = {0};
+        aoclsparse_int    csr_row_ptr[] = {0, 0};
         aoclsparse_int    csr_col_ind[] = {0};
         T                 csr_val[]     = {0};
         aoclsparse_matrix AM0, AN0;
-        aoclsparse_create_csr<T>(AM0, base, 0, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
-        aoclsparse_create_csr<T>(AN0, base, M, 0, NNZ, csr_row_ptr, csr_col_ind, csr_val);
-
+        aoclsparse_create_csr<T>(AM0, base, 0, N, 0, csr_row_ptr, csr_col_ind, csr_val);
+        aoclsparse_create_csr<T>(AN0, base, M, 0, 0, csr_row_ptr, csr_col_ind, csr_val);
         EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, AM0, descr, x, &beta, y),
                   aoclsparse_status_success);
 

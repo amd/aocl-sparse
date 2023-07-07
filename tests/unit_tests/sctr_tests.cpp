@@ -153,8 +153,7 @@ namespace
             aoclsparse_int sz = y_exp.size();
             if constexpr(std::is_same_v<T, aoclsparse_double_complex>)
             {
-                std::vector<std::complex<double>> *tx, *ty, *ty_exp;
-                tx     = (std::vector<std::complex<double>> *)&x;
+                std::vector<std::complex<double>> *ty, *ty_exp;
                 ty     = (std::vector<std::complex<double>> *)&y;
                 ty_exp = (std::vector<std::complex<double>> *)&y_exp;
                 EXPECT_EQ((aoclsparse_sctr<std::complex<double>>(nnz,
@@ -167,8 +166,7 @@ namespace
             }
             else if constexpr(std::is_same_v<T, aoclsparse_float_complex>)
             {
-                std::vector<std::complex<float>> *tx, *ty, *ty_exp;
-                tx     = (std::vector<std::complex<float>> *)&x;
+                std::vector<std::complex<float>> *ty, *ty_exp;
                 ty     = (std::vector<std::complex<float>> *)&y;
                 ty_exp = (std::vector<std::complex<float>> *)&y_exp;
                 EXPECT_EQ((aoclsparse_sctr<std::complex<float>>(nnz,

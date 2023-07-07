@@ -50,10 +50,12 @@ enum aoclsparse_shape
     shape_upper_triangle,
 };
 
-aoclsparse_status aoclsparse_csr_check_internal(aoclsparse_int        m,
-                                                aoclsparse_int        n,
+aoclsparse_status aoclsparse_mat_check_internal(aoclsparse_int        maj_dim,
+                                                aoclsparse_int        min_dim,
                                                 aoclsparse_int        nnz,
-                                                const aoclsparse_csr  csr_mat,
+                                                const aoclsparse_int *idx_ptr,
+                                                const aoclsparse_int *indices,
+                                                const void           *val,
                                                 aoclsparse_shape      shape,
                                                 aoclsparse_index_base base,
                                                 void (*error_handler)(aoclsparse_status status,
@@ -323,8 +325,15 @@ aoclsparse_status aoclsparse_csr_optimize(aoclsparse_matrix A)
 
     // Check the user's matrix format
     // First check the matrix is a valid matrix
-    status = aoclsparse_csr_check_internal(
-        A->m, A->n, A->nnz, &A->csr_mat, shape_general, A->base, nullptr);
+    status = aoclsparse_mat_check_internal(A->m,
+                                           A->n,
+                                           A->nnz,
+                                           A->csr_mat.csr_row_ptr,
+                                           A->csr_mat.csr_col_ptr,
+                                           A->csr_mat.csr_val,
+                                           shape_general,
+                                           A->base,
+                                           nullptr);
     if(status != aoclsparse_status_success)
         // The matrix has invalid data, abort optimize and return error
         return status;

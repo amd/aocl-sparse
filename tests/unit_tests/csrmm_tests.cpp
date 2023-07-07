@@ -246,9 +246,10 @@ namespace
         aoclsparse_index_base base  = aoclsparse_index_base_zero;
         aoclsparse_order      order = aoclsparse_order_column;
         aoclsparse_int        m = 2, k = 3, n = 2, nnz = 1;
-        T                     csr_val[]     = {42.};
-        aoclsparse_int        csr_col_ind[] = {1};
-        aoclsparse_int        csr_row_ptr[] = {0, 0, 1};
+        T                     csr_val[]           = {42.};
+        aoclsparse_int        csr_col_ind[]       = {1};
+        aoclsparse_int        csr_row_ptr[]       = {0, 0, 1};
+        aoclsparse_int        csr_row_ptr_zeros[] = {0, 0, 0};
         T                     alpha = 2.3, beta = 11.2;
         T                     B[] = {1.0, -2.0, 3.0, 4.0, 5.0, -6.0};
         T                     C[] = {0.1, 0.2, 0.3, 0.4};
@@ -260,13 +261,13 @@ namespace
         aoclsparse_matrix csr;
 
         // expect success for m=0
-        aoclsparse_create_csr(csr, base, 0, k, nnz, csr_row_ptr, csr_col_ind, csr_val);
+        aoclsparse_create_csr(csr, base, 0, k, 0, csr_row_ptr, csr_col_ind, csr_val);
         EXPECT_EQ(aoclsparse_csrmm<T>(trans, &alpha, csr, descr, order, B, n, k, &beta, C, m),
                   aoclsparse_status_success);
         aoclsparse_destroy(csr);
 
         // and expect success for k=0
-        aoclsparse_create_csr(csr, base, m, 0, nnz, csr_row_ptr, csr_col_ind, csr_val);
+        aoclsparse_create_csr(csr, base, m, 0, 0, csr_row_ptr_zeros, csr_col_ind, csr_val);
         EXPECT_EQ(aoclsparse_csrmm<T>(trans, &alpha, csr, descr, order, B, n, k, &beta, C, m),
                   aoclsparse_status_success);
         aoclsparse_destroy(csr);
