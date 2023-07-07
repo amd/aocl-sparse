@@ -160,7 +160,7 @@ namespace
         aoclsparse_matrix           A_nnz_zero      = nullptr;
         T                          *approx_inv_diag = NULL;
         T                          *precond_csr_val = NULL;
-        aoclsparse_int              m, n, nnz;
+        aoclsparse_int              m, n;
         aoclsparse_int              zero = 0;
         std::vector<aoclsparse_int> csr_row_ptr;
         std::vector<aoclsparse_int> csr_col_ind;
@@ -169,10 +169,9 @@ namespace
         T                           x[5] = {1.0};
         T                           b[5] = {1.0};
 
-        m   = 5;
-        n   = 5;
-        nnz = 8;
-        csr_row_ptr.assign({0, 2, 3, 4, 7, 8});
+        m = 5;
+        n = 5;
+        csr_row_ptr.assign({0, 0, 0, 0, 0, 0});
         csr_col_ind.assign({0, 3, 1, 2, 1, 3, 4, 4});
         csr_val.assign({1, 2, 3, 4, 5, 6, 7, 8});
 
@@ -183,10 +182,10 @@ namespace
             pass zero arguments for m, n and nnz to test the creation API.
         */
         ASSERT_EQ(create_aoclsparse_matrix<T>(
-                      A_n_zero, descr, m, zero, nnz, csr_row_ptr, csr_col_ind, csr_val),
+                      A_n_zero, descr, m, zero, zero, csr_row_ptr, csr_col_ind, csr_val),
                   aoclsparse_status_success);
         ASSERT_EQ(create_aoclsparse_matrix<T>(
-                      A_m_zero, descr, zero, n, nnz, csr_row_ptr, csr_col_ind, csr_val),
+                      A_m_zero, descr, zero, n, zero, csr_row_ptr, csr_col_ind, csr_val),
                   aoclsparse_status_success);
         ASSERT_EQ(create_aoclsparse_matrix<T>(
                       A_nnz_zero, descr, m, n, zero, csr_row_ptr, csr_col_ind, csr_val),

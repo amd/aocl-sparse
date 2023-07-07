@@ -525,9 +525,10 @@ aoclsparse_status create_matrix(matrix_id                    mid,
     case invalid_mat:
         // matrix from the CG sample examples
         // symmetric, lower triangle filled
+        // making matrix invalid after memory is allocated for it
         n = m       = 8;
         nnz         = 18;
-        csr_row_ptr = {0, 1, 2, 5, 6, 8, 11, 15, 17};
+        csr_row_ptr = {0, 1, 2, 5, 6, 8, 11, 15, 18};
         csr_col_ind = {0, 1, 0, 1, 2, 3, 1, 4, 0, 4, 5, 0, 3, 4, 6, 2, 5, 7};
         csr_val     = {19, 10, 1, 8, 11, 13, 2, 11, 2, 1, 9, 7, 9, 5, 12, 5, 5, 9};
         aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_symmetric);
@@ -543,6 +544,11 @@ aoclsparse_status create_matrix(matrix_id                    mid,
     ret = create_aoclsparse_matrix<T>(A, descr, m, n, nnz, csr_row_ptr, csr_col_ind, csr_val);
     if(ret != aoclsparse_status_success && verbose)
         std::cout << "Unexpected error in matrix creation" << std::endl;
+
+    if(mid == invalid_mat)
+    {
+        csr_row_ptr[m] = 17;
+    }
     return ret;
 }
 template <typename T>

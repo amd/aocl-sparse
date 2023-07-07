@@ -27,6 +27,7 @@
 #include "aoclsparse_mat_structures.h"
 #include "aoclsparse_types.h"
 #include "aoclsparse_auxiliary.hpp"
+#include "aoclsparse_csr_util.hpp"
 #include "aoclsparse_optimize_data.hpp"
 
 #include <cstring>
@@ -668,39 +669,13 @@ aoclsparse_status aoclsparse_create_csr_t(aoclsparse_matrix    &mat,
                                           aoclsparse_int       *col_idx,
                                           T                    *val)
 {
+    aoclsparse_status status;
     // Validate the input parameters
-    if(M < 0)
+    if((status = aoclsparse_mat_check_internal(
+            M, N, nnz, row_ptr, col_idx, val, shape_general, base, nullptr))
+       != aoclsparse_status_success)
     {
-        return aoclsparse_status_invalid_size;
-    }
-    else if(N < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    else if(nnz < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-
-    if(row_ptr == nullptr)
-        return aoclsparse_status_invalid_pointer;
-    if(col_idx == nullptr)
-        return aoclsparse_status_invalid_pointer;
-    if(val == nullptr)
-        return aoclsparse_status_invalid_pointer;
-
-    // check if the column indicies are within bounds
-    for(aoclsparse_int i = 0; i < M; i++)
-    {
-        if(N == 0)
-        {
-            break;
-        }
-        for(aoclsparse_int j = (row_ptr[i] - base); j < (row_ptr[i + 1] - base); j++)
-        {
-            if((col_idx[j] >= (N + base)) || (col_idx[j] < base))
-                return aoclsparse_status_invalid_index_value;
-        }
+        return status;
     }
     try
     {
@@ -735,39 +710,13 @@ aoclsparse_status aoclsparse_create_csc(aoclsparse_matrix    &mat,
                                         aoclsparse_int       *row_idx,
                                         T                    *val)
 {
+    aoclsparse_status status;
     // Validate the input parameters
-    if(M < 0)
+    if((status = aoclsparse_mat_check_internal(
+            N, M, nnz, col_ptr, row_idx, val, shape_general, base, nullptr))
+       != aoclsparse_status_success)
     {
-        return aoclsparse_status_invalid_size;
-    }
-    else if(N < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    else if(nnz < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-
-    if(row_idx == nullptr)
-        return aoclsparse_status_invalid_pointer;
-    if(col_ptr == nullptr)
-        return aoclsparse_status_invalid_pointer;
-    if(val == nullptr)
-        return aoclsparse_status_invalid_pointer;
-
-    // check if the row indicies are within bounds
-    for(aoclsparse_int i = 0; i < N; i++)
-    {
-        if(M == 0)
-        {
-            break;
-        }
-        for(aoclsparse_int j = (col_ptr[i] - base); j < (col_ptr[i + 1] - base); j++)
-        {
-            if((row_idx[j] >= (M + base)) || (row_idx[j] < base))
-                return aoclsparse_status_invalid_index_value;
-        }
+        return status;
     }
     try
     {
@@ -812,7 +761,7 @@ aoclsparse_status aoclsparse_create_coo(aoclsparse_matrix          &mat,
     if(val == nullptr)
         return aoclsparse_status_invalid_pointer;
 
-    // check if codinates given is correct or not
+    // check if coordinates given are within bounds or not
     for(int i = 0; i < nnz; i++)
     {
         if(row_ind[i] < base || row_ind[i] >= (M + base))

@@ -25,35 +25,15 @@
 #include "gtest/gtest.h"
 #include "aoclsparse.hpp"
 
-void test_create_scsc(aoclsparse_status     status_exp,
-                      aoclsparse_index_base base,
-                      aoclsparse_int        M,
-                      aoclsparse_int        N,
-                      aoclsparse_int        nnz,
-                      aoclsparse_int       *col_ptr,
-                      aoclsparse_int       *row_idx,
-                      float                *val)
-{
-    aoclsparse_matrix mat = NULL;
-    aoclsparse_status status;
-
-    EXPECT_EQ(status = aoclsparse_createcsc(mat, base, M, N, nnz, col_ptr, row_idx, val),
-              status_exp);
-
-    if(status == aoclsparse_status_success)
-    {
-        EXPECT_EQ(aoclsparse_status_success, aoclsparse_destroy(mat));
-    }
-}
-
-void test_create_dcsc(aoclsparse_status     status_exp,
-                      aoclsparse_index_base base,
-                      aoclsparse_int        M,
-                      aoclsparse_int        N,
-                      aoclsparse_int        nnz,
-                      aoclsparse_int       *col_ptr,
-                      aoclsparse_int       *row_idx,
-                      double               *val)
+template <typename T>
+void test_create_csc(aoclsparse_status     status_exp,
+                     aoclsparse_index_base base,
+                     aoclsparse_int        M,
+                     aoclsparse_int        N,
+                     aoclsparse_int        nnz,
+                     aoclsparse_int       *col_ptr,
+                     aoclsparse_int       *row_idx,
+                     T                    *val)
 {
     aoclsparse_matrix mat = NULL;
     aoclsparse_status status;
