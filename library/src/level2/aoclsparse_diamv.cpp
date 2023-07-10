@@ -53,10 +53,9 @@ extern "C" aoclsparse_status aoclsparse_sdiamv(aoclsparse_operation            t
     }
 
     // Check index base
-    if(descr->base != aoclsparse_index_base_zero)
+    if(descr->base != aoclsparse_index_base_zero && descr->base != aoclsparse_index_base_one)
     {
-        // TODO
-        return aoclsparse_status_not_implemented;
+        return aoclsparse_status_invalid_value;
     }
     if(descr->type != aoclsparse_matrix_type_general)
     {
@@ -135,10 +134,9 @@ extern "C" aoclsparse_status aoclsparse_ddiamv(aoclsparse_operation            t
     }
 
     // Check index base
-    if(descr->base != aoclsparse_index_base_zero)
+    if(descr->base != aoclsparse_index_base_zero && descr->base != aoclsparse_index_base_one)
     {
-        // TODO
-        return aoclsparse_status_not_implemented;
+        return aoclsparse_status_invalid_value;
     }
     if(descr->type != aoclsparse_matrix_type_general)
     {

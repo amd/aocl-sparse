@@ -43,8 +43,9 @@ namespace
     } CreateCSCParamType;
 
     // test dataset
-    aoclsparse_int col_ptr[]    = {0, 1, 2, 3, 4};
-    aoclsparse_int row_idx[]    = {0, 3, 1, 3};
+    aoclsparse_int col_ptr[]         = {0, 1, 2, 3, 4};
+    aoclsparse_int row_idx[]         = {0, 3, 1, 3};
+    aoclsparse_int col_ptr_onebase[] = {1, 2, 3, 4, 5};
     double         val_double[] = {1.000000000000, 6.000000000000, 8.000000000000, 4.000000000000};
     float          val_float[]  = {1.000000, 6.000000, 8.000000, 4.000000};
     aoclsparse_int row_idx_invalid_zerobase[] = {0, 4, 1, 3};
@@ -127,7 +128,7 @@ namespace
                                                         4,
                                                         4,
                                                         4,
-                                                        col_ptr,
+                                                        col_ptr_onebase,
                                                         row_idx_invalid_onebase,
                                                         val_double,
                                                         val_float}};

@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2021 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2023 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -39,16 +39,18 @@ aoclsparse_status aoclsparse_bsrmv_general(T                               alpha
                                            const T *__restrict__ bsr_val,
                                            const aoclsparse_int *__restrict__ bsr_col_ind,
                                            const aoclsparse_int *__restrict__ bsr_row_ptr,
+                                           const aoclsparse_mat_descr descr,
                                            const T *__restrict__ x,
                                            T beta,
                                            T *__restrict__ y)
 {
+    aoclsparse_index_base base = descr->base;
     // Loop over the block rows
     for(aoclsparse_int ai = 0; ai < mb; ++ai)
     {
         // BSR row entry and exit point
-        aoclsparse_int row_begin = bsr_row_ptr[ai];
-        aoclsparse_int row_end   = bsr_row_ptr[ai + 1];
+        aoclsparse_int row_begin = bsr_row_ptr[ai] - base;
+        aoclsparse_int row_end   = bsr_row_ptr[ai + 1] - base;
         // Loop over the individual rows within the BSR block
         for(aoclsparse_int bi = 0; bi < bsr_dim; ++bi)
         {
@@ -58,7 +60,7 @@ aoclsparse_status aoclsparse_bsrmv_general(T                               alpha
             for(aoclsparse_int aj = row_begin; aj < row_end; ++aj)
             {
                 // Column index into x vector
-                aoclsparse_int col = bsr_col_ind[aj];
+                aoclsparse_int col = bsr_col_ind[aj] - base;
                 const T       *bsr_val_ptr;
                 const T       *x_ptr;
                 bsr_val_ptr = bsr_val + (bsr_dim * bsr_dim * aj) + bi;
@@ -95,18 +97,20 @@ aoclsparse_status aoclsparse_bsrmv_2x2(T                               alpha,
                                        const T *__restrict__ bsr_val,
                                        const aoclsparse_int *__restrict__ bsr_col_ind,
                                        const aoclsparse_int *__restrict__ bsr_row_ptr,
+                                       const aoclsparse_mat_descr descr,
                                        const T *__restrict__ x,
                                        T beta,
                                        T *__restrict__ y)
 {
+    aoclsparse_index_base base = descr->base;
     // BSR block dimension
     static constexpr int bsr_dim = 2;
     // Loop over the block rows
     for(aoclsparse_int ai = 0; ai < mb; ++ai)
     {
         // BSR row entry and exit point
-        aoclsparse_int row_begin = bsr_row_ptr[ai];
-        aoclsparse_int row_end   = bsr_row_ptr[ai + 1];
+        aoclsparse_int row_begin = bsr_row_ptr[ai] - base;
+        aoclsparse_int row_end   = bsr_row_ptr[ai + 1] - base;
 
         // BSR block row accumulator
         T sum0 = static_cast<T>(0);
@@ -116,7 +120,7 @@ aoclsparse_status aoclsparse_bsrmv_2x2(T                               alpha,
         for(aoclsparse_int aj = row_begin; aj < row_end; ++aj)
         {
             // Column index into x vector
-            aoclsparse_int col = bsr_col_ind[aj];
+            aoclsparse_int col = bsr_col_ind[aj] - base;
             const T       *bsr_val_ptr;
             const T       *x_ptr;
             bsr_val_ptr = bsr_val + (bsr_dim * bsr_dim * aj);
@@ -155,18 +159,20 @@ aoclsparse_status aoclsparse_bsrmv_3x3(T                               alpha,
                                        const T *__restrict__ bsr_val,
                                        const aoclsparse_int *__restrict__ bsr_col_ind,
                                        const aoclsparse_int *__restrict__ bsr_row_ptr,
+                                       const aoclsparse_mat_descr descr,
                                        const T *__restrict__ x,
                                        T beta,
                                        T *__restrict__ y)
 {
+    aoclsparse_index_base base = descr->base;
     // BSR block dimension
     static constexpr int bsr_dim = 3;
     // Loop over the block rows
     for(aoclsparse_int ai = 0; ai < mb; ++ai)
     {
         // BSR row entry and exit point
-        aoclsparse_int row_begin = bsr_row_ptr[ai];
-        aoclsparse_int row_end   = bsr_row_ptr[ai + 1];
+        aoclsparse_int row_begin = bsr_row_ptr[ai] - base;
+        aoclsparse_int row_end   = bsr_row_ptr[ai + 1] - base;
 
         // BSR block row accumulator
         T sum0 = static_cast<T>(0);
@@ -177,7 +183,7 @@ aoclsparse_status aoclsparse_bsrmv_3x3(T                               alpha,
         for(aoclsparse_int aj = row_begin; aj < row_end; ++aj)
         {
             // Column index into x vector
-            aoclsparse_int col = bsr_col_ind[aj];
+            aoclsparse_int col = bsr_col_ind[aj] - base;
             const T       *bsr_val_ptr;
             const T       *x_ptr;
             bsr_val_ptr = bsr_val + (bsr_dim * bsr_dim * aj);
@@ -226,18 +232,20 @@ aoclsparse_status aoclsparse_bsrmv_4x4(T                               alpha,
                                        const T *__restrict__ bsr_val,
                                        const aoclsparse_int *__restrict__ bsr_col_ind,
                                        const aoclsparse_int *__restrict__ bsr_row_ptr,
+                                       const aoclsparse_mat_descr descr,
                                        const T *__restrict__ x,
                                        T beta,
                                        T *__restrict__ y)
 {
+    aoclsparse_index_base base = descr->base;
     // BSR block dimension
     static constexpr int bsr_dim = 4;
     // Loop over the block rows
     for(aoclsparse_int ai = 0; ai < mb; ++ai)
     {
         // BSR row entry and exit point
-        aoclsparse_int row_begin = bsr_row_ptr[ai];
-        aoclsparse_int row_end   = bsr_row_ptr[ai + 1];
+        aoclsparse_int row_begin = bsr_row_ptr[ai] - base;
+        aoclsparse_int row_end   = bsr_row_ptr[ai + 1] - base;
 
         // BSR block row accumulator
         T sum0 = static_cast<T>(0);
@@ -249,7 +257,7 @@ aoclsparse_status aoclsparse_bsrmv_4x4(T                               alpha,
         for(aoclsparse_int aj = row_begin; aj < row_end; ++aj)
         {
             // Column index into x vector
-            aoclsparse_int col = bsr_col_ind[aj];
+            aoclsparse_int col = bsr_col_ind[aj] - base;
             const T       *bsr_val_ptr;
             const T       *x_ptr;
             bsr_val_ptr = bsr_val + (bsr_dim * bsr_dim * aj);

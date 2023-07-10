@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2021 Advanced Micro Devices, Inc.All rights reserved.
+ * Copyright (c) 2020-2023 Advanced Micro Devices, Inc.All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -39,10 +39,19 @@ aoclsparse_status aoclsparse_diamv_template(const T               alpha,
                                             const T               beta,
                                             T                    *y)
 {
-    for(aoclsparse_int i = 0; i < m; ++i)
+    // Perform (beta * y)
+    if(beta == static_cast<T>(0))
     {
-        y[i] = beta * y[i];
+        // if beta==0 and y contains any NaNs, we can zero y directly
+        for(aoclsparse_int i = 0; i < m; i++)
+            y[i] = 0.;
     }
+    else if(beta != static_cast<T>(1))
+    {
+        for(aoclsparse_int i = 0; i < m; i++)
+            y[i] = beta * y[i];
+    }
+
     for(aoclsparse_int i = 0; i < dia_num_diag; ++i)
     {
         aoclsparse_int offset     = dia_offset[i];

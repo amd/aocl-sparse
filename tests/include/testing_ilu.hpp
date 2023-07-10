@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022-2023 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -44,6 +44,7 @@ using namespace std;
 
 template <typename T>
 inline void ref_csrilu0(aoclsparse_int                     M,
+                        aoclsparse_int                     base,
                         const std::vector<aoclsparse_int> &csr_row_ptr,
                         const std::vector<aoclsparse_int> &csr_col_ind,
                         std::vector<T>                    &csr_val,
@@ -51,9 +52,8 @@ inline void ref_csrilu0(aoclsparse_int                     M,
                         aoclsparse_int                    *numeric_pivot)
 {
     // Initialize pivot
-    *struct_pivot       = -1;
-    *numeric_pivot      = -1;
-    aoclsparse_int base = 0;
+    *struct_pivot  = -1;
+    *numeric_pivot = -1;
 
     // pointer of upper part of each row
     std::vector<aoclsparse_int> diag_offset(M);
@@ -191,8 +191,13 @@ void testing_ilu(const Arguments &arg)
     {
         csr_val_gold = csr_val;
         //compute ILU0 using reference c code and store the LU factors as part of csr_val_gold
-        ref_csrilu0<T>(
-            M, csr_row_ptr, csr_col_ind, csr_val_gold, &h_analysis_pivot_gold, &h_solve_pivot_gold);
+        ref_csrilu0<T>(M,
+                       base,
+                       csr_row_ptr,
+                       csr_col_ind,
+                       csr_val_gold,
+                       &h_analysis_pivot_gold,
+                       &h_solve_pivot_gold);
     }
 
     //Basic routine type checks

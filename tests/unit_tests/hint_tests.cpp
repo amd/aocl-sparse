@@ -217,6 +217,9 @@ namespace
         aoclsparse_operation        trans = aoclsparse_operation_none;
         aoclsparse_mat_descr        descr;
         aoclsparse_int              m, n, nnz;
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_zero),
+                  aoclsparse_status_success);
         ASSERT_EQ(create_matrix(mid, m, n, nnz, icrow, icol, aval, A, descr, 1),
                   aoclsparse_status_success);
         expected_sorted_csr(sol, mid);

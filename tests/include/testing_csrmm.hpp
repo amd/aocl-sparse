@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2021-2022 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2021-2023 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +36,8 @@
 #include "aoclsparse_utility.hpp"
 
 template <typename T>
-aoclsparse_status aoclsparse_csrmm_col_major_ref(const T *alpha,
+aoclsparse_status aoclsparse_csrmm_col_major_ref(const T              *alpha,
+                                                 aoclsparse_index_base base,
                                                  const T *__restrict__ csr_val,
                                                  const aoclsparse_int *__restrict__ csr_col_ind,
                                                  const aoclsparse_int *__restrict__ csr_row_ptr,
@@ -53,8 +54,8 @@ aoclsparse_status aoclsparse_csrmm_col_major_ref(const T *alpha,
     {
         for(aoclsparse_int j = 0; j < n; ++j)
         {
-            T              row_begin = csr_row_ptr[i];
-            T              row_end   = csr_row_ptr[i + 1];
+            T              row_begin = csr_row_ptr[i] - base;
+            T              row_end   = csr_row_ptr[i + 1] - base;
             aoclsparse_int idx_C     = i + j * ldc;
 
             T sum = static_cast<T>(0);
@@ -62,7 +63,7 @@ aoclsparse_status aoclsparse_csrmm_col_major_ref(const T *alpha,
             for(aoclsparse_int k = row_begin; k < row_end; ++k)
             {
                 aoclsparse_int idx_B = 0;
-                idx_B                = (csr_col_ind[k] + j * ldb);
+                idx_B                = (csr_col_ind[k] - base + j * ldb);
 
                 sum = std::fma(csr_val[k], B[idx_B], sum);
             }
@@ -80,7 +81,8 @@ aoclsparse_status aoclsparse_csrmm_col_major_ref(const T *alpha,
 }
 
 template <typename T>
-aoclsparse_status aoclsparse_csrmm_row_major_ref(const T *alpha,
+aoclsparse_status aoclsparse_csrmm_row_major_ref(const T              *alpha,
+                                                 aoclsparse_index_base base,
                                                  const T *__restrict__ csr_val,
                                                  const aoclsparse_int *__restrict__ csr_col_ind,
                                                  const aoclsparse_int *__restrict__ csr_row_ptr,
@@ -97,8 +99,8 @@ aoclsparse_status aoclsparse_csrmm_row_major_ref(const T *alpha,
     {
         for(aoclsparse_int j = 0; j < n; ++j)
         {
-            T              row_begin = csr_row_ptr[i];
-            T              row_end   = csr_row_ptr[i + 1];
+            T              row_begin = csr_row_ptr[i] - base;
+            T              row_end   = csr_row_ptr[i + 1] - base;
             aoclsparse_int idx_C     = i * ldc + j;
 
             T sum = static_cast<T>(0);
@@ -106,7 +108,7 @@ aoclsparse_status aoclsparse_csrmm_row_major_ref(const T *alpha,
             for(aoclsparse_int k = row_begin; k < row_end; ++k)
             {
                 aoclsparse_int idx_B = 0;
-                idx_B                = (j + (csr_col_ind[k]) * ldb);
+                idx_B                = (j + (csr_col_ind[k] - base) * ldb);
 
                 sum = std::fma(csr_val[k], B[idx_B], sum);
             }
@@ -208,6 +210,7 @@ void testing_csrmm(const Arguments &arg)
         if(order == aoclsparse_order_column)
         {
             aoclsparse_csrmm_col_major_ref<T>(&alpha,
+                                              base,
                                               csr_val.data(),
                                               csr_col_ind.data(),
                                               csr_row_ptr.data(),
@@ -224,6 +227,7 @@ void testing_csrmm(const Arguments &arg)
         else
         {
             aoclsparse_csrmm_row_major_ref<T>(&alpha,
+                                              base,
                                               csr_val.data(),
                                               csr_col_ind.data(),
                                               csr_row_ptr.data(),

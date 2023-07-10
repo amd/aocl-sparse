@@ -61,8 +61,9 @@ aoclsparse_status
  * solves L*x = alpha*b
  */
 template <typename T>
-static inline aoclsparse_status trsv_l_ref_core(const T        alpha,
-                                                aoclsparse_int m,
+static inline aoclsparse_status trsv_l_ref_core(const T               alpha,
+                                                aoclsparse_int        m,
+                                                aoclsparse_index_base base,
                                                 const T *__restrict__ a,
                                                 const aoclsparse_int *__restrict__ icol,
                                                 const aoclsparse_int *__restrict__ ilrow,
@@ -71,15 +72,18 @@ static inline aoclsparse_status trsv_l_ref_core(const T        alpha,
                                                 T *__restrict__ x,
                                                 const bool unit)
 {
-    aoclsparse_int i, idx;
-    T              xi;
+    aoclsparse_int        i, idx;
+    T                     xi;
+    const aoclsparse_int *icol_fix = icol - base;
+    const T              *a_fix    = a - base;
+    T                    *x_fix    = x - base;
     for(i = 0; i < m; i++)
     {
         xi = alpha * b[i];
         for(idx = ilrow[i]; idx < idiag[i]; idx++)
-            xi -= a[idx] * x[icol[idx]];
+            xi -= a_fix[idx] * x_fix[icol_fix[idx]];
         if(!unit)
-            xi /= a[idiag[i]];
+            xi /= a_fix[idiag[i]];
         x[i] = xi;
     }
     return aoclsparse_status_success;
@@ -89,8 +93,9 @@ static inline aoclsparse_status trsv_l_ref_core(const T        alpha,
  * solves L'*x = alpha*b
  */
 template <typename T>
-static inline aoclsparse_status trsv_lt_ref_core(const T        alpha,
-                                                 aoclsparse_int m,
+static inline aoclsparse_status trsv_lt_ref_core(const T               alpha,
+                                                 aoclsparse_int        m,
+                                                 aoclsparse_index_base base,
                                                  const T *__restrict__ a,
                                                  const aoclsparse_int *__restrict__ icol,
                                                  const aoclsparse_int *__restrict__ ilrow,
@@ -99,17 +104,20 @@ static inline aoclsparse_status trsv_lt_ref_core(const T        alpha,
                                                  T *__restrict__ x,
                                                  const bool unit)
 {
-    aoclsparse_int i, idx;
+    aoclsparse_int        i, idx;
+    const aoclsparse_int *icol_fix = icol - base;
+    const T              *a_fix    = a - base;
+    T                    *x_fix    = x - base;
 
     for(i = 0; i < m; i++)
         x[i] = alpha * b[i];
     for(i = m - 1; i >= 0; i--)
     {
         if(!unit)
-            x[i] /= a[idiag[i]];
+            x[i] /= a_fix[idiag[i]];
         // propagate value of x[i] through the column (used to the row but now is transposed)
         for(idx = ilrow[i]; idx < idiag[i]; idx++)
-            x[icol[idx]] -= a[idx] * x[i];
+            x_fix[icol_fix[idx]] -= a_fix[idx] * x[i];
     }
     return aoclsparse_status_success;
 }
@@ -118,8 +126,9 @@ static inline aoclsparse_status trsv_lt_ref_core(const T        alpha,
  * solves U*x = alpha*b
  */
 template <typename T>
-static inline aoclsparse_status trsv_u_ref_core(const T        alpha,
-                                                aoclsparse_int m,
+static inline aoclsparse_status trsv_u_ref_core(const T               alpha,
+                                                aoclsparse_int        m,
+                                                aoclsparse_index_base base,
                                                 const T *__restrict__ a,
                                                 const aoclsparse_int *__restrict__ icol,
                                                 const aoclsparse_int *__restrict__ ilrow,
@@ -128,8 +137,11 @@ static inline aoclsparse_status trsv_u_ref_core(const T        alpha,
                                                 T *__restrict__ x,
                                                 const bool unit)
 {
-    aoclsparse_int i, idx, idxstart, idxend, idiag;
-    T              xi;
+    aoclsparse_int        i, idx, idxstart, idxend, idiag;
+    T                     xi;
+    const aoclsparse_int *icol_fix = icol - base;
+    const T              *a_fix    = a - base;
+    T                    *x_fix    = x - base;
 
     for(i = m - 1; i >= 0; i--)
     {
@@ -138,13 +150,13 @@ static inline aoclsparse_status trsv_u_ref_core(const T        alpha,
         idxend = ilrow[i + 1] - 1;
         xi     = alpha * b[i];
         for(idx = idxstart; idx <= idxend; idx++)
-            xi -= a[idx] * x[icol[idx]];
+            xi -= a_fix[idx] * x_fix[icol_fix[idx]];
         x[i] = xi;
         if(!unit)
         {
             // urow[i]-1 always points to idiag[i]
             idiag = iurow[i] - 1;
-            x[i] /= a[idiag];
+            x[i] /= a_fix[idiag];
         }
     }
     return aoclsparse_status_success;
@@ -154,8 +166,9 @@ static inline aoclsparse_status trsv_u_ref_core(const T        alpha,
  * solves U'*x = alpha*b
  */
 template <typename T>
-static inline aoclsparse_status trsv_ut_ref_core(const T        alpha,
-                                                 aoclsparse_int m,
+static inline aoclsparse_status trsv_ut_ref_core(const T               alpha,
+                                                 aoclsparse_int        m,
+                                                 aoclsparse_index_base base,
                                                  const T *__restrict__ a,
                                                  const aoclsparse_int *__restrict__ icol,
                                                  const aoclsparse_int *__restrict__ ilrow,
@@ -164,7 +177,10 @@ static inline aoclsparse_status trsv_ut_ref_core(const T        alpha,
                                                  T *__restrict__ x,
                                                  const bool unit)
 {
-    aoclsparse_int i, idx, idxstart, idxend, idiag;
+    aoclsparse_int        i, idx, idxstart, idxend, idiag;
+    const aoclsparse_int *icol_fix = icol - base;
+    const T              *a_fix    = a - base;
+    T                    *x_fix    = x - base;
     for(i = 0; i < m; i++)
         x[i] = alpha * b[i];
     for(i = 0; i < m; i++)
@@ -173,13 +189,13 @@ static inline aoclsparse_status trsv_ut_ref_core(const T        alpha,
         {
             // urow[i]-1 always points to idiag[i]
             idiag = iurow[i] - 1;
-            x[i] /= a[idiag];
+            x[i] /= a_fix[idiag];
         }
         idxstart = iurow[i];
         // ilrow[i+1]-1 always points to last element of U at row i
         idxend = ilrow[i + 1] - 1;
         for(idx = idxstart; idx <= idxend; idx++)
-            x[icol[idx]] -= a[idx] * x[i];
+            x_fix[icol_fix[idx]] -= a_fix[idx] * x[i];
     }
     return aoclsparse_status_success;
 }
@@ -191,8 +207,9 @@ static inline aoclsparse_status trsv_ut_ref_core(const T        alpha,
  * solves L*x = alpha*b
  */
 template <typename T>
-inline aoclsparse_status trsv_l_ref_core_avx(const T        alpha,
-                                             aoclsparse_int m,
+inline aoclsparse_status trsv_l_ref_core_avx(const T               alpha,
+                                             aoclsparse_int        m,
+                                             aoclsparse_index_base base,
                                              const T *__restrict__ a,
                                              const aoclsparse_int *__restrict__ icol,
                                              const aoclsparse_int *__restrict__ ilrow,
@@ -202,8 +219,9 @@ inline aoclsparse_status trsv_l_ref_core_avx(const T        alpha,
                                              const bool unit);
 template <> // FLOAT
 inline aoclsparse_status
-    trsv_l_ref_core_avx<float>([[maybe_unused]] const float    alpha,
-                               [[maybe_unused]] aoclsparse_int m,
+    trsv_l_ref_core_avx<float>([[maybe_unused]] const float           alpha,
+                               [[maybe_unused]] aoclsparse_int        m,
+                               [[maybe_unused]] aoclsparse_index_base base,
                                [[maybe_unused]] const float *__restrict__ a,
                                [[maybe_unused]] const aoclsparse_int *__restrict__ icol,
                                [[maybe_unused]] const aoclsparse_int *__restrict__ ilrow,
@@ -215,8 +233,9 @@ inline aoclsparse_status
     return aoclsparse_status_not_implemented;
 }
 template <> // DOUBLE
-inline aoclsparse_status trsv_l_ref_core_avx<double>(const double   alpha,
-                                                     aoclsparse_int m,
+inline aoclsparse_status trsv_l_ref_core_avx<double>(const double          alpha,
+                                                     aoclsparse_int        m,
+                                                     aoclsparse_index_base base,
                                                      const double *__restrict__ a,
                                                      const aoclsparse_int *__restrict__ icol,
                                                      const aoclsparse_int *__restrict__ ilrow,
@@ -225,11 +244,14 @@ inline aoclsparse_status trsv_l_ref_core_avx<double>(const double   alpha,
                                                      double *__restrict__ x,
                                                      const bool unit)
 {
-    aoclsparse_int i, idx, idxend;
-    double         xi;
-    __m256d        avec, xvec, xivec;
-    __m128d        sum_lo, sum_hi, sse_sum;
-    aoclsparse_int idxcnt, idxk, idxrem;
+    aoclsparse_int        i, idx, idxend;
+    double                xi;
+    __m256d               avec, xvec, xivec;
+    __m128d               sum_lo, sum_hi, sse_sum;
+    aoclsparse_int        idxcnt, idxk, idxrem;
+    const aoclsparse_int *icol_fix = icol - base;
+    const double         *a_fix    = a - base;
+    double               *x_fix    = x - base;
 
     for(i = 0; i < m; i++)
     {
@@ -244,9 +266,11 @@ inline aoclsparse_status trsv_l_ref_core_avx<double>(const double   alpha,
         idxrem = idxcnt % idxk;
         for(idx = ilrow[i]; idx < idxend - idxrem; idx += idxk)
         {
-            avec = _mm256_loadu_pd(&a[idx]);
-            xvec = _mm256_set_pd(
-                x[icol[idx + 3]], x[icol[idx + 2]], x[icol[idx + 1]], x[icol[idx + 0]]);
+            avec  = _mm256_loadu_pd(&a_fix[idx]);
+            xvec  = _mm256_set_pd(x_fix[icol_fix[idx + 3]],
+                                 x_fix[icol_fix[idx + 2]],
+                                 x_fix[icol_fix[idx + 1]],
+                                 x_fix[icol_fix[idx + 0]]);
             xivec = _mm256_mul_pd(avec, xvec);
             // horizontal sum:
             // sum[0] += sum[1] ; sum[2] += sum[3]
@@ -268,8 +292,9 @@ inline aoclsparse_status trsv_l_ref_core_avx<double>(const double   alpha,
         {
         case(3):
         {
-            avec  = _mm256_set_pd(0.0, a[idx + 2], a[idx + 1], a[idx + 0]);
-            xvec  = _mm256_set_pd(0.0, x[icol[idx + 2]], x[icol[idx + 1]], x[icol[idx + 0]]);
+            avec = _mm256_set_pd(0.0, a_fix[idx + 2], a_fix[idx + 1], a_fix[idx + 0]);
+            xvec = _mm256_set_pd(
+                0.0, x_fix[icol_fix[idx + 2]], x_fix[icol_fix[idx + 1]], x_fix[icol_fix[idx + 0]]);
             xivec = _mm256_mul_pd(avec, xvec);
             // horizontal sum:
             // sum[0] += sum[1] ; sum[2] += sum[3]
@@ -289,11 +314,11 @@ inline aoclsparse_status trsv_l_ref_core_avx<double>(const double   alpha,
         }
         default:
             for(idx = idxend - idxrem; idx < idxend; idx++)
-                xi -= a[idx] * x[icol[idx]];
+                xi -= a_fix[idx] * x_fix[icol_fix[idx]];
         }
         x[i] = xi;
         if(!unit)
-            x[i] /= a[idxend];
+            x[i] /= a_fix[idxend];
     }
     return aoclsparse_status_success;
 }
@@ -302,8 +327,9 @@ inline aoclsparse_status trsv_l_ref_core_avx<double>(const double   alpha,
  * solves L'*x = alpha*b
  */
 template <typename T>
-inline aoclsparse_status trsv_lt_ref_core_avx(const T        alpha,
-                                              aoclsparse_int m,
+inline aoclsparse_status trsv_lt_ref_core_avx(const T               alpha,
+                                              aoclsparse_int        m,
+                                              aoclsparse_index_base base,
                                               const T *__restrict__ a,
                                               const aoclsparse_int *__restrict__ icol,
                                               const aoclsparse_int *__restrict__ ilrow,
@@ -313,8 +339,9 @@ inline aoclsparse_status trsv_lt_ref_core_avx(const T        alpha,
                                               const bool unit);
 template <> // FLOAT
 inline aoclsparse_status
-    trsv_lt_ref_core_avx<float>([[maybe_unused]] const float    alpha,
-                                [[maybe_unused]] aoclsparse_int m,
+    trsv_lt_ref_core_avx<float>([[maybe_unused]] const float           alpha,
+                                [[maybe_unused]] aoclsparse_int        m,
+                                [[maybe_unused]] aoclsparse_index_base base,
                                 [[maybe_unused]] const float *__restrict__ a,
                                 [[maybe_unused]] const aoclsparse_int *__restrict__ icol,
                                 [[maybe_unused]] const aoclsparse_int *__restrict__ ilrow,
@@ -326,8 +353,9 @@ inline aoclsparse_status
     return aoclsparse_status_not_implemented;
 }
 template <> // DOUBLE
-inline aoclsparse_status trsv_lt_ref_core_avx<double>(const double   alpha,
-                                                      aoclsparse_int m,
+inline aoclsparse_status trsv_lt_ref_core_avx<double>(const double          alpha,
+                                                      aoclsparse_int        m,
+                                                      aoclsparse_index_base base,
                                                       const double *__restrict__ a,
                                                       const aoclsparse_int *__restrict__ icol,
                                                       const aoclsparse_int *__restrict__ ilrow,
@@ -336,10 +364,13 @@ inline aoclsparse_status trsv_lt_ref_core_avx<double>(const double   alpha,
                                                       double *__restrict__ x,
                                                       const bool unit)
 {
-    aoclsparse_int i, idx, idxend;
-    aoclsparse_int idxcnt, idxk, idxrem;
-    double         xi, mxi;
-    __m256d        avec, xvec, xivec;
+    aoclsparse_int        i, idx, idxend;
+    aoclsparse_int        idxcnt, idxk, idxrem;
+    double                xi, mxi;
+    __m256d               avec, xvec, xivec;
+    const aoclsparse_int *icol_fix = icol - base;
+    const double         *a_fix    = a - base;
+    double               *x_fix    = x - base;
 
     if(alpha != 0.0)
         for(i = 0; i < m; i++)
@@ -350,7 +381,7 @@ inline aoclsparse_status trsv_lt_ref_core_avx<double>(const double   alpha,
         idxend = idiag[i];
 
         if(!unit)
-            x[i] /= a[idiag[i]];
+            x[i] /= a_fix[idiag[i]];
         xi  = x[i];
         mxi = -xi;
 
@@ -359,33 +390,36 @@ inline aoclsparse_status trsv_lt_ref_core_avx<double>(const double   alpha,
         idxrem = idxcnt % idxk;
         for(idx = ilrow[i]; idx < idxend - idxrem; idx += idxk)
         {
-            xvec = _mm256_set_pd(
-                x[icol[idx + 3]], x[icol[idx + 2]], x[icol[idx + 1]], x[icol[idx + 0]]);
-            avec             = _mm256_loadu_pd(&a[idx]);
-            xivec            = _mm256_set1_pd(mxi);
-            xvec             = _mm256_fmadd_pd(avec, xivec, xvec);
-            x[icol[idx + 3]] = xvec[3];
-            x[icol[idx + 2]] = xvec[2];
-            x[icol[idx + 1]] = xvec[1];
-            x[icol[idx + 0]] = xvec[0];
+            xvec                     = _mm256_set_pd(x_fix[icol_fix[idx + 3]],
+                                 x_fix[icol_fix[idx + 2]],
+                                 x_fix[icol_fix[idx + 1]],
+                                 x_fix[icol_fix[idx + 0]]);
+            avec                     = _mm256_loadu_pd(&a_fix[idx]);
+            xivec                    = _mm256_set1_pd(mxi);
+            xvec                     = _mm256_fmadd_pd(avec, xivec, xvec);
+            x_fix[icol_fix[idx + 3]] = xvec[3];
+            x_fix[icol_fix[idx + 2]] = xvec[2];
+            x_fix[icol_fix[idx + 1]] = xvec[1];
+            x_fix[icol_fix[idx + 0]] = xvec[0];
         }
         // Remainder loop
         switch(idxrem)
         {
         case(3):
         {
-            xvec  = _mm256_set_pd(0.0, x[icol[idx + 2]], x[icol[idx + 1]], x[icol[idx + 0]]);
-            avec  = _mm256_set_pd(0.0, a[idx + 2], a[idx + 1], a[idx + 0]);
+            xvec = _mm256_set_pd(
+                0.0, x_fix[icol_fix[idx + 2]], x_fix[icol_fix[idx + 1]], x_fix[icol_fix[idx + 0]]);
+            avec  = _mm256_set_pd(0.0, a_fix[idx + 2], a_fix[idx + 1], a_fix[idx + 0]);
             xivec = _mm256_set1_pd(mxi);
             xvec  = _mm256_fmadd_pd(avec, xivec, xvec);
-            x[icol[idx + 2]] = xvec[2];
-            x[icol[idx + 1]] = xvec[1];
-            x[icol[idx + 0]] = xvec[0];
+            x_fix[icol_fix[idx + 2]] = xvec[2];
+            x_fix[icol_fix[idx + 1]] = xvec[1];
+            x_fix[icol_fix[idx + 0]] = xvec[0];
             break;
         }
         default:
             for(idx = idxend - idxrem; idx < idxend; idx++)
-                x[icol[idx]] -= a[idx] * xi;
+                x_fix[icol_fix[idx]] -= a_fix[idx] * xi;
         }
     }
     return aoclsparse_status_success;
@@ -395,8 +429,9 @@ inline aoclsparse_status trsv_lt_ref_core_avx<double>(const double   alpha,
  * solves U*x = alpha*b
  */
 template <typename T>
-inline aoclsparse_status trsv_u_ref_core_avx(const T        alpha,
-                                             aoclsparse_int m,
+inline aoclsparse_status trsv_u_ref_core_avx(const T               alpha,
+                                             aoclsparse_int        m,
+                                             aoclsparse_index_base base,
                                              const T *__restrict__ a,
                                              const aoclsparse_int *__restrict__ icol,
                                              const aoclsparse_int *__restrict__ ilrow,
@@ -406,8 +441,9 @@ inline aoclsparse_status trsv_u_ref_core_avx(const T        alpha,
                                              const bool unit);
 template <> // FLOAT
 inline aoclsparse_status
-    trsv_u_ref_core_avx<float>([[maybe_unused]] const float    alpha,
-                               [[maybe_unused]] aoclsparse_int m,
+    trsv_u_ref_core_avx<float>([[maybe_unused]] const float           alpha,
+                               [[maybe_unused]] aoclsparse_int        m,
+                               [[maybe_unused]] aoclsparse_index_base base,
                                [[maybe_unused]] const float *__restrict__ a,
                                [[maybe_unused]] const aoclsparse_int *__restrict__ icol,
                                [[maybe_unused]] const aoclsparse_int *__restrict__ ilrow,
@@ -419,8 +455,9 @@ inline aoclsparse_status
     return aoclsparse_status_not_implemented;
 }
 template <> // DOUBLE
-inline aoclsparse_status trsv_u_ref_core_avx<double>(const double   alpha,
-                                                     aoclsparse_int m,
+inline aoclsparse_status trsv_u_ref_core_avx<double>(const double          alpha,
+                                                     aoclsparse_int        m,
+                                                     aoclsparse_index_base base,
                                                      const double *__restrict__ a,
                                                      const aoclsparse_int *__restrict__ icol,
                                                      const aoclsparse_int *__restrict__ ilrow,
@@ -429,12 +466,15 @@ inline aoclsparse_status trsv_u_ref_core_avx<double>(const double   alpha,
                                                      double *__restrict__ x,
                                                      const bool unit)
 {
-    aoclsparse_int i, idx, idxstart, idxend;
-    double         xi;
-    __m256d        avec, xvec, xivec;
-    __m128d        sum_lo, sum_hi, sse_sum;
-    aoclsparse_int idxcnt, idxk, idxrem;
-    aoclsparse_int idiag;
+    aoclsparse_int        i, idx, idxstart, idxend;
+    double                xi;
+    __m256d               avec, xvec, xivec;
+    __m128d               sum_lo, sum_hi, sse_sum;
+    aoclsparse_int        idxcnt, idxk, idxrem;
+    aoclsparse_int        idiag;
+    const aoclsparse_int *icol_fix = icol - base;
+    const double         *a_fix    = a - base;
+    double               *x_fix    = x - base;
 
     for(i = m - 1; i >= 0; i--)
     {
@@ -446,9 +486,11 @@ inline aoclsparse_status trsv_u_ref_core_avx<double>(const double   alpha,
         idxrem   = idxcnt % idxk;
         for(idx = idxstart; idx <= idxend - idxrem; idx += idxk)
         {
-            avec = _mm256_loadu_pd(&a[idx]);
-            xvec = _mm256_set_pd(
-                x[icol[idx + 3]], x[icol[idx + 2]], x[icol[idx + 1]], x[icol[idx + 0]]);
+            avec    = _mm256_loadu_pd(&a_fix[idx]);
+            xvec    = _mm256_set_pd(x_fix[icol_fix[idx + 3]],
+                                 x_fix[icol_fix[idx + 2]],
+                                 x_fix[icol_fix[idx + 1]],
+                                 x_fix[icol_fix[idx + 0]]);
             xivec   = _mm256_mul_pd(avec, xvec);
             xivec   = _mm256_hadd_pd(xivec, xivec);
             sum_lo  = _mm256_castpd256_pd128(xivec);
@@ -465,8 +507,9 @@ inline aoclsparse_status trsv_u_ref_core_avx<double>(const double   alpha,
         {
         case(3):
         {
-            avec    = _mm256_set_pd(0.0, a[idx + 2], a[idx + 1], a[idx + 0]);
-            xvec    = _mm256_set_pd(0.0, x[icol[idx + 2]], x[icol[idx + 1]], x[icol[idx + 0]]);
+            avec = _mm256_set_pd(0.0, a_fix[idx + 2], a_fix[idx + 1], a_fix[idx + 0]);
+            xvec = _mm256_set_pd(
+                0.0, x_fix[icol_fix[idx + 2]], x_fix[icol_fix[idx + 1]], x_fix[icol_fix[idx + 0]]);
             xivec   = _mm256_mul_pd(avec, xvec);
             xivec   = _mm256_hadd_pd(xivec, xivec);
             sum_lo  = _mm256_castpd256_pd128(xivec);
@@ -481,13 +524,13 @@ inline aoclsparse_status trsv_u_ref_core_avx<double>(const double   alpha,
         }
         default:
             for(idx = idxend - idxrem + 1; idx <= idxend; idx++)
-                xi -= a[idx] * x[icol[idx]];
+                xi -= a_fix[idx] * x_fix[icol_fix[idx]];
         }
         x[i] = xi;
         if(!unit)
         {
             idiag = iurow[i] - 1;
-            x[i] /= a[idiag];
+            x[i] /= a_fix[idiag];
         }
     }
     return aoclsparse_status_success;
@@ -497,8 +540,9 @@ inline aoclsparse_status trsv_u_ref_core_avx<double>(const double   alpha,
  * solves U'*x = alpha*b
  */
 template <typename T>
-inline aoclsparse_status trsv_ut_ref_core_avx(const T        alpha,
-                                              aoclsparse_int m,
+inline aoclsparse_status trsv_ut_ref_core_avx(const T               alpha,
+                                              aoclsparse_int        m,
+                                              aoclsparse_index_base base,
                                               const T *__restrict__ a,
                                               const aoclsparse_int *__restrict__ icol,
                                               const aoclsparse_int *__restrict__ ilrow,
@@ -508,8 +552,9 @@ inline aoclsparse_status trsv_ut_ref_core_avx(const T        alpha,
                                               const bool unit);
 template <> // FLOAT
 inline aoclsparse_status
-    trsv_ut_ref_core_avx<float>([[maybe_unused]] const float    alpha,
-                                [[maybe_unused]] aoclsparse_int m,
+    trsv_ut_ref_core_avx<float>([[maybe_unused]] const float           alpha,
+                                [[maybe_unused]] aoclsparse_int        m,
+                                [[maybe_unused]] aoclsparse_index_base base,
                                 [[maybe_unused]] const float *__restrict__ a,
                                 [[maybe_unused]] const aoclsparse_int *__restrict__ icol,
                                 [[maybe_unused]] const aoclsparse_int *__restrict__ ilrow,
@@ -521,8 +566,9 @@ inline aoclsparse_status
     return aoclsparse_status_not_implemented;
 }
 template <> // DOUBLE
-inline aoclsparse_status trsv_ut_ref_core_avx<double>(const double   alpha,
-                                                      aoclsparse_int m,
+inline aoclsparse_status trsv_ut_ref_core_avx<double>(const double          alpha,
+                                                      aoclsparse_int        m,
+                                                      aoclsparse_index_base base,
                                                       const double *__restrict__ a,
                                                       const aoclsparse_int *__restrict__ icol,
                                                       const aoclsparse_int *__restrict__ ilrow,
@@ -531,10 +577,13 @@ inline aoclsparse_status trsv_ut_ref_core_avx<double>(const double   alpha,
                                                       double *__restrict__ x,
                                                       const bool unit)
 {
-    aoclsparse_int i, idx, idxstart, idxend, idiag;
-    aoclsparse_int idxcnt, idxk, idxrem;
-    double         xi, mxi;
-    __m256d        avec, xvec, xivec;
+    aoclsparse_int        i, idx, idxstart, idxend, idiag;
+    aoclsparse_int        idxcnt, idxk, idxrem;
+    double                xi, mxi;
+    __m256d               avec, xvec, xivec;
+    const aoclsparse_int *icol_fix = icol - base;
+    const double         *a_fix    = a - base;
+    double               *x_fix    = x - base;
 
     if(alpha != 0.0)
         for(i = 0; i < m; i++)
@@ -547,7 +596,7 @@ inline aoclsparse_status trsv_ut_ref_core_avx<double>(const double   alpha,
         if(!unit)
         {
             idiag = iurow[i] - 1;
-            x[i]  = x[i] / a[idiag];
+            x[i]  = x[i] / a_fix[idiag];
         }
 
         xi  = x[i];
@@ -558,33 +607,36 @@ inline aoclsparse_status trsv_ut_ref_core_avx<double>(const double   alpha,
         idxrem = idxcnt % idxk;
         for(idx = idxstart; idx <= idxend - idxrem; idx += idxk)
         {
-            xvec = _mm256_set_pd(
-                x[icol[idx + 3]], x[icol[idx + 2]], x[icol[idx + 1]], x[icol[idx + 0]]);
-            avec             = _mm256_loadu_pd(&a[idx]);
-            xivec            = _mm256_set1_pd(mxi);
-            xvec             = _mm256_fmadd_pd(avec, xivec, xvec);
-            x[icol[idx + 3]] = xvec[3];
-            x[icol[idx + 2]] = xvec[2];
-            x[icol[idx + 1]] = xvec[1];
-            x[icol[idx + 0]] = xvec[0];
+            xvec                     = _mm256_set_pd(x_fix[icol_fix[idx + 3]],
+                                 x_fix[icol_fix[idx + 2]],
+                                 x_fix[icol_fix[idx + 1]],
+                                 x_fix[icol_fix[idx + 0]]);
+            avec                     = _mm256_loadu_pd(&a_fix[idx]);
+            xivec                    = _mm256_set1_pd(mxi);
+            xvec                     = _mm256_fmadd_pd(avec, xivec, xvec);
+            x_fix[icol_fix[idx + 3]] = xvec[3];
+            x_fix[icol_fix[idx + 2]] = xvec[2];
+            x_fix[icol_fix[idx + 1]] = xvec[1];
+            x_fix[icol_fix[idx + 0]] = xvec[0];
         }
         // Remainder loop
         switch(idxrem)
         {
         case(3):
         {
-            xvec  = _mm256_set_pd(0.0, x[icol[idx + 2]], x[icol[idx + 1]], x[icol[idx + 0]]);
-            avec  = _mm256_set_pd(0.0, a[idx + 2], a[idx + 1], a[idx + 0]);
+            xvec = _mm256_set_pd(
+                0.0, x_fix[icol_fix[idx + 2]], x_fix[icol_fix[idx + 1]], x_fix[icol_fix[idx + 0]]);
+            avec  = _mm256_set_pd(0.0, a_fix[idx + 2], a_fix[idx + 1], a_fix[idx + 0]);
             xivec = _mm256_set1_pd(mxi);
             xvec  = _mm256_fmadd_pd(avec, xivec, xvec);
-            x[icol[idx + 2]] = xvec[2];
-            x[icol[idx + 1]] = xvec[1];
-            x[icol[idx + 0]] = xvec[0];
+            x_fix[icol_fix[idx + 2]] = xvec[2];
+            x_fix[icol_fix[idx + 1]] = xvec[1];
+            x_fix[icol_fix[idx + 0]] = xvec[0];
             break;
         }
         default:
             for(idx = idxend - idxrem + 1; idx <= idxend; idx++)
-                x[icol[idx]] -= a[idx] * xi;
+                x_fix[icol_fix[idx]] -= a_fix[idx] * xi;
         }
     }
     return aoclsparse_status_success;
@@ -623,8 +675,9 @@ using namespace kernel_templates;
  * - `EXP` AVX capability, kt_avxext e.g. `AVX` or `AVX512F`, etc...
  */
 template <int SZ, typename SUF, kt_avxext EXT>
-inline aoclsparse_status kt_trsv_l(const SUF      alpha,
-                                   aoclsparse_int m,
+inline aoclsparse_status kt_trsv_l(const SUF             alpha,
+                                   aoclsparse_int        m,
+                                   aoclsparse_index_base base,
                                    const SUF *__restrict__ a,
                                    const aoclsparse_int *__restrict__ icol,
                                    const aoclsparse_int *__restrict__ ilrow,
@@ -638,7 +691,10 @@ inline aoclsparse_status kt_trsv_l(const SUF      alpha,
     avxvector_t<SZ, SUF> avec, xvec, pvec;
     aoclsparse_int       idxcnt, idxrem;
     // get the vector length (packet size)
-    const aoclsparse_int idxk = avxvector<SZ, SUF>();
+    const aoclsparse_int  idxk     = avxvector<SZ, SUF>();
+    const aoclsparse_int *icol_fix = icol - base;
+    const SUF            *a_fix    = a - base;
+    SUF                  *x_fix    = x - base;
     for(i = 0; i < m; i++)
     {
         idxend = idiag[i];
@@ -648,8 +704,9 @@ inline aoclsparse_status kt_trsv_l(const SUF      alpha,
         pvec   = kt_setzero_p<SZ, SUF>();
         for(idx = ilrow[i]; idx < idxend - idxrem; idx += idxk)
         {
-            avec = kt_loadu_p<SZ, SUF>(&a[idx]);
-            xvec = kt_set_p<SZ, SUF>(x, &icol[idx]);
+
+            avec = kt_loadu_p<SZ, SUF>(&a_fix[idx]);
+            xvec = kt_set_p<SZ, SUF>(x_fix, &icol_fix[idx]);
             pvec = kt_fmadd_p<SZ, SUF>(avec, xvec, pvec);
         }
         if(idxcnt - idxk >= 0)
@@ -663,17 +720,17 @@ inline aoclsparse_status kt_trsv_l(const SUF      alpha,
         {
         case(idxk - 1):
             idx  = idxend - idxrem;
-            avec = kt_maskz_set_p<SZ, SUF, EXT, idxk - 1>(a, idx);
-            xvec = kt_maskz_set_p<SZ, SUF, EXT, idxk - 1>(x, &icol[idx]);
+            avec = kt_maskz_set_p<SZ, SUF, EXT, idxk - 1>(a_fix, idx);
+            xvec = kt_maskz_set_p<SZ, SUF, EXT, idxk - 1>(x_fix, &icol_fix[idx]);
             xi -= kt_dot_p(avec, xvec);
             break;
         default:
             for(idx = idxend - idxrem; idx < idxend; idx++)
-                xi -= a[idx] * x[icol[idx]];
+                xi -= a_fix[idx] * x_fix[icol_fix[idx]];
         }
         x[i] = xi;
         if(!unit)
-            x[i] /= a[idxend];
+            x[i] /= a_fix[idxend];
     }
     return aoclsparse_status_success;
 }
@@ -706,8 +763,9 @@ inline aoclsparse_status kt_trsv_l(const SUF      alpha,
  * - `EXP` AVX capability, kt_avxext e.g. `AVX` or `AVX512F`, etc...
  */
 template <int SZ, typename SUF, kt_avxext EXT>
-inline aoclsparse_status kt_trsv_lt(const SUF      alpha,
-                                    aoclsparse_int m,
+inline aoclsparse_status kt_trsv_lt(const SUF             alpha,
+                                    aoclsparse_int        m,
+                                    aoclsparse_index_base base,
                                     const SUF *__restrict__ a,
                                     const aoclsparse_int *__restrict__ icol,
                                     const aoclsparse_int *__restrict__ ilrow,
@@ -721,7 +779,11 @@ inline aoclsparse_status kt_trsv_lt(const SUF      alpha,
     SUF                  xi, mxi;
     avxvector_t<SZ, SUF> avec, xvec, xivec;
     // get the vector length (packet size)
-    const aoclsparse_int idxk = avxvector<SZ, SUF>();
+    const aoclsparse_int  idxk     = avxvector<SZ, SUF>();
+    const aoclsparse_int *icol_fix = icol - base;
+    const SUF            *a_fix    = a - base;
+    SUF                  *x_fix    = x - base;
+
     if(alpha != (SUF)0.0)
         for(i = 0; i < m; i++)
             x[i] = alpha * b[i];
@@ -729,19 +791,19 @@ inline aoclsparse_status kt_trsv_lt(const SUF      alpha,
     {
         idxend = idiag[i];
         if(!unit)
-            x[i] /= a[idiag[i]];
+            x[i] /= a_fix[idiag[i]];
         xi     = x[i];
         mxi    = -xi;
         idxcnt = idxend - ilrow[i];
         idxrem = idxcnt % idxk;
         for(idx = ilrow[i]; idx < idxend - idxrem; idx += idxk)
         {
-            xvec  = kt_set_p<SZ, SUF>(x, &icol[idx]);
-            avec  = kt_loadu_p<SZ, SUF>(&a[idx]);
+            xvec  = kt_set_p<SZ, SUF>(x_fix, &icol_fix[idx]);
+            avec  = kt_loadu_p<SZ, SUF>(&a_fix[idx]);
             xivec = kt_set1_p<SZ, SUF>(mxi);
             xvec  = kt_fmadd_p<SZ, SUF>(avec, xivec, xvec);
             for(size_t k = 0; k < idxk; k++)
-                x[icol[idx + k]] = xvec[k];
+                x_fix[icol_fix[idx + k]] = xvec[k];
         }
         // process remainder
         // use packet-size -1 with zero paddding -> intrinsic
@@ -750,16 +812,16 @@ inline aoclsparse_status kt_trsv_lt(const SUF      alpha,
         {
         case(idxk - 1):
             idx   = idxend - idxrem;
-            xvec  = kt_maskz_set_p<SZ, SUF, EXT, idxk - 1>(x, &icol[idx]);
-            avec  = kt_maskz_set_p<SZ, SUF, EXT, idxk - 1>(a, idx);
+            xvec  = kt_maskz_set_p<SZ, SUF, EXT, idxk - 1>(x_fix, &icol_fix[idx]);
+            avec  = kt_maskz_set_p<SZ, SUF, EXT, idxk - 1>(a_fix, idx);
             xivec = kt_set1_p<SZ, SUF>(mxi);
             xvec  = kt_fmadd_p<SZ, SUF>(avec, xivec, xvec);
             for(size_t k = 0; k < idxk - 1; k++)
-                x[icol[idx + k]] = xvec[k];
+                x_fix[icol_fix[idx + k]] = xvec[k];
             break;
         default:
             for(idx = idxend - idxrem; idx < idxend; idx++)
-                x[icol[idx]] -= a[idx] * xi;
+                x_fix[icol_fix[idx]] -= a_fix[idx] * xi;
         }
     }
     return aoclsparse_status_success;
@@ -793,8 +855,9 @@ inline aoclsparse_status kt_trsv_lt(const SUF      alpha,
  * - `EXP` AVX capability, kt_avxext e.g. `AVX` or `AVX512F`, etc...
  */
 template <int SZ, typename SUF, kt_avxext EXT>
-inline aoclsparse_status kt_trsv_u(const SUF      alpha,
-                                   aoclsparse_int m,
+inline aoclsparse_status kt_trsv_u(const SUF             alpha,
+                                   aoclsparse_int        m,
+                                   aoclsparse_index_base base,
                                    const SUF *__restrict__ a,
                                    const aoclsparse_int *__restrict__ icol,
                                    const aoclsparse_int *__restrict__ ilrow,
@@ -808,7 +871,11 @@ inline aoclsparse_status kt_trsv_u(const SUF      alpha,
     SUF                  xi;
     avxvector_t<SZ, SUF> avec, xvec, pvec;
     // get the vector length (packet size)
-    const aoclsparse_int idxk = avxvector<SZ, SUF>();
+    const aoclsparse_int  idxk     = avxvector<SZ, SUF>();
+    const aoclsparse_int *icol_fix = icol - base;
+    const SUF            *a_fix    = a - base;
+    SUF                  *x_fix    = x - base;
+
     for(i = m - 1; i >= 0; i--)
     {
         idxstart = iurow[i];
@@ -819,8 +886,8 @@ inline aoclsparse_status kt_trsv_u(const SUF      alpha,
         pvec     = kt_setzero_p<SZ, SUF>();
         for(idx = idxstart; idx <= idxend - idxrem; idx += idxk)
         {
-            xvec = kt_set_p<SZ, SUF>(x, &icol[idx]);
-            avec = kt_loadu_p<SZ, SUF>(&a[idx]);
+            xvec = kt_set_p<SZ, SUF>(x_fix, &icol_fix[idx]);
+            avec = kt_loadu_p<SZ, SUF>(&a_fix[idx]);
             pvec = kt_fmadd_p<SZ, SUF>(avec, xvec, pvec);
         }
         if(idxcnt - idxk >= 0)
@@ -834,19 +901,19 @@ inline aoclsparse_status kt_trsv_u(const SUF      alpha,
         {
         case(idxk - 1):
             idx  = idxend - idxrem + 1;
-            xvec = kt_maskz_set_p<SZ, SUF, EXT, idxk - 1>(x, &icol[idx]);
-            avec = kt_maskz_set_p<SZ, SUF, EXT, idxk - 1>(a, idx);
+            xvec = kt_maskz_set_p<SZ, SUF, EXT, idxk - 1>(x_fix, &icol_fix[idx]);
+            avec = kt_maskz_set_p<SZ, SUF, EXT, idxk - 1>(a_fix, idx);
             xi -= kt_dot_p(avec, xvec);
             break;
         default:
             for(idx = idxend - idxrem + 1; idx <= idxend; idx++)
-                xi -= a[idx] * x[icol[idx]];
+                xi -= a_fix[idx] * x_fix[icol_fix[idx]];
         }
         x[i] = xi;
         if(!unit)
         {
             idiag = iurow[i] - 1;
-            x[i] /= a[idiag];
+            x[i] /= a_fix[idiag];
         }
     }
     return aoclsparse_status_success;
@@ -880,8 +947,9 @@ inline aoclsparse_status kt_trsv_u(const SUF      alpha,
  * - `EXP` AVX capability, kt_avxext e.g. `AVX` or `AVX512F`, etc...
  */
 template <int SZ, typename SUF, kt_avxext EXT>
-inline aoclsparse_status kt_trsv_ut(const SUF      alpha,
-                                    aoclsparse_int m,
+inline aoclsparse_status kt_trsv_ut(const SUF             alpha,
+                                    aoclsparse_int        m,
+                                    aoclsparse_index_base base,
                                     const SUF *__restrict__ a,
                                     const aoclsparse_int *__restrict__ icol,
                                     const aoclsparse_int *__restrict__ ilrow,
@@ -895,7 +963,11 @@ inline aoclsparse_status kt_trsv_ut(const SUF      alpha,
     SUF                  xi, mxi;
     avxvector_t<SZ, SUF> avec, xivec, xvec;
     // get the vector length (packet size)
-    const aoclsparse_int idxk = avxvector<SZ, SUF>();
+    const aoclsparse_int  idxk     = avxvector<SZ, SUF>();
+    const aoclsparse_int *icol_fix = icol - base;
+    const SUF            *a_fix    = a - base;
+    SUF                  *x_fix    = x - base;
+
     if(alpha != (SUF)0.0)
         for(i = 0; i < m; i++)
             x[i] = alpha * b[i];
@@ -906,7 +978,7 @@ inline aoclsparse_status kt_trsv_ut(const SUF      alpha,
         if(!unit)
         {
             idiag = iurow[i] - 1;
-            x[i]  = x[i] / a[idiag];
+            x[i]  = x[i] / a_fix[idiag];
         }
         xi     = x[i];
         mxi    = -xi;
@@ -914,12 +986,12 @@ inline aoclsparse_status kt_trsv_ut(const SUF      alpha,
         idxrem = idxcnt % idxk;
         for(idx = idxstart; idx <= idxend - idxrem; idx += idxk)
         {
-            xvec  = kt_set_p<SZ, SUF>(x, &icol[idx]);
-            avec  = kt_loadu_p<SZ, SUF>(&a[idx]);
+            xvec  = kt_set_p<SZ, SUF>(x_fix, &icol_fix[idx]);
+            avec  = kt_loadu_p<SZ, SUF>(&a_fix[idx]);
             xivec = kt_set1_p<SZ, SUF>(mxi);
             xvec  = kt_fmadd_p<SZ, SUF>(avec, xivec, xvec);
             for(size_t k = 0; k < idxk; k++)
-                x[icol[idx + k]] = xvec[k];
+                x_fix[icol_fix[idx + k]] = xvec[k];
         }
         // process remainder
         // use packet-size -1 with zero paddding -> intrinsic
@@ -928,16 +1000,16 @@ inline aoclsparse_status kt_trsv_ut(const SUF      alpha,
         {
         case(idxk - 1):
             idx   = idxend - idxrem + 1;
-            xvec  = kt_maskz_set_p<SZ, SUF, EXT, idxk - 1>(x, &icol[idx]);
-            avec  = kt_maskz_set_p<SZ, SUF, EXT, idxk - 1>(a, idx);
+            xvec  = kt_maskz_set_p<SZ, SUF, EXT, idxk - 1>(x_fix, &icol_fix[idx]);
+            avec  = kt_maskz_set_p<SZ, SUF, EXT, idxk - 1>(a_fix, idx);
             xivec = kt_set1_p<SZ, SUF>(mxi);
             xvec  = kt_fmadd_p<SZ, SUF>(avec, xivec, xvec);
             for(size_t k = 0; k < idxk - 1; k++)
-                x[icol[idx + k]] = xvec[k];
+                x_fix[icol_fix[idx + k]] = xvec[k];
             break;
         default:
             for(idx = idxend - idxrem + 1; idx <= idxend; idx++)
-                x[icol[idx]] -= a[idx] * xi;
+                x_fix[icol_fix[idx]] -= a_fix[idx] * xi;
         }
     }
     return aoclsparse_status_success;
@@ -980,18 +1052,26 @@ aoclsparse_status
         return aoclsparse_status_invalid_value;
     }
 
-    // Check for base index
+    // Check for base index incompatibility
     // There is an issue that zero-based indexing is defined in two separate places and
-    // can lead to ambiguity, for now we check that both are consisten and zero-based.
-    if((A->base != aoclsparse_index_base_zero) || (descr->base != aoclsparse_index_base_zero))
-        return aoclsparse_status_not_implemented;
-
+    // can lead to ambiguity, we check that both are consistent.
+    if(A->base != descr->base)
+    {
+        return aoclsparse_status_invalid_value;
+    }
+    // Check if descriptor's index-base is valid (and A's index-base must be the same)
+    if(descr->base != aoclsparse_index_base_zero && descr->base != aoclsparse_index_base_one)
+    {
+        return aoclsparse_status_invalid_value;
+    }
     if(transpose != aoclsparse_operation_none && transpose != aoclsparse_operation_transpose)
         return aoclsparse_status_not_implemented;
 
     if(descr->type != aoclsparse_matrix_type_symmetric
        && descr->type != aoclsparse_matrix_type_triangular)
+    {
         return aoclsparse_status_invalid_value;
+    }
 
     if(descr->fill_mode != aoclsparse_fill_mode_lower
        && descr->fill_mode != aoclsparse_fill_mode_upper)
@@ -1005,6 +1085,7 @@ aoclsparse_status
         if(status != aoclsparse_status_success)
             return status; // LCOV_EXCL_LINE
     }
+
     // From this point on A->opt_csr_ready is true
 
     // Make sure we have the right type before casting
@@ -1016,7 +1097,9 @@ aoclsparse_status
     const bool unit = descr->diag_type == aoclsparse_diag_type_unit;
 
     if(!A->opt_csr_full_diag && !unit) // not of full rank, linear system cannot be solved
+    {
         return aoclsparse_status_invalid_value;
+    }
 
     const aoclsparse_int *icol = (A->opt_csr_mat).csr_col_ptr;
     // beggining of the row
@@ -1027,6 +1110,7 @@ aoclsparse_status
     const aoclsparse_int *iurow = A->iurow;
     const bool            lower = descr->fill_mode == aoclsparse_fill_mode_lower;
     const bool            trans = transpose == aoclsparse_operation_transpose;
+    aoclsparse_index_base base  = A->internal_base_index;
 
     // CPU ID dispatcher sets recommended Kernel ID to use, this can be influenced by
     // the user-requested "kid" hint
@@ -1094,18 +1178,18 @@ aoclsparse_status
             case 3: // AVX-512F (Note: if not available then trickle down to next best)
 #if USE_AVX512
                 return kt_trsv_l<512, T, kt_avxext::ANY>(
-                    alpha, m, a, icol, ilrow, idiag, b, x, unit);
+                    alpha, m, base, a, icol, ilrow, idiag, b, x, unit);
                 break;
 #endif
             case 2: // AVX2
                 return kt_trsv_l<256, T, kt_avxext::AVX>(
-                    alpha, m, a, icol, ilrow, idiag, b, x, unit);
+                    alpha, m, base, a, icol, ilrow, idiag, b, x, unit);
                 break;
             case 1: // Reference AVX implementation
-                return trsv_l_ref_core_avx(alpha, m, a, icol, ilrow, idiag, b, x, unit);
+                return trsv_l_ref_core_avx(alpha, m, base, a, icol, ilrow, idiag, b, x, unit);
                 break;
             default: // Reference implementation
-                return trsv_l_ref_core(alpha, m, a, icol, ilrow, idiag, b, x, unit);
+                return trsv_l_ref_core(alpha, m, base, a, icol, ilrow, idiag, b, x, unit);
                 break;
             }
         }
@@ -1116,18 +1200,18 @@ aoclsparse_status
             case 3: // AVX-512F (Note: if not available then trickle down to next best)
 #if USE_AVX512
                 return kt_trsv_lt<512, T, kt_avxext::ANY>(
-                    alpha, m, a, icol, ilrow, idiag, b, x, unit);
+                    alpha, m, base, a, icol, ilrow, idiag, b, x, unit);
                 break;
 #endif
             case 2: // AVX2
                 return kt_trsv_lt<256, T, kt_avxext::AVX>(
-                    alpha, m, a, icol, ilrow, idiag, b, x, unit);
+                    alpha, m, base, a, icol, ilrow, idiag, b, x, unit);
                 break;
             case 1: // Reference AVX implementation
-                return trsv_lt_ref_core_avx(alpha, m, a, icol, ilrow, idiag, b, x, unit);
+                return trsv_lt_ref_core_avx(alpha, m, base, a, icol, ilrow, idiag, b, x, unit);
                 break;
             default: // Reference implementation
-                return trsv_lt_ref_core(alpha, m, a, icol, ilrow, idiag, b, x, unit);
+                return trsv_lt_ref_core(alpha, m, base, a, icol, ilrow, idiag, b, x, unit);
                 break;
             }
         }
@@ -1141,18 +1225,18 @@ aoclsparse_status
             case 3: // AVX-512F (Note: if not available then trickle down to next best)
 #if USE_AVX512
                 return kt_trsv_u<512, T, kt_avxext::ANY>(
-                    alpha, m, a, icol, ilrow, iurow, b, x, unit);
+                    alpha, m, base, a, icol, ilrow, iurow, b, x, unit);
                 break;
 #endif
             case 2: // AVX2
                 return kt_trsv_u<256, T, kt_avxext::AVX>(
-                    alpha, m, a, icol, ilrow, iurow, b, x, unit);
+                    alpha, m, base, a, icol, ilrow, iurow, b, x, unit);
                 break;
             case 1: // Reference AVX implementation
-                return trsv_u_ref_core_avx(alpha, m, a, icol, ilrow, iurow, b, x, unit);
+                return trsv_u_ref_core_avx(alpha, m, base, a, icol, ilrow, iurow, b, x, unit);
                 break;
             default: // Reference implementation
-                return trsv_u_ref_core(alpha, m, a, icol, ilrow, iurow, b, x, unit);
+                return trsv_u_ref_core(alpha, m, base, a, icol, ilrow, iurow, b, x, unit);
                 break;
             }
         }
@@ -1163,18 +1247,18 @@ aoclsparse_status
             case 3: // AVX-512F (Note: if not available then trickle down to next best)
 #if USE_AVX512
                 return kt_trsv_ut<512, T, kt_avxext::ANY>(
-                    alpha, m, a, icol, ilrow, iurow, b, x, unit);
+                    alpha, m, base, a, icol, ilrow, iurow, b, x, unit);
                 break;
 #endif
             case 2: // AVX2
                 return kt_trsv_ut<256, T, kt_avxext::AVX>(
-                    alpha, m, a, icol, ilrow, iurow, b, x, unit);
+                    alpha, m, base, a, icol, ilrow, iurow, b, x, unit);
                 break;
             case 1: // Reference AVX implementation
-                return trsv_ut_ref_core_avx(alpha, m, a, icol, ilrow, iurow, b, x, unit);
+                return trsv_ut_ref_core_avx(alpha, m, base, a, icol, ilrow, iurow, b, x, unit);
                 break;
             default: // Reference implementation
-                return trsv_ut_ref_core(alpha, m, a, icol, ilrow, iurow, b, x, unit);
+                return trsv_ut_ref_core(alpha, m, base, a, icol, ilrow, iurow, b, x, unit);
                 break;
             }
         }

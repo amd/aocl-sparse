@@ -144,6 +144,10 @@ void test_cg_error(aoclsparse_status       status_exp,
     T                           rinfo[100];
     void                       *udata = nullptr;
 
+    ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+    ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_zero),
+              aoclsparse_status_success);
+
     ASSERT_EQ(create_matrix(mid, m, n, nnz, icrow, icol, aval, A, descr, VERBOSE),
               aoclsparse_status_success);
 
@@ -195,6 +199,10 @@ void test_cg_double_call()
 #endif
 
     matrix_id mid = sample_cg_mat;
+    ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+    ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_zero),
+              aoclsparse_status_success);
+
     ASSERT_EQ(create_matrix(mid, m, n, nnz, icrow, icol, aval, A, descr, VERBOSE),
               aoclsparse_status_success);
     b = {1, 1, 1, 1, 1, 1, 1, 1};
@@ -275,6 +283,10 @@ void test_cg_positive(matrix_id               mid,
     // Create the iteartive solver handle
     aoclsparse_itsol_handle handle = nullptr;
     itsol_init<T>(&handle);
+
+    ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+    ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_zero),
+              aoclsparse_status_success);
 
     ASSERT_EQ(create_matrix(mid, m, n, nnz, icrow, icol, aval, A, descr, VERBOSE),
               aoclsparse_status_success);

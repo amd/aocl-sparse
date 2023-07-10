@@ -129,7 +129,8 @@ void testing_blkcsrmv(const Arguments &arg)
                           blk_col_ind.data(),
                           blk_csr_val.data(),
                           masks.data(),
-                          nRowsblk);
+                          nRowsblk,
+                          base);
 
     if(arg.unit_check)
     {

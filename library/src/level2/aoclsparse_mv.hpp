@@ -77,10 +77,21 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
     if(x == nullptr || y == nullptr)
         return aoclsparse_status_invalid_pointer;
 
-    // Check index base
-    if((descr->base != aoclsparse_index_base_zero) || (A->base != aoclsparse_index_base_zero))
-        return aoclsparse_status_not_implemented;
-
+    // Validate descriptor's index base
+    if(descr->base != aoclsparse_index_base_zero && descr->base != aoclsparse_index_base_one)
+    {
+        return aoclsparse_status_invalid_value;
+    }
+    // Validate aoclsparse matrix's index base
+    if(A->base != aoclsparse_index_base_zero && A->base != aoclsparse_index_base_one)
+    {
+        return aoclsparse_status_invalid_value;
+    }
+    // Make sure the base index of descriptor and aoclsparse matrix are the same
+    if(A->base != descr->base)
+    {
+        return aoclsparse_status_invalid_value;
+    }
     // Check transpose
     if((op != aoclsparse_operation_none) && (op != aoclsparse_operation_transpose))
     {
@@ -138,7 +149,8 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
         return aoclsparse_mv_general(op, alpha, A, descr, x, beta, y);
         // In UK/HPCG branch this would go only to AVX2 CSR
         // y = alpha A * x + beta y
-        /*return aoclsparse_csrmv_vectorized_avx2ptr(alpha,
+        /*return aoclsparse_csrmv_vectorized_avx2ptr(descr->base,
+                                                   alpha,
                                                    A->m,
                                                    A->n,
                                                    A->nnz,
@@ -156,7 +168,8 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
         // can dispatch our data directly
         // transposed and non-transposed operation
         // y = alpha A * x + beta y
-        return aoclsparse_csrmv_symm_internal(alpha,
+        return aoclsparse_csrmv_symm_internal(descr->base,
+                                              alpha,
                                               A->m,
                                               descr->diag_type,
                                               descr->fill_mode,
@@ -190,7 +203,8 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
         //kernels as per transpose operation
         if(op == aoclsparse_operation_none)
         {
-            return aoclsparse_csrmv_vectorized_avx2ptr(alpha,
+            return aoclsparse_csrmv_vectorized_avx2ptr(descr->base,
+                                                       alpha,
                                                        A->m,
                                                        A->n,
                                                        A->nnz,
@@ -205,7 +219,8 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
         }
         else if(op == aoclsparse_operation_transpose)
         {
-            return aoclsparse_csrmvt_ptr(alpha,
+            return aoclsparse_csrmvt_ptr(descr->base,
+                                         alpha,
                                          A->m,
                                          A->n,
                                          (T *)A->opt_csr_mat.csr_val,

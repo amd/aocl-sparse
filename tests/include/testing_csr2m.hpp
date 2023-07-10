@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2021-2022 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2021-2023 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -95,7 +95,7 @@ void testing_csr2m(const Arguments &arg)
     aoclsparse_int         nnz_C;
     aoclsparse_operation   transA   = arg.transA;
     aoclsparse_operation   transB   = arg.transB;
-    aoclsparse_index_base  base     = arg.baseA;
+    aoclsparse_index_base  base     = arg.baseA, baseCSC;
     aoclsparse_matrix_init mat      = arg.matrix;
     std::string            filename = arg.filename;
     bool                   issymm   = false;
@@ -103,6 +103,7 @@ void testing_csr2m(const Arguments &arg)
     double                 cpu_gflops;
     double                 cpu_time_used, cpu_time_start;
     int                    number_hot_calls;
+    aoclsparse_index_base  baseC;
     // Create matrix descriptor
     aoclsparse_local_mat_descr descrA;
     aoclsparse_local_mat_descr descrB;
@@ -173,11 +174,15 @@ void testing_csr2m(const Arguments &arg)
             csr_col_ind_B.resize(nnz_A);
             csr_row_ptr_B.resize(K + 1, 0);
             csr_val_B.resize(nnz_A);
+            //Output-base index of csc (i.e., csr B matrix) buffer
+            baseCSC = aoclsparse_index_base_zero;
 
             /*B matrix = transpose of A ie. csrtocsc(A)*/
             CHECK_AOCLSPARSE_ERROR(aoclsparse_csr2csc(M,
                                                       K,
                                                       nnz_A,
+                                                      descrA,
+                                                      baseCSC,
                                                       csr_row_ptr_A.data(),
                                                       csr_col_ind_A.data(),
                                                       csr_val_A.data(),
@@ -219,13 +224,28 @@ void testing_csr2m(const Arguments &arg)
     ublasCsrB.complete_index1_data();
 
     memcpy(ublasCsrA.value_data().begin(), csr_val_A.data(), nnz_A * sizeof(T));
-    memcpy(ublasCsrA.index1_data().begin(), csr_row_ptr_A.data(), (M + 1) * sizeof(aoclsparse_int));
-    memcpy(ublasCsrA.index2_data().begin(), csr_col_ind_A.data(), nnz_A * sizeof(aoclsparse_int));
+    aoclsparse_int *ublasA_csr_row_ptr = ublasCsrA.index1_data().begin();
+    for(aoclsparse_int i = 0; i < M + 1; i++)
+    {
+        ublasA_csr_row_ptr[i] = csr_row_ptr_A[i] - base;
+    }
+    aoclsparse_int *ublasA_csr_col_idx = ublasCsrA.index2_data().begin();
+    for(aoclsparse_int i = 0; i < nnz_A; i++)
+    {
+        ublasA_csr_col_idx[i] = csr_col_ind_A[i] - base;
+    }
 
     memcpy(ublasCsrB.value_data().begin(), csr_val_B.data(), nnz_B * sizeof(T));
-    memcpy(ublasCsrB.index1_data().begin(), csr_row_ptr_B.data(), (K + 1) * sizeof(aoclsparse_int));
-    memcpy(ublasCsrB.index2_data().begin(), csr_col_ind_B.data(), nnz_B * sizeof(aoclsparse_int));
-
+    aoclsparse_int *ublasB_csr_row_ptr = ublasCsrB.index1_data().begin();
+    for(aoclsparse_int i = 0; i < K + 1; i++)
+    {
+        ublasB_csr_row_ptr[i] = csr_row_ptr_B[i] - base;
+    }
+    aoclsparse_int *ublasB_csr_col_idx = ublasCsrB.index2_data().begin();
+    for(aoclsparse_int i = 0; i < nnz_B; i++)
+    {
+        ublasB_csr_col_idx[i] = csr_col_ind_B[i] - base;
+    }
     if(arg.unit_check)
     {
         if(arg.stage == 0)
@@ -245,7 +265,7 @@ void testing_csr2m(const Arguments &arg)
                 aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, &csrC));
         }
         aoclsparse_export_mat_csr(
-            csrC, &base, &C_M, &C_N, &nnz_C, &csr_row_ptr_C, &csr_col_ind_C, (void **)&csr_val_C);
+            csrC, &baseC, &C_M, &C_N, &nnz_C, &csr_row_ptr_C, &csr_col_ind_C, (void **)&csr_val_C);
 
         aoclsparse_order_column_index(C_M, nnz_C, csr_row_ptr_C, csr_col_ind_C, csr_val_C);
 
@@ -275,10 +295,10 @@ void testing_csr2m(const Arguments &arg)
     }
 
     aoclsparse_export_mat_csr(
-        csrC, &base, &C_M, &C_N, &nnz_C, &csr_row_ptr_C, &csr_col_ind_C, (void **)&csr_val_C);
-    cpu_gflops
-        = csr2m_gflop_count(M, csr_row_ptr_A.data(), csr_col_ind_A.data(), csr_row_ptr_B.data())
-          / cpu_time_used;
+        csrC, &baseC, &C_M, &C_N, &nnz_C, &csr_row_ptr_C, &csr_col_ind_C, (void **)&csr_val_C);
+    cpu_gflops = csr2m_gflop_count(
+                     M, base, csr_row_ptr_A.data(), csr_col_ind_A.data(), csr_row_ptr_B.data())
+                 / cpu_time_used;
     cpu_gbyte = csr2m_gbyte_count<T>(M, N, K, nnz_A, nnz_B, nnz_C) / cpu_time_used;
 
     std::cout.precision(2);

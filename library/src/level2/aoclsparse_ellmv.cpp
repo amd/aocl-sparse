@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020-2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -55,11 +55,11 @@ extern "C" aoclsparse_status aoclsparse_sellmv(aoclsparse_operation            t
     }
 
     // Check index base
-    if(descr->base != aoclsparse_index_base_zero)
+    if(descr->base != aoclsparse_index_base_zero && descr->base != aoclsparse_index_base_one)
     {
-        // TODO
-        return aoclsparse_status_not_implemented;
+        return aoclsparse_status_invalid_value;
     }
+
     if(descr->type != aoclsparse_matrix_type_general)
     {
         // TODO
@@ -117,7 +117,7 @@ extern "C" aoclsparse_status aoclsparse_sellmv(aoclsparse_operation            t
     }
 
     return aoclsparse_ellmv_template(
-        *alpha, m, ell_val, ell_col_ind, ell_width, x, *beta, y, &context);
+        *alpha, m, ell_val, ell_col_ind, ell_width, descr, x, *beta, y, &context);
 }
 
 extern "C" aoclsparse_status aoclsparse_dellmv(aoclsparse_operation       trans,
@@ -147,11 +147,11 @@ extern "C" aoclsparse_status aoclsparse_dellmv(aoclsparse_operation       trans,
     }
 
     // Check index base
-    if(descr->base != aoclsparse_index_base_zero)
+    if(descr->base != aoclsparse_index_base_zero && descr->base != aoclsparse_index_base_one)
     {
-        // TODO
-        return aoclsparse_status_not_implemented;
+        return aoclsparse_status_invalid_value;
     }
+
     if(descr->type != aoclsparse_matrix_type_general)
     {
         // TODO
@@ -211,13 +211,13 @@ extern "C" aoclsparse_status aoclsparse_dellmv(aoclsparse_operation       trans,
 #if USE_AVX512
     if(context.is_avx512)
         return aoclsparse_ellmv_template_avx512(
-            *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, x, *beta, y, &context);
+            *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, *beta, y, &context);
     else
         return aoclsparse_ellmv_template_avx2(
-            *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, x, *beta, y, &context);
+            *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, *beta, y, &context);
 #else
     return aoclsparse_ellmv_template_avx2(
-        *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, x, *beta, y, &context);
+        *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, *beta, y, &context);
 #endif
 }
 
@@ -247,11 +247,11 @@ extern "C" aoclsparse_status aoclsparse_selltmv(aoclsparse_operation       trans
     }
 
     // Check index base
-    if(descr->base != aoclsparse_index_base_zero)
+    if(descr->base != aoclsparse_index_base_zero && descr->base != aoclsparse_index_base_one)
     {
-        // TODO
-        return aoclsparse_status_not_implemented;
+        return aoclsparse_status_invalid_value;
     }
+
     if(descr->type != aoclsparse_matrix_type_general)
     {
         // TODO
@@ -309,7 +309,7 @@ extern "C" aoclsparse_status aoclsparse_selltmv(aoclsparse_operation       trans
     }
 
     return aoclsparse_elltmv_template(
-        *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, x, *beta, y, &context);
+        *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, *beta, y, &context);
 }
 
 extern "C" aoclsparse_status aoclsparse_delltmv(aoclsparse_operation       trans,
@@ -339,11 +339,11 @@ extern "C" aoclsparse_status aoclsparse_delltmv(aoclsparse_operation       trans
     }
 
     // Check index base
-    if(descr->base != aoclsparse_index_base_zero)
+    if(descr->base != aoclsparse_index_base_zero && descr->base != aoclsparse_index_base_one)
     {
-        // TODO
-        return aoclsparse_status_not_implemented;
+        return aoclsparse_status_invalid_value;
     }
+
     if(descr->type != aoclsparse_matrix_type_general)
     {
         // TODO
@@ -403,35 +403,34 @@ extern "C" aoclsparse_status aoclsparse_delltmv(aoclsparse_operation       trans
 #if USE_AVX512
     if(context.is_avx512)
         return aoclsparse_elltmv_template_avx512(
-            *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, x, *beta, y, &context);
+            *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, *beta, y, &context);
     else
         return aoclsparse_elltmv_template_avx2(
-            *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, x, *beta, y, &context);
+            *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, *beta, y, &context);
 #else
     return aoclsparse_elltmv_template_avx2(
-        *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, x, *beta, y, &context);
+        *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, *beta, y, &context);
 #endif
 }
 
-extern "C" aoclsparse_status
-    aoclsparse_sellthybmv([[maybe_unused]] aoclsparse_operation       trans,
-                          const float                                *alpha,
-                          aoclsparse_int                              m,
-                          aoclsparse_int                              n,
-                          aoclsparse_int                              nnz,
-                          const float                                *ell_val,
-                          const aoclsparse_int                       *ell_col_ind,
-                          aoclsparse_int                              ell_width,
-                          aoclsparse_int                              ell_m,
-                          const float                                *csr_val,
-                          const aoclsparse_int                       *csr_row_ind,
-                          const aoclsparse_int                       *csr_col_ind,
-                          aoclsparse_int                             *row_idx_map,
-                          aoclsparse_int                             *csr_row_idx_map,
-                          [[maybe_unused]] const aoclsparse_mat_descr descr,
-                          const float                                *x,
-                          const float                                *beta,
-                          float                                      *y)
+extern "C" aoclsparse_status aoclsparse_sellthybmv([[maybe_unused]] aoclsparse_operation trans,
+                                                   const float                          *alpha,
+                                                   aoclsparse_int                        m,
+                                                   aoclsparse_int                        n,
+                                                   aoclsparse_int                        nnz,
+                                                   const float                          *ell_val,
+                                                   const aoclsparse_int      *ell_col_ind,
+                                                   aoclsparse_int             ell_width,
+                                                   aoclsparse_int             ell_m,
+                                                   const float               *csr_val,
+                                                   const aoclsparse_int      *csr_row_ind,
+                                                   const aoclsparse_int      *csr_col_ind,
+                                                   aoclsparse_int            *row_idx_map,
+                                                   aoclsparse_int            *csr_row_idx_map,
+                                                   const aoclsparse_mat_descr descr,
+                                                   const float               *x,
+                                                   const float               *beta,
+                                                   float                     *y)
 {
     // Read the environment variables to update global variable
     // This function updates the num_threads only once.
@@ -453,31 +452,31 @@ extern "C" aoclsparse_status
                                          csr_col_ind,
                                          row_idx_map,
                                          csr_row_idx_map,
+                                         descr,
                                          x,
                                          *beta,
                                          y,
                                          &context);
 }
 
-extern "C" aoclsparse_status
-    aoclsparse_dellthybmv([[maybe_unused]] aoclsparse_operation       trans,
-                          const double                               *alpha,
-                          aoclsparse_int                              m,
-                          aoclsparse_int                              n,
-                          aoclsparse_int                              nnz,
-                          const double                               *ell_val,
-                          const aoclsparse_int                       *ell_col_ind,
-                          aoclsparse_int                              ell_width,
-                          aoclsparse_int                              ell_m,
-                          const double                               *csr_val,
-                          const aoclsparse_int                       *csr_row_ind,
-                          const aoclsparse_int                       *csr_col_ind,
-                          aoclsparse_int                             *row_idx_map,
-                          aoclsparse_int                             *csr_row_idx_map,
-                          [[maybe_unused]] const aoclsparse_mat_descr descr,
-                          const double                               *x,
-                          const double                               *beta,
-                          double                                     *y)
+extern "C" aoclsparse_status aoclsparse_dellthybmv([[maybe_unused]] aoclsparse_operation trans,
+                                                   const double                         *alpha,
+                                                   aoclsparse_int                        m,
+                                                   aoclsparse_int                        n,
+                                                   aoclsparse_int                        nnz,
+                                                   const double                         *ell_val,
+                                                   const aoclsparse_int      *ell_col_ind,
+                                                   aoclsparse_int             ell_width,
+                                                   aoclsparse_int             ell_m,
+                                                   const double              *csr_val,
+                                                   const aoclsparse_int      *csr_row_ind,
+                                                   const aoclsparse_int      *csr_col_ind,
+                                                   aoclsparse_int            *row_idx_map,
+                                                   aoclsparse_int            *csr_row_idx_map,
+                                                   const aoclsparse_mat_descr descr,
+                                                   const double              *x,
+                                                   const double              *beta,
+                                                   double                    *y)
 {
     // Read the environment variables to update global variable
     // This function updates the num_threads only once.
@@ -502,6 +501,7 @@ extern "C" aoclsparse_status
                                                     csr_col_ind,
                                                     row_idx_map,
                                                     csr_row_idx_map,
+                                                    descr,
                                                     x,
                                                     *beta,
                                                     y,
@@ -520,6 +520,7 @@ extern "C" aoclsparse_status
                                                   csr_col_ind,
                                                   row_idx_map,
                                                   csr_row_idx_map,
+                                                  descr,
                                                   x,
                                                   *beta,
                                                   y,
@@ -538,6 +539,7 @@ extern "C" aoclsparse_status
                                               csr_col_ind,
                                               row_idx_map,
                                               csr_row_idx_map,
+                                              descr,
                                               x,
                                               *beta,
                                               y,

@@ -54,10 +54,13 @@ namespace
         csr_col_ind.assign({0, 3, 1, 2, 1, 3, 4, 4});
         csr_val.assign({1, 2, 3, 4, 5, 6, 7, 8});
 
-        aoclsparse_create_mat_descr(&descr);
-
-        ASSERT_EQ(create_aoclsparse_matrix<T>(A, m, n, nnz, csr_row_ptr, csr_col_ind, csr_val),
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_zero),
                   aoclsparse_status_success);
+
+        ASSERT_EQ(
+            create_aoclsparse_matrix<T>(A, descr, m, n, nnz, csr_row_ptr, csr_col_ind, csr_val),
+            aoclsparse_status_success);
 
         // In turns pass nullptr in every single pointer argument
         /*
@@ -113,16 +116,18 @@ namespace
         csr_col_ind.assign({0, 3, 1, 2, 1, 3, 4, 4});
         csr_val.assign({1, 2, 3, 4, 5, 6, 7, 8});
 
-        aoclsparse_create_mat_descr(&descr);
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_zero),
+                  aoclsparse_status_success);
 
         ASSERT_EQ(create_aoclsparse_matrix<T>(
-                      A_n_wrong, m, wrong, nnz, csr_row_ptr, csr_col_ind, csr_val),
+                      A_n_wrong, descr, m, wrong, nnz, csr_row_ptr, csr_col_ind, csr_val),
                   aoclsparse_status_invalid_size);
         ASSERT_EQ(create_aoclsparse_matrix<T>(
-                      A_m_wrong, wrong, n, nnz, csr_row_ptr, csr_col_ind, csr_val),
+                      A_m_wrong, descr, wrong, n, nnz, csr_row_ptr, csr_col_ind, csr_val),
                   aoclsparse_status_invalid_size);
         ASSERT_EQ(create_aoclsparse_matrix<T>(
-                      A_nnz_wrong, m, n, wrong, csr_row_ptr, csr_col_ind, csr_val),
+                      A_nnz_wrong, descr, m, n, wrong, csr_row_ptr, csr_col_ind, csr_val),
                   aoclsparse_status_invalid_size);
 
         // aoclsparse_matrix "A" which contains members m,n and nnz are validated during matrix creation.
@@ -171,21 +176,21 @@ namespace
         csr_col_ind.assign({0, 3, 1, 2, 1, 3, 4, 4});
         csr_val.assign({1, 2, 3, 4, 5, 6, 7, 8});
 
-        aoclsparse_create_mat_descr(&descr);
-
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_zero),
+                  aoclsparse_status_success);
         /*
             pass zero arguments for m, n and nnz to test the creation API.
         */
-        ASSERT_EQ(
-            create_aoclsparse_matrix<T>(A_n_zero, m, zero, nnz, csr_row_ptr, csr_col_ind, csr_val),
-            aoclsparse_status_success);
-        ASSERT_EQ(
-            create_aoclsparse_matrix<T>(A_m_zero, zero, n, nnz, csr_row_ptr, csr_col_ind, csr_val),
-            aoclsparse_status_success);
-        ASSERT_EQ(
-            create_aoclsparse_matrix<T>(A_nnz_zero, m, n, zero, csr_row_ptr, csr_col_ind, csr_val),
-            aoclsparse_status_success);
-
+        ASSERT_EQ(create_aoclsparse_matrix<T>(
+                      A_n_zero, descr, m, zero, nnz, csr_row_ptr, csr_col_ind, csr_val),
+                  aoclsparse_status_success);
+        ASSERT_EQ(create_aoclsparse_matrix<T>(
+                      A_m_zero, descr, zero, n, nnz, csr_row_ptr, csr_col_ind, csr_val),
+                  aoclsparse_status_success);
+        ASSERT_EQ(create_aoclsparse_matrix<T>(
+                      A_nnz_zero, descr, m, n, zero, csr_row_ptr, csr_col_ind, csr_val),
+                  aoclsparse_status_success);
         /*
             to check if the ILU API exits gracefully with success
             when the values zero are passed for m, n and nnz
@@ -204,6 +209,56 @@ namespace
         EXPECT_EQ(aoclsparse_destroy(A_n_zero), aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_destroy(A_m_zero), aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_destroy(A_nnz_zero), aoclsparse_status_success);
+    }
+    // test one-base and zero-based indexing support
+    template <typename T>
+    void test_ilu_baseOneIndexing()
+    {
+        aoclsparse_operation        trans              = aoclsparse_operation_none;
+        int                         invalid_index_base = 2;
+        T                          *approx_inv_diag    = NULL;
+        T                          *precond_csr_val    = NULL;
+        aoclsparse_int              m, n, nnz;
+        std::vector<aoclsparse_int> csr_row_ptr;
+        std::vector<aoclsparse_int> csr_col_ind;
+        std::vector<T>              csr_val;
+        //std::vector<T>              ilu0_precond_gold(nnz);
+        aoclsparse_mat_descr descr;
+        T                    x[5] = {1.0};
+        T                    b[5] = {1.0};
+        m                         = 5;
+        n                         = 5;
+        nnz                       = 8;
+        T ilu0_precond_gold[8]    = {1.00, 2.00, 3.00, 4.00, 1.6666666666666667, 6.00, 7.00, 8.00};
+
+        csr_row_ptr.assign({1, 3, 4, 5, 8, 9});
+        csr_col_ind.assign({1, 4, 2, 3, 2, 4, 5, 5});
+        csr_val.assign({1, 2, 3, 4, 5, 6, 7, 8});
+
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_one),
+                  aoclsparse_status_success);
+        /*
+            check if the One-Based Indexing is supported
+        */
+        aoclsparse_matrix A = nullptr;
+        ASSERT_EQ(
+            create_aoclsparse_matrix<T>(A, descr, m, n, nnz, csr_row_ptr, csr_col_ind, csr_val),
+            aoclsparse_status_success);
+
+        EXPECT_EQ(
+            aoclsparse_ilu_smoother<T>(trans, A, descr, &precond_csr_val, approx_inv_diag, x, b),
+            aoclsparse_status_success);
+
+        EXPECT_ARR_NEAR(nnz, precond_csr_val, ilu0_precond_gold, expected_precision<T>(1.0));
+
+        descr->base = (aoclsparse_index_base)invalid_index_base;
+        EXPECT_EQ(
+            aoclsparse_ilu_smoother<T>(trans, A, descr, &precond_csr_val, approx_inv_diag, x, b),
+            aoclsparse_status_invalid_value);
+
+        EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
     }
     // test not-implemented/supported scenarios
     template <typename T>
@@ -228,22 +283,18 @@ namespace
         csr_col_ind.assign({0, 3, 1, 2, 1, 3, 4, 4});
         csr_val.assign({1, 2, 3, 4, 5, 6, 7, 8});
 
-        aoclsparse_create_mat_descr(&descr);
-
-        ASSERT_EQ(create_aoclsparse_matrix<T>(A, m, n, nnz, csr_row_ptr, csr_col_ind, csr_val),
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_zero),
                   aoclsparse_status_success);
+
+        ASSERT_EQ(
+            create_aoclsparse_matrix<T>(A, descr, m, n, nnz, csr_row_ptr, csr_col_ind, csr_val),
+            aoclsparse_status_success);
 
         /*
             check if the transpose operation is supported
         */
         trans = aoclsparse_operation_transpose;
-        EXPECT_EQ(
-            aoclsparse_ilu_smoother<T>(trans, A, descr, &precond_csr_val, approx_inv_diag, x, b),
-            aoclsparse_status_not_implemented);
-        /*
-            check if the One-Based Indexing is supported
-        */
-        aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_one);
         EXPECT_EQ(
             aoclsparse_ilu_smoother<T>(trans, A, descr, &precond_csr_val, approx_inv_diag, x, b),
             aoclsparse_status_not_implemented);
@@ -285,6 +336,9 @@ namespace
             b     = nullptr;
             descr = nullptr;
 
+            ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+            ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_zero),
+                      aoclsparse_status_success);
             ASSERT_EQ(
                 create_matrix(
                     mids[idx], m, n, nnz, csr_row_ptr, csr_col_ind, csr_val, A, descr, VERBOSE),
@@ -353,7 +407,14 @@ namespace
     {
         test_ilu_do_nothing<float>();
     }
-
+    TEST(ilu, BaseOneDouble)
+    {
+        test_ilu_baseOneIndexing<double>();
+    }
+    TEST(ilu, BaseOneFloat)
+    {
+        test_ilu_baseOneIndexing<float>();
+    }
     TEST(ilu, UnsupportedDouble)
     {
         test_ilu_unsupported<double>();

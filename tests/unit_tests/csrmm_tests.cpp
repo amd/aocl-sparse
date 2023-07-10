@@ -21,6 +21,7 @@
  *
  * ************************************************************************ */
 #include "aoclsparse.h"
+#include "common_data_utils.h"
 #include "gtest/gtest.h"
 #include "aoclsparse.hpp"
 
@@ -103,6 +104,101 @@ namespace
         aoclsparse_destroy(csr);
     }
 
+    template <typename T>
+    void test_csrmm_rowOrder_baseOne()
+    {
+        aoclsparse_operation transA = aoclsparse_operation_none;
+        aoclsparse_order     order  = aoclsparse_order_row;
+        aoclsparse_int       M = 3, K = 3, N = 3, NNZ = 4;
+        T                    csr_val[]     = {8.00, 5.00, 7.00, 7.00};
+        aoclsparse_int       csr_col_ind[] = {1, 2, 1, 3};
+        aoclsparse_int       csr_row_ptr[] = {1, 2, 3, 5};
+        T                    alpha = 1.0, beta = 0.0;
+        T                    B[9] = {1.00, 2.00, 3.00, 4.00, 5.00, 6.00, 7.00, 8.00, 9.00};
+        T                    C[9] = {0};
+        T C_gold[9]               = {8.00, 16.00, 24.00, 20.00, 25.00, 30.00, 56.00, 70.00, 84.00};
+        aoclsparse_mat_descr descr;
+
+        aoclsparse_int B_n   = N;
+        aoclsparse_int C_m   = M;
+        aoclsparse_int C_n   = N;
+        aoclsparse_int ldb   = order == aoclsparse_order_column ? K : N;
+        aoclsparse_int ldc   = order == aoclsparse_order_column ? M : N;
+        aoclsparse_int nrowC = order == aoclsparse_order_column ? ldc : C_m;
+        aoclsparse_int ncolC = order == aoclsparse_order_column ? C_n : ldc;
+
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_one),
+                  aoclsparse_status_success);
+
+        aoclsparse_matrix csr;
+        ASSERT_EQ(aoclsparse_create_csr(csr,
+                                        aoclsparse_index_base_one,
+                                        (transA == aoclsparse_operation_none ? M : K),
+                                        (transA == aoclsparse_operation_none ? K : M),
+                                        NNZ,
+                                        csr_row_ptr,
+                                        csr_col_ind,
+                                        csr_val),
+                  aoclsparse_status_success);
+
+        EXPECT_EQ(
+            aoclsparse_csrmm<T>(transA, &alpha, csr, descr, order, B, B_n, ldb, &beta, C, ldc),
+            aoclsparse_status_success);
+
+        EXPECT_ARR_NEAR((nrowC * ncolC), C, C_gold, expected_precision<T>(10.0));
+
+        EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(csr), aoclsparse_status_success);
+    }
+    template <typename T>
+    void test_csrmm_colOrder_baseOne()
+    {
+        aoclsparse_operation transA = aoclsparse_operation_none;
+        aoclsparse_order     order  = aoclsparse_order_column;
+        aoclsparse_int       M = 3, K = 3, N = 3, NNZ = 4;
+        T                    csr_val[]     = {8.00, 5.00, 7.00, 7.00};
+        aoclsparse_int       csr_col_ind[] = {1, 2, 1, 3};
+        aoclsparse_int       csr_row_ptr[] = {1, 2, 3, 5};
+        T                    alpha = 1.0, beta = 0.0;
+        T                    B[9] = {1.00, 2.00, 3.00, 4.00, 5.00, 6.00, 7.00, 8.00, 9.00};
+        T                    C[9] = {0};
+        T C_gold[9]               = {8.00, 10.00, 28.00, 32.00, 25.00, 70.00, 56.00, 40.00, 112.00};
+        aoclsparse_mat_descr descr;
+
+        aoclsparse_int B_n   = N;
+        aoclsparse_int C_m   = M;
+        aoclsparse_int C_n   = N;
+        aoclsparse_int ldb   = order == aoclsparse_order_column ? K : N;
+        aoclsparse_int ldc   = order == aoclsparse_order_column ? M : N;
+        aoclsparse_int nrowC = order == aoclsparse_order_column ? ldc : C_m;
+        aoclsparse_int ncolC = order == aoclsparse_order_column ? C_n : ldc;
+
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_one),
+                  aoclsparse_status_success);
+
+        aoclsparse_matrix csr;
+        ASSERT_EQ(aoclsparse_create_csr(csr,
+                                        aoclsparse_index_base_one,
+                                        (transA == aoclsparse_operation_none ? M : K),
+                                        (transA == aoclsparse_operation_none ? K : M),
+                                        NNZ,
+                                        csr_row_ptr,
+                                        csr_col_ind,
+                                        csr_val),
+                  aoclsparse_status_success);
+
+        EXPECT_EQ(
+            aoclsparse_csrmm<T>(transA, &alpha, csr, descr, order, B, B_n, ldb, &beta, C, ldc),
+            aoclsparse_status_success);
+
+        EXPECT_ARR_NEAR((nrowC * ncolC), C, C_gold, expected_precision<T>(10.0));
+
+        EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(csr), aoclsparse_status_success);
+    }
+
     // tests for settings not implemented
     template <typename T>
     void test_csrmm_not_implemented()
@@ -130,11 +226,6 @@ namespace
             aoclsparse_csrmm<T>(
                 aoclsparse_operation_transpose, &alpha, csr, descr, order, B, n, k, &beta, C, m),
             aoclsparse_status_not_implemented);
-
-        // and expect not_implemented for aoclsparse_index_base_one
-        aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_one);
-        EXPECT_EQ(aoclsparse_csrmm<T>(trans, &alpha, csr, descr, order, B, n, k, &beta, C, m),
-                  aoclsparse_status_not_implemented);
 
         // and expect not_implemented for !aoclsparse_matrix_type_general
         aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_zero);
@@ -300,6 +391,23 @@ namespace
     TEST(csrmm, WrongSizeFloat)
     {
         test_csrmm_wrong_size<float>();
+    }
+
+    TEST(csrmm, BaseOneDoubleRO)
+    {
+        test_csrmm_rowOrder_baseOne<double>();
+    }
+    TEST(csrmm, BaseOneFloatRO)
+    {
+        test_csrmm_rowOrder_baseOne<float>();
+    }
+    TEST(csrmm, BaseOneDoubleCO)
+    {
+        test_csrmm_colOrder_baseOne<double>();
+    }
+    TEST(csrmm, BaseOneFloatCO)
+    {
+        test_csrmm_colOrder_baseOne<float>();
     }
 
     TEST(csrmm, NotImplDouble)

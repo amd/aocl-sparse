@@ -69,6 +69,7 @@ set(GTEST_EXECUTABLES
     ktlvl2_tests
     mv_tests
     diamv_tests
+    bsrmv_tests
     createcsc_tests
     optimize_tests
     coo_tests
@@ -79,6 +80,7 @@ set(GTEST_EXECUTABLES
     createcsr_tests
     utils_tests
     axpyi_tests
+    conversion_tests
 )
 foreach(TNAME ${GTEST_EXECUTABLES})
     add_executable(${TNAME} ${TNAME}.cpp ${utils_source})

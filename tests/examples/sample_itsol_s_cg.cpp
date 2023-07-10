@@ -76,6 +76,7 @@ int main()
     aoclsparse_create_mat_descr(&descr_a);
     aoclsparse_set_mat_type(descr_a, aoclsparse_matrix_type_symmetric);
     aoclsparse_set_mat_fill_mode(descr_a, aoclsparse_fill_mode_lower);
+    aoclsparse_set_mat_index_base(descr_a, base);
     aoclsparse_set_sv_hint(A, trans, descr_a, 100);
     aoclsparse_optimize(A);
 

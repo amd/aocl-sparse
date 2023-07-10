@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2021 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2023 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -48,11 +48,9 @@ extern "C" aoclsparse_status aoclsparse_sbsrmv(aoclsparse_operation       trans,
         return aoclsparse_status_invalid_pointer;
     }
 
-    // Check index base
-    if(descr->base != aoclsparse_index_base_zero)
+    if((descr->base != aoclsparse_index_base_zero) && (descr->base != aoclsparse_index_base_one))
     {
-        // TODO
-        return aoclsparse_status_not_implemented;
+        return aoclsparse_status_invalid_value;
     }
 
     if(descr->type != aoclsparse_matrix_type_general)
@@ -110,14 +108,17 @@ extern "C" aoclsparse_status aoclsparse_sbsrmv(aoclsparse_operation       trans,
     }
 
     if(bsr_dim == 2)
-        return aoclsparse_bsrmv_2x2(*alpha, mb, nb, bsr_val, bsr_col_ind, bsr_row_ptr, x, *beta, y);
+        return aoclsparse_bsrmv_2x2(
+            *alpha, mb, nb, bsr_val, bsr_col_ind, bsr_row_ptr, descr, x, *beta, y);
     else if(bsr_dim == 3)
-        return aoclsparse_bsrmv_3x3(*alpha, mb, nb, bsr_val, bsr_col_ind, bsr_row_ptr, x, *beta, y);
+        return aoclsparse_bsrmv_3x3(
+            *alpha, mb, nb, bsr_val, bsr_col_ind, bsr_row_ptr, descr, x, *beta, y);
     else if(bsr_dim == 4)
-        return aoclsparse_bsrmv_4x4(*alpha, mb, nb, bsr_val, bsr_col_ind, bsr_row_ptr, x, *beta, y);
+        return aoclsparse_bsrmv_4x4(
+            *alpha, mb, nb, bsr_val, bsr_col_ind, bsr_row_ptr, descr, x, *beta, y);
     else
         return aoclsparse_bsrmv_general(
-            *alpha, mb, nb, bsr_dim, bsr_val, bsr_col_ind, bsr_row_ptr, x, *beta, y);
+            *alpha, mb, nb, bsr_dim, bsr_val, bsr_col_ind, bsr_row_ptr, descr, x, *beta, y);
 }
 
 extern "C" aoclsparse_status aoclsparse_dbsrmv(aoclsparse_operation       trans,
@@ -138,11 +139,9 @@ extern "C" aoclsparse_status aoclsparse_dbsrmv(aoclsparse_operation       trans,
         return aoclsparse_status_invalid_pointer;
     }
 
-    // Check index base
-    if(descr->base != aoclsparse_index_base_zero)
+    if((descr->base != aoclsparse_index_base_zero) && (descr->base != aoclsparse_index_base_one))
     {
-        // TODO
-        return aoclsparse_status_not_implemented;
+        return aoclsparse_status_invalid_value;
     }
 
     if(descr->type != aoclsparse_matrix_type_general)
@@ -199,12 +198,15 @@ extern "C" aoclsparse_status aoclsparse_dbsrmv(aoclsparse_operation       trans,
         return aoclsparse_status_invalid_pointer;
     }
     if(bsr_dim == 2)
-        return aoclsparse_bsrmv_2x2(*alpha, mb, nb, bsr_val, bsr_col_ind, bsr_row_ptr, x, *beta, y);
+        return aoclsparse_bsrmv_2x2(
+            *alpha, mb, nb, bsr_val, bsr_col_ind, bsr_row_ptr, descr, x, *beta, y);
     else if(bsr_dim == 3)
-        return aoclsparse_bsrmv_3x3(*alpha, mb, nb, bsr_val, bsr_col_ind, bsr_row_ptr, x, *beta, y);
+        return aoclsparse_bsrmv_3x3(
+            *alpha, mb, nb, bsr_val, bsr_col_ind, bsr_row_ptr, descr, x, *beta, y);
     else if(bsr_dim == 4)
-        return aoclsparse_bsrmv_4x4(*alpha, mb, nb, bsr_val, bsr_col_ind, bsr_row_ptr, x, *beta, y);
+        return aoclsparse_bsrmv_4x4(
+            *alpha, mb, nb, bsr_val, bsr_col_ind, bsr_row_ptr, descr, x, *beta, y);
     else
         return aoclsparse_bsrmv_general(
-            *alpha, mb, nb, bsr_dim, bsr_val, bsr_col_ind, bsr_row_ptr, x, *beta, y);
+            *alpha, mb, nb, bsr_dim, bsr_val, bsr_col_ind, bsr_row_ptr, descr, x, *beta, y);
 }
