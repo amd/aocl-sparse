@@ -60,6 +60,7 @@ aoclsparse_status
                                     (T *)A->ilu_info.precond_csr_val,
                                     A->csr_mat.csr_row_ptr,
                                     A->csr_mat.csr_col_ptr,
+                                    A->base,
                                     precond_csr_val,
                                     x,
                                     b);

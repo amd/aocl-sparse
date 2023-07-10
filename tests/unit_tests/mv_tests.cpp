@@ -26,6 +26,8 @@
 #include "aoclsparse.hpp"
 #include "aoclsparse_reference.hpp"
 
+#include <algorithm>
+
 namespace
 {
 
@@ -126,6 +128,93 @@ namespace
         EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
     }
     template <typename T>
+    void test_mv_base_indexing()
+    {
+        aoclsparse_operation trans = aoclsparse_operation_none;
+        aoclsparse_matrix    A;
+        int                  invalid_index_base = 2;
+        aoclsparse_int       M = 5, N = 5, NNZ = 8;
+        T                    alpha = 1.0;
+        T                    beta  = 0.0;
+        // Initialise vectors
+        T                    x[] = {1.0, 2.0, 3.0, 4.0, 5.0};
+        T                    y[M];
+        aoclsparse_mat_descr descr;
+
+        aoclsparse_int csr_row_ptr[] = {1, 3, 4, 5, 8, 9};
+        aoclsparse_int csr_col_ind[] = {1, 4, 2, 3, 2, 4, 5, 5};
+        T              csr_val[]     = {1, 2, 3, 4, 5, 6, 7, 8};
+
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_one),
+                  aoclsparse_status_success);
+
+        ASSERT_EQ(aoclsparse_create_csr<T>(
+                      A, aoclsparse_index_base_one, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val),
+                  aoclsparse_status_success);
+
+        EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A, descr, x, &beta, y),
+                  aoclsparse_status_success);
+
+        descr->base = (aoclsparse_index_base)invalid_index_base;
+        EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A, descr, x, &beta, y),
+                  aoclsparse_status_invalid_value);
+
+        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+    }
+    template <typename T>
+    void test_mv_base_index_mismatch()
+    {
+        aoclsparse_operation trans = aoclsparse_operation_none;
+        aoclsparse_matrix    A;
+        int                  invalid_index_base = 2;
+        aoclsparse_int       M = 5, N = 5, NNZ = 8;
+        T                    alpha = 1.0;
+        T                    beta  = 0.0;
+        // Initialise vectors
+        T                    x[] = {1.0, 2.0, 3.0, 4.0, 5.0};
+        T                    y[M];
+        aoclsparse_mat_descr descr;
+
+        aoclsparse_int csr_row_ptr[] = {1, 3, 4, 5, 8, 9};
+        aoclsparse_int csr_col_ind[] = {1, 4, 2, 3, 2, 4, 5, 5};
+        T              csr_val[]     = {1, 2, 3, 4, 5, 6, 7, 8};
+
+        // TEST CASE 1: descriptor base is base-zero and aoclsparse_matrix base is base-one
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_zero),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_create_csr<T>(
+                      A, aoclsparse_index_base_one, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val),
+                  aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A, descr, x, &beta, y),
+                  aoclsparse_status_invalid_value);
+
+        aoclsparse_matrix A_2;
+        aoclsparse_int    csr_row_ptr_2[] = {0, 2, 3, 4, 7, 8};
+        aoclsparse_int    csr_col_ind_2[] = {0, 3, 1, 2, 1, 3, 4, 4};
+        T                 csr_val_2[]     = {1, 2, 3, 4, 5, 6, 7, 8};
+        // TEST CASE 2: descriptor base is base-one and aoclsparse_matrix base is base-zero
+        aoclsparse_index_base base = aoclsparse_index_base_one;
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_one),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_create_csr<T>(A_2,
+                                           aoclsparse_index_base_zero,
+                                           M,
+                                           N,
+                                           NNZ,
+                                           csr_row_ptr_2,
+                                           csr_col_ind_2,
+                                           csr_val_2),
+                  aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A_2, descr, x, &beta, y),
+                  aoclsparse_status_invalid_value);
+        EXPECT_EQ(aoclsparse_destroy(A_2), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+    }
+    template <typename T>
     void test_mv_not_implemented()
     {
         aoclsparse_operation trans = aoclsparse_operation_none;
@@ -142,16 +231,13 @@ namespace
         // aoclsparse_create_mat_descr set aoclsparse_matrix_type to aoclsparse_matrix_type_general
         // and aoclsparse_index_base to aoclsparse_index_base_zero.
         aoclsparse_create_mat_descr(&descr);
-        aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_one);
+        aoclsparse_set_mat_index_base(descr, base);
 
         aoclsparse_int    csr_row_ptr[] = {0, 2, 3, 4, 7, 8};
         aoclsparse_int    csr_col_ind[] = {0, 3, 1, 2, 1, 3, 4, 4};
         T                 csr_val[]     = {1, 2, 3, 4, 5, 6, 7, 8};
         aoclsparse_matrix A;
         aoclsparse_create_csr<T>(A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
-
-        EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A, descr, x, &beta, y),
-                  aoclsparse_status_not_implemented);
 
         trans = aoclsparse_operation_none;
         aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_hermitian);
@@ -207,15 +293,10 @@ namespace
         T                    alpha = 1.0;
         T                    beta  = 0.0;
         // Initialise vectors
-        T x[] = {1.0, 2.0, 3.0, 4.0};
-        T y[M];
-        T exp_y_l[] = {1, 6, 12, 56, 16};
-        T exp_y_u[] = {9, 6, 12, 28, 0};
-
-        for(int i = 0; i < M; i++)
-        {
-            y[i] = 0.0;
-        }
+        T x[4]       = {1.0, 2.0, 3.0, 4.0};
+        T y[5]       = {0};
+        T exp_y_l[5] = {1, 6, 12, 56, 16};
+        T exp_y_u[5] = {9, 6, 12, 28, 0};
 
         aoclsparse_mat_descr descr;
         // aoclsparse_create_mat_descr set aoclsparse_matrix_type to aoclsparse_matrix_type_general
@@ -224,9 +305,9 @@ namespace
 
         aoclsparse_index_base base = aoclsparse_index_base_zero;
 
-        aoclsparse_int    csr_row_ptr[] = {0, 2, 3, 4, 7, 8};
-        aoclsparse_int    csr_col_ind[] = {0, 3, 1, 2, 1, 2, 3, 1};
-        T                 csr_val[]     = {1, 2, 3, 4, 5, 6, 7, 8};
+        aoclsparse_int    csr_row_ptr[6] = {0, 2, 3, 4, 7, 8};
+        aoclsparse_int    csr_col_ind[8] = {0, 3, 1, 2, 1, 2, 3, 1};
+        T                 csr_val[8]     = {1, 2, 3, 4, 5, 6, 7, 8};
         aoclsparse_matrix A;
         aoclsparse_create_csr<T>(A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
 
@@ -499,6 +580,14 @@ namespace
     {
         test_mv_wrong_type_size<float>();
     }
+    TEST(mv, BaseOneDouble)
+    {
+        test_mv_base_indexing<double>();
+    }
+    TEST(mv, BaseOneFloat)
+    {
+        test_mv_base_indexing<float>();
+    }
     TEST(mv, NotImplDouble)
     {
         test_mv_not_implemented<double>();
@@ -522,6 +611,7 @@ namespace
     }
     TEST(mv, SuccessFloat)
     {
+        //GTEST_SKIP() << "Skipping since implementation does not exist";
         test_mv_success<float>();
     }
     TEST(mv, TriangTransposeDouble)
@@ -548,4 +638,13 @@ namespace
     {
         test_mv_conjugate_transpose<float>();
     }
+    TEST(mv, BaseIndexismatchDouble)
+    {
+        test_mv_base_index_mismatch<double>();
+    }
+    TEST(mv, BaseIndexismatchFloat)
+    {
+        test_mv_base_index_mismatch<float>();
+    }
+
 } // namespace

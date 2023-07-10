@@ -35,8 +35,9 @@
 #endif
 
 template <typename T>
-aoclsparse_status aoclsparse_csrmv_vectorized(const T        alpha,
-                                              aoclsparse_int m,
+aoclsparse_status aoclsparse_csrmv_vectorized(aoclsparse_index_base base,
+                                              const T               alpha,
+                                              aoclsparse_int        m,
                                               const T *__restrict__ csr_val,
                                               const aoclsparse_int *__restrict__ csr_col_ind,
                                               const aoclsparse_int *__restrict__ csr_row_ptr,
@@ -46,8 +47,9 @@ aoclsparse_status aoclsparse_csrmv_vectorized(const T        alpha,
                                               aoclsparse_context *context);
 
 template <typename T>
-aoclsparse_status aoclsparse_csrmv_vectorized_avx2(const T        alpha,
-                                                   aoclsparse_int m,
+aoclsparse_status aoclsparse_csrmv_vectorized_avx2(aoclsparse_index_base base,
+                                                   const T               alpha,
+                                                   aoclsparse_int        m,
                                                    const T *__restrict__ csr_val,
                                                    const aoclsparse_int *__restrict__ csr_col_ind,
                                                    const aoclsparse_int *__restrict__ csr_row_ptr,
@@ -57,10 +59,11 @@ aoclsparse_status aoclsparse_csrmv_vectorized_avx2(const T        alpha,
                                                    aoclsparse_context *context);
 
 template <typename T>
-aoclsparse_status aoclsparse_csrmv_vectorized_avx2ptr(const T        alpha,
-                                                      aoclsparse_int m,
-                                                      aoclsparse_int n,
-                                                      aoclsparse_int nnz,
+aoclsparse_status aoclsparse_csrmv_vectorized_avx2ptr(aoclsparse_index_base base,
+                                                      const T               alpha,
+                                                      aoclsparse_int        m,
+                                                      aoclsparse_int        n,
+                                                      aoclsparse_int        nnz,
                                                       const T *__restrict__ aval,
                                                       const aoclsparse_int *__restrict__ icol,
                                                       const aoclsparse_int *__restrict__ crstart,
@@ -71,8 +74,9 @@ aoclsparse_status aoclsparse_csrmv_vectorized_avx2ptr(const T        alpha,
                                                       aoclsparse_context *context);
 
 template <typename T>
-aoclsparse_status aoclsparse_csrmv_vectorized_avx512(const T        alpha,
-                                                     aoclsparse_int m,
+aoclsparse_status aoclsparse_csrmv_vectorized_avx512(aoclsparse_index_base base,
+                                                     const T               alpha,
+                                                     aoclsparse_int        m,
                                                      const T *__restrict__ csr_val,
                                                      const aoclsparse_int *__restrict__ csr_col_ind,
                                                      const aoclsparse_int *__restrict__ csr_row_ptr,
@@ -81,8 +85,9 @@ aoclsparse_status aoclsparse_csrmv_vectorized_avx512(const T        alpha,
                                                      T *__restrict__ y);
 
 template <typename T>
-aoclsparse_status aoclsparse_csrmv_general(const T        alpha,
-                                           aoclsparse_int m,
+aoclsparse_status aoclsparse_csrmv_general(aoclsparse_index_base base,
+                                           const T               alpha,
+                                           aoclsparse_int        m,
                                            const T *__restrict__ csr_val,
                                            const aoclsparse_int *__restrict__ csr_col_ind,
                                            const aoclsparse_int *__restrict__ csr_row_ptr,
@@ -91,7 +96,28 @@ aoclsparse_status aoclsparse_csrmv_general(const T        alpha,
                                            T *__restrict__ y,
                                            [[maybe_unused]] aoclsparse_context *context)
 {
+    const aoclsparse_int *csr_col_ind_fix = csr_col_ind - base;
+    const T              *csr_val_fix     = csr_val - base;
+    const T              *x_fix           = x - base;
+    /*
+        to avoid base correction logic inside core time-sensitive loops, the base addresses of column index, 
+        csr values and x vector are corrected in advance as per base. Then the correction will not be needed 
+        inside the core loops.
+        Notice, the j-loop which runs for row pointers, has no corrections wrt base. 
+        In case of one-based indexed array, the loop runs from 1 to nnz+1. 
+        So the accesses made by csr_col_ind, csr_val and x need to be carefully adjusted. 
+        The above hack takes care of this by indexing into correct values.
 
+        eg: 
+        csr_col_ind[j] - base
+        is same as 
+
+        *(csr_col_ind + j) - base 
+        which is equal to
+        *(csr_col_ind - base) + j
+        which is equal to
+        csr_col_ind_fix[j] (assuming, csr_col_ind_fix = csr_col_ind - base and j >=1 if base = 1)    
+    */
 #ifdef _OPENMP
     aoclsparse_int chunk = (m / context->num_threads) ? (m / context->num_threads) : 1;
 #pragma omp parallel for num_threads(context->num_threads) schedule(dynamic, chunk)
@@ -104,7 +130,7 @@ aoclsparse_status aoclsparse_csrmv_general(const T        alpha,
 
         for(aoclsparse_int j = csr_row_ptr[i]; j < csr_row_ptr[i + 1]; j++)
         {
-            result += csr_val[j] * x[csr_col_ind[j]];
+            result += csr_val_fix[j] * x_fix[csr_col_ind_fix[j]];
         }
 
         // Perform alpha * A * x
@@ -126,8 +152,9 @@ aoclsparse_status aoclsparse_csrmv_general(const T        alpha,
 }
 
 template <typename T>
-aoclsparse_status aoclsparse_csrmv_symm(const T        alpha,
-                                        aoclsparse_int m,
+aoclsparse_status aoclsparse_csrmv_symm(aoclsparse_index_base base,
+                                        const T               alpha,
+                                        aoclsparse_int        m,
                                         const T *__restrict__ csr_val,
                                         const aoclsparse_int *__restrict__ csr_col_ind,
                                         const aoclsparse_int *__restrict__ csr_row_ptr,
@@ -142,7 +169,7 @@ aoclsparse_status aoclsparse_csrmv_symm(const T        alpha,
         for(aoclsparse_int i = 0; i < m; i++)
             y[i] = 0.;
     }
-    else if(beta != static_cast<double>(1))
+    else if(beta != static_cast<T>(1))
     {
         for(aoclsparse_int i = 0; i < m; i++)
             y[i] = beta * y[i];
@@ -160,18 +187,18 @@ aoclsparse_status aoclsparse_csrmv_symm(const T        alpha,
         // zero if diagonal element is zero, hence not multiplied.
         // last_ele_diag becomes one if diagonal element is non-zero
         // and hence multiplied once with corresponding x-vector element
-        aoclsparse_int diag_idx      = csr_row_ptr[i + 1] - 1;
-        aoclsparse_int last_ele_diag = !(csr_col_ind[diag_idx] ^ i);
+        aoclsparse_int diag_idx      = csr_row_ptr[i + 1] - base - 1;
+        aoclsparse_int last_ele_diag = !((csr_col_ind[diag_idx] - base) ^ i);
         y[i] += last_ele_diag * alpha * csr_val[diag_idx] * x[i];
-        aoclsparse_int end = csr_row_ptr[i + 1] - last_ele_diag;
+        aoclsparse_int end = csr_row_ptr[i + 1] - base - last_ele_diag;
         // Handle all the elements in a row other than the diagonal element
         // Each element has an equivelant occurence on other side of the
         // diagonal and hence need to multiply with two offsets of x-vector
         // and update 2 offsets of y-vector
-        for(aoclsparse_int j = csr_row_ptr[i]; j < end; j++)
+        for(aoclsparse_int j = (csr_row_ptr[i] - base); j < end; j++)
         {
-            y[i] += alpha * csr_val[j] * x[csr_col_ind[j]];
-            y[csr_col_ind[j]] += alpha * csr_val[j] * x[i];
+            y[i] += alpha * csr_val[j] * x[csr_col_ind[j] - base];
+            y[csr_col_ind[j] - base] += alpha * csr_val[j] * x[i];
         }
     }
     return aoclsparse_status_success;
@@ -191,10 +218,11 @@ aoclsparse_status aoclsparse_csrmv_symm(const T        alpha,
  */
 template <typename T>
 aoclsparse_status
-    aoclsparse_csrmv_symm_internal(T                    alpha,
-                                   aoclsparse_int       m,
-                                   aoclsparse_diag_type diag_type,
-                                   aoclsparse_fill_mode fill_mode,
+    aoclsparse_csrmv_symm_internal(aoclsparse_index_base base,
+                                   T                     alpha,
+                                   aoclsparse_int        m,
+                                   aoclsparse_diag_type  diag_type,
+                                   aoclsparse_fill_mode  fill_mode,
                                    const T *__restrict__ csr_val,
                                    const aoclsparse_int *__restrict__ csr_icol,
                                    const aoclsparse_int *__restrict__ csr_icrow,
@@ -207,7 +235,7 @@ aoclsparse_status
     // TODO test pointers & etc? Perhaps not needed, this will be called above optimized data
     // so probably just what came from the user, i.e., x & y?
 
-    aoclsparse_int i, j, idx, idxend;
+    aoclsparse_int i, j, idx, idxstart, idxend;
     T              val;
 
     // Perform (beta * y)
@@ -227,13 +255,14 @@ aoclsparse_status
     {
         for(i = 0; i < m; i++)
         {
+            idxstart = csr_icrow[i] - base;
             // strictly L elements in each row are icrow[i]..idiag[i]-1
-            idxend = csr_idiag[i];
+            idxend = csr_idiag[i] - base;
             // multiply with all strictry L triangle elements (and their transpose)
-            for(idx = csr_icrow[i]; idx < idxend; idx++)
+            for(idx = idxstart; idx < idxend; idx++)
             {
                 val = alpha * csr_val[idx];
-                j   = csr_icol[idx];
+                j   = csr_icol[idx] - base;
                 y[i] += val * x[j];
                 y[j] += val * x[i];
             }
@@ -248,18 +277,18 @@ aoclsparse_status
         for(i = 0; i < m; i++)
         {
             // diag is at csr_idiag[i]
-            idx = csr_idiag[i];
+            idx = csr_idiag[i] - base;
             if(diag_type == aoclsparse_diag_type_non_unit)
                 y[i] += alpha * csr_val[idx] * x[i];
             else // unit diagonal
                 y[i] += alpha * x[i];
             // strictly U elements in each row are idiag[i]+1..icrow[i+1]-1
-            idxend = csr_icrow[i + 1];
+            idxend = csr_icrow[i + 1] - base;
             // multiply with all strictry L triangle elements (and their transpose)
             for(idx = idx + 1; idx < idxend; idx++)
             {
                 val = alpha * csr_val[idx];
-                j   = csr_icol[idx];
+                j   = csr_icol[idx] - base;
                 y[i] += val * x[j];
                 y[j] += val * x[i];
             }
@@ -273,9 +302,10 @@ aoclsparse_status
  * x-vector. 
  */
 template <typename T>
-aoclsparse_status aoclsparse_csrmvt(const T        alpha,
-                                    aoclsparse_int m,
-                                    aoclsparse_int n,
+aoclsparse_status aoclsparse_csrmvt(aoclsparse_index_base base,
+                                    const T               alpha,
+                                    aoclsparse_int        m,
+                                    aoclsparse_int        n,
                                     const T *__restrict__ csr_val,
                                     const aoclsparse_int *__restrict__ csr_col_ind,
                                     const aoclsparse_int *__restrict__ csr_row_ptr,
@@ -283,6 +313,9 @@ aoclsparse_status aoclsparse_csrmvt(const T        alpha,
                                     const T beta,
                                     T *__restrict__ y)
 {
+    const aoclsparse_int *csr_col_ind_fix = csr_col_ind - base;
+    const T              *csr_val_fix     = csr_val - base;
+    T                    *y_fix           = y - base;
     if(beta == static_cast<T>(0))
     {
         // if beta==0 and y contains any NaNs, we can zero y directly
@@ -307,8 +340,8 @@ aoclsparse_status aoclsparse_csrmvt(const T        alpha,
         T              axi       = alpha * x[i];
         for(aoclsparse_int j = row_start; j < row_end; j++)
         {
-            aoclsparse_int col_idx = csr_col_ind[j];
-            y[col_idx] += csr_val[j] * axi;
+            aoclsparse_int col_idx = csr_col_ind_fix[j];
+            y_fix[col_idx] += csr_val_fix[j] * axi;
         }
     }
     return aoclsparse_status_success;
@@ -321,9 +354,10 @@ aoclsparse_status aoclsparse_csrmvt(const T        alpha,
  * pointer (useful when a specific triangle part of the matrix is provided)
  */
 template <typename T>
-aoclsparse_status aoclsparse_csrmvt_ptr(const T        alpha,
-                                        aoclsparse_int m,
-                                        aoclsparse_int n,
+aoclsparse_status aoclsparse_csrmvt_ptr(aoclsparse_index_base base,
+                                        const T               alpha,
+                                        aoclsparse_int        m,
+                                        aoclsparse_int        n,
                                         const T *__restrict__ csr_val,
                                         const aoclsparse_int *__restrict__ csr_col_ind,
                                         const aoclsparse_int *__restrict__ crstart,
@@ -332,6 +366,9 @@ aoclsparse_status aoclsparse_csrmvt_ptr(const T        alpha,
                                         const T beta,
                                         T *__restrict__ y)
 {
+    const aoclsparse_int *csr_col_ind_fix = csr_col_ind - base;
+    const T              *csr_val_fix     = csr_val - base;
+    T                    *y_fix           = y - base;
     if(beta == static_cast<T>(0))
     {
         // if beta==0 and y contains any NaNs, we can zero y directly
@@ -354,8 +391,8 @@ aoclsparse_status aoclsparse_csrmvt_ptr(const T        alpha,
         T axi = alpha * x[i];
         for(aoclsparse_int j = crstart[i]; j < crend[i]; j++)
         {
-            aoclsparse_int col_idx = csr_col_ind[j];
-            y[col_idx] += csr_val[j] * axi;
+            aoclsparse_int col_idx = csr_col_ind_fix[j];
+            y_fix[col_idx] += csr_val_fix[j] * axi;
         }
     }
     return aoclsparse_status_success;

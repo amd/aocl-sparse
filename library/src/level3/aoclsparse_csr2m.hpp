@@ -34,19 +34,34 @@
 #include <cstring>
 #include <vector>
 
-aoclsparse_status aoclsparse_csr2m_nnz_count(aoclsparse_int        m,
-                                             aoclsparse_int        n,
-                                             aoclsparse_int       *nnz_C,
-                                             const aoclsparse_int *csr_row_ptr_A,
-                                             const aoclsparse_int *csr_col_ind_A,
-                                             const aoclsparse_int *csr_row_ptr_B,
-                                             const aoclsparse_int *csr_col_ind_B,
-                                             aoclsparse_int       *csr_row_ptr_C)
+aoclsparse_status aoclsparse_csr2m_nnz_count(aoclsparse_int             m,
+                                             aoclsparse_int             n,
+                                             aoclsparse_int            *nnz_C,
+                                             const aoclsparse_mat_descr descrA,
+                                             const aoclsparse_int      *csr_row_ptr_A,
+                                             const aoclsparse_int      *csr_col_ind_A,
+                                             const aoclsparse_mat_descr descrB,
+                                             const aoclsparse_int      *csr_row_ptr_B,
+                                             const aoclsparse_int      *csr_col_ind_B,
+                                             aoclsparse_int            *csr_row_ptr_C)
 {
-
+    // Check for valid matrix descriptors
+    if((descrA == nullptr) || (descrB == nullptr))
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    aoclsparse_index_base       baseA = descrA->base;
+    aoclsparse_index_base       baseB = descrB->base;
+    std::vector<aoclsparse_int> nnz;
+    try
+    {
+        nnz.resize(n, -1);
+    }
+    catch(std::bad_alloc &)
+    {
+        return aoclsparse_status_memory_error;
+    }
     csr_row_ptr_C[0] = 0;
-
-    std::vector<aoclsparse_int> nnz(n, -1);
 
     // Loop over rows of A
     for(aoclsparse_int i = 0; i < m; i++)
@@ -54,10 +69,10 @@ aoclsparse_status aoclsparse_csr2m_nnz_count(aoclsparse_int        m,
         aoclsparse_int num_nonzeros = 0;
 
         // Loop over columns of A
-        for(aoclsparse_int j = csr_row_ptr_A[i]; j < csr_row_ptr_A[i + 1]; j++)
+        for(aoclsparse_int j = (csr_row_ptr_A[i] - baseA); j < (csr_row_ptr_A[i + 1] - baseA); j++)
         {
             // Current column of A
-            aoclsparse_int col_A   = csr_col_ind_A[j];
+            aoclsparse_int col_A   = csr_col_ind_A[j] - baseA;
             aoclsparse_int nnz_row = csr_row_ptr_B[col_A + 1] - csr_row_ptr_B[col_A];
             aoclsparse_int k_iter  = nnz_row / 4;
             aoclsparse_int k_rem   = nnz_row % 4;
@@ -66,7 +81,7 @@ aoclsparse_status aoclsparse_csr2m_nnz_count(aoclsparse_int        m,
             for(aoclsparse_int k = 0; k < k_iter * 4; k += 4)
             {
                 // Current column of B
-                aoclsparse_int col_B = csr_col_ind_B[csr_row_ptr_B[col_A] + k];
+                aoclsparse_int col_B = csr_col_ind_B[csr_row_ptr_B[col_A] - baseB + k] - baseB;
 
                 // Check if a new nnz is generated
                 if(nnz[col_B] != i)
@@ -76,7 +91,7 @@ aoclsparse_status aoclsparse_csr2m_nnz_count(aoclsparse_int        m,
                 }
 
                 // Current column of B
-                col_B = csr_col_ind_B[csr_row_ptr_B[col_A] + k + 1];
+                col_B = csr_col_ind_B[csr_row_ptr_B[col_A] - baseB + k + 1] - baseB;
 
                 // Check if a new nnz is generated
                 if(nnz[col_B] != i)
@@ -86,7 +101,7 @@ aoclsparse_status aoclsparse_csr2m_nnz_count(aoclsparse_int        m,
                 }
 
                 // Current column of B
-                col_B = csr_col_ind_B[csr_row_ptr_B[col_A] + k + 2];
+                col_B = csr_col_ind_B[csr_row_ptr_B[col_A] - baseB + k + 2] - baseB;
 
                 // Check if a new nnz is generated
                 if(nnz[col_B] != i)
@@ -96,7 +111,7 @@ aoclsparse_status aoclsparse_csr2m_nnz_count(aoclsparse_int        m,
                 }
 
                 // Current column of B
-                col_B = csr_col_ind_B[csr_row_ptr_B[col_A] + k + 3];
+                col_B = csr_col_ind_B[csr_row_ptr_B[col_A] - baseB + k + 3] - baseB;
 
                 // Check if a new nnz is generated
                 if(nnz[col_B] != i)
@@ -109,7 +124,8 @@ aoclsparse_status aoclsparse_csr2m_nnz_count(aoclsparse_int        m,
             for(aoclsparse_int k = 0; k < k_rem; k++)
             {
                 // Current column of B
-                aoclsparse_int col_B = csr_col_ind_B[csr_row_ptr_B[col_A] + (k_iter * 4) + k];
+                aoclsparse_int col_B
+                    = csr_col_ind_B[csr_row_ptr_B[col_A] - baseB + (k_iter * 4) + k] - baseB;
 
                 // Check if a new nnz is generated
                 if(nnz[col_B] != i)
@@ -131,46 +147,70 @@ aoclsparse_status aoclsparse_csr2m_nnz_count(aoclsparse_int        m,
 }
 
 template <typename T>
-aoclsparse_status aoclsparse_csr2m_finalize(aoclsparse_int        m,
-                                            aoclsparse_int        n,
-                                            const aoclsparse_int *csr_row_ptr_A,
-                                            const aoclsparse_int *csr_col_ind_A,
-                                            const T              *csr_val_A,
-                                            const aoclsparse_int *csr_row_ptr_B,
-                                            const aoclsparse_int *csr_col_ind_B,
-                                            const T              *csr_val_B,
-                                            aoclsparse_int       *csr_row_ptr_C,
-                                            aoclsparse_int       *csr_col_ind_C,
-                                            T                    *csr_val_C)
+aoclsparse_status aoclsparse_csr2m_finalize(aoclsparse_int             m,
+                                            aoclsparse_int             n,
+                                            const aoclsparse_mat_descr descrA,
+                                            const aoclsparse_int      *csr_row_ptr_A,
+                                            const aoclsparse_int      *csr_col_ind_A,
+                                            const T                   *csr_val_A,
+                                            const aoclsparse_mat_descr descrB,
+                                            const aoclsparse_int      *csr_row_ptr_B,
+                                            const aoclsparse_int      *csr_col_ind_B,
+                                            const T                   *csr_val_B,
+                                            aoclsparse_int            *csr_row_ptr_C,
+                                            aoclsparse_int            *csr_col_ind_C,
+                                            T                         *csr_val_C)
 {
-    std::vector<aoclsparse_int> nnz(n, -1);
-    std::vector<T>              sum(n, 0.0);
-
+    // Check for valid matrix descriptors
+    if((descrA == nullptr) || (descrB == nullptr))
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    aoclsparse_index_base       baseA = descrA->base;
+    aoclsparse_index_base       baseB = descrB->base;
+    std::vector<aoclsparse_int> nnz;
+    std::vector<T>              sum;
+    try
+    {
+        nnz.resize(n, -1);
+    }
+    catch(std::bad_alloc &)
+    {
+        return aoclsparse_status_memory_error;
+    }
+    try
+    {
+        sum.resize(n, 0.0);
+    }
+    catch(std::bad_alloc &)
+    {
+        return aoclsparse_status_memory_error;
+    }
     // Loop over rows of A
     for(aoclsparse_int i = 0; i < m; i++)
     {
         aoclsparse_int head   = -100;
         aoclsparse_int length = 0;
 
-        aoclsparse_int row_begin_A = csr_row_ptr_A[i];
-        aoclsparse_int row_end_A   = csr_row_ptr_A[i + 1];
+        aoclsparse_int row_begin_A = csr_row_ptr_A[i] - baseA;
+        aoclsparse_int row_end_A   = csr_row_ptr_A[i + 1] - baseA;
 
         // Loop over columns of A
         for(aoclsparse_int j = row_begin_A; j < row_end_A; j++)
         {
             // Current column of A
-            aoclsparse_int col_A = csr_col_ind_A[j];
+            aoclsparse_int col_A = csr_col_ind_A[j] - baseA;
             // Current value of A
             T val_A = csr_val_A[j];
 
-            aoclsparse_int row_begin_B = csr_row_ptr_B[col_A];
-            aoclsparse_int row_end_B   = csr_row_ptr_B[col_A + 1];
+            aoclsparse_int row_begin_B = csr_row_ptr_B[col_A] - baseB;
+            aoclsparse_int row_end_B   = csr_row_ptr_B[col_A + 1] - baseB;
 
             // Loop over columns of B in row col_A
             for(aoclsparse_int k = row_begin_B; k < row_end_B; k++)
             {
                 // Current column of B
-                aoclsparse_int col_B = csr_col_ind_B[k];
+                aoclsparse_int col_B = csr_col_ind_B[k] - baseB;
                 // Current value of B
                 T val_B = csr_val_B[k];
 
@@ -247,10 +287,13 @@ aoclsparse_status aoclsparse_csr2m_template(aoclsparse_operation       transA,
     }
 
     // Check index base
-    if((descrA->base != aoclsparse_index_base_zero) || (descrB->base != aoclsparse_index_base_zero))
+    if(descrA->base != aoclsparse_index_base_zero && descrA->base != aoclsparse_index_base_one)
     {
-        // TODO
-        return aoclsparse_status_not_implemented;
+        return aoclsparse_status_invalid_value;
+    }
+    if(descrB->base != aoclsparse_index_base_zero && descrB->base != aoclsparse_index_base_one)
+    {
+        return aoclsparse_status_invalid_value;
     }
 
     if((descrA->type != aoclsparse_matrix_type_general)
@@ -283,8 +326,10 @@ aoclsparse_status aoclsparse_csr2m_template(aoclsparse_operation       transA,
         aoclsparse_csr2m_nnz_count(m,
                                    n,
                                    &nnz_C,
+                                   descrA,
                                    csrA->csr_mat.csr_row_ptr,
                                    csrA->csr_mat.csr_col_ptr,
+                                   descrB,
                                    csrB->csr_mat.csr_row_ptr,
                                    csrB->csr_mat.csr_col_ptr,
                                    csr_row_ptr_C);
@@ -322,9 +367,11 @@ aoclsparse_status aoclsparse_csr2m_template(aoclsparse_operation       transA,
 
         aoclsparse_csr2m_finalize(m,
                                   n,
+                                  descrA,
                                   csrA->csr_mat.csr_row_ptr,
                                   csrA->csr_mat.csr_col_ptr,
                                   (const T *)csrA->csr_mat.csr_val,
+                                  descrB,
                                   csrB->csr_mat.csr_row_ptr,
                                   csrB->csr_mat.csr_col_ptr,
                                   (const T *)csrB->csr_mat.csr_val,
@@ -349,8 +396,10 @@ aoclsparse_status aoclsparse_csr2m_template(aoclsparse_operation       transA,
         aoclsparse_csr2m_nnz_count(m,
                                    n,
                                    &nnz_C,
+                                   descrA,
                                    csrA->csr_mat.csr_row_ptr,
                                    csrA->csr_mat.csr_col_ptr,
+                                   descrB,
                                    csrB->csr_mat.csr_row_ptr,
                                    csrB->csr_mat.csr_col_ptr,
                                    csr_row_ptr_C);
@@ -368,9 +417,11 @@ aoclsparse_status aoclsparse_csr2m_template(aoclsparse_operation       transA,
 
         aoclsparse_csr2m_finalize(m,
                                   n,
+                                  descrA,
                                   csrA->csr_mat.csr_row_ptr,
                                   csrA->csr_mat.csr_col_ptr,
                                   (const T *)csrA->csr_mat.csr_val,
+                                  descrB,
                                   csrB->csr_mat.csr_row_ptr,
                                   csrB->csr_mat.csr_col_ptr,
                                   (const T *)csrB->csr_mat.csr_val,

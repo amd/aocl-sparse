@@ -198,6 +198,7 @@ aoclsparse_status itsol_init(aoclsparse_itsol_handle *handle);
 
 template <typename T>
 aoclsparse_status create_aoclsparse_matrix(aoclsparse_matrix           &A,
+                                           const aoclsparse_mat_descr   descr,
                                            aoclsparse_int               m,
                                            aoclsparse_int               n,
                                            aoclsparse_int               nnz,
@@ -284,9 +285,6 @@ aoclsparse_status create_matrix(matrix_id                    mid,
                                 aoclsparse_int               verbose)
 {
     aoclsparse_status ret = aoclsparse_status_success;
-
-    // default descriptor
-    aoclsparse_create_mat_descr(&descr);
 
     switch(mid)
     {
@@ -476,7 +474,8 @@ aoclsparse_status create_matrix(matrix_id                    mid,
                    1.00, 1.00,  1.00, 59.00, 1.00,  1.00, 1.00, 1.00,  1.00, 1.00, 1.00,  61.00,
                    1.00, 1.00,  1.00, 1.00,  1.00,  1.00, 1.00, 67.00, 1.00, 1.00, 1.00,  1.00,
                    1.00, 1.00,  71.00};
-        aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_general);
+        aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_symmetric);
+        aoclsparse_set_mat_fill_mode(descr, aoclsparse_fill_mode_lower);
         break;
     case sample_gmres_mat_03:
         // this special matrix data tests GMRES where
@@ -520,7 +519,8 @@ aoclsparse_status create_matrix(matrix_id                    mid,
                0.34, 0.34, 0.34, 0.34, 0.34, 0.40, 0.40, 0.40, 0.40, 0.40, 0.40, 0.40, 0.40, 0.40,
                0.44, 0.44, 0.44, 0.58, 0.58, 0.58, 0.63, 0.63, 0.63, 0.63, 0.63, 0.63, 0.63, 0.63,
                0.63, 0.93, 0.93, 0.93, 0.84, 0.84, 0.84, 0.84, 0.84, 0.84, 0.84, 0.84, 0.84};
-        aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_general);
+        aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_symmetric);
+        aoclsparse_set_mat_fill_mode(descr, aoclsparse_fill_mode_lower);
         break;
     case invalid_mat:
         // matrix from the CG sample examples
@@ -540,18 +540,18 @@ aoclsparse_status create_matrix(matrix_id                    mid,
         return aoclsparse_status_invalid_value;
     }
 
-    ret = create_aoclsparse_matrix<T>(A, m, n, nnz, csr_row_ptr, csr_col_ind, csr_val);
+    ret = create_aoclsparse_matrix<T>(A, descr, m, n, nnz, csr_row_ptr, csr_col_ind, csr_val);
     if(ret != aoclsparse_status_success && verbose)
         std::cout << "Unexpected error in matrix creation" << std::endl;
     return ret;
 }
-
 template <typename T>
 aoclsparse_status create_linear_system(linear_system_id                id,
                                        std::string                    &title,
                                        aoclsparse_operation           &trans,
                                        aoclsparse_matrix              &A,
                                        aoclsparse_mat_descr           &descr,
+                                       aoclsparse_index_base           base,
                                        T                              &alpha,
                                        std::vector<T>                 &b,
                                        std::vector<T>                 &x,
@@ -564,12 +564,11 @@ aoclsparse_status create_linear_system(linear_system_id                id,
                                        std::array<T, 10>              &dparm,
                                        aoclsparse_status              &exp_status)
 {
-    aoclsparse_status     status = aoclsparse_status_success;
-    aoclsparse_int        n, nnz;
-    aoclsparse_diag_type  diag;
-    aoclsparse_fill_mode  fill_mode;
-    aoclsparse_index_base base = aoclsparse_index_base_zero;
-    alpha                      = (T)1.0;
+    aoclsparse_status    status = aoclsparse_status_success;
+    aoclsparse_int       n, nnz;
+    aoclsparse_diag_type diag;
+    aoclsparse_fill_mode fill_mode;
+    alpha      = (T)1.0;
     xtol       = (T)0.0; // By default not used, set only for ill conditioned problems
     exp_status = aoclsparse_status_success;
     std::fill(iparm.begin(), iparm.end(), 0);
@@ -671,6 +670,17 @@ aoclsparse_status create_linear_system(linear_system_id                id,
         icrowa = {0, 1, 2, 3, 4, 5, 6, 7};
         icola.resize(nnz);
         icola = {0, 1, 2, 3, 4, 5, 6};
+
+        //update row pointer and column index arrays to reflect values as per base-index
+        // icrowa = icrowa + base;
+        transform(icrowa.begin(), icrowa.end(), icrowa.begin(), [base](aoclsparse_int &d) {
+            return d + base;
+        });
+        // icola = icola + base;
+        transform(icola.begin(), icola.end(), icola.begin(), [base](aoclsparse_int &d) {
+            return d + base;
+        });
+
         aval.resize(nnz);
         aval = {(T)-2.0, (T)-4.0, (T)3.0, (T)5.0, (T)-7.0, (T)9.0, (T)4.0};
         if(aoclsparse_create_csr(A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
@@ -681,6 +691,7 @@ aoclsparse_status create_linear_system(linear_system_id                id,
         descr->type      = aoclsparse_matrix_type_triangular;
         descr->fill_mode = fill_mode;
         descr->diag_type = diag;
+        aoclsparse_set_mat_index_base(descr, base);
         if(diag == aoclsparse_diag_type_unit)
             xref = {(T)1.0, (T)-2.0, (T)8.0, (T)5.0, (T)-1.0, (T)11.0, (T)3.0};
         else
@@ -805,6 +816,16 @@ aoclsparse_status create_linear_system(linear_system_id                id,
         icola.resize(nnz);
         icola = {0, 1, 4, 5, 6, 0, 1, 2, 3, 5, 1, 2, 3, 4, 6, 0, 2,
                  3, 4, 5, 6, 1, 2, 3, 4, 5, 0, 2, 3, 5, 2, 3, 4, 6};
+        //update row pointer and column index arrays to reflect values as per base-index
+        // icrowa = icrowa + base;
+        transform(icrowa.begin(), icrowa.end(), icrowa.begin(), [base](aoclsparse_int &d) {
+            return d + base;
+        });
+        // icola = icola + base;
+        transform(icola.begin(), icola.end(), icola.begin(), [base](aoclsparse_int &d) {
+            return d + base;
+        });
+
         aval.resize(nnz);
         aval = {(T)-2.0, (T)1.0, (T)3.0,  (T)7.0, -(T)1.0, (T)2.0, (T)-4.0, (T)1.0, (T)2.0,
                 (T)4.0,  (T)6.0, (T)-2.0, (T)9.0, (T)1.0,  (T)9.0, -(T)9.0, (T)1.0, (T)-2.0,
@@ -819,6 +840,7 @@ aoclsparse_status create_linear_system(linear_system_id                id,
         descr->type      = aoclsparse_matrix_type_triangular;
         descr->fill_mode = fill_mode;
         descr->diag_type = diag;
+        aoclsparse_set_mat_index_base(descr, base);
         break;
 
     case N25_Lx_aB: // large m test set
@@ -1088,6 +1110,16 @@ aoclsparse_status create_linear_system(linear_system_id                id,
                  (T)0.04886780, (T)0.06971889, (T)0.05329406, (T)0.02240817, (T)0.03204271,
                  (T)0.06070061, (T)0.08845448, (T)0.09223481, (T)0.01303630, (T)2.02155148};
         // === END PART 2 Content autogenerated = make_trsvmat_b.m END ===
+        //update row pointer and column index arrays to reflect values as per base-index
+        // icrowa = icrowa + base;
+        transform(icrowa.begin(), icrowa.end(), icrowa.begin(), [base](aoclsparse_int &d) {
+            return d + base;
+        });
+        // icola = icola + base;
+        transform(icola.begin(), icola.end(), icola.begin(), [base](aoclsparse_int &d) {
+            return d + base;
+        });
+
         if(aoclsparse_create_csr(A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
            != aoclsparse_status_success)
             return aoclsparse_status_internal_error;
@@ -1096,6 +1128,7 @@ aoclsparse_status create_linear_system(linear_system_id                id,
         descr->type      = aoclsparse_matrix_type_triangular;
         descr->fill_mode = fill_mode;
         descr->diag_type = diag;
+        aoclsparse_set_mat_index_base(descr, base);
         break;
 
     case A_nullptr:
@@ -1114,6 +1147,16 @@ aoclsparse_status create_linear_system(linear_system_id                id,
         icrowa[1] = 1;
         icola[0]  = 0;
         aval[0]   = 1.0;
+        //update row pointer and column index arrays to reflect values as per base-index
+        // icrowa = icrowa + base;
+        transform(icrowa.begin(), icrowa.end(), icrowa.begin(), [base](aoclsparse_int &d) {
+            return d + base;
+        });
+        // icola = icola + base;
+        transform(icola.begin(), icola.end(), icola.begin(), [base](aoclsparse_int &d) {
+            return d + base;
+        });
+
         if(aoclsparse_create_csr(A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
            != aoclsparse_status_success)
             return aoclsparse_status_internal_error;
@@ -1132,6 +1175,16 @@ aoclsparse_status create_linear_system(linear_system_id                id,
         icrowa[1] = 1;
         icola[0]  = 0;
         aval[0]   = 1.0;
+        //update row pointer and column index arrays to reflect values as per base-index
+        // icrowa = icrowa + base;
+        transform(icrowa.begin(), icrowa.end(), icrowa.begin(), [base](aoclsparse_int &d) {
+            return d + base;
+        });
+        // icola = icola + base;
+        transform(icola.begin(), icola.end(), icola.begin(), [base](aoclsparse_int &d) {
+            return d + base;
+        });
+
         if(aoclsparse_create_csr(A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
            != aoclsparse_status_success)
             return aoclsparse_status_internal_error;
@@ -1151,13 +1204,24 @@ aoclsparse_status create_linear_system(linear_system_id                id,
         icrowa[1] = 1;
         icola[0]  = 0;
         aval[0]   = 1.0;
+        //update row pointer and column index arrays to reflect values as per base-index
+        // icrowa = icrowa + base;
+        transform(icrowa.begin(), icrowa.end(), icrowa.begin(), [base](aoclsparse_int &d) {
+            return d + base;
+        });
+        // icola = icola + base;
+        transform(icola.begin(), icola.end(), icola.begin(), [base](aoclsparse_int &d) {
+            return d + base;
+        });
+
         if(aoclsparse_create_csr(A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
            != aoclsparse_status_success)
             return aoclsparse_status_internal_error;
         if(aoclsparse_create_mat_descr(&descr) != aoclsparse_status_success)
             return aoclsparse_status_internal_error;
         descr->type = aoclsparse_matrix_type_general;
-        exp_status  = aoclsparse_status_success;
+        aoclsparse_set_mat_index_base(descr, base);
+        exp_status = aoclsparse_status_success;
         break;
 
     default:

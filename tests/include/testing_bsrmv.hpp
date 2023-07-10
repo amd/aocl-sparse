@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2022 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2023 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -89,12 +89,13 @@ void testing_bsrmv(const Arguments &arg)
     std::vector<aoclsparse_int> bsr_row_ptr(mb + 1);
 
     CHECK_AOCLSPARSE_ERROR(aoclsparse_csr2bsr_nnz(
-        M, N, csr_row_ptr.data(), csr_col_ind.data(), bsr_dim, bsr_row_ptr.data(), &nnzb));
+        M, N, descr, csr_row_ptr.data(), csr_col_ind.data(), bsr_dim, bsr_row_ptr.data(), &nnzb));
 
     std::vector<aoclsparse_int> bsr_col_ind(nnzb);
     std::vector<T>              bsr_val(nnzb * bsr_dim * bsr_dim);
     CHECK_AOCLSPARSE_ERROR(aoclsparse_csr2bsr<T>(M,
                                                  N,
+                                                 descr,
                                                  csr_val.data(),
                                                  csr_row_ptr.data(),
                                                  csr_col_ind.data(),

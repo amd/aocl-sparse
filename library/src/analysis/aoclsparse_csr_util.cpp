@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022-2023 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -82,11 +82,12 @@ aoclsparse_status aoclsparse_add_hint(aoclsparse_optimize_data *&list,
  * error_handler is an optional callback for debug purposes:
  * if defined, it gets the status and a string describing the probelm on its interface
  */
-aoclsparse_status aoclsparse_csr_check_internal(aoclsparse_int       m,
-                                                aoclsparse_int       n,
-                                                aoclsparse_int       nnz,
-                                                const aoclsparse_csr csr_mat,
-                                                aoclsparse_shape     shape,
+aoclsparse_status aoclsparse_csr_check_internal(aoclsparse_int        m,
+                                                aoclsparse_int        n,
+                                                aoclsparse_int        nnz,
+                                                const aoclsparse_csr  csr_mat,
+                                                aoclsparse_shape      shape,
+                                                aoclsparse_index_base base,
                                                 void (*error_handler)(aoclsparse_status status,
                                                                       std::string       message))
 {
@@ -105,7 +106,7 @@ aoclsparse_status aoclsparse_csr_check_internal(aoclsparse_int       m,
         return status;
     }
 
-    if(csr_mat->csr_row_ptr[0] != 0)
+    if((csr_mat->csr_row_ptr[0] - base) != 0)
     {
         status = aoclsparse_status_invalid_value;
         if(error_handler)
@@ -115,7 +116,7 @@ aoclsparse_status aoclsparse_csr_check_internal(aoclsparse_int       m,
         }
         return status;
     }
-    if(csr_mat->csr_row_ptr[m] != nnz)
+    if((csr_mat->csr_row_ptr[m] - base) != nnz)
     {
         status = aoclsparse_status_invalid_value;
         if(error_handler)
@@ -143,8 +144,8 @@ aoclsparse_status aoclsparse_csr_check_internal(aoclsparse_int       m,
     aoclsparse_int idxstart, idxend, j, jmin = 0, jmax = n - 1;
     for(aoclsparse_int i = 0; i < m; i++)
     {
-        idxend   = csr_mat->csr_row_ptr[i + 1];
-        idxstart = csr_mat->csr_row_ptr[i];
+        idxend   = csr_mat->csr_row_ptr[i + 1] - base;
+        idxstart = csr_mat->csr_row_ptr[i] - base;
         if(shape == shape_lower_triangle)
         {
             jmin = 0;
@@ -156,9 +157,9 @@ aoclsparse_status aoclsparse_csr_check_internal(aoclsparse_int       m,
             jmax = n - 1;
         }
         int diag = -1;
-        for(aoclsparse_int idx = csr_mat->csr_row_ptr[i]; idx < idxend; idx++)
+        for(aoclsparse_int idx = idxstart; idx < idxend; idx++)
         {
-            j = csr_mat->csr_col_ptr[idx];
+            j = csr_mat->csr_col_ptr[idx] - base;
             if(j < jmin || j > jmax)
             {
                 status = aoclsparse_status_invalid_value;
@@ -243,8 +244,12 @@ aoclsparse_status aoclsparse_csr_check_internal(aoclsparse_int       m,
  * Possible fails: invalid_size(m,n<0), invalid_pointer (input),
  *                 invalid_value (duplicate diagonal element)
  */
-aoclsparse_status aoclsparse_csr_check_sort_diag(
-    aoclsparse_int m, aoclsparse_int n, const aoclsparse_csr csr_mat, bool &sorted, bool &fulldiag)
+aoclsparse_status aoclsparse_csr_check_sort_diag(aoclsparse_int        m,
+                                                 aoclsparse_int        n,
+                                                 aoclsparse_index_base base,
+                                                 const aoclsparse_csr  csr_mat,
+                                                 bool                 &sorted,
+                                                 bool                 &fulldiag)
 {
 
     sorted   = false;
@@ -265,10 +270,11 @@ aoclsparse_status aoclsparse_csr_check_sort_diag(
     {
         lower  = true; // assume the data starts with the lower triangular part
         found  = false;
-        idxend = csr_mat->csr_row_ptr[i + 1];
-        for(idx = csr_mat->csr_row_ptr[i]; idx < idxend; idx++)
+        idxend = csr_mat->csr_row_ptr[i + 1] - base;
+        for(idx = (csr_mat->csr_row_ptr[i] - base); idx < idxend; idx++)
         {
-            if(csr_mat->csr_col_ptr[idx] == i)
+            aoclsparse_int j = csr_mat->csr_col_ptr[idx] - base;
+            if(j == i)
             {
                 if(found)
                 {
@@ -283,11 +289,11 @@ aoclsparse_status aoclsparse_csr_check_sort_diag(
             {
                 if(lower)
                 {
-                    lower = csr_mat->csr_col_ptr[idx] < i;
+                    lower = j < i;
                 }
                 else
                 {
-                    sorted &= csr_mat->csr_col_ptr[idx] > i;
+                    sorted &= j > i;
                 }
             }
             if(!sorted)
@@ -317,7 +323,8 @@ aoclsparse_status aoclsparse_csr_check_sort_diag(
  * to position of diagonal and the first strictly upper triangle element,
  * if any of these is missing, the index points to where such an element
  * would be stored. The new index arrays are allocated here via malloc
- * so free() them when not needed.
+ * so free() them when not needed. The output arrays idiag and iurow 
+ * are respecting the input base.
  *
  * This is used to access only L/D/U portion of the matrix
  * strictly L in row i: icrow[i] .. idiag[i]-1
@@ -337,6 +344,7 @@ aoclsparse_status aoclsparse_csr_check_sort_diag(
  * at most one diag element per row.
  */
 aoclsparse_status aoclsparse_csr_indices(aoclsparse_int        m,
+                                         aoclsparse_index_base base,
                                          const aoclsparse_int *icrow,
                                          const aoclsparse_int *icol,
                                          aoclsparse_int      **idiag,
@@ -366,25 +374,40 @@ aoclsparse_status aoclsparse_csr_indices(aoclsparse_int        m,
     for(i = 0; i < m; i++)
     {
         found  = false;
-        idxend = icrow[i + 1];
-        for(idx = icrow[i]; idx < idxend; idx++)
-            if(icol[idx] >= i)
+        idxend = icrow[i + 1] - base;
+        for(idx = (icrow[i] - base); idx < idxend; idx++)
+        {
+            aoclsparse_int j = icol[idx] - base; // 0-based column index
+            if(j >= i)
             {
+                /*
+                    the adjusted index to csr_val array, taking into account base-index( 0 or 1) 
+                    is performed here to update idiag and iurow arrays
+                    If in case, user provides a sorted csr matrix with full diagonal, 
+                    then we do not copy csr_mat, but use the user's csr_mat pointers through opt_csr_mat. 
+                    In that case, row_ptr and col_ind arrays will be in 1-based mode and the execution kernels
+                    will perform the correction. So, even idiag and iurow arrays also need to be in the 
+                    same base indexing mode, so that the kernels can perform an uniform base correction 
+                    for all arrays                
+                */
+                aoclsparse_int adj_idx = idx + base;
                 // first diag or U element
                 // so 'idx' is where diag should be
-                (*idiag)[i] = idx;
+                (*idiag)[i] = adj_idx;
                 // if the current is diagonal, U should start just after
-                (*iurow)[i] = icol[idx] == i ? idx + 1 : idx;
+                (*iurow)[i] = j == i ? adj_idx + 1 : adj_idx;
                 found       = true;
                 break;
             }
+        }
         if(!found)
         {
             // all elements were strictly L, diag and U should be here
-            (*idiag)[i] = idxend;
-            (*iurow)[i] = idxend;
+            //TODO: add unit test to catch the issues, if the below idiag and iurow
+            //      are not adjusted for base( ... + base)
+            (*idiag)[i] = idxend + base;
+            (*iurow)[i] = idxend + base;
         }
     }
-
     return aoclsparse_status_success;
 }

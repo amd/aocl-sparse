@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2022 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2023 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -83,8 +83,8 @@ void testing_diamv(const Arguments &arg)
     aoclsparse_init<T>(y, 1, M, 1);
     y_gold = y;
     // Convert CSR matrix to DIA
-    CHECK_AOCLSPARSE_ERROR(
-        aoclsparse_csr2dia_ndiag(M, N, nnz, csr_row_ptr.data(), csr_col_ind.data(), &dia_num_diag));
+    CHECK_AOCLSPARSE_ERROR(aoclsparse_csr2dia_ndiag(
+        M, N, descr, nnz, csr_row_ptr.data(), csr_col_ind.data(), &dia_num_diag));
     aoclsparse_int size    = (M > N) ? M : N;
     aoclsparse_int nnz_dia = size * dia_num_diag;
     // Allocate DIA matrix
@@ -94,12 +94,14 @@ void testing_diamv(const Arguments &arg)
     // Convert CSR matrix to DIA
     CHECK_AOCLSPARSE_ERROR(aoclsparse_csr2dia(M,
                                               N,
+                                              descr,
                                               csr_row_ptr.data(),
                                               csr_col_ind.data(),
                                               csr_val.data(),
                                               dia_num_diag,
                                               dia_offset.data(),
                                               dia_val.data()));
+
     if(arg.unit_check)
     {
         CHECK_AOCLSPARSE_ERROR(aoclsparse_diamv(trans,

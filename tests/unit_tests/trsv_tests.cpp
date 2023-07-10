@@ -92,6 +92,7 @@ namespace
     template <typename T>
     void trsv_driver(linear_system_id  id,
                      aoclsparse_int    kid,
+                     aoclsparse_int    base_index,
                      aoclsparse_status trsv_status = aoclsparse_status_success)
     {
         aoclsparse_status    status;
@@ -111,12 +112,14 @@ namespace
         std::array<aoclsparse_int, 10> iparm;
         std::array<T, 10>              dparm;
         aoclsparse_status              exp_status;
+        aoclsparse_index_base          base = (aoclsparse_index_base)base_index;
 
         status = create_linear_system<T>(id,
                                          title,
                                          trans,
                                          A,
                                          descr,
+                                         base,
                                          alpha,
                                          b,
                                          x,
@@ -172,46 +175,61 @@ namespace
         linear_system_id id;
         std::string      testname;
         aoclsparse_int   kid;
+        aoclsparse_int   base;
     } trsv_list_t;
 
-#define ADD_TEST(ID, KID)             \
-    {                                 \
-        ID, #ID "/kid[" #KID "]", KID \
+#define BASEZERO 0
+#define BASEONE 1
+
+#define ADD_TEST(ID, KID, BASE)  \
+    {                            \
+        ID,                      \
+            #ID "/kid[" #KID "]" \
+                "/" #BASE,       \
+            KID, BASE            \
     }
 
 // Kernel kid=3 fallbacks to kid=2 on non-Zen4 and should not fail
-#define ADD_TEST_BATCH(PRE)                                                                       \
-    ADD_TEST(PRE##_Lx_aB, 0), ADD_TEST(PRE##_Lx_aB, 1), ADD_TEST(PRE##_Lx_aB, 2),                 \
-        ADD_TEST(PRE##_Lx_aB, 3),                                                                 \
-                                                                                                  \
-        ADD_TEST(PRE##_LL_Ix_aB, 0), ADD_TEST(PRE##_LL_Ix_aB, 1), ADD_TEST(PRE##_LL_Ix_aB, 2),    \
-        ADD_TEST(PRE##_LL_Ix_aB, 3),                                                              \
-                                                                                                  \
-        ADD_TEST(PRE##_LTx_aB, 0), ADD_TEST(PRE##_LTx_aB, 1), ADD_TEST(PRE##_LTx_aB, 2),          \
-        ADD_TEST(PRE##_LTx_aB, 3),                                                                \
-                                                                                                  \
-        ADD_TEST(PRE##_LL_ITx_aB, 0), ADD_TEST(PRE##_LL_ITx_aB, 1), ADD_TEST(PRE##_LL_ITx_aB, 2), \
-        ADD_TEST(PRE##_LL_ITx_aB, 3),                                                             \
-                                                                                                  \
-        ADD_TEST(PRE##_Ux_aB, 0), ADD_TEST(PRE##_Ux_aB, 1), ADD_TEST(PRE##_Ux_aB, 2),             \
-        ADD_TEST(PRE##_Ux_aB, 3),                                                                 \
-                                                                                                  \
-        ADD_TEST(PRE##_UU_Ix_aB, 0), ADD_TEST(PRE##_UU_Ix_aB, 1), ADD_TEST(PRE##_UU_Ix_aB, 2),    \
-        ADD_TEST(PRE##_UU_Ix_aB, 3),                                                              \
-                                                                                                  \
-        ADD_TEST(PRE##_UTx_aB, 0), ADD_TEST(PRE##_UTx_aB, 1), ADD_TEST(PRE##_UTx_aB, 2),          \
-        ADD_TEST(PRE##_UTx_aB, 3),                                                                \
-                                                                                                  \
-        ADD_TEST(PRE##_UU_ITx_aB, 0), ADD_TEST(PRE##_UU_ITx_aB, 1), ADD_TEST(PRE##_UU_ITx_aB, 2), \
-        ADD_TEST(PRE##_UU_ITx_aB, 3)
+#define ADD_TEST_BATCH(PRE)                                                             \
+    ADD_TEST(PRE##_Lx_aB, 0, BASEZERO), ADD_TEST(PRE##_Lx_aB, 1, BASEZERO),             \
+        ADD_TEST(PRE##_Lx_aB, 2, BASEZERO), ADD_TEST(PRE##_Lx_aB, 3, BASEZERO),         \
+        ADD_TEST(PRE##_Lx_aB, 0, BASEONE), ADD_TEST(PRE##_Lx_aB, 1, BASEONE),           \
+        ADD_TEST(PRE##_Lx_aB, 2, BASEONE), ADD_TEST(PRE##_Lx_aB, 3, BASEONE),           \
+        ADD_TEST(PRE##_LL_Ix_aB, 0, BASEZERO), ADD_TEST(PRE##_LL_Ix_aB, 1, BASEZERO),   \
+        ADD_TEST(PRE##_LL_Ix_aB, 2, BASEZERO), ADD_TEST(PRE##_LL_Ix_aB, 3, BASEZERO),   \
+        ADD_TEST(PRE##_LL_Ix_aB, 0, BASEONE), ADD_TEST(PRE##_LL_Ix_aB, 1, BASEONE),     \
+        ADD_TEST(PRE##_LL_Ix_aB, 2, BASEONE), ADD_TEST(PRE##_LL_Ix_aB, 3, BASEONE),     \
+        ADD_TEST(PRE##_LTx_aB, 0, BASEZERO), ADD_TEST(PRE##_LTx_aB, 1, BASEZERO),       \
+        ADD_TEST(PRE##_LTx_aB, 2, BASEZERO), ADD_TEST(PRE##_LTx_aB, 3, BASEZERO),       \
+        ADD_TEST(PRE##_LTx_aB, 0, BASEONE), ADD_TEST(PRE##_LTx_aB, 1, BASEONE),         \
+        ADD_TEST(PRE##_LTx_aB, 2, BASEONE), ADD_TEST(PRE##_LTx_aB, 3, BASEONE),         \
+        ADD_TEST(PRE##_LL_ITx_aB, 0, BASEZERO), ADD_TEST(PRE##_LL_ITx_aB, 1, BASEZERO), \
+        ADD_TEST(PRE##_LL_ITx_aB, 2, BASEZERO), ADD_TEST(PRE##_LL_ITx_aB, 3, BASEZERO), \
+        ADD_TEST(PRE##_LL_ITx_aB, 0, BASEONE), ADD_TEST(PRE##_LL_ITx_aB, 1, BASEONE),   \
+        ADD_TEST(PRE##_LL_ITx_aB, 2, BASEONE), ADD_TEST(PRE##_LL_ITx_aB, 3, BASEONE),   \
+        ADD_TEST(PRE##_Ux_aB, 0, BASEZERO), ADD_TEST(PRE##_Ux_aB, 1, BASEZERO),         \
+        ADD_TEST(PRE##_Ux_aB, 2, BASEZERO), ADD_TEST(PRE##_Ux_aB, 3, BASEZERO),         \
+        ADD_TEST(PRE##_Ux_aB, 0, BASEONE), ADD_TEST(PRE##_Ux_aB, 1, BASEONE),           \
+        ADD_TEST(PRE##_Ux_aB, 2, BASEONE), ADD_TEST(PRE##_Ux_aB, 3, BASEONE),           \
+        ADD_TEST(PRE##_UU_Ix_aB, 0, BASEZERO), ADD_TEST(PRE##_UU_Ix_aB, 1, BASEZERO),   \
+        ADD_TEST(PRE##_UU_Ix_aB, 2, BASEZERO), ADD_TEST(PRE##_UU_Ix_aB, 3, BASEZERO),   \
+        ADD_TEST(PRE##_UU_Ix_aB, 0, BASEONE), ADD_TEST(PRE##_UU_Ix_aB, 1, BASEONE),     \
+        ADD_TEST(PRE##_UU_Ix_aB, 2, BASEONE), ADD_TEST(PRE##_UU_Ix_aB, 3, BASEONE),     \
+        ADD_TEST(PRE##_UTx_aB, 0, BASEZERO), ADD_TEST(PRE##_UTx_aB, 1, BASEZERO),       \
+        ADD_TEST(PRE##_UTx_aB, 2, BASEZERO), ADD_TEST(PRE##_UTx_aB, 3, BASEZERO),       \
+        ADD_TEST(PRE##_UTx_aB, 0, BASEONE), ADD_TEST(PRE##_UTx_aB, 1, BASEONE),         \
+        ADD_TEST(PRE##_UTx_aB, 2, BASEONE), ADD_TEST(PRE##_UTx_aB, 3, BASEONE),         \
+        ADD_TEST(PRE##_UU_ITx_aB, 0, BASEZERO), ADD_TEST(PRE##_UU_ITx_aB, 1, BASEZERO), \
+        ADD_TEST(PRE##_UU_ITx_aB, 2, BASEZERO), ADD_TEST(PRE##_UU_ITx_aB, 3, BASEZERO), \
+        ADD_TEST(PRE##_UU_ITx_aB, 0, BASEONE), ADD_TEST(PRE##_UU_ITx_aB, 1, BASEONE),   \
+        ADD_TEST(PRE##_UU_ITx_aB, 2, BASEONE), ADD_TEST(PRE##_UU_ITx_aB, 3, BASEONE)
 
     trsv_list_t trsv_list[] = {ADD_TEST_BATCH(D7),
                                ADD_TEST_BATCH(S7),
                                ADD_TEST_BATCH(N25),
-                               ADD_TEST(D7_Lx_aB, 999),
-                               ADD_TEST(D7_Lx_aB, -1)};
-
-    void PrintTo(const trsv_list_t &param, ::std::ostream *os)
+                               ADD_TEST(D7_Lx_aB, 999, BASEZERO),
+                               ADD_TEST(D7_Lx_aB, -1, BASEZERO)};
+    void        PrintTo(const trsv_list_t &param, ::std::ostream *os)
     {
         *os << param.testname;
     }
@@ -221,12 +239,13 @@ namespace
     };
     TEST_P(PosDouble, Solver)
     {
-        const linear_system_id id  = GetParam().id;
-        const aoclsparse_int   kid = GetParam().kid;
+        const linear_system_id id   = GetParam().id;
+        const aoclsparse_int   kid  = GetParam().kid;
+        const aoclsparse_int   base = GetParam().base;
 #if(VERBOSE > 0)
         std::cout << "Pos/Double/Solver test name: \"" << GetParam().testname << "\"" << std::endl;
 #endif
-        trsv_driver<double>(id, kid, aoclsparse_status_success);
+        trsv_driver<double>(id, kid, base, aoclsparse_status_success);
     }
     INSTANTIATE_TEST_SUITE_P(TrsvSuite, PosDouble, ::testing::ValuesIn(trsv_list));
 
@@ -235,37 +254,121 @@ namespace
     };
     TEST_P(PosFloat, Solver)
     {
-        const linear_system_id  id  = GetParam().id;
-        const aoclsparse_int    kid = GetParam().kid;
+        const linear_system_id  id   = GetParam().id;
+        const aoclsparse_int    kid  = GetParam().kid;
+        const aoclsparse_int    base = GetParam().base;
         const aoclsparse_status trsv_status
             = kid == 1 ? aoclsparse_status_not_implemented : aoclsparse_status_success;
 #if(VERBOSE > 0)
         std::cout << "Pos/Float/Solver test name: \"" << GetParam().testname << "\"" << std::endl;
 #endif
-        trsv_driver<float>(id, kid, trsv_status);
+        trsv_driver<float>(id, kid, base, trsv_status);
     }
     INSTANTIATE_TEST_SUITE_P(TrsvSuite, PosFloat, ::testing::ValuesIn(trsv_list));
 
-    TEST(TrsvSuite, BaseOne)
+    TEST(TrsvSuite, BaseZeroDouble)
     {
-        double                      alpha = 0.0;
-        aoclsparse_matrix           A     = nullptr;
-        aoclsparse_mat_descr        descr = nullptr;
-        double                      b[1], x[1];
-        aoclsparse_int              kid = 0, m, n, nnz;
-        std::vector<double>         aval;
-        std::vector<aoclsparse_int> acol, acrow;
-        aoclsparse_operation        trans = aoclsparse_operation_none;
-        ASSERT_EQ(create_matrix(N5_1_hole, m, n, nnz, acrow, acol, aval, A, descr, 0),
+        double               alpha = 1.0;
+        aoclsparse_matrix    A     = nullptr;
+        aoclsparse_mat_descr descr = nullptr;
+        aoclsparse_int       kid   = 0;
+        aoclsparse_operation trans = aoclsparse_operation_none;
+
+        aoclsparse_int n = 4, m = 4, nnz = 10;
+        aoclsparse_int csr_row_ptr[5]  = {0, 2, 5, 8, 10};
+        aoclsparse_int csr_col_ind[10] = {0, 1, 0, 1, 2, 1, 2, 3, 2, 3};
+        double         csr_val[10]     = {1, 2, 3, 1, 2, 3, 1, 2, 3, 1};
+        double         b[4]            = {1, 4, 4, 4};
+        double         x_gold[4]       = {1.00, 1.00, 1.00, 1.00};
+        double         x[4]            = {0};
+
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_zero),
                   aoclsparse_status_success);
-        // Change to base-1
-        A->base = descr->base = aoclsparse_index_base_one;
+        ASSERT_EQ(aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_triangular),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_fill_mode(descr, aoclsparse_fill_mode_lower),
+                  aoclsparse_status_success);
+
+        ASSERT_EQ(aoclsparse_create_dcsr(
+                      A, aoclsparse_index_base_zero, m, n, nnz, csr_row_ptr, csr_col_ind, csr_val),
+                  aoclsparse_status_success);
+
         ASSERT_EQ(aoclsparse_dtrsv_kid(trans, alpha, A, descr, b, x, kid),
-                  aoclsparse_status_not_implemented);
+                  aoclsparse_status_success);
+        EXPECT_ARR_NEAR(n, x, x_gold, expected_precision<double>(10.0));
         ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
     };
+    TEST(TrsvSuite, BaseOneDouble)
+    {
+        double               alpha = 1.0;
+        aoclsparse_matrix    A     = nullptr;
+        aoclsparse_mat_descr descr = nullptr;
+        aoclsparse_int       kid   = 0;
+        aoclsparse_operation trans = aoclsparse_operation_none;
 
+        aoclsparse_int n = 4, m = 4, nnz = 10;
+        aoclsparse_int csr_row_ptr[5]  = {1, 3, 6, 9, 11};
+        aoclsparse_int csr_col_ind[10] = {1, 2, 1, 2, 3, 2, 3, 4, 3, 4};
+        double         csr_val[10]     = {1, 2, 3, 1, 2, 3, 1, 2, 3, 1};
+        double         b[4]            = {1, 4, 4, 4};
+        double         x_gold[4]       = {1.00, 1.00, 1.00, 1.00};
+        double         x[4]            = {0};
+
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_one),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_triangular),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_fill_mode(descr, aoclsparse_fill_mode_lower),
+                  aoclsparse_status_success);
+
+        ASSERT_EQ(aoclsparse_create_dcsr(
+                      A, aoclsparse_index_base_one, m, n, nnz, csr_row_ptr, csr_col_ind, csr_val),
+                  aoclsparse_status_success);
+
+        ASSERT_EQ(aoclsparse_dtrsv_kid(trans, alpha, A, descr, b, x, kid),
+                  aoclsparse_status_success);
+
+        EXPECT_ARR_NEAR(n, x, x_gold, expected_precision<double>(10.0));
+        ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+    };
+    TEST(TrsvSuite, BaseOneFloat)
+    {
+        float                alpha = 1.0;
+        aoclsparse_matrix    A     = nullptr;
+        aoclsparse_mat_descr descr = nullptr;
+        aoclsparse_int       kid   = 0;
+        aoclsparse_operation trans = aoclsparse_operation_none;
+
+        aoclsparse_int n = 4, m = 4, nnz = 10;
+        aoclsparse_int csr_row_ptr[5]  = {1, 3, 6, 9, 11};
+        aoclsparse_int csr_col_ind[10] = {1, 2, 1, 2, 3, 2, 3, 4, 3, 4};
+        float          csr_val[10]     = {1, 2, 3, 1, 2, 3, 1, 2, 3, 1};
+        float          b[4]            = {1, 4, 4, 4};
+        float          x_gold[4]       = {1.00, 1.00, 1.00, 1.00};
+        float          x[4]            = {0};
+
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_one),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_triangular),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_fill_mode(descr, aoclsparse_fill_mode_lower),
+                  aoclsparse_status_success);
+
+        ASSERT_EQ(aoclsparse_create_scsr(
+                      A, aoclsparse_index_base_one, m, n, nnz, csr_row_ptr, csr_col_ind, csr_val),
+                  aoclsparse_status_success);
+
+        ASSERT_EQ(aoclsparse_strsv_kid(trans, alpha, A, descr, b, x, kid),
+                  aoclsparse_status_success);
+        EXPECT_ARR_NEAR(n, x, x_gold, expected_precision<float>(10.0));
+        ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+    };
     TEST(TrsvSuite, WrongTypeDouble)
     {
         float                       alpha = 0.0;
@@ -276,19 +379,28 @@ namespace
         std::vector<double>         aval;
         std::vector<aoclsparse_int> acol, acrow;
         aoclsparse_operation        trans = aoclsparse_operation_none;
+
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_triangular),
+                  aoclsparse_status_success);
+        // Force it to lower triangular
+        ASSERT_EQ(aoclsparse_set_mat_fill_mode(descr, aoclsparse_fill_mode_lower),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_zero),
+                  aoclsparse_status_success);
+
         // Create matrix data for type double
         ASSERT_EQ(create_matrix<double>(N5_full_sorted, m, n, nnz, acrow, acol, aval, A, descr, 0),
                   aoclsparse_status_success);
-        // Force it to lower triangular
-        descr->fill_mode = aoclsparse_fill_mode_lower;
-        descr->type      = aoclsparse_matrix_type_triangular;
+
         ASSERT_EQ(aoclsparse_set_sv_hint(A, aoclsparse_operation_none, descr, 1),
                   aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_optimize(A), aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_strsv_kid(trans, alpha, A, descr, b, x, kid),
                   aoclsparse_status_wrong_type);
-        ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+
         ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
     };
 
     TEST(TrsvSuite, WrongTypeFloat)
@@ -301,12 +413,20 @@ namespace
         std::vector<float>          aval;
         std::vector<aoclsparse_int> acol, acrow;
         aoclsparse_operation        trans = aoclsparse_operation_none;
+
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_triangular),
+                  aoclsparse_status_success);
+        // Force it to lower triangular
+        ASSERT_EQ(aoclsparse_set_mat_fill_mode(descr, aoclsparse_fill_mode_lower),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_zero),
+                  aoclsparse_status_success);
+
         // Create matrix data for type double
         ASSERT_EQ(create_matrix<float>(N5_full_sorted, m, n, nnz, acrow, acol, aval, A, descr, 0),
                   aoclsparse_status_success);
-        // Force it to lower triangular
-        descr->fill_mode = aoclsparse_fill_mode_lower;
-        descr->type      = aoclsparse_matrix_type_triangular;
+
         ASSERT_EQ(aoclsparse_set_sv_hint(A, aoclsparse_operation_none, descr, 1),
                   aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_optimize(A), aoclsparse_status_success);
@@ -340,6 +460,11 @@ namespace
         std::vector<double>         aval;
         std::vector<aoclsparse_int> acol, acrow;
         aoclsparse_operation        trans = aoclsparse_operation_none;
+
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_zero),
+                  aoclsparse_status_success);
+
         ASSERT_EQ(create_matrix(N5_1_hole, m, n, nnz, acrow, acol, aval, A, descr, 0),
                   aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_dtrsv_kid(trans, alpha, A, nullptr, b, x, kid),
@@ -358,6 +483,10 @@ namespace
         std::vector<double>         aval;
         std::vector<aoclsparse_int> acol, acrow;
         aoclsparse_operation        trans = aoclsparse_operation_none;
+
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_zero),
+                  aoclsparse_status_success);
         ASSERT_EQ(create_matrix(N5_1_hole, m, n, nnz, acrow, acol, aval, A, descr, 0),
                   aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_dtrsv_kid(trans, alpha, A, descr, b, nullptr, kid),
@@ -376,6 +505,9 @@ namespace
         std::vector<double>         aval;
         std::vector<aoclsparse_int> acol, acrow;
         aoclsparse_operation        trans = aoclsparse_operation_none;
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_zero),
+                  aoclsparse_status_success);
         ASSERT_EQ(create_matrix(N5_1_hole, m, n, nnz, acrow, acol, aval, A, descr, 0),
                   aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_dtrsv_kid(trans, alpha, A, descr, nullptr, x, kid),
@@ -394,6 +526,9 @@ namespace
         std::vector<double>         aval;
         std::vector<aoclsparse_int> acol, acrow;
         aoclsparse_operation        trans = aoclsparse_operation_none;
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_zero),
+                  aoclsparse_status_success);
         ASSERT_EQ(create_matrix(N5_1_hole, m, n, nnz, acrow, acol, aval, A, descr, 0),
                   aoclsparse_status_success);
         A->m = -1;
@@ -413,6 +548,9 @@ namespace
         std::vector<double>         aval;
         std::vector<aoclsparse_int> acol, acrow;
         aoclsparse_operation        trans = aoclsparse_operation_none;
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_zero),
+                  aoclsparse_status_success);
         ASSERT_EQ(create_matrix(N5_1_hole, m, n, nnz, acrow, acol, aval, A, descr, 0),
                   aoclsparse_status_success);
         A->nnz = -1;
@@ -432,6 +570,9 @@ namespace
         std::vector<double>         aval;
         std::vector<aoclsparse_int> acol, acrow;
         aoclsparse_operation        trans = aoclsparse_operation_conjugate_transpose;
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_zero),
+                  aoclsparse_status_success);
         ASSERT_EQ(create_matrix(N5_1_hole, m, n, nnz, acrow, acol, aval, A, descr, 0),
                   aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_dtrsv_kid(trans, alpha, A, descr, b, x, kid),
@@ -450,6 +591,9 @@ namespace
         std::vector<double>         aval;
         std::vector<aoclsparse_int> acol, acrow;
         aoclsparse_operation        trans = aoclsparse_operation_none;
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_zero),
+                  aoclsparse_status_success);
         ASSERT_EQ(create_matrix(N5_1_hole, m, n, nnz, acrow, acol, aval, A, descr, 0),
                   aoclsparse_status_success);
         descr->type = aoclsparse_matrix_type_general;
@@ -469,6 +613,9 @@ namespace
         std::vector<double>         aval;
         std::vector<aoclsparse_int> acol, acrow;
         aoclsparse_operation        trans = aoclsparse_operation_none;
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_zero),
+                  aoclsparse_status_success);
         ASSERT_EQ(create_matrix(N5_1_hole, m, n, nnz, acrow, acol, aval, A, descr, 0),
                   aoclsparse_status_success);
         A->n = 0;
@@ -488,6 +635,9 @@ namespace
         std::vector<double>         aval;
         std::vector<aoclsparse_int> acol, acrow;
         aoclsparse_operation        trans = aoclsparse_operation_none;
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_zero),
+                  aoclsparse_status_success);
         ASSERT_EQ(create_matrix(N5_1_hole, m, n, nnz, acrow, acol, aval, A, descr, 0),
                   aoclsparse_status_success);
         // Force it to lower triangular
@@ -500,7 +650,7 @@ namespace
     };
 
     template <typename T>
-    void trsv_hint_driver(linear_system_id id)
+    void trsv_hint_driver(linear_system_id id, aoclsparse_int base_index)
     {
         std::string          title;
         T                    alpha;
@@ -518,12 +668,14 @@ namespace
         std::array<aoclsparse_int, 10> iparm;
         std::array<T, 10>              dparm;
         aoclsparse_status              status, exp_status;
+        aoclsparse_index_base          base = (aoclsparse_index_base)base_index;
 
         status = create_linear_system<T>(id,
                                          title,
                                          trans,
                                          A,
                                          descr,
+                                         base,
                                          alpha,
                                          b,
                                          x,
@@ -543,27 +695,32 @@ namespace
         ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
     }
-
-#define ADD_TEST_HINT(ID) \
-    {                     \
-        ID, #ID, 0        \
+#define ADD_TEST_HINT(ID, BASE)    \
+    {                              \
+        ID, #ID "/" #BASE, 0, BASE \
     }
-    trsv_list_t trsv_hint_list[] = {ADD_TEST_HINT(D7Lx_aB_hint),
-                                    ADD_TEST_HINT(A_nullptr),
-                                    ADD_TEST_HINT(D1_descr_nullptr),
-                                    ADD_TEST_HINT(D1_neg_num_hint),
-                                    ADD_TEST_HINT(D1_mattype_gen_hint)};
+    trsv_list_t trsv_hint_list[] = {ADD_TEST_HINT(D7Lx_aB_hint, BASEZERO),
+                                    ADD_TEST_HINT(A_nullptr, BASEZERO),
+                                    ADD_TEST_HINT(D1_descr_nullptr, BASEZERO),
+                                    ADD_TEST_HINT(D1_neg_num_hint, BASEZERO),
+                                    ADD_TEST_HINT(D1_mattype_gen_hint, BASEZERO),
+                                    ADD_TEST_HINT(D7Lx_aB_hint, BASEONE),
+                                    ADD_TEST_HINT(A_nullptr, BASEONE),
+                                    ADD_TEST_HINT(D1_descr_nullptr, BASEONE),
+                                    ADD_TEST_HINT(D1_neg_num_hint, BASEONE),
+                                    ADD_TEST_HINT(D1_mattype_gen_hint, BASEONE)};
 
     class PosHDouble : public testing::TestWithParam<trsv_list_t>
     {
     };
     TEST_P(PosHDouble, Hint)
     {
-        const linear_system_id id = GetParam().id;
+        const linear_system_id id   = GetParam().id;
+        const aoclsparse_int   base = GetParam().base;
 #if(VERBOSE > 0)
         std::cout << "PosH/Double test name: \"" << GetParam().testname << "\"" << std::endl;
 #endif
-        trsv_hint_driver<double>(id);
+        trsv_hint_driver<double>(id, base);
     }
     INSTANTIATE_TEST_CASE_P(TrsvSuite, PosHDouble, ::testing::ValuesIn(trsv_hint_list));
 
@@ -572,11 +729,12 @@ namespace
     };
     TEST_P(PosHFloat, Hint)
     {
-        const linear_system_id id = GetParam().id;
+        const linear_system_id id   = GetParam().id;
+        const aoclsparse_int   base = GetParam().base;
 #if(VERBOSE > 0)
         std::cout << "PosH/Float test name: \"" << GetParam().testname << "\"" << std::endl;
 #endif
-        trsv_hint_driver<float>(id);
+        trsv_hint_driver<float>(id, base);
     }
     INSTANTIATE_TEST_CASE_P(TrsvSuite, PosHFloat, ::testing::ValuesIn(trsv_hint_list));
 }

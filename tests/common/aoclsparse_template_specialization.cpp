@@ -495,59 +495,64 @@ aoclsparse_status aoclsparse_gthrz(const aoclsparse_int  nnz,
 }
 
 template <>
-aoclsparse_status aoclsparse_csr2ell(aoclsparse_int        m,
-                                     const aoclsparse_int *csr_row_ptr,
-                                     const aoclsparse_int *csr_col_ind,
-                                     const float          *csr_val,
-                                     aoclsparse_int       *ell_col_ind,
-                                     float                *ell_val,
-                                     aoclsparse_int        ell_width)
+aoclsparse_status aoclsparse_csr2ell(aoclsparse_int             m,
+                                     const aoclsparse_mat_descr descr,
+                                     const aoclsparse_int      *csr_row_ptr,
+                                     const aoclsparse_int      *csr_col_ind,
+                                     const float               *csr_val,
+                                     aoclsparse_int            *ell_col_ind,
+                                     float                     *ell_val,
+                                     aoclsparse_int             ell_width)
 {
     return aoclsparse_scsr2ell(
-        m, csr_row_ptr, csr_col_ind, csr_val, ell_col_ind, ell_val, ell_width);
+        m, descr, csr_row_ptr, csr_col_ind, csr_val, ell_col_ind, ell_val, ell_width);
 }
 
 template <>
-aoclsparse_status aoclsparse_csr2ell(aoclsparse_int        m,
-                                     const aoclsparse_int *csr_row_ptr,
-                                     const aoclsparse_int *csr_col_ind,
-                                     const double         *csr_val,
-                                     aoclsparse_int       *ell_col_ind,
-                                     double               *ell_val,
-                                     aoclsparse_int        ell_width)
+aoclsparse_status aoclsparse_csr2ell(aoclsparse_int             m,
+                                     const aoclsparse_mat_descr descr,
+                                     const aoclsparse_int      *csr_row_ptr,
+                                     const aoclsparse_int      *csr_col_ind,
+                                     const double              *csr_val,
+                                     aoclsparse_int            *ell_col_ind,
+                                     double                    *ell_val,
+                                     aoclsparse_int             ell_width)
 {
     return aoclsparse_dcsr2ell(
-        m, csr_row_ptr, csr_col_ind, csr_val, ell_col_ind, ell_val, ell_width);
+        m, descr, csr_row_ptr, csr_col_ind, csr_val, ell_col_ind, ell_val, ell_width);
 }
 
 template <>
-aoclsparse_status aoclsparse_csr2ellt(aoclsparse_int        m,
-                                      const aoclsparse_int *csr_row_ptr,
-                                      const aoclsparse_int *csr_col_ind,
-                                      const float          *csr_val,
-                                      aoclsparse_int       *ell_col_ind,
-                                      float                *ell_val,
-                                      aoclsparse_int        ell_width)
+aoclsparse_status aoclsparse_csr2ellt(aoclsparse_int             m,
+                                      const aoclsparse_mat_descr descr,
+                                      const aoclsparse_int      *csr_row_ptr,
+                                      const aoclsparse_int      *csr_col_ind,
+                                      const float               *csr_val,
+                                      aoclsparse_int            *ell_col_ind,
+                                      float                     *ell_val,
+                                      aoclsparse_int             ell_width)
 {
     return aoclsparse_scsr2ellt(
-        m, csr_row_ptr, csr_col_ind, csr_val, ell_col_ind, ell_val, ell_width);
+        m, descr, csr_row_ptr, csr_col_ind, csr_val, ell_col_ind, ell_val, ell_width);
 }
 
 template <>
-aoclsparse_status aoclsparse_csr2ellt(aoclsparse_int        m,
-                                      const aoclsparse_int *csr_row_ptr,
-                                      const aoclsparse_int *csr_col_ind,
-                                      const double         *csr_val,
-                                      aoclsparse_int       *ell_col_ind,
-                                      double               *ell_val,
-                                      aoclsparse_int        ell_width)
+aoclsparse_status aoclsparse_csr2ellt(aoclsparse_int             m,
+                                      const aoclsparse_mat_descr descr,
+                                      const aoclsparse_int      *csr_row_ptr,
+                                      const aoclsparse_int      *csr_col_ind,
+                                      const double              *csr_val,
+                                      aoclsparse_int            *ell_col_ind,
+                                      double                    *ell_val,
+                                      aoclsparse_int             ell_width)
 {
     return aoclsparse_dcsr2ellt(
-        m, csr_row_ptr, csr_col_ind, csr_val, ell_col_ind, ell_val, ell_width);
+        m, descr, csr_row_ptr, csr_col_ind, csr_val, ell_col_ind, ell_val, ell_width);
 }
 
 template <>
 aoclsparse_status aoclsparse_csr2ellthyb(aoclsparse_int        m,
+                                         aoclsparse_index_base base,
                                          aoclsparse_int       *ell_m,
                                          const aoclsparse_int *csr_row_ptr,
                                          const aoclsparse_int *csr_col_ind,
@@ -559,6 +564,7 @@ aoclsparse_status aoclsparse_csr2ellthyb(aoclsparse_int        m,
                                          aoclsparse_int        ell_width)
 {
     return aoclsparse_scsr2ellthyb(m,
+                                   base,
                                    ell_m,
                                    csr_row_ptr,
                                    csr_col_ind,
@@ -572,6 +578,7 @@ aoclsparse_status aoclsparse_csr2ellthyb(aoclsparse_int        m,
 
 template <>
 aoclsparse_status aoclsparse_csr2ellthyb(aoclsparse_int        m,
+                                         aoclsparse_index_base base,
                                          aoclsparse_int       *ell_m,
                                          const aoclsparse_int *csr_row_ptr,
                                          const aoclsparse_int *csr_col_ind,
@@ -583,6 +590,7 @@ aoclsparse_status aoclsparse_csr2ellthyb(aoclsparse_int        m,
                                          aoclsparse_int        ell_width)
 {
     return aoclsparse_dcsr2ellthyb(m,
+                                   base,
                                    ell_m,
                                    csr_row_ptr,
                                    csr_col_ind,
@@ -595,91 +603,133 @@ aoclsparse_status aoclsparse_csr2ellthyb(aoclsparse_int        m,
 }
 
 template <>
-aoclsparse_status aoclsparse_csr2dia(aoclsparse_int        m,
-                                     aoclsparse_int        n,
-                                     const aoclsparse_int *csr_row_ptr,
-                                     const aoclsparse_int *csr_col_ind,
-                                     const float          *csr_val,
-                                     aoclsparse_int        dia_num_diag,
-                                     aoclsparse_int       *dia_offset,
-                                     float                *dia_val)
+aoclsparse_status aoclsparse_csr2dia(aoclsparse_int             m,
+                                     aoclsparse_int             n,
+                                     const aoclsparse_mat_descr descr,
+                                     const aoclsparse_int      *csr_row_ptr,
+                                     const aoclsparse_int      *csr_col_ind,
+                                     const float               *csr_val,
+                                     aoclsparse_int             dia_num_diag,
+                                     aoclsparse_int            *dia_offset,
+                                     float                     *dia_val)
 {
     return aoclsparse_scsr2dia(
-        m, n, csr_row_ptr, csr_col_ind, csr_val, dia_num_diag, dia_offset, dia_val);
+        m, n, descr, csr_row_ptr, csr_col_ind, csr_val, dia_num_diag, dia_offset, dia_val);
 }
 
 template <>
-aoclsparse_status aoclsparse_csr2dia(aoclsparse_int        m,
-                                     aoclsparse_int        n,
-                                     const aoclsparse_int *csr_row_ptr,
-                                     const aoclsparse_int *csr_col_ind,
-                                     const double         *csr_val,
-                                     aoclsparse_int        dia_num_diag,
-                                     aoclsparse_int       *dia_offset,
-                                     double               *dia_val)
+aoclsparse_status aoclsparse_csr2dia(aoclsparse_int             m,
+                                     aoclsparse_int             n,
+                                     const aoclsparse_mat_descr descr,
+                                     const aoclsparse_int      *csr_row_ptr,
+                                     const aoclsparse_int      *csr_col_ind,
+                                     const double              *csr_val,
+                                     aoclsparse_int             dia_num_diag,
+                                     aoclsparse_int            *dia_offset,
+                                     double                    *dia_val)
 {
     return aoclsparse_dcsr2dia(
-        m, n, csr_row_ptr, csr_col_ind, csr_val, dia_num_diag, dia_offset, dia_val);
+        m, n, descr, csr_row_ptr, csr_col_ind, csr_val, dia_num_diag, dia_offset, dia_val);
 }
 
 template <>
-aoclsparse_status aoclsparse_csr2bsr(aoclsparse_int        m,
-                                     aoclsparse_int        n,
-                                     const float          *csr_val,
-                                     const aoclsparse_int *csr_row_ptr,
-                                     const aoclsparse_int *csr_col_ind,
-                                     aoclsparse_int        block_dim,
-                                     float                *bsr_val,
-                                     aoclsparse_int       *bsr_row_ptr,
-                                     aoclsparse_int       *bsr_col_ind)
+aoclsparse_status aoclsparse_csr2bsr(aoclsparse_int             m,
+                                     aoclsparse_int             n,
+                                     const aoclsparse_mat_descr descr,
+                                     const float               *csr_val,
+                                     const aoclsparse_int      *csr_row_ptr,
+                                     const aoclsparse_int      *csr_col_ind,
+                                     aoclsparse_int             block_dim,
+                                     float                     *bsr_val,
+                                     aoclsparse_int            *bsr_row_ptr,
+                                     aoclsparse_int            *bsr_col_ind)
 {
-    return aoclsparse_scsr2bsr(
-        m, n, csr_val, csr_row_ptr, csr_col_ind, block_dim, bsr_val, bsr_row_ptr, bsr_col_ind);
+    return aoclsparse_scsr2bsr(m,
+                               n,
+                               descr,
+                               csr_val,
+                               csr_row_ptr,
+                               csr_col_ind,
+                               block_dim,
+                               bsr_val,
+                               bsr_row_ptr,
+                               bsr_col_ind);
 }
 
 template <>
-aoclsparse_status aoclsparse_csr2bsr(aoclsparse_int        m,
-                                     aoclsparse_int        n,
-                                     const double         *csr_val,
-                                     const aoclsparse_int *csr_row_ptr,
-                                     const aoclsparse_int *csr_col_ind,
-                                     aoclsparse_int        block_dim,
-                                     double               *bsr_val,
-                                     aoclsparse_int       *bsr_row_ptr,
-                                     aoclsparse_int       *bsr_col_ind)
+aoclsparse_status aoclsparse_csr2bsr(aoclsparse_int             m,
+                                     aoclsparse_int             n,
+                                     const aoclsparse_mat_descr descr,
+                                     const double              *csr_val,
+                                     const aoclsparse_int      *csr_row_ptr,
+                                     const aoclsparse_int      *csr_col_ind,
+                                     aoclsparse_int             block_dim,
+                                     double                    *bsr_val,
+                                     aoclsparse_int            *bsr_row_ptr,
+                                     aoclsparse_int            *bsr_col_ind)
 {
-    return aoclsparse_dcsr2bsr(
-        m, n, csr_val, csr_row_ptr, csr_col_ind, block_dim, bsr_val, bsr_row_ptr, bsr_col_ind);
+    return aoclsparse_dcsr2bsr(m,
+                               n,
+                               descr,
+                               csr_val,
+                               csr_row_ptr,
+                               csr_col_ind,
+                               block_dim,
+                               bsr_val,
+                               bsr_row_ptr,
+                               bsr_col_ind);
 }
 
 template <>
-aoclsparse_status aoclsparse_csr2csc(aoclsparse_int        m,
-                                     aoclsparse_int        n,
-                                     aoclsparse_int        nnz,
-                                     const aoclsparse_int *csr_row_ptr,
-                                     const aoclsparse_int *csr_col_ind,
-                                     const float          *csr_val,
-                                     aoclsparse_int       *csc_row_ind,
-                                     aoclsparse_int       *csc_col_ptr,
-                                     float                *csc_val)
+aoclsparse_status aoclsparse_csr2csc(aoclsparse_int             m,
+                                     aoclsparse_int             n,
+                                     aoclsparse_int             nnz,
+                                     const aoclsparse_mat_descr descr,
+                                     aoclsparse_index_base      baseCSC,
+                                     const aoclsparse_int      *csr_row_ptr,
+                                     const aoclsparse_int      *csr_col_ind,
+                                     const float               *csr_val,
+                                     aoclsparse_int            *csc_row_ind,
+                                     aoclsparse_int            *csc_col_ptr,
+                                     float                     *csc_val)
 {
-    return aoclsparse_scsr2csc(
-        m, n, nnz, csr_row_ptr, csr_col_ind, csr_val, csc_row_ind, csc_col_ptr, csc_val);
+    return aoclsparse_scsr2csc(m,
+                               n,
+                               nnz,
+                               descr,
+                               baseCSC,
+                               csr_row_ptr,
+                               csr_col_ind,
+                               csr_val,
+                               csc_row_ind,
+                               csc_col_ptr,
+                               csc_val);
 }
 
 template <>
-aoclsparse_status aoclsparse_csr2csc(aoclsparse_int        m,
-                                     aoclsparse_int        n,
-                                     aoclsparse_int        nnz,
-                                     const aoclsparse_int *csr_row_ptr,
-                                     const aoclsparse_int *csr_col_ind,
-                                     const double         *csr_val,
-                                     aoclsparse_int       *csc_row_ind,
-                                     aoclsparse_int       *csc_col_ptr,
-                                     double               *csc_val)
+aoclsparse_status aoclsparse_csr2csc(aoclsparse_int             m,
+                                     aoclsparse_int             n,
+                                     aoclsparse_int             nnz,
+                                     const aoclsparse_mat_descr descr,
+                                     aoclsparse_index_base      baseCSC,
+                                     const aoclsparse_int      *csr_row_ptr,
+                                     const aoclsparse_int      *csr_col_ind,
+                                     const double              *csr_val,
+                                     aoclsparse_int            *csc_row_ind,
+                                     aoclsparse_int            *csc_col_ptr,
+                                     double                    *csc_val)
 {
-    return aoclsparse_dcsr2csc(
-        m, n, nnz, csr_row_ptr, csr_col_ind, csr_val, csc_row_ind, csc_col_ptr, csc_val);
+    return aoclsparse_dcsr2csc(m,
+                               n,
+                               nnz,
+                               descr,
+                               baseCSC,
+                               csr_row_ptr,
+                               csr_col_ind,
+                               csr_val,
+                               csc_row_ind,
+                               csc_col_ptr,
+                               csc_val);
 }
 
 template <>

@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020-2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -42,7 +42,7 @@ void testing_csrsv(const Arguments &arg)
     aoclsparse_int        N     = arg.N;
     aoclsparse_int        nnz   = arg.nnz;
     aoclsparse_operation  trans = arg.transA;
-    aoclsparse_index_base base  = arg.baseA;
+    aoclsparse_index_base base  = arg.baseA, baseCSC;
     aoclsparse_diag_type  diag  = arg.diag;
     aoclsparse_fill_mode  uplo  = arg.uplo;
 
@@ -123,10 +123,13 @@ void testing_csrsv(const Arguments &arg)
             csc_row_ind.resize(nnz);
             csc_col_ptr.resize(N + 1, 0);
             csc_val.resize(nnz);
-
+            //Output-base index of csc buffer
+            baseCSC = aoclsparse_index_base_zero;
             CHECK_AOCLSPARSE_ERROR(aoclsparse_csr2csc(M,
                                                       N,
                                                       nnz,
+                                                      descr,
+                                                      baseCSC,
                                                       csr_row_ptr.data(),
                                                       csr_col_ind.data(),
                                                       csr_val.data(),

@@ -753,8 +753,8 @@ aoclsparse_status aoclsparse_dcsrmv(aoclsparse_operation       trans,
  *  @param[in]
  *  nnz         number of non-zero entries of the sparse ELL matrix.
  *  @param[in]
- *  descr       descriptor of the sparse ELL matrix. Currently, only
- *              \ref aoclsparse_matrix_type_general is supported.
+ *  descr       descriptor of the sparse ELL matrix. Both, base-zero and 
+ *              base-one input arrays of ELL matrix are supported
  *  @param[in]
  *  ell_val     array that contains the elements of the sparse ELL matrix. Padded
  *              elements should be zero.
@@ -934,8 +934,7 @@ aoclsparse_status aoclsparse_dblkcsrmv(aoclsparse_operation       trans,
  *  @param[in]
  *  nnz         number of non-zero entries of the sparse DIA matrix.
  *  @param[in]
- *  descr       descriptor of the sparse DIA matrix. Currently, only
- *              \ref aoclsparse_matrix_type_general is supported.
+ *  descr       descriptor of the sparse DIA matrix.
  *  @param[in]
  *  dia_val     array that contains the elements of the sparse DIA matrix. Padded
  *              elements should be zero.
@@ -1026,8 +1025,8 @@ aoclsparse_status aoclsparse_ddiamv(aoclsparse_operation       trans,
 *  @param[in]
 *  alpha       scalar \f$\alpha\f$.
 *  @param[in]
-*  descr       descriptor of the sparse BSR matrix. Currently, only
-*              \ref aoclsparse_matrix_type_general is supported.
+*  descr       descriptor of the sparse BSR matrix. Both, base-zero and 
+ *              base-one input arrays of BSR matrix are supported
 *  @param[in]
 *  bsr_val     array of \p nnzb blocks of the sparse BSR matrix.
 *  @param[in]
@@ -1127,7 +1126,10 @@ aoclsparse_status aoclsparse_dbsrmv(aoclsparse_operation       trans,
  *  @param[in]
  *  descr       descriptor of the sparse CSR matrix. Currently, only
  *              \ref aoclsparse_matrix_type_general and
- *              \ref aoclsparse_matrix_type_symmetric is supported.
+ *              \ref aoclsparse_matrix_type_symmetric is supported. 
+ *              Both base-zero and base-one are supported, however, 
+ *              the index base needs to match the one used at when 
+ *              aoclsparse_matrix was created.
  *  @param[in]
  *  x           array of \p n elements (\f$op(A) = A\f$) or \p m elements
  *              (\f$op(A) = A^T\f$ or \f$op(A) = A^H\f$).
@@ -1435,7 +1437,8 @@ aoclsparse_status aoclsparse_dtrsv_kid(aoclsparse_operation       trans,
  *  csr         sparse CSR matrix \f$A\f$ structure.
  *  @param[in]
  *  descr       descriptor of the sparse CSR matrix \f$A\f$. Currently, only
- *              \ref aoclsparse_matrix_type_general is supported.
+ *              \ref aoclsparse_matrix_type_general is supported. Both, base-zero and 
+ *              base-one input arrays of CSR matrix are supported
  *  @param[in]
  *  order       aoclsparse_order_row/aoclsparse_order_column for dense matrix
  *  @param[in]
@@ -1632,7 +1635,8 @@ aoclsparse_status aoclsparse_scsr2m(aoclsparse_operation       trans_A,
  *  A            sparse matrix handle. Currently ILU functionality is supported only for CSR matrix format.
  *  @param[in]
  *  descr      descriptor of the sparse matrix handle \p A. Currently, only
- *              \ref aoclsparse_matrix_type_symmetric is supported.
+ *              \ref aoclsparse_matrix_type_symmetric is supported. Both, base-zero and 
+ *              base-one input arrays of CSR matrix are supported
  *  @param[out]
  *  precond_csr_val        output pointer that contains
  *                         L and U factors after ILU operation. The original value buffer of matrix

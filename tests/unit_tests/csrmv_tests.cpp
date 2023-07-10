@@ -182,6 +182,43 @@ namespace
         aoclsparse_destroy_mat_descr(descr);
     }
     template <typename T>
+    void test_csrmv_baseOneIndexing()
+    {
+        aoclsparse_operation trans              = aoclsparse_operation_none;
+        int                  invalid_index_base = 2;
+        aoclsparse_int       M = 5, N = 5, NNZ = 8;
+        T                    alpha = 1.0;
+        T                    beta  = 0.0;
+        // Initialise vectors
+        T x[] = {1.0, 2.0, 3.0, 4.0, 5.0};
+        T y[M];
+        T y_gold[] = {9.00, 6.00, 12.00, 69.00, 40.00};
+
+        aoclsparse_index_base base = aoclsparse_index_base_one;
+        aoclsparse_mat_descr  descr;
+        aoclsparse_int        csr_row_ptr[] = {1, 3, 4, 5, 8, 9};
+        aoclsparse_int        csr_col_ind[] = {1, 4, 2, 3, 2, 4, 5, 5};
+        T                     csr_val[]     = {1, 2, 3, 4, 5, 6, 7, 8};
+
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, base), aoclsparse_status_success);
+
+        EXPECT_EQ(
+            aoclsparse_csrmv<T>(
+                trans, &alpha, M, N, NNZ, csr_val, csr_col_ind, csr_row_ptr, descr, x, &beta, y),
+            aoclsparse_status_success);
+
+        EXPECT_ARR_NEAR(M, y, y_gold, expected_precision<T>());
+
+        descr->base = (aoclsparse_index_base)invalid_index_base;
+        EXPECT_EQ(
+            aoclsparse_csrmv<T>(
+                trans, &alpha, M, N, NNZ, csr_val, csr_col_ind, csr_row_ptr, descr, x, &beta, y),
+            aoclsparse_status_invalid_value);
+
+        aoclsparse_destroy_mat_descr(descr);
+    }
+    template <typename T>
     void test_csrmv_transpose()
     {
         aoclsparse_operation trans;
@@ -341,7 +378,62 @@ namespace
 
         EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
     }
+    template <typename T>
+    void test_csrmv_symmetric_baseone()
+    {
+        aoclsparse_operation trans;
+        aoclsparse_int       M = 8, N = 8, NNZ = 18;
+        T                    alpha = 1.0;
+        T                    beta  = 0.0;
+        // Initialise vectors
+        T x[8]      = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0};
+        T y[8]      = {0.0};
+        T y_gold[8] = {0.0};
 
+        aoclsparse_index_base base = aoclsparse_index_base_one;
+        aoclsparse_mat_descr  descr;
+        //symmetric matrix with lower triangle
+        aoclsparse_int csr_row_ptr[] = {1, 2, 3, 6, 7, 9, 12, 16, 19};
+        aoclsparse_int csr_col_ind[] = {1, 2, 1, 2, 3, 4, 2, 5, 1, 5, 6, 1, 4, 5, 7, 3, 6, 8};
+        T              csr_val[]     = {19, 10, 1, 8, 11, 13, 2, 11, 2, 1, 9, 7, 9, 5, 12, 5, 5, 9};
+
+        trans = aoclsparse_operation_none;
+
+        //assign y[] with NaN value to verify tests with zero beta
+        for(int i = 0; i < M; i++)
+        {
+            y[i]      = std::numeric_limits<double>::quiet_NaN();
+            y_gold[i] = std::numeric_limits<double>::quiet_NaN();
+        }
+
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, base), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_symmetric),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_fill_mode(descr, aoclsparse_fill_mode_lower),
+                  aoclsparse_status_success);
+
+        EXPECT_EQ(
+            aoclsparse_csrmv<T>(
+                trans, &alpha, M, N, NNZ, csr_val, csr_col_ind, csr_row_ptr, descr, x, &beta, y),
+            aoclsparse_status_success);
+
+        EXPECT_EQ(ref_csrmvsym(alpha,
+                               M,
+                               csr_val,
+                               csr_col_ind,
+                               csr_row_ptr,
+                               aoclsparse_fill_mode_lower,
+                               aoclsparse_diag_type_non_unit,
+                               base,
+                               x,
+                               beta,
+                               y_gold),
+                  aoclsparse_status_success);
+
+        EXPECT_ARR_NEAR(M, y, y_gold, expected_precision<T>());
+        EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+    }
     //TODO add:
     // * positive tests with special predefined matrices
     // * positive tests with unsorted CSR
@@ -400,5 +492,21 @@ namespace
     TEST(csrmv, ConjugateTransposeFloat)
     {
         test_csrmv_conjugate_transpose<float>();
+    }
+    TEST(csrmv, BaseOneDouble)
+    {
+        test_csrmv_baseOneIndexing<double>();
+    }
+    TEST(csrmv, BaseOneFloat)
+    {
+        test_csrmv_baseOneIndexing<float>();
+    }
+    TEST(csrmv, SymmetricBaseOneDouble)
+    {
+        test_csrmv_symmetric_baseone<double>();
+    }
+    TEST(csrmv, SymmetricBaseOneFloat)
+    {
+        test_csrmv_symmetric_baseone<float>();
     }
 } // namespace

@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2021 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2023 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -40,11 +40,13 @@ aoclsparse_status aoclsparse_csrsv_template(const T                    alpha,
 {
     if(descr->fill_mode == aoclsparse_fill_mode_lower)
     {
-        aoclsparse_csr_lsolve(alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, y, descr->diag_type);
+        aoclsparse_csr_lsolve(
+            alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, y, descr->diag_type, descr->base);
     }
     else
     {
-        aoclsparse_csr_usolve(alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, y, descr->diag_type);
+        aoclsparse_csr_usolve(
+            alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, y, descr->diag_type, descr->base);
     }
     return aoclsparse_status_success;
 }
@@ -57,7 +59,8 @@ static inline void aoclsparse_csr_lsolve(const T               alpha,
                                          const aoclsparse_int *csr_row_ptr,
                                          const T              *x,
                                          T                    *y,
-                                         aoclsparse_diag_type  diag_type)
+                                         aoclsparse_diag_type  diag_type,
+                                         aoclsparse_index_base base)
 {
     aoclsparse_int diag_j = 0;
 
@@ -66,19 +69,19 @@ static inline void aoclsparse_csr_lsolve(const T               alpha,
     {
         y[row] = alpha * x[row];
 
-        for(aoclsparse_int j = csr_row_ptr[row]; j < csr_row_ptr[row + 1]; ++j)
+        for(aoclsparse_int j = (csr_row_ptr[row] - base); j < (csr_row_ptr[row + 1] - base); ++j)
         {
             // Ignore all entries that are above the diagonal
-            if(csr_col_ind[j] < row)
+            if((csr_col_ind[j] - base) < row)
             {
                 // under the diagonal
-                y[row] -= csr_val[j] * y[csr_col_ind[j]];
+                y[row] -= csr_val[j] * y[csr_col_ind[j] - base];
             }
             else
             {
                 if(diag_type == aoclsparse_diag_type_non_unit)
                 {
-                    if(csr_col_ind[j] == row)
+                    if((csr_col_ind[j] - base) == row)
                         diag_j = j;
                 }
                 break;
@@ -101,7 +104,8 @@ static inline void aoclsparse_csr_usolve(const T               alpha,
                                          const aoclsparse_int *csr_row_ptr,
                                          const T              *x,
                                          T                    *y,
-                                         aoclsparse_diag_type  diag_type)
+                                         aoclsparse_diag_type  diag_type,
+                                         aoclsparse_index_base base)
 {
     aoclsparse_int diag_j = 0;
 
@@ -110,17 +114,17 @@ static inline void aoclsparse_csr_usolve(const T               alpha,
     {
         y[row] = alpha * x[row];
 
-        for(aoclsparse_int j = csr_row_ptr[row]; j < csr_row_ptr[row + 1]; ++j)
+        for(aoclsparse_int j = (csr_row_ptr[row] - base); j < (csr_row_ptr[row + 1] - base); ++j)
         {
             // Ignore all entries that are below the diagonal
-            if(csr_col_ind[j] > row)
+            if((csr_col_ind[j] - base) > row)
             {
                 // under the diagonal
-                y[row] -= csr_val[j] * y[csr_col_ind[j]];
+                y[row] -= csr_val[j] * y[csr_col_ind[j] - base];
             }
             if(diag_type == aoclsparse_diag_type_non_unit)
             {
-                if(csr_col_ind[j] == row)
+                if((csr_col_ind[j] - base) == row)
                     diag_j = j;
             }
         }

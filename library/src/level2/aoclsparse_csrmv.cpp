@@ -26,8 +26,9 @@
 
 // Template specializations
 template <>
-aoclsparse_status aoclsparse_csrmv_vectorized(const float    alpha,
-                                              aoclsparse_int m,
+aoclsparse_status aoclsparse_csrmv_vectorized(aoclsparse_index_base base,
+                                              const float           alpha,
+                                              aoclsparse_int        m,
                                               const float *__restrict__ csr_val,
                                               const aoclsparse_int *__restrict__ csr_col_ind,
                                               const aoclsparse_int *__restrict__ csr_row_ptr,
@@ -36,7 +37,10 @@ aoclsparse_status aoclsparse_csrmv_vectorized(const float    alpha,
                                               float *__restrict__ y,
                                               [[maybe_unused]] aoclsparse_context *context)
 {
-    __m256 vec_vals, vec_x, vec_y;
+    __m256                vec_vals, vec_x, vec_y;
+    const aoclsparse_int *csr_col_ind_fix = csr_col_ind - base;
+    const float          *csr_val_fix     = csr_val - base;
+    const float          *x_fix           = x - base;
 
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(context->num_threads) private(vec_vals, vec_x, vec_y)
@@ -54,17 +58,17 @@ aoclsparse_status aoclsparse_csrmv_vectorized(const float    alpha,
         for(j = csr_row_ptr[i]; j < csr_row_ptr[i + 1] - k_rem; j += 8)
         {
             //(csr_val[j] csr_val[j+1] csr_val[j+2] csr_val[j+3] csr_val[j+4] csr_val[j+5] csr_val[j+6] csr_val[j+7]
-            vec_vals = _mm256_loadu_ps(&csr_val[j]);
+            vec_vals = _mm256_loadu_ps(&csr_val_fix[j]);
 
             //Gather the xvector values from the column indices
-            vec_x = _mm256_set_ps(x[csr_col_ind[j + 7]],
-                                  x[csr_col_ind[j + 6]],
-                                  x[csr_col_ind[j + 5]],
-                                  x[csr_col_ind[j + 4]],
-                                  x[csr_col_ind[j + 3]],
-                                  x[csr_col_ind[j + 2]],
-                                  x[csr_col_ind[j + 1]],
-                                  x[csr_col_ind[j]]);
+            vec_x = _mm256_set_ps(x_fix[csr_col_ind_fix[j + 7]],
+                                  x_fix[csr_col_ind_fix[j + 6]],
+                                  x_fix[csr_col_ind_fix[j + 5]],
+                                  x_fix[csr_col_ind_fix[j + 4]],
+                                  x_fix[csr_col_ind_fix[j + 3]],
+                                  x_fix[csr_col_ind_fix[j + 2]],
+                                  x_fix[csr_col_ind_fix[j + 1]],
+                                  x_fix[csr_col_ind_fix[j]]);
 
             vec_y = _mm256_fmadd_ps(vec_vals, vec_x, vec_y);
         }
@@ -96,7 +100,7 @@ aoclsparse_status aoclsparse_csrmv_vectorized(const float    alpha,
         //Remainder loop
         for(j = csr_row_ptr[i + 1] - k_rem; j < csr_row_ptr[i + 1]; j++)
         {
-            result += csr_val[j] * x[csr_col_ind[j]];
+            result += csr_val_fix[j] * x_fix[csr_col_ind_fix[j]];
         }
 
         // Perform alpha * A * x
@@ -119,8 +123,9 @@ aoclsparse_status aoclsparse_csrmv_vectorized(const float    alpha,
 
 #if USE_AVX512
 template <>
-aoclsparse_status aoclsparse_csrmv_vectorized_avx512(const double   alpha,
-                                                     aoclsparse_int m,
+aoclsparse_status aoclsparse_csrmv_vectorized_avx512(aoclsparse_index_base base,
+                                                     const double          alpha,
+                                                     aoclsparse_int        m,
                                                      const double *__restrict__ csr_val,
                                                      const aoclsparse_int *__restrict__ csr_col_ind,
                                                      const aoclsparse_int *__restrict__ csr_row_ptr,
@@ -128,8 +133,11 @@ aoclsparse_status aoclsparse_csrmv_vectorized_avx512(const double   alpha,
                                                      const double beta,
                                                      double *__restrict__ y)
 {
-    __m256d vec_y;
-    __m512d vec_vals_512, vec_x_512, vec_y_512;
+    __m256d               vec_y;
+    __m512d               vec_vals_512, vec_x_512, vec_y_512;
+    const aoclsparse_int *csr_col_ind_fix = csr_col_ind - base;
+    const double         *csr_val_fix     = csr_val - base;
+    const double         *x_fix           = x - base;
     for(aoclsparse_int i = 0; i < m; i++)
     {
         aoclsparse_int j;
@@ -144,17 +152,17 @@ aoclsparse_status aoclsparse_csrmv_vectorized_avx512(const double   alpha,
         for(j = csr_row_ptr[i]; j < (csr_row_ptr[i + 1] - k_rem); j += 8)
         {
             //(csr_val[j] (csr_val[j+1] (csr_val[j+2] (csr_val[j+3]
-            vec_vals_512 = _mm512_loadu_pd((double const *)&csr_val[j]);
+            vec_vals_512 = _mm512_loadu_pd(&csr_val_fix[j]);
 
             // Gather the x vector elements from the column indices
-            vec_x_512 = _mm512_set_pd(x[csr_col_ind[j + 7]],
-                                      x[csr_col_ind[j + 6]],
-                                      x[csr_col_ind[j + 5]],
-                                      x[csr_col_ind[j + 4]],
-                                      x[csr_col_ind[j + 3]],
-                                      x[csr_col_ind[j + 2]],
-                                      x[csr_col_ind[j + 1]],
-                                      x[csr_col_ind[j]]);
+            vec_x_512 = _mm512_set_pd(x_fix[csr_col_ind_fix[j + 7]],
+                                      x_fix[csr_col_ind_fix[j + 6]],
+                                      x_fix[csr_col_ind_fix[j + 5]],
+                                      x_fix[csr_col_ind_fix[j + 4]],
+                                      x_fix[csr_col_ind_fix[j + 3]],
+                                      x_fix[csr_col_ind_fix[j + 2]],
+                                      x_fix[csr_col_ind_fix[j + 1]],
+                                      x_fix[csr_col_ind_fix[j]]);
 
             vec_y_512 = _mm512_fmadd_pd(vec_vals_512, vec_x_512, vec_y_512);
         }
@@ -188,7 +196,7 @@ aoclsparse_status aoclsparse_csrmv_vectorized_avx512(const double   alpha,
         // Remainder loop for nnz%8
         for(j = csr_row_ptr[i + 1] - k_rem; j < csr_row_ptr[i + 1]; j++)
         {
-            result += csr_val[j] * x[csr_col_ind[j]];
+            result += csr_val_fix[j] * x_fix[csr_col_ind_fix[j]];
         }
 
         // Perform alpha * A * x
@@ -211,8 +219,9 @@ aoclsparse_status aoclsparse_csrmv_vectorized_avx512(const double   alpha,
 #endif
 
 template <>
-aoclsparse_status aoclsparse_csrmv_vectorized_avx2(const double   alpha,
-                                                   aoclsparse_int m,
+aoclsparse_status aoclsparse_csrmv_vectorized_avx2(aoclsparse_index_base base,
+                                                   const double          alpha,
+                                                   aoclsparse_int        m,
                                                    const double *__restrict__ csr_val,
                                                    const aoclsparse_int *__restrict__ csr_col_ind,
                                                    const aoclsparse_int *__restrict__ csr_row_ptr,
@@ -221,7 +230,11 @@ aoclsparse_status aoclsparse_csrmv_vectorized_avx2(const double   alpha,
                                                    double *__restrict__ y,
                                                    [[maybe_unused]] aoclsparse_context *context)
 {
-    __m256d vec_vals, vec_x, vec_y;
+    __m256d               vec_vals, vec_x, vec_y;
+    const aoclsparse_int *csr_col_ind_fix = csr_col_ind - base;
+    const double         *csr_val_fix     = csr_val - base;
+    const double         *x_fix           = x - base;
+
 #ifdef _OPENMP
     aoclsparse_int chunk = (m / context->num_threads) ? (m / context->num_threads) : 1;
 #pragma omp parallel for num_threads(context->num_threads) \
@@ -240,13 +253,13 @@ aoclsparse_status aoclsparse_csrmv_vectorized_avx2(const double   alpha,
         for(j = csr_row_ptr[i]; j < csr_row_ptr[i + 1] - k_rem; j += 4)
         {
             //(csr_val[j] (csr_val[j+1] (csr_val[j+2] (csr_val[j+3]
-            vec_vals = _mm256_loadu_pd((double const *)&csr_val[j]);
+            vec_vals = _mm256_loadu_pd(&csr_val_fix[j]);
 
             //Gather the x vector elements from the column indices
-            vec_x = _mm256_set_pd(x[csr_col_ind[j + 3]],
-                                  x[csr_col_ind[j + 2]],
-                                  x[csr_col_ind[j + 1]],
-                                  x[csr_col_ind[j]]);
+            vec_x = _mm256_set_pd(x_fix[csr_col_ind_fix[j + 3]],
+                                  x_fix[csr_col_ind_fix[j + 2]],
+                                  x_fix[csr_col_ind_fix[j + 1]],
+                                  x_fix[csr_col_ind_fix[j]]);
 
             vec_y = _mm256_fmadd_pd(vec_vals, vec_x, vec_y);
         }
@@ -277,7 +290,7 @@ aoclsparse_status aoclsparse_csrmv_vectorized_avx2(const double   alpha,
         //Remainder loop for nnz%4
         for(j = csr_row_ptr[i + 1] - k_rem; j < csr_row_ptr[i + 1]; j++)
         {
-            result += csr_val[j] * x[csr_col_ind[j]];
+            result += csr_val_fix[j] * x_fix[csr_col_ind_fix[j]];
         }
 
         // Perform alpha * A * x
@@ -328,10 +341,9 @@ extern "C" aoclsparse_status aoclsparse_scsrmv(aoclsparse_operation       trans,
     }
 
     // Check index base
-    if(descr->base != aoclsparse_index_base_zero)
+    if(descr->base != aoclsparse_index_base_zero && descr->base != aoclsparse_index_base_one)
     {
-        // TODO
-        return aoclsparse_status_not_implemented;
+        return aoclsparse_status_invalid_value;
     }
 
     // Support General and symmetric matrices.
@@ -390,12 +402,13 @@ extern "C" aoclsparse_status aoclsparse_scsrmv(aoclsparse_operation       trans,
     case aoclsparse_operation_none:
         if(descr->type == aoclsparse_matrix_type_symmetric)
         {
-            return aoclsparse_csrmv_symm(*alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
+            return aoclsparse_csrmv_symm(
+                descr->base, *alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
         }
         else
         {
             return aoclsparse_csrmv_vectorized(
-                *alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y, &context);
+                descr->base, *alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y, &context);
         }
         break;
 
@@ -404,11 +417,13 @@ extern "C" aoclsparse_status aoclsparse_scsrmv(aoclsparse_operation       trans,
         {
             //when a matrix is symmetric, then matrix is equal to its transpose, and thus the matrix product
             //would also be same
-            return aoclsparse_csrmv_symm(*alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
+            return aoclsparse_csrmv_symm(
+                descr->base, *alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
         }
         else
         {
-            return aoclsparse_csrmvt(*alpha, m, n, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
+            return aoclsparse_csrmvt(
+                descr->base, *alpha, m, n, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
         }
         break;
 
@@ -449,10 +464,9 @@ extern "C" aoclsparse_status aoclsparse_dcsrmv(aoclsparse_operation       trans,
     }
 
     // Check index base
-    if(descr->base != aoclsparse_index_base_zero)
+    if(descr->base != aoclsparse_index_base_zero && descr->base != aoclsparse_index_base_one)
     {
-        // TODO
-        return aoclsparse_status_not_implemented;
+        return aoclsparse_status_invalid_value;
     }
 
     // Support General and symmetric matrices.
@@ -511,7 +525,8 @@ extern "C" aoclsparse_status aoclsparse_dcsrmv(aoclsparse_operation       trans,
     case aoclsparse_operation_none:
         if(descr->type == aoclsparse_matrix_type_symmetric)
         {
-            return aoclsparse_csrmv_symm(*alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
+            return aoclsparse_csrmv_symm(
+                descr->base, *alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
         }
         else
         {
@@ -522,20 +537,44 @@ extern "C" aoclsparse_status aoclsparse_dcsrmv(aoclsparse_operation       trans,
             // (Mean nnz > 10) , we continue to invoke the vectorised version of csrmv , since
             // it improves performance.
             if(nnz <= (10 * m))
-                return aoclsparse_csrmv_general(
-                    *alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y, &context);
+                return aoclsparse_csrmv_general(descr->base,
+                                                *alpha,
+                                                m,
+                                                csr_val,
+                                                csr_col_ind,
+                                                csr_row_ptr,
+                                                x,
+                                                *beta,
+                                                y,
+                                                &context);
             else
             {
 #if USE_AVX512
                 if(context.is_avx512)
                     return aoclsparse_csrmv_vectorized_avx512(
-                        *alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
+                        descr->base, *alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
                 else
-                    return aoclsparse_csrmv_vectorized_avx2(
-                        *alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y, &context);
+                    return aoclsparse_csrmv_vectorized_avx2(descr->base,
+                                                            *alpha,
+                                                            m,
+                                                            csr_val,
+                                                            csr_col_ind,
+                                                            csr_row_ptr,
+                                                            x,
+                                                            *beta,
+                                                            y,
+                                                            &context);
 #else
-                return aoclsparse_csrmv_vectorized_avx2(
-                    *alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y, &context);
+                return aoclsparse_csrmv_vectorized_avx2(descr->base,
+                                                        *alpha,
+                                                        m,
+                                                        csr_val,
+                                                        csr_col_ind,
+                                                        csr_row_ptr,
+                                                        x,
+                                                        *beta,
+                                                        y,
+                                                        &context);
 #endif
             }
         }
@@ -546,11 +585,13 @@ extern "C" aoclsparse_status aoclsparse_dcsrmv(aoclsparse_operation       trans,
         {
             //when a matrix is symmetric, then matrix is equal to its transpose, and thus the matrix product
             //would also be same
-            return aoclsparse_csrmv_symm(*alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
+            return aoclsparse_csrmv_symm(
+                descr->base, *alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
         }
         else
         {
-            return aoclsparse_csrmvt(*alpha, m, n, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
+            return aoclsparse_csrmvt(
+                descr->base, *alpha, m, n, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
         }
         break;
 
@@ -567,10 +608,11 @@ extern "C" aoclsparse_status aoclsparse_dcsrmv(aoclsparse_operation       trans,
 
 template <>
 aoclsparse_status
-    aoclsparse_csrmv_vectorized_avx2ptr([[maybe_unused]] const float    alpha,
-                                        [[maybe_unused]] aoclsparse_int m,
-                                        [[maybe_unused]] aoclsparse_int n,
-                                        [[maybe_unused]] aoclsparse_int nnz,
+    aoclsparse_csrmv_vectorized_avx2ptr([[maybe_unused]] aoclsparse_index_base base,
+                                        [[maybe_unused]] const float           alpha,
+                                        [[maybe_unused]] aoclsparse_int        m,
+                                        [[maybe_unused]] aoclsparse_int        n,
+                                        [[maybe_unused]] aoclsparse_int        nnz,
                                         [[maybe_unused]] const float *__restrict__ aval,
                                         [[maybe_unused]] const aoclsparse_int *__restrict__ icol,
                                         [[maybe_unused]] const aoclsparse_int *__restrict__ crstart,
@@ -584,7 +626,8 @@ aoclsparse_status
 }
 
 template <>
-aoclsparse_status aoclsparse_csrmv_vectorized_avx2ptr(const double                    alpha,
+aoclsparse_status aoclsparse_csrmv_vectorized_avx2ptr(aoclsparse_index_base           base,
+                                                      const double                    alpha,
                                                       aoclsparse_int                  m,
                                                       [[maybe_unused]] aoclsparse_int n,
                                                       [[maybe_unused]] aoclsparse_int nnz,
@@ -597,8 +640,10 @@ aoclsparse_status aoclsparse_csrmv_vectorized_avx2ptr(const double              
                                                       double *__restrict__ y,
                                                       [[maybe_unused]] aoclsparse_context *context)
 {
-
-    __m256d vec_vals, vec_x, vec_y;
+    __m256d               vec_vals, vec_x, vec_y;
+    const aoclsparse_int *icol_fix = icol - base;
+    const double         *aval_fix = aval - base;
+    const double         *x_fix    = x - base;
 #ifdef _OPENMP
     aoclsparse_int chunk = (m / context->num_threads) ? (m / context->num_threads) : 1;
 #pragma omp parallel for num_threads(context->num_threads) \
@@ -618,10 +663,13 @@ aoclsparse_status aoclsparse_csrmv_vectorized_avx2ptr(const double              
         for(j = crstart[i]; j < crend[i] - k_rem; j += 4)
         {
             //(csr_val[j] (csr_val[j+1] (csr_val[j+2] (csr_val[j+3]
-            vec_vals = _mm256_loadu_pd((double const *)&aval[j]);
+            vec_vals = _mm256_loadu_pd(&aval_fix[j]);
 
             //Gather the x vector elements from the column indices
-            vec_x = _mm256_set_pd(x[icol[j + 3]], x[icol[j + 2]], x[icol[j + 1]], x[icol[j + 0]]);
+            vec_x = _mm256_set_pd(x_fix[icol_fix[j + 3]],
+                                  x_fix[icol_fix[j + 2]],
+                                  x_fix[icol_fix[j + 1]],
+                                  x_fix[icol_fix[j + 0]]);
 
             vec_y = _mm256_fmadd_pd(vec_vals, vec_x, vec_y);
         }
@@ -652,7 +700,7 @@ aoclsparse_status aoclsparse_csrmv_vectorized_avx2ptr(const double              
         //Remainder loop for nnz%4
         for(j = crend[i] - k_rem; j < crend[i]; j++)
         {
-            result += aval[j] * x[icol[j]];
+            result += aval_fix[j] * x_fix[icol_fix[j]];
         }
 
         // Perform alpha * A * x

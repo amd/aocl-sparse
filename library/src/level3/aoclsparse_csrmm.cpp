@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2021-2022 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2021-2023 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -58,19 +58,29 @@ aoclsparse_status aoclsparse_csrmm_template(aoclsparse_operation       trans,
     {
         return aoclsparse_status_wrong_type;
     }
+
+    // Check index base
+    if(descr->base != aoclsparse_index_base_zero && descr->base != aoclsparse_index_base_one)
+    {
+        return aoclsparse_status_invalid_value;
+    }
+    // Check for base index incompatibility
+    if(csr->base != descr->base)
+    {
+        return aoclsparse_status_invalid_value;
+    }
+
+    if(csr->input_format != aoclsparse_csr_mat)
+    {
+        return aoclsparse_status_not_implemented;
+    }
+
     aoclsparse_int        m           = csr->m;
     aoclsparse_int        k           = csr->n;
     const T              *csr_val     = static_cast<T *>(csr->csr_mat.csr_val);
     const aoclsparse_int *csr_col_ind = csr->csr_mat.csr_col_ptr;
     const aoclsparse_int *csr_row_ptr = csr->csr_mat.csr_row_ptr;
     if(trans != aoclsparse_operation_none)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-
-    // Check index base
-    if(descr->base != aoclsparse_index_base_zero)
     {
         // TODO
         return aoclsparse_status_not_implemented;
@@ -130,10 +140,10 @@ aoclsparse_status aoclsparse_csrmm_template(aoclsparse_operation       trans,
 
     if(order == aoclsparse_order_column)
         return aoclsparse_csrmm_col_major(
-            alpha, csr_val, csr_col_ind, csr_row_ptr, m, k, B, n, ldb, beta, C, ldc);
+            alpha, descr, csr_val, csr_col_ind, csr_row_ptr, m, k, B, n, ldb, beta, C, ldc);
     else
         return aoclsparse_csrmm_row_major(
-            alpha, csr_val, csr_col_ind, csr_row_ptr, m, k, B, n, ldb, beta, C, ldc);
+            alpha, descr, csr_val, csr_col_ind, csr_row_ptr, m, k, B, n, ldb, beta, C, ldc);
 }
 
 #define INSTANTIATE(TTYPE)                                                                        \

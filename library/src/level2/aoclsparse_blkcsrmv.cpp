@@ -40,8 +40,9 @@ int bits_set(uint8_t x)
 
 template <>
 aoclsparse_status
-    aoclsparse_blkcsrmv_1x8_vectorized_avx512(const double   alpha,
-                                              aoclsparse_int m,
+    aoclsparse_blkcsrmv_1x8_vectorized_avx512(aoclsparse_index_base base,
+                                              const double          alpha,
+                                              aoclsparse_int        m,
                                               const uint8_t *__restrict__ masks,
                                               const double *__restrict__ blk_csr_val,
                                               const aoclsparse_int *__restrict__ blk_col_ind,
@@ -61,10 +62,10 @@ aoclsparse_status
         double sum = 0;
         vec_y_512  = _mm512_setzero_pd();
 
-        for(int iBlk = blk_row_ptr[iRow]; iBlk < blk_row_ptr[iRow + 1]; iBlk += 1)
+        for(int iBlk = (blk_row_ptr[iRow] - base); iBlk < (blk_row_ptr[iRow + 1] - base); iBlk += 1)
         {
             //Load the column vector only once for the entire block
-            const int iCol = blk_col_ind[iBlk];
+            const int iCol = blk_col_ind[iBlk] - base;
             vec_x_512      = _mm512_loadu_pd((double const *)&x[iCol]);
 
             //Read mask value and perform mask_expandload for each row in the block
@@ -115,8 +116,9 @@ aoclsparse_status
 
 template <>
 aoclsparse_status
-    aoclsparse_blkcsrmv_2x8_vectorized_avx512(const double   alpha,
-                                              aoclsparse_int m,
+    aoclsparse_blkcsrmv_2x8_vectorized_avx512(aoclsparse_index_base base,
+                                              const double          alpha,
+                                              aoclsparse_int        m,
                                               const uint8_t *__restrict__ masks,
                                               const double *__restrict__ blk_csr_val,
                                               const aoclsparse_int *__restrict__ blk_col_ind,
@@ -139,10 +141,10 @@ aoclsparse_status
         vec_y_512[0] = _mm512_setzero_pd();
         vec_y_512[1] = _mm512_setzero_pd();
 
-        for(int iBlk = blk_row_ptr[iRow]; iBlk < blk_row_ptr[iRow + 1]; iBlk += 1)
+        for(int iBlk = (blk_row_ptr[iRow] - base); iBlk < (blk_row_ptr[iRow + 1] - base); iBlk += 1)
         {
             //Load the column vector only once for the entire block
-            const int iCol = blk_col_ind[iBlk];
+            const int iCol = blk_col_ind[iBlk] - base;
             vec_x_512      = _mm512_loadu_pd((double const *)&x[iCol]);
 
             //Read mask value and perform mask_expandload for each row in the block
@@ -218,8 +220,9 @@ aoclsparse_status
 
 template <>
 aoclsparse_status
-    aoclsparse_blkcsrmv_4x8_vectorized_avx512(const double   alpha,
-                                              aoclsparse_int m,
+    aoclsparse_blkcsrmv_4x8_vectorized_avx512(aoclsparse_index_base base,
+                                              const double          alpha,
+                                              aoclsparse_int        m,
                                               const uint8_t *__restrict__ masks,
                                               const double *__restrict__ blk_csr_val,
                                               const aoclsparse_int *__restrict__ blk_col_ind,
@@ -242,10 +245,10 @@ aoclsparse_status
         vec_y_512[2]         = _mm512_setzero_pd();
         vec_y_512[3]         = _mm512_setzero_pd();
 
-        for(int iBlk = blk_row_ptr[iRow]; iBlk < blk_row_ptr[iRow + 1]; iBlk += 1)
+        for(int iBlk = (blk_row_ptr[iRow] - base); iBlk < (blk_row_ptr[iRow + 1] - base); iBlk += 1)
         {
             //Load the column vector only once for the entire block
-            const int iCol = blk_col_ind[iBlk];
+            const int iCol = blk_col_ind[iBlk] - base;
             vec_x_512      = _mm512_loadu_pd((double const *)&x[iCol]);
 
             //Read mask value and perform mask_expandload for each row in the block
@@ -399,10 +402,9 @@ extern "C" aoclsparse_status aoclsparse_dblkcsrmv(aoclsparse_operation       tra
     }
 
     // Check index base
-    if(descr->base != aoclsparse_index_base_zero)
+    if(descr->base != aoclsparse_index_base_zero && descr->base != aoclsparse_index_base_one)
     {
-        // TODO
-        return aoclsparse_status_not_implemented;
+        return aoclsparse_status_invalid_value;
     }
 
     // Support General and symmetric matrices.
@@ -481,13 +483,13 @@ extern "C" aoclsparse_status aoclsparse_dblkcsrmv(aoclsparse_operation       tra
     {
         if(nRowsblk == 1)
             return aoclsparse_blkcsrmv_1x8_vectorized_avx512(
-                *alpha, m, masks, blk_csr_val, blk_col_ind, blk_row_ptr, x, *beta, y);
+                descr->base, *alpha, m, masks, blk_csr_val, blk_col_ind, blk_row_ptr, x, *beta, y);
         if(nRowsblk == 2)
             return aoclsparse_blkcsrmv_2x8_vectorized_avx512(
-                *alpha, m, masks, blk_csr_val, blk_col_ind, blk_row_ptr, x, *beta, y);
+                descr->base, *alpha, m, masks, blk_csr_val, blk_col_ind, blk_row_ptr, x, *beta, y);
         if(nRowsblk == 4)
             return aoclsparse_blkcsrmv_4x8_vectorized_avx512(
-                *alpha, m, masks, blk_csr_val, blk_col_ind, blk_row_ptr, x, *beta, y);
+                descr->base, *alpha, m, masks, blk_csr_val, blk_col_ind, blk_row_ptr, x, *beta, y);
         else
             return aoclsparse_status_invalid_size;
     }

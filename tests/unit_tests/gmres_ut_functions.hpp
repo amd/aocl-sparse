@@ -190,10 +190,12 @@ void test_gmres(matrix_id               mid,
     // create GMRES handle
     itsol_init<T>(&handle);
 
+    ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+    ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_zero),
+              aoclsparse_status_success);
     //test for small unsymmetric matrix with no preconditioner
     ASSERT_EQ(create_matrix(mid, m, n, nnz, csr_row_ptr, csr_col_ind, csr_val, A, descr, VERBOSE),
               aoclsparse_status_success);
-
     expected_sol = (T *)malloc(sizeof(T) * n);
     ASSERT_NE(expected_sol, nullptr);
 

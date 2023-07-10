@@ -126,7 +126,7 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
         {
             aoclsparse_int total_blks = 0;
             aoclsparse_int nRowsblk   = aoclsparse_opt_blksize(
-                A->m, A->nnz, A->csr_mat.csr_row_ptr, A->csr_mat.csr_col_ptr, &total_blks);
+                A->m, A->nnz, A->base, A->csr_mat.csr_row_ptr, A->csr_mat.csr_col_ptr, &total_blks);
             if(nRowsblk != 0)
             {
                 const aoclsparse_int    blk_width = 8;
@@ -155,7 +155,8 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
                                       mat_csr->blk_col_ptr,
                                       (double *)mat_csr->blk_val,
                                       mat_csr->masks,
-                                      nRowsblk);
+                                      nRowsblk,
+                                      A->base);
                 A->csr_mat.nRowsblk = nRowsblk;
                 A->blk_optimized    = true;
                 A->mat_type         = aoclsparse_csr_mat;
@@ -228,6 +229,7 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
         if(A->val_type == aoclsparse_dmat)
         {
             aoclsparse_dcsr2ellthyb(A->m,
+                                    A->base,
                                     &ell_m,
                                     A->csr_mat.csr_row_ptr,
                                     A->csr_mat.csr_col_ptr,
@@ -241,6 +243,7 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
         else if(A->val_type == aoclsparse_smat)
         {
             aoclsparse_scsr2ellthyb(A->m,
+                                    A->base,
                                     &ell_m,
                                     A->csr_mat.csr_row_ptr,
                                     A->csr_mat.csr_col_ptr,
@@ -329,15 +332,16 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
             aoclsparse_int ridx = A->csr_mat.csr_row_ptr[i];
             for(j = 0; j < nz; ++j)
             {
-                ((double *)csr_mat_br4->csr_val)[tc] = ((double *)A->csr_mat.csr_val)[ridx + j];
-                csr_mat_br4->csr_col_ptr[tc]         = A->csr_mat.csr_col_ptr[ridx + j];
+                ((double *)csr_mat_br4->csr_val)[tc]
+                    = ((double *)A->csr_mat.csr_val)[ridx - A->base + j];
+                csr_mat_br4->csr_col_ptr[tc] = A->csr_mat.csr_col_ptr[ridx - A->base + j];
                 tc++;
             }
             if(nz < row_ptr[i])
             { // ToDo -- can remove the if condition
                 for(j = nz; j < row_ptr[i]; ++j)
                 {
-                    csr_mat_br4->csr_col_ptr[tc]         = A->csr_mat.csr_col_ptr[ridx + nz - 1];
+                    csr_mat_br4->csr_col_ptr[tc] = A->csr_mat.csr_col_ptr[ridx - A->base + nz - 1];
                     ((double *)csr_mat_br4->csr_val)[tc] = static_cast<double>(0);
                     tc++;
                 }
@@ -557,10 +561,9 @@ aoclsparse_status aoclsparse_set_mv_hint(aoclsparse_matrix          A,
         return aoclsparse_status_invalid_pointer;
     }
     // Check index base
-    if(descr->base != aoclsparse_index_base_zero)
+    if((A->base != aoclsparse_index_base_zero) && (A->base != aoclsparse_index_base_one))
     {
-        // TODO
-        return aoclsparse_status_not_implemented;
+        return aoclsparse_status_invalid_value;
     }
     // Check sizes
     if(A->m < 0)

@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022-2023 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,7 +34,8 @@
 #endif
 
 template <typename T>
-aoclsparse_status aoclsparse_ilu0_factorization(aoclsparse_int n,
+aoclsparse_status aoclsparse_ilu0_factorization(aoclsparse_int        n,
+                                                aoclsparse_index_base base,
                                                 aoclsparse_int *__restrict__ lu_diag_ptr,
                                                 aoclsparse_int *__restrict__ col_idx_mapper,
                                                 T *__restrict__ csr_val,
@@ -47,19 +48,19 @@ aoclsparse_status aoclsparse_ilu0_factorization(aoclsparse_int n,
 
     for(i = 0; i < n; i++)
     {
-        j1 = csr_row_ptr[i];
-        j2 = csr_row_ptr[i + 1];
+        j1 = csr_row_ptr[i] - base;
+        j2 = csr_row_ptr[i + 1] - base;
         //Set mapper
         for(j = j1; j < j2; j++)
         {
-            aoclsparse_int col_idx  = csr_col_ind[j];
+            aoclsparse_int col_idx  = csr_col_ind[j] - base;
             col_idx_mapper[col_idx] = j;
         }
 
         //ILU factorization IKJ version k-loop
         for(j = j1; j < j2; j++)
         {
-            k = csr_col_ind[j];
+            k = csr_col_ind[j] - base;
             if(k < i)
             {
                 T diag_elem = csr_val[lu_diag_ptr[k]];
@@ -72,9 +73,9 @@ aoclsparse_status aoclsparse_ilu0_factorization(aoclsparse_int n,
                 }
                 csr_val[j] = csr_val[j] / diag_elem;
 
-                for(jj = lu_diag_ptr[k] + 1; jj < csr_row_ptr[k + 1]; jj++)
+                for(jj = (lu_diag_ptr[k] + 1); jj < (csr_row_ptr[k + 1] - base); jj++)
                 {
-                    int col_idx = csr_col_ind[jj];
+                    int col_idx = csr_col_ind[jj] - base;
                     int jw      = col_idx_mapper[col_idx];
                     if(jw != 0)
                     {
@@ -101,7 +102,7 @@ aoclsparse_status aoclsparse_ilu0_factorization(aoclsparse_int n,
         //reset mapper
         for(mn = j1; mn < j2; mn++)
         {
-            int col_idx             = csr_col_ind[mn];
+            int col_idx             = csr_col_ind[mn] - base;
             col_idx_mapper[col_idx] = 0;
         }
     }
@@ -109,7 +110,8 @@ aoclsparse_status aoclsparse_ilu0_factorization(aoclsparse_int n,
 }
 
 template <typename T>
-aoclsparse_status aoclsparse_ilu_solve(aoclsparse_int n,
+aoclsparse_status aoclsparse_ilu_solve(aoclsparse_int        n,
+                                       aoclsparse_index_base base,
                                        aoclsparse_int *__restrict__ lu_diag_ptr,
                                        T *__restrict__ csr_val,
                                        const aoclsparse_int *__restrict__ row_offsets,
@@ -126,9 +128,9 @@ aoclsparse_status aoclsparse_ilu_solve(aoclsparse_int n,
     for(i = 0; i < n; i++)
     {
         T sum = bv[i];
-        for(k = row_offsets[i]; k < lu_diag_ptr[i]; k++)
+        for(k = (row_offsets[i] - base); k < lu_diag_ptr[i]; k++)
         {
-            aoclsparse_int col_idx = column_indices[k];
+            aoclsparse_int col_idx = column_indices[k] - base;
             T              temp    = 0.0;
             temp                   = csr_val[k] * xv[col_idx];
             sum                    = sum - temp;
@@ -142,9 +144,9 @@ aoclsparse_status aoclsparse_ilu_solve(aoclsparse_int n,
     {
         aoclsparse_int diag_idx = lu_diag_ptr[i];
         T              diag_elem;
-        for(k = lu_diag_ptr[i] + 1; k < row_offsets[i + 1]; k++)
+        for(k = (lu_diag_ptr[i] + 1); k < (row_offsets[i + 1] - base); k++)
         {
-            aoclsparse_int col_idx = column_indices[k];
+            aoclsparse_int col_idx = column_indices[k] - base;
             T              temp    = 0.0;
             temp                   = csr_val[k] * xv[col_idx];
             xv[i]                  = xv[i] - temp;
@@ -168,6 +170,7 @@ aoclsparse_status aoclsparse_ilu0_template(aoclsparse_int             n,
                                            T                         *csr_val,
                                            const aoclsparse_int      *csr_row_ptr,
                                            const aoclsparse_int      *csr_col_ind,
+                                           aoclsparse_index_base      base,
                                            T                        **precond_csr_val,
                                            T                         *x,
                                            const T                   *b)
@@ -180,7 +183,7 @@ aoclsparse_status aoclsparse_ilu0_template(aoclsparse_int             n,
         {
         case aoclsparse_ilu0:
             ret = aoclsparse_ilu0_factorization<T>(
-                n, lu_diag_ptr, col_idx_mapper, csr_val, csr_row_ptr, csr_col_ind);
+                n, base, lu_diag_ptr, col_idx_mapper, csr_val, csr_row_ptr, csr_col_ind);
             *is_ilu0_factorized = true;
             break;
         default:
@@ -191,7 +194,7 @@ aoclsparse_status aoclsparse_ilu0_template(aoclsparse_int             n,
     }
     if(ret == aoclsparse_status_success)
     {
-        aoclsparse_ilu_solve<T>(n, lu_diag_ptr, csr_val, csr_row_ptr, csr_col_ind, x, b);
+        aoclsparse_ilu_solve<T>(n, base, lu_diag_ptr, csr_val, csr_row_ptr, csr_col_ind, x, b);
     }
 
     return ret;

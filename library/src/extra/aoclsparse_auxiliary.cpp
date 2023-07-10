@@ -262,7 +262,6 @@ aoclsparse_status aoclsparse_create_dcsr(aoclsparse_matrix    &mat,
 {
     return aoclsparse_create_csr_t(mat, base, M, N, nnz, row_ptr, col_idx, val);
 }
-
 aoclsparse_status aoclsparse_create_ccsr(aoclsparse_matrix        &mat,
                                          aoclsparse_index_base     base,
                                          aoclsparse_int            M,
@@ -398,7 +397,7 @@ aoclsparse_status aoclsparse_export_mat_csr(aoclsparse_matrix     &csr,
     *csr_row_ptr = csr->csr_mat.csr_row_ptr;
     *csr_col_ind = csr->csr_mat.csr_col_ptr;
     *csr_val     = csr->csr_mat.csr_val;
-    *base        = aoclsparse_index_base_zero;
+    *base        = csr->internal_base_index;
     return aoclsparse_status_success;
 }
 
@@ -653,11 +652,12 @@ void aoclsparse_init_mat(aoclsparse_matrix             A,
     if(!A)
         return;
 
-    A->m            = M;
-    A->n            = N;
-    A->nnz          = nnz;
-    A->base         = base;
-    A->input_format = matrix_type;
+    A->m                   = M;
+    A->n                   = N;
+    A->nnz                 = nnz;
+    A->base                = base;
+    A->internal_base_index = base;
+    A->input_format        = matrix_type;
 }
 
 /********************************************************************************
@@ -702,7 +702,7 @@ aoclsparse_status aoclsparse_create_csr_t(aoclsparse_matrix    &mat,
         {
             break;
         }
-        for(aoclsparse_int j = row_ptr[i]; j < row_ptr[i + 1]; j++)
+        for(aoclsparse_int j = (row_ptr[i] - base); j < (row_ptr[i + 1] - base); j++)
         {
             if((col_idx[j] >= (N + base)) || (col_idx[j] < base))
                 return aoclsparse_status_invalid_index_value;
@@ -769,7 +769,7 @@ aoclsparse_status aoclsparse_create_csc(aoclsparse_matrix    &mat,
         {
             break;
         }
-        for(aoclsparse_int j = col_ptr[i]; j < col_ptr[i + 1]; j++)
+        for(aoclsparse_int j = (col_ptr[i] - base); j < (col_ptr[i + 1] - base); j++)
         {
             if((row_idx[j] >= (M + base)) || (row_idx[j] < base))
                 return aoclsparse_status_invalid_index_value;

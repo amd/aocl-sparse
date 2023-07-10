@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022-2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -60,6 +60,7 @@ int main()
     double b[4] = {1, 4, 4, 4};
     aoclsparse_set_mat_type(descr_a, aoclsparse_matrix_type_triangular);
     aoclsparse_set_mat_fill_mode(descr_a, aoclsparse_fill_mode_lower);
+    aoclsparse_set_mat_index_base(descr_a, base);
     status = aoclsparse_set_sv_hint(A, trans, descr_a, 1);
     if(status != aoclsparse_status_success)
     {

@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022-2023 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -45,12 +45,6 @@ extern "C" aoclsparse_status aoclsparse_silu_smoother(aoclsparse_operation      
     {
         return aoclsparse_status_invalid_pointer;
     }
-    // Check index base
-    if(descr->base != aoclsparse_index_base_zero)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
 
     if(op != aoclsparse_operation_none)
     {
@@ -77,7 +71,15 @@ extern "C" aoclsparse_status aoclsparse_silu_smoother(aoclsparse_operation      
     {
         return aoclsparse_status_invalid_pointer;
     }
-
+    //Check index base
+    if((A->base != aoclsparse_index_base_zero) && (A->base != aoclsparse_index_base_one))
+    {
+        return aoclsparse_status_invalid_value;
+    }
+    if(A->base != descr->base)
+    {
+        return aoclsparse_status_invalid_value;
+    }
     return aoclsparse_ilu_template<float>(A, precond_csr_val, x, b);
 }
 
@@ -98,13 +100,6 @@ extern "C" aoclsparse_status aoclsparse_dilu_smoother(aoclsparse_operation      
         return aoclsparse_status_invalid_pointer;
     }
 
-    // Check index base
-    if(descr->base != aoclsparse_index_base_zero)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-
     if(op != aoclsparse_operation_none)
     {
         // TODO
@@ -130,6 +125,14 @@ extern "C" aoclsparse_status aoclsparse_dilu_smoother(aoclsparse_operation      
     {
         return aoclsparse_status_invalid_pointer;
     }
-
+    //Check index base
+    if((A->base != aoclsparse_index_base_zero) && (A->base != aoclsparse_index_base_one))
+    {
+        return aoclsparse_status_invalid_value;
+    }
+    if(A->base != descr->base)
+    {
+        return aoclsparse_status_invalid_value;
+    }
     return aoclsparse_ilu_template<double>(A, precond_csr_val, x, b);
 }

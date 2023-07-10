@@ -34,6 +34,7 @@ aoclsparse_status aoclsparse_ellmv_template(const float                         
                                             const float                         *ell_val,
                                             const aoclsparse_int                *ell_col_ind,
                                             aoclsparse_int                       ell_width,
+                                            const aoclsparse_mat_descr           descr,
                                             const float                         *x,
                                             const float                          beta,
                                             float                               *y,
@@ -41,7 +42,7 @@ aoclsparse_status aoclsparse_ellmv_template(const float                         
 
 {
     //TODO: Optimisation for float to be done
-
+    aoclsparse_index_base base = descr->base;
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(context->num_threads)
 #endif
@@ -52,7 +53,9 @@ aoclsparse_status aoclsparse_ellmv_template(const float                         
         for(aoclsparse_int p = 0; p < ell_width; ++p)
         {
             aoclsparse_int idx = i * ell_width + p;
-            aoclsparse_int col = ell_col_ind[idx];
+            aoclsparse_int col = ell_col_ind[idx] - base;
+            // Multiply only the valid non-zeroes, column index = -1 for padded
+            // zeroes
             if(col >= 0)
             {
                 result += (ell_val[idx] * x[col]);
@@ -87,6 +90,7 @@ aoclsparse_status aoclsparse_ellmv_template_avx512(const double                 
                                                    const double                   *ell_val,
                                                    const aoclsparse_int           *ell_col_ind,
                                                    aoclsparse_int                  ell_width,
+                                                   const aoclsparse_mat_descr      descr,
                                                    const double                   *x,
                                                    const double                    beta,
                                                    double                         *y,
@@ -96,8 +100,9 @@ aoclsparse_status aoclsparse_ellmv_template_avx512(const double                 
     __m256d vec_y;
     __m512d vec_vals_512, vec_x_512, vec_y_512;
 
-    aoclsparse_int k_iter = ell_width / 8;
-    aoclsparse_int k_rem  = ell_width % 8;
+    aoclsparse_index_base base   = descr->base;
+    aoclsparse_int        k_iter = ell_width / 8;
+    aoclsparse_int        k_rem  = ell_width % 8;
 
     for(aoclsparse_int i = 0; i < m; ++i)
     {
@@ -115,22 +120,21 @@ aoclsparse_status aoclsparse_ellmv_template_avx512(const double                 
         //Loop over in multiple of 4
         for(aoclsparse_int p = 0; p < k_iter; ++p)
         {
-            aoclsparse_int col = *(pell_col_ind + 7);
-            ;
+            aoclsparse_int col = *(pell_col_ind + 7) - base;
             // Multiply only the valid non-zeroes, column index = -1 for padded
             // zeroes
             if(col >= 0)
             {
                 //(ell_val[j] (ell_val[j+1] (ell_val[j+2] (ell_val[j+3]
-                vec_vals_512 = _mm512_loadu_pd((double const *)pell_val);
-                vec_x_512    = _mm512_set_pd(x[*(pell_col_ind + 7)],
-                                          x[*(pell_col_ind + 6)],
-                                          x[*(pell_col_ind + 5)],
-                                          x[*(pell_col_ind + 4)],
-                                          x[*(pell_col_ind + 3)],
-                                          x[*(pell_col_ind + 2)],
-                                          x[*(pell_col_ind + 1)],
-                                          x[*(pell_col_ind)]);
+                vec_vals_512 = _mm512_loadu_pd(pell_val);
+                vec_x_512    = _mm512_set_pd(x[*(pell_col_ind + 7) - base],
+                                          x[*(pell_col_ind + 6) - base],
+                                          x[*(pell_col_ind + 5) - base],
+                                          x[*(pell_col_ind + 4) - base],
+                                          x[*(pell_col_ind + 3) - base],
+                                          x[*(pell_col_ind + 2) - base],
+                                          x[*(pell_col_ind + 1) - base],
+                                          x[*(pell_col_ind)-base]);
 
                 vec_y_512 = _mm512_fmadd_pd(vec_vals_512, vec_x_512, vec_y_512);
 
@@ -174,11 +178,12 @@ aoclsparse_status aoclsparse_ellmv_template_avx512(const double                 
         //Remainder loop
         for(aoclsparse_int p = 0; p < k_rem; ++p)
         {
-            aoclsparse_int col = *pell_col_ind;
+            aoclsparse_int col = *(pell_col_ind)-base;
 
             if(col >= 0)
             {
-                result += (*pell_val++ * x[*pell_col_ind++]);
+                result += (*pell_val++ * x[col]);
+                pell_col_ind++;
             }
             else
             {
@@ -209,14 +214,15 @@ aoclsparse_status aoclsparse_ellmv_template_avx2(const double                   
                                                  const double                        *ell_val,
                                                  const aoclsparse_int                *ell_col_ind,
                                                  aoclsparse_int                       ell_width,
+                                                 const aoclsparse_mat_descr           descr,
                                                  const double                        *x,
                                                  const double                         beta,
                                                  double                              *y,
                                                  [[maybe_unused]] aoclsparse_context *context)
 {
 
-    __m256d vec_vals, vec_x, vec_y;
-
+    __m256d               vec_vals, vec_x, vec_y;
+    aoclsparse_index_base base = descr->base;
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(context->num_threads) private(vec_vals, vec_x, vec_y)
 #endif
@@ -238,18 +244,18 @@ aoclsparse_status aoclsparse_ellmv_template_avx2(const double                   
         // Loop over in multiple of 4
         for(aoclsparse_int p = 0; p < k_iter; ++p)
         {
-            aoclsparse_int col = *(pell_col_ind + 3);
+            aoclsparse_int col = *(pell_col_ind + 3) - base;
             // Multiply only the valid non-zeroes, column index = -1 for padded
             // zeroes
             if(col >= 0)
             {
                 //(ell_val[j] (ell_val[j+1] (ell_val[j+2] (ell_val[j+3]
-                vec_vals = _mm256_loadu_pd((double const *)pell_val);
+                vec_vals = _mm256_loadu_pd(pell_val);
 
-                vec_x = _mm256_set_pd(x[*(pell_col_ind + 3)],
-                                      x[*(pell_col_ind + 2)],
-                                      x[*(pell_col_ind + 1)],
-                                      x[*(pell_col_ind)]);
+                vec_x = _mm256_set_pd(x[*(pell_col_ind + 3) - base],
+                                      x[*(pell_col_ind + 2) - base],
+                                      x[*(pell_col_ind + 1) - base],
+                                      x[*(pell_col_ind)-base]);
 
                 vec_y = _mm256_fmadd_pd(vec_vals, vec_x, vec_y);
 
@@ -293,10 +299,11 @@ aoclsparse_status aoclsparse_ellmv_template_avx2(const double                   
         // Remainder loop
         for(aoclsparse_int p = 0; p < k_rem; ++p)
         {
-            aoclsparse_int col = *pell_col_ind;
+            aoclsparse_int col = *(pell_col_ind)-base;
             if(col >= 0)
             {
-                result += (*pell_val++ * x[*pell_col_ind++]);
+                result += (*pell_val++ * x[col]);
+                pell_col_ind++;
             }
             else
             {
@@ -328,14 +335,15 @@ aoclsparse_status aoclsparse_elltmv_template(const float                        
                                              const float                         *ell_val,
                                              const aoclsparse_int                *ell_col_ind,
                                              aoclsparse_int                       ell_width,
+                                             const aoclsparse_mat_descr           descr,
                                              const float                         *x,
                                              const float                          beta,
                                              float                               *y,
                                              [[maybe_unused]] aoclsparse_context *context)
 {
-    aoclsparse_int k = ell_width;
-    double         rd;
-
+    aoclsparse_int        k = ell_width;
+    double                rd;
+    aoclsparse_index_base base = descr->base;
 #ifdef _OPENMP
     aoclsparse_int chunk = (m / context->num_threads) ? (m / context->num_threads) : 1;
 #pragma omp parallel for num_threads(context->num_threads) schedule(dynamic, chunk) private(rd)
@@ -345,7 +353,7 @@ aoclsparse_status aoclsparse_elltmv_template(const float                        
         rd = 0.0;
         for(aoclsparse_int i = 0; i < k; i++)
         {
-            rd += *(ell_val + i * m + j) * (x[*(ell_col_ind + i * m + j)]);
+            rd += *(ell_val + i * m + j) * (x[*(ell_col_ind + i * m + j) - base]);
         }
 
         if(alpha != static_cast<double>(1))
@@ -371,6 +379,7 @@ aoclsparse_status aoclsparse_elltmv_template_avx512(const double                
                                                     const double                   *ell_val,
                                                     const aoclsparse_int           *ell_col_ind,
                                                     aoclsparse_int                  ell_width,
+                                                    const aoclsparse_mat_descr      descr,
                                                     const double                   *x,
                                                     const double                    beta,
                                                     double                         *y,
@@ -379,11 +388,12 @@ aoclsparse_status aoclsparse_elltmv_template_avx512(const double                
 
     __m512d res, vvals, vx, vy, va, vb, vvals1, vx1, vy1;
 
-    va                 = _mm512_set1_pd(alpha);
-    vb                 = _mm512_set1_pd(beta);
-    res                = _mm512_setzero_pd();
-    aoclsparse_int k   = ell_width;
-    int            blk = 8;
+    va                         = _mm512_set1_pd(alpha);
+    vb                         = _mm512_set1_pd(beta);
+    res                        = _mm512_setzero_pd();
+    aoclsparse_int        k    = ell_width;
+    int                   blk  = 8;
+    aoclsparse_index_base base = descr->base;
     for(aoclsparse_int j = 0; j < m / blk; j++)
     {
         res                 = _mm512_setzero_pd();
@@ -393,15 +403,15 @@ aoclsparse_status aoclsparse_elltmv_template_avx512(const double                
 
             aoclsparse_int off = joff + i * m;
 
-            vvals = _mm512_loadu_pd((double const *)(ell_val + off));
-            vx    = _mm512_set_pd(x[*(ell_col_ind + off + 7)],
-                               x[*(ell_col_ind + off + 6)],
-                               x[*(ell_col_ind + off + 5)],
-                               x[*(ell_col_ind + off + 4)],
-                               x[*(ell_col_ind + off + 3)],
-                               x[*(ell_col_ind + off + 2)],
-                               x[*(ell_col_ind + off + 1)],
-                               x[*(ell_col_ind + off)]);
+            vvals = _mm512_loadu_pd(ell_val + off);
+            vx    = _mm512_set_pd(x[*(ell_col_ind + off + 7) - base],
+                               x[*(ell_col_ind + off + 6) - base],
+                               x[*(ell_col_ind + off + 5) - base],
+                               x[*(ell_col_ind + off + 4) - base],
+                               x[*(ell_col_ind + off + 3) - base],
+                               x[*(ell_col_ind + off + 2) - base],
+                               x[*(ell_col_ind + off + 1) - base],
+                               x[*(ell_col_ind + off) - base]);
             res   = _mm512_fmadd_pd(vvals, vx, res);
         }
 
@@ -422,7 +432,7 @@ aoclsparse_status aoclsparse_elltmv_template_avx512(const double                
         rd = 0.0;
         for(aoclsparse_int i = 0; i < k; i++)
         {
-            rd += *(ell_val + i * m + j) * (x[*(ell_col_ind + i * m + j)]);
+            rd += *(ell_val + i * m + j) * (x[*(ell_col_ind + i * m + j) - base]);
         }
 
         if(alpha != static_cast<double>(1))
@@ -449,6 +459,7 @@ aoclsparse_status aoclsparse_elltmv_template_avx2(const double                  
                                                   const double                        *ell_val,
                                                   const aoclsparse_int                *ell_col_ind,
                                                   aoclsparse_int                       ell_width,
+                                                  const aoclsparse_mat_descr           descr,
                                                   const double                        *x,
                                                   const double                         beta,
                                                   double                              *y,
@@ -461,6 +472,7 @@ aoclsparse_status aoclsparse_elltmv_template_avx2(const double                  
     res                                        = _mm256_setzero_pd();
     aoclsparse_int                  k          = ell_width;
     aoclsparse_int                  blk        = 4;
+    aoclsparse_index_base           base       = descr->base;
     [[maybe_unused]] aoclsparse_int chunk_size = m / (blk * context->num_threads);
 #ifdef _OPENMP
     chunk_size = chunk_size ? chunk_size : 1;
@@ -476,11 +488,11 @@ aoclsparse_status aoclsparse_elltmv_template_avx2(const double                  
 
             aoclsparse_int off = joff + i * m;
 
-            vvals = _mm256_loadu_pd((double const *)(ell_val + off));
-            vx    = _mm256_set_pd(x[*(ell_col_ind + off + 3)],
-                               x[*(ell_col_ind + off + 2)],
-                               x[*(ell_col_ind + off + 1)],
-                               x[*(ell_col_ind + off)]);
+            vvals = _mm256_loadu_pd(ell_val + off);
+            vx    = _mm256_set_pd(x[*(ell_col_ind + off + 3) - base],
+                               x[*(ell_col_ind + off + 2) - base],
+                               x[*(ell_col_ind + off + 1) - base],
+                               x[*(ell_col_ind + off) - base]);
             res   = _mm256_fmadd_pd(vvals, vx, res);
         }
 
@@ -505,7 +517,7 @@ aoclsparse_status aoclsparse_elltmv_template_avx2(const double                  
         rd = 0.0;
         for(aoclsparse_int i = 0; i < k; i++)
         {
-            rd += *(ell_val + i * m + j) * (x[*(ell_col_ind + i * m + j)]);
+            rd += *(ell_val + i * m + j) * (x[*(ell_col_ind + i * m + j) - base]);
         }
 
         if(alpha != static_cast<double>(1))
@@ -538,10 +550,11 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx512(const double             
                                                        const aoclsparse_int           *csr_row_ind,
                                                        const aoclsparse_int           *csr_col_ind,
                                                        aoclsparse_int                 *row_idx_map,
-                                                       aoclsparse_int *csr_row_idx_map,
-                                                       const double   *x,
-                                                       const double    beta,
-                                                       double         *y,
+                                                       aoclsparse_int            *csr_row_idx_map,
+                                                       const aoclsparse_mat_descr descr,
+                                                       const double              *x,
+                                                       const double               beta,
+                                                       double                    *y,
                                                        [[maybe_unused]] aoclsparse_context *context)
 {
 
@@ -553,12 +566,13 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx512(const double             
     if(ell_m == m)
     {
         return aoclsparse_elltmv_template_avx512(
-            alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, x, beta, y, context);
+            alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, beta, y, context);
     }
 
     // Create a temporary copy of the "y" elements corresponding to csr_row_idx_map.
     // This step is required when beta is non-zero
-    double *y_tmp;
+    double               *y_tmp;
+    aoclsparse_index_base base = descr->base;
     if(beta != static_cast<double>(0))
     {
         y_tmp = (double *)malloc(sizeof(double) * (m - ell_m));
@@ -581,15 +595,15 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx512(const double             
         {
             aoclsparse_int off = joff + i * m;
 
-            vvals = _mm512_loadu_pd((double const *)(ell_val + off));
-            vx    = _mm512_set_pd(x[*(ell_col_ind + off + 7)],
-                               x[*(ell_col_ind + off + 6)],
-                               x[*(ell_col_ind + off + 5)],
-                               x[*(ell_col_ind + off + 4)],
-                               x[*(ell_col_ind + off + 3)],
-                               x[*(ell_col_ind + off + 2)],
-                               x[*(ell_col_ind + off + 1)],
-                               x[*(ell_col_ind + off)]);
+            vvals = _mm512_loadu_pd(ell_val + off);
+            vx    = _mm512_set_pd(x[*(ell_col_ind + off + 7) - base],
+                               x[*(ell_col_ind + off + 6) - base],
+                               x[*(ell_col_ind + off + 5) - base],
+                               x[*(ell_col_ind + off + 4) - base],
+                               x[*(ell_col_ind + off + 3) - base],
+                               x[*(ell_col_ind + off + 2) - base],
+                               x[*(ell_col_ind + off + 1) - base],
+                               x[*(ell_col_ind + off) - base]);
             res   = _mm512_fmadd_pd(vvals, vx, res);
         }
         if(alpha != static_cast<double>(1))
@@ -611,7 +625,7 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx512(const double             
         rd = 0.0;
         for(aoclsparse_int i = 0; i < k; i++)
         {
-            rd += *(ell_val + i * m + j) * (x[*(ell_col_ind + i * m + j)]);
+            rd += *(ell_val + i * m + j) * (x[*(ell_col_ind + i * m + j) - base]);
         }
 
         if(alpha != static_cast<double>(1))
@@ -642,30 +656,34 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx512(const double             
     __m256d               vec_y;
     const aoclsparse_int *colIndPtr;
     const double         *matValPtr;
+
     for(aoclsparse_int i = 0; i < m - ell_m; ++i)
     {
-        double result      = 0.0;
-        vec_y_512          = _mm512_setzero_pd();
-        vec_y              = _mm256_setzero_pd();
-        matValPtr          = &csr_val[csr_row_ind[csr_row_idx_map[i]]];
-        colIndPtr          = &csr_col_ind[csr_row_ind[csr_row_idx_map[i]]];
-        aoclsparse_int nnz = csr_row_ind[csr_row_idx_map[i] + 1] - csr_row_ind[csr_row_idx_map[i]];
-        aoclsparse_int k_iter = nnz / 8;
-        aoclsparse_int k_rem  = nnz % 8;
+        double         result    = 0.0;
+        aoclsparse_int offset    = csr_row_idx_map[i];
+        aoclsparse_int row_start = csr_row_ind[offset] - base;
+        aoclsparse_int row_end   = csr_row_ind[offset + 1] - base;
+        vec_y_512                = _mm512_setzero_pd();
+        vec_y                    = _mm256_setzero_pd();
+        matValPtr                = &csr_val[row_start];
+        colIndPtr                = &csr_col_ind[row_start];
+        aoclsparse_int nnz       = row_end - row_start;
+        aoclsparse_int k_iter    = nnz / 8;
+        aoclsparse_int k_rem     = nnz % 8;
         aoclsparse_int j;
         for(j = 0; j < k_iter; ++j)
         {
-            vec_vals = _mm512_loadu_pd((double const *)matValPtr);
+            vec_vals = _mm512_loadu_pd(matValPtr);
 
             // Gather the x vector elements from the column indices
-            vec_x = _mm512_set_pd(x[*(colIndPtr + 7)],
-                                  x[*(colIndPtr + 6)],
-                                  x[*(colIndPtr + 5)],
-                                  x[*(colIndPtr + 4)],
-                                  x[*(colIndPtr + 3)],
-                                  x[*(colIndPtr + 2)],
-                                  x[*(colIndPtr + 1)],
-                                  x[*(colIndPtr)]);
+            vec_x = _mm512_set_pd(x[*(colIndPtr + 7) - base],
+                                  x[*(colIndPtr + 6) - base],
+                                  x[*(colIndPtr + 5) - base],
+                                  x[*(colIndPtr + 4) - base],
+                                  x[*(colIndPtr + 3) - base],
+                                  x[*(colIndPtr + 2) - base],
+                                  x[*(colIndPtr + 1) - base],
+                                  x[*(colIndPtr)-base]);
 
             vec_y_512 = _mm512_fmadd_pd(vec_vals, vec_x, vec_y_512);
             matValPtr += 8;
@@ -700,7 +718,8 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx512(const double             
         // Remainder loop for nnz%8
         for(j = 0; j < k_rem; j++)
         {
-            result += *matValPtr++ * x[*colIndPtr++];
+            result += *matValPtr++ * x[*(colIndPtr)-base];
+            colIndPtr++;
         }
 
         // Perform alpha * A * x
@@ -734,10 +753,11 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx2(const double               
                                                      const aoclsparse_int            *csr_row_ind,
                                                      const aoclsparse_int            *csr_col_ind,
                                                      [[maybe_unused]] aoclsparse_int *row_idx_map,
-                                                     aoclsparse_int *csr_row_idx_map,
-                                                     const double   *x,
-                                                     const double    beta,
-                                                     double         *y,
+                                                     aoclsparse_int            *csr_row_idx_map,
+                                                     const aoclsparse_mat_descr descr,
+                                                     const double              *x,
+                                                     const double               beta,
+                                                     double                    *y,
                                                      [[maybe_unused]] aoclsparse_context *context)
 {
     __m256d res, vvals, vx, vy, va, vb;
@@ -748,7 +768,7 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx2(const double               
     if(ell_m == m)
     {
         return aoclsparse_elltmv_template_avx2(
-            alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, x, beta, y, context);
+            alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, beta, y, context);
     }
 
     // Create a temporary copy of the "y" elements corresponding to csr_row_idx_map.
@@ -769,6 +789,7 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx2(const double               
 
     int                             blk        = 4;
     [[maybe_unused]] aoclsparse_int chunk_size = m / (blk * context->num_threads);
+    aoclsparse_index_base           base       = descr->base;
 #ifdef _OPENMP
     chunk_size = chunk_size ? chunk_size : 1;
 #pragma omp parallel for num_threads(context->num_threads) schedule(dynamic, chunk_size) \
@@ -782,11 +803,11 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx2(const double               
         {
             aoclsparse_int off = joff + i * m;
 
-            vvals = _mm256_loadu_pd((double const *)(ell_val + off));
-            vx    = _mm256_set_pd(x[*(ell_col_ind + off + 3)],
-                               x[*(ell_col_ind + off + 2)],
-                               x[*(ell_col_ind + off + 1)],
-                               x[*(ell_col_ind + off)]);
+            vvals = _mm256_loadu_pd(ell_val + off);
+            vx    = _mm256_set_pd(x[*(ell_col_ind + off + 3) - base],
+                               x[*(ell_col_ind + off + 2) - base],
+                               x[*(ell_col_ind + off + 1) - base],
+                               x[*(ell_col_ind + off) - base]);
             res   = _mm256_fmadd_pd(vvals, vx, res);
         }
         if(alpha != static_cast<double>(1))
@@ -811,7 +832,7 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx2(const double               
         rd = 0.0;
         for(aoclsparse_int i = 0; i < k; i++)
         {
-            rd += *(ell_val + i * m + j) * (x[*(ell_col_ind + i * m + j)]);
+            rd += *(ell_val + i * m + j) * (x[*(ell_col_ind + i * m + j) - base]);
         }
 
         if(alpha != static_cast<double>(1))
@@ -842,27 +863,33 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx2(const double               
         free(y_tmp);
     }
 
+    base = descr->base;
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(context->num_threads) \
     schedule(dynamic, chunk_size) private(vec_vals, vec_x, vec_y, colIndPtr, matValPtr)
 #endif
     for(aoclsparse_int i = 0; i < m - ell_m; ++i)
     {
-        double result      = 0.0;
-        vec_y              = _mm256_setzero_pd();
-        matValPtr          = &csr_val[csr_row_ind[csr_row_idx_map[i]]];
-        colIndPtr          = &csr_col_ind[csr_row_ind[csr_row_idx_map[i]]];
-        aoclsparse_int nnz = csr_row_ind[csr_row_idx_map[i] + 1] - csr_row_ind[csr_row_idx_map[i]];
-        aoclsparse_int k_iter = nnz / 4;
-        aoclsparse_int k_rem  = nnz % 4;
+        double         result    = 0.0;
+        aoclsparse_int offset    = csr_row_idx_map[i];
+        aoclsparse_int row_start = csr_row_ind[offset] - base;
+        aoclsparse_int row_end   = csr_row_ind[offset + 1] - base;
+        vec_y                    = _mm256_setzero_pd();
+        matValPtr                = &csr_val[row_start];
+        colIndPtr                = &csr_col_ind[row_start];
+        aoclsparse_int nnz       = row_end - row_start;
+        aoclsparse_int k_iter    = nnz / 4;
+        aoclsparse_int k_rem     = nnz % 4;
         aoclsparse_int j;
         for(j = 0; j < k_iter; ++j)
         {
-            vec_vals = _mm256_loadu_pd((double const *)matValPtr);
+            vec_vals = _mm256_loadu_pd(matValPtr);
 
             //Gather the x vector elements from the column indices
-            vec_x = _mm256_set_pd(
-                x[*(colIndPtr + 3)], x[*(colIndPtr + 2)], x[*(colIndPtr + 1)], x[*(colIndPtr)]);
+            vec_x = _mm256_set_pd(x[*(colIndPtr + 3) - base],
+                                  x[*(colIndPtr + 2) - base],
+                                  x[*(colIndPtr + 1) - base],
+                                  x[*(colIndPtr)-base]);
 
             vec_y = _mm256_fmadd_pd(vec_vals, vec_x, vec_y);
 
@@ -896,7 +923,8 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx2(const double               
         //Remainder loop for nnz%4
         for(j = 0; j < k_rem; j++)
         {
-            result += *matValPtr++ * x[*colIndPtr++];
+            result += *matValPtr++ * x[*(colIndPtr)-base];
+            colIndPtr++;
         }
 
         // Perform alpha * A * x
@@ -930,10 +958,11 @@ aoclsparse_status aoclsparse_ellthybmv_template([[maybe_unused]] const float    
                                                 [[maybe_unused]] const aoclsparse_int *csr_col_ind,
                                                 [[maybe_unused]] aoclsparse_int       *row_idx_map,
                                                 [[maybe_unused]] aoclsparse_int *csr_row_idx_map,
-                                                [[maybe_unused]] const float    *x,
-                                                [[maybe_unused]] const float     beta,
-                                                [[maybe_unused]] float          *y,
-                                                [[maybe_unused]] aoclsparse_context *context)
+                                                [[maybe_unused]] const aoclsparse_mat_descr descr,
+                                                [[maybe_unused]] const float               *x,
+                                                [[maybe_unused]] const float                beta,
+                                                [[maybe_unused]] float                     *y,
+                                                [[maybe_unused]] aoclsparse_context        *context)
 
 {
 
