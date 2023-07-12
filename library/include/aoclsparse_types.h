@@ -53,14 +53,14 @@ typedef int32_t aoclsparse_int;
 #if !defined(aoclsparse_float_complex)
 typedef struct alignas(2 * sizeof(float))
 {
-    float x, y;
+    float real, imag;
 } aoclsparse_float_complex;
 #endif
 
 #if !defined(aoclsparse_double_complex)
 typedef struct alignas(2 * sizeof(double))
 {
-    double x, y;
+    double real, imag;
 } aoclsparse_double_complex;
 #endif
 
