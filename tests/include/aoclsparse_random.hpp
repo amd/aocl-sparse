@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020-2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,6 +27,7 @@
 
 #include "aoclsparse.h"
 
+#include <complex>
 #include <random>
 #include <type_traits>
 
@@ -101,13 +102,36 @@ public:
 template <typename T>
 inline T random_generator(int a = 1, int b = 10)
 {
-    return std::uniform_int_distribution<int>(a, b)(aoclsparse_rng);
+        return std::uniform_int_distribution<int>(a, b)(aoclsparse_rng);
 }
 /*! \brief generate a random normally distributed number around 0 with stddev 1 */
 template <typename T>
 inline T random_generator_normal()
 {
-    return std::normal_distribution<T>(-1.0, 1.0)(aoclsparse_rng);
+    if constexpr(std::is_same_v<
+                     T,
+                     aoclsparse_double_complex> || std::is_same_v<T, std::complex<double>>)
+    {
+        T temp;
+        temp = {std::normal_distribution<double>(-1.0, 1.0)(aoclsparse_rng),
+                std::normal_distribution<double>(-1.0, 1.0)(aoclsparse_rng)};
+        return temp;
+    }
+    if constexpr(std::is_same_v<T,
+                                aoclsparse_float_complex> || std::is_same_v<T, std::complex<float>>)
+    {
+        T temp;
+        temp = {std::normal_distribution<float>(-1.0, 1.0)(aoclsparse_rng),
+                std::normal_distribution<float>(-1.0, 1.0)(aoclsparse_rng)};
+        return temp;
+    }
+    if constexpr(std::is_same_v<T, double>)
+    {
+        return std::normal_distribution<double>(-1.0, 1.0)(aoclsparse_rng);
+    }
+    if constexpr(std::is_same_v<T, float>)
+    {
+        return std::normal_distribution<float>(-1.0, 1.0)(aoclsparse_rng);
+    }
 }
-
 #endif // AOCLSPARSE_RANDOM_HPP

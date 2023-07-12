@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2022 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2023 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -169,7 +169,6 @@ inline void aoclsparse_init_coo_matrix(std::vector<aoclsparse_int> &row_ind,
                                        size_t                       nnz,
                                        aoclsparse_index_base        base)
 {
-
     if(row_ind.size() != nnz)
     {
         row_ind.resize(nnz);
@@ -268,16 +267,14 @@ inline void aoclsparse_init_coo_matrix(std::vector<aoclsparse_int> &row_ind,
     // Sample random off-diagonal values
     for(size_t i = 0; i < nnz; ++i)
     {
-        if(row_ind[i] == col_ind[i])
-        {
-            // Sample diagonal values
-            val[i] = random_generator<T>();
-        }
+        // Sample diagonal values
+        if constexpr(std::is_same_v<T, std::complex<float>>
+                     || std::is_same_v<T, std::complex<double>>
+                     || std::is_same_v<T, aoclsparse_float_complex>
+                     || std::is_same_v<T, aoclsparse_double_complex>)
+            val[i] = random_generator_normal<T>();
         else
-        {
-            // Samples off-diagonal values
             val[i] = random_generator<T>();
-        }
     }
 }
 
@@ -295,30 +292,47 @@ static inline void
     is >> row >> col >> val;
 }
 
-static inline void read_mtx_value(std::istringstream       &is,
-                                  aoclsparse_int           &row,
-                                  aoclsparse_int           &col,
-                                  aoclsparse_float_complex &val)
+template <typename T>
+static inline void
+    read_mtx_value(std::istringstream &is, aoclsparse_int &row, aoclsparse_int &col, T &val)
 {
-    float real;
-    float imag;
+    if constexpr(std::is_same_v<T, aoclsparse_float_complex>
+                 || std::is_same_v<T, std::complex<float>>)
+    {
+        float real;
+        float imag;
 
-    is >> row >> col >> real >> imag;
+        is >> row >> col >> real >> imag;
 
-    val = {real, imag};
+        val = {real, imag};
+    }
+
+    if constexpr(std::is_same_v<T, aoclsparse_double_complex>
+                 || std::is_same_v<T, std::complex<double>>)
+    {
+        double real;
+        double imag;
+
+        is >> row >> col >> real >> imag;
+
+        val = {real, imag};
+    }
 }
 
-static inline void read_mtx_value(std::istringstream        &is,
-                                  aoclsparse_int            &row,
-                                  aoclsparse_int            &col,
-                                  aoclsparse_double_complex &val)
+static inline void val_init(float *val)
 {
-    double real;
-    double imag;
+    *val = 1;
+}
 
-    is >> row >> col >> real >> imag;
+static inline void val_init(double *val)
+{
+    *val = 1;
+}
 
-    val = {real, imag};
+template <typename T>
+static inline void val_init(T *val, float set = 1)
+{
+    *val = {set, set};
 }
 
 template <typename T>
@@ -401,14 +415,17 @@ inline void aoclsparse_init_coo_mtx(const char                  *filename,
     }
 
     // Check type
-    if(strcmp(type, "general") != 0 && strcmp(type, "symmetric") != 0)
+    if(strcmp(type, "general") != 0 && strcmp(type, "symmetric") != 0
+       && strcmp(type, "hermitian") != 0)
     {
         CHECK_AOCLSPARSE_ERROR(aoclsparse_status_internal_error);
     }
 
     // Symmetric flag
     aoclsparse_int symm = !strcmp(type, "symmetric");
-    issymm              = symm ? true : false;
+    // Hermition flag
+    bool hermitian = !strcmp(type, "hermitian");
+    issymm         = (symm ? true : false) || hermitian;
     // Skip comments
     while(fgets(line, 1024, f))
     {
@@ -431,7 +448,7 @@ inline void aoclsparse_init_coo_mtx(const char                  *filename,
     N    = static_cast<aoclsparse_int>(incol);
     snnz = static_cast<aoclsparse_int>(innz);
 
-    nnz = symm ? snnz * 2 : snnz;
+    nnz = (symm || hermitian) ? snnz * 2 : snnz;
 
     std::vector<aoclsparse_int> unsorted_row(nnz);
     std::vector<aoclsparse_int> unsorted_col(nnz);
@@ -455,7 +472,7 @@ inline void aoclsparse_init_coo_mtx(const char                  *filename,
         if(!strcmp(data, "pattern"))
         {
             ss >> irow >> icol;
-            ival = static_cast<T>(1);
+            val_init(&ival);
         }
         else
         {
@@ -486,6 +503,25 @@ inline void aoclsparse_init_coo_mtx(const char                  *filename,
                 unsorted_col[idx] = irow;
                 unsorted_val[idx] = ival;
                 ++idx;
+            }
+            else if(hermitian && irow != icol)
+            {
+                if constexpr(std::is_same_v<T, aoclsparse_float_complex>
+                             || std::is_same_v<T, aoclsparse_double_complex>)
+                {
+                    unsorted_row[idx] = icol;
+                    unsorted_col[idx] = irow;
+                    unsorted_val[idx] = {ival.real, -(ival.imag)};
+                    ++idx;
+                }
+                if constexpr(std::is_same_v<T, std::complex<float>>
+                             || std::is_same_v<T, std::complex<double>>)
+                {
+                    unsorted_row[idx] = icol;
+                    unsorted_col[idx] = irow;
+                    unsorted_val[idx] = {ival.real(), -(ival.imag())};
+                    ++idx;
+                }
             }
         }
     }
@@ -579,7 +615,6 @@ inline void aoclsparse_init_csr_random(std::vector<aoclsparse_int> &row_ptr,
 
     // Sample COO matrix
     aoclsparse_init_coo_matrix(row_ind, col_ind, val, M, N, nnz, base);
-
     // Convert to CSR
     coo_to_csr(M, nnz, row_ind, row_ptr, base);
 }

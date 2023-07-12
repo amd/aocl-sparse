@@ -33,7 +33,7 @@
  */
 
 #include "aoclsparse.h"
-
+#include <complex>
 // Level2
 #include "testing_blkcsrmv.hpp"
 #include "testing_bsrmv.hpp"
@@ -50,6 +50,10 @@
 
 //Solvers
 #include "testing_ilu.hpp"
+
+// Testing/validating the loading of complex data from an mtx file 
+// and converting it into a CSR representation
+#include "testing_complex_mtx_load.hpp"
 
 int main(int argc, char *argv[])
 {
@@ -164,7 +168,7 @@ int main(int argc, char *argv[])
     args.aoclsparse_get_cmdline_argument("order", order);
     args.aoclsparse_get_cmdline_argument("stage", arg.stage);
 
-    if(precision != 's' && precision != 'd')
+    if(precision != 's' && precision != 'd' && precision != 'c' && precision != 'z')
     {
         std::cerr << "Invalid value for --precision" << std::endl;
         return -1;
@@ -201,6 +205,10 @@ int main(int argc, char *argv[])
     {
         arg.mattypeA = aoclsparse_matrix_type_triangular;
     }
+    else if(mattypeA == 'H')
+    {
+        arg.mattypeA = aoclsparse_matrix_type_hermitian;
+    }
     else
     {
         std::cerr << "Invalid value for --matrixtypeA" << std::endl;
@@ -234,6 +242,17 @@ int main(int argc, char *argv[])
             testing_csrmv<float>(arg);
         else if(precision == 'd')
             testing_csrmv<double>(arg);
+        else if(precision == 'c')
+            testing_csrmv<aoclsparse_float_complex>(arg);
+        else if(precision == 'z')
+            testing_csrmv<aoclsparse_double_complex>(arg);
+    }
+    else if(strcmp(arg.function, "load") == 0)
+    {
+        if(precision == 'c')
+            // FIXME: need to support std:complex<float/double>
+            // FIXME: need to support aoclsparse_double_complex
+            testing_complex_mtx_load<aoclsparse_float_complex>(arg);
     }
     else if(strcmp(arg.function, "blkcsrmv") == 0)
     {

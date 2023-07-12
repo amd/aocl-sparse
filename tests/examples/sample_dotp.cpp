@@ -62,9 +62,9 @@ int main(void)
     std::cout << "Dot product: " << dotp << ", Expected dot product: " << dot_exp << std::endl;
     ok = (dotp == dot_exp);
 #else
-    std::cout << "Dot product: (" << dotp.x << ", " << dotp.y << "), Expected dot product: ("
-              << dot_exp.x << ", " << dot_exp.y << ")" << std::endl;
-    ok = ((dotp.x == dot_exp.x) && (dotp.y == dot_exp.y));
+    std::cout << "Dot product: (" << dotp.real << ", " << dotp.imag << "), Expected dot product: ("
+              << dot_exp.real << ", " << dot_exp.imag << ")" << std::endl;
+    ok = ((dotp.real == dot_exp.real) && (dotp.imag == dot_exp.imag));
 #endif
 
     std::cout << "Invoking aoclsparse_zdotci...\n";
@@ -84,9 +84,9 @@ int main(void)
     return ok ? 0 : 3;
 
 #else
-    std::cout << "Dot product: (" << dotp.x << ", " << dotp.y << "), Expected dot product: ("
-              << dotc_exp.x << ", " << dotc_exp.y << ")" << std::endl;
-    ok &= ((dotp.x == dotc_exp.x) && (dotp.y == dotc_exp.y));
+    std::cout << "Dot product: (" << dotp.real << ", " << dotp.imag << "), Expected dot product: ("
+              << dotc_exp.real << ", " << dotc_exp.imag << ")" << std::endl;
+    ok &= ((dotp.real == dotc_exp.real) && (dotp.imag == dotc_exp.imag));
     return ok ? 0 : 4;
 #endif
 }
