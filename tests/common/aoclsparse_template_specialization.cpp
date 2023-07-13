@@ -801,6 +801,46 @@ aoclsparse_status aoclsparse_dot(const aoclsparse_int nnz,
 }
 
 template <>
+aoclsparse_status aoclsparse_sctr(const aoclsparse_int nnz,
+                                  const double *__restrict__ x,
+                                  const aoclsparse_int *__restrict__ indx,
+                                  double *__restrict__ y,
+                                  [[maybe_unused]] const aoclsparse_int kid)
+{
+    return aoclsparse_dsctr(nnz, x, indx, y);
+}
+
+template <>
+aoclsparse_status aoclsparse_sctr(const aoclsparse_int nnz,
+                                  const float *__restrict__ x,
+                                  const aoclsparse_int *__restrict__ indx,
+                                  float *__restrict__ y,
+                                  [[maybe_unused]] const aoclsparse_int kid)
+{
+    return aoclsparse_ssctr(nnz, x, indx, y);
+}
+
+template <>
+aoclsparse_status aoclsparse_sctr(const aoclsparse_int nnz,
+                                  const std::complex<float> *__restrict__ x,
+                                  const aoclsparse_int *__restrict__ indx,
+                                  std::complex<float> *__restrict__ y,
+                                  [[maybe_unused]] const aoclsparse_int kid)
+{
+    return aoclsparse_csctr(nnz, x, indx, y);
+}
+
+template <>
+aoclsparse_status aoclsparse_sctr(const aoclsparse_int nnz,
+                                  const std::complex<double> *__restrict__ x,
+                                  const aoclsparse_int *__restrict__ indx,
+                                  std::complex<double> *__restrict__ y,
+                                  [[maybe_unused]] const aoclsparse_int kid)
+{
+    return aoclsparse_zsctr(nnz, x, indx, y);
+}
+
+template <>
 aoclsparse_status aoclsparse_create_csr(aoclsparse_matrix    &mat,
                                         aoclsparse_index_base base,
                                         aoclsparse_int        M,
