@@ -1425,6 +1425,116 @@ double aoclsparse_ddoti(const aoclsparse_int  nnz,
 
 /**@}*/
 
+/*! \ingroup level1_module
+ *  \brief Sparse scatter for single and double precision real types.
+ *
+ *  \details
+ *
+ *  \p aoclsparse_ssctr (float) and \p aoclsparse_dsctr (double) scatter the elements of a  
+ *  compressed sparse vector into a dense vecor.
+ * 
+ *  Let \f$y\in R^m\f$ be a dense vector, \f$x\f$ be a compressed sparse vector and \f$I_x\f$ 
+ *  be an indices vector of length at least \p nnz described by \p indx, then
+ *
+ *  \f[
+ *     y_{I_{x_{i}}} = x_i, i\in\{1,\ldots,\text{\ttfamily nnz}\}.
+ *  \f]
+ *
+ *  A possible C implementation for real vectors could be
+ *
+ *  \code{.c}
+ *    for(i = 0; i < nnz; ++i)
+ *    {
+ *       y[indx[i]] = x[i];
+ *    }
+ *  \endcode
+ *
+ *  Note: The contents of the vectors are not checked for NaNs.
+ *
+ *  @param[in]
+ *  nnz       The number of elements in \f$x\f$ and \f$indx\f$.
+ *  @param[in]
+ *  x       Array of \f$nnz\f$ elements to be scattered.
+ *  @param[in]
+ *  indx    Indices of \f$nnz\f$  elements to be scattered. The elements in this vector are
+ *          only checked for non-negativity. The user should make sure that index is less than 
+ *          the size of \p y.
+ *  @param[out]
+ *  y       Array of at least \f$\max(indx_i, i \in \{ 1,\ldots,nnz\})\f$  elements.
+ *
+ *  \retval     aoclsparse_status_success The operation completed successfully.
+ *  \retval     aoclsparse_status_invalid_pointer At least one of the pointers \p x, \p indx, \p y is invalid.
+ *  \retval     aoclsparse_status_invalid_size Indicates that provided \p nnz is less than zero.
+ *  \retval     aoclsparse_status_invalid_index_value At least one of the indices in indx is negative.
+ *
+ */
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_ssctr(const aoclsparse_int  nnz,
+                                   const float          *x,
+                                   const aoclsparse_int *indx,
+                                   float                *y);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_dsctr(const aoclsparse_int  nnz,
+                                   const double         *x,
+                                   const aoclsparse_int *indx,
+                                   double               *y);
+/**@}*/
+
+/*! \ingroup level1_module
+ *  \brief Sparse scatter for single and double precision complex types.
+ *
+ *  \details
+ *
+ *  \p aoclsparse_csctr (complex float) and \p aoclsparse_zsctr (complex double) scatter the elements of a  
+ *  compressed sparse vector into a dense vecor.
+ * 
+ *  Let \f$y\in C^m\f$ be a dense vector, \f$x\f$ be a compressed sparse vector and \f$I_x\f$ 
+ *  be an indices vector of length at least \p nnz described by \p indx, then
+ *
+ *  \f[
+ *     y_{I_{x_{i}}} = x_i, i\in\{1,\ldots,\text{\ttfamily nnz}\}.
+ *  \f]
+ *
+ *  A possible C implementation for complex vectors could be
+ *
+ *  \code{.c}
+ *    for(i = 0; i < nnz; ++i)
+ *    {
+ *       y[indx[i]] = x[i];
+ *    }
+ *  \endcode
+ *
+ *  Note: The contents of the vectors are not checked for NaNs.
+ *
+ *  @param[in]
+ *  nnz       The number of elements in \f$x\f$ and \f$indx\f$.
+ *  @param[in]
+ *  x       Array of \f$nnz\f$ elements to be scattered.
+ *  @param[in]
+ *  indx    Indices of \f$nnz\f$  elements to be scattered. The elements in this vector are
+ *          only checked for non-negativity. The user should make sure that index is less than 
+ *          the size of \p y.
+ *  @param[out]
+ *  y       Array of at least \f$\max(indx_i, i \in \{ 1,\ldots,nnz\})\f$ elements.
+ *
+ *  \retval     aoclsparse_status_success The operation completed successfully.
+ *  \retval     aoclsparse_status_invalid_pointer At least one of the pointers \p x, \p indx, \p y is invalid.
+ *  \retval     aoclsparse_status_invalid_size Indicates that provided \p nnz is less than zero.
+ *  \retval     aoclsparse_status_invalid_index_value At least one of the indices in indx is negative.
+ *
+ */
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status
+    aoclsparse_csctr(const aoclsparse_int nnz, const void *x, const aoclsparse_int *indx, void *y);
+
+DLL_PUBLIC
+aoclsparse_status
+    aoclsparse_zsctr(const aoclsparse_int nnz, const void *x, const aoclsparse_int *indx, void *y);
+/**@}*/
+
 #ifdef __cplusplus
 }
 #endif

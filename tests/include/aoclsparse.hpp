@@ -311,6 +311,13 @@ aoclsparse_status aoclsparse_ilu_smoother(aoclsparse_operation       trans,
                                           T                         *x,
                                           const T                   *b);
 
+template <typename T>
+aoclsparse_status aoclsparse_sctr(const aoclsparse_int nnz,
+                                  const T *__restrict__ x,
+                                  const aoclsparse_int *__restrict__ indx,
+                                  T *__restrict__ y,
+                                  const aoclsparse_int kid);
+
 /*
  * ===========================================================================
  *    Initialize
