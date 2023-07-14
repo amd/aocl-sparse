@@ -529,6 +529,35 @@ aoclsparse_status aoclsparse_create_zcsc(aoclsparse_matrix         &mat,
                                          aoclsparse_double_complex *val);
 /**@}*/
 
+/*! \ingroup aux_module
+ *  \brief Creates a copy of source \p aoclsparse_matrix
+ *
+ *  \details
+ *  \p aoclsparse_copy creates a deep copy of source \p aoclsparse_matrix (hints and optimized data
+ *  are not copied). Matrix should be destroyed using \ref aoclsparse_destroy(). \ref aoclsparse_convert_csr()
+ *  can also be used to create a copy of the source matrix while converting it in CSR format.
+ *
+ *  @param[in]
+ *  src         the source \p aoclsparse_matrix to copy.
+ *  @param[in]
+ *  descr       the source matrix descriptor, this argument is reserved for future
+ *              releases and it will not be referenced.
+ *  @param[out]
+ *  dest        pointer to the newly allocated copied \p aoclsparse_matrix.
+ *
+ *  \retval aoclsparse_status_success           the operation completed successfully.
+ *  \retval aoclsparse_status_invalid_pointer   \p src, \p dest or internal pointers are NULL
+ *                                              or dest points to src.
+ *  \retval aoclsparse_status_memory_error      memory allocation for matrix failed.
+ *  \retval aoclsparse_status_invalid_value     \p src matrix type is invalid.
+ *  \retval aoclsparse_status_wrong_type        \p src matrix data type is invalid.
+ */
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_copy(const aoclsparse_matrix    src,
+                                  const aoclsparse_mat_descr descr,
+                                  aoclsparse_matrix         *dest);
+/**@}*/
 #ifdef __cplusplus
 }
 #endif

@@ -534,6 +534,51 @@ aoclsparse_status aoclsparse_destroy_opt_csr(aoclsparse_matrix A)
     return aoclsparse_status_success;
 }
 
+aoclsparse_status aoclsparse_destroy_csc(aoclsparse_matrix A)
+{
+    if(!A->csc_mat_is_users)
+    {
+        if(A->csc_mat.col_ptr)
+        {
+            delete[] A->csc_mat.col_ptr;
+            A->csc_mat.col_ptr = NULL;
+        }
+        if(A->csc_mat.row_idx)
+        {
+            delete[] A->csc_mat.row_idx;
+            A->csc_mat.row_idx = NULL;
+        }
+        if(A->csc_mat.val)
+        {
+            ::operator delete(A->csc_mat.val);
+            A->csc_mat.val = NULL;
+        }
+    }
+    return aoclsparse_status_success;
+}
+
+aoclsparse_status aoclsparse_destroy_coo(aoclsparse_matrix A)
+{
+    if(!A->coo_mat_is_users)
+    {
+        if(A->coo_mat.col_ind)
+        {
+            delete[] A->coo_mat.col_ind;
+            A->coo_mat.col_ind = NULL;
+        }
+        if(A->coo_mat.row_ind)
+        {
+            delete[] A->coo_mat.row_ind;
+            A->coo_mat.row_ind = NULL;
+        }
+        if(A->coo_mat.val)
+        {
+            ::operator delete(A->coo_mat.val);
+            A->coo_mat.val = NULL;
+        }
+    }
+    return aoclsparse_status_success;
+}
 /********************************************************************************
  * \brief aoclsparse_matrix is a structure holding the sparse matrix A.
  * It must be deallocated using aoclsparse_destroy() by carefully looking for all the
@@ -551,6 +596,8 @@ aoclsparse_status aoclsparse_destroy(aoclsparse_matrix &A)
         aoclsparse_destroy_mv(A);
         aoclsparse_destroy_2m(A);
         aoclsparse_destroy_ilu(&(A->ilu_info));
+        aoclsparse_destroy_csc(A);
+        aoclsparse_destroy_coo(A);
         delete A;
         A = NULL;
     }
@@ -632,6 +679,69 @@ aoclsparse_status aoclsparse_create_zcsc(aoclsparse_matrix         &mat,
 {
     return aoclsparse_create_csc(mat, base, M, N, nnz, col_ptr, row_idx, val);
 }
+
+/********************************************************************************
+ * \brief aoclsparse_copy creates deep copy for sparse matrix
+ ********************************************************************************/
+aoclsparse_status aoclsparse_copy(const aoclsparse_matrix                     src,
+                                  [[maybe_unused]] const aoclsparse_mat_descr descr,
+                                  aoclsparse_matrix                          *dest)
+{
+    aoclsparse_status status = aoclsparse_status_success;
+
+    if(src == nullptr || dest == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    /* descr is not used in this release so doesn't need to be checked
+    if(descr == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }*/
+    if(src == *dest)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    try
+    {
+        *dest = new _aoclsparse_matrix;
+    }
+    catch(std::bad_alloc &)
+    {
+        return aoclsparse_status_memory_error;
+    }
+    aoclsparse_init_mat(*dest, src->base, src->m, src->n, src->nnz, src->input_format);
+    (*dest)->val_type = src->val_type;
+
+    if(src->val_type == aoclsparse_smat)
+    {
+        status = aoclsparse_copy_mat<float>(src, *dest);
+    }
+    else if(src->val_type == aoclsparse_dmat)
+    {
+        status = aoclsparse_copy_mat<double>(src, *dest);
+    }
+    else if(src->val_type == aoclsparse_cmat)
+    {
+        status = aoclsparse_copy_mat<aoclsparse_float_complex>(src, *dest);
+    }
+    else if(src->val_type == aoclsparse_zmat)
+    {
+        status = aoclsparse_copy_mat<aoclsparse_double_complex>(src, *dest);
+    }
+    else
+    {
+        status = aoclsparse_status_wrong_type;
+    }
+    if(status != aoclsparse_status_success)
+    {
+        // free matrix memory
+        aoclsparse_destroy(*dest);
+        *dest = nullptr;
+    }
+    return status;
+}
+
 #ifdef __cplusplus
 }
 #endif
@@ -732,6 +842,7 @@ aoclsparse_status aoclsparse_create_csc(aoclsparse_matrix    &mat,
     mat->csc_mat.col_ptr  = col_ptr;
     mat->csc_mat.row_idx  = row_idx;
     mat->csc_mat.val      = val;
+    mat->csc_mat_is_users = true;
 
     return aoclsparse_status_success;
 }
@@ -779,10 +890,126 @@ aoclsparse_status aoclsparse_create_coo(aoclsparse_matrix          &mat,
         return aoclsparse_status_memory_error;
     }
     aoclsparse_init_mat(mat, base, M, N, nnz, aoclsparse_coo_mat);
-    mat->val_type        = get_data_type<T>();
-    mat->coo_mat.row_ind = row_ind;
-    mat->coo_mat.col_ind = col_ind;
-    mat->coo_mat.val     = val;
+    mat->val_type         = get_data_type<T>();
+    mat->coo_mat.row_ind  = row_ind;
+    mat->coo_mat.col_ind  = col_ind;
+    mat->coo_mat.val      = val;
+    mat->coo_mat_is_users = true;
 
     return aoclsparse_status_success;
+}
+
+/* Copy a csc matrix 
+ * Possible exit: invalid size, invalid pointer, memory alloc
+ */
+template <typename T>
+aoclsparse_status aoclsparse_copy_csc(aoclsparse_int                n,
+                                      aoclsparse_int                nnz,
+                                      const struct _aoclsparse_csc *src,
+                                      struct _aoclsparse_csc       *dest)
+{
+    if((n < 0) || (nnz < 0))
+    {
+        return aoclsparse_status_invalid_size;
+    }
+    if((src == nullptr) || (dest == nullptr))
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    if((src->row_idx == nullptr) || (src->col_ptr == nullptr) || (src->val == nullptr))
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+
+    try
+    {
+        dest->row_idx = new aoclsparse_int[nnz];
+        dest->col_ptr = new aoclsparse_int[n + 1];
+        dest->val     = ::operator new(nnz * sizeof(T));
+    }
+    catch(std::bad_alloc &)
+    {
+        delete[] dest->row_idx;
+        delete[] dest->col_ptr;
+        ::operator delete(dest->val);
+        return aoclsparse_status_memory_error;
+    }
+
+    // copy the matrix
+    memcpy(dest->row_idx, src->row_idx, (nnz * sizeof(aoclsparse_int)));
+    memcpy(dest->col_ptr, src->col_ptr, ((n + 1) * sizeof(aoclsparse_int)));
+    memcpy(dest->val, src->val, (nnz * sizeof(T)));
+
+    return aoclsparse_status_success;
+}
+
+/* Copy a coo matrix 
+ * Possible exit: invalid size, invalid pointer, memory alloc
+ */
+template <typename T>
+aoclsparse_status aoclsparse_copy_coo(aoclsparse_int                nnz,
+                                      const struct _aoclsparse_coo *src,
+                                      struct _aoclsparse_coo       *dest)
+{
+    if(nnz < 0)
+    {
+        return aoclsparse_status_invalid_size;
+    }
+    if((src == nullptr) || (dest == nullptr))
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    if((src->row_ind == nullptr) || (src->col_ind == nullptr) || (src->val == nullptr))
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+
+    try
+    {
+        dest->row_ind = new aoclsparse_int[nnz];
+        dest->col_ind = new aoclsparse_int[nnz];
+        dest->val     = ::operator new(nnz * sizeof(T));
+    }
+    catch(std::bad_alloc &)
+    {
+        delete[] dest->row_ind;
+        delete[] dest->col_ind;
+        ::operator delete(dest->val);
+        return aoclsparse_status_memory_error;
+    }
+
+    // copy the matrix
+    memcpy(dest->row_ind, src->row_ind, (nnz * sizeof(aoclsparse_int)));
+    memcpy(dest->col_ind, src->col_ind, (nnz * sizeof(aoclsparse_int)));
+    memcpy(dest->val, src->val, (nnz * sizeof(T)));
+
+    return aoclsparse_status_success;
+}
+
+template <typename T>
+aoclsparse_status aoclsparse_copy_mat(const aoclsparse_matrix src, aoclsparse_matrix dest)
+{
+    aoclsparse_status status = aoclsparse_status_success;
+    if(src->input_format == aoclsparse_csr_mat)
+    {
+        status = aoclsparse_copy_csr<T>(src->m,
+                                        src->n,
+                                        src->nnz,
+                                        aoclsparse_index_base_zero,
+                                        &(src->csr_mat),
+                                        &(dest->csr_mat));
+    }
+    else if(src->input_format == aoclsparse_csc_mat)
+    {
+        status = aoclsparse_copy_csc<T>(src->n, src->nnz, &(src->csc_mat), &(dest->csc_mat));
+    }
+    else if(src->input_format == aoclsparse_coo_mat)
+    {
+        status = aoclsparse_copy_coo<T>(src->nnz, &(src->coo_mat), &(dest->coo_mat));
+    }
+    else
+    {
+        status = aoclsparse_status_invalid_value;
+    }
+    return status;
 }

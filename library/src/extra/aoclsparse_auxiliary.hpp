@@ -88,6 +88,20 @@ aoclsparse_status aoclsparse_create_coo(aoclsparse_matrix          &mat,
                                         aoclsparse_int             *col_ptr,
                                         T                          *val);
 
+template <typename T>
+aoclsparse_status aoclsparse_copy_csc(aoclsparse_int                n,
+                                      aoclsparse_int                nnz,
+                                      const struct _aoclsparse_csc *src,
+                                      struct _aoclsparse_csc       *dest);
+
+template <typename T>
+aoclsparse_status aoclsparse_copy_coo(aoclsparse_int                nnz,
+                                      const struct _aoclsparse_coo *src,
+                                      struct _aoclsparse_coo       *dest);
+
+template <typename T>
+aoclsparse_status aoclsparse_copy_mat(const aoclsparse_matrix src, aoclsparse_matrix dest);
+
 /********************************************************************************
  * \brief generates a plane rotation with cosine and sine. Slower and more accurate
  * version of BLAS's DROTG performs the Givens Rotation. The mathematical formulas

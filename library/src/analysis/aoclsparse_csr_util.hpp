@@ -91,13 +91,12 @@ aoclsparse_status aoclsparse_copy_csr(aoclsparse_int                  m,
     aoclsparse_int i;
     T             *aval, *aval_s;
 
-    if(m < 0)
+    if((m < 0) || (nnz < 0))
         return aoclsparse_status_invalid_size;
+    if((A == nullptr) || (As == nullptr))
+        return aoclsparse_status_invalid_pointer;
     if(A->csr_col_ptr == nullptr || A->csr_row_ptr == nullptr || A->csr_val == nullptr)
         return aoclsparse_status_invalid_pointer;
-
-    if(m == 0 || nnz == 0)
-        return aoclsparse_status_success;
 
     try
     {
