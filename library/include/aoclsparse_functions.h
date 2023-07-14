@@ -217,7 +217,8 @@ aoclsparse_status
  *  \endcode
  *
  *  \note
- *  Currently, only \p trans = \ref aoclsparse\_operation\_none is supported.
+ *  Currently, \p trans = \ref aoclsparse\_operation\_none and 
+ *  \p trans = \ref aoclsparse\_operation\_transpose is supported. 
  *  Currently, for \ref aoclsparse_matrix_type = \ref aoclsparse_matrix_type_symmetric,
  *  only lower triangular matrices are supported.
  *
@@ -258,7 +259,8 @@ aoclsparse_status
  *              \p csr\_row\_ptr, \p csr\_col\_ind, \p x, \p beta or \p y pointer is
  *              invalid.
  *  \retval     aoclsparse_status_not_implemented
- *              \p trans is not \ref aoclsparse_operation_none or
+ *              \p trans is not \ref aoclsparse_operation_none and 
+ *              \p trans is not \ref aoclsparse_operation_transpose.
  *              \ref aoclsparse_matrix_type is not \ref aoclsparse_matrix_type_general, or
  *              \ref aoclsparse_matrix_type is not \ref aoclsparse_matrix_type_symmetric.
  *

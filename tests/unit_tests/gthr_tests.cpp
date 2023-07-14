@@ -43,11 +43,10 @@ namespace
         indx                              = tindx;
         nnz                               = 3;
         x.resize(nnz);
-        if constexpr(
-            std::is_same_v<
-                T,
-                std::complex<
-                    double>> || std::is_same_v<T, std::complex<float>> || std::is_same_v<T, aoclsparse_double_complex> || std::is_same_v<T, aoclsparse_float_complex>)
+        if constexpr(std::is_same_v<T, std::complex<double>>
+                     || std::is_same_v<T, std::complex<float>>
+                     || std::is_same_v<T, aoclsparse_double_complex>
+                     || std::is_same_v<T, aoclsparse_float_complex>)
         {
 
             y.assign({{1, 1}, {1, 2}, {2, 3}, {3, 4}, {4, 5}, {5, 6}, {6, 7}, {7, 8}, {8, 9}});

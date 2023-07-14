@@ -102,23 +102,22 @@ public:
 template <typename T>
 inline T random_generator(int a = 1, int b = 10)
 {
-        return std::uniform_int_distribution<int>(a, b)(aoclsparse_rng);
+    return std::uniform_int_distribution<int>(a, b)(aoclsparse_rng);
 }
 /*! \brief generate a random normally distributed number around 0 with stddev 1 */
 template <typename T>
 inline T random_generator_normal()
 {
-    if constexpr(std::is_same_v<
-                     T,
-                     aoclsparse_double_complex> || std::is_same_v<T, std::complex<double>>)
+    if constexpr(std::is_same_v<T, aoclsparse_double_complex>
+                 || std::is_same_v<T, std::complex<double>>)
     {
         T temp;
         temp = {std::normal_distribution<double>(-1.0, 1.0)(aoclsparse_rng),
                 std::normal_distribution<double>(-1.0, 1.0)(aoclsparse_rng)};
         return temp;
     }
-    if constexpr(std::is_same_v<T,
-                                aoclsparse_float_complex> || std::is_same_v<T, std::complex<float>>)
+    if constexpr(std::is_same_v<T, aoclsparse_float_complex>
+                 || std::is_same_v<T, std::complex<float>>)
     {
         T temp;
         temp = {std::normal_distribution<float>(-1.0, 1.0)(aoclsparse_rng),

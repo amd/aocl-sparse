@@ -261,5 +261,49 @@ aoclsparse_status
     }
     return aoclsparse_status_success;
 }
-
+/* Transposed SPMV
+ * ============================
+ * Performs SPMV operation on the transposed CSR sparse matrix and 
+ * x-vector. 
+ */
+template <typename T>
+aoclsparse_status aoclsparse_csrmvt(const T        alpha,
+                                    aoclsparse_int m,
+                                    aoclsparse_int n,
+                                    const T *__restrict__ csr_val,
+                                    const aoclsparse_int *__restrict__ csr_col_ind,
+                                    const aoclsparse_int *__restrict__ csr_row_ptr,
+                                    const T *__restrict__ x,
+                                    const T beta,
+                                    T *__restrict__ y)
+{
+    if(beta == static_cast<T>(0))
+    {
+        for(aoclsparse_int i = 0; i < n; i++)
+        {
+            y[i] = 0.0;
+        }
+    }
+    else if(beta != static_cast<T>(1))
+    {
+        for(aoclsparse_int i = 0; i < n; i++)
+        {
+            y[i] = beta * y[i];
+        }
+    }
+    // Iterate over each row of the input matrix and
+    // Perform matrix-vector product for each non-zero of the ith row
+    for(aoclsparse_int i = 0; i < m; i++)
+    {
+        aoclsparse_int row_start = csr_row_ptr[i];
+        aoclsparse_int row_end   = csr_row_ptr[i + 1];
+        T              axi       = alpha * x[i];
+        for(aoclsparse_int j = row_start; j < row_end; j++)
+        {
+            aoclsparse_int col_idx = csr_col_ind[j];
+            y[col_idx] += csr_val[j] * axi;
+        }
+    }
+    return aoclsparse_status_success;
+}
 #endif // AOCLSPARSE_CSRMV_HPP

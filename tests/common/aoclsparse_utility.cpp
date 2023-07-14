@@ -152,7 +152,7 @@ double aoclsparse_clock_helper()
 
 double aoclsparse_clock_helper()
 {
-    double the_time, norm_sec;
+    double          the_time, norm_sec;
     struct timespec ts;
 
     clock_gettime(CLOCK_MONOTONIC, &ts);

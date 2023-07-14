@@ -33,6 +33,7 @@
  */
 
 #include "aoclsparse.h"
+
 #include <complex>
 // Level2
 #include "testing_blkcsrmv.hpp"
@@ -51,7 +52,7 @@
 //Solvers
 #include "testing_ilu.hpp"
 
-// Testing/validating the loading of complex data from an mtx file 
+// Testing/validating the loading of complex data from an mtx file
 // and converting it into a CSR representation
 #include "testing_complex_mtx_load.hpp"
 
