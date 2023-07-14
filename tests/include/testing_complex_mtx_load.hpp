@@ -141,16 +141,16 @@ void testing_complex_mtx_load(const Arguments &arg)
     aoclsparse_matrix_type mat_type = arg.mattypeA;
     bool                   issymm;
 
-    std::vector<aoclsparse_int>           rowid(nnz);
-    std::vector<aoclsparse_int>           colid(nnz);
-    std::vector<T> val(nnz);
-    std::vector<float>                    real_part(nnz);
-    std::vector<float>                    imag_part(nnz);
+    std::vector<aoclsparse_int> rowid(nnz);
+    std::vector<aoclsparse_int> colid(nnz);
+    std::vector<T>              val(nnz);
+    std::vector<float>          real_part(nnz);
+    std::vector<float>          imag_part(nnz);
 
     generate_matrix(mat_type, m, n, nnz, rowid, colid, val, real_part, imag_part);
-    std::vector<aoclsparse_int>           csr_row_ptr;
-    std::vector<aoclsparse_int>           csr_col_ind;
-    std::vector<T> csr_val;
+    std::vector<aoclsparse_int> csr_row_ptr;
+    std::vector<aoclsparse_int> csr_col_ind;
+    std::vector<T>              csr_val;
 
     std::vector<aoclsparse_int> r_csr_row_ptr;
     std::vector<aoclsparse_int> r_csr_col_ind;

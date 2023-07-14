@@ -343,12 +343,6 @@ extern "C" aoclsparse_status aoclsparse_scsrmv(aoclsparse_operation       trans,
         return aoclsparse_status_not_implemented;
     }
 
-    if(trans != aoclsparse_operation_none)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-
     // Check sizes
     if(m < 0)
     {
@@ -390,14 +384,42 @@ extern "C" aoclsparse_status aoclsparse_scsrmv(aoclsparse_operation       trans,
     {
         return aoclsparse_status_invalid_pointer;
     }
-    if(descr->type == aoclsparse_matrix_type_symmetric)
+
+    switch(trans)
     {
-        return aoclsparse_csrmv_symm(*alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
-    }
-    else
-    {
-        return aoclsparse_csrmv_vectorized(
-            *alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y, &context);
+    case aoclsparse_operation_none:
+        if(descr->type == aoclsparse_matrix_type_symmetric)
+        {
+            return aoclsparse_csrmv_symm(*alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
+        }
+        else
+        {
+            return aoclsparse_csrmv_vectorized(
+                *alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y, &context);
+        }
+        break;
+
+    case aoclsparse_operation_transpose:
+        if(descr->type == aoclsparse_matrix_type_symmetric)
+        {
+            //when a matrix is symmetric, then matrix is equal to its transpose, and thus the matrix product
+            //would also be same
+            return aoclsparse_csrmv_symm(*alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
+        }
+        else
+        {
+            return aoclsparse_csrmvt(*alpha, m, n, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
+        }
+        break;
+
+    case aoclsparse_operation_conjugate_transpose:
+        //TODO
+        return aoclsparse_status_not_implemented;
+        break;
+
+    default:
+        return aoclsparse_status_invalid_value;
+        break;
     }
 }
 
@@ -417,7 +439,6 @@ extern "C" aoclsparse_status aoclsparse_dcsrmv(aoclsparse_operation       trans,
     // Read the environment variables to update global variable
     // This function updates the num_threads only once.
     aoclsparse_init_once();
-
     aoclsparse_context context;
     context.num_threads = sparse_global_context.num_threads;
     context.is_avx512   = sparse_global_context.is_avx512;
@@ -443,12 +464,6 @@ extern "C" aoclsparse_status aoclsparse_dcsrmv(aoclsparse_operation       trans,
         return aoclsparse_status_not_implemented;
     }
 
-    if(trans != aoclsparse_operation_none)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-
     // Check sizes
     if(m < 0)
     {
@@ -490,35 +505,63 @@ extern "C" aoclsparse_status aoclsparse_dcsrmv(aoclsparse_operation       trans,
     {
         return aoclsparse_status_invalid_pointer;
     }
-    if(descr->type == aoclsparse_matrix_type_symmetric)
+
+    switch(trans)
     {
-        return aoclsparse_csrmv_symm(*alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
-    }
-    else
-    {
-        // Sparse matrices with Mean nnz = nnz/m <10 have very few non-zeroes in most of the rows
-        // and few unevenly long rows . Loop unrolling and vectorization doesnt optimise performance
-        // for this category of matrices . Hence , we invoke the generic dcsrmv kernel without
-        // vectorization and innerloop unrolling . For the other category of sparse matrices
-        // (Mean nnz > 10) , we continue to invoke the vectorised version of csrmv , since
-        // it improves performance.
-        if(nnz <= (10 * m))
-            return aoclsparse_csrmv_general(
-                *alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y, &context);
+    case aoclsparse_operation_none:
+        if(descr->type == aoclsparse_matrix_type_symmetric)
+        {
+            return aoclsparse_csrmv_symm(*alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
+        }
         else
         {
-#if USE_AVX512
-            if(context.is_avx512)
-                return aoclsparse_csrmv_vectorized_avx512(
-                    *alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
+            // Sparse matrices with Mean nnz = nnz/m <10 have very few non-zeroes in most of the rows
+            // and few unevenly long rows . Loop unrolling and vectorization doesnt optimise performance
+            // for this category of matrices . Hence , we invoke the generic dcsrmv kernel without
+            // vectorization and innerloop unrolling . For the other category of sparse matrices
+            // (Mean nnz > 10) , we continue to invoke the vectorised version of csrmv , since
+            // it improves performance.
+            if(nnz <= (10 * m))
+                return aoclsparse_csrmv_general(
+                    *alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y, &context);
             else
+            {
+#if USE_AVX512
+                if(context.is_avx512)
+                    return aoclsparse_csrmv_vectorized_avx512(
+                        *alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
+                else
+                    return aoclsparse_csrmv_vectorized_avx2(
+                        *alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y, &context);
+#else
                 return aoclsparse_csrmv_vectorized_avx2(
                     *alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y, &context);
-#else
-            return aoclsparse_csrmv_vectorized_avx2(
-                *alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y, &context);
 #endif
+            }
         }
+        break;
+
+    case aoclsparse_operation_transpose:
+        if(descr->type == aoclsparse_matrix_type_symmetric)
+        {
+            //when a matrix is symmetric, then matrix is equal to its transpose, and thus the matrix product
+            //would also be same
+            return aoclsparse_csrmv_symm(*alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
+        }
+        else
+        {
+            return aoclsparse_csrmvt(*alpha, m, n, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
+        }
+        break;
+
+    case aoclsparse_operation_conjugate_transpose:
+        //TODO
+        return aoclsparse_status_not_implemented;
+        break;
+
+    default:
+        return aoclsparse_status_invalid_value;
+        break;
     }
 }
 

@@ -24,7 +24,7 @@
 #include "common_data_utils.h"
 #include "gtest/gtest.h"
 #include "aoclsparse.hpp"
-
+#include "aoclsparse_reference.hpp"
 namespace
 {
 
@@ -181,6 +181,154 @@ namespace
 
         aoclsparse_destroy_mat_descr(descr);
     }
+    template <typename T>
+    void test_csrmv_transpose()
+    {
+        aoclsparse_operation trans;
+        int                  invalid_trans = 114;
+        aoclsparse_int       M = 5, N = 5, NNZ = 8;
+        T                    alpha = 1.0;
+        T                    beta  = 0.0;
+        // Initialise vectors
+        T x[5]      = {1.0, 2.0, 3.0, 4.0, 5.0};
+        T y[5]      = {0.0};
+        T y_gold[5] = {0.0};
+
+        aoclsparse_index_base base = aoclsparse_index_base_zero;
+        aoclsparse_mat_descr  descr;
+        aoclsparse_int        csr_row_ptr[] = {0, 2, 3, 4, 7, 8};
+        aoclsparse_int        csr_col_ind[] = {0, 3, 1, 2, 1, 3, 4, 4};
+        T                     csr_val[]     = {1, 2, 3, 4, 5, 6, 7, 8};
+
+        trans = aoclsparse_operation_transpose;
+
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, base), aoclsparse_status_success);
+
+        EXPECT_EQ(
+            aoclsparse_csrmv<T>(
+                trans, &alpha, M, N, NNZ, csr_val, csr_col_ind, csr_row_ptr, descr, x, &beta, y),
+            aoclsparse_status_success);
+
+        EXPECT_EQ(ref_csrmvt(alpha, M, N, csr_val, csr_col_ind, csr_row_ptr, base, x, beta, y_gold),
+                  aoclsparse_status_success);
+
+        EXPECT_ARR_NEAR(M, y, y_gold, expected_precision<T>());
+
+        // Reset y, y_gold to known values as they will be used with nonzero beta
+        for(aoclsparse_int i = 0; i < N; i++)
+        {
+            y[i]      = 10. + i;
+            y_gold[i] = 10. + i;
+        }
+        alpha = 5.1;
+        beta  = 3.2;
+        EXPECT_EQ(
+            aoclsparse_csrmv<T>(
+                trans, &alpha, M, N, NNZ, csr_val, csr_col_ind, csr_row_ptr, descr, x, &beta, y),
+            aoclsparse_status_success);
+        EXPECT_EQ(ref_csrmvt(alpha, M, N, csr_val, csr_col_ind, csr_row_ptr, base, x, beta, y_gold),
+                  aoclsparse_status_success);
+        EXPECT_ARR_NEAR(M, y, y_gold, expected_precision<T>());
+
+        //Check for invalid transpose value
+        trans = (aoclsparse_operation)invalid_trans;
+        EXPECT_EQ(
+            aoclsparse_csrmv<T>(
+                trans, &alpha, M, N, NNZ, csr_val, csr_col_ind, csr_row_ptr, descr, x, &beta, y),
+            aoclsparse_status_invalid_value);
+
+        EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+    }
+    template <typename T>
+    void test_csrmv_symm_transpose()
+    {
+        aoclsparse_operation trans;
+        aoclsparse_int       M = 8, N = 8, NNZ = 18;
+        T                    alpha = 1.0;
+        T                    beta  = 0.0;
+        // Initialise vectors
+        T x[8]      = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0};
+        T y[8]      = {0.0};
+        T y_gold[8] = {0.0};
+
+        aoclsparse_index_base base = aoclsparse_index_base_zero;
+        aoclsparse_mat_descr  descr;
+        //symmetric matrix with lower triangle
+        aoclsparse_int csr_row_ptr[] = {0, 1, 2, 5, 6, 8, 11, 15, 18};
+        aoclsparse_int csr_col_ind[] = {0, 1, 0, 1, 2, 3, 1, 4, 0, 4, 5, 0, 3, 4, 6, 2, 5, 7};
+        T              csr_val[]     = {19, 10, 1, 8, 11, 13, 2, 11, 2, 1, 9, 7, 9, 5, 12, 5, 5, 9};
+
+        //the same matrix above in tranposed state, so it is upper triangle only
+        aoclsparse_int csc_col_ptr[] = {0, 4, 7, 9, 11, 14, 16, 17, 18};
+        aoclsparse_int csc_row_ind[] = {0, 2, 5, 6, 1, 2, 4, 2, 7, 3, 6, 4, 5, 6, 5, 7, 6, 7};
+        T              csc_val[]
+            = {19., 1., 2., 7., 10., 8., 2., 11., 5., 13., 9., 11., 1., 5., 9., 5., 12., 9.};
+
+        trans = aoclsparse_operation_transpose;
+
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, base), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_symmetric),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_fill_mode(descr, aoclsparse_fill_mode_lower),
+                  aoclsparse_status_success);
+
+        EXPECT_EQ(
+            aoclsparse_csrmv<T>(
+                trans, &alpha, M, N, NNZ, csr_val, csr_col_ind, csr_row_ptr, descr, x, &beta, y),
+            aoclsparse_status_success);
+
+        EXPECT_EQ(ref_csrmvsym(alpha,
+                               M,
+                               csc_val,
+                               csc_row_ind,
+                               csc_col_ptr,
+                               aoclsparse_fill_mode_upper,
+                               aoclsparse_diag_type_non_unit,
+                               base,
+                               x,
+                               beta,
+                               y_gold),
+                  aoclsparse_status_success);
+
+        //output of symmetric-spmv on CSR-Sparse matrix of lower triangle is compared against
+        //symmetric-spmv on CSC-Sparse or transposed CSR matrix of upper triangle, which means
+        //SPMV and SPMV-Transposed on symmetric sparse matrices yield same results
+        EXPECT_ARR_NEAR(M, y, y_gold, expected_precision<T>());
+        EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+    }
+    template <typename T>
+    void test_csrmv_conjugate_transpose()
+    {
+        aoclsparse_operation trans;
+        aoclsparse_int       M = 5, N = 5, NNZ = 8;
+        T                    alpha = 1.0;
+        T                    beta  = 0.0;
+        // Initialise vectors
+        T x[5] = {1.0, 2.0, 3.0, 4.0, 5.0};
+        T y[5] = {0.0};
+
+        aoclsparse_index_base base = aoclsparse_index_base_zero;
+        aoclsparse_mat_descr  descr;
+        aoclsparse_int        csr_row_ptr[] = {1, 3, 4, 5, 8, 9};
+        aoclsparse_int        csr_col_ind[] = {1, 4, 2, 3, 2, 4, 5, 5};
+        T                     csr_val[]     = {1, 2, 3, 4, 5, 6, 7, 8};
+
+        trans = aoclsparse_operation_conjugate_transpose;
+
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, base), aoclsparse_status_success);
+
+        //TODO: conjugate transpose should work without any error, once the support is added.
+        //The expected return code should be aoclsparse_status_success and it should work.
+        EXPECT_EQ(
+            aoclsparse_csrmv<T>(
+                trans, &alpha, M, N, NNZ, csr_val, csr_col_ind, csr_row_ptr, descr, x, &beta, y),
+            aoclsparse_status_not_implemented);
+
+        EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+    }
 
     //TODO add:
     // * positive tests with special predefined matrices
@@ -217,5 +365,28 @@ namespace
     {
         test_csrmv_do_nothing<float>();
     }
-
+    TEST(csrmv, TransposeDouble)
+    {
+        test_csrmv_transpose<double>();
+    }
+    TEST(csrmv, TransposeFloat)
+    {
+        test_csrmv_transpose<float>();
+    }
+    TEST(csrmv, SymmTransposeDouble)
+    {
+        test_csrmv_symm_transpose<double>();
+    }
+    TEST(csrmv, SymmTransposeFloat)
+    {
+        test_csrmv_symm_transpose<float>();
+    }
+    TEST(csrmv, ConjugateTransposeDouble)
+    {
+        test_csrmv_conjugate_transpose<double>();
+    }
+    TEST(csrmv, ConjugateTransposeFloat)
+    {
+        test_csrmv_conjugate_transpose<float>();
+    }
 } // namespace
