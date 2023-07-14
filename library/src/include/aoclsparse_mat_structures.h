@@ -177,6 +177,7 @@ struct _aoclsparse_matrix
     struct _aoclsparse_ell_csr_hyb ell_csr_hyb_mat;
 
     // coo matrix
+    bool                   coo_mat_is_users = false;
     struct _aoclsparse_coo coo_mat;
 
     //ilu members
@@ -202,6 +203,7 @@ struct _aoclsparse_matrix
     aoclsparse_int *iurow = nullptr;
 
     // csc matrix
+    bool                   csc_mat_is_users = false;
     struct _aoclsparse_csc csc_mat;
 };
 
