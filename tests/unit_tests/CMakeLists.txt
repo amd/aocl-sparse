@@ -68,6 +68,7 @@ set(GTEST_EXECUTABLES
     kt_tests
     ktlvl2_tests
     mv_tests
+    csr_convert_tests
     diamv_tests
     bsrmv_tests
     createcsc_tests

@@ -22,7 +22,12 @@
  * ************************************************************************ */
 
 #include "aoclsparse.h"
+#include "aoclsparse_auxiliary.hpp"
 #include "aoclsparse_convert.hpp"
+
+#include <algorithm>
+#include <cmath>
+#include <limits.h>
 
 /*
  *===========================================================================
@@ -327,7 +332,7 @@ aoclsparse_status aoclsparse_csr2ell_width(aoclsparse_int                  m,
     for(aoclsparse_int i = 0; i < m; ++i)
     {
         aoclsparse_int row_nnz = csr_row_ptr[i + 1] - csr_row_ptr[i];
-        *ell_width             = std::max(row_nnz, *ell_width);
+        *ell_width             = (std::max)(row_nnz, *ell_width);
     }
 
     return aoclsparse_status_success;
@@ -825,4 +830,221 @@ extern "C" aoclsparse_status aoclsparse_dcsr2dense(aoclsparse_int             m,
 {
     return aoclsparse_csr2dense_template(
         m, n, descr, csr_val, csr_row_ptr, csr_col_ind, A, ld, order);
+}
+
+template <typename T>
+aoclsparse_status aoclsparse_convert_csr_t(const aoclsparse_matrix    src_mat,
+                                           const aoclsparse_operation op,
+                                           aoclsparse_matrix         *dest_mat)
+{
+    if(src_mat == nullptr || dest_mat == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+
+    aoclsparse_status status  = aoclsparse_status_success;
+    aoclsparse_int   *row_ptr = nullptr, *col_ind = nullptr;
+    T                *val        = nullptr, *src_val;
+    void             *temp_alloc = nullptr;
+    aoclsparse_int    m_dest, n_dest;
+
+    if(op == aoclsparse_operation_none)
+    {
+        m_dest = src_mat->m;
+        n_dest = src_mat->n;
+    }
+    else
+    {
+        m_dest = src_mat->n;
+        n_dest = src_mat->m;
+    }
+
+    try
+    {
+        row_ptr    = new aoclsparse_int[m_dest + 1];
+        col_ind    = new aoclsparse_int[src_mat->nnz];
+        temp_alloc = ::operator new(src_mat->nnz * sizeof(T));
+        val        = reinterpret_cast<T *>(temp_alloc);
+        *dest_mat  = new _aoclsparse_matrix;
+    }
+    catch(std::bad_alloc &)
+    {
+        delete[] row_ptr;
+        delete[] col_ind;
+        ::operator delete(val);
+        delete *dest_mat;
+        *dest_mat = nullptr;
+        return aoclsparse_status_memory_error;
+    }
+
+    switch(src_mat->input_format)
+    {
+    case aoclsparse_coo_mat:
+
+        src_val = reinterpret_cast<T *>(src_mat->coo_mat.val);
+        if(op == aoclsparse_operation_none)
+        {
+            status = aoclsparse_coo2csr_template(src_mat->m,
+                                                 src_mat->n,
+                                                 src_mat->nnz,
+                                                 src_mat->base,
+                                                 src_mat->coo_mat.row_ind,
+                                                 src_mat->coo_mat.col_ind,
+                                                 src_val,
+                                                 row_ptr,
+                                                 col_ind,
+                                                 val);
+        }
+        else
+        {
+            status = aoclsparse_coo2csr_template(src_mat->n,
+                                                 src_mat->m,
+                                                 src_mat->nnz,
+                                                 src_mat->base,
+                                                 src_mat->coo_mat.col_ind,
+                                                 src_mat->coo_mat.row_ind,
+                                                 src_val,
+                                                 row_ptr,
+                                                 col_ind,
+                                                 val);
+        }
+        break;
+
+    case aoclsparse_csr_mat:
+
+        src_val = reinterpret_cast<T *>(src_mat->csr_mat.csr_val);
+        if(op == aoclsparse_operation_none)
+        {
+            memcpy(
+                row_ptr, src_mat->csr_mat.csr_row_ptr, (src_mat->m + 1) * sizeof(aoclsparse_int));
+            memcpy(col_ind, src_mat->csr_mat.csr_col_ptr, src_mat->nnz * sizeof(aoclsparse_int));
+            memcpy(val, src_val, src_mat->nnz * sizeof(T));
+        }
+        else
+        {
+            _aoclsparse_mat_descr descr;
+            descr.base = src_mat->base;
+            status     = aoclsparse_csr2csc_template(src_mat->m,
+                                                 src_mat->n,
+                                                 src_mat->nnz,
+                                                 &descr,
+                                                 src_mat->base,
+                                                 src_mat->csr_mat.csr_row_ptr,
+                                                 src_mat->csr_mat.csr_col_ptr,
+                                                 src_val,
+                                                 col_ind,
+                                                 row_ptr,
+                                                 val);
+        }
+        break;
+
+    case aoclsparse_csc_mat:
+
+        src_val = reinterpret_cast<T *>(src_mat->csc_mat.val);
+        if(op == aoclsparse_operation_none)
+        {
+            _aoclsparse_mat_descr descr;
+            descr.base = src_mat->base;
+            status     = aoclsparse_csr2csc_template(src_mat->n,
+                                                 src_mat->m,
+                                                 src_mat->nnz,
+                                                 &descr,
+                                                 src_mat->base,
+                                                 src_mat->csc_mat.col_ptr,
+                                                 src_mat->csc_mat.row_idx,
+                                                 src_val,
+                                                 col_ind,
+                                                 row_ptr,
+                                                 val);
+        }
+        else
+        {
+            memcpy(row_ptr, src_mat->csc_mat.col_ptr, (src_mat->n + 1) * sizeof(aoclsparse_int));
+            memcpy(col_ind, src_mat->csc_mat.row_idx, src_mat->nnz * sizeof(aoclsparse_int));
+            memcpy(val, src_val, src_mat->nnz * sizeof(T));
+        }
+        break;
+
+    default:
+        status = aoclsparse_status_not_implemented;
+        break;
+    }
+    if(status != aoclsparse_status_success)
+    {
+        delete[] row_ptr;
+        delete[] col_ind;
+        ::operator delete(val);
+        delete *dest_mat;
+        *dest_mat = nullptr;
+        return status;
+    }
+
+    if constexpr(std::is_same_v<T, std::complex<float>> || std::is_same_v<T, std::complex<double>>)
+    {
+        if(op == aoclsparse_operation_conjugate_transpose)
+        {
+            // transpose is done, now conjugate
+            for(aoclsparse_int i = 0; i < src_mat->nnz; i++)
+                val[i] = std::conj(val[i]);
+        }
+    }
+
+    aoclsparse_init_mat(*dest_mat, src_mat->base, m_dest, n_dest, src_mat->nnz, aoclsparse_csr_mat);
+    (*dest_mat)->csr_mat.csr_row_ptr = row_ptr;
+    (*dest_mat)->csr_mat.csr_col_ptr = col_ind;
+    (*dest_mat)->csr_mat.csr_val     = val;
+    (*dest_mat)->val_type            = get_data_type<T>();
+    (*dest_mat)->csr_mat_is_users    = false;
+    return status;
+}
+
+aoclsparse_status aoclsparse_convert_csr(const aoclsparse_matrix    src_mat,
+                                         const aoclsparse_operation op,
+                                         aoclsparse_matrix         *dest_mat)
+{
+
+    if(src_mat == nullptr || dest_mat == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+
+    *dest_mat = nullptr;
+
+    aoclsparse_status status;
+
+    switch(src_mat->val_type)
+    {
+    case aoclsparse_smat:
+    {
+
+        if((status = aoclsparse_convert_csr_t<float>(src_mat, op, dest_mat))
+           != aoclsparse_status_success)
+            return status;
+    }
+    break;
+    case aoclsparse_dmat:
+    {
+        if((status = aoclsparse_convert_csr_t<double>(src_mat, op, dest_mat))
+           != aoclsparse_status_success)
+            return status;
+    }
+    break;
+    case aoclsparse_cmat:
+    {
+        if((status = aoclsparse_convert_csr_t<std::complex<float>>(src_mat, op, dest_mat))
+           != aoclsparse_status_success)
+            return status;
+    }
+    break;
+    case aoclsparse_zmat:
+    {
+        if((status = aoclsparse_convert_csr_t<std::complex<double>>(src_mat, op, dest_mat))
+           != aoclsparse_status_success)
+            return status;
+    }
+    break;
+    default:
+        return aoclsparse_status_invalid_value;
+    }
+    return aoclsparse_status_success;
 }

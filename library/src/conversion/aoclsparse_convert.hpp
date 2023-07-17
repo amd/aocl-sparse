@@ -564,6 +564,8 @@ aoclsparse_status aoclsparse_csr2csc_template(aoclsparse_int             m,
     // Quick return if possible
     if(m == 0 || n == 0 || nnz == 0)
     {
+        for(aoclsparse_int i = 0; i < n + 1; i++)
+            csc_col_ptr[i] = baseCSC;
         return aoclsparse_status_success;
     }
 
@@ -753,4 +755,176 @@ aoclsparse_status aoclsparse_csr2dense_template(aoclsparse_int             m,
 
     return aoclsparse_status_success;
 }
+
+/**
+ *  this function will convert coo format to csr format with same base as input matrix 
+ *  NOTE: all the input should from the same matrix. 
+ *  Validation of values present in \p coo_row_ind and \p coo_col_ind is not done prior to use
+*/
+template <typename T>
+aoclsparse_status aoclsparse_coo2csr_template(aoclsparse_int        M,
+                                              aoclsparse_int        N,
+                                              aoclsparse_int        nnz,
+                                              aoclsparse_index_base base,
+                                              const aoclsparse_int *coo_row_ind,
+                                              const aoclsparse_int *coo_col_ind,
+                                              const T              *coo_val,
+                                              aoclsparse_int       *csr_row_ptr,
+                                              aoclsparse_int       *csr_col_ind,
+                                              T                    *csr_val)
+{
+    // Check sizes
+    if(M < 0 || N < 0 || nnz < 0)
+    {
+        return aoclsparse_status_invalid_size;
+    }
+
+    // Check pointer arguments
+    if(coo_val == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    else if(coo_row_ind == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    else if(coo_col_ind == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    else if(csr_val == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    else if(csr_row_ptr == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    else if(csr_col_ind == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+
+    // Quick return if possible
+    if(M == 0 || N == 0 || nnz == 0)
+    {
+        for(aoclsparse_int i = 0; i < M + 1; i++)
+            csr_row_ptr[i] = base;
+        return aoclsparse_status_success;
+    }
+
+    // csr_row_ptr comes from the user; initialize it to 0
+    for(aoclsparse_int i = 0; i < M + 1; ++i)
+    {
+        csr_row_ptr[i] = 0;
+    }
+
+    // Determine nnz per row
+    for(aoclsparse_int i = 0; i < nnz; ++i)
+    {
+        ++csr_row_ptr[coo_row_ind[i] + 1 - base];
+    }
+
+    // Scan
+    for(aoclsparse_int i = 0; i < M; ++i)
+    {
+        csr_row_ptr[i + 1] += csr_row_ptr[i];
+    }
+
+    // Fill col indices and values
+    for(aoclsparse_int i = 0; i < nnz; ++i)
+    {
+        aoclsparse_int row_idx = coo_row_ind[i] - base;
+        aoclsparse_int idx     = csr_row_ptr[row_idx];
+        csr_col_ind[idx]       = coo_col_ind[i];
+        csr_val[idx]           = coo_val[i];
+        ++csr_row_ptr[row_idx];
+    }
+
+    // Shift row pointer array
+    for(aoclsparse_int i = M; i > 0; --i)
+    {
+        csr_row_ptr[i] = csr_row_ptr[i - 1] + base;
+    }
+
+    csr_row_ptr[0] = base;
+
+    return aoclsparse_status_success;
+}
+
+// aoclsparse_ell2csr_template has been test and does not support 1 base indexing. Currently we don't have need for this
+#if 0
+template <typename T>
+aoclsparse_status aoclsparse_ell2csr_template(aoclsparse_int        M,
+                                              aoclsparse_int        N,
+                                              aoclsparse_int        nnz,
+                                              const aoclsparse_int *ell_col_ind,
+                                              const aoclsparse_int  ell_width,
+                                              const T              *ell_val,
+                                              aoclsparse_int       *csr_row_ptr,
+                                              aoclsparse_int       *csr_col_ind,
+                                              T                    *csr_val)
+{
+    // Check sizes
+    if(M < 0 || N < 0 || nnz < 0 || ell_width < 0)
+    {
+        return aoclsparse_status_invalid_size;
+    }
+
+    // Quick return if possible
+    if(M == 0 || N == 0 || nnz == 0 || ell_width == 0)
+    {
+        return aoclsparse_status_success;
+    }
+
+    // Check pointer arguments
+    if(ell_val == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    else if(ell_col_ind == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    else if(csr_val == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    else if(csr_row_ptr == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    else if(csr_col_ind == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+
+    aoclsparse_index_base base = aoclsparse_index_base_zero;
+
+    // csc_col_ptr comes from the user; initialize it to 0
+    for(aoclsparse_int i = 0; i < M + 1; ++i)
+    {
+        csr_row_ptr[i] = 0;
+    }
+
+    // Fill col indices and values
+    int col_ind = 0;
+    for(aoclsparse_int i = 0; i < M; ++i)
+    {
+        int row_ind = i * ell_width;
+        for(aoclsparse_int j = 0; j < ell_width; j++)
+        {
+            if(ell_col_ind[row_ind + j] < base)
+                break;
+            csr_col_ind[col_ind] = ell_col_ind[row_ind + j];
+            csr_val[col_ind]     = ell_val[row_ind + j];
+            col_ind++;
+        }
+        csr_row_ptr[i + 1] = col_ind;
+    }
+
+    return aoclsparse_status_success;
+}
+#endif
+
 #endif // AOCLSPARSE_CONVERT_HPP

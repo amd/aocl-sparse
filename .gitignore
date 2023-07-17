@@ -73,3 +73,5 @@ temp/
 a.out
 *.exe
 *.app
+
+CMakeFiles

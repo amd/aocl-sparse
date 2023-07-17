@@ -265,4 +265,21 @@ struct get_data_type<aoclsparse_double_complex>
         return aoclsparse_zmat;
     }
 };
+
+template <>
+struct get_data_type<std::complex<float>>
+{
+    constexpr operator aoclsparse_matrix_data_type() const
+    {
+        return aoclsparse_cmat;
+    }
+};
+template <>
+struct get_data_type<std::complex<double>>
+{
+    constexpr operator aoclsparse_matrix_data_type() const
+    {
+        return aoclsparse_zmat;
+    }
+};
 #endif
