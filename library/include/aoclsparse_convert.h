@@ -617,6 +617,7 @@ aoclsparse_int aoclsparse_opt_blksize(aoclsparse_int        m,
 *
 *  \retval    aoclsparse_status_success          the operation completed successfully
 *  \retval    aoclsparse_status_invalid_size     matrix dimension are invalid
+*  \retval    aoclsparse_status_invalid_value    \p src_mat contains invalid value type
 *  \retval    aoclsparse_status_invalid_pointer  pointers in \p src_mat or \p dest_mat are invalid
 *  \retval    aoclsparse_status_not_implemented  conversion of the src_mat format given is not implemented
 *  \retval    aoclsparse_status_memory_error     memory allocation for destination matrix failed
