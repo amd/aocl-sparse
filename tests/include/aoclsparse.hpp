@@ -395,4 +395,5 @@ aoclsparse_status aoclsparse_export_csc(const aoclsparse_matrix mat,
                                         aoclsparse_int        **col_ptr,
                                         aoclsparse_int        **row_idx,
                                         T                     **val);
+
 #endif /*AOCLSPARSE_HPP*/

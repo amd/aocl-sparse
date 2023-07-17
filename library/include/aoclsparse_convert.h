@@ -551,6 +551,30 @@ aoclsparse_int aoclsparse_opt_blksize(aoclsparse_int        m,
                                       const aoclsparse_int *csr_col_ind,
                                       aoclsparse_int       *total_blks);
 
+/*! \ingroup conv_module
+*  \brief Convert internal representation of matrix into a sparse CSR matrix
+*
+*  \details
+*  \p aoclsparse_convert_csr converts any supported matrix format into a CSR format matrix and returns it as a new \p aoclsparse_matrix.
+*  The new matrix can also be transposed or conjugate transposed during the conversion. It should be freed by calling \p aoclsparse_destroy.
+*  The source matrix needs to be initalized using <tt>aoclsparse_create_(d/s/c/z)(coo/csc/csr)</tt> and it is not modified here.
+*
+*  @param[in] src_mat           source matrix used for conversion.
+*  @param[in] op                operation to be performed on destination matrix
+*  @param[out] dest_mat         destination matrix output in CSR Format of the src_mat. 
+*
+*  \retval    aoclsparse_status_success          the operation completed successfully
+*  \retval    aoclsparse_status_invalid_size     matrix dimension are invalid
+*  \retval    aoclsparse_status_invalid_pointer  pointers in \p src_mat or \p dest_mat are invalid
+*  \retval    aoclsparse_status_not_implemented  conversion of the src_mat format given is not implemented
+*  \retval    aoclsparse_status_memory_error     memory allocation for destination matrix failed
+*
+*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_convert_csr(const aoclsparse_matrix    src_mat,
+                                         const aoclsparse_operation op,
+                                         aoclsparse_matrix         *dest_mat);
+
 #ifdef __cplusplus
 }
 #endif

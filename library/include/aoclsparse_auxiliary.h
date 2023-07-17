@@ -319,27 +319,13 @@ aoclsparse_status aoclsparse_create_zcsr(aoclsparse_matrix         &mat,
 
 /**@}*/
 
-DLL_PUBLIC
-aoclsparse_status aoclsparse_create_ell(aoclsparse_matrix mat,
-                                        aoclsparse_int    ell_width,
-                                        aoclsparse_int   *ell_cold_ind,
-                                        void             *ell_val);
-
-DLL_PUBLIC
-aoclsparse_status aoclsparse_create_ell_csr_hyb(aoclsparse_matrix mat,
-                                                aoclsparse_int    ell_width,
-                                                aoclsparse_int    ell_m,
-                                                aoclsparse_int   *ell_cold_ind,
-                                                aoclsparse_int   *csr_row_id_map,
-                                                void             *ell_val);
-
 /*! \ingroup aux_module
  *  \brief Creates a new \p aoclsparse_matrix based on COO (Co-ordinate format).
  *
  *  \details
  *  \p aoclsparse_create_<tt>(s/d/c/z)coo</tt> creates \p aoclsparse_matrix and initializes it with
  *  input parameters passed. Array data must not be modified by the user while matrix is alive as 
- *  the pointers are copied, not the data. Matrix should be destroyed at the end using aoclsparse_destroy().
+ *  the pointers are copied, not the data. Matrix should be destroyed at the end using \p aoclsparse_destroy.
  *  
  *  @param[inout] mat       the pointer to the COO sparse matrix.
  *  @param[in]    base      \ref aoclsparse_index_base_zero or \ref aoclsparse_index_base_one 
@@ -351,11 +337,11 @@ aoclsparse_status aoclsparse_create_ell_csr_hyb(aoclsparse_matrix mat,
  *  @param[in]    col_ind   array of \p nnz elements that point to the column of the element in co-ordinate Format.
  *  @param[in]    val       array of \p nnz elements of the sparse COO matrix.
  *
- *  \retval aoclsparse_status_success the operation completed successfully.
- *  \retval aoclsparse_status_invalid_pointer pointer given to API is invalid or nullptr.
- *  \retval aoclsparse_status_invalid_size \p coo dimension of matrix or non-zero elements is invalid.
- *  \retval aoclsparse_status_invalid_index_value index given for \p coo is out of matrix bounds depending on base given
- *  \retval aoclsparse_status_memory_error         memory allocation for matrix failed.
+ *  \retval aoclsparse_status_success               the operation completed successfully.
+ *  \retval aoclsparse_status_invalid_pointer       pointer given to API is invalid or nullptr.
+ *  \retval aoclsparse_status_invalid_size          \p coo dimension of matrix or non-zero elements is invalid.
+ *  \retval aoclsparse_status_invalid_index_value   index given for \p coo is out of matrix bounds depending on base given
+ *  \retval aoclsparse_status_memory_error          memory allocation for matrix failed.
  */
 /**@{*/
 DLL_PUBLIC
