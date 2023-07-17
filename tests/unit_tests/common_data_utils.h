@@ -367,6 +367,15 @@ std::enable_if_t<
     return (is_matching(std::real(ref), std::real(computed), rel_error, abs_error))
            && (is_matching(std::imag(ref), std::imag(computed), rel_error, abs_error));
 }
+template <typename T>
+std::enable_if_t<((std::is_same_v<T, aoclsparse_double_complex>)
+                  || (std::is_same_v<T, aoclsparse_float_complex>)),
+                 bool>
+    is_matching(T ref, T computed, tolerance_t<T> rel_error, tolerance_t<T> abs_error)
+{
+    return (is_matching(ref.real, computed.real, rel_error, abs_error))
+           && (is_matching(ref.imag, computed.imag, rel_error, abs_error));
+}
 
 #define EXPECT_MATCH(T, ref, computed, rel_error, abs_error) \
     EXPECT_PRED4(is_matching<T>, ref, computed, rel_error, abs_error)

@@ -1093,6 +1093,7 @@ aoclsparse_status aoclsparse_convert_csr_t(const aoclsparse_matrix    src_mat,
         }
     }
 
+    // creation of destination matrix depending on type of operation
     aoclsparse_init_mat(*dest_mat, src_mat->base, m_dest, n_dest, src_mat->nnz, aoclsparse_csr_mat);
     (*dest_mat)->csr_mat.csr_row_ptr = row_ptr;
     (*dest_mat)->csr_mat.csr_col_ptr = col_ind;
