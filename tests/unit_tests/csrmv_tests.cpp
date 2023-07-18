@@ -202,6 +202,12 @@ namespace
 
         trans = aoclsparse_operation_transpose;
 
+        //assign y[] with NaN value to verify tests with zero beta
+        for(int i = 0; i < M; i++)
+        {
+            y[i] = std::numeric_limits<double>::quiet_NaN();
+        }
+
         ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_set_mat_index_base(descr, base), aoclsparse_status_success);
 
@@ -267,6 +273,12 @@ namespace
 
         trans = aoclsparse_operation_transpose;
 
+        //assign y[] with NaN value to verify tests with zero beta
+        for(int i = 0; i < M; i++)
+        {
+            y[i] = std::numeric_limits<double>::quiet_NaN();
+        }
+
         ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_set_mat_index_base(descr, base), aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_symmetric),
@@ -311,8 +323,8 @@ namespace
 
         aoclsparse_index_base base = aoclsparse_index_base_zero;
         aoclsparse_mat_descr  descr;
-        aoclsparse_int        csr_row_ptr[] = {1, 3, 4, 5, 8, 9};
-        aoclsparse_int        csr_col_ind[] = {1, 4, 2, 3, 2, 4, 5, 5};
+        aoclsparse_int        csr_row_ptr[] = {0, 2, 3, 4, 7, 8};
+        aoclsparse_int        csr_col_ind[] = {0, 3, 1, 2, 1, 3, 4, 4};
         T                     csr_val[]     = {1, 2, 3, 4, 5, 6, 7, 8};
 
         trans = aoclsparse_operation_conjugate_transpose;
