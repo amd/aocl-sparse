@@ -81,6 +81,19 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
     if((descr->base != aoclsparse_index_base_zero) || (A->base != aoclsparse_index_base_zero))
         return aoclsparse_status_not_implemented;
 
+    // Check transpose
+    if((op != aoclsparse_operation_none) && (op != aoclsparse_operation_transpose))
+    {
+        if(op == aoclsparse_operation_conjugate_transpose)
+        {
+            return aoclsparse_status_not_implemented;
+        }
+        else
+        {
+            return aoclsparse_status_invalid_value;
+        }
+    }
+
     // Make sure we have the right type before casting
     if(!((A->val_type == aoclsparse_dmat && std::is_same_v<T, double>)
          || (A->val_type == aoclsparse_smat && std::is_same_v<T, float>)))
@@ -93,12 +106,6 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
 
     if(descr->type == aoclsparse_matrix_type_symmetric && A->m != A->n)
         return aoclsparse_status_invalid_value;
-
-    if(op != aoclsparse_operation_none)
-    {
-        // TODO  for symmetric we could allow it ;-)
-        return aoclsparse_status_not_implemented;
-    }
 
     // Quick return if possible
     if(A->m == 0 || A->n == 0)
@@ -119,6 +126,8 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
     // This function updates the num_threads only once.
     aoclsparse_init_once();
 
+    aoclsparse_int    *crstart = nullptr;
+    aoclsparse_int    *crend   = nullptr;
     aoclsparse_context context;
     context.num_threads = sparse_global_context.num_threads;
 
@@ -142,44 +151,10 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
                                                    y,
                                                    &context);*/
     }
-    else if(descr->type == aoclsparse_matrix_type_triangular
-            && descr->fill_mode == aoclsparse_fill_mode_lower)
-    {
-        // y = alpha L * x + beta y
-        return aoclsparse_csrmv_vectorized_avx2ptr(alpha,
-                                                   A->m,
-                                                   A->n,
-                                                   A->nnz,
-                                                   (T *)A->opt_csr_mat.csr_val,
-                                                   A->opt_csr_mat.csr_col_ptr,
-                                                   A->opt_csr_mat.csr_row_ptr,
-                                                   A->iurow,
-                                                   x,
-                                                   beta,
-                                                   y,
-                                                   &context);
-    }
-    else if(descr->type == aoclsparse_matrix_type_triangular
-            && descr->fill_mode == aoclsparse_fill_mode_upper)
-    {
-        // y = alpha U * x + beta y
-        return aoclsparse_csrmv_vectorized_avx2ptr(alpha,
-                                                   A->m,
-                                                   A->n,
-                                                   A->nnz,
-                                                   (T *)A->opt_csr_mat.csr_val,
-                                                   A->opt_csr_mat.csr_col_ptr,
-                                                   A->idiag,
-                                                   &A->opt_csr_mat.csr_row_ptr[1],
-                                                   x,
-                                                   beta,
-                                                   y,
-                                                   &context);
-    }
     else if(descr->type == aoclsparse_matrix_type_symmetric)
     {
         // can dispatch our data directly
-        // transposed operation can be ignored
+        // transposed and non-transposed operation
         // y = alpha A * x + beta y
         return aoclsparse_csrmv_symm_internal(alpha,
                                               A->m,
@@ -193,6 +168,54 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
                                               x,
                                               beta,
                                               y);
+    }
+    else
+    {
+        //Triangular SPMV
+        if(descr->type == aoclsparse_matrix_type_triangular)
+        {
+            if(descr->fill_mode == aoclsparse_fill_mode_lower)
+            {
+                // y = alpha L * x + beta y
+                crstart = A->opt_csr_mat.csr_row_ptr;
+                crend   = A->iurow;
+            }
+            else if(descr->fill_mode == aoclsparse_fill_mode_upper)
+            {
+                // y = alpha U * x + beta y
+                crstart = A->idiag;
+                crend   = &A->opt_csr_mat.csr_row_ptr[1];
+            }
+        }
+        //kernels as per transpose operation
+        if(op == aoclsparse_operation_none)
+        {
+            return aoclsparse_csrmv_vectorized_avx2ptr(alpha,
+                                                       A->m,
+                                                       A->n,
+                                                       A->nnz,
+                                                       (T *)A->opt_csr_mat.csr_val,
+                                                       A->opt_csr_mat.csr_col_ptr,
+                                                       crstart,
+                                                       crend,
+                                                       x,
+                                                       beta,
+                                                       y,
+                                                       &context);
+        }
+        else if(op == aoclsparse_operation_transpose)
+        {
+            return aoclsparse_csrmvt_ptr(alpha,
+                                         A->m,
+                                         A->n,
+                                         (T *)A->opt_csr_mat.csr_val,
+                                         A->opt_csr_mat.csr_col_ptr,
+                                         crstart,
+                                         crend,
+                                         x,
+                                         beta,
+                                         y);
+        }
     }
     return aoclsparse_status_not_implemented;
 }

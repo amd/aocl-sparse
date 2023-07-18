@@ -330,5 +330,98 @@ aoclsparse_status ref_csrmvt(T                     alpha,
 
     return aoclsparse_status_success;
 }
+/* Transposed-SPMV with a L or U triangular submatrix of a m x n matrix stored as CSR:
+ *   y = alpha*[op(A)]^T*x + beta*y   where op=tril or triu
+ * As symmetric version above but uses only the triangle (doesn't symmetrize).
+ *
+ * This is a safe & slow implementation, checking for out of bounds indices.
+ * Supported:
+ * - zero/one-based indexing
+ * - L/U triangle
+ * - non-unit/unit diagonal
+ * CSR doesn't need to be sorted in rows and doesn't need to contain only
+ * the given triangle, the unuseful parts (and out of bounds indices)
+ * are ignored. Duplicate entries are summed.
+ */
+template <typename T>
+aoclsparse_status ref_csrmvtrgt(T                     alpha,
+                                aoclsparse_int        m,
+                                aoclsparse_int        n,
+                                const T              *csr_val,
+                                const aoclsparse_int *csr_col_ind,
+                                const aoclsparse_int *csr_row_ptr,
+                                aoclsparse_fill_mode  fill,
+                                aoclsparse_diag_type  diag,
+                                aoclsparse_index_base base,
+                                const T              *x,
+                                T                     beta,
+                                T                    *y)
+{
 
+    if(csr_val == nullptr || csr_col_ind == nullptr || csr_row_ptr == nullptr)
+        return aoclsparse_status_invalid_pointer;
+    if(x == nullptr || y == nullptr)
+        return aoclsparse_status_invalid_pointer;
+
+    if(m < 0 || n < 0)
+        return aoclsparse_status_invalid_size;
+
+    // nothing to do case
+    if(m == 0 || n == 0)
+        return aoclsparse_status_success;
+
+    // check validity of csr_row_ptr
+    if(csr_row_ptr[0] < base)
+        return aoclsparse_status_invalid_value;
+    for(aoclsparse_int i = 0; i < m; i++)
+        if(csr_row_ptr[i] > csr_row_ptr[i + 1])
+            return aoclsparse_status_invalid_value;
+
+    bool is_lower  = fill == aoclsparse_fill_mode_lower;
+    bool keep_diag = diag == aoclsparse_diag_type_non_unit;
+
+    if(beta == 0.)
+        for(aoclsparse_int i = 0; i < m; i++)
+            y[i] = 0.;
+    else
+        for(aoclsparse_int i = 0; i < m; i++)
+            y[i] = beta * y[i];
+
+    for(aoclsparse_int i = 0; i < m; i++)
+    {
+        aoclsparse_int idxend = csr_row_ptr[i + 1] - base;
+        for(aoclsparse_int idx = csr_row_ptr[i] - base; idx < idxend; idx++)
+        {
+            // valid indices given the specified triangle
+            aoclsparse_int j = csr_col_ind[idx] - base;
+            if(j >= 0 && j < i)
+            {
+                if(is_lower)
+                {
+                    y[j] += alpha * csr_val[idx] * x[i];
+                }
+            }
+            else if(j == i)
+            {
+                if(keep_diag)
+                {
+                    y[i] += alpha * csr_val[idx] * x[i];
+                }
+            }
+            else if(j > i && i < m)
+            {
+                if(!is_lower)
+                {
+                    y[j] += alpha * csr_val[idx] * x[i];
+                }
+            }
+        }
+        if(!keep_diag)
+        {
+            // add unit diagonal
+            y[i] += alpha * x[i];
+        }
+    }
+    return aoclsparse_status_success;
+}
 #endif // AOCLSPARSE_REFERENCE_HPP

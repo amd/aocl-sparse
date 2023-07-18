@@ -136,7 +136,13 @@ aoclsparse_status aoclsparse_csrmv_symm(const T        alpha,
                                         T *__restrict__ y)
 {
     // Perform (beta * y)
-    if(beta != static_cast<double>(1))
+    if(beta == static_cast<T>(0))
+    {
+        // if beta==0 and y contains any NaNs, we can zero y directly
+        for(aoclsparse_int i = 0; i < m; i++)
+            y[i] = 0.;
+    }
+    else if(beta != static_cast<double>(1))
     {
         for(aoclsparse_int i = 0; i < m; i++)
             y[i] = beta * y[i];
@@ -279,6 +285,7 @@ aoclsparse_status aoclsparse_csrmvt(const T        alpha,
 {
     if(beta == static_cast<T>(0))
     {
+        // if beta==0 and y contains any NaNs, we can zero y directly
         for(aoclsparse_int i = 0; i < n; i++)
         {
             y[i] = 0.0;
@@ -299,6 +306,53 @@ aoclsparse_status aoclsparse_csrmvt(const T        alpha,
         aoclsparse_int row_end   = csr_row_ptr[i + 1];
         T              axi       = alpha * x[i];
         for(aoclsparse_int j = row_start; j < row_end; j++)
+        {
+            aoclsparse_int col_idx = csr_col_ind[j];
+            y[col_idx] += csr_val[j] * axi;
+        }
+    }
+    return aoclsparse_status_success;
+}
+
+/* Transposed SPMV
+ * ============================
+ * Performs SPMV operation on the transposed CSR sparse matrix and 
+ * x-vector, where rows of the matrix are given by the start and end
+ * pointer (useful when a specific triangle part of the matrix is provided)
+ */
+template <typename T>
+aoclsparse_status aoclsparse_csrmvt_ptr(const T        alpha,
+                                        aoclsparse_int m,
+                                        aoclsparse_int n,
+                                        const T *__restrict__ csr_val,
+                                        const aoclsparse_int *__restrict__ csr_col_ind,
+                                        const aoclsparse_int *__restrict__ crstart,
+                                        const aoclsparse_int *__restrict__ crend,
+                                        const T *__restrict__ x,
+                                        const T beta,
+                                        T *__restrict__ y)
+{
+    if(beta == static_cast<T>(0))
+    {
+        // if beta==0 and y contains any NaNs, we can zero y directly
+        for(aoclsparse_int i = 0; i < n; i++)
+        {
+            y[i] = 0.0;
+        }
+    }
+    else if(beta != static_cast<T>(1))
+    {
+        for(aoclsparse_int i = 0; i < n; i++)
+        {
+            y[i] = beta * y[i];
+        }
+    }
+    // Iterate over each row of the input matrix and
+    // Perform matrix-vector product for each non-zero of the ith row
+    for(aoclsparse_int i = 0; i < m; i++)
+    {
+        T axi = alpha * x[i];
+        for(aoclsparse_int j = crstart[i]; j < crend[i]; j++)
         {
             aoclsparse_int col_idx = csr_col_ind[j];
             y[col_idx] += csr_val[j] * axi;
