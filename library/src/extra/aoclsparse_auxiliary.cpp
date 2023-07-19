@@ -835,9 +835,9 @@ aoclsparse_status aoclsparse_create_coo(aoclsparse_matrix          &mat,
     // check if codinates given is correct or not
     for(int i = 0; i < nnz; i++)
     {
-        if(row_ind[i] < base || row_ind[i] >= (N + base))
+        if(row_ind[i] < base || row_ind[i] >= (M + base))
             return aoclsparse_status_invalid_index_value;
-        if(col_ind[i] < base || col_ind[i] >= (M + base))
+        if(col_ind[i] < base || col_ind[i] >= (N + base))
             return aoclsparse_status_invalid_index_value;
     }
 
