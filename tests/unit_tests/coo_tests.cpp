@@ -287,6 +287,18 @@ namespace
                                                         val_double,
                                                         val_float,
                                                         val_cdouble,
+                                                        val_cfloat},
+                                                       {"Error_InvalidRowInd_2x4mat",
+                                                        aoclsparse_status_invalid_index_value,
+                                                        aoclsparse_index_base_zero,
+                                                        2,
+                                                        4,
+                                                        2,
+                                                        row_ind,
+                                                        col_ind,
+                                                        val_double,
+                                                        val_float,
+                                                        val_cdouble,
                                                         val_cfloat}};
 
     // It is used to when testing::PrintToString(GetParam()) to generate test name for ctest
