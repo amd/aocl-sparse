@@ -37,9 +37,9 @@
 aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
 {
     // Check the matrix precision type
-    // If single, set the matrix type as aoclsparse_csr_mat
-    // and return withtout any optimization
-    if(A->val_type == aoclsparse_smat)
+    // If the matrix type is not double precision real, set the matrix type
+    // as aoclsparse_csr_mat and return without any optimization
+    if(A->val_type != aoclsparse_dmat)
     {
         A->mat_type  = aoclsparse_csr_mat;
         A->optimized = true;

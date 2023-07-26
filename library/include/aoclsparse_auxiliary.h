@@ -242,14 +242,15 @@ DLL_PUBLIC
 aoclsparse_diag_type aoclsparse_get_mat_diag_type(const aoclsparse_mat_descr descr);
 
 /*! \ingroup aux_module
- *  \brief Update a \p CSR matrix structure
+ *  \brief Creates a new \p aoclsparse_matrix based on CSR (Compressed Sparse Row) format.
  *
  *  \details
- *  \p aoclsparse_create_(s/d)csr updates a structure that holds the matrix in \p CSR
- *  storage format. It should be destroyed at the end using aoclsparse_destroy().
+ *  \p aoclsparse_create_<tt>(s/d/c/z)csr</tt> creates \p aoclsparse_matrix and initializes it with
+ *  input parameters passed. Array data must not be modified by the user while matrix is alive as the
+ *  pointers are copied, not the data. Matrix should be destroyed at the end using aoclsparse_destroy().
  *
- *  @param[inout]
- *  mat the pointer to the CSR sparse matrix.
+ *  @param[out]
+ *  mat the pointer to the CSR sparse matrix allocated in the API.
  *  @param[in]
  *  base    \ref aoclsparse_index_base_zero or \ref aoclsparse_index_base_one.
  *  @param[in]
@@ -257,18 +258,21 @@ aoclsparse_diag_type aoclsparse_get_mat_diag_type(const aoclsparse_mat_descr des
  *  @param[in]
  *  N           number of columns of the sparse CSR matrix.
  *  @param[in]
- *  csr_nnz     number of non-zero entries of the sparse CSR matrix.
+ *  nnz     number of non-zero entries of the sparse CSR matrix.
  *  @param[in]
- *  csr_row_ptr array of \p m+1 elements that point to the start
+ *  row_ptr array of \p m+1 elements that point to the start
  *              of every row of the sparse CSR matrix.
  *  @param[in]
- *  csr_col_ptr array of \p nnz elements containing the column indices of the sparse
+ *  col_idx array of \p nnz elements containing the column indices of the sparse
  *              CSR matrix.
  *  @param[in]
- *  csr_val     array of \p nnz elements of the sparse CSR matrix.
+ *  val     array of \p nnz elements of the sparse CSR matrix.
  *
  *  \retval aoclsparse_status_success the operation completed successfully.
- *  \retval aoclsparse_status_invalid_pointer \p csr pointer is invalid.
+ *  \retval aoclsparse_status_invalid_pointer at least one of \p row_ptr, \p col_idx or \p val pointer is NULL. 
+ *  \retval aoclsparse_status_invalid_size    at least one  of \p M, \p N or \p nnz has a negative value.
+ *  \retval aoclsparse_status_invalid_index_value  any \p col_idx value is not within N. 
+ *  \retval aoclsparse_status_memory_error         memory allocation for matrix failed.
  */
 /**@{*/
 DLL_PUBLIC
@@ -276,20 +280,41 @@ aoclsparse_status aoclsparse_create_scsr(aoclsparse_matrix    &mat,
                                          aoclsparse_index_base base,
                                          aoclsparse_int        M,
                                          aoclsparse_int        N,
-                                         aoclsparse_int        csr_nnz,
-                                         aoclsparse_int       *csr_row_ptr,
-                                         aoclsparse_int       *csr_col_ptr,
-                                         float                *csr_val);
+                                         aoclsparse_int        nnz,
+                                         aoclsparse_int       *row_ptr,
+                                         aoclsparse_int       *col_idx,
+                                         float                *val);
 
 DLL_PUBLIC
 aoclsparse_status aoclsparse_create_dcsr(aoclsparse_matrix    &mat,
                                          aoclsparse_index_base base,
                                          aoclsparse_int        M,
                                          aoclsparse_int        N,
-                                         aoclsparse_int        csr_nnz,
-                                         aoclsparse_int       *csr_row_ptr,
-                                         aoclsparse_int       *csr_col_ptr,
-                                         double               *csr_val);
+                                         aoclsparse_int        nnz,
+                                         aoclsparse_int       *row_ptr,
+                                         aoclsparse_int       *col_idx,
+                                         double               *val);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_create_ccsr(aoclsparse_matrix        &mat,
+                                         aoclsparse_index_base     base,
+                                         aoclsparse_int            M,
+                                         aoclsparse_int            N,
+                                         aoclsparse_int            nnz,
+                                         aoclsparse_int           *row_ptr,
+                                         aoclsparse_int           *col_idx,
+                                         aoclsparse_float_complex *val);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_create_zcsr(aoclsparse_matrix         &mat,
+                                         aoclsparse_index_base      base,
+                                         aoclsparse_int             M,
+                                         aoclsparse_int             N,
+                                         aoclsparse_int             nnz,
+                                         aoclsparse_int            *row_ptr,
+                                         aoclsparse_int            *col_idx,
+                                         aoclsparse_double_complex *val);
+
 /**@}*/
 
 DLL_PUBLIC

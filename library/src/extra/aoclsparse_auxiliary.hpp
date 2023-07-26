@@ -52,6 +52,16 @@ void aoclsparse_init_mat(aoclsparse_matrix             A,
                          aoclsparse_matrix_format_type matrix_type);
 
 template <typename T>
+aoclsparse_status aoclsparse_create_csr_t(aoclsparse_matrix    &mat,
+                                          aoclsparse_index_base base,
+                                          aoclsparse_int        M,
+                                          aoclsparse_int        N,
+                                          aoclsparse_int        nnz,
+                                          aoclsparse_int       *col_ptr,
+                                          aoclsparse_int       *row_idx,
+                                          T                    *val);
+
+template <typename T>
 aoclsparse_status aoclsparse_create_csc(aoclsparse_matrix    &mat,
                                         aoclsparse_index_base base,
                                         aoclsparse_int        M,

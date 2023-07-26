@@ -236,136 +236,55 @@ aoclsparse_diag_type aoclsparse_get_mat_diag_type(const aoclsparse_mat_descr des
 }
 
 /********************************************************************************
- * \brief aoclsparse_create_scsr sets the sparse matrix in the csr format.
+ * \brief aoclsparse_create_?csr sets the sparse matrix in the CSR format for
+ * the appropriate data type (float, double, float complex, double complex).
  ********************************************************************************/
 aoclsparse_status aoclsparse_create_scsr(aoclsparse_matrix    &mat,
                                          aoclsparse_index_base base,
                                          aoclsparse_int        M,
                                          aoclsparse_int        N,
-                                         aoclsparse_int        csr_nnz,
-                                         aoclsparse_int       *csr_row_ptr,
-                                         aoclsparse_int       *csr_col_ptr,
-                                         float                *csr_val)
+                                         aoclsparse_int        nnz,
+                                         aoclsparse_int       *row_ptr,
+                                         aoclsparse_int       *col_idx,
+                                         float                *val)
 {
-
-    // Validate the input parameters
-    if(M < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    else if(N < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    else if(csr_nnz < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-
-    if(csr_row_ptr == nullptr)
-        return aoclsparse_status_invalid_pointer;
-    if(csr_col_ptr == nullptr)
-        return aoclsparse_status_invalid_pointer;
-    if(csr_val == nullptr)
-        return aoclsparse_status_invalid_pointer;
-
-    // check if the column indicies are within bounds
-    for(aoclsparse_int i = 0; i < M; i++)
-    {
-        if(N == 0)
-        {
-            break;
-        }
-        for(aoclsparse_int j = csr_row_ptr[i]; j < csr_row_ptr[i + 1]; j++)
-        {
-            if((csr_col_ptr[j] >= (N + base)) || (csr_col_ptr[j] < base))
-                return aoclsparse_status_invalid_index_value;
-        }
-    }
-    try
-    {
-        mat = new _aoclsparse_matrix;
-    }
-    catch(std::bad_alloc &)
-    {
-        return aoclsparse_status_memory_error;
-    }
-    aoclsparse_init_mat(mat, base, M, N, csr_nnz, aoclsparse_csr_mat);
-    mat->mat_type            = aoclsparse_csr_mat;
-    mat->val_type            = get_data_type<float>();
-    mat->csr_mat.csr_row_ptr = csr_row_ptr;
-    mat->csr_mat.csr_col_ptr = csr_col_ptr;
-    mat->csr_mat.csr_val     = csr_val;
-    mat->csr_mat_is_users    = true;
-    mat->opt_csr_is_users    = true;
-
-    return aoclsparse_status_success;
+    return aoclsparse_create_csr_t(mat, base, M, N, nnz, row_ptr, col_idx, val);
 }
 
-/********************************************************************************
- * \brief aoclsparse_create_dcsr sets the sparse matrix in the csr format.
- ********************************************************************************/
 aoclsparse_status aoclsparse_create_dcsr(aoclsparse_matrix    &mat,
                                          aoclsparse_index_base base,
                                          aoclsparse_int        M,
                                          aoclsparse_int        N,
-                                         aoclsparse_int        csr_nnz,
-                                         aoclsparse_int       *csr_row_ptr,
-                                         aoclsparse_int       *csr_col_ptr,
-                                         double               *csr_val)
+                                         aoclsparse_int        nnz,
+                                         aoclsparse_int       *row_ptr,
+                                         aoclsparse_int       *col_idx,
+                                         double               *val)
 {
-    // Validate the input parameters
-    if(M < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    else if(N < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    else if(csr_nnz < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
+    return aoclsparse_create_csr_t(mat, base, M, N, nnz, row_ptr, col_idx, val);
+}
 
-    if(csr_row_ptr == nullptr)
-        return aoclsparse_status_invalid_pointer;
-    if(csr_col_ptr == nullptr)
-        return aoclsparse_status_invalid_pointer;
-    if(csr_val == nullptr)
-        return aoclsparse_status_invalid_pointer;
+aoclsparse_status aoclsparse_create_ccsr(aoclsparse_matrix        &mat,
+                                         aoclsparse_index_base     base,
+                                         aoclsparse_int            M,
+                                         aoclsparse_int            N,
+                                         aoclsparse_int            nnz,
+                                         aoclsparse_int           *row_ptr,
+                                         aoclsparse_int           *col_idx,
+                                         aoclsparse_float_complex *val)
+{
+    return aoclsparse_create_csr_t(mat, base, M, N, nnz, row_ptr, col_idx, val);
+}
 
-    // check if the column indicies are within bounds
-    for(aoclsparse_int i = 0; i < M; i++)
-    {
-        if(N == 0)
-        {
-            break;
-        }
-        for(aoclsparse_int j = csr_row_ptr[i]; j < csr_row_ptr[i + 1]; j++)
-        {
-            if((csr_col_ptr[j] >= (N + base)) || (csr_col_ptr[j] < base))
-                return aoclsparse_status_invalid_index_value;
-        }
-    }
-    try
-    {
-        mat = new _aoclsparse_matrix;
-    }
-    catch(std::bad_alloc &)
-    {
-        return aoclsparse_status_memory_error;
-    }
-    aoclsparse_init_mat(mat, base, M, N, csr_nnz, aoclsparse_csr_mat);
-    mat->mat_type            = aoclsparse_csr_mat;
-    mat->val_type            = get_data_type<double>();
-    mat->csr_mat.csr_row_ptr = csr_row_ptr;
-    mat->csr_mat.csr_col_ptr = csr_col_ptr;
-    mat->csr_mat.csr_val     = csr_val;
-    mat->csr_mat_is_users    = true;
-    mat->opt_csr_is_users    = true;
-
-    return aoclsparse_status_success;
+aoclsparse_status aoclsparse_create_zcsr(aoclsparse_matrix         &mat,
+                                         aoclsparse_index_base      base,
+                                         aoclsparse_int             M,
+                                         aoclsparse_int             N,
+                                         aoclsparse_int             nnz,
+                                         aoclsparse_int            *row_ptr,
+                                         aoclsparse_int            *col_idx,
+                                         aoclsparse_double_complex *val)
+{
+    return aoclsparse_create_csr_t(mat, base, M, N, nnz, row_ptr, col_idx, val);
 }
 
 /********************************************************************************
@@ -739,6 +658,73 @@ void aoclsparse_init_mat(aoclsparse_matrix             A,
     A->nnz          = nnz;
     A->base         = base;
     A->input_format = matrix_type;
+}
+
+/********************************************************************************
+ * \brief aoclsparse_create_csr_t sets the sparse matrix in the CSR format
+ * for any data type
+ ********************************************************************************/
+template <typename T>
+aoclsparse_status aoclsparse_create_csr_t(aoclsparse_matrix    &mat,
+                                          aoclsparse_index_base base,
+                                          aoclsparse_int        M,
+                                          aoclsparse_int        N,
+                                          aoclsparse_int        nnz,
+                                          aoclsparse_int       *row_ptr,
+                                          aoclsparse_int       *col_idx,
+                                          T                    *val)
+{
+    // Validate the input parameters
+    if(M < 0)
+    {
+        return aoclsparse_status_invalid_size;
+    }
+    else if(N < 0)
+    {
+        return aoclsparse_status_invalid_size;
+    }
+    else if(nnz < 0)
+    {
+        return aoclsparse_status_invalid_size;
+    }
+
+    if(row_ptr == nullptr)
+        return aoclsparse_status_invalid_pointer;
+    if(col_idx == nullptr)
+        return aoclsparse_status_invalid_pointer;
+    if(val == nullptr)
+        return aoclsparse_status_invalid_pointer;
+
+    // check if the column indicies are within bounds
+    for(aoclsparse_int i = 0; i < M; i++)
+    {
+        if(N == 0)
+        {
+            break;
+        }
+        for(aoclsparse_int j = row_ptr[i]; j < row_ptr[i + 1]; j++)
+        {
+            if((col_idx[j] >= (N + base)) || (col_idx[j] < base))
+                return aoclsparse_status_invalid_index_value;
+        }
+    }
+    try
+    {
+        mat = new _aoclsparse_matrix;
+    }
+    catch(std::bad_alloc &)
+    {
+        return aoclsparse_status_memory_error;
+    }
+    aoclsparse_init_mat(mat, base, M, N, nnz, aoclsparse_csr_mat);
+    mat->val_type            = get_data_type<T>();
+    mat->mat_type            = aoclsparse_csr_mat;
+    mat->csr_mat.csr_row_ptr = row_ptr;
+    mat->csr_mat.csr_col_ptr = col_idx;
+    mat->csr_mat.csr_val     = val;
+    mat->csr_mat_is_users    = true;
+
+    return aoclsparse_status_success;
 }
 
 /********************************************************************************
