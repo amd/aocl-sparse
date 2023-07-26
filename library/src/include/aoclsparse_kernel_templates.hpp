@@ -369,10 +369,12 @@ template<int SZ, typename SUF, kt_avxext EXT, int L> KT_FORCE_INLINE avxvector_t
             return _mm512_maskz_loadu_ps((1<<L)-1, &v[b]);
     }
     else if constexpr(kt_is_same<512, SZ, cdouble, SUF>() && (EXT & AVX512F)) {
-            return _mm512_maskz_loadu_pd((1<<2*L)-1, &v[2U*b]);
+            const double * vv = reinterpret_cast<const double*>(v);
+            return _mm512_maskz_loadu_pd((1<<(2*L))-1, &vv[2U*b]);
     }
     else if constexpr(kt_is_same<512, SZ, cfloat, SUF>() && (EXT & AVX512F)) {
-            return _mm512_maskz_loadu_ps((1<<2*L)-1, &v[2U*b]);
+            const float * vv = reinterpret_cast<const float*>(v);
+            return _mm512_maskz_loadu_ps((1<<(2*L))-1, &vv[2U*b]);
     }
 #endif
 // if no match compiler complains about not returning
@@ -442,6 +444,15 @@ template<int SZ, typename SUF, kt_avxext, int L> KT_FORCE_INLINE avxvector_t<SZ,
 #endif
 // if no match compiler complains about not returning
 };
+
+
+// Scatter kernel
+// TODO FIXME: Placeholder
+template<int SZ, typename SUF> KT_FORCE_INLINE void kt_scatter_p(const avxvector_t<SZ,SUF> a, SUF *v, const kt_addr_t *b) noexcept {
+    const SUF * acast = reinterpret_cast<const SUF*>(&a);
+    for(size_t k = 0; k < tsz_v<SZ,SUF>; k++)
+        v[b[k]] = acast[k];
+}
 
 // Vector addition of two AVX registers.
 //  - `a` avxvector

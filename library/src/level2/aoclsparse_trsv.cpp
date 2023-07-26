@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022-2023 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,6 +23,8 @@
 
 #include "aoclsparse.h"
 #include "aoclsparse_trsv.hpp"
+
+#include <complex>
 
 /*
  *===========================================================================
@@ -54,6 +56,34 @@ extern "C" aoclsparse_status aoclsparse_dtrsv(aoclsparse_operation       trans,
     return aoclsparse_trsv(trans, alpha, A, descr, b, x, kid);
 }
 
+extern "C" aoclsparse_status aoclsparse_ctrsv(aoclsparse_operation            trans,
+                                              const aoclsparse_float_complex  alpha,
+                                              aoclsparse_matrix               A,
+                                              const aoclsparse_mat_descr      descr,
+                                              const aoclsparse_float_complex *b,
+                                              aoclsparse_float_complex       *x)
+{
+    const aoclsparse_int       kid    = -1; /* auto */
+    const std::complex<float> *alphap = reinterpret_cast<const std::complex<float> *>(&alpha);
+    const std::complex<float> *bp     = reinterpret_cast<const std::complex<float> *>(b);
+    std::complex<float>       *xp     = reinterpret_cast<std::complex<float> *>(x);
+    return aoclsparse_trsv(trans, *alphap, A, descr, bp, xp, kid);
+}
+
+extern "C" aoclsparse_status aoclsparse_ztrsv(aoclsparse_operation             trans,
+                                              const aoclsparse_double_complex  alpha,
+                                              aoclsparse_matrix                A,
+                                              const aoclsparse_mat_descr       descr,
+                                              const aoclsparse_double_complex *b,
+                                              aoclsparse_double_complex       *x)
+{
+    const aoclsparse_int        kid    = -1; /* auto */
+    const std::complex<double> *alphap = reinterpret_cast<const std::complex<double> *>(&alpha);
+    const std::complex<double> *bp     = reinterpret_cast<const std::complex<double> *>(b);
+    std::complex<double>       *xp     = reinterpret_cast<std::complex<double> *>(x);
+    return aoclsparse_trsv(trans, *alphap, A, descr, bp, xp, kid);
+}
+
 extern "C" aoclsparse_status aoclsparse_strsv_kid(aoclsparse_operation       trans,
                                                   const float                alpha,
                                                   aoclsparse_matrix          A,
@@ -74,4 +104,32 @@ extern "C" aoclsparse_status aoclsparse_dtrsv_kid(aoclsparse_operation       tra
                                                   const aoclsparse_int       kid)
 {
     return aoclsparse_trsv(trans, alpha, A, descr, b, x, kid);
+}
+
+extern "C" aoclsparse_status aoclsparse_ctrsv_kid(aoclsparse_operation            trans,
+                                                  const aoclsparse_float_complex  alpha,
+                                                  aoclsparse_matrix               A,
+                                                  const aoclsparse_mat_descr      descr,
+                                                  const aoclsparse_float_complex *b,
+                                                  aoclsparse_float_complex       *x,
+                                                  const aoclsparse_int            kid)
+{
+    const std::complex<float> *alphap = reinterpret_cast<const std::complex<float> *>(&alpha);
+    const std::complex<float> *bp     = reinterpret_cast<const std::complex<float> *>(b);
+    std::complex<float>       *xp     = reinterpret_cast<std::complex<float> *>(x);
+    return aoclsparse_trsv(trans, *alphap, A, descr, bp, xp, kid);
+}
+
+extern "C" aoclsparse_status aoclsparse_ztrsv_kid(aoclsparse_operation             trans,
+                                                  const aoclsparse_double_complex  alpha,
+                                                  aoclsparse_matrix                A,
+                                                  const aoclsparse_mat_descr       descr,
+                                                  const aoclsparse_double_complex *b,
+                                                  aoclsparse_double_complex       *x,
+                                                  const aoclsparse_int             kid)
+{
+    const std::complex<double> *alphap = reinterpret_cast<const std::complex<double> *>(&alpha);
+    const std::complex<double> *bp     = reinterpret_cast<const std::complex<double> *>(b);
+    std::complex<double>       *xp     = reinterpret_cast<std::complex<double> *>(x);
+    return aoclsparse_trsv(trans, *alphap, A, descr, bp, xp, kid);
 }
