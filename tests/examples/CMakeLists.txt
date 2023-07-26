@@ -141,6 +141,7 @@ set(EXAMPLE_EXECUTABLES
     sample_spmv
     sample_csr2m
     sample_dtrsv
+    sample_ztrsv
     sample_itsol_d_cg_rci
     sample_itsol_d_cg
     sample_itsol_s_cg_rci

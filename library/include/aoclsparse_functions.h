@@ -1277,11 +1277,11 @@ aoclsparse_status aoclsparse_dcsrsv(aoclsparse_operation       trans,
 /**@}*/
 
 /*! \ingroup level2_module
- *  \brief Sparse triangular solve for single and double data precisions.
+ *  \brief Sparse triangular solver for real/complex single and double data precisions.
  *
  *  \details
- *  \p aoclsparse_strsv and \p aoclsparse_dtrsv solve a sparse lower (or upper)
- *  triangular linear system of equations. The system is defined by the sparse
+ *  The functions \f$\verb+aoclsparse_?trsv+\f$ solve sparse lower (or upper) triangular 
+ *  linear system of equations. The system is defined by the sparse
  *  \f$m \times m\f$ matrix \f$A\f$, the dense solution \f$m\f$-vector
  *  \f$x\f$, and the right-hand side dense \f$m\f$-vector \f$b\f$. Vector \f$b\f$ is
  *  multiplied by \f$\alpha\f$. The solution \f$x\f$ is estimated by solving
@@ -1292,12 +1292,13 @@ aoclsparse_status aoclsparse_dcsrsv(aoclsparse_operation       trans,
  *  where
  *  \f$L = \text{tril}(A)\f$ is the lower triangle of matrix \f$A\f$, similarly,
  *  \f$U = \text{triu}(A)\f$ is the upper triangle of matrix \f$A\f$. The operator
- *  \f$op()\f$ is regarded as the matrix transposition operation,
+ *  \f$op()\f$ is regarded as the matrix linear operation,
  *  \f[
- *    op(B) = \left\{
+ *    op(A) = \left\{
  *    \begin{array}{ll}
- *        B,       & \text{ if trans} = \text{aoclsparse\_operation\_none } \\
- *        B^T,     & \text{ if trans} = \text{aoclsparse\_operation\_transpose }\\
+ *        A,       & \text{ if trans} = \text{aoclsparse\_operation\_none } \\
+ *        A^T,     & \text{ if trans} = \text{aoclsparse\_operation\_transpose }\\
+ *        A^H,     & \text{ if trans} = \text{aoclsparse\_operation\_conjugate\_transpose }\\
  *    \end{array}
  *    \right.
  *  \f]
@@ -1305,12 +1306,12 @@ aoclsparse_status aoclsparse_dcsrsv(aoclsparse_operation       trans,
  *  \note
  *  If the matrix descriptor \p descr specifies that the matrix \f$A\f$ is to be regarded has
  *  having a unitary diagonal, then the main diagonal entries of matrix \f$A\f$ are not accessed and
- *  are considered to all be unitary.
+ *  are all considered to be unitary.
  *
  *  \note
- *  The input matrix need not be (upper or lower) triangular matrix, \p descr \p fill_mode specifies
- *  which triangle to consider, namely, if \p fill_mode = \ref aoclsparse_fill_mode_lower, then
- *  \f[
+ *  The input matrix need not be (upper or lower) triangular matrix, in the \p descr, the \p fill_mode 
+ *  entity specifies which triangle to consider, namely, if \p fill_mode = \ref aoclsparse_fill_mode_lower, 
+ * then \f[
  *    op(L) \cdot x = \alpha \cdot b,
  *  \f] otherwise, if \p fill_mode = \ref aoclsparse_fill_mode_upper, then
  *  \f[
@@ -1321,19 +1322,21 @@ aoclsparse_status aoclsparse_dcsrsv(aoclsparse_operation       trans,
  *  \note
  *  To increase performance and if the matrix \f$A\f$ is to be used more than once to solve for different right-hand
  *  sides \f$b\f$'s, then it is encouraged to provide hints using \p aoclsparse_set_sv_hint and \p aoclsparse_optimize,
- *  otherwise the optimiziation for the matrix will be done by the solver on entry.
+ *  otherwise, the optimization for the matrix will be done by the solver on entry.
  *
  *  \note
- *  There is `_kid` (Kernel ID) variation of TRSV, namely with a suffix of `_kid`, this solver allows to choose which
+ *  There is a `_kid` (Kernel ID) variation of TRSV, namely with a suffix of `_kid`, this solver allows to choose which
  *  TRSV kernel to use (if possible). Currently the possible choices are:
  *  `kid=0` Reference implementation (No explicit AVX instructions).
- *  `kid=1` Reference AVX 256bit implementation.
- *  `kid=2` Kernel Templated version using AVX/AVX2 extensions (analog to `kid=1`).
- *  `kid=3` Kernel Templated version using AVX512F/AVX512VL and AXV512DQ extensions.
+ *  `kid=1` Reference AVX 256-bit implementation only for double data precision and for 
+ *          operations \ref aoclsparse_operation_none and \ref aoclsparse_operation_transpose.
+ *  `kid=2` Kernel Template version using AVX/AVX2 extensions.
+ *  `kid=3` Kernel Template version using AVX512F+ CPU extensions.
  *  Any other Kernel ID value will default to `kid=0`.
  *
  *  @param[in]
- *  trans       matrix operation type, either \ref aoclsparse_operation_none or \ref aoclsparse_operation_transpose.
+ *  trans       matrix operation type, either \ref aoclsparse_operation_none, \ref aoclsparse_operation_transpose, 
+ *              or \ref aoclsparse_operation_conjugate_transpose.
  *  @param[in]
  *  alpha       scalar \f$\alpha\f$, used to premultiply right-hand side vector \f$b\f$.
  *  @param[inout]
@@ -1352,7 +1355,7 @@ aoclsparse_status aoclsparse_dcsrsv(aoclsparse_operation       trans,
  *  \retval     aoclsparse_status_invalid_size matrix \f$A\f$ or \f$op(A)\f$ is invalid.
  *  \retval     aoclsparse_status_invalid_pointer One or more of \p A,  \p descr, \p x, \p b are invalid pointers.
  *  \retval     aoclsparse_status_internal_error an internal error occurred.
- *  \retval     aoclsparse_status_not_implemented the requested opteration is not yet implemented.
+ *  \retval     aoclsparse_status_not_implemented the requested operation is not yet implemented.
  *  \retval     other possible failure values from a call to \ref aoclsparse_optimize.
  *
  */
@@ -1373,6 +1376,22 @@ aoclsparse_status aoclsparse_dtrsv(aoclsparse_operation       trans,
                                    const double              *b,
                                    double                    *x);
 DLL_PUBLIC
+aoclsparse_status aoclsparse_ctrsv(aoclsparse_operation            trans,
+                                   const aoclsparse_float_complex  alpha,
+                                   aoclsparse_matrix               A,
+                                   const aoclsparse_mat_descr      descr,
+                                   const aoclsparse_float_complex *b,
+                                   aoclsparse_float_complex       *x);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_ztrsv(aoclsparse_operation             trans,
+                                   const aoclsparse_double_complex  alpha,
+                                   aoclsparse_matrix                A,
+                                   const aoclsparse_mat_descr       descr,
+                                   const aoclsparse_double_complex *b,
+                                   aoclsparse_double_complex       *x);
+
+DLL_PUBLIC
 aoclsparse_status aoclsparse_strsv_kid(aoclsparse_operation       trans,
                                        const float                alpha,
                                        aoclsparse_matrix          A,
@@ -1389,6 +1408,24 @@ aoclsparse_status aoclsparse_dtrsv_kid(aoclsparse_operation       trans,
                                        const double              *b,
                                        double                    *x,
                                        const aoclsparse_int       kid);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_ctrsv_kid(aoclsparse_operation            trans,
+                                       const aoclsparse_float_complex  alpha,
+                                       aoclsparse_matrix               A,
+                                       const aoclsparse_mat_descr      descr,
+                                       const aoclsparse_float_complex *b,
+                                       aoclsparse_float_complex       *x,
+                                       const aoclsparse_int            kid);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_ztrsv_kid(aoclsparse_operation             trans,
+                                       const aoclsparse_double_complex  alpha,
+                                       aoclsparse_matrix                A,
+                                       const aoclsparse_mat_descr       descr,
+                                       const aoclsparse_double_complex *b,
+                                       aoclsparse_double_complex       *x,
+                                       const aoclsparse_int             kid);
 /**@}*/
 
 /*! \ingroup level3_module

@@ -495,10 +495,21 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
             ret = aoclsparse_status_success;
         else
         {
-            if(A->val_type == aoclsparse_dmat)
+            switch(A->val_type)
+            {
+            case aoclsparse_dmat:
                 ret = aoclsparse_csr_optimize<double>(A);
-            else
+                break;
+            case aoclsparse_smat:
                 ret = aoclsparse_csr_optimize<float>(A);
+                break;
+            case aoclsparse_cmat:
+                ret = aoclsparse_csr_optimize<aoclsparse_float_complex>(A);
+                break;
+            case aoclsparse_zmat:
+                ret = aoclsparse_csr_optimize<aoclsparse_double_complex>(A);
+                break;
+            }
         }
     }
     else if(mv_count - sum >= 0)

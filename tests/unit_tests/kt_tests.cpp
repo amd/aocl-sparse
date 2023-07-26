@@ -1084,14 +1084,14 @@ namespace TestsKT
         kt_maskz_set_p_param_dir(512, double, d, AVX512F, 7, 0);
         kt_maskz_set_p_param_dir(512, double, d, AVX512F, 8, 0);
 
-        kt_maskz_set_p_param_dir(256, cfloat, c, AVX512F, 1, 5);
-        kt_maskz_set_p_param_dir(256, cfloat, c, AVX512F, 2, 0);
-        kt_maskz_set_p_param_dir(256, cfloat, c, AVX512F, 3, 2);
-        kt_maskz_set_p_param_dir(256, cfloat, c, AVX512F, 4, 0);
+        kt_maskz_set_p_param_dir(512, cfloat, c, AVX512F, 1, 5);
+        kt_maskz_set_p_param_dir(512, cfloat, c, AVX512F, 2, 0);
+        kt_maskz_set_p_param_dir(512, cfloat, c, AVX512F, 3, 2);
+        kt_maskz_set_p_param_dir(512, cfloat, c, AVX512F, 4, 0);
 
-        kt_maskz_set_p_param_dir(256, cdouble, z, AVX512F, 1, 0);
-        kt_maskz_set_p_param_dir(256, cdouble, z, AVX512F, 2, 2);
-        kt_maskz_set_p_param_dir(256, cdouble, z, AVX512F, 3, 2);
+        kt_maskz_set_p_param_dir(512, cdouble, z, AVX512F, 1, 0);
+        kt_maskz_set_p_param_dir(512, cdouble, z, AVX512F, 2, 2);
+        kt_maskz_set_p_param_dir(512, cdouble, z, AVX512F, 3, 2);
 
         // Indirect
         kt_maskz_set_p_param_indir(512, float, s, AVX512F, 1, 1);

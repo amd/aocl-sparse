@@ -27,6 +27,7 @@
 #include "aoclsparse_descr.h"
 #include "aoclsparse_mat_structures.h"
 #include "aoclsparse_types.h"
+#include "aoclsparse_auxiliary.hpp"
 
 #include <algorithm>
 #include <cstring>
@@ -285,7 +286,7 @@ aoclsparse_status aoclsparse_csr_fill_diag(aoclsparse_int        m,
                     // add the missing diagonal at the correct place
                     n_added++;
                     icol[nnz_curr]                   = i;
-                    static_cast<T *>(aval)[nnz_curr] = 0.0;
+                    static_cast<T *>(aval)[nnz_curr] = aoclsparse_numeric::zero<T>();
                     nnz_curr++;
                 }
                 static_cast<T *>(aval)[nnz_curr] = csr_val[idx];
@@ -297,7 +298,7 @@ aoclsparse_status aoclsparse_csr_fill_diag(aoclsparse_int        m,
                 // In empty rows cases, need to add the diagonal
                 n_added++;
                 icol[nnz_curr]                   = i;
-                static_cast<T *>(aval)[nnz_curr] = 0.0;
+                static_cast<T *>(aval)[nnz_curr] = aoclsparse_numeric::zero<T>();
                 nnz_curr++;
             }
         }
@@ -331,7 +332,11 @@ aoclsparse_status aoclsparse_csr_optimize(aoclsparse_matrix A)
 
     // Make sure we have the right type before proceeding
     if(!((A->val_type == aoclsparse_dmat && std::is_same_v<T, double>)
-         || (A->val_type == aoclsparse_smat && std::is_same_v<T, float>)))
+         || (A->val_type == aoclsparse_smat && std::is_same_v<T, float>)
+         || (A->val_type == aoclsparse_zmat && std::is_same_v<T, std::complex<double>>)
+         || (A->val_type == aoclsparse_cmat && std::is_same_v<T, std::complex<float>>)
+         || (A->val_type == aoclsparse_zmat && std::is_same_v<T, aoclsparse_double_complex>)
+         || (A->val_type == aoclsparse_cmat && std::is_same_v<T, aoclsparse_float_complex>)))
         return aoclsparse_status_wrong_type;
 
     //Make sure base-index is the correct value

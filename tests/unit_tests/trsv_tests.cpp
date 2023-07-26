@@ -24,7 +24,9 @@
 /*
  * Unit-tests for TRiangular SolVers (aoclsparse_trsv)
  */
-
+#include <complex>
+#define aoclsparse_float_complex std::complex<float>
+#define aoclsparse_double_complex std::complex<double>
 #include "aoclsparse.h"
 #include "aoclsparse_context.h"
 #include "aoclsparse_descr.h"
@@ -87,6 +89,45 @@ namespace
             return aoclsparse_strsv(trans, alpha, A, descr, b, x);
     }
 
+    template <>
+    aoclsparse_status aoclsparse_trsv_kid<std::complex<double>>(const aoclsparse_operation  trans,
+                                                                const std::complex<double>  alpha,
+                                                                aoclsparse_matrix           A,
+                                                                const aoclsparse_mat_descr  descr,
+                                                                const std::complex<double> *b,
+                                                                std::complex<double>       *x,
+                                                                const aoclsparse_int        kid)
+    {
+        const aoclsparse_double_complex *palpha
+            = reinterpret_cast<const aoclsparse_double_complex *>(&alpha);
+        const aoclsparse_double_complex *pb
+            = reinterpret_cast<const aoclsparse_double_complex *>(b);
+        aoclsparse_double_complex *px = reinterpret_cast<aoclsparse_double_complex *>(x);
+        if(kid >= 0)
+            return aoclsparse_ztrsv_kid(trans, *palpha, A, descr, pb, px, kid);
+        else
+            return aoclsparse_ztrsv(trans, *palpha, A, descr, pb, px);
+    }
+
+    template <>
+    aoclsparse_status aoclsparse_trsv_kid<std::complex<float>>(const aoclsparse_operation trans,
+                                                               const std::complex<float>  alpha,
+                                                               aoclsparse_matrix          A,
+                                                               const aoclsparse_mat_descr descr,
+                                                               const std::complex<float> *b,
+                                                               std::complex<float>       *x,
+                                                               const aoclsparse_int       kid)
+    {
+        const aoclsparse_float_complex *palpha
+            = reinterpret_cast<const aoclsparse_float_complex *>(&alpha);
+        const aoclsparse_float_complex *pb = reinterpret_cast<const aoclsparse_float_complex *>(b);
+        aoclsparse_float_complex       *px = reinterpret_cast<aoclsparse_float_complex *>(x);
+        if(kid >= 0)
+            return aoclsparse_ctrsv_kid(trans, *palpha, A, descr, pb, px, kid);
+        else
+            return aoclsparse_ctrsv(trans, *palpha, A, descr, pb, px);
+    }
+
     // If kid > 0 then force to only test the specified KID, otherwise
     // cycle through all of them
     template <typename T>
@@ -114,6 +155,8 @@ namespace
         aoclsparse_status              exp_status;
         aoclsparse_index_base          base = (aoclsparse_index_base)base_index;
 
+        decltype(std::real(xtol)) tol;
+
         status = create_linear_system<T>(id,
                                          title,
                                          trans,
@@ -133,7 +176,21 @@ namespace
                                          exp_status);
         ASSERT_EQ(status, aoclsparse_status_success)
             << "Error: could not find linear system id " << id << "!";
+        tol = std::real(xtol); // get the tolerance.
 #if(VERBOSE > 0)
+        std::string oplabel{""};
+        switch(trans)
+        {
+        case aoclsparse_operation_none:
+            oplabel = "None";
+            break;
+        case aoclsparse_operation_transpose:
+            oplabel = "Transpose";
+            break;
+        case aoclsparse_operation_conjugate_transpose:
+            oplabel = "Hermitian Transpose";
+            break;
+        }
         std::string dtype = "unknown";
         if(typeid(T) == typeid(double))
         {
@@ -142,6 +199,14 @@ namespace
         else if(typeid(T) == typeid(float))
         {
             dtype = "float";
+        }
+        if(typeid(T) == typeid(std::complex<double>))
+        {
+            dtype = "cdouble";
+        }
+        else if(typeid(T) == typeid(std::complex<float>))
+        {
+            dtype = "cfloat";
         }
         const bool        unit    = descr->diag_type == aoclsparse_diag_type_unit;
         aoclsparse_int    kidlabs = std::max<aoclsparse_int>(std::min<aoclsparse_int>(kid, 4), 0);
@@ -152,8 +217,8 @@ namespace
                                         "unknown"};
         std::cout << "Problem id: " << id << " \"" << title << "\"" << std::endl;
         std::cout << "Configuration: <" << dtype << "> unit=" << (unit ? "Unit" : "Non-unit")
-                  << " trans=" << (trans == aoclsparse_operation_transpose ? "Yes" : "No")
-                  << "   Kernel id=" << kid << " <" << avxlabs[kidlabs] << ">" << std::endl;
+                  << " op=" << oplabel << "   Kernel id=" << kid << " <" << avxlabs[kidlabs] << ">"
+                  << std::endl;
 #endif
         const aoclsparse_int n = A->n;
         status                 = aoclsparse_trsv_kid<T>(trans, alpha, A, descr, &b[0], &x[0], kid);
@@ -161,10 +226,18 @@ namespace
             << "Test failed with unexpected return from aoclsparse_dtrsv";
         if(status == aoclsparse_status_success)
         {
-            if(xtol > 0.0)
-                EXPECT_ARR_NEAR(n, x, xref, expected_precision<T>(xtol));
+            if(tol <= 0.0)
+                tol = 10;
+
+            if constexpr(std::is_same_v<T, std::complex<double>>
+                         || std::is_same_v<T, std::complex<float>>)
+            {
+                EXPECT_COMPLEX_ARR_NEAR(n, x, xref, expected_precision<decltype(tol)>(tol));
+            }
             else
-                EXPECT_ARR_NEAR(n, x, xref, expected_precision<T>(10.0));
+            {
+                EXPECT_ARR_NEAR(n, x, xref, expected_precision<decltype(tol)>(tol));
+            }
         }
         ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
@@ -176,59 +249,81 @@ namespace
         std::string      testname;
         aoclsparse_int   kid;
         aoclsparse_int   base;
+        aoclsparse_int   op;
     } trsv_list_t;
 
 #define BASEZERO 0
 #define BASEONE 1
+#define NONE 0
+#define TRAN 1
+#define HERM 2
 
-#define ADD_TEST(ID, KID, BASE)  \
-    {                            \
-        ID,                      \
-            #ID "/kid[" #KID "]" \
-                "/" #BASE,       \
-            KID, BASE            \
+#define ADD_TEST(ID, KID, BASE, OP) \
+    {                               \
+        ID,                         \
+            #ID "/kid[" #KID "]"    \
+                "/" #BASE,          \
+            KID, BASE, OP           \
     }
 
-// Kernel kid=3 fallbacks to kid=2 on non-Zen4 and should not fail
-#define ADD_TEST_BATCH(PRE)                                                             \
-    ADD_TEST(PRE##_Lx_aB, 0, BASEZERO), ADD_TEST(PRE##_Lx_aB, 1, BASEZERO),             \
-        ADD_TEST(PRE##_Lx_aB, 2, BASEZERO), ADD_TEST(PRE##_Lx_aB, 3, BASEZERO),         \
-        ADD_TEST(PRE##_Lx_aB, 0, BASEONE), ADD_TEST(PRE##_Lx_aB, 1, BASEONE),           \
-        ADD_TEST(PRE##_Lx_aB, 2, BASEONE), ADD_TEST(PRE##_Lx_aB, 3, BASEONE),           \
-        ADD_TEST(PRE##_LL_Ix_aB, 0, BASEZERO), ADD_TEST(PRE##_LL_Ix_aB, 1, BASEZERO),   \
-        ADD_TEST(PRE##_LL_Ix_aB, 2, BASEZERO), ADD_TEST(PRE##_LL_Ix_aB, 3, BASEZERO),   \
-        ADD_TEST(PRE##_LL_Ix_aB, 0, BASEONE), ADD_TEST(PRE##_LL_Ix_aB, 1, BASEONE),     \
-        ADD_TEST(PRE##_LL_Ix_aB, 2, BASEONE), ADD_TEST(PRE##_LL_Ix_aB, 3, BASEONE),     \
-        ADD_TEST(PRE##_LTx_aB, 0, BASEZERO), ADD_TEST(PRE##_LTx_aB, 1, BASEZERO),       \
-        ADD_TEST(PRE##_LTx_aB, 2, BASEZERO), ADD_TEST(PRE##_LTx_aB, 3, BASEZERO),       \
-        ADD_TEST(PRE##_LTx_aB, 0, BASEONE), ADD_TEST(PRE##_LTx_aB, 1, BASEONE),         \
-        ADD_TEST(PRE##_LTx_aB, 2, BASEONE), ADD_TEST(PRE##_LTx_aB, 3, BASEONE),         \
-        ADD_TEST(PRE##_LL_ITx_aB, 0, BASEZERO), ADD_TEST(PRE##_LL_ITx_aB, 1, BASEZERO), \
-        ADD_TEST(PRE##_LL_ITx_aB, 2, BASEZERO), ADD_TEST(PRE##_LL_ITx_aB, 3, BASEZERO), \
-        ADD_TEST(PRE##_LL_ITx_aB, 0, BASEONE), ADD_TEST(PRE##_LL_ITx_aB, 1, BASEONE),   \
-        ADD_TEST(PRE##_LL_ITx_aB, 2, BASEONE), ADD_TEST(PRE##_LL_ITx_aB, 3, BASEONE),   \
-        ADD_TEST(PRE##_Ux_aB, 0, BASEZERO), ADD_TEST(PRE##_Ux_aB, 1, BASEZERO),         \
-        ADD_TEST(PRE##_Ux_aB, 2, BASEZERO), ADD_TEST(PRE##_Ux_aB, 3, BASEZERO),         \
-        ADD_TEST(PRE##_Ux_aB, 0, BASEONE), ADD_TEST(PRE##_Ux_aB, 1, BASEONE),           \
-        ADD_TEST(PRE##_Ux_aB, 2, BASEONE), ADD_TEST(PRE##_Ux_aB, 3, BASEONE),           \
-        ADD_TEST(PRE##_UU_Ix_aB, 0, BASEZERO), ADD_TEST(PRE##_UU_Ix_aB, 1, BASEZERO),   \
-        ADD_TEST(PRE##_UU_Ix_aB, 2, BASEZERO), ADD_TEST(PRE##_UU_Ix_aB, 3, BASEZERO),   \
-        ADD_TEST(PRE##_UU_Ix_aB, 0, BASEONE), ADD_TEST(PRE##_UU_Ix_aB, 1, BASEONE),     \
-        ADD_TEST(PRE##_UU_Ix_aB, 2, BASEONE), ADD_TEST(PRE##_UU_Ix_aB, 3, BASEONE),     \
-        ADD_TEST(PRE##_UTx_aB, 0, BASEZERO), ADD_TEST(PRE##_UTx_aB, 1, BASEZERO),       \
-        ADD_TEST(PRE##_UTx_aB, 2, BASEZERO), ADD_TEST(PRE##_UTx_aB, 3, BASEZERO),       \
-        ADD_TEST(PRE##_UTx_aB, 0, BASEONE), ADD_TEST(PRE##_UTx_aB, 1, BASEONE),         \
-        ADD_TEST(PRE##_UTx_aB, 2, BASEONE), ADD_TEST(PRE##_UTx_aB, 3, BASEONE),         \
-        ADD_TEST(PRE##_UU_ITx_aB, 0, BASEZERO), ADD_TEST(PRE##_UU_ITx_aB, 1, BASEZERO), \
-        ADD_TEST(PRE##_UU_ITx_aB, 2, BASEZERO), ADD_TEST(PRE##_UU_ITx_aB, 3, BASEZERO), \
-        ADD_TEST(PRE##_UU_ITx_aB, 0, BASEONE), ADD_TEST(PRE##_UU_ITx_aB, 1, BASEONE),   \
-        ADD_TEST(PRE##_UU_ITx_aB, 2, BASEONE), ADD_TEST(PRE##_UU_ITx_aB, 3, BASEONE)
+    // Kernel kid=3 fallbacks to kid=2 on non-Zen4 and should not fail
+    // clang-format off
+#define ADD_TEST_BATCH(PRE)                                                                  \
+        ADD_TEST(PRE##_Lx_aB,    0,BASEZERO,NONE), ADD_TEST(PRE##_Lx_aB,    1,BASEZERO,NONE),\
+        ADD_TEST(PRE##_Lx_aB,    2,BASEZERO,NONE), ADD_TEST(PRE##_Lx_aB,    3,BASEZERO,NONE),\
+        ADD_TEST(PRE##_Lx_aB,    0,BASEONE, NONE), ADD_TEST(PRE##_Lx_aB,    1,BASEONE, NONE),\
+        ADD_TEST(PRE##_Lx_aB,    2,BASEONE, NONE), ADD_TEST(PRE##_Lx_aB,    3,BASEONE, NONE),\
+        ADD_TEST(PRE##_LL_Ix_aB, 0,BASEZERO,NONE), ADD_TEST(PRE##_LL_Ix_aB, 1,BASEZERO,NONE),\
+        ADD_TEST(PRE##_LL_Ix_aB, 2,BASEZERO,NONE), ADD_TEST(PRE##_LL_Ix_aB, 3,BASEZERO,NONE),\
+        ADD_TEST(PRE##_LL_Ix_aB, 0,BASEONE, NONE), ADD_TEST(PRE##_LL_Ix_aB, 1,BASEONE, NONE),\
+        ADD_TEST(PRE##_LL_Ix_aB, 2,BASEONE, NONE), ADD_TEST(PRE##_LL_Ix_aB, 3,BASEONE, NONE),\
+        ADD_TEST(PRE##_LTx_aB,   0,BASEZERO,TRAN), ADD_TEST(PRE##_LTx_aB,   1,BASEZERO,TRAN),\
+        ADD_TEST(PRE##_LTx_aB,   2,BASEZERO,TRAN), ADD_TEST(PRE##_LTx_aB,   3,BASEZERO,TRAN),\
+        ADD_TEST(PRE##_LTx_aB,   0,BASEONE, TRAN), ADD_TEST(PRE##_LTx_aB,   1,BASEONE, TRAN),\
+        ADD_TEST(PRE##_LTx_aB,   2,BASEONE, TRAN), ADD_TEST(PRE##_LTx_aB,   3,BASEONE, TRAN),\
+        ADD_TEST(PRE##_LL_ITx_aB,0,BASEZERO,TRAN), ADD_TEST(PRE##_LL_ITx_aB,1,BASEZERO,TRAN),\
+        ADD_TEST(PRE##_LL_ITx_aB,2,BASEZERO,TRAN), ADD_TEST(PRE##_LL_ITx_aB,3,BASEZERO,TRAN),\
+        ADD_TEST(PRE##_LL_ITx_aB,0,BASEONE, TRAN), ADD_TEST(PRE##_LL_ITx_aB,1,BASEONE, TRAN),\
+        ADD_TEST(PRE##_LL_ITx_aB,2,BASEONE, TRAN), ADD_TEST(PRE##_LL_ITx_aB,3,BASEONE, TRAN),\
+        ADD_TEST(PRE##_LHx_aB,   0,BASEZERO,HERM), ADD_TEST(PRE##_LHx_aB,   1,BASEZERO,HERM),\
+        ADD_TEST(PRE##_LHx_aB,   2,BASEZERO,HERM), ADD_TEST(PRE##_LHx_aB,   3,BASEZERO,HERM),\
+        ADD_TEST(PRE##_LHx_aB,   0,BASEONE, HERM), ADD_TEST(PRE##_LHx_aB,   1,BASEONE, HERM),\
+        ADD_TEST(PRE##_LHx_aB,   2,BASEONE, HERM), ADD_TEST(PRE##_LHx_aB,   3,BASEONE, HERM),\
+        ADD_TEST(PRE##_LL_IHx_aB,0,BASEZERO,HERM), ADD_TEST(PRE##_LL_IHx_aB,1,BASEZERO,HERM),\
+        ADD_TEST(PRE##_LL_IHx_aB,2,BASEZERO,HERM), ADD_TEST(PRE##_LL_IHx_aB,3,BASEZERO,HERM),\
+        ADD_TEST(PRE##_LL_IHx_aB,0,BASEONE, HERM), ADD_TEST(PRE##_LL_IHx_aB,1,BASEONE, HERM),\
+        ADD_TEST(PRE##_LL_IHx_aB,2,BASEONE, HERM), ADD_TEST(PRE##_LL_IHx_aB,3,BASEONE, HERM),\
+        ADD_TEST(PRE##_Ux_aB,    0,BASEZERO,NONE), ADD_TEST(PRE##_Ux_aB,    1,BASEZERO,NONE),\
+        ADD_TEST(PRE##_Ux_aB,    2,BASEZERO,NONE), ADD_TEST(PRE##_Ux_aB,    3,BASEZERO,NONE),\
+        ADD_TEST(PRE##_Ux_aB,    0,BASEONE, NONE), ADD_TEST(PRE##_Ux_aB,    1,BASEONE, NONE),\
+        ADD_TEST(PRE##_Ux_aB,    2,BASEONE, NONE), ADD_TEST(PRE##_Ux_aB,    3,BASEONE, NONE),\
+        ADD_TEST(PRE##_UU_Ix_aB, 0,BASEZERO,NONE), ADD_TEST(PRE##_UU_Ix_aB, 1,BASEZERO,NONE),\
+        ADD_TEST(PRE##_UU_Ix_aB, 2,BASEZERO,NONE), ADD_TEST(PRE##_UU_Ix_aB, 3,BASEZERO,NONE),\
+        ADD_TEST(PRE##_UU_Ix_aB, 0,BASEONE, NONE), ADD_TEST(PRE##_UU_Ix_aB, 1,BASEONE, NONE),\
+        ADD_TEST(PRE##_UU_Ix_aB, 2,BASEONE, NONE), ADD_TEST(PRE##_UU_Ix_aB, 3,BASEONE, NONE),\
+        ADD_TEST(PRE##_UTx_aB,   0,BASEZERO,TRAN), ADD_TEST(PRE##_UTx_aB,   1,BASEZERO,TRAN),\
+        ADD_TEST(PRE##_UTx_aB,   2,BASEZERO,TRAN), ADD_TEST(PRE##_UTx_aB,   3,BASEZERO,TRAN),\
+        ADD_TEST(PRE##_UTx_aB,   0,BASEONE, TRAN), ADD_TEST(PRE##_UTx_aB,   1,BASEONE, TRAN),\
+        ADD_TEST(PRE##_UTx_aB,   2,BASEONE, TRAN), ADD_TEST(PRE##_UTx_aB,   3,BASEONE, TRAN),\
+        ADD_TEST(PRE##_UU_ITx_aB,0,BASEZERO,TRAN), ADD_TEST(PRE##_UU_ITx_aB,1,BASEZERO,TRAN),\
+        ADD_TEST(PRE##_UU_ITx_aB,2,BASEZERO,TRAN), ADD_TEST(PRE##_UU_ITx_aB,3,BASEZERO,TRAN),\
+        ADD_TEST(PRE##_UU_ITx_aB,0,BASEONE, TRAN), ADD_TEST(PRE##_UU_ITx_aB,1,BASEONE, TRAN),\
+        ADD_TEST(PRE##_UU_ITx_aB,2,BASEONE, TRAN), ADD_TEST(PRE##_UU_ITx_aB,3,BASEONE, TRAN),\
+        ADD_TEST(PRE##_UHx_aB,   0,BASEZERO,HERM), ADD_TEST(PRE##_UHx_aB,   1,BASEZERO,HERM),\
+        ADD_TEST(PRE##_UHx_aB,   2,BASEZERO,HERM), ADD_TEST(PRE##_UHx_aB,   3,BASEZERO,HERM),\
+        ADD_TEST(PRE##_UHx_aB,   0,BASEONE, HERM), ADD_TEST(PRE##_UHx_aB,   1,BASEONE, HERM),\
+        ADD_TEST(PRE##_UHx_aB,   2,BASEONE, HERM), ADD_TEST(PRE##_UHx_aB,   3,BASEONE, HERM),\
+        ADD_TEST(PRE##_UU_IHx_aB,0,BASEZERO,HERM), ADD_TEST(PRE##_UU_IHx_aB,1,BASEZERO,HERM),\
+        ADD_TEST(PRE##_UU_IHx_aB,2,BASEZERO,HERM), ADD_TEST(PRE##_UU_IHx_aB,3,BASEZERO,HERM),\
+        ADD_TEST(PRE##_UU_IHx_aB,0,BASEONE, HERM), ADD_TEST(PRE##_UU_IHx_aB,1,BASEONE, HERM),\
+        ADD_TEST(PRE##_UU_IHx_aB,2,BASEONE, HERM), ADD_TEST(PRE##_UU_IHx_aB,3,BASEONE, HERM)
+    // clang-format on
 
     trsv_list_t trsv_list[] = {ADD_TEST_BATCH(D7),
                                ADD_TEST_BATCH(S7),
                                ADD_TEST_BATCH(N25),
-                               ADD_TEST(D7_Lx_aB, 999, BASEZERO),
-                               ADD_TEST(D7_Lx_aB, -1, BASEZERO)};
+                               ADD_TEST(D7_Lx_aB, 999, BASEZERO, NONE),
+                               ADD_TEST(D7_Lx_aB, -1, BASEZERO, NONE)};
     void        PrintTo(const trsv_list_t &param, ::std::ostream *os)
     {
         *os << param.testname;
@@ -239,13 +334,14 @@ namespace
     };
     TEST_P(PosDouble, Solver)
     {
-        const linear_system_id id   = GetParam().id;
-        const aoclsparse_int   kid  = GetParam().kid;
-        const aoclsparse_int   base = GetParam().base;
+        const linear_system_id  id          = GetParam().id;
+        const aoclsparse_int    kid         = GetParam().kid;
+        const aoclsparse_int    base        = GetParam().base;
+        const aoclsparse_status trsv_status = aoclsparse_status_success;
 #if(VERBOSE > 0)
         std::cout << "Pos/Double/Solver test name: \"" << GetParam().testname << "\"" << std::endl;
 #endif
-        trsv_driver<double>(id, kid, base, aoclsparse_status_success);
+        trsv_driver<double>(id, kid, base, trsv_status);
     }
     INSTANTIATE_TEST_SUITE_P(TrsvSuite, PosDouble, ::testing::ValuesIn(trsv_list));
 
@@ -265,6 +361,42 @@ namespace
         trsv_driver<float>(id, kid, base, trsv_status);
     }
     INSTANTIATE_TEST_SUITE_P(TrsvSuite, PosFloat, ::testing::ValuesIn(trsv_list));
+
+    class PosCplxDouble : public testing::TestWithParam<trsv_list_t>
+    {
+    };
+    TEST_P(PosCplxDouble, Solver)
+    {
+        const linear_system_id  id   = GetParam().id;
+        const aoclsparse_int    kid  = GetParam().kid;
+        const aoclsparse_int    base = GetParam().base;
+        const aoclsparse_status trsv_status
+            = kid == 1 ? aoclsparse_status_not_implemented : aoclsparse_status_success;
+#if(VERBOSE > 0)
+        std::cout << "Pos/CplxDouble/Solver test name: \"" << GetParam().testname << "\""
+                  << std::endl;
+#endif
+        trsv_driver<std::complex<double>>(id, kid, base, trsv_status);
+    }
+    INSTANTIATE_TEST_SUITE_P(TrsvSuite, PosCplxDouble, ::testing::ValuesIn(trsv_list));
+
+    class PosCplxFloat : public testing::TestWithParam<trsv_list_t>
+    {
+    };
+    TEST_P(PosCplxFloat, Solver)
+    {
+        const linear_system_id  id   = GetParam().id;
+        const aoclsparse_int    kid  = GetParam().kid;
+        const aoclsparse_int    base = GetParam().base;
+        const aoclsparse_status trsv_status
+            = kid == 1 ? aoclsparse_status_not_implemented : aoclsparse_status_success;
+#if(VERBOSE > 0)
+        std::cout << "Pos/CplxFloat/Solver test name: \"" << GetParam().testname << "\""
+                  << std::endl;
+#endif
+        trsv_driver<std::complex<float>>(id, kid, base, trsv_status);
+    }
+    INSTANTIATE_TEST_SUITE_P(TrsvSuite, PosCplxFloat, ::testing::ValuesIn(trsv_list));
 
     TEST(TrsvSuite, BaseZeroDouble)
     {
@@ -560,22 +692,26 @@ namespace
         ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
     };
 
-    TEST(TrsvSuite, NotImpletemedOpCT)
+    TEST(TrsvSuite, NoKernel)
     {
-        double                      alpha = 0.0;
+        float                       alpha = 0.0;
         aoclsparse_matrix           A     = nullptr;
         aoclsparse_mat_descr        descr = nullptr;
-        double                      b[1], x[1];
-        aoclsparse_int              kid = 0, m, n, nnz;
-        std::vector<double>         aval;
+        float                       b[1], x[1];
+        aoclsparse_int              kid = 1, m, n, nnz;
+        std::vector<float>          aval;
         std::vector<aoclsparse_int> acol, acrow;
         aoclsparse_operation        trans = aoclsparse_operation_conjugate_transpose;
         ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_zero),
                   aoclsparse_status_success);
-        ASSERT_EQ(create_matrix(N5_1_hole, m, n, nnz, acrow, acol, aval, A, descr, 0),
+        ASSERT_EQ(create_matrix(N5_full_sorted, m, n, nnz, acrow, acol, aval, A, descr, 0),
                   aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_dtrsv_kid(trans, alpha, A, descr, b, x, kid),
+        ASSERT_EQ(aoclsparse_set_mat_fill_mode(descr, aoclsparse_fill_mode_lower),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_triangular),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_strsv_kid(trans, alpha, A, descr, b, x, kid),
                   aoclsparse_status_not_implemented);
         ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
@@ -695,9 +831,9 @@ namespace
         ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
     }
-#define ADD_TEST_HINT(ID, BASE)    \
-    {                              \
-        ID, #ID "/" #BASE, 0, BASE \
+#define ADD_TEST_HINT(ID, BASE)          \
+    {                                    \
+        ID, #ID "/" #BASE, 0, BASE, NONE \
     }
     trsv_list_t trsv_hint_list[] = {ADD_TEST_HINT(D7Lx_aB_hint, BASEZERO),
                                     ADD_TEST_HINT(A_nullptr, BASEZERO),

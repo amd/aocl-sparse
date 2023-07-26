@@ -159,6 +159,57 @@ bool aoclsparse_zerocheck(const T &value)
 
 extern const size_t data_size[];
 
+namespace aoclsparse_numeric
+{
+    /* Provide a zero for all types */
+    /* Default definition handles real types */
+    template <typename T>
+    struct zero
+    {
+        static constexpr T value{0};
+        constexpr operator T() const noexcept
+        {
+            return value;
+        }
+    };
+    template <>
+    struct zero<aoclsparse_float_complex>
+    {
+        static constexpr aoclsparse_float_complex value{0, 0};
+        constexpr operator aoclsparse_float_complex() const noexcept
+        {
+            return value;
+        }
+    };
+    template <>
+    struct zero<aoclsparse_double_complex>
+    {
+        static constexpr aoclsparse_double_complex value{0, 0};
+        constexpr operator aoclsparse_double_complex() const noexcept
+        {
+            return value;
+        }
+    };
+    template <>
+    struct zero<std::complex<float>>
+    {
+        static constexpr std::complex<float> value{0, 0};
+        constexpr operator std::complex<float>() const noexcept
+        {
+            return value;
+        }
+    };
+    template <>
+    struct zero<std::complex<double>>
+    {
+        static constexpr std::complex<double> value{0, 0};
+        constexpr operator std::complex<double>() const noexcept
+        {
+            return value;
+        }
+    };
+}
+
 /*
     Return aoclsparse_matrix_data_type based on the input type (s/d/c/z)
 */

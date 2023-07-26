@@ -963,6 +963,32 @@ aoclsparse_status aoclsparse_create_csr(aoclsparse_matrix         &mat,
     return aoclsparse_create_zcsr(mat, base, M, N, nnz, row_ptr, col_idx, val);
 }
 template <>
+aoclsparse_status aoclsparse_create_csr(aoclsparse_matrix    &mat,
+                                        aoclsparse_index_base base,
+                                        aoclsparse_int        M,
+                                        aoclsparse_int        N,
+                                        aoclsparse_int        nnz,
+                                        aoclsparse_int       *row_ptr,
+                                        aoclsparse_int       *col_idx,
+                                        std::complex<float>  *val)
+{
+    return aoclsparse_create_ccsr(
+        mat, base, M, N, nnz, row_ptr, col_idx, reinterpret_cast<aoclsparse_float_complex *>(val));
+}
+template <>
+aoclsparse_status aoclsparse_create_csr(aoclsparse_matrix    &mat,
+                                        aoclsparse_index_base base,
+                                        aoclsparse_int        M,
+                                        aoclsparse_int        N,
+                                        aoclsparse_int        nnz,
+                                        aoclsparse_int       *row_ptr,
+                                        aoclsparse_int       *col_idx,
+                                        std::complex<double> *val)
+{
+    return aoclsparse_create_zcsr(
+        mat, base, M, N, nnz, row_ptr, col_idx, reinterpret_cast<aoclsparse_double_complex *>(val));
+}
+template <>
 aoclsparse_status aoclsparse_createcsc(aoclsparse_matrix    &mat,
                                        aoclsparse_index_base base,
                                        aoclsparse_int        M,
