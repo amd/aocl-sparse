@@ -22,6 +22,7 @@
 # ########################################################################
 
 set(AOCLSPARSE_SOURCES
+  src/level1/aoclsparse_roti.cpp
   src/level1/aoclsparse_dot.cpp
   src/level1/aoclsparse_gthr.cpp
   src/level1/aoclsparse_sctr.cpp

@@ -1537,6 +1537,80 @@ aoclsparse_status
     aoclsparse_zsctr(const aoclsparse_int nnz, const void *x, const aoclsparse_int *indx, void *y);
 /**@}*/
 
+/*! \ingroup level1_module
+ *  \brief Applies Givens rotations to single and double precision real vectors.
+ *
+ *  \details
+ *
+ *  \p aoclsparse_sroti (float) and \p aoclsparse_droti (double) apply the Givens rotations
+ *  on elements of two real vectors.
+ *
+ *  Let \f$y\in R^m\f$ be a vector in full storage form, \f$x\f$ be a vector in a compressed form and \f$I_x\f$
+ *  be an indices vector of length at least \p nnz described by \p indx, then
+ *
+ *  \f[
+ *     x_i = c * x_i + s * y_{I_{x_{i}}}
+ *  \f]
+ *  \f[
+ *     y_{I_{x_{i}}} = c * y_{I_{x_{i}}} - s * x_i
+ *  \f]
+ *
+ *  where \p c, \p s are scalars.
+ *
+ *  A possible C implementation could be
+ *
+ *  \code{.c}
+ *    for(i = 0; i < nnz; ++i)
+ *    {
+ *       temp = x[i];
+ *       x[i] = c * x[i] + s * y[indx[i]];
+ *       y[indx[i]] = c * y[indx[i]] - s * temp;
+ *    }
+ *  \endcode
+ *
+ *  Note: The contents of the vectors are not checked for NaNs.
+ *
+ *  @param[in]
+ *  nnz       The number of elements in \f$x\f$ and \f$indx\f$.
+ *  @param[in,out]
+ *  x       Array of at least \f$nnz\f$ elements in compressed form. The elements of the array are updated 
+ *          after applying Givens rotation.
+ *  @param[in]
+ *  indx    Indices of \f$nnz\f$  elements used for Givens rotation. The elements in this vector are
+ *          only checked for non-negativity. The user should make sure that index is less than
+ *          the size of \p y and are distinct.
+ *  @param[in,out]
+ *  y       Array of at least \f$\max(indx_i, i \in \{ 1,\ldots,nnz\})\f$  elements in full storage form.
+ *          The elements of the array are updated after applying Givens rotation.
+ *  @param[in]
+ *  c       A scalar.
+ *  @param[in]
+ *  s       A scalar.
+ *
+ *  \retval     aoclsparse_status_success The operation completed successfully.
+ *  \retval     aoclsparse_status_invalid_pointer At least one of the pointers \p x, \p indx, \p y is invalid.
+ *  \retval     aoclsparse_status_invalid_size Indicates that provided \p nnz is less than zero.
+ *  \retval     aoclsparse_status_invalid_index_value At least one of the indices in indx is negative. With this error, 
+ *              the values of vectors x and y are undefined.
+ *
+ */
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_sroti(const aoclsparse_int  nnz,
+                                   float                *x,
+                                   const aoclsparse_int *indx,
+                                   float                *y,
+                                   const float           c,
+                                   const float           s);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_droti(const aoclsparse_int  nnz,
+                                   double               *x,
+                                   const aoclsparse_int *indx,
+                                   double               *y,
+                                   const double          c,
+                                   const double          s);
+/**@}*/
 #ifdef __cplusplus
 }
 #endif

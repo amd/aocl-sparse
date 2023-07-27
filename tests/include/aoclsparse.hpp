@@ -318,6 +318,14 @@ aoclsparse_status aoclsparse_sctr(const aoclsparse_int nnz,
                                   T *__restrict__ y,
                                   const aoclsparse_int kid);
 
+template <typename T>
+aoclsparse_status aoclsparse_roti(const aoclsparse_int nnz,
+                                  T *__restrict__ x,
+                                  const aoclsparse_int *__restrict__ indx,
+                                  T *__restrict__ y,
+                                  const T              c,
+                                  const T              s,
+                                  const aoclsparse_int kid);
 /*
  * ===========================================================================
  *    Initialize
