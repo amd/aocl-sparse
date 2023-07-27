@@ -801,6 +801,30 @@ aoclsparse_status aoclsparse_dot(const aoclsparse_int nnz,
 }
 
 template <>
+aoclsparse_status aoclsparse_roti(const aoclsparse_int nnz,
+                                  double *__restrict__ x,
+                                  const aoclsparse_int *__restrict__ indx,
+                                  double *__restrict__ y,
+                                  const double                          c,
+                                  const double                          s,
+                                  [[maybe_unused]] const aoclsparse_int kid)
+{
+    return aoclsparse_droti(nnz, x, indx, y, c, s);
+}
+
+template <>
+aoclsparse_status aoclsparse_roti(const aoclsparse_int nnz,
+                                  float *__restrict__ x,
+                                  const aoclsparse_int *__restrict__ indx,
+                                  float *__restrict__ y,
+                                  const float                           c,
+                                  const float                           s,
+                                  [[maybe_unused]] const aoclsparse_int kid)
+{
+    return aoclsparse_sroti(nnz, x, indx, y, c, s);
+}
+
+template <>
 aoclsparse_status aoclsparse_sctr(const aoclsparse_int nnz,
                                   const double *__restrict__ x,
                                   const aoclsparse_int *__restrict__ indx,
