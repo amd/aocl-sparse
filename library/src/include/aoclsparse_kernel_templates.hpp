@@ -98,6 +98,9 @@ template <typename T, int L> constexpr T pz(const T &x) noexcept
 using cfloat = std::complex<float>;
 using cdouble = std::complex<double>;
 
+template <int SZA, int SZB, typename SUFA, typename SUFB> struct kt_is_same  {
+    constexpr operator bool() const noexcept { return SZA==SZB && std::is_same_v<SUFA,SUFB>; } };
+
 // helper template type for avx full vectors
 template <int, typename> struct avxvector { };
 template <> struct avxvector<256, double>  { using type      = __m256d;             // Vector type
@@ -255,18 +258,18 @@ template<> avxvector_t<512,cdouble>  KT_FORCE_INLINE kt_set1_p<512,cdouble>  (co
 //
 // Example: `kt_set_p<256, double>(v, b)` expands to _mm256_set_pd(v[*(b+3)],v[*(b+2)],v[*(b+1)],v[*(b+0)])
 template <int SZ, typename SUF> KT_FORCE_INLINE avxvector_t<SZ, SUF> kt_set_p(const SUF *v, const kt_addr_t * b) noexcept {
-    if constexpr(SZ==256 && std::is_same_v<SUF,double>) {
+    if constexpr(kt_is_same<256, SZ, double, SUF>()) {
         return _mm256_set_pd(v[*(b+3U)], v[*(b+2U)], v[*(b+1U)], v[*(b+0U)]);
     }
-    else if constexpr(SZ==256 && std::is_same_v<SUF,float>) {
+    else if constexpr(kt_is_same<256, SZ, float, SUF>()) {
         return _mm256_set_ps(v[*(b+7U)], v[*(b+6U)], v[*(b+5U)], v[*(b+4U)],
                              v[*(b+3U)], v[*(b+2U)], v[*(b+1U)], v[*(b+0U)]);
     }
-    else if constexpr(SZ==256 && std::is_same_v<SUF,cdouble>) {
+    else if constexpr(kt_is_same<256, SZ, cdouble, SUF>()) {
         const double * vv = reinterpret_cast<const double*>(v);
         return _mm256_set_pd(vv[2U*(*(b+1U))+1U], vv[2U*(*(b+1U))+0U],
                              vv[2U*(*(b+0U))+1U], vv[2U*(*(b+0U))+0U]);
-    } else if constexpr(SZ==256 && std::is_same_v<SUF,cfloat>) {
+    } else if constexpr(kt_is_same<256, SZ, cfloat, SUF>()) {
         const float * vv = reinterpret_cast<const float*>(v);
         return _mm256_set_ps(vv[2U*(*(b+3U))+1U], vv[2U*(*(b+3U))+0U],
                              vv[2U*(*(b+2U))+1U], vv[2U*(*(b+2U))+0U],
@@ -274,24 +277,24 @@ template <int SZ, typename SUF> KT_FORCE_INLINE avxvector_t<SZ, SUF> kt_set_p(co
                              vv[2U*(*(b+0U))+1U], vv[2U*(*(b+0U))+0U]);
     }
 #ifdef USE_AVX512
-    else if constexpr(SZ==512 && std::is_same_v<SUF,double>) {
+    else if constexpr(kt_is_same<512, SZ, double, SUF>()) {
         return _mm512_set_pd(v[*(b+7U)], v[*(b+6U)], v[*(b+5U)], v[*(b+4U)],
                              v[*(b+3U)], v[*(b+2U)], v[*(b+1U)], v[*(b+0U)]);
     }
-    else if constexpr(SZ==512 && std::is_same_v<SUF,float>) {
+    else if constexpr(kt_is_same<512, SZ, float, SUF>()) {
         return _mm512_set_ps(v[*(b+15U)],v[*(b+14U)],v[*(b+13U)],v[*(b+12U)],
                              v[*(b+11U)],v[*(b+10U)],v[*(b+9U)], v[*(b+8U)],
                              v[*(b+7U)], v[*(b+6U)], v[*(b+5U)], v[*(b+4U)],
                              v[*(b+3U)], v[*(b+2U)], v[*(b+1U)], v[*(b+0U)]);
     }
-    else if constexpr(SZ==512 && std::is_same_v<SUF,cdouble>) {
+    else if constexpr(kt_is_same<512, SZ, cdouble, SUF>()) {
         const double * vv = reinterpret_cast<const double*>(v);
         return _mm512_set_pd(vv[2U*(*(b+3U))+1U], vv[2U*(*(b+3U))+0U],
                              vv[2U*(*(b+2U))+1U], vv[2U*(*(b+2U))+0U],
                              vv[2U*(*(b+1U))+1U], vv[2U*(*(b+1U))+0U],
                              vv[2U*(*(b+0U))+1U], vv[2U*(*(b+0U))+0U]);
     }
-    else if constexpr(SZ==512 && std::is_same_v<SUF,cfloat>) {
+    else if constexpr(kt_is_same<512, SZ, cfloat, SUF>()) {
         const float * vv = reinterpret_cast<const float*>(v);
         return _mm512_set_ps(vv[2U*(*(b+7U))+1U], vv[2U*(*(b+7U))+0U],
                              vv[2U*(*(b+6U))+1U], vv[2U*(*(b+6U))+0U],
@@ -319,7 +322,7 @@ template <int SZ, typename SUF> KT_FORCE_INLINE avxvector_t<SZ, SUF> kt_set_p(co
 // Example: `kt_maskz_set_p<256, float, AVX, 3>(v, b)` expands to `_mm256_set_ps(0f, 0f, 0f, 0f, 0f, v[b+2], v[b+1], v[b+0])`
 // and      `kt_maskz_set_p<256, double, AVX512VL, 3>(v, b)` expands to _mm256_maskz_loadu_pd(7, &v[b])
 template<int SZ, typename SUF, kt_avxext EXT, int L> KT_FORCE_INLINE avxvector_t<SZ, SUF>  kt_maskz_set_p(const SUF *v, const kt_addr_t b) noexcept {
-    if constexpr(SZ==256 && std::is_same_v<SUF,double>) {
+    if constexpr(kt_is_same<256, SZ, double, SUF>()) {
 #ifdef USE_AVX512
         if constexpr(EXT & AVX512VL)
             return _mm256_maskz_loadu_pd((1<<L)-1, &v[b]);
@@ -327,7 +330,7 @@ template<int SZ, typename SUF, kt_avxext EXT, int L> KT_FORCE_INLINE avxvector_t
 #endif
             return _mm256_set_pd(pz<SUF,L-4>(v[b+3U]), pz<SUF,L-3>(v[b+2U]), pz<SUF,L-2>(v[b+1U]), pz<SUF,L-1>(v[b+0U]));
     }
-    else if constexpr(SZ==256 && std::is_same_v<SUF,float>) {
+    else if constexpr(kt_is_same<256, SZ, float, SUF>()) {
 #ifdef USE_AVX512
         if constexpr(EXT & AVX512VL)
             return _mm256_maskz_loadu_ps((1<<L)-1, &v[b]);
@@ -336,7 +339,7 @@ template<int SZ, typename SUF, kt_avxext EXT, int L> KT_FORCE_INLINE avxvector_t
             return _mm256_set_ps(pz<SUF,L-8>(v[b+7U]), pz<SUF,L-7>(v[b+6U]), pz<SUF,L-6>(v[b+5U]), pz<SUF,L-5>(v[b+4U]),
                                  pz<SUF,L-4>(v[b+3U]), pz<SUF,L-3>(v[b+2U]), pz<SUF,L-2>(v[b+1U]), pz<SUF,L-1>(v[b+0U]));
     }
-    else if constexpr(SZ==256 && std::is_same_v<SUF,cdouble>) {
+    else if constexpr(kt_is_same<256, SZ, cdouble, SUF>()) {
         const double * vv = reinterpret_cast<const double*>(v);
 #ifdef USE_AVX512
         if constexpr(EXT & AVX512VL)
@@ -346,7 +349,7 @@ template<int SZ, typename SUF, kt_avxext EXT, int L> KT_FORCE_INLINE avxvector_t
             return _mm256_set_pd(pz<double,L-2>(vv[2U*b+3U]), pz<double,L-2>(vv[2U*b+2U]),
                                  pz<double,L-1>(vv[2U*b+1U]), pz<double,L-1>(vv[2U*b+0U]));
     }
-    else if constexpr(SZ==256 && std::is_same_v<SUF,cfloat>) {
+    else if constexpr(kt_is_same<256, SZ, cfloat, SUF>()) {
         const float * vv = reinterpret_cast<const float*>(v);
 #ifdef USE_AVX512
         if constexpr(EXT & AVX512VL)
@@ -359,16 +362,16 @@ template<int SZ, typename SUF, kt_avxext EXT, int L> KT_FORCE_INLINE avxvector_t
                                   pz<float,L-1>(vv[2*b+1U]), pz<float,L-1>(vv[2*b+0U]));
     }
 #ifdef USE_AVX512
-    else if constexpr(SZ==512 && std::is_same_v<SUF,double> && (EXT & AVX512F)) {
+    else if constexpr(kt_is_same<512, SZ, double, SUF>() && (EXT & AVX512F)) {
             return _mm512_maskz_loadu_pd((1<<L)-1, &v[b]);
     }
-    else if constexpr(SZ==512 && std::is_same_v<SUF,float> && (EXT & AVX512F)) {
+    else if constexpr(kt_is_same<512, SZ, float, SUF>() && (EXT & AVX512F)) {
             return _mm512_maskz_loadu_ps((1<<L)-1, &v[b]);
     }
-    else if constexpr(SZ==512 && std::is_same_v<SUF,cdouble> && (EXT & AVX512F)) {
+    else if constexpr(kt_is_same<512, SZ, cdouble, SUF>() && (EXT & AVX512F)) {
             return _mm512_maskz_loadu_pd((1<<2*L)-1, &v[2U*b]);
     }
-    else if constexpr(SZ==512 && std::is_same_v<SUF,cfloat> && (EXT & AVX512F)) {
+    else if constexpr(kt_is_same<512, SZ, cfloat, SUF>() && (EXT & AVX512F)) {
             return _mm512_maskz_loadu_ps((1<<2*L)-1, &v[2U*b]);
     }
 #endif
@@ -388,19 +391,19 @@ template<int SZ, typename SUF, kt_avxext EXT, int L> KT_FORCE_INLINE avxvector_t
 //
 // Example: `kt_maskz_set_p<256, double, AVX, 2>(v, b)` expands to `_mm256_set_pd(0.0, 0.0, v[*(b+1)], v[*(b+0)])`
 template<int SZ, typename SUF, kt_avxext, int L> KT_FORCE_INLINE avxvector_t<SZ, SUF>  kt_maskz_set_p(const SUF *v, const kt_addr_t *b) noexcept {
-    if constexpr(SZ==256 && std::is_same_v<SUF,double>) {
+    if constexpr(kt_is_same<256, SZ, double, SUF>()) {
         return _mm256_set_pd(pz<SUF,L-4>(v[*(b+3U)]), pz<SUF,L-3>(v[*(b+2U)]), pz<SUF,L-2>(v[*(b+1U)]), pz<SUF,L-1>(v[*(b+0U)]));
     }
-    else if constexpr(SZ==256 && std::is_same_v<SUF,float>) {
+    else if constexpr(kt_is_same<256, SZ, float, SUF>()) {
         return _mm256_set_ps(pz<SUF,L-8>(v[*(b+7U)]), pz<SUF,L-7>(v[*(b+6U)]), pz<SUF,L-6>(v[*(b+5U)]), pz<SUF,L-5>(v[*(b+4U)]),
                              pz<SUF,L-4>(v[*(b+3U)]), pz<SUF,L-3>(v[*(b+2U)]), pz<SUF,L-2>(v[*(b+1U)]), pz<SUF,L-1>(v[*(b+0U)]));
     }
-    else if constexpr(SZ==256 && std::is_same_v<SUF,cdouble>) {
+    else if constexpr(kt_is_same<256, SZ, cdouble, SUF>()) {
         const double * vv = reinterpret_cast<const double*>(v);
         return _mm256_set_pd(pz<double,L-2>(vv[2U*(*(b+1U))+1U]), pz<double,L-2>(vv[2U*(*(b+1U))+0U]),
                              pz<double,L-1>(vv[2U*(*(b+0U))+1U]), pz<double,L-1>(vv[2U*(*(b+0U))+0U]));
     }
-    else if constexpr(SZ==256 && std::is_same_v<SUF,cfloat>) {
+    else if constexpr(kt_is_same<256, SZ, cfloat, SUF>()) {
         const float * vv = reinterpret_cast<const float*>(v);
         return _mm256_set_ps(pz<float,L-4>(vv[2U*(*(b+3U))+1U]), pz<float,L-4>(vv[2U*(*(b+3U))+0U]),
                              pz<float,L-3>(vv[2U*(*(b+2U))+1U]), pz<float,L-3>(vv[2U*(*(b+2U))+0U]),
@@ -408,24 +411,24 @@ template<int SZ, typename SUF, kt_avxext, int L> KT_FORCE_INLINE avxvector_t<SZ,
                              pz<float,L-1>(vv[2U*(*(b+0U))+1U]), pz<float,L-1>(vv[2U*(*(b+0U))+0U]));
     }
 #ifdef USE_AVX512
-    else if constexpr(SZ==512 && std::is_same_v<SUF,double>) {
+    else if constexpr(kt_is_same<512, SZ, double, SUF>()) {
         return _mm512_set_pd(pz<SUF,L-8>(v[*(b+7U)]), pz<SUF,L-7>(v[*(b+6U)]), pz<SUF,L-6>(v[*(b+5U)]), pz<SUF,L-5>(v[*(b+4U)]),
                              pz<SUF,L-4>(v[*(b+3U)]), pz<SUF,L-3>(v[*(b+2U)]), pz<SUF,L-2>(v[*(b+1U)]), pz<SUF,L-1>(v[*(b+0U)]));
     }
-    else if constexpr(SZ==512 && std::is_same_v<SUF,float>) {
+    else if constexpr(kt_is_same<512, SZ, float, SUF>()) {
         return _mm512_set_ps(pz<SUF,L-16>(v[*(b+15U)]), pz<SUF,L-15>(v[*(b+14U)]), pz<SUF,L-14>(v[*(b+13U)]), pz<SUF,L-13>(v[*(b+12U)]),
                              pz<SUF,L-12>(v[*(b+11U)]), pz<SUF,L-11>(v[*(b+10U)]), pz<SUF,L-10>(v[*(b+9U)]),  pz<SUF,L-9> (v[*(b+8U)]),
                              pz<SUF,L-8> (v[*(b+7U)]),  pz<SUF,L-7> (v[*(b+6U)]),  pz<SUF,L-6> (v[*(b+5U)]),  pz<SUF,L-5> (v[*(b+4U)]),
                              pz<SUF,L-4> (v[*(b+3U)]),  pz<SUF,L-3> (v[*(b+2U)]),  pz<SUF,L-2> (v[*(b+1U)]),  pz<SUF,L-1> (v[*(b+0U)]));
     }
-    else if constexpr(SZ==512 && std::is_same_v<SUF,cdouble>) {
+    else if constexpr(kt_is_same<512, SZ, cdouble, SUF>()) {
         const double * vv = reinterpret_cast<const double*>(v);
         return _mm512_set_pd(pz<double,L-4>(vv[2U*(*(b+3U))+1U]), pz<double,L-4>(vv[2U*(*(b+3U))+0U]),
                              pz<double,L-3>(vv[2U*(*(b+2U))+1U]), pz<double,L-3>(vv[2U*(*(b+2U))+0U]),
                              pz<double,L-2>(vv[2U*(*(b+1U))+1U]), pz<double,L-2>(vv[2U*(*(b+1U))+0U]),
                              pz<double,L-1>(vv[2U*(*(b+0U))+1U]), pz<double,L-1>(vv[2U*(*(b+0U))+0U]));
     }
-    else if constexpr(SZ==512 && std::is_same_v<SUF,cfloat>) {
+    else if constexpr(kt_is_same<512, SZ, cfloat, SUF>()) {
         const float * vv = reinterpret_cast<const float*>(v);
         return _mm512_set_ps(pz<float,L-8>(vv[2U*(*(b+7U))+1U]), pz<float,L-8>(vv[2U*(*(b+7U))+0U]),
                              pz<float,L-7>(vv[2U*(*(b+6U))+1U]), pz<float,L-7>(vv[2U*(*(b+6U))+0U]),
@@ -646,6 +649,39 @@ template<> KT_FORCE_INLINE cdouble kt_hsum_p<512,cdouble>(avxvector_t<512,cdoubl
 };
 #endif
 
+// Templated version of the conjugate operation
+// Conjugate an AVX register
+//  - `SZ`  size (in bits) of AVX vector, i.e., 256 or 512
+//  - `SUF` suffix of working type, i.e., `double`, `float`, `cdouble`, or `cfloat`
+//  - `a` avxvector
+// returns `conjugate(a)` for complex types and returns `a`for real
+template<int SZ, typename SUF> avxvector_t<SZ,SUF> KT_FORCE_INLINE kt_conj_p(const avxvector_t<SZ,SUF> a) noexcept {
+    if constexpr (std::is_floating_point<SUF>::value) {
+        return a;
+    }
+    else if constexpr ( kt_is_same<256, SZ, cfloat, SUF>() ) {
+        __m256  mask = _mm256_setr_ps(0.f, -0.f, 0.f, -0.f, 0.f, -0.f, 0.f, -0.f);
+        __m256 res = _mm256_xor_ps(mask, a);
+        return res;
+    }
+    else if constexpr ( kt_is_same<256, SZ, cdouble, SUF>() ) {
+        __m256d  mask = _mm256_setr_pd(0.0, -0.0, 0.0, -0.0);
+        __m256d res = _mm256_xor_pd(mask, a);
+        return res;
+    }
+#ifdef USE_AVX512
+    else if constexpr ( kt_is_same<512, SZ, cfloat, SUF>() ) {
+        __m512  mask = _mm512_setr_ps(0.f, -0.f, 0.f, -0.f, 0.f, -0.f, 0.f, -0.f, 0.f, -0.f, 0.f, -0.f, 0.f, -0.f, 0.f, -0.f);
+        __m512 res = _mm512_xor_ps(mask, a);
+        return res;
+    }
+    else if constexpr ( kt_is_same<512, SZ, cdouble, SUF>() ) {
+        __m512d  mask = _mm512_setr_pd(0.0, -0.0, 0.0, -0.0, 0.0, -0.0, 0.0, -0.0);
+        __m512d res = _mm512_xor_pd(mask, a);
+        return res;
+    }
+#endif
+}
 
 // Level 1 micro kernels
 // These micro kernels depend solely on LEVEL 0 micro kernels
@@ -681,6 +717,22 @@ KT_FORCE_INLINE float kt_dot_p(avxvector_t<512,float> const a, avxvector_t<512,f
     return kt_dot_p<512,float>(a, b);
 }
 #endif
+
+// Templated version of the conjugate dot operation
+// Conjugate dot-product of two AVX registers
+//  - `SZ`  size (in bits) of AVX vector, i.e., 256 or 512
+//  - `SUF` suffix of working type, i.e., `double`, `float`, `cdouble`, or `cfloat`
+//  - `a` avxvector
+//  - `b` avxvector
+// if `a` and `b` are real then returns the dot-product of both, if complex then returns the dot-product of `a` and `conjugate(b)`
+template<int SZ, typename SUF> SUF KT_FORCE_INLINE kt_cdot_p(const avxvector_t<SZ,SUF> a, const avxvector_t<SZ,SUF> b) noexcept {
+    if constexpr (std::is_floating_point<SUF>::value){
+        return kt_dot_p<SZ, SUF>(a, b);
+    }
+    else {
+        return kt_dot_p<SZ,SUF>(a, kt_conj_p<SZ,SUF>(b));
+    }
+};
 
 }
 

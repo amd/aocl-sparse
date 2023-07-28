@@ -91,6 +91,14 @@ namespace TestsKT
 
     const KTTCommonData D;
 
+    TEST(KT_L0, KT_IS_SAME)
+    {
+        EXPECT_TRUE((kt_is_same<256, 256, double, double>()));
+        EXPECT_FALSE((kt_is_same<256, 256, double, cdouble>()));
+        EXPECT_FALSE((kt_is_same<256, 512, double, double>()));
+        EXPECT_FALSE((kt_is_same<256, 512, float, cfloat>()));
+    }
+
     TEST(KT_L0, KT_TYPES_256)
     {
         /*
@@ -308,8 +316,8 @@ namespace TestsKT
     {
         const size_t ns        = tsz_v<256, float>;
         const size_t nd        = tsz_v<256, double>;
-        const float  szero[ns] = {0};
-        const double dzero[nd] = {0};
+        const float  szero[ns] = {0.f};
+        const double dzero[nd] = {0.0};
 
         EXPECT_EQ_VEC(ns, (kt_setzero_p<256, float>()), szero);
         EXPECT_EQ_VEC(nd, (kt_setzero_p<256, double>()), dzero);
@@ -323,8 +331,8 @@ namespace TestsKT
     {
         const size_t ns        = tsz_v<512, float>;
         const size_t nd        = tsz_v<512, double>;
-        const float  szero[ns] = {0};
-        const double dzero[nd] = {0};
+        const float  szero[ns] = {0.f};
+        const double dzero[nd] = {0.0};
 
         EXPECT_EQ_VEC((tsz_v<512, float>), (kt_setzero_p<512, float>()), szero);
         EXPECT_EQ_VEC((tsz_v<512, double>), (kt_setzero_p<512, double>()), dzero);
@@ -902,7 +910,7 @@ namespace TestsKT
         SUF                 *pv = nullptr;                                              \
         for(size_t i = 0; i < n; i++)                                                   \
         {                                                                               \
-            if(i >= K)                                                                  \
+            if(int(i - K) >= 0)                                                         \
                 ve[i] = 0;                                                              \
             else                                                                        \
                 ve[i] = D.v##S[B + i];                                                  \
@@ -933,7 +941,7 @@ namespace TestsKT
         SUF                 *pv = nullptr;                                           \
         for(size_t i = 0; i < n; i++)                                                \
         {                                                                            \
-            if(i >= K)                                                               \
+            if(int(i - K) >= 0)                                                      \
                 ve[i] = 0;                                                           \
             else                                                                     \
                 ve[i] = D.v##S[D.map[B + i]];                                        \
@@ -1233,19 +1241,152 @@ namespace TestsKT
 #endif
 
     /*
+     * Test "dot-product" intrinsic on
+     * 2 (cdouble), 4 (cfloat), 4 (double), 8 (floats) length vectors
+     */
+    TEST(KT_L0, kt_conj_p_256)
+    {
+        constexpr size_t ns = tsz_v<256, float>;
+        constexpr size_t nd = tsz_v<256, double>;
+        constexpr size_t nz = tsz_v<256, cdouble>;
+        constexpr size_t nc = tsz_v<256, cfloat>;
+
+        avxvector_t<256, float>   vs, ress;
+        avxvector_t<256, double>  vd, resd;
+        avxvector_t<256, cfloat>  vc, resc;
+        avxvector_t<256, cdouble> vz, resz;
+
+        float   refs[ns];
+        cfloat  refc[nc];
+        double  refd[nd];
+        cdouble refz[nz];
+
+        // Float
+        vs   = kt_loadu_p<256, float>(D.vs);
+        ress = kt_conj_p<256, float>(vs);
+
+        for(size_t i = 0; i < ns; i++)
+        {
+            refs[i] = D.vs[i];
+        }
+
+        EXPECT_EQ_VEC(ns, refs, ress);
+
+        // Double
+        vd   = kt_loadu_p<256, double>(D.vd);
+        resd = kt_conj_p<256, double>(vd);
+
+        for(size_t i = 0; i < nd; i++)
+        {
+            refd[i] = D.vd[i];
+        }
+
+        EXPECT_EQ_VEC(nd, refd, resd);
+
+        // Cfloat
+        vc   = kt_loadu_p<256, cfloat>(D.vc);
+        resc = kt_conj_p<256, cfloat>(vc);
+
+        for(size_t i = 0; i < nc; i++)
+        {
+            refc[i] = conj(D.vc[i]);
+        }
+
+        std::complex<float> *pc = reinterpret_cast<std::complex<float> *>(&resc);
+        EXPECT_COMPLEX_EQ_VEC(nc, refc, pc);
+
+        // CDouble
+        vz   = kt_loadu_p<256, cdouble>(D.vz);
+        resz = kt_conj_p<256, cdouble>(vz);
+
+        for(size_t i = 0; i < nz; i++)
+        {
+            refz[i] = conj(D.vz[i]);
+        }
+
+        std::complex<double> *pz = reinterpret_cast<std::complex<double> *>(&resz);
+        EXPECT_COMPLEX_EQ_VEC(nz, refz, pz);
+    }
+
+#ifdef USE_AVX512
+    TEST(KT_L0, kt_conj_p_512)
+    {
+        constexpr size_t          ns = tsz_v<512, float>;
+        constexpr size_t          nd = tsz_v<512, double>;
+        constexpr size_t          nz = tsz_v<512, cdouble>;
+        constexpr size_t          nc = tsz_v<512, cfloat>;
+        avxvector_t<512, float>   vs;
+        avxvector_t<512, double>  vd;
+        avxvector_t<512, cfloat>  vc;
+        avxvector_t<512, cdouble> vz;
+
+        float   refs[ns];
+        double  refd[nd];
+        cfloat  refc[nc];
+        cdouble refz[nz];
+
+        // Float
+        vs = kt_loadu_p<512, float>(D.vs);
+        vs = kt_conj_p<512, float>(vs);
+
+        for(size_t i = 0; i < ns; i++)
+        {
+            refs[i] = D.vs[i];
+        }
+
+        EXPECT_EQ_VEC(ns, refs, vs);
+
+        // Double
+        vd = kt_loadu_p<512, double>(D.vd);
+        vd = kt_conj_p<512, double>(vd);
+
+        for(size_t i = 0; i < nd; i++)
+        {
+            refd[i] = D.vd[i];
+        }
+
+        EXPECT_EQ_VEC(nd, refd, vd);
+
+        // Cfloat
+        vc = kt_loadu_p<512, cfloat>(&D.vc[0]);
+        vc = kt_conj_p<512, cfloat>(vc);
+
+        for(size_t i = 0; i < nc; i++)
+        {
+            refc[i] = conj(D.vc[i]);
+        }
+
+        std::complex<float> *pc = reinterpret_cast<std::complex<float> *>(&vc);
+        EXPECT_COMPLEX_EQ_VEC(nc, refc, pc);
+
+        // CDouble
+        vz = kt_loadu_p<512, cdouble>(&D.vz[0]);
+        vz = kt_conj_p<512, cdouble>(vz);
+
+        for(size_t i = 0; i < nz; i++)
+        {
+            refz[i] = conj(D.vz[i]);
+        }
+
+        std::complex<double> *pz = reinterpret_cast<std::complex<double> *>(&vz);
+        EXPECT_COMPLEX_EQ_VEC(nz, refz, pz);
+    }
+#endif
+
+    /*
      * Test "dot-product" intrinsic on two
      * 2 (cdouble), 4 (cfloat), 4 (double), 8 (floats) length vectors
      */
     TEST(KT_L1, kt_dot_p_256)
     {
-        size_t                    ns   = tsz_v<256, float>;
-        size_t                    nd   = tsz_v<256, double>;
-        avxvector_t<256, cfloat>  s1   = kt_loadu_p<256, float>(&D.vs[3]);
-        avxvector_t<256, cfloat>  s2   = kt_loadu_p<256, float>(&D.vs[5]);
-        avxvector_t<256, cdouble> d1   = kt_loadu_p<256, double>(&D.vd[3]);
-        avxvector_t<256, cdouble> d2   = kt_loadu_p<256, double>(&D.vd[5]);
-        float                     refs = 0.0f;
-        double                    refd = 0.0;
+        size_t                   ns   = tsz_v<256, float>;
+        size_t                   nd   = tsz_v<256, double>;
+        avxvector_t<256, float>  s1   = kt_loadu_p<256, float>(&D.vs[3]);
+        avxvector_t<256, float>  s2   = kt_loadu_p<256, float>(&D.vs[5]);
+        avxvector_t<256, double> d1   = kt_loadu_p<256, double>(&D.vd[1]);
+        avxvector_t<256, double> d2   = kt_loadu_p<256, double>(&D.vd[2]);
+        float                    refs = 0.0f;
+        double                   refd = 0.0;
 
         float sdot = kt_dot_p<256, float>(s1, s2);
         for(size_t i = 0; i < ns; i++)
@@ -1257,7 +1398,7 @@ namespace TestsKT
 
         double ddot = kt_dot_p<256, double>(d1, d2);
         for(size_t i = 0; i < nd; i++)
-            refd += D.vd[3 + i] * D.vd[5 + i];
+            refd += D.vd[1 + i] * D.vd[2 + i];
         EXPECT_DOUBLE_EQ(refd, ddot);
         // Test convenience wrapper
         ddot = kt_dot_p(d1, d2);
@@ -1331,6 +1472,110 @@ namespace TestsKT
             refz += D.vz[1 + i] * D.vz[0 + i];
         EXPECT_COMPLEX_DOUBLE_EQ(refz, zdot);
         // Don't check convenience wrapper
+    }
+#endif
+
+    /*
+     * Test "complex dot-product" intrinsic on two
+     * 2 (cdouble), 4 (cfloat), 4 (double), 8 (floats) length vectors
+     */
+    TEST(KT_L1, kt_cdot_p_256)
+    {
+        size_t                   ns   = tsz_v<256, float>;
+        size_t                   nd   = tsz_v<256, double>;
+        avxvector_t<256, float>  s1   = kt_loadu_p<256, float>(&D.vs[3]);
+        avxvector_t<256, float>  s2   = kt_loadu_p<256, float>(&D.vs[5]);
+        avxvector_t<256, double> d1   = kt_loadu_p<256, double>(&D.vd[3]);
+        avxvector_t<256, double> d2   = kt_loadu_p<256, double>(&D.vd[2]);
+        float                    refs = 0.0f;
+        double                   refd = 0.0;
+
+        float sdot = kt_cdot_p<256, float>(s1, s2);
+        for(size_t i = 0; i < ns; i++)
+            refs += D.vs[3 + i] * D.vs[5 + i];
+        EXPECT_FLOAT_EQ(refs, sdot);
+        // Test convenience wrapper
+        sdot = kt_dot_p(s1, s2);
+        EXPECT_FLOAT_EQ(refs, sdot);
+
+        double ddot = kt_cdot_p<256, double>(d1, d2);
+        for(size_t i = 0; i < nd; i++)
+            refd += D.vd[3 + i] * D.vd[2 + i];
+        EXPECT_DOUBLE_EQ(refd, ddot);
+        // Test convenience wrapper
+        ddot = kt_dot_p(d1, d2);
+        EXPECT_DOUBLE_EQ(refd, ddot);
+
+        size_t                    nc   = tsz_v<256, cfloat>;
+        size_t                    nz   = tsz_v<256, cdouble>;
+        avxvector_t<256, cfloat>  c1   = kt_loadu_p<256, cfloat>(&D.vc[3]);
+        avxvector_t<256, cfloat>  c2   = kt_loadu_p<256, cfloat>(&D.vc[5]);
+        avxvector_t<256, cdouble> z1   = kt_loadu_p<256, cdouble>(&D.vz[3]);
+        avxvector_t<256, cdouble> z2   = kt_loadu_p<256, cdouble>(&D.vz[4]);
+        cfloat                    refc = {0.0f, 0.0f};
+        cdouble                   refz = {0.0, 0.0};
+
+        cfloat cdot = kt_cdot_p<256, cfloat>(c1, c2);
+        for(size_t i = 0; i < nc; i++)
+            refc += D.vc[3 + i] * conj(D.vc[5 + i]);
+
+        EXPECT_COMPLEX_FLOAT_EQ(refc, cdot);
+
+        cdouble zdot = kt_cdot_p<256, cdouble>(z1, z2);
+        for(size_t i = 0; i < nz; i++)
+            refz += D.vz[3 + i] * conj(D.vz[4 + i]);
+
+        EXPECT_COMPLEX_DOUBLE_EQ(refz, zdot);
+    }
+
+#ifdef USE_AVX512
+    TEST(KT_L1, kt_cdot_p_512)
+    {
+        size_t                   ns   = tsz_v<512, float>;
+        size_t                   nd   = tsz_v<512, double>;
+        avxvector_t<512, float>  s1   = kt_loadu_p<512, float>(&D.vs[0]);
+        avxvector_t<512, float>  s2   = kt_loadu_p<512, float>(&D.vs[1]);
+        avxvector_t<512, double> d1   = kt_loadu_p<512, double>(&D.vd[2]);
+        avxvector_t<512, double> d2   = kt_loadu_p<512, double>(&D.vd[0]);
+        float                    refs = 0.0f;
+        double                   refd = 0.0;
+
+        float sdot = kt_cdot_p<512, float>(s1, s2);
+        for(size_t i = 0; i < ns; i++)
+            refs += D.vs[0 + i] * D.vs[1 + i];
+        EXPECT_FLOAT_EQ(refs, sdot);
+        // Test convenience wrapper
+        sdot = kt_dot_p(s1, s2);
+        EXPECT_FLOAT_EQ(refs, sdot);
+
+        double ddot = kt_cdot_p<512, double>(d1, d2);
+        for(size_t i = 0; i < nd; i++)
+            refd += D.vd[2 + i] * D.vd[0 + i];
+        EXPECT_DOUBLE_EQ(refd, ddot);
+        // Test convenience wrapper
+        ddot = kt_dot_p(d1, d2);
+        EXPECT_DOUBLE_EQ(refd, ddot);
+
+        size_t                    nc   = tsz_v<512, cfloat>;
+        size_t                    nz   = tsz_v<512, cdouble>;
+        avxvector_t<512, cfloat>  c1   = kt_loadu_p<512, cfloat>(&D.vc[3]);
+        avxvector_t<512, cfloat>  c2   = kt_loadu_p<512, cfloat>(&D.vc[5]);
+        avxvector_t<512, cdouble> z1   = kt_loadu_p<512, cdouble>(&D.vz[3]);
+        avxvector_t<512, cdouble> z2   = kt_loadu_p<512, cdouble>(&D.vz[2]);
+        cfloat                    refc = {0.0f, 0.0f};
+        cdouble                   refz = {0.0, 0.0};
+
+        cfloat cdot = kt_cdot_p<512, cfloat>(c1, c2);
+        for(size_t i = 0; i < nc; i++)
+            refc += D.vc[3 + i] * conj(D.vc[5 + i]);
+
+        EXPECT_COMPLEX_FLOAT_EQ(refc, cdot);
+
+        cdouble zdot = kt_cdot_p<512, cdouble>(z1, z2);
+        for(size_t i = 0; i < nz; i++)
+            refz += D.vz[3 + i] * conj(D.vz[2 + i]);
+
+        EXPECT_COMPLEX_DOUBLE_EQ(refz, zdot);
     }
 #endif
 }
