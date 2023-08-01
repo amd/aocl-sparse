@@ -29,12 +29,19 @@
 #include <cmath>
 #include <limits>
 
+// Ignore compiler warning from BLIS
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wtype-limits"
+#pragma GCC diagnostic ignored "-Wunused-function"
 // The fix order of BLIS/Flame headers
 // clang-format off
 #include "blis.h"
 #include "cblas.hh"
 #include "FLAME.h"
 // clang-format on
+// Restore
+#pragma GCC diagnostic pop
 
 /* Check that the size of integers in the used libraries is OK. */
 static_assert(
