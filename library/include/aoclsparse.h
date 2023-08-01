@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020-2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,14 +31,16 @@
 *          matrix in dense/sparse format.</li>
 * <li>Sparse Level 2 functions describe the operations between a matrix in sparse format and a
 *   vector in dense format.</li>
-* <li>Sparse Solver functions that perform matrix factorization and solution phases.</li>
+* <li>Sprase Level 1 functions perform vector operations such as dot product, vector additions on
+*   sparse vectors, i.e., vectors stored in a compressed form. </li>
+* <li>Iterative sparse solvers that solve a linear system of equations.</li>
 * <li>Analysis and execute functionalities for performing optimized Sparse Matrix-Dense Vector
 * multiplication and Sparse Solver.</li>
 * <li>Sparse Format Conversion functions describe operations on a matrix in sparse format to
 * obtain a different matrix format.</li>
 *<li>Sparse Auxiliary Functions describe auxiliary functions.</li></ol>
 
-*  
+*
 */
 
 #include "aoclsparse_analysis.h"

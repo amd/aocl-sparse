@@ -360,4 +360,13 @@ aoclsparse_status aoclsparse_createcoo(aoclsparse_matrix    &mat,
                                        aoclsparse_int       *row_ind,
                                        aoclsparse_int       *col_idx,
                                        T                    *val);
+
+template <typename T>
+aoclsparse_status aoclsparse_axpyi(aoclsparse_int nnz,
+                                   T              a,
+                                   const T *__restrict__ x,
+                                   const aoclsparse_int *__restrict__ indx,
+                                   T *__restrict__ y,
+                                   [[maybe_unused]] const aoclsparse_int kid);
+
 #endif /*AOCLSPARSE_HPP*/

@@ -1010,3 +1010,64 @@ aoclsparse_status aoclsparse_createcoo(aoclsparse_matrix         &mat,
 {
     return aoclsparse_create_zcoo(mat, base, M, N, nnz, row_ind, col_ind, val);
 };
+
+template <>
+aoclsparse_status aoclsparse_axpyi(aoclsparse_int nnz,
+                                   float          a,
+                                   const float *__restrict__ x,
+                                   const aoclsparse_int *__restrict__ indx,
+                                   float *__restrict__ y,
+                                   [[maybe_unused]] const aoclsparse_int kid)
+{
+    return aoclsparse_saxpyi(nnz, a, x, indx, y);
+}
+template <>
+aoclsparse_status aoclsparse_axpyi(aoclsparse_int nnz,
+                                   double         a,
+                                   const double *__restrict__ x,
+                                   const aoclsparse_int *indx,
+                                   double *__restrict__ y,
+                                   [[maybe_unused]] const aoclsparse_int kid)
+{
+    return aoclsparse_daxpyi(nnz, a, x, indx, y);
+}
+template <>
+aoclsparse_status aoclsparse_axpyi(aoclsparse_int      nnz,
+                                   std::complex<float> a,
+                                   const std::complex<float> *__restrict__ x,
+                                   const aoclsparse_int *indx,
+                                   std::complex<float> *__restrict__ y,
+                                   [[maybe_unused]] const aoclsparse_int kid)
+{
+    return aoclsparse_caxpyi(nnz, &a, x, indx, y);
+}
+template <>
+aoclsparse_status aoclsparse_axpyi(aoclsparse_int       nnz,
+                                   std::complex<double> a,
+                                   const std::complex<double> *__restrict__ x,
+                                   const aoclsparse_int *indx,
+                                   std::complex<double> *__restrict__ y,
+                                   [[maybe_unused]] const aoclsparse_int kid)
+{
+    return aoclsparse_zaxpyi(nnz, &a, x, indx, y);
+}
+template <>
+aoclsparse_status aoclsparse_axpyi(aoclsparse_int           nnz,
+                                   aoclsparse_float_complex a,
+                                   const aoclsparse_float_complex *__restrict__ x,
+                                   const aoclsparse_int *indx,
+                                   aoclsparse_float_complex *__restrict__ y,
+                                   [[maybe_unused]] const aoclsparse_int kid)
+{
+    return aoclsparse_caxpyi(nnz, &a, x, indx, y);
+}
+template <>
+aoclsparse_status aoclsparse_axpyi(aoclsparse_int            nnz,
+                                   aoclsparse_double_complex a,
+                                   const aoclsparse_double_complex *__restrict__ x,
+                                   const aoclsparse_int *indx,
+                                   aoclsparse_double_complex *__restrict__ y,
+                                   [[maybe_unused]] const aoclsparse_int kid)
+{
+    return aoclsparse_zaxpyi(nnz, &a, x, indx, y);
+}

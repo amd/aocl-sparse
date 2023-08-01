@@ -34,6 +34,388 @@ extern "C" {
 #endif
 
 /*! \ingroup level1_module
+ *  \brief A variant of sparse vector-vector addition between a compressed sparse vector and a dense vector.
+ *
+ *  \details
+ *
+ *  <tt>aoclsparse_(s/d/c/z)axpyi</tt> adds a scalar multiple of compressed sparse vector to a dense vector.
+ *
+ *  Let \f$y\in C^m\f$ be a dense vector, \f$x\f$ be a compressed sparse vector and \f$I_x\f$
+ *  be an indices vector of length at least \p nnz described by \p indx, then
+ *
+ *  \f[
+ *     y_{I_{x_{i}}} = a*x_i + y_{I_{x_{i}}}, i\in\{1,\ldots,\text{\ttfamily nnz}\}.
+ *  \f]
+ *
+ *  A possible C implementation could be
+ *
+ *  \code{.c}
+ *    for(i = 0; i < nnz; ++i)
+ *    {
+ *       y[indx[i]] = a*x[i] + y[indx[i]];
+ *    }
+ *  \endcode
+ *
+ *  Note: The contents of the vectors are not checked for NaNs.
+ *
+ *  @param[in]
+ *  nnz     The number of elements in \f$x\f$ and \f$indx\f$.
+ *  @param[in]
+ *  a       Scalar value.
+ *  @param[in]
+ *  x       Sparse vector stored in compressed form of \f$nnz\f$ elements.
+ *  @param[in]
+ *  indx    Indices of \f$nnz\f$ elements. The elements in this vector are only checked for
+ *          non-negativity. The user should make sure that index is less than the size of \p y.
+ *          Array should follow 0-based indexing.
+ *  @param[inout]
+ *  y       Array of at least \f$\max(indx_i, i \in \{ 1,\ldots,nnz\})\f$ elements.
+ *
+ *  \retval     aoclsparse_status_success               The operation completed successfully.
+ *  \retval     aoclsparse_status_invalid_pointer       At least one of the pointers \p x, \p indx, \p y is invalid.
+ *  \retval     aoclsparse_status_invalid_size          Indicates that provided \p nnz is less than zero.
+ *  \retval     aoclsparse_status_invalid_index_value   At least one of the indices in indx is negative.
+ *
+ */
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_saxpyi(
+    const aoclsparse_int nnz, const float a, const float *x, const aoclsparse_int *indx, float *y);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_daxpyi(const aoclsparse_int  nnz,
+                                    const double          a,
+                                    const double         *x,
+                                    const aoclsparse_int *indx,
+                                    double               *y);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_caxpyi(
+    const aoclsparse_int nnz, const void *a, const void *x, const aoclsparse_int *indx, void *y);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_zaxpyi(
+    const aoclsparse_int nnz, const void *a, const void *x, const aoclsparse_int *indx, void *y);
+
+/**@}*/
+/*! \ingroup level1_module
+ *  \brief Sparse conjugate dot product for single and double data precision complex types.
+ *
+ *  \details
+ *  \p  aoclsparse_cdotci (complex float) and \p  aoclsparse_zdotci (complex double) compute the dot product of the conjugate of a complex vector stored
+ *  in a compressed format and a complex dense vector.  Let \f$x\f$ and \f$y\f$ be respectively a sparse and dense vectors in \f$C^m\f$ with
+ *  \p indx an indices vector of length at least \f$nnz\f$ that is used to index into the entries of dense vector \f$y\f$, then these functions
+ *  return
+ *
+ *  \f[
+ *    \text{dot} = \sum_{i=0}^{nnz-1} \text{conj}(x_i) * y_{indx_{i}}.
+ *  \f]
+ *
+ *  Note: The contents of the vectors are not checked for NaNs.
+ *
+ *  @param[in]
+ *  nnz       The number of elements (length) of vectors \f$x\f$ and \f$indx\f$.
+ *  @param[in]
+ *  x       Array of at least \f$nnz\f$ complex elements.
+ *  @param[in]
+ *  indx    Vector of indices of length at least \f$nnz\f$. Each entry of this vector must contain a valid index into \f$y\f$ and 
+ *          be unique. The entries of \p indx are not checked for validity.
+ *  @param[in]
+ *  y       Array of at least \f$\max(indx_i, i \in \{ 1,\ldots,nnz\})\f$ complex elements.
+ * @param[out]
+ *  dot     The dot product of conjugate of \f$x\f$ and \f$y\f$ when \f$nnz > 0\f$. If \f$nnz \le 0\f$, \p dot is set to 0.
+ *
+ *  \retval     aoclsparse_status_success The operation completed successfully.
+ *  \retval     aoclsparse_status_invalid_pointer At least one of the pointers \p x, \p indx, \p y, \p dot is invalid.
+ *  \retval     aoclsparse_status_invalid_size Indicates that the provided \p nnz is not positive.
+ *
+ */
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_cdotci(
+    const aoclsparse_int nnz, const void *x, const aoclsparse_int *indx, const void *y, void *dot);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_zdotci(
+    const aoclsparse_int nnz, const void *x, const aoclsparse_int *indx, const void *y, void *dot);
+
+/**@}*/
+
+/*! \ingroup level1_module
+ *  \brief Sparse dot product for single and double data precision complex types.
+ *
+ *  \details
+ *  \p  aoclsparse_cdotui (complex float) and \p  aoclsparse_zdotui (complex double) compute the dot product of a complex vector stored
+ *  in a compressed format and a complex dense vector.  Let \f$x\f$ and \f$y\f$ be respectively a sparse and dense vectors in \f$C^m\f$ with
+ *  \p indx an indices vector of length at least \f$nnz\f$ that is used to index into the entries of dense vector \f$y\f$, then these functions
+ *  return
+ *
+ *  \f[
+ *    \text{dot} = \sum_{i=0}^{nnz-1} x_{i} * y_{indx_{i}}.
+ *  \f]
+ *
+ *  Note: The contents of the vectors are not checked for NaNs.
+ *
+ *  @param[in]
+ *  nnz       The number of elements (length) of vectors \f$x\f$ and \f$indx\f$.
+ *  @param[in]
+ *  x       Array of at least \f$nnz\f$ complex elements.
+ *  @param[in]
+ *  indx    Vector of indices of length at least \f$nnz\f$. Each entry of this vector must contain a valid index into \f$y\f$ and 
+ *          be unique. The entries of \p indx are not checked for validity.
+ *  @param[in]
+ *  y       Array of at least \f$\max(indx_i, i \in \{ 1,\ldots,nnz\})\f$ complex elements.
+ * @param[out]
+ *  dot     The dot product of \f$x\f$ and \f$y\f$ when \f$nnz > 0\f$. If \f$nnz \le 0\f$, \p dot is set to 0.
+ *
+ *  \retval     aoclsparse_status_success The operation completed successfully.
+ *  \retval     aoclsparse_status_invalid_pointer At least one of the pointers \p x, \p indx, \p y, \p dot is invalid.
+ *  \retval     aoclsparse_status_invalid_size Indicates that the provided \p nnz is not positive.
+ *
+ */
+
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_cdotui(
+    const aoclsparse_int nnz, const void *x, const aoclsparse_int *indx, const void *y, void *dot);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_zdotui(
+    const aoclsparse_int nnz, const void *x, const aoclsparse_int *indx, const void *y, void *dot);
+
+/**@}*/
+
+/*! \ingroup level1_module
+ *  \brief Sparse dot product for single and double data precision real types.
+ *
+ *  \details
+ *  \p  aoclsparse_sdoti (float) and \p  aoclsparse_ddoti (double) compute the dot product of a real vector stored
+ *  in a compressed format and a real dense vector.  Let \f$x\f$ and \f$y\f$ be respectively a sparse and dense vectors in \f$R^m\f$ with
+ *  \p indx an indices vector of length at least \f$nnz\f$ that is used to index into the entries of dense vector \f$y\f$, then these functions
+ *  return
+ *
+ *  \f[
+ *    \text{dot} = \sum_{i=0}^{nnz-1} x_{i} * y_{indx_{i}}.
+ *  \f]
+ *
+ *  Note: The contents of the vectors are not checked for NaNs.
+ *
+ *  @param[in]
+ *  nnz       The number of elements (length) of vectors \f$x\f$ and \f$indx\f$.
+ *  @param[in]
+ *  x       Array of at least \f$nnz\f$ real elements.
+ *  @param[in]
+ *  indx    Vector of indices of length at least \f$nnz\f$. Each entry of this vector must contain a valid index into \f$y\f$ and 
+ *          be unique. The entries of \p indx are not checked for validity.
+ *  @param[in]
+ *  y       Array of at least \f$\max(indx_i, i \in \{ 1,\ldots,nnz\})\f$ complex elements.
+ *
+ *  \retval  Float/double Value of the dot product if \p nnz is positive, otherwise it is set to 0.
+ */
+
+/**@{*/
+DLL_PUBLIC
+float aoclsparse_sdoti(const aoclsparse_int  nnz,
+                       const float          *x,
+                       const aoclsparse_int *indx,
+                       const float          *y);
+
+DLL_PUBLIC
+double aoclsparse_ddoti(const aoclsparse_int  nnz,
+                        const double         *x,
+                        const aoclsparse_int *indx,
+                        const double         *y);
+
+/**@}*/
+
+/*! \ingroup level1_module
+ *  \brief Sparse scatter for single and double precision real types.
+ *
+ *  \details
+ *
+ *  \p aoclsparse_ssctr (float) and \p aoclsparse_dsctr (double) scatter the elements of a  
+ *  compressed sparse vector into a dense vecor.
+ * 
+ *  Let \f$y\in R^m\f$ be a dense vector, \f$x\f$ be a compressed sparse vector and \f$I_x\f$ 
+ *  be an indices vector of length at least \p nnz described by \p indx, then
+ *
+ *  \f[
+ *     y_{I_{x_{i}}} = x_i, i\in\{1,\ldots,\text{\ttfamily nnz}\}.
+ *  \f]
+ *
+ *  A possible C implementation for real vectors could be
+ *
+ *  \code{.c}
+ *    for(i = 0; i < nnz; ++i)
+ *    {
+ *       y[indx[i]] = x[i];
+ *    }
+ *  \endcode
+ *
+ *  Note: The contents of the vectors are not checked for NaNs.
+ *
+ *  @param[in]
+ *  nnz       The number of elements in \f$x\f$ and \f$indx\f$.
+ *  @param[in]
+ *  x       Array of \f$nnz\f$ elements to be scattered.
+ *  @param[in]
+ *  indx    Indices of \f$nnz\f$  elements to be scattered. The elements in this vector are
+ *          only checked for non-negativity. The user should make sure that index is less than 
+ *          the size of \p y.
+ *  @param[out]
+ *  y       Array of at least \f$\max(indx_i, i \in \{ 1,\ldots,nnz\})\f$  elements.
+ *
+ *  \retval     aoclsparse_status_success The operation completed successfully.
+ *  \retval     aoclsparse_status_invalid_pointer At least one of the pointers \p x, \p indx, \p y is invalid.
+ *  \retval     aoclsparse_status_invalid_size Indicates that provided \p nnz is less than zero.
+ *  \retval     aoclsparse_status_invalid_index_value At least one of the indices in indx is negative.
+ *
+ */
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_ssctr(const aoclsparse_int  nnz,
+                                   const float          *x,
+                                   const aoclsparse_int *indx,
+                                   float                *y);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_dsctr(const aoclsparse_int  nnz,
+                                   const double         *x,
+                                   const aoclsparse_int *indx,
+                                   double               *y);
+/**@}*/
+
+/*! \ingroup level1_module
+ *  \brief Sparse scatter for single and double precision complex types.
+ *
+ *  \details
+ *
+ *  \p aoclsparse_csctr (complex float) and \p aoclsparse_zsctr (complex double) scatter the elements of a  
+ *  compressed sparse vector into a dense vecor.
+ * 
+ *  Let \f$y\in C^m\f$ be a dense vector, \f$x\f$ be a compressed sparse vector and \f$I_x\f$ 
+ *  be an indices vector of length at least \p nnz described by \p indx, then
+ *
+ *  \f[
+ *     y_{I_{x_{i}}} = x_i, i\in\{1,\ldots,\text{\ttfamily nnz}\}.
+ *  \f]
+ *
+ *  A possible C implementation for complex vectors could be
+ *
+ *  \code{.c}
+ *    for(i = 0; i < nnz; ++i)
+ *    {
+ *       y[indx[i]] = x[i];
+ *    }
+ *  \endcode
+ *
+ *  Note: The contents of the vectors are not checked for NaNs.
+ *
+ *  @param[in]
+ *  nnz       The number of elements in \f$x\f$ and \f$indx\f$.
+ *  @param[in]
+ *  x       Array of \f$nnz\f$ elements to be scattered.
+ *  @param[in]
+ *  indx    Indices of \f$nnz\f$  elements to be scattered. The elements in this vector are
+ *          only checked for non-negativity. The user should make sure that index is less than 
+ *          the size of \p y.
+ *  @param[out]
+ *  y       Array of at least \f$\max(indx_i, i \in \{ 1,\ldots,nnz\})\f$ elements.
+ *
+ *  \retval     aoclsparse_status_success The operation completed successfully.
+ *  \retval     aoclsparse_status_invalid_pointer At least one of the pointers \p x, \p indx, \p y is invalid.
+ *  \retval     aoclsparse_status_invalid_size Indicates that provided \p nnz is less than zero.
+ *  \retval     aoclsparse_status_invalid_index_value At least one of the indices in indx is negative.
+ *
+ */
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status
+    aoclsparse_csctr(const aoclsparse_int nnz, const void *x, const aoclsparse_int *indx, void *y);
+
+DLL_PUBLIC
+aoclsparse_status
+    aoclsparse_zsctr(const aoclsparse_int nnz, const void *x, const aoclsparse_int *indx, void *y);
+/**@}*/
+
+/*! \ingroup level1_module
+ *  \brief Applies Givens rotations to single and double precision real vectors.
+ *
+ *  \details
+ *
+ *  \p aoclsparse_sroti (float) and \p aoclsparse_droti (double) apply the Givens rotations
+ *  on elements of two real vectors.
+ *
+ *  Let \f$y\in R^m\f$ be a vector in full storage form, \f$x\f$ be a vector in a compressed form and \f$I_x\f$
+ *  be an indices vector of length at least \p nnz described by \p indx, then
+ *
+ *  \f[
+ *     x_i = c * x_i + s * y_{I_{x_{i}}}
+ *  \f]
+ *  \f[
+ *     y_{I_{x_{i}}} = c * y_{I_{x_{i}}} - s * x_i
+ *  \f]
+ *
+ *  where \p c, \p s are scalars.
+ *
+ *  A possible C implementation could be
+ *
+ *  \code{.c}
+ *    for(i = 0; i < nnz; ++i)
+ *    {
+ *       temp = x[i];
+ *       x[i] = c * x[i] + s * y[indx[i]];
+ *       y[indx[i]] = c * y[indx[i]] - s * temp;
+ *    }
+ *  \endcode
+ *
+ *  Note: The contents of the vectors are not checked for NaNs.
+ *
+ *  @param[in]
+ *  nnz       The number of elements in \f$x\f$ and \f$indx\f$.
+ *  @param[in,out]
+ *  x       Array of at least \f$nnz\f$ elements in compressed form. The elements of the array are updated 
+ *          after applying Givens rotation.
+ *  @param[in]
+ *  indx    Indices of \f$nnz\f$  elements used for Givens rotation. The elements in this vector are
+ *          only checked for non-negativity. The user should make sure that index is less than
+ *          the size of \p y and are distinct.
+ *  @param[in,out]
+ *  y       Array of at least \f$\max(indx_i, i \in \{ 1,\ldots,nnz\})\f$  elements in full storage form.
+ *          The elements of the array are updated after applying Givens rotation.
+ *  @param[in]
+ *  c       A scalar.
+ *  @param[in]
+ *  s       A scalar.
+ *
+ *  \retval     aoclsparse_status_success The operation completed successfully.
+ *  \retval     aoclsparse_status_invalid_pointer At least one of the pointers \p x, \p indx, \p y is invalid.
+ *  \retval     aoclsparse_status_invalid_size Indicates that provided \p nnz is less than zero.
+ *  \retval     aoclsparse_status_invalid_index_value At least one of the indices in indx is negative. With this error, 
+ *              the values of vectors x and y are undefined.
+ *
+ */
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_sroti(const aoclsparse_int  nnz,
+                                   float                *x,
+                                   const aoclsparse_int *indx,
+                                   float                *y,
+                                   const float           c,
+                                   const float           s);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_droti(const aoclsparse_int  nnz,
+                                   double               *x,
+                                   const aoclsparse_int *indx,
+                                   double               *y,
+                                   const double          c,
+                                   const double          s);
+/**@}*/
+
+/**@}*/
+
+/*! \ingroup level1_module
  *  \brief Gather elements from a dense vector and store them into a sparse vector.
  *
  *  \details
@@ -1296,321 +1678,7 @@ aoclsparse_status aoclsparse_silu_smoother(aoclsparse_operation       op,
                                            const float               *approx_inv_diag,
                                            float                     *x,
                                            const float               *b);
-/**@}*/
-/*! \ingroup level1_module
- *  \brief Sparse conjugate dot product for single and double data precision complex types.
- *
- *  \details
- *  \p  aoclsparse_cdotci (complex float) and \p  aoclsparse_zdotci (complex double) compute the dot product of the conjugate of a complex vector stored
- *  in a compressed format and a complex dense vector.  Let \f$x\f$ and \f$y\f$ be respectively a sparse and dense vectors in \f$C^m\f$ with
- *  \p indx an indices vector of length at least \f$nnz\f$ that is used to index into the entries of dense vector \f$y\f$, then these functions
- *  return
- *
- *  \f[
- *    \text{dot} = \sum_{i=0}^{nnz-1} \text{conj}(x_i) * y_{indx_{i}}.
- *  \f]
- *
- *  Note: The contents of the vectors are not checked for NaNs.
- *
- *  @param[in]
- *  nnz       The number of elements (length) of vectors \f$x\f$ and \f$indx\f$.
- *  @param[in]
- *  x       Array of at least \f$nnz\f$ complex elements.
- *  @param[in]
- *  indx    Vector of indices of length at least \f$nnz\f$. Each entry of this vector must contain a valid index into \f$y\f$ and 
- *          be unique. The entries of \p indx are not checked for validity.
- *  @param[in]
- *  y       Array of at least \f$\max(indx_i, i \in \{ 1,\ldots,nnz\})\f$ complex elements.
- * @param[out]
- *  dot     The dot product of conjugate of \f$x\f$ and \f$y\f$ when \f$nnz > 0\f$. If \f$nnz \le 0\f$, \p dot is set to 0.
- *
- *  \retval     aoclsparse_status_success The operation completed successfully.
- *  \retval     aoclsparse_status_invalid_pointer At least one of the pointers \p x, \p indx, \p y, \p dot is invalid.
- *  \retval     aoclsparse_status_invalid_size Indicates that the provided \p nnz is not positive.
- *
- */
-/**@{*/
-DLL_PUBLIC
-aoclsparse_status aoclsparse_cdotci(
-    const aoclsparse_int nnz, const void *x, const aoclsparse_int *indx, const void *y, void *dot);
 
-DLL_PUBLIC
-aoclsparse_status aoclsparse_zdotci(
-    const aoclsparse_int nnz, const void *x, const aoclsparse_int *indx, const void *y, void *dot);
-
-/**@}*/
-
-/*! \ingroup level1_module
- *  \brief Sparse dot product for single and double data precision complex types.
- *
- *  \details
- *  \p  aoclsparse_cdotui (complex float) and \p  aoclsparse_zdotui (complex double) compute the dot product of a complex vector stored
- *  in a compressed format and a complex dense vector.  Let \f$x\f$ and \f$y\f$ be respectively a sparse and dense vectors in \f$C^m\f$ with
- *  \p indx an indices vector of length at least \f$nnz\f$ that is used to index into the entries of dense vector \f$y\f$, then these functions
- *  return
- *
- *  \f[
- *    \text{dot} = \sum_{i=0}^{nnz-1} x_{i} * y_{indx_{i}}.
- *  \f]
- *
- *  Note: The contents of the vectors are not checked for NaNs.
- *
- *  @param[in]
- *  nnz       The number of elements (length) of vectors \f$x\f$ and \f$indx\f$.
- *  @param[in]
- *  x       Array of at least \f$nnz\f$ complex elements.
- *  @param[in]
- *  indx    Vector of indices of length at least \f$nnz\f$. Each entry of this vector must contain a valid index into \f$y\f$ and 
- *          be unique. The entries of \p indx are not checked for validity.
- *  @param[in]
- *  y       Array of at least \f$\max(indx_i, i \in \{ 1,\ldots,nnz\})\f$ complex elements.
- * @param[out]
- *  dot     The dot product of \f$x\f$ and \f$y\f$ when \f$nnz > 0\f$. If \f$nnz \le 0\f$, \p dot is set to 0.
- *
- *  \retval     aoclsparse_status_success The operation completed successfully.
- *  \retval     aoclsparse_status_invalid_pointer At least one of the pointers \p x, \p indx, \p y, \p dot is invalid.
- *  \retval     aoclsparse_status_invalid_size Indicates that the provided \p nnz is not positive.
- *
- */
-
-/**@{*/
-DLL_PUBLIC
-aoclsparse_status aoclsparse_cdotui(
-    const aoclsparse_int nnz, const void *x, const aoclsparse_int *indx, const void *y, void *dot);
-
-DLL_PUBLIC
-aoclsparse_status aoclsparse_zdotui(
-    const aoclsparse_int nnz, const void *x, const aoclsparse_int *indx, const void *y, void *dot);
-
-/**@}*/
-
-/*! \ingroup level1_module
- *  \brief Sparse dot product for single and double data precision real types.
- *
- *  \details
- *  \p  aoclsparse_sdoti (float) and \p  aoclsparse_ddoti (double) compute the dot product of a real vector stored
- *  in a compressed format and a real dense vector.  Let \f$x\f$ and \f$y\f$ be respectively a sparse and dense vectors in \f$R^m\f$ with
- *  \p indx an indices vector of length at least \f$nnz\f$ that is used to index into the entries of dense vector \f$y\f$, then these functions
- *  return
- *
- *  \f[
- *    \text{dot} = \sum_{i=0}^{nnz-1} x_{i} * y_{indx_{i}}.
- *  \f]
- *
- *  Note: The contents of the vectors are not checked for NaNs.
- *
- *  @param[in]
- *  nnz       The number of elements (length) of vectors \f$x\f$ and \f$indx\f$.
- *  @param[in]
- *  x       Array of at least \f$nnz\f$ real elements.
- *  @param[in]
- *  indx    Vector of indices of length at least \f$nnz\f$. Each entry of this vector must contain a valid index into \f$y\f$ and 
- *          be unique. The entries of \p indx are not checked for validity.
- *  @param[in]
- *  y       Array of at least \f$\max(indx_i, i \in \{ 1,\ldots,nnz\})\f$ complex elements.
- *
- *  \retval  Float/double Value of the dot product if \p nnz is positive, otherwise it is set to 0.
- */
-
-/**@{*/
-DLL_PUBLIC
-float aoclsparse_sdoti(const aoclsparse_int  nnz,
-                       const float          *x,
-                       const aoclsparse_int *indx,
-                       const float          *y);
-
-DLL_PUBLIC
-double aoclsparse_ddoti(const aoclsparse_int  nnz,
-                        const double         *x,
-                        const aoclsparse_int *indx,
-                        const double         *y);
-
-/**@}*/
-
-/*! \ingroup level1_module
- *  \brief Sparse scatter for single and double precision real types.
- *
- *  \details
- *
- *  \p aoclsparse_ssctr (float) and \p aoclsparse_dsctr (double) scatter the elements of a  
- *  compressed sparse vector into a dense vecor.
- * 
- *  Let \f$y\in R^m\f$ be a dense vector, \f$x\f$ be a compressed sparse vector and \f$I_x\f$ 
- *  be an indices vector of length at least \p nnz described by \p indx, then
- *
- *  \f[
- *     y_{I_{x_{i}}} = x_i, i\in\{1,\ldots,\text{\ttfamily nnz}\}.
- *  \f]
- *
- *  A possible C implementation for real vectors could be
- *
- *  \code{.c}
- *    for(i = 0; i < nnz; ++i)
- *    {
- *       y[indx[i]] = x[i];
- *    }
- *  \endcode
- *
- *  Note: The contents of the vectors are not checked for NaNs.
- *
- *  @param[in]
- *  nnz       The number of elements in \f$x\f$ and \f$indx\f$.
- *  @param[in]
- *  x       Array of \f$nnz\f$ elements to be scattered.
- *  @param[in]
- *  indx    Indices of \f$nnz\f$  elements to be scattered. The elements in this vector are
- *          only checked for non-negativity. The user should make sure that index is less than 
- *          the size of \p y.
- *  @param[out]
- *  y       Array of at least \f$\max(indx_i, i \in \{ 1,\ldots,nnz\})\f$  elements.
- *
- *  \retval     aoclsparse_status_success The operation completed successfully.
- *  \retval     aoclsparse_status_invalid_pointer At least one of the pointers \p x, \p indx, \p y is invalid.
- *  \retval     aoclsparse_status_invalid_size Indicates that provided \p nnz is less than zero.
- *  \retval     aoclsparse_status_invalid_index_value At least one of the indices in indx is negative.
- *
- */
-/**@{*/
-DLL_PUBLIC
-aoclsparse_status aoclsparse_ssctr(const aoclsparse_int  nnz,
-                                   const float          *x,
-                                   const aoclsparse_int *indx,
-                                   float                *y);
-
-DLL_PUBLIC
-aoclsparse_status aoclsparse_dsctr(const aoclsparse_int  nnz,
-                                   const double         *x,
-                                   const aoclsparse_int *indx,
-                                   double               *y);
-/**@}*/
-
-/*! \ingroup level1_module
- *  \brief Sparse scatter for single and double precision complex types.
- *
- *  \details
- *
- *  \p aoclsparse_csctr (complex float) and \p aoclsparse_zsctr (complex double) scatter the elements of a  
- *  compressed sparse vector into a dense vecor.
- * 
- *  Let \f$y\in C^m\f$ be a dense vector, \f$x\f$ be a compressed sparse vector and \f$I_x\f$ 
- *  be an indices vector of length at least \p nnz described by \p indx, then
- *
- *  \f[
- *     y_{I_{x_{i}}} = x_i, i\in\{1,\ldots,\text{\ttfamily nnz}\}.
- *  \f]
- *
- *  A possible C implementation for complex vectors could be
- *
- *  \code{.c}
- *    for(i = 0; i < nnz; ++i)
- *    {
- *       y[indx[i]] = x[i];
- *    }
- *  \endcode
- *
- *  Note: The contents of the vectors are not checked for NaNs.
- *
- *  @param[in]
- *  nnz       The number of elements in \f$x\f$ and \f$indx\f$.
- *  @param[in]
- *  x       Array of \f$nnz\f$ elements to be scattered.
- *  @param[in]
- *  indx    Indices of \f$nnz\f$  elements to be scattered. The elements in this vector are
- *          only checked for non-negativity. The user should make sure that index is less than 
- *          the size of \p y.
- *  @param[out]
- *  y       Array of at least \f$\max(indx_i, i \in \{ 1,\ldots,nnz\})\f$ elements.
- *
- *  \retval     aoclsparse_status_success The operation completed successfully.
- *  \retval     aoclsparse_status_invalid_pointer At least one of the pointers \p x, \p indx, \p y is invalid.
- *  \retval     aoclsparse_status_invalid_size Indicates that provided \p nnz is less than zero.
- *  \retval     aoclsparse_status_invalid_index_value At least one of the indices in indx is negative.
- *
- */
-/**@{*/
-DLL_PUBLIC
-aoclsparse_status
-    aoclsparse_csctr(const aoclsparse_int nnz, const void *x, const aoclsparse_int *indx, void *y);
-
-DLL_PUBLIC
-aoclsparse_status
-    aoclsparse_zsctr(const aoclsparse_int nnz, const void *x, const aoclsparse_int *indx, void *y);
-/**@}*/
-
-/*! \ingroup level1_module
- *  \brief Applies Givens rotations to single and double precision real vectors.
- *
- *  \details
- *
- *  \p aoclsparse_sroti (float) and \p aoclsparse_droti (double) apply the Givens rotations
- *  on elements of two real vectors.
- *
- *  Let \f$y\in R^m\f$ be a vector in full storage form, \f$x\f$ be a vector in a compressed form and \f$I_x\f$
- *  be an indices vector of length at least \p nnz described by \p indx, then
- *
- *  \f[
- *     x_i = c * x_i + s * y_{I_{x_{i}}}
- *  \f]
- *  \f[
- *     y_{I_{x_{i}}} = c * y_{I_{x_{i}}} - s * x_i
- *  \f]
- *
- *  where \p c, \p s are scalars.
- *
- *  A possible C implementation could be
- *
- *  \code{.c}
- *    for(i = 0; i < nnz; ++i)
- *    {
- *       temp = x[i];
- *       x[i] = c * x[i] + s * y[indx[i]];
- *       y[indx[i]] = c * y[indx[i]] - s * temp;
- *    }
- *  \endcode
- *
- *  Note: The contents of the vectors are not checked for NaNs.
- *
- *  @param[in]
- *  nnz       The number of elements in \f$x\f$ and \f$indx\f$.
- *  @param[in,out]
- *  x       Array of at least \f$nnz\f$ elements in compressed form. The elements of the array are updated 
- *          after applying Givens rotation.
- *  @param[in]
- *  indx    Indices of \f$nnz\f$  elements used for Givens rotation. The elements in this vector are
- *          only checked for non-negativity. The user should make sure that index is less than
- *          the size of \p y and are distinct.
- *  @param[in,out]
- *  y       Array of at least \f$\max(indx_i, i \in \{ 1,\ldots,nnz\})\f$  elements in full storage form.
- *          The elements of the array are updated after applying Givens rotation.
- *  @param[in]
- *  c       A scalar.
- *  @param[in]
- *  s       A scalar.
- *
- *  \retval     aoclsparse_status_success The operation completed successfully.
- *  \retval     aoclsparse_status_invalid_pointer At least one of the pointers \p x, \p indx, \p y is invalid.
- *  \retval     aoclsparse_status_invalid_size Indicates that provided \p nnz is less than zero.
- *  \retval     aoclsparse_status_invalid_index_value At least one of the indices in indx is negative. With this error, 
- *              the values of vectors x and y are undefined.
- *
- */
-/**@{*/
-DLL_PUBLIC
-aoclsparse_status aoclsparse_sroti(const aoclsparse_int  nnz,
-                                   float                *x,
-                                   const aoclsparse_int *indx,
-                                   float                *y,
-                                   const float           c,
-                                   const float           s);
-
-DLL_PUBLIC
-aoclsparse_status aoclsparse_droti(const aoclsparse_int  nnz,
-                                   double               *x,
-                                   const aoclsparse_int *indx,
-                                   double               *y,
-                                   const double          c,
-                                   const double          s);
-/**@}*/
 #ifdef __cplusplus
 }
 #endif
