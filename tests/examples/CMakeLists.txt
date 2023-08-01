@@ -152,6 +152,7 @@ set(EXAMPLE_EXECUTABLES
     sample_dotp
     sample_sctr
     sample_roti
+    sample_axpyi
 )
 # Take all sample executables also as test targets
 foreach(SNAME ${EXAMPLE_EXECUTABLES})
