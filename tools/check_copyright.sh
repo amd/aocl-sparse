@@ -26,7 +26,7 @@
 # in the form: 'Copyright (c) 2020-2023' or 'Copyright (c) 2023'
 
 # Whitelist of files which are considered always OK
-whitelist=(README.md)
+whitelist=(README.md tests/examples/README.md)
 
 print_help() {
   echo $0 [-p] [file1 [file2 ...]]
