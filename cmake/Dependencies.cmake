@@ -90,7 +90,7 @@ function(aocl_libs)
 
   find_library(
     AOCL_BLIS_LIB
-    NAMES ${_blas_static_library} ${_blas_dyn_library}
+    NAMES ${_blas_dyn_library} ${_blas_static_library}
     HINTS ${AOCL_ROOT}/blis ${AOCL_ROOT}/amd-blis ${AOCL_ROOT}
     PATH_SUFFIXES "lib/${ILP_DIR}" "lib_${ILP_DIR}" "lib"
     DOC "AOCL Blis library")

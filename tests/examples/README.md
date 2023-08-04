@@ -5,9 +5,13 @@ This directory contains sample source files showing usage of AOCL-Sparse library
 
 1. Move to installed examples directory
 	```
-	cd aocl-sparse/examples
+	cd <install_dir>/examples
 	```
-2. Set SPARSE_ROOT to aocl-sparse package installation path
+2. Define the environment variable AOCL_ROOT to point to AOCL libs installation that has AOCL BLAS and AOCL LAPACK libraries.
+	```
+	export AOCL_ROOT=/opt/aocl/gcc
+	```
+3. Define SPARSE_ROOT to aocl-sparse package installation path.
 	```
 	export SPARSE_ROOT=<path/to/AOCL/Sparse/install/directory>
 	```
@@ -15,36 +19,40 @@ This directory contains sample source files showing usage of AOCL-Sparse library
 	```
 	export SPARSE_ROOT=$HOME/amd/aocl-sparse
 	```
-
-2. Add aoclsparse library path to environment path variable $LD_LIBRARY_PATH.
+	**Note** If in case, AOCL_ROOT contains AOCL Sparse installation along with BLAS and LAPACK libraries,   then "SPARSE_ROOT" takes precedence when searching for sparse library and headers.
+4. Add library paths of Sparse, BLAS and LAPACK to environment path variable $LD_LIBRARY_PATH.	
 	```
-	export LD_LIBRARY_PATH=$SPARSE_ROOT/lib:$LD_LIBRARY_PATH
+	export LD_LIBRARY_PATH=$SPARSE_ROOT/lib:$AOCL_ROOT/lib:$LD_LIBRARY_PATH
 	```
 	**Note** Adding the library and headers paths to LD_LIBRARY_PATH is required in case of shared library (.so)
 
-3. Configure the build system to compile sample applications
+5. Configure the build system to compile sample applications Make sure the build configuration is same as the one used to build aoclsparse library for BUILD_SHARED_LIBS, BUILD_ILP64 and SUPPORT_OMP variables.
 	```
-	cmake S . -B out_sparse
+	cmake -S . -B out_sparse -DBUILD_SHARED_LIBS=OFF -DBUILD_ILP64=ON -DSUPPORT_OMP=OFF
 	```
-	**Note** The default build configuration supports shared library with LP64. For any other configuration, define the flags "BUILD_SHARED_LIBS" and "BUILD_ILP64" accordingly
-	```
-	cmake S . -B out_sparse -DBUILD_SHARED_LIBS=ON -DBUILD_ILP64=ON
-	```
-4. Compile the sample applications
+Build options:
+	BUILD_SHARED_LIBS        - search for shared libraries of dependent libraries (BLAS, LAPACK, SPARSE) and build sparse-example build as a shared library
+   	BUILD_ILP64              - search for ILP64 libraries of dependent libraries (BLAS, LAPACK, SPARSE) and build with ILP64 Support
+	SUPPORT_OMP              - search for Multithreaded libraries of dependent libraries (BLAS, LAPACK, SPARSE) and build with OpenMP Support
+6. Compile the sample applications
 	```
 	cmake --build out_sparse
 	```
-5. Run the application
+7. Run the application
 	```
-	./sample_spmv
+	./out_sparse/sample_spmv
 	```
 ## Build steps on Windows
 
 1. Move to installed examples directory
 	```
-	cd aocl-sparse\examples
+	cd <install_dir>\examples
 	```
-2. Set SPARSE_ROOT to aocl-sparse package installation path
+2.  Define the environment variable AOCL_ROOT to point to AOCL libs installation that has AOCL BLAS and AOCL LAPACK libraries.
+	```
+	set "AOCL_ROOT=C:\Program Files\AMD\AOCL-Windows"
+	```
+3. Define SPARSE_ROOT to aocl-sparse package installation path.
 	```
 	set SPARSE_ROOT=<path\to\AOCL\Sparse\install\directory>
 	```
@@ -52,24 +60,23 @@ This directory contains sample source files showing usage of AOCL-Sparse library
 	```
 	set SPARSE_ROOT=%HOME%\amd\aocl-sparse
 	```
-
-2. Add aoclsparse library path to environment path variable
+	**Note** If in case, AOCL_ROOT contains AOCL Sparse installation along with BLAS and LAPACK libraries,   then "SPARSE_ROOT" takes precedence when searching for sparse library and headers.
+4. Add library paths of Sparse, BLAS and LAPACK to environment path variable
 	```
-	set PATH=%HOME%\amd\aocl-sparse\lib;%HOME%\amd\aocl-sparse\include;%PATH%
+	set PATH=%HOME%\amd\aocl-sparse\lib;%AOCL_ROOT%\amd-blis\lib\ILP64;%AOCL_ROOT%\amd-libflame\lib\ILP64;%PATH%
 	```
 	**Note** Adding the library and headers paths to LD_LIBRARY_PATH is required in case of shared library (DLL)
 
-3. Configure the build system to compile sample applications
+5. Configure the build system to compile sample applications. Make sure the build configuration is same as the one used to build aoclsparse library for BUILD_SHARED_LIBS, BUILD_ILP64 and SUPPORT_OMP variables.
 	```
-	cmake S . -B out_sparse -G "Visual Studio 16  2019" -A x64 -T "LLVM" -DCMAKE_CXX_COMPILER=clang-cl
+	cmake -S . -B out_sparse -G "Visual Studio 16  2019" -A x64 -T "LLVM" -DCMAKE_CXX_COMPILER=clang-cl -DBUILD_SHARED_LIBS=OFF -DBUILD_ILP64=ON -DSUPPORT_OMP=OFF
 	```
-4. Compile the sample applications
+6. Compile the sample applications
 	```
 	cmake --build out_sparse
 	```
-5. Run the application
+7. Run the application
 	```
-	sample_spmv.exe
+	.\out_sparse\sample_spmv.exe
 	```
 **Note** The environment variable "SPARSE_ROOT" takes precedence when searching for sparse library and headers. If the environment variable "SPARSE_ROOT" is not defined, then SPARSE_ROOT inherits the path from AOCL_ROOT and looks for AOCL sparse installation in AOCL_ROOT. If Sparse library/headers are not found either in SPARSE_ROOT or AOCL_ROOT, then an error is returned.
-**Note** The sample compilation requires a python installation: `python 2.7 or later`.

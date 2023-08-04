@@ -55,7 +55,6 @@ if (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
 
     # During out-of-source-tree build of examples, Blis and Libflame artifacts need to be found explicitly.
     # So we call find_blis_lapack.cmake under if (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE) condition
-    include(find_blis_lapack.cmake)
 
     if(SUPPORT_OMP)
         find_package(OpenMP)
@@ -79,9 +78,9 @@ ELSE(WIN32)
     SET(CMAKE_FIND_LIBRARY_PREFIXES "lib")
     SET(CMAKE_FIND_LIBRARY_SUFFIXES ".so" ".a")
     list(APPEND MT_LIBRARIES ${PTHREAD_LIBRARY})
-    if(SUPPORT_OMP)
-        list(APPEND MT_LIBRARIES "OpenMP::OpenMP_CXX")
-    endif(SUPPORT_OMP)	
+    IF(SUPPORT_OMP)
+        list(APPEND MT_LIBRARIES ${OpenMP_CXX_FLAGS})
+    ENDIF(SUPPORT_OMP)
 ENDIF(WIN32)
 
 if (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
@@ -91,6 +90,7 @@ if (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
     ELSE(BUILD_ILP64)
         SET(ILP_DIR "LP64")
     ENDIF(BUILD_ILP64)
+    include(Dependencies.cmake)
     find_library(SPARSE_LIBRARY
     NAMES "aoclsparse" "aoclsparse-d"
     HINTS  ${CMAKE_SPARSE_ROOT} ${CMAKE_SPARSE_ROOT}/sparse ${CMAKE_SPARSE_ROOT}/amd-sparse
@@ -159,4 +159,3 @@ foreach(SNAME ${EXAMPLE_EXECUTABLES})
     add_test(Sample.${SNAMESHORT} ${SNAME})
     # set_property(TEST Sample.${SNAMESHORT} PROPERTY ENVIRONMENT_MODIFICATION ASAN_OPTIONS="log_path=ASANlogger.${SNAME}")
 endforeach()
-
