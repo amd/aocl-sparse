@@ -32,16 +32,6 @@
 #define PREMATURE_STOP_TOLERANCE 1e-4
 const char gmres_sol[] = "gmres_direct_s";
 
-template <typename T>
-void clear_local_resource(T *x)
-{
-    if(x != NULL)
-    {
-        free(x);
-        x = NULL;
-    }
-}
-
 float calculate_l2Norm_solvers(const float *xSol, const float *x, aoclsparse_int n)
 {
     float norm = 0.0f;
@@ -152,23 +142,10 @@ int main()
     int    rs_iters = 7;
     char   rs_iters_string[16];
 
-    expected_sol = (float *)malloc(sizeof(float) * n);
-    if(NULL == expected_sol)
-    {
-        return -1;
-    }
+    expected_sol = new float[n];
+    x            = new float[n];
+    b            = new float[n];
 
-    x = (float *)malloc(sizeof(float) * n);
-    if(NULL == x)
-    {
-        return -1;
-    }
-
-    b = (float *)malloc(sizeof(float) * n);
-    if(NULL == b)
-    {
-        return -1;
-    }
     float init_x = 1.0, ref_x = 0.5;
     for(int i = 0; i < n; i++)
     {
@@ -233,9 +210,9 @@ int main()
         std::cout << "Something unexpected happened!, Status = " << status << std::endl;
     }
 
-    clear_local_resource(expected_sol);
-    clear_local_resource(x);
-    clear_local_resource(b);
+    delete[] expected_sol;
+    delete[] x;
+    delete[] b;
     aoclsparse_destroy_mat_descr(descr_a);
     aoclsparse_destroy(A);
     aoclsparse_itsol_destroy(&handle);

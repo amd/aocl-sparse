@@ -196,14 +196,12 @@ void test_gmres(matrix_id               mid,
     //test for small unsymmetric matrix with no preconditioner
     ASSERT_EQ(create_matrix(mid, m, n, nnz, csr_row_ptr, csr_col_ind, csr_val, A, descr, VERBOSE),
               aoclsparse_status_success);
-    expected_sol = (T *)malloc(sizeof(T) * n);
-    ASSERT_NE(expected_sol, nullptr);
 
-    b = (T *)malloc(sizeof(T) * n);
-    ASSERT_NE(b, nullptr);
+    expected_sol = new T[n];
 
-    x = (T *)malloc(sizeof(T) * n);
-    ASSERT_NE(x, nullptr);
+    b = new T[n];
+
+    x = new T[n];
 
     for(int i = 0; i < n; i++)
     {
@@ -253,21 +251,10 @@ void test_gmres(matrix_id               mid,
               << std::setw(18) << (int)rinfo[30] << std::setw(16) << std::scientific << norm
               << std::endl;
 
-    if(expected_sol != NULL)
-    {
-        free(expected_sol);
-        expected_sol = NULL;
-    }
-    if(b != NULL)
-    {
-        free(b);
-        b = NULL;
-    }
-    if(x != NULL)
-    {
-        free(x);
-        x = NULL;
-    }
+    delete[] expected_sol;
+    delete[] b;
+    delete[] x;
+
     aoclsparse_itsol_destroy(&handle);
     EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
     EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);

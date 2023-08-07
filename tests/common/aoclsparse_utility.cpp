@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2021 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2023 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -46,7 +46,7 @@ std::string aoclsparse_exepath()
 {
     std::string pathstr;
 #if defined(_WIN32) || defined(_WIN64)
-    char *path = (char *)malloc(MAX_PATH * sizeof(char));
+    char *path = new char[MAX_PATH];
     char *pgmptr;
     if(_get_pgmptr(&pgmptr) == 0)
     {
@@ -55,7 +55,7 @@ std::string aoclsparse_exepath()
     }
     else
     {
-        free(path);
+        delete[] path;
     }
 
     if(path)
@@ -66,7 +66,7 @@ std::string aoclsparse_exepath()
             p[1]    = 0;
             pathstr = path;
         }
-        free(path);
+        delete[] path;
     }
 #else
     char *path = realpath("/proc/self/exe", 0);

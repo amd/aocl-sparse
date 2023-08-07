@@ -37,7 +37,6 @@
 #include "aoclsparse_trsv.hpp"
 
 #include <cmath>
-#include <iostream>
 
 // Define all entries for rinfo[] array
 // All solvers using rinfo need to stick to these entries
@@ -55,24 +54,31 @@ aoclsparse_status aoclsparse_cg_data_init(const aoclsparse_int n, cg_data<T> **c
     if(cg == nullptr)
         return aoclsparse_status_internal_error;
 
-    *cg = (cg_data<T> *)malloc(sizeof(cg_data<T>));
-    if(*cg == nullptr)
+    try
+    {
+        *cg = new cg_data<T>;
+    }
+    catch(std::bad_alloc &)
+    {
         return aoclsparse_status_memory_error;
+    }
 
-    // allocate +1 size to avoid special case when n=0 and malloc might return NULL
     (*cg)->p = (*cg)->q = (*cg)->r = (*cg)->z = nullptr;
-    (*cg)->p                                  = (T *)malloc((n + 1) * sizeof(T));
-    (*cg)->q                                  = (T *)malloc((n + 1) * sizeof(T));
-    (*cg)->r                                  = (T *)malloc((n + 1) * sizeof(T));
-    (*cg)->z                                  = (T *)malloc((n + 1) * sizeof(T));
-    (*cg)->task                               = task_start;
-    (*cg)->niter                              = 0;
-    if((*cg)->p == nullptr || (*cg)->q == nullptr || (*cg)->r == nullptr || (*cg)->z == nullptr)
+    try
+    {
+        (*cg)->p = new T[n];
+        (*cg)->q = new T[n];
+        (*cg)->r = new T[n];
+        (*cg)->z = new T[n];
+    }
+    catch(std::bad_alloc &)
     {
         aoclsparse_cg_data_free(*cg);
         *cg = nullptr;
         return aoclsparse_status_memory_error;
     }
+    (*cg)->task  = task_start;
+    (*cg)->niter = 0;
 
     return aoclsparse_status_success;
 }
@@ -89,32 +95,40 @@ aoclsparse_status aoclsparse_gmres_data_init(const aoclsparse_int               
     if(gmres == nullptr)
         return aoclsparse_status_internal_error;
 
-    *gmres = (gmres_data<T> *)malloc(sizeof(gmres_data<T>));
-    if(*gmres == nullptr)
+    try
+    {
+        *gmres = new gmres_data<T>;
+    }
+    catch(std::bad_alloc &)
+    {
         return aoclsparse_status_memory_error;
+    }
 
     //extract and populate restart iterations from user input for GMRES allocations of working buffers
     opts.GetOption("gmres restart iterations", m);
     (*gmres)->restart_iters = m;
 
     (*gmres)->v = (*gmres)->z = (*gmres)->h = (*gmres)->g = (*gmres)->c = (*gmres)->s = nullptr;
-    (*gmres)->v = (T *)calloc(((m + 1) * n), sizeof(T));
-    (*gmres)->z = (T *)calloc(((m + 1) * n), sizeof(T));
-    (*gmres)->h = (T *)calloc((m * m), sizeof(T));
-    (*gmres)->g = (T *)calloc((m + 1), sizeof(T));
-    (*gmres)->c = (T *)calloc(m, sizeof(T));
-    (*gmres)->s = (T *)calloc(m, sizeof(T));
-
-    (*gmres)->task  = task_gmres_start;
-    (*gmres)->niter = 0;
-    (*gmres)->j     = 0;
-    if((*gmres)->v == nullptr || (*gmres)->z == nullptr || (*gmres)->h == nullptr
-       || (*gmres)->g == nullptr || (*gmres)->c == nullptr || (*gmres)->s == nullptr)
+    try
+    {
+        // Allocate and initialise arrays to 0
+        (*gmres)->v = new T[(m + 1) * n]();
+        (*gmres)->z = new T[(m + 1) * n]();
+        (*gmres)->h = new T[m * m]();
+        (*gmres)->g = new T[m + 1]();
+        (*gmres)->c = new T[m]();
+        (*gmres)->s = new T[m]();
+    }
+    catch(std::bad_alloc &)
     {
         aoclsparse_gmres_data_free(*gmres);
         *gmres = nullptr;
         return aoclsparse_status_memory_error;
     }
+
+    (*gmres)->task  = task_gmres_start;
+    (*gmres)->niter = 0;
+    (*gmres)->j     = 0;
     return aoclsparse_status_success;
 }
 template <typename T>
@@ -124,16 +138,16 @@ void aoclsparse_cg_data_free(cg_data<T> *cg)
         // Nothing to do
         return;
     if(cg->p)
-        free(cg->p);
+        delete[] cg->p;
     if(cg->q)
-        free(cg->q);
+        delete[] cg->q;
     if(cg->r)
-        free(cg->r);
+        delete[] cg->r;
     if(cg->z)
-        free(cg->z);
-    free(cg);
+        delete[] cg->z;
+    delete cg;
 }
-/* 
+/*
     Deallocate GMRES's memory of working buffers
 */
 template <typename T>
@@ -146,35 +160,35 @@ void aoclsparse_gmres_data_free(gmres_data<T> *gmres)
     }
     if(gmres->v)
     {
-        free(gmres->v);
+        delete[] gmres->v;
         gmres->v = nullptr;
     }
     if(gmres->z)
     {
-        free(gmres->z);
+        delete[] gmres->z;
         gmres->z = nullptr;
     }
     if(gmres->h)
     {
-        free(gmres->h);
+        delete[] gmres->h;
         gmres->h = nullptr;
     }
     if(gmres->g)
     {
-        free(gmres->g);
+        delete[] gmres->g;
         gmres->g = nullptr;
     }
     if(gmres->c)
     {
-        free(gmres->c);
+        delete[] gmres->c;
         gmres->c = nullptr;
     }
     if(gmres->s)
     {
-        free(gmres->s);
+        delete[] gmres->s;
         gmres->s = nullptr;
     }
-    free(gmres);
+    delete gmres;
 }
 template <typename T>
 aoclsparse_status aoclsparse_cg_data_options(cg_data<T>                            *cg,
@@ -218,7 +232,7 @@ void aoclsparse_itsol_data_free(aoclsparse_itsol_data<T> *itsol, bool keep_itsol
 
         itsol->n = 0;
         if(itsol->b)
-            free(itsol->b);
+            delete[] itsol->b;
         itsol->b       = nullptr;
         itsol->solving = false;
         itsol->solver  = 0;
@@ -285,10 +299,14 @@ aoclsparse_status
     // but keep itsol structure itself
     aoclsparse_itsol_data_free(itsol, true);
 
-    // allocate +1 size to avoid special case when n=0 and malloc might return NULL
-    itsol->b = (T *)malloc((n + 1) * sizeof(T));
-    if(!itsol->b)
+    try
+    {
+        itsol->b = new T[n];
+    }
+    catch(std::bad_alloc &)
+    {
         return aoclsparse_status_memory_error;
+    }
     itsol->n = n;
 
     // copy b into the handle
@@ -350,9 +368,9 @@ aoclsparse_status aoclsparse_itsol_solver_init(aoclsparse_itsol_data<T> *itsol)
     return aoclsparse_status_success;
 }
 
-/* Compute one step of a symmetric Gauss-Seidel preconditionner 
+/* Compute one step of a symmetric Gauss-Seidel preconditionner
  * This implementation solves the M^1*z = r preconditioner step in 3 stages:
- *  If A = L + D + U, where L is the strictly lower triangle, 
+ *  If A = L + D + U, where L is the strictly lower triangle,
  *  D is the diagonal and U is the strctly upper triangle
  *      1. solve (L+D)y = r using triangle solve
  *      2. compute y := Dy
@@ -574,7 +592,7 @@ aoclsparse_status aoclsparse_itsol_solve(
 /* CG solver in reverse communication interface
  * Possible exits:
  * - maximum number of iteration reached
- * - user requested termination 
+ * - user requested termination
  * - Allocation
  */
 template <typename T>
@@ -807,14 +825,14 @@ aoclsparse_status aoclsparse_cg_rci_solve(aoclsparse_itsol_data<T> *itsol,
     return exit_status;
 }
 
-/* 
+/*
     Performs a single pass backward triangular solve to compute solution for
-    yk = Hk_inv.||r0||e1 
+    yk = Hk_inv.||r0||e1
     m[i/p]:  number of restart iterations
     nn[i/p]: dimension of matrix r
     r[i/p]: Upper Hessenberg Matrix
     g[i/p]: residual vector
-    y[o/p]: correction vector for x, x = x0 + zk and zk = vk.yk 
+    y[o/p]: correction vector for x, x = x0 + zk and zk = vk.yk
 */
 template <typename T>
 aoclsparse_status
@@ -850,7 +868,7 @@ aoclsparse_status
 /* GMRES solver in reverse communication interface
  * Possible exits:
  * - maximum number of iteration reached
- * - user requested termination 
+ * - user requested termination
  * - Allocation errors
  */
 template <typename T>
@@ -1266,7 +1284,7 @@ aoclsparse_status aoclsparse_cg_solve(
     T                       *u      = nullptr;
     T                       *v      = nullptr;
     T                        alpha = 1.0, beta = 0.;
-    T                       *y           = nullptr;
+    std::vector<T>           y;
     aoclsparse_status        exit_status = aoclsparse_status_success;
     aoclsparse_status        status;
 
@@ -1287,11 +1305,14 @@ aoclsparse_status aoclsparse_cg_solve(
         if(!(mat->opt_csr_full_diag) && descr->diag_type != aoclsparse_diag_type_unit)
             // Gauss-Seidel needs a full diagonal to perform the triangle solve
             return aoclsparse_status_invalid_value;
-        y = (T *)malloc(n * sizeof(T));
-        if(y == nullptr)
+        try
+        {
+            y.resize(n, 0.0);
+        }
+        catch(std::bad_alloc &)
+        {
             return aoclsparse_status_memory_error;
-        for(aoclsparse_int i = 0; i < n; i++)
-            y[i] = 0.0;
+        }
     }
 
     // Call CG solver
@@ -1331,7 +1352,7 @@ aoclsparse_status aoclsparse_cg_solve(
                 break;
             case 3:
                 // Symmetric Gauss-Seidel
-                status = aoclsparse_itsol_symgs(mat, descr, u, y, v);
+                status = aoclsparse_itsol_symgs(mat, descr, u, y.data(), v);
                 if(status != aoclsparse_status_success)
                     // symgs step failed. shouldn't happen, internal error?
                     return aoclsparse_status_internal_error;
@@ -1357,7 +1378,6 @@ aoclsparse_status aoclsparse_cg_solve(
             break;
         }
     }
-    free(y);
 
     return exit_status;
 }

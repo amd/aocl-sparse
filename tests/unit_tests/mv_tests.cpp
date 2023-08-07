@@ -168,7 +168,6 @@ namespace
     {
         aoclsparse_operation trans = aoclsparse_operation_none;
         aoclsparse_matrix    A;
-        int                  invalid_index_base = 2;
         aoclsparse_int       M = 5, N = 5, NNZ = 8;
         T                    alpha = 1.0;
         T                    beta  = 0.0;
@@ -196,7 +195,6 @@ namespace
         aoclsparse_int    csr_col_ind_2[] = {0, 3, 1, 2, 1, 3, 4, 4};
         T                 csr_val_2[]     = {1, 2, 3, 4, 5, 6, 7, 8};
         // TEST CASE 2: descriptor base is base-one and aoclsparse_matrix base is base-zero
-        aoclsparse_index_base base = aoclsparse_index_base_one;
         ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_one),
                   aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_create_csr<T>(A_2,

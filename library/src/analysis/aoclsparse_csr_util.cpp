@@ -322,13 +322,13 @@ aoclsparse_status aoclsparse_csr_check_sort_diag(aoclsparse_int        m,
 /* Given a square CSR matrix which is valid and sorted, generate index arrays
  * to position of diagonal and the first strictly upper triangle element,
  * if any of these is missing, the index points to where such an element
- * would be stored. The new index arrays are allocated here via malloc
- * so free() them when not needed. The output arrays idiag and iurow 
+ * would be stored. The new index arrays are allocated here via new
+ * so delete[] them when not needed. The output arrays idiag and iurow
  * are respecting the input base.
  *
  * This is used to access only L/D/U portion of the matrix
  * strictly L in row i: icrow[i] .. idiag[i]-1
- * diagonal in row i:   idiag[i] .. iurow[i]-1 
+ * diagonal in row i:   idiag[i] .. iurow[i]-1
  *   [if empty set, diag is not present]
  * strictly U in row i: iurow[i] .. icrow[i+1]-1
  *
@@ -356,16 +356,18 @@ aoclsparse_status aoclsparse_csr_indices(aoclsparse_int        m,
     if(icrow == nullptr || icol == nullptr || idiag == nullptr || iurow == nullptr)
         return aoclsparse_status_invalid_pointer;
 
-    aoclsparse_int mtmp = m > 0 ? m : 1; // to avoid m=0 issues in malloc(0)
-    *idiag              = (aoclsparse_int *)malloc(mtmp * sizeof(aoclsparse_int));
-    *iurow              = (aoclsparse_int *)malloc(mtmp * sizeof(aoclsparse_int));
-    if(*idiag == nullptr || *iurow == nullptr)
+    try
     {
-        if(*idiag)
-            free(*idiag);
-        if(*iurow)
-            free(*iurow);
-        return aoclsparse_status_internal_error; // TODO aoclsparse_status_memory_error;
+        *idiag = new aoclsparse_int[m];
+        *iurow = new aoclsparse_int[m];
+    }
+    catch(std::bad_alloc &)
+    {
+        delete[] *idiag;
+        *idiag = nullptr;
+        delete[] *iurow;
+        *iurow = nullptr;
+        return aoclsparse_status_memory_error;
     }
 
     aoclsparse_int i, idx, idxend;
@@ -381,14 +383,14 @@ aoclsparse_status aoclsparse_csr_indices(aoclsparse_int        m,
             if(j >= i)
             {
                 /*
-                    the adjusted index to csr_val array, taking into account base-index( 0 or 1) 
+                    the adjusted index to csr_val array, taking into account base-index( 0 or 1)
                     is performed here to update idiag and iurow arrays
-                    If in case, user provides a sorted csr matrix with full diagonal, 
-                    then we do not copy csr_mat, but use the user's csr_mat pointers through opt_csr_mat. 
+                    If in case, user provides a sorted csr matrix with full diagonal,
+                    then we do not copy csr_mat, but use the user's csr_mat pointers through opt_csr_mat.
                     In that case, row_ptr and col_ind arrays will be in 1-based mode and the execution kernels
-                    will perform the correction. So, even idiag and iurow arrays also need to be in the 
-                    same base indexing mode, so that the kernels can perform an uniform base correction 
-                    for all arrays                
+                    will perform the correction. So, even idiag and iurow arrays also need to be in the
+                    same base indexing mode, so that the kernels can perform an uniform base correction
+                    for all arrays
                 */
                 aoclsparse_int adj_idx = idx + base;
                 // first diag or U element

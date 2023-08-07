@@ -23,6 +23,7 @@
 #include "aoclsparse.h"
 #include "aoclsparse_context.h"
 #include "aoclsparse_analysis.hpp"
+#include "aoclsparse_auxiliary.hpp"
 #include "aoclsparse_csr_util.hpp"
 #include "aoclsparse_optimize_data.hpp"
 
@@ -133,18 +134,22 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
                 struct _aoclsparse_csr *mat_csr   = nullptr;
                 mat_csr                           = &(A->csr_mat);
 
-                mat_csr->blk_row_ptr = (aoclsparse_int *)malloc((m + 1) * sizeof(aoclsparse_int));
-                if(mat_csr->blk_row_ptr == NULL)
-                    return aoclsparse_status_internal_error;
-                mat_csr->blk_col_ptr = (aoclsparse_int *)malloc(nnz * sizeof(aoclsparse_int));
-                if(mat_csr->blk_col_ptr == NULL)
-                    return aoclsparse_status_internal_error;
-                mat_csr->blk_val = (double *)malloc(nnz * sizeof(double) + (nRowsblk * blk_width));
-                if(mat_csr->blk_val == NULL)
-                    return aoclsparse_status_internal_error;
-                mat_csr->masks = (uint8_t *)malloc(total_blks * nRowsblk * sizeof(uint8_t));
-                if(mat_csr->masks == NULL)
-                    return aoclsparse_status_internal_error;
+                try
+                {
+                    mat_csr->blk_row_ptr = new aoclsparse_int[m + 1];
+                    mat_csr->blk_col_ptr = new aoclsparse_int[nnz];
+                    mat_csr->blk_val
+                        = ::operator new((nnz + nRowsblk * blk_width) * sizeof(double));
+                    mat_csr->masks = new uint8_t[total_blks * nRowsblk];
+                }
+                catch(std::bad_alloc &)
+                {
+                    delete[] mat_csr->blk_row_ptr;
+                    delete[] mat_csr->blk_col_ptr;
+                    ::operator delete(mat_csr->blk_val);
+                    delete[] mat_csr->masks;
+                    return aoclsparse_status_memory_error;
+                }
                 aoclsparse_csr2blkcsr(A->m,
                                       A->n,
                                       A->nnz,
@@ -197,33 +202,18 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
             A->mat_type = aoclsparse_csr_mat;
             return aoclsparse_status_success;
         }
-        ell_csr_hyb_mat->ell_col_ind
-            = (aoclsparse_int *)malloc(sizeof(aoclsparse_int) * ell_width * A->m);
-        if(NULL == ell_csr_hyb_mat->ell_col_ind)
+        try
         {
-            return aoclsparse_status_internal_error;
+            ell_csr_hyb_mat->ell_col_ind    = new aoclsparse_int[ell_width * A->m];
+            ell_csr_hyb_mat->csr_row_id_map = new aoclsparse_int[A->m - ell_m];
+            ell_csr_hyb_mat->ell_val = ::operator new(data_size[A->val_type] * ell_width * A->m);
         }
-        if(A->val_type == aoclsparse_dmat)
+        catch(std::bad_alloc &)
         {
-            ell_csr_hyb_mat->ell_val = (double *)malloc(sizeof(double) * ell_width * A->m);
-            if(NULL == ell_csr_hyb_mat->ell_val)
-            {
-                return aoclsparse_status_internal_error;
-            }
-        }
-        else if(A->val_type == aoclsparse_smat)
-        {
-            ell_csr_hyb_mat->ell_val = (float *)malloc(sizeof(float) * ell_width * A->m);
-            if(NULL == ell_csr_hyb_mat->ell_val)
-            {
-                return aoclsparse_status_internal_error;
-            }
-        }
-        ell_csr_hyb_mat->csr_row_id_map
-            = (aoclsparse_int *)malloc(sizeof(aoclsparse_int) * (A->m - ell_m));
-        if(NULL == ell_csr_hyb_mat->csr_row_id_map)
-        {
-            return aoclsparse_status_internal_error;
+            delete[] ell_csr_hyb_mat->ell_col_ind;
+            delete[] ell_csr_hyb_mat->csr_row_id_map;
+            ::operator delete(ell_csr_hyb_mat->ell_val);
+            return aoclsparse_status_memory_error;
         }
         // convert to hybrid ELLT-CSR format
         if(A->val_type == aoclsparse_dmat)
@@ -260,135 +250,120 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
         ell_csr_hyb_mat->csr_col_ptr = A->csr_mat.csr_col_ptr;
         ell_csr_hyb_mat->csr_val     = A->csr_mat.csr_val;
     }
-    else if(A->mat_type == aoclsparse_csr_mat_br4)
+    else if((A->mat_type == aoclsparse_csr_mat_br4) && (A->val_type == aoclsparse_dmat))
     { // vectorized csr blocked format for AVX2
-        aoclsparse_int         *row_ptr;
-        aoclsparse_int          row_nnz;
-        struct _aoclsparse_csr *csr_mat_br4 = &(A->csr_mat_br4);
-        // populate row_nnz
-        aoclsparse_int i;
-        aoclsparse_int j;
-        aoclsparse_int tnnz = 0;
-        row_ptr             = (aoclsparse_int *)malloc(sizeof(aoclsparse_int) * (A->m));
-        if(NULL == row_ptr)
+        try
         {
-            return aoclsparse_status_internal_error;
-        }
-        csr_mat_br4->csr_row_ptr = (aoclsparse_int *)malloc(sizeof(aoclsparse_int) * (A->m + 1));
-        if(NULL == csr_mat_br4->csr_row_ptr)
-        {
-            free(row_ptr);
-            return aoclsparse_status_internal_error;
-        }
-        csr_mat_br4->csr_row_ptr[0] = A->base;
-        for(i = 0; i < A->m; i += 4)
-        {
-            aoclsparse_int m1, m2;
-            if((A->m - i) < 4)
-                break;
-            m1         = std::max((A->csr_mat.csr_row_ptr[i + 1] - A->csr_mat.csr_row_ptr[i]),
-                          (A->csr_mat.csr_row_ptr[i + 2] - A->csr_mat.csr_row_ptr[i + 1]));
-            m2         = std::max((A->csr_mat.csr_row_ptr[i + 3] - A->csr_mat.csr_row_ptr[i + 2]),
-                          (A->csr_mat.csr_row_ptr[i + 4] - A->csr_mat.csr_row_ptr[i + 3]));
-            row_nnz    = std::max(m1, m2);
-            row_ptr[i] = row_ptr[i + 1] = row_ptr[i + 2] = row_ptr[i + 3] = row_nnz;
-            csr_mat_br4->csr_row_ptr[i + 1] = csr_mat_br4->csr_row_ptr[i] + row_nnz;
-            csr_mat_br4->csr_row_ptr[i + 2] = csr_mat_br4->csr_row_ptr[i + 1] + row_nnz;
-            csr_mat_br4->csr_row_ptr[i + 3] = csr_mat_br4->csr_row_ptr[i + 2] + row_nnz;
-            csr_mat_br4->csr_row_ptr[i + 4] = csr_mat_br4->csr_row_ptr[i + 3] + row_nnz;
-            tnnz += 4 * row_nnz;
-        }
-        for(j = i; j < A->m; ++j)
-        {
-            row_nnz = A->csr_mat.csr_row_ptr[j + 1] - A->csr_mat.csr_row_ptr[j];
-            tnnz += row_nnz;
-            row_ptr[j]                      = row_nnz;
-            csr_mat_br4->csr_row_ptr[j + 1] = csr_mat_br4->csr_row_ptr[j] + row_nnz;
-        }
-        // create the new csr matrix and convert to the csr-avx2 format
-        csr_mat_br4->csr_col_ptr = (aoclsparse_int *)malloc(sizeof(aoclsparse_int) * tnnz);
-        if(NULL == csr_mat_br4->csr_col_ptr)
-        {
-            free(row_ptr);
-            return aoclsparse_status_internal_error;
-        }
-        if(A->val_type == aoclsparse_dmat)
-        {
-            csr_mat_br4->csr_val = (double *)malloc(sizeof(double) * tnnz);
-        }
-        else if(A->val_type == aoclsparse_smat)
-        {
-            csr_mat_br4->csr_val = (float *)malloc(sizeof(float) * tnnz);
-        }
-        if(NULL == csr_mat_br4->csr_val)
-        {
-            free(row_ptr);
-            return aoclsparse_status_internal_error;
-        }
-        aoclsparse_int tc = 0; // count of nonzeros
-        for(i = 0; i < A->m; ++i)
-        {
-            aoclsparse_int nz   = A->csr_mat.csr_row_ptr[i + 1] - A->csr_mat.csr_row_ptr[i];
-            aoclsparse_int ridx = A->csr_mat.csr_row_ptr[i];
-            for(j = 0; j < nz; ++j)
+            std::vector<aoclsparse_int> row_ptr(A->m);
+
+            aoclsparse_int          row_nnz;
+            struct _aoclsparse_csr *csr_mat_br4 = &(A->csr_mat_br4);
+            // populate row_nnz
+            aoclsparse_int i;
+            aoclsparse_int j;
+            aoclsparse_int tnnz = 0;
+            try
             {
-                ((double *)csr_mat_br4->csr_val)[tc]
-                    = ((double *)A->csr_mat.csr_val)[ridx - A->base + j];
-                csr_mat_br4->csr_col_ptr[tc] = A->csr_mat.csr_col_ptr[ridx - A->base + j];
-                tc++;
+                csr_mat_br4->csr_row_ptr = new aoclsparse_int[A->m + 1];
             }
-            if(nz < row_ptr[i])
-            { // ToDo -- can remove the if condition
-                for(j = nz; j < row_ptr[i]; ++j)
+            catch(std::bad_alloc &)
+            {
+                return aoclsparse_status_memory_error;
+            }
+            csr_mat_br4->csr_row_ptr[0] = A->base;
+            for(i = 0; i < A->m; i += 4)
+            {
+                aoclsparse_int m1, m2;
+                if((A->m - i) < 4)
+                    break;
+                m1      = std::max((A->csr_mat.csr_row_ptr[i + 1] - A->csr_mat.csr_row_ptr[i]),
+                              (A->csr_mat.csr_row_ptr[i + 2] - A->csr_mat.csr_row_ptr[i + 1]));
+                m2      = std::max((A->csr_mat.csr_row_ptr[i + 3] - A->csr_mat.csr_row_ptr[i + 2]),
+                              (A->csr_mat.csr_row_ptr[i + 4] - A->csr_mat.csr_row_ptr[i + 3]));
+                row_nnz = std::max(m1, m2);
+                row_ptr[i] = row_ptr[i + 1] = row_ptr[i + 2] = row_ptr[i + 3] = row_nnz;
+                csr_mat_br4->csr_row_ptr[i + 1] = csr_mat_br4->csr_row_ptr[i] + row_nnz;
+                csr_mat_br4->csr_row_ptr[i + 2] = csr_mat_br4->csr_row_ptr[i + 1] + row_nnz;
+                csr_mat_br4->csr_row_ptr[i + 3] = csr_mat_br4->csr_row_ptr[i + 2] + row_nnz;
+                csr_mat_br4->csr_row_ptr[i + 4] = csr_mat_br4->csr_row_ptr[i + 3] + row_nnz;
+                tnnz += 4 * row_nnz;
+            }
+            for(j = i; j < A->m; ++j)
+            {
+                row_nnz = A->csr_mat.csr_row_ptr[j + 1] - A->csr_mat.csr_row_ptr[j];
+                tnnz += row_nnz;
+                row_ptr[j]                      = row_nnz;
+                csr_mat_br4->csr_row_ptr[j + 1] = csr_mat_br4->csr_row_ptr[j] + row_nnz;
+            }
+            // create the new csr matrix and convert to the csr-avx2 format
+            try
+            {
+                csr_mat_br4->csr_col_ptr = new aoclsparse_int[tnnz];
+                csr_mat_br4->csr_val     = ::operator new(sizeof(double) * tnnz);
+            }
+            catch(std::bad_alloc &)
+            {
+                delete[] csr_mat_br4->csr_col_ptr;
+                ::operator delete(csr_mat_br4->csr_val);
+                return aoclsparse_status_memory_error;
+            }
+            aoclsparse_int tc = 0; // count of nonzeros
+            for(i = 0; i < A->m; ++i)
+            {
+                aoclsparse_int nz   = A->csr_mat.csr_row_ptr[i + 1] - A->csr_mat.csr_row_ptr[i];
+                aoclsparse_int ridx = A->csr_mat.csr_row_ptr[i];
+                for(j = 0; j < nz; ++j)
                 {
-                    csr_mat_br4->csr_col_ptr[tc] = A->csr_mat.csr_col_ptr[ridx - A->base + nz - 1];
-                    ((double *)csr_mat_br4->csr_val)[tc] = static_cast<double>(0);
+                    ((double *)csr_mat_br4->csr_val)[tc]
+                        = ((double *)A->csr_mat.csr_val)[ridx - A->base + j];
+                    csr_mat_br4->csr_col_ptr[tc] = A->csr_mat.csr_col_ptr[ridx - A->base + j];
                     tc++;
                 }
-            }
-        }
-        tc                   = 0;
-        aoclsparse_int *cptr = (aoclsparse_int *)csr_mat_br4->csr_col_ptr;
-        double         *vptr = (double *)csr_mat_br4->csr_val;
-        for(i = 0; i < A->m; i += 4)
-        {
-            cptr               = csr_mat_br4->csr_col_ptr + tc;
-            vptr               = (double *)csr_mat_br4->csr_val + tc;
-            aoclsparse_int nnz = row_ptr[i];
-            if((A->m - i) < 4)
-                break;
-            // transponse the chunk into an auxiliary buffer
-            double *bufval = (double *)malloc(sizeof(double) * nnz * 4);
-            if(NULL == bufval)
-            {
-                free(row_ptr);
-                return aoclsparse_status_internal_error;
-            }
-            aoclsparse_int *bufidx = (aoclsparse_int *)malloc(sizeof(aoclsparse_int) * nnz * 4);
-            if(NULL == bufidx)
-            {
-                free(row_ptr);
-                free(bufval);
-                return aoclsparse_status_internal_error;
-            }
-            aoclsparse_int ii, jj;
-            for(ii = 0; ii < nnz; ++ii)
-            {
-                for(jj = 0; jj < 4; ++jj)
-                {
-                    bufval[jj + ii * 4] = vptr[ii + jj * nnz];
-                    bufidx[jj + ii * 4] = cptr[ii + jj * nnz];
+                if(nz < row_ptr[i])
+                { // ToDo -- can remove the if condition
+                    for(j = nz; j < row_ptr[i]; ++j)
+                    {
+                        csr_mat_br4->csr_col_ptr[tc]
+                            = A->csr_mat.csr_col_ptr[ridx - A->base + nz - 1];
+                        ((double *)csr_mat_br4->csr_val)[tc] = static_cast<double>(0);
+                        tc++;
+                    }
                 }
             }
-            memcpy(vptr, bufval, sizeof(double) * nnz * 4);
-            memcpy(cptr, bufidx, sizeof(aoclsparse_int) * nnz * 4);
-            free(bufval);
-            free(bufidx);
-            tc += nnz * 4;
+            tc                   = 0;
+            aoclsparse_int *cptr = (aoclsparse_int *)csr_mat_br4->csr_col_ptr;
+            double         *vptr = (double *)csr_mat_br4->csr_val;
+            for(i = 0; i < A->m; i += 4)
+            {
+                cptr               = csr_mat_br4->csr_col_ptr + tc;
+                vptr               = (double *)csr_mat_br4->csr_val + tc;
+                aoclsparse_int nnz = row_ptr[i];
+                if((A->m - i) < 4)
+                    break;
+                // transponse the chunk into an auxiliary buffer
+                std::vector<double>         bufval(nnz * 4);
+                std::vector<aoclsparse_int> bufidx(nnz * 4);
+                aoclsparse_int              ii, jj;
+                for(ii = 0; ii < nnz; ++ii)
+                {
+                    for(jj = 0; jj < 4; ++jj)
+                    {
+                        bufval[jj + ii * 4] = vptr[ii + jj * nnz];
+                        bufidx[jj + ii * 4] = cptr[ii + jj * nnz];
+                    }
+                }
+                memcpy(vptr, bufval.data(), sizeof(double) * nnz * 4);
+                memcpy(cptr, bufidx.data(), sizeof(aoclsparse_int) * nnz * 4);
+                tc += nnz * 4;
+            }
+            // set appropriate members of "A"
+            //        A->csr_mat_br4.csr_row_ptr = row_ptr;
         }
-        // set appropriate members of "A"
-        //        A->csr_mat_br4.csr_row_ptr = row_ptr;
-        free(row_ptr);
+        catch(std::bad_alloc &)
+        {
+            // row_ptr, bufval, bufidx memory allocation fail
+            return aoclsparse_status_memory_error;
+        }
     }
     A->optimized = true;
     return aoclsparse_status_success;
@@ -405,15 +380,15 @@ aoclsparse_status aoclsparse_optimize_ilu0(aoclsparse_matrix A)
 
     ilu_info = &(A->ilu_info);
 
-    ilu_info->lu_diag_ptr = (aoclsparse_int *)malloc(sizeof(aoclsparse_int) * nrows);
-    if(ilu_info->lu_diag_ptr == nullptr)
+    try
     {
-        ret = aoclsparse_status_memory_error;
-        return ret;
+        ilu_info->lu_diag_ptr    = new aoclsparse_int[nrows];
+        ilu_info->col_idx_mapper = new aoclsparse_int[nrows];
     }
-    ilu_info->col_idx_mapper = (aoclsparse_int *)malloc(sizeof(aoclsparse_int) * nrows);
-    if(ilu_info->col_idx_mapper == nullptr)
+    catch(std::bad_alloc &)
     {
+        delete[] ilu_info->lu_diag_ptr;
+        delete[] ilu_info->col_idx_mapper;
         ret = aoclsparse_status_memory_error;
         return ret;
     }
@@ -428,14 +403,13 @@ aoclsparse_status aoclsparse_optimize_ilu0(aoclsparse_matrix A)
     return ret;
 }
 /*
-    ILU optimize API allocates working buffers and also 
+    ILU optimize API allocates working buffers and also
     memory for the precondtioned csr value buffer
 */
 aoclsparse_status aoclsparse_optimize_ilu(aoclsparse_matrix A)
 {
     aoclsparse_status ret = aoclsparse_status_success;
-    double           *ilu_dval;
-    float            *ilu_sval;
+    void             *ilu_val;
     //If already allocated, then no need to reallocate. So return. Need to happen only once in the beginning
     if(A->ilu_info.ilu_ready == true)
     {
@@ -455,26 +429,16 @@ aoclsparse_status aoclsparse_optimize_ilu(aoclsparse_matrix A)
         ret = aoclsparse_status_invalid_value;
         break;
     }
-    if(A->val_type == aoclsparse_dmat)
+    try
     {
-        ilu_dval = (double *)malloc(sizeof(double) * A->nnz);
-        if(NULL == ilu_dval)
-        {
-            return aoclsparse_status_memory_error;
-        }
-        memcpy((double *)ilu_dval, (double *)A->csr_mat.csr_val, (sizeof(double) * A->nnz));
-        A->ilu_info.precond_csr_val = (double *)ilu_dval;
+        ilu_val = ::operator new(data_size[A->val_type] * A->nnz);
     }
-    else if(A->val_type == aoclsparse_smat)
+    catch(std::bad_alloc &)
     {
-        ilu_sval = (float *)malloc(sizeof(float) * A->nnz);
-        if(NULL == ilu_sval)
-        {
-            return aoclsparse_status_memory_error;
-        }
-        memcpy((float *)ilu_sval, (float *)A->csr_mat.csr_val, (sizeof(float) * A->nnz));
-        A->ilu_info.precond_csr_val = (float *)ilu_sval;
+        return aoclsparse_status_memory_error;
     }
+    memcpy(ilu_val, A->csr_mat.csr_val, (data_size[A->val_type] * A->nnz));
+    A->ilu_info.precond_csr_val = ilu_val;
     //turn this flag on to indicate necessary allocations for ILU have been done
     A->ilu_info.ilu_ready = true;
     return ret;

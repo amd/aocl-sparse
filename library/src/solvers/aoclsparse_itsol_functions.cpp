@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022-2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -78,7 +78,7 @@ void aoclsparse_itsol_destroy(aoclsparse_itsol_handle *handle)
             aoclsparse_itsol_data_free((*handle)->itsol_d);
             aoclsparse_itsol_data_free((*handle)->itsol_s);
 
-            free(*handle);
+            delete *handle;
             *handle = nullptr;
         }
 }
@@ -91,9 +91,14 @@ aoclsparse_status aoclsparse_itsol_d_init(aoclsparse_itsol_handle *handle)
     if(handle == nullptr)
         return aoclsparse_status_invalid_pointer;
 
-    *handle = (aoclsparse_itsol_handle)malloc(sizeof(_aoclsparse_itsol_handle));
-    if(!*handle)
+    try
+    {
+        *handle = new _aoclsparse_itsol_handle;
+    }
+    catch(std::bad_alloc &)
+    {
         return aoclsparse_status_memory_error;
+    }
 
     (*handle)->type    = aoclsparse_dmat;
     (*handle)->itsol_s = nullptr;
@@ -117,9 +122,14 @@ aoclsparse_status aoclsparse_itsol_s_init(aoclsparse_itsol_handle *handle)
     if(handle == nullptr)
         return aoclsparse_status_invalid_pointer;
 
-    *handle = (aoclsparse_itsol_handle)malloc(sizeof(_aoclsparse_itsol_handle));
-    if(!*handle)
+    try
+    {
+        *handle = new _aoclsparse_itsol_handle;
+    }
+    catch(std::bad_alloc &)
+    {
         return aoclsparse_status_memory_error;
+    }
 
     (*handle)->type    = aoclsparse_smat;
     (*handle)->itsol_s = nullptr;
@@ -137,10 +147,10 @@ aoclsparse_status aoclsparse_itsol_s_init(aoclsparse_itsol_handle *handle)
 
 /* Initialize the iterative solver input data (double):
  * - n: dimension of the problem
- * - b: right hand side of the system 
- * Some checks on user data are done; 
- * NO check for NaNs 
- * Possible errors: 
+ * - b: right hand side of the system
+ * Some checks on user data are done;
+ * NO check for NaNs
+ * Possible errors:
  * - wrong type, handle was initialized for single precision
  * - invalid value: constraint n >= 0
  * - invalid pointer: b needs to be allocated by the user
@@ -168,7 +178,7 @@ aoclsparse_status
     return aoclsparse_itsol_rci_input(handle->itsol_s, n, b);
 }
 
-/* 
+/*
  * Generic RCI entry point for all iterative solvers
  */
 aoclsparse_status aoclsparse_itsol_d_rci_solve(aoclsparse_itsol_handle   handle,
@@ -181,7 +191,7 @@ aoclsparse_status aoclsparse_itsol_d_rci_solve(aoclsparse_itsol_handle   handle,
     /* Main entry point for the iterative solvers; checks input briefly and calls the instantiated solver
      * Possible exit codes:
      * - wrong type, handle was initialized for single precision
-     * - 
+     * -
      */
     if(handle == nullptr)
         return aoclsparse_status_invalid_pointer;
@@ -204,7 +214,7 @@ aoclsparse_status aoclsparse_itsol_s_rci_solve(aoclsparse_itsol_handle   handle,
     return aoclsparse_itsol_rci_solve(handle->itsol_s, ircomm, u, v, x, rinfo);
 }
 
-/* 
+/*
  * Generic (direct/forward) interface for all iterative solvers
  */
 aoclsparse_status aoclsparse_itsol_d_solve(
