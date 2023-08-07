@@ -39,6 +39,14 @@ static const char aoclsparse_version[]
     = "AOCL-Sparse " STRINGIFY(AOCLSPARSE_VERSION_MAJOR) "." STRINGIFY(AOCLSPARSE_VERSION_MINOR) "." STRINGIFY(
         AOCLSPARSE_VERSION_PATCH) " Build " STRINGIFY(AOCL_SPARSE_BUILD_DATE);
 
+/*
+   Get the size of the data type based on the matrix data type
+   Enum values of aoclsparse_matrix_data_type forms the array indices
+*/
+const size_t data_size[] = {sizeof(double),
+                            sizeof(float),
+                            sizeof(aoclsparse_float_complex),
+                            sizeof(aoclsparse_double_complex)};
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -71,9 +79,9 @@ aoclsparse_status aoclsparse_create_mat_descr(aoclsparse_mat_descr *descr)
         {
             *descr = new _aoclsparse_mat_descr;
         }
-        catch(const aoclsparse_status &status)
+        catch(std::bad_alloc &)
         {
-            return status;
+            return aoclsparse_status_memory_error;
         }
         return aoclsparse_status_success;
     }
@@ -108,13 +116,9 @@ aoclsparse_status aoclsparse_copy_mat_descr(aoclsparse_mat_descr       dest,
 aoclsparse_status aoclsparse_destroy_mat_descr(aoclsparse_mat_descr descr)
 {
     // Destruct
-    try
+    if(descr != NULL)
     {
         delete descr;
-    }
-    catch(const aoclsparse_status &status)
-    {
-        return status;
     }
     return aoclsparse_status_success;
 }
@@ -409,45 +413,39 @@ aoclsparse_status aoclsparse_export_mat_csr(aoclsparse_matrix     &csr,
 aoclsparse_status aoclsparse_destroy_mv(aoclsparse_matrix A)
 {
 
-    if(A->mat_type == aoclsparse_ellt_csr_hyb_mat) // // ELL-CSR-HYB
-    {
-        aoclsparse_ell_csr_hyb ell_csr_hyb_mat = &(A->ell_csr_hyb_mat);
+    aoclsparse_ell_csr_hyb ell_csr_hyb_mat = &(A->ell_csr_hyb_mat);
 
-        if(ell_csr_hyb_mat->ell_col_ind != NULL)
-        {
-            free(ell_csr_hyb_mat->ell_col_ind);
-            ell_csr_hyb_mat->ell_col_ind = NULL;
-        }
-        if(ell_csr_hyb_mat->ell_val != NULL)
-        {
-            free(ell_csr_hyb_mat->ell_val);
-            ell_csr_hyb_mat->ell_val = NULL;
-        }
-        if(ell_csr_hyb_mat->csr_row_id_map != NULL)
-        {
-            free(ell_csr_hyb_mat->csr_row_id_map);
-            ell_csr_hyb_mat->csr_row_id_map = NULL;
-        }
+    if(ell_csr_hyb_mat->ell_col_ind != NULL)
+    {
+        delete[] ell_csr_hyb_mat->ell_col_ind;
+        ell_csr_hyb_mat->ell_col_ind = NULL;
     }
-    else if(A->mat_type == aoclsparse_csr_mat_br4) // vectorized csr blocked format for AVX2
+    if(ell_csr_hyb_mat->ell_val != NULL)
     {
-        aoclsparse_csr csr_mat_br4 = &(A->csr_mat_br4);
+        ::operator delete(ell_csr_hyb_mat->ell_val);
+        ell_csr_hyb_mat->ell_val = NULL;
+    }
+    if(ell_csr_hyb_mat->csr_row_id_map != NULL)
+    {
+        delete[] ell_csr_hyb_mat->csr_row_id_map;
+        ell_csr_hyb_mat->csr_row_id_map = NULL;
+    }
+    aoclsparse_csr csr_mat_br4 = &(A->csr_mat_br4);
 
-        if(csr_mat_br4->csr_row_ptr != NULL)
-        {
-            free(csr_mat_br4->csr_row_ptr);
-            csr_mat_br4->csr_row_ptr = NULL;
-        }
-        if(csr_mat_br4->csr_col_ptr != NULL)
-        {
-            free(csr_mat_br4->csr_col_ptr);
-            csr_mat_br4->csr_col_ptr = NULL;
-        }
-        if(csr_mat_br4->csr_val != NULL)
-        {
-            free(csr_mat_br4->csr_val);
-            csr_mat_br4->csr_val = NULL;
-        }
+    if(csr_mat_br4->csr_row_ptr != NULL)
+    {
+        delete[] csr_mat_br4->csr_row_ptr;
+        csr_mat_br4->csr_row_ptr = NULL;
+    }
+    if(csr_mat_br4->csr_col_ptr != NULL)
+    {
+        delete[] csr_mat_br4->csr_col_ptr;
+        csr_mat_br4->csr_col_ptr = NULL;
+    }
+    if(csr_mat_br4->csr_val != NULL)
+    {
+        ::operator delete(csr_mat_br4->csr_val);
+        csr_mat_br4->csr_val = NULL;
     }
 
     return aoclsparse_status_success;
@@ -463,17 +461,17 @@ aoclsparse_status aoclsparse_destroy_2m(aoclsparse_matrix A)
     {
         if(A->csr_mat.csr_row_ptr != NULL)
         {
-            free(A->csr_mat.csr_row_ptr);
+            delete[] A->csr_mat.csr_row_ptr;
             A->csr_mat.csr_row_ptr = NULL;
         }
         if(A->csr_mat.csr_col_ptr != NULL)
         {
-            free(A->csr_mat.csr_col_ptr);
+            delete[] A->csr_mat.csr_col_ptr;
             A->csr_mat.csr_col_ptr = NULL;
         }
         if(A->csr_mat.csr_val != NULL)
         {
-            free(A->csr_mat.csr_val);
+            ::operator delete(A->csr_mat.csr_val);
             A->csr_mat.csr_val = NULL;
         }
     }
@@ -491,20 +489,19 @@ aoclsparse_status aoclsparse_destroy_ilu(_aoclsparse_ilu *ilu_info)
     {
         if(ilu_info->col_idx_mapper != NULL)
         {
-            free(ilu_info->col_idx_mapper);
+            delete[] ilu_info->col_idx_mapper;
             ilu_info->col_idx_mapper = NULL;
         }
         if(ilu_info->lu_diag_ptr != NULL)
         {
-            free(ilu_info->lu_diag_ptr);
+            delete[] ilu_info->lu_diag_ptr;
             ilu_info->lu_diag_ptr = NULL;
         }
         if(ilu_info->precond_csr_val != NULL)
         {
-            free(ilu_info->precond_csr_val);
+            ::operator delete(ilu_info->precond_csr_val);
             ilu_info->precond_csr_val = NULL;
         }
-        ilu_info = NULL;
     }
     return aoclsparse_status_success;
 }
@@ -514,28 +511,25 @@ aoclsparse_status aoclsparse_destroy_opt_csr(aoclsparse_matrix A)
     if(!A->opt_csr_is_users)
     {
         if(A->opt_csr_mat.csr_col_ptr)
-            free(A->opt_csr_mat.csr_col_ptr);
+            delete[] A->opt_csr_mat.csr_col_ptr;
         if(A->opt_csr_mat.csr_row_ptr)
-            free(A->opt_csr_mat.csr_row_ptr);
+            delete[] A->opt_csr_mat.csr_row_ptr;
         if(A->opt_csr_mat.csr_val)
-            free(A->opt_csr_mat.csr_val);
+            ::operator delete(A->opt_csr_mat.csr_val);
     }
     if(A->idiag)
-        free(A->idiag);
+        delete[] A->idiag;
     if(A->iurow)
-        free(A->iurow);
+        delete[] A->iurow;
 
-    if(A->blk_optimized)
-    {
-        if(A->csr_mat.blk_row_ptr)
-            free(A->csr_mat.blk_row_ptr);
-        if(A->csr_mat.blk_col_ptr)
-            free(A->csr_mat.blk_col_ptr);
-        if(A->csr_mat.blk_val)
-            free(A->csr_mat.blk_val);
-        if(A->csr_mat.masks)
-            free(A->csr_mat.masks);
-    }
+    if(A->csr_mat.blk_row_ptr)
+        delete[] A->csr_mat.blk_row_ptr;
+    if(A->csr_mat.blk_col_ptr)
+        delete[] A->csr_mat.blk_col_ptr;
+    if(A->csr_mat.blk_val)
+        ::operator delete(A->csr_mat.blk_val);
+    if(A->csr_mat.masks)
+        delete[] A->csr_mat.masks;
     return aoclsparse_status_success;
 }
 

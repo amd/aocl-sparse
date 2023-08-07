@@ -28,6 +28,7 @@
 #include "aoclsparse_descr.h"
 
 #include <immintrin.h>
+#include <iostream>
 
 aoclsparse_status aoclsparse_ellmv_template(const float                          alpha,
                                             aoclsparse_int                       m,
@@ -571,14 +572,17 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx512(const double             
 
     // Create a temporary copy of the "y" elements corresponding to csr_row_idx_map.
     // This step is required when beta is non-zero
-    double               *y_tmp;
-    aoclsparse_index_base base = descr->base;
+    double               *y_tmp = nullptr;
+    aoclsparse_index_base base  = descr->base;
     if(beta != static_cast<double>(0))
     {
-        y_tmp = (double *)malloc(sizeof(double) * (m - ell_m));
-        if(NULL == y_tmp)
+        try
         {
-            return aoclsparse_status_internal_error;
+            y_tmp = new double[m - ell_m];
+        }
+        catch(std::bad_alloc &)
+        {
+            return aoclsparse_status_memory_error;
         }
         for(aoclsparse_int i = 0; i < m - ell_m; i++)
         {
@@ -648,7 +652,7 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx512(const double             
         {
             y[csr_row_idx_map[i]] = y_tmp[i];
         }
-        free(y_tmp);
+        delete[] y_tmp;
     }
 
     // perform csr part if present
@@ -773,13 +777,16 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx2(const double               
 
     // Create a temporary copy of the "y" elements corresponding to csr_row_idx_map.
     // This step is required when beta is non-zero
-    double *y_tmp;
+    double *y_tmp = nullptr;
     if(beta != static_cast<double>(0))
     {
-        y_tmp = (double *)malloc(sizeof(double) * (m - ell_m));
-        if(NULL == y_tmp)
+        try
         {
-            return aoclsparse_status_internal_error;
+            y_tmp = new double[m - ell_m];
+        }
+        catch(std::bad_alloc &)
+        {
+            return aoclsparse_status_memory_error;
         }
         for(aoclsparse_int i = 0; i < m - ell_m; i++)
         {
@@ -860,7 +867,7 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx2(const double               
         {
             y[csr_row_idx_map[i]] = y_tmp[i];
         }
-        free(y_tmp);
+        delete[] y_tmp;
     }
 
     base = descr->base;

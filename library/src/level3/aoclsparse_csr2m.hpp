@@ -318,10 +318,16 @@ aoclsparse_status aoclsparse_csr2m_template(aoclsparse_operation       transA,
         aoclsparse_int  m             = csrA->m;
         aoclsparse_int  n             = csrB->n;
         aoclsparse_int  nnz_C         = 0;
-        aoclsparse_int *csr_row_ptr_C = (aoclsparse_int *)malloc((m + 1) * sizeof(aoclsparse_int));
-        /* Memory  allocation fail*/
-        if(csr_row_ptr_C == NULL)
+        aoclsparse_int *csr_row_ptr_C = nullptr;
+        try
+        {
+            csr_row_ptr_C = new aoclsparse_int[m + 1];
+        }
+        catch(std::bad_alloc &)
+        {
+            /* Memory  allocation fail*/
             return aoclsparse_status_memory_error;
+        }
 
         aoclsparse_csr2m_nnz_count(m,
                                    n,
@@ -333,7 +339,14 @@ aoclsparse_status aoclsparse_csr2m_template(aoclsparse_operation       transA,
                                    csrB->csr_mat.csr_row_ptr,
                                    csrB->csr_mat.csr_col_ptr,
                                    csr_row_ptr_C);
-        *csrC = new _aoclsparse_matrix;
+        try
+        {
+            *csrC = new _aoclsparse_matrix;
+        }
+        catch(std::bad_alloc &)
+        {
+            return aoclsparse_status_memory_error;
+        }
         aoclsparse_init_mat(*csrC, descrA->base, m, n, nnz_C, aoclsparse_csr_mat);
         (*csrC)->mat_type            = aoclsparse_csr_mat;
         (*csrC)->val_type            = get_data_type<T>();
@@ -353,15 +366,19 @@ aoclsparse_status aoclsparse_csr2m_template(aoclsparse_operation       transA,
         aoclsparse_int n     = (*csrC)->n;
         aoclsparse_int nnz_C = (*csrC)->nnz;
 
+        aoclsparse_int *csr_col_ind_C = nullptr;
+        void           *csr_val_C     = nullptr;
         aoclsparse_int *csr_row_ptr_C = (*csrC)->csr_mat.csr_row_ptr;
-        aoclsparse_int *csr_col_ind_C = (aoclsparse_int *)malloc(nnz_C * sizeof(aoclsparse_int));
-        T              *csr_val_C     = (T *)malloc(nnz_C * sizeof(T));
-
-        /*Insufficient memory for output allocation */
-        if((csr_col_ind_C == NULL) || (csr_val_C == NULL))
+        try
         {
-            free(csr_col_ind_C);
-            free(csr_val_C);
+            csr_col_ind_C = new aoclsparse_int[nnz_C];
+            csr_val_C     = ::operator new(nnz_C * sizeof(T));
+        }
+        catch(std::bad_alloc &)
+        {
+            /*Insufficient memory for output allocation */
+            delete[] csr_col_ind_C;
+            ::operator delete(csr_val_C);
             return aoclsparse_status_memory_error;
         }
 
@@ -377,7 +394,7 @@ aoclsparse_status aoclsparse_csr2m_template(aoclsparse_operation       transA,
                                   (const T *)csrB->csr_mat.csr_val,
                                   csr_row_ptr_C,
                                   csr_col_ind_C,
-                                  csr_val_C);
+                                  (T *)csr_val_C);
 
         (*csrC)->csr_mat.csr_col_ptr = csr_col_ind_C;
         (*csrC)->csr_mat.csr_val     = csr_val_C;
@@ -388,10 +405,16 @@ aoclsparse_status aoclsparse_csr2m_template(aoclsparse_operation       transA,
         aoclsparse_int  m             = csrA->m;
         aoclsparse_int  n             = csrB->n;
         aoclsparse_int  nnz_C         = 0;
-        aoclsparse_int *csr_row_ptr_C = (aoclsparse_int *)malloc((m + 1) * sizeof(aoclsparse_int));
-        /* Memory  allocation fail*/
-        if(csr_row_ptr_C == NULL)
+        aoclsparse_int *csr_row_ptr_C = nullptr;
+        try
+        {
+            csr_row_ptr_C = new aoclsparse_int[m + 1];
+        }
+        catch(std::bad_alloc &)
+        {
+            /* Memory  allocation fail*/
             return aoclsparse_status_memory_error;
+        }
 
         aoclsparse_csr2m_nnz_count(m,
                                    n,
@@ -404,14 +427,18 @@ aoclsparse_status aoclsparse_csr2m_template(aoclsparse_operation       transA,
                                    csrB->csr_mat.csr_col_ptr,
                                    csr_row_ptr_C);
 
-        aoclsparse_int *csr_col_ind_C = (aoclsparse_int *)malloc(nnz_C * sizeof(aoclsparse_int));
-        T              *csr_val_C     = (T *)malloc(nnz_C * sizeof(T));
-
-        /*Insufficient memory for output allocation */
-        if((csr_col_ind_C == NULL) || (csr_val_C == NULL))
+        aoclsparse_int *csr_col_ind_C = nullptr;
+        void           *csr_val_C     = nullptr;
+        try
         {
-            free(csr_col_ind_C);
-            free(csr_val_C);
+            csr_col_ind_C = new aoclsparse_int[nnz_C];
+            csr_val_C     = ::operator new(nnz_C * sizeof(T));
+        }
+        catch(std::bad_alloc &)
+        {
+            /*Insufficient memory for output allocation */
+            delete[] csr_col_ind_C;
+            ::operator delete(csr_val_C);
             return aoclsparse_status_memory_error;
         }
 
@@ -427,8 +454,15 @@ aoclsparse_status aoclsparse_csr2m_template(aoclsparse_operation       transA,
                                   (const T *)csrB->csr_mat.csr_val,
                                   csr_row_ptr_C,
                                   csr_col_ind_C,
-                                  csr_val_C);
-        *csrC = new _aoclsparse_matrix;
+                                  (T *)csr_val_C);
+        try
+        {
+            *csrC = new _aoclsparse_matrix;
+        }
+        catch(std::bad_alloc &)
+        {
+            return aoclsparse_status_memory_error;
+        }
         aoclsparse_init_mat(*csrC, descrA->base, m, n, nnz_C, aoclsparse_csr_mat);
         (*csrC)->mat_type            = aoclsparse_csr_mat;
         (*csrC)->val_type            = get_data_type<T>();

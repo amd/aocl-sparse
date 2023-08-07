@@ -344,10 +344,8 @@ namespace
                     mids[idx], m, n, nnz, csr_row_ptr, csr_col_ind, csr_val, A, descr, VERBOSE),
                 aoclsparse_status_success);
 
-            b = (T *)malloc(sizeof(T) * n);
-            ASSERT_NE(b, nullptr);
-            x = (T *)malloc(sizeof(T) * n);
-            ASSERT_NE(x, nullptr);
+            b = new T[n];
+            x = new T[n];
 
             for(aoclsparse_int i = 0; i < n; i++)
             {
@@ -369,9 +367,9 @@ namespace
                           trans, A, descr, &precond_csr_val, approx_inv_diag, x, b),
                       aoclsparse_status_success);
 
-            free(b);
+            delete[] b;
             b = NULL;
-            free(x);
+            delete[] x;
             x = NULL;
             EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
             EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);

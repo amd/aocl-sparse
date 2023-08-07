@@ -120,6 +120,8 @@ bool aoclsparse_zerocheck(const T &value)
     return is_value_zero;
 }
 
+extern const size_t data_size[];
+
 /*
     Return aoclsparse_matrix_data_type based on the input type (s/d/c/z)
 */

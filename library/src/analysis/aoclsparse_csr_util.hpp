@@ -40,7 +40,7 @@
 #endif
 
 /* mark if the matrix has a specific shape, e.g., only the lower triangle values are stored
- * Note: this is different than matrix type + fill mode since in the inspector/ executor mode, 
+ * Note: this is different than matrix type + fill mode since in the inspector/ executor mode,
  * the descriptor can be used to signify the function to only work with part of the matrices
  */
 enum aoclsparse_shape
@@ -73,8 +73,8 @@ aoclsparse_status aoclsparse_csr_indices(aoclsparse_int        m,
                                          aoclsparse_int      **iurow);
 
 /* Copy a csr matrix. If the input is 1-base (i.e., base = 1), then the output
- * arrays of As would be base corrected and be 0-base. The function can also 
- * preserve the input base in output arrays of As, provided the input base argument 
+ * arrays of As would be base corrected and be 0-base. The function can also
+ * preserve the input base in output arrays of As, provided the input base argument
  * is zero-base.
  * Possible exit: invalid size, invalid pointer, memory alloc
  */
@@ -97,11 +97,19 @@ aoclsparse_status aoclsparse_copy_csr(aoclsparse_int                  m,
     if(m == 0 || nnz == 0)
         return aoclsparse_status_success;
 
-    As->csr_row_ptr = (aoclsparse_int *)malloc((m + 1) * sizeof(aoclsparse_int));
-    As->csr_col_ptr = (aoclsparse_int *)malloc(nnz * sizeof(aoclsparse_int));
-    As->csr_val     = (void *)malloc(nnz * sizeof(T));
-    if(!As->csr_row_ptr || !As->csr_col_ptr || !As->csr_val)
+    try
+    {
+        As->csr_row_ptr = new aoclsparse_int[m + 1];
+        As->csr_col_ptr = new aoclsparse_int[nnz];
+        As->csr_val     = ::operator new(nnz * sizeof(T));
+    }
+    catch(std::bad_alloc &)
+    {
+        delete[] As->csr_row_ptr;
+        delete[] As->csr_col_ptr;
+        ::operator delete(As->csr_val);
         return aoclsparse_status_memory_error;
+    }
 
     aval   = static_cast<T *>(A->csr_val);
     aval_s = static_cast<T *>(As->csr_val);
@@ -189,105 +197,107 @@ aoclsparse_status aoclsparse_csr_fill_diag(aoclsparse_int        m,
                                            aoclsparse_index_base base,
                                            aoclsparse_csr        A)
 {
-    aoclsparse_int  i, j, count, idx, idxend;
-    aoclsparse_int *missing_diag;
-
-    if(!A->csr_col_ptr || !A->csr_row_ptr || !A->csr_val)
-        return aoclsparse_status_invalid_pointer;
-
-    missing_diag = (aoclsparse_int *)malloc(m * sizeof(aoclsparse_int));
-    if(!missing_diag)
-        return aoclsparse_status_memory_error;
-    for(i = 0; i < m; i++)
-        missing_diag[i] = -1;
-
-    // Check each row for missing element on the diagonal
-    count = 0;
-    bool diag_found;
-    for(i = 0; i < m; i++)
+    aoclsparse_int i, j, count, idx, idxend;
+    try
     {
-        diag_found = false;
-        idxend     = A->csr_row_ptr[i + 1] - base;
-        for(idx = (A->csr_row_ptr[i] - base); idx < idxend; idx++)
+        std::vector<aoclsparse_int> missing_diag(m, -1);
+
+        if(!A->csr_col_ptr || !A->csr_row_ptr || !A->csr_val)
+            return aoclsparse_status_invalid_pointer;
+
+        // Check each row for missing element on the diagonal
+        count = 0;
+        bool diag_found;
+        for(i = 0; i < m; i++)
         {
-            j = A->csr_col_ptr[idx] - base;
-            if(i == j)
+            diag_found = false;
+            idxend     = A->csr_row_ptr[i + 1] - base;
+            for(idx = (A->csr_row_ptr[i] - base); idx < idxend; idx++)
             {
-                diag_found = true;
-                break;
+                j = A->csr_col_ptr[idx] - base;
+                if(i == j)
+                {
+                    diag_found = true;
+                    break;
+                }
+                if(j > i)
+                    break;
             }
-            if(j > i)
-                break;
-        }
-        if(!diag_found && i < n)
-        {
-            missing_diag[i] = idx + count;
-            count++;
-        }
-    }
-
-    if(count <= 0)
-    {
-        free(missing_diag);
-        return aoclsparse_status_success;
-    }
-    aoclsparse_int *icol, *icrow;
-    T              *aval, *csr_val;
-    aoclsparse_int  nnz_new = nnz + count;
-    csr_val                 = static_cast<T *>(A->csr_val);
-
-    icol  = (aoclsparse_int *)malloc(nnz_new * sizeof(aoclsparse_int));
-    icrow = (aoclsparse_int *)malloc((m + 1) * sizeof(aoclsparse_int));
-    aval  = (T *)malloc(nnz_new * sizeof(T));
-    if(!icol || !aval || !icrow)
-    {
-        free(icol);
-        free(icrow);
-        free(aval);
-        free(missing_diag);
-        return aoclsparse_status_memory_error;
-    }
-
-    aoclsparse_int n_added = 0, nnz_curr = 0;
-    for(i = 0; i < m; i++)
-    {
-        idxend   = A->csr_row_ptr[i + 1] - base;
-        icrow[i] = A->csr_row_ptr[i] - base + n_added;
-        // Copy the row into the new matrix
-        for(idx = (A->csr_row_ptr[i] - base); idx < idxend; idx++)
-        {
-            if(nnz_curr == missing_diag[i])
+            if(!diag_found && i < n)
             {
-                // add the missing diagonal at the correct place
-                n_added++;
-                icol[nnz_curr] = i;
-                aval[nnz_curr] = 0.0;
+                missing_diag[i] = idx + count;
+                count++;
+            }
+        }
+
+        if(count <= 0)
+        {
+            return aoclsparse_status_success;
+        }
+        aoclsparse_int *icol = nullptr, *icrow = nullptr;
+        void           *aval    = nullptr;
+        T              *csr_val = nullptr;
+        aoclsparse_int  nnz_new = nnz + count;
+        csr_val                 = static_cast<T *>(A->csr_val);
+
+        try
+        {
+            icrow = new aoclsparse_int[m + 1];
+            icol  = new aoclsparse_int[nnz_new];
+            aval  = ::operator new(sizeof(T) * nnz_new);
+        }
+        catch(std::bad_alloc &)
+        {
+            delete[] icrow;
+            delete[] icol;
+            ::operator delete(aval);
+            return aoclsparse_status_memory_error;
+        }
+        aoclsparse_int n_added = 0, nnz_curr = 0;
+        for(i = 0; i < m; i++)
+        {
+            idxend   = A->csr_row_ptr[i + 1] - base;
+            icrow[i] = A->csr_row_ptr[i] - base + n_added;
+            // Copy the row into the new matrix
+            for(idx = (A->csr_row_ptr[i] - base); idx < idxend; idx++)
+            {
+                if(nnz_curr == missing_diag[i])
+                {
+                    // add the missing diagonal at the correct place
+                    n_added++;
+                    icol[nnz_curr]                   = i;
+                    static_cast<T *>(aval)[nnz_curr] = 0.0;
+                    nnz_curr++;
+                }
+                static_cast<T *>(aval)[nnz_curr] = csr_val[idx];
+                icol[nnz_curr]                   = A->csr_col_ptr[idx] - base;
                 nnz_curr++;
             }
-            aval[nnz_curr] = csr_val[idx];
-            icol[nnz_curr] = A->csr_col_ptr[idx] - base;
-            nnz_curr++;
+            if(nnz_curr == missing_diag[i])
+            {
+                // In empty rows cases, need to add the diagonal
+                n_added++;
+                icol[nnz_curr]                   = i;
+                static_cast<T *>(aval)[nnz_curr] = 0.0;
+                nnz_curr++;
+            }
         }
-        if(nnz_curr == missing_diag[i])
-        {
-            // In empty rows cases, need to add the diagonal
-            n_added++;
-            icol[nnz_curr] = i;
-            aval[nnz_curr] = 0.0;
-            nnz_curr++;
-        }
+        icrow[m] = nnz_new;
+
+        // replace A vectors by the new filled ones
+        delete[] A->csr_col_ptr;
+        delete[] A->csr_row_ptr;
+        ::operator delete(A->csr_val);
+        A->csr_col_ptr = icol;
+        A->csr_row_ptr = icrow;
+        A->csr_val     = aval;
     }
-    icrow[m] = nnz_new;
+    catch(std::bad_alloc &)
+    {
+        // missing_diag allocation failure
+        return aoclsparse_status_memory_error;
+    }
 
-    // replace A vectors by the new filled ones
-    free(A->csr_col_ptr);
-    free(A->csr_row_ptr);
-    free(A->csr_val);
-    A->csr_col_ptr = icol;
-    A->csr_row_ptr = icrow;
-    A->csr_val     = aval;
-
-    free(missing_diag);
     return aoclsparse_status_success;
 }
 
