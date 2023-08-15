@@ -27,6 +27,9 @@ tags
 # Editor nuances
 *.un~
 .vscode/
+*~
+*.sw[op]
+*.bak
 
 # Intermediate artifacts
 build/
