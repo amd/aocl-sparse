@@ -25,11 +25,16 @@
 # It is assumed that the copyright label should on the top of the files
 # in the form: 'Copyright (c) 2020-2023' or 'Copyright (c) 2023'
 
+# Whitelist of files which are considered always OK
+whitelist=(README.md)
+
 print_help() {
   echo $0 [-p] [file1 [file2 ...]]
   echo Checks if files have adjusted copyright to the current year
   echo and return the number of non-matching files.
   echo If no file is given, all staged files are checked.
+  echo Only regular files are checked, whitelisted files
+  echo are skipped: ${whitelist[@]}
   echo
   echo '-p flag indicates to print the copyright header for ANY year or'
   echo a message indicating no copyright info found. The flag NEEDS to
@@ -67,6 +72,25 @@ fi
 
 for f in "$@"; do
 
+  if [ ! -f "$f" ]; then
+    echo "$f" is not a regular file, skipping
+    continue
+  fi
+
+  # Check if the first argument matches any of the whitelisted names
+  wlisted=0
+  for i in "${whitelist[@]}"; do
+    if [ "$i" = "$f" ]; then
+      wlisted=1
+      break
+    fi
+  done
+  if [ "$wlisted" = 1 ]; then
+    echo "$f" is whitelisted and not checked
+    continue
+  fi
+
+  # Check copyright header
   CP=`head -3 "$f" | grep "Copyright (c) \([0-9]\{4\}-\)\?$current_year"`
   if [ "$?" -ne 0 ]; then
     # Notify problem
