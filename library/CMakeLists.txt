@@ -79,6 +79,7 @@ target_include_directories(aoclsparse
                                    $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
                                    $<BUILD_INTERFACE:${LAPACK_INCLUDE_DIRS}>
                                    $<BUILD_INTERFACE:${BLIS_INCLUDE_DIRS}>
+                                   $<BUILD_INTERFACE:${UTILS_INCLUDE_DIRS}>
                                    $<INSTALL_INTERFACE:include>
 )
 

@@ -27,6 +27,7 @@
 #include <cmath>
 #include <iomanip>
 #include <iostream>
+#include <limits>
 #include <vector>
 
 // Sample program to illustrate the usage of Givens rotation on a compressed sparse vector and a full storage vector(double precision)

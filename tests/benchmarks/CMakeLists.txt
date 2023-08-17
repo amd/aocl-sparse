@@ -63,6 +63,7 @@ target_include_directories(aoclsparse-bench
   PRIVATE
     ${LAPACK_INCLUDE_DIRS}
     ${BLIS_INCLUDE_DIRS}
+    ${UTILS_INCLUDE_DIRS}
     ${Boost_INCLUDE_DIRS}
 )
 
