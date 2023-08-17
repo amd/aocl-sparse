@@ -77,11 +77,12 @@ set(GTEST_EXECUTABLES
     sctr_tests
     roti_tests
     createcsr_tests
+	utils_tests
 )
 foreach(TNAME ${GTEST_EXECUTABLES})
     add_executable(${TNAME} ${TNAME}.cpp ${utils_source})
     target_link_libraries(${TNAME} aoclsparse ${MT_LIBRARIES} ${LAPACK_LIBRARIES} GTest::gtest_main)
-    target_include_directories(${TNAME} PUBLIC ${LAPACK_INCLUDE_DIRS} ${BLIS_INCLUDE_DIRS})
+    target_include_directories(${TNAME} PUBLIC ${LAPACK_INCLUDE_DIRS} ${BLIS_INCLUDE_DIRS} ${UTILS_INCLUDE_DIRS})
 endforeach()
 
 include(GoogleTest)

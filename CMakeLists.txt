@@ -110,7 +110,6 @@ ENDIF()
 
 # Dependencies
 include(cmake/Dependencies.cmake)
-include(cmake/find_blis_lapack.cmake)
 
 # Define a version for the aocl-sparse code.
 if(NOT DEFINED AOCLSPARSE_VERSION_MAJOR)
@@ -182,7 +181,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR (CMAKE_CXX_COMPILER_ID STREQUAL "Clan
   endif()
   if(USE_AVX512)
     set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};-mavx512f;-mavx512dq;-mavx512vl")
-  endif()  
+  endif()
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CLANG_OPTIONS_STYLE STREQUAL "MSVC")
   # Clang with MSVC style compiler options
   # Common flags
@@ -203,7 +202,7 @@ else()
   set(COMPILER_FLAGS_COMMON "-mtune=native;-mavx2;-mfma")
   if(USE_AVX512)
     set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};-mavx512f;-mavx512dq;-mavx512vl")
-  endif()  
+  endif()
 endif()
 if(SUPPORT_OMP)
   set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};${OpenMP_CXX_FLAGS}")
@@ -238,9 +237,9 @@ message (STATUS "Build Configuration for AOCL-Sparse")
 message (STATUS "  Build Type <CMAKE_BUILD_TYPE>....................${CMAKE_BUILD_TYPE}")
 message (STATUS "  CXX Compiler ID..................................${CMAKE_CXX_COMPILER_ID} (${COMPILER_BASENAME}) platform id: ${CMAKE_CXX_PLATFORM_ID}")
 if(CMAKE_BUILD_TYPE MATCHES "Debug")
-  message(STATUS "  CXX Compiler flags (Debug)......................${COMPILER_FLAGS_COMMON};${COMPILER_FLAGS_DEBUG}")
+  message(STATUS "  CXX Compiler flags (Debug).......................${COMPILER_FLAGS_COMMON};${COMPILER_FLAGS_DEBUG}")
 elseif(CMAKE_BUILD_TYPE MATCHES "Release")
-  message(STATUS "  CXX Compiler flags (Release)....................${COMPILER_FLAGS_COMMON};${COMPILER_FLAGS_RELEASE}")
+  message(STATUS "  CXX Compiler flags (Release).....................${COMPILER_FLAGS_COMMON};${COMPILER_FLAGS_RELEASE}")
 endif()
 message (STATUS "  Current Generator <CMAKE_GENERATOR>..............${CMAKE_GENERATOR}")
 message (STATUS "  Install Prefix <CMAKE_INSTALL_PREFIX>............${CMAKE_INSTALL_PREFIX}")
