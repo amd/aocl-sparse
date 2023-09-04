@@ -742,6 +742,50 @@ aoclsparse_status aoclsparse_copy(const aoclsparse_matrix                     sr
     return status;
 }
 
+/********************************************************************************
+ * \brief aoclsparse_order perform ordering of index array in the given matrix
+ * of CSR/CSC format.
+ ********************************************************************************/
+aoclsparse_status aoclsparse_order_mat(aoclsparse_matrix mat)
+{
+    aoclsparse_status status = aoclsparse_status_success;
+    if(!mat)
+        return aoclsparse_status_invalid_pointer;
+
+    if((mat->m < 0) || (mat->n < 0) || (mat->nnz < 0))
+        return aoclsparse_status_invalid_value;
+
+    // Ordering is implemented only for CSR and CSC matrix
+    if((mat->input_format != aoclsparse_csr_mat) && (mat->input_format != aoclsparse_csc_mat))
+        return aoclsparse_status_not_implemented;
+
+    // empty matrix --> nothing to sort
+    if((mat->m == 0) || (mat->n == 0) || (mat->nnz == 0))
+        return aoclsparse_status_success;
+
+    if(mat->val_type == aoclsparse_smat)
+    {
+        status = aoclsparse_sort_mat<float>(mat);
+    }
+    else if(mat->val_type == aoclsparse_dmat)
+    {
+        status = aoclsparse_sort_mat<double>(mat);
+    }
+    else if(mat->val_type == aoclsparse_cmat)
+    {
+        status = aoclsparse_sort_mat<aoclsparse_float_complex>(mat);
+    }
+    else if(mat->val_type == aoclsparse_zmat)
+    {
+        status = aoclsparse_sort_mat<aoclsparse_double_complex>(mat);
+    }
+    else
+    {
+        status = aoclsparse_status_wrong_type;
+    }
+    return status;
+}
+
 #ifdef __cplusplus
 }
 #endif
@@ -1011,5 +1055,72 @@ aoclsparse_status aoclsparse_copy_mat(const aoclsparse_matrix src, aoclsparse_ma
     {
         status = aoclsparse_status_invalid_value;
     }
+    return status;
+}
+
+template <typename T>
+aoclsparse_status aoclsparse_sort_mat(aoclsparse_matrix mat)
+{
+    std::vector<aoclsparse_int> temp_idx;
+    std::vector<T>              temp_val;
+    aoclsparse_status           status = aoclsparse_status_success;
+
+    if(mat->input_format == aoclsparse_csr_mat)
+    {
+        if(!mat->csr_mat.csr_row_ptr || !mat->csr_mat.csr_col_ptr || !mat->csr_mat.csr_val)
+            return aoclsparse_status_invalid_pointer;
+
+        // copy the matrix
+        try
+        {
+            temp_idx.assign(mat->csr_mat.csr_col_ptr, mat->csr_mat.csr_col_ptr + mat->nnz);
+            temp_val.assign(static_cast<T *>(mat->csr_mat.csr_val),
+                            static_cast<T *>(mat->csr_mat.csr_val) + mat->nnz);
+        }
+        catch(std::bad_alloc &)
+        {
+            return aoclsparse_status_memory_error;
+        }
+
+        status = aoclsparse_sort_idx_val<T>(mat->m,
+                                            mat->n,
+                                            mat->nnz,
+                                            mat->base,
+                                            mat->csr_mat.csr_row_ptr,
+                                            temp_idx.data(),
+                                            temp_val.data(),
+                                            mat->base,
+                                            mat->csr_mat.csr_col_ptr,
+                                            static_cast<T *>(mat->csr_mat.csr_val));
+    }
+    else if(mat->input_format == aoclsparse_csc_mat)
+    {
+        if(!mat->csc_mat.col_ptr || !mat->csc_mat.row_idx || !mat->csc_mat.val)
+            return aoclsparse_status_invalid_pointer;
+
+        // copy the matrix
+        try
+        {
+            temp_idx.assign(mat->csc_mat.row_idx, mat->csc_mat.row_idx + mat->nnz);
+            temp_val.assign(static_cast<T *>(mat->csc_mat.val),
+                            static_cast<T *>(mat->csc_mat.val) + mat->nnz);
+        }
+        catch(std::bad_alloc &)
+        {
+            return aoclsparse_status_memory_error;
+        }
+
+        status = aoclsparse_sort_idx_val<T>(mat->m,
+                                            mat->n,
+                                            mat->nnz,
+                                            mat->base,
+                                            mat->csc_mat.col_ptr,
+                                            temp_idx.data(),
+                                            temp_val.data(),
+                                            mat->base,
+                                            mat->csc_mat.row_idx,
+                                            static_cast<T *>(mat->csc_mat.val));
+    }
+
     return status;
 }

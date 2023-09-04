@@ -246,8 +246,10 @@ aoclsparse_diag_type aoclsparse_get_mat_diag_type(const aoclsparse_mat_descr des
  *
  *  \details
  *  \p aoclsparse_create_<tt>(s/d/c/z)csr</tt> creates \p aoclsparse_matrix and initializes it with
- *  input parameters passed. Array data must not be modified by the user while matrix is alive as the
- *  pointers are copied, not the data. Matrix should be destroyed at the end using aoclsparse_destroy().
+ *  input parameters passed. The input arrays are left unchanged except for the call to
+ *  \p aoclsparse_order_mat, which performs ordering of column indices of the matrix. To avoid any
+ *  changes to the input data, \p aoclsparse_copy can be used. To convert any other format to CSR,
+ *  \p aoclsparse_convert can be used. Matrix should be destroyed at the end using \p aoclsparse_destroy.
  *
  *  @param[out]
  *  mat the pointer to the CSR sparse matrix allocated in the API.
@@ -459,8 +461,10 @@ aoclsparse_int aoclsparse_get_vec_extn_context(void);
  *
  *  \details
  *  \p aoclsparse_create_<tt>(s/d/c/z)csc</tt> creates \p aoclsparse_matrix and initializes it with
- *  input parameters passed. Array data must not be modified by the user while matrix is alive as the
- *  pointers are copied, not the data. Matrix should be destroyed at the end using aoclsparse_destroy().
+ *  input parameters passed. The input arrays are left unchanged except for the call to
+ *  \p aoclsparse_order_mat, which performs ordering of row indices of the matrix. To avoid any
+ *  changes to the input data, \p aoclsparse_copy can be used. Matrix should be destroyed at the end
+ *  using \p aoclsparse_destroy.
  *
  *  @param[inout]
  *  mat         the pointer to the CSC sparse matrix allocated in the API.
@@ -558,6 +562,30 @@ aoclsparse_status aoclsparse_copy(const aoclsparse_matrix    src,
                                   const aoclsparse_mat_descr descr,
                                   aoclsparse_matrix         *dest);
 /**@}*/
+
+/*! \ingroup aux_module
+ *  \brief Performs ordering of index array of the matrix
+ *
+ *  \details
+ *  \p aoclsparse_order orders column indices within a row for matrix in CSR format and row indices
+ *  within a column for CSC format. It also adjusts value array accordingly. Ordering is implemented
+ *  only for CSR and CSC format. \p aoclsparse_copy can be used to get exact copy of data
+ *  \p aoclsparse_convert can be used to convert any format to CSR. Matrix should be destroyed
+ *  at the end using \p aoclsparse_destroy.
+ *
+ *  @param[inout]
+ *  mat     pointer to matrix in either CSR or CSC format
+ *
+ *  \retval aoclsparse_status_success              the operation completed successfully.
+ *  \retval aoclsparse_status_invalid_pointer      \p mat pointer is NULL.
+ *  \retval aoclsparse_status_memory_error         internal memory allocation failed.
+ *  \retval aoclsparse_status_not_implemented      matrix is not in CSR format.
+ */
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_order_mat(aoclsparse_matrix mat);
+/**@}*/
+
 #ifdef __cplusplus
 }
 #endif

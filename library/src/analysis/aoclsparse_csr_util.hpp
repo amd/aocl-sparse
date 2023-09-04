@@ -127,24 +127,44 @@ aoclsparse_status aoclsparse_copy_csr(aoclsparse_int                  m,
     return aoclsparse_status_success;
 }
 
-/* Sort a CSR matrix
+/* Function to sort CSR or CSC matrix.
+ * Input parameters :-
+ * maj_dim            : major dimension - row(m) for CSR, col(n) for CSC
+ * min_dim            : minor dimension - col(n) for CSR, row(m) for CSR
+ * nnz                : non-zero count
+ * src_base/dest_base : 0-base or 1-base
+ * src_idx_ptr        : csr_row_ptr from _aoclsparse_csr or col_ptr from _aoclsparse_csc
+ * src_idx/dest_idx   : csr_col_ptr from _aoclsparse_csr or row_ind from _aoclsparse_csc
+ * src_val/dest/val   : csr_val from _aoclsparse_csr or val from _aoclsparse_csc
+ *
  * Possible exit: memory alloc, invalid pointer
+ *
+ * Possible cases:
+ * 1) src_base:0, dest_base:0 => No additional handling
+ * 2) src_base:0, dest_base:1 => not possible
+ * 3) src_base:1, dest_base:0 => optimize_csr does base correction in dest copy in copy_csr.
+ *      Handle perserving destination base while copying src_idx to dest_idx in sorting logic.
+ * 4) src_base:1, dest_base:1 => No additional handling
  */
 template <typename T>
-aoclsparse_status aoclsparse_sort_csr(aoclsparse_int                  m,
-                                      [[maybe_unused]] aoclsparse_int n,
-                                      aoclsparse_int                  nnz,
-                                      aoclsparse_index_base           base,
-                                      aoclsparse_csr                  A,
-                                      aoclsparse_csr                  As)
+aoclsparse_status aoclsparse_sort_idx_val(aoclsparse_int                  maj_dim,
+                                          [[maybe_unused]] aoclsparse_int min_dim,
+                                          aoclsparse_int                  nnz,
+                                          aoclsparse_index_base           src_base,
+                                          aoclsparse_int                 *src_idx_ptr,
+                                          aoclsparse_int                 *src_idx,
+                                          T                              *src_val,
+                                          aoclsparse_index_base           dest_base,
+                                          aoclsparse_int                 *dest_idx,
+                                          T                              *dest_val)
 {
     aoclsparse_int i, j, idx, nnzrow;
-    T             *aval, *aval_s;
 
-    if(m == 0 || nnz == 0)
+    if(maj_dim == 0 || nnz == 0)
         return aoclsparse_status_success;
 
-    if(A->csr_col_ptr == nullptr || A->csr_row_ptr == nullptr || A->csr_val == nullptr)
+    if((src_idx_ptr == nullptr) || (src_idx == nullptr) || (src_val == nullptr)
+       || (dest_idx == nullptr) || (dest_val == nullptr))
         return aoclsparse_status_invalid_pointer;
 
     std::vector<aoclsparse_int> perm;
@@ -159,9 +179,7 @@ aoclsparse_status aoclsparse_sort_csr(aoclsparse_int                  m,
     for(j = 0; j < nnz; j++)
         perm[j] = j;
 
-    aval   = static_cast<T *>(A->csr_val);
-    aval_s = static_cast<T *>(As->csr_val);
-    for(i = 0; i < m; i++)
+    for(i = 0; i < maj_dim; i++)
     {
         // sort each row according to its column indices
         //TODO: In case input base is one-base, base-index for matrix "A" should be A->base
@@ -172,17 +190,17 @@ aoclsparse_status aoclsparse_sort_csr(aoclsparse_int                  m,
         //      is A->internal_base_index (which is zero-base after copy_csr correction). So logically,
         //      we should observe a failure with these conditions since As's csr_col_ptr/aval_s would not
         //      be base-corrected since A->internal_base_index is zero-base.
-        idx    = A->csr_row_ptr[i] - base;
-        nnzrow = A->csr_row_ptr[i + 1] - base - idx;
+        idx    = src_idx_ptr[i] - src_base;
+        nnzrow = src_idx_ptr[i + 1] - src_base - idx;
         std::sort(std::begin(perm) + idx,
                   std::begin(perm) + idx + nnzrow,
                   [&](const aoclsparse_int &a, const aoclsparse_int &b) {
-                      return A->csr_col_ptr[a] <= A->csr_col_ptr[b];
+                      return src_idx[a] <= src_idx[b];
                   });
         for(j = idx; j < idx + nnzrow; j++)
         {
-            As->csr_col_ptr[j] = A->csr_col_ptr[perm[j]] - base;
-            aval_s[j]          = aval[perm[j]];
+            dest_idx[j] = src_idx[perm[j]] - static_cast<aoclsparse_int>(src_base != dest_base);
+            dest_val[j] = src_val[perm[j]];
         }
     }
 
@@ -371,7 +389,16 @@ aoclsparse_status aoclsparse_csr_optimize(aoclsparse_matrix A)
     }
     if(!sorted)
     {
-        aoclsparse_sort_csr<T>(A->m, A->n, A->nnz, A->base, &A->csr_mat, &A->opt_csr_mat);
+        aoclsparse_sort_idx_val<T>(A->m,
+                                   A->n,
+                                   A->nnz,
+                                   A->base,
+                                   A->csr_mat.csr_row_ptr,
+                                   A->csr_mat.csr_col_ptr,
+                                   static_cast<T *>(A->csr_mat.csr_val),
+                                   A->internal_base_index,
+                                   A->opt_csr_mat.csr_col_ptr,
+                                   static_cast<T *>(A->opt_csr_mat.csr_val));
         // check again for full diagonal
         status = aoclsparse_csr_check_sort_diag(
             A->m, A->n, A->internal_base_index, &A->opt_csr_mat, sorted, fulldiag);

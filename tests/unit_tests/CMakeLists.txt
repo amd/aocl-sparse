@@ -81,6 +81,7 @@ set(GTEST_EXECUTABLES
     utils_tests
     axpyi_tests
     conversion_tests
+    order_tests
     copy_tests
 )
 foreach(TNAME ${GTEST_EXECUTABLES})
