@@ -62,6 +62,13 @@ aoclsparse_status aoclsparse_csrmm(aoclsparse_operation       op,
                                    T                         *C,
                                    aoclsparse_int             ldc);
 
+template <typename T>
+aoclsparse_status aoclsparse_add(const aoclsparse_operation op,
+                                 const aoclsparse_matrix    A,
+                                 const T                    alpha,
+                                 const aoclsparse_matrix    B,
+                                 aoclsparse_matrix         *C);
+
 /*
  * ===========================================================================
  *    level 2 SPARSE

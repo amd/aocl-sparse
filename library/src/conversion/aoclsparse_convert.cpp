@@ -766,10 +766,14 @@ extern "C" aoclsparse_status aoclsparse_scsr2csc(aoclsparse_int             m,
                                                  aoclsparse_int            *csc_col_ptr,
                                                  float                     *csc_val)
 {
+    if(descr == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
     return aoclsparse_csr2csc_template(m,
                                        n,
                                        nnz,
-                                       descr,
+                                       descr->base,
                                        baseCSC,
                                        csr_row_ptr,
                                        csr_col_ind,
@@ -791,10 +795,72 @@ extern "C" aoclsparse_status aoclsparse_dcsr2csc(aoclsparse_int             m,
                                                  aoclsparse_int            *csc_col_ptr,
                                                  double                    *csc_val)
 {
+    if(descr == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
     return aoclsparse_csr2csc_template(m,
                                        n,
                                        nnz,
-                                       descr,
+                                       descr->base,
+                                       baseCSC,
+                                       csr_row_ptr,
+                                       csr_col_ind,
+                                       csr_val,
+                                       csc_row_ind,
+                                       csc_col_ptr,
+                                       csc_val);
+}
+
+extern "C" aoclsparse_status aoclsparse_ccsr2csc(aoclsparse_int                  m,
+                                                 aoclsparse_int                  n,
+                                                 aoclsparse_int                  nnz,
+                                                 const aoclsparse_mat_descr      descr,
+                                                 aoclsparse_index_base           baseCSC,
+                                                 const aoclsparse_int           *csr_row_ptr,
+                                                 const aoclsparse_int           *csr_col_ind,
+                                                 const aoclsparse_float_complex *csr_val,
+                                                 aoclsparse_int                 *csc_row_ind,
+                                                 aoclsparse_int                 *csc_col_ptr,
+                                                 aoclsparse_float_complex       *csc_val)
+{
+    if(descr == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    return aoclsparse_csr2csc_template(m,
+                                       n,
+                                       nnz,
+                                       descr->base,
+                                       baseCSC,
+                                       csr_row_ptr,
+                                       csr_col_ind,
+                                       csr_val,
+                                       csc_row_ind,
+                                       csc_col_ptr,
+                                       csc_val);
+}
+
+extern "C" aoclsparse_status aoclsparse_zcsr2csc(aoclsparse_int                   m,
+                                                 aoclsparse_int                   n,
+                                                 aoclsparse_int                   nnz,
+                                                 const aoclsparse_mat_descr       descr,
+                                                 aoclsparse_index_base            baseCSC,
+                                                 const aoclsparse_int            *csr_row_ptr,
+                                                 const aoclsparse_int            *csr_col_ind,
+                                                 const aoclsparse_double_complex *csr_val,
+                                                 aoclsparse_int                  *csc_row_ind,
+                                                 aoclsparse_int                  *csc_col_ptr,
+                                                 aoclsparse_double_complex       *csc_val)
+{
+    if(descr == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    return aoclsparse_csr2csc_template(m,
+                                       n,
+                                       nnz,
+                                       descr->base,
                                        baseCSC,
                                        csr_row_ptr,
                                        csr_col_ind,
@@ -965,12 +1031,10 @@ aoclsparse_status aoclsparse_convert_csr_t(const aoclsparse_matrix    src_mat,
         }
         else
         {
-            _aoclsparse_mat_descr descr;
-            descr.base = src_mat->base;
-            status     = aoclsparse_csr2csc_template(src_mat->m,
+            status = aoclsparse_csr2csc_template(src_mat->m,
                                                  src_mat->n,
                                                  src_mat->nnz,
-                                                 &descr,
+                                                 src_mat->base,
                                                  src_mat->base,
                                                  src_mat->csr_mat.csr_row_ptr,
                                                  src_mat->csr_mat.csr_col_ptr,
@@ -986,12 +1050,10 @@ aoclsparse_status aoclsparse_convert_csr_t(const aoclsparse_matrix    src_mat,
         src_val = reinterpret_cast<T *>(src_mat->csc_mat.val);
         if(op == aoclsparse_operation_none)
         {
-            _aoclsparse_mat_descr descr;
-            descr.base = src_mat->base;
-            status     = aoclsparse_csr2csc_template(src_mat->n,
+            status = aoclsparse_csr2csc_template(src_mat->n,
                                                  src_mat->m,
                                                  src_mat->nnz,
-                                                 &descr,
+                                                 src_mat->base,
                                                  src_mat->base,
                                                  src_mat->csc_mat.col_ptr,
                                                  src_mat->csc_mat.row_idx,

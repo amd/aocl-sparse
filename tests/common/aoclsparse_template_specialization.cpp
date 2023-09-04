@@ -117,6 +117,46 @@ aoclsparse_status aoclsparse_csrmm(aoclsparse_operation             op,
 }
 
 template <>
+aoclsparse_status aoclsparse_add(const aoclsparse_operation op,
+                                 const aoclsparse_matrix    A,
+                                 const float                alpha,
+                                 const aoclsparse_matrix    B,
+                                 aoclsparse_matrix         *C)
+{
+    return aoclsparse_sadd(op, A, alpha, B, C);
+}
+
+template <>
+aoclsparse_status aoclsparse_add(const aoclsparse_operation op,
+                                 const aoclsparse_matrix    A,
+                                 const double               alpha,
+                                 const aoclsparse_matrix    B,
+                                 aoclsparse_matrix         *C)
+{
+    return aoclsparse_dadd(op, A, alpha, B, C);
+}
+
+template <>
+aoclsparse_status aoclsparse_add(const aoclsparse_operation     op,
+                                 const aoclsparse_matrix        A,
+                                 const aoclsparse_float_complex alpha,
+                                 const aoclsparse_matrix        B,
+                                 aoclsparse_matrix             *C)
+{
+    return aoclsparse_cadd(op, A, alpha, B, C);
+}
+
+template <>
+aoclsparse_status aoclsparse_add(const aoclsparse_operation      op,
+                                 const aoclsparse_matrix         A,
+                                 const aoclsparse_double_complex alpha,
+                                 const aoclsparse_matrix         B,
+                                 aoclsparse_matrix              *C)
+{
+    return aoclsparse_zadd(op, A, alpha, B, C);
+}
+
+template <>
 aoclsparse_status aoclsparse_csrmv(aoclsparse_operation       trans,
                                    const float               *alpha,
                                    aoclsparse_int             m,

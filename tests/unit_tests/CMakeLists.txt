@@ -74,6 +74,7 @@ set(GTEST_EXECUTABLES
     csr_convert_tests
     diamv_tests
     bsrmv_tests
+    csr_add_test
     createcsc_tests
     optimize_tests
     coo_tests

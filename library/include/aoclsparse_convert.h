@@ -469,6 +469,32 @@ aoclsparse_status aoclsparse_dcsr2csc(aoclsparse_int             m,
                                       aoclsparse_int            *csc_row_ind,
                                       aoclsparse_int            *csc_col_ptr,
                                       double                    *csc_val);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_ccsr2csc(aoclsparse_int                  m,
+                                      aoclsparse_int                  n,
+                                      aoclsparse_int                  nnz,
+                                      const aoclsparse_mat_descr      descr,
+                                      aoclsparse_index_base           baseCSC,
+                                      const aoclsparse_int           *csr_row_ptr,
+                                      const aoclsparse_int           *csr_col_ind,
+                                      const aoclsparse_float_complex *csr_val,
+                                      aoclsparse_int                 *csc_row_ind,
+                                      aoclsparse_int                 *csc_col_ptr,
+                                      aoclsparse_float_complex       *csc_val);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_zcsr2csc(aoclsparse_int                   m,
+                                      aoclsparse_int                   n,
+                                      aoclsparse_int                   nnz,
+                                      const aoclsparse_mat_descr       descr,
+                                      aoclsparse_index_base            baseCSC,
+                                      const aoclsparse_int            *csr_row_ptr,
+                                      const aoclsparse_int            *csr_col_ind,
+                                      const aoclsparse_double_complex *csr_val,
+                                      aoclsparse_int                  *csc_row_ind,
+                                      aoclsparse_int                  *csc_col_ptr,
+                                      aoclsparse_double_complex       *csc_val);
 /**@}*/
 
 /*! \ingroup conv_module

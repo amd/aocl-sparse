@@ -266,7 +266,7 @@ typedef enum aoclsparse_status_
     aoclsparse_status_memory_error = 10, /**< memory allocation failure. */
     aoclsparse_status_numerical_error
     = 11, /**< numerical error, e.g., matrix is not positive definite, divide-by-zero error */
-    aoclsparse_status_invalid_operation = 12, /**< cannot proceed with the request at this point. */
+    aoclsparse_status_invalid_operation = 12 /**< cannot proceed with the request at this point. */
 } aoclsparse_status;
 
 /*! \ingroup types_module

@@ -952,6 +952,7 @@ aoclsparse_status aoclsparse_create_csc(aoclsparse_matrix    &mat,
     }
     aoclsparse_init_mat(mat, base, M, N, nnz, aoclsparse_csc_mat);
     mat->val_type         = get_data_type<T>();
+    mat->mat_type         = aoclsparse_csc_mat;
     mat->csc_mat.col_ptr  = col_ptr;
     mat->csc_mat.row_idx  = row_idx;
     mat->csc_mat.val      = val;
@@ -1005,6 +1006,7 @@ aoclsparse_status aoclsparse_create_coo(aoclsparse_matrix          &mat,
     }
     aoclsparse_init_mat(mat, base, M, N, nnz, aoclsparse_coo_mat);
     mat->val_type         = get_data_type<T>();
+    mat->mat_type         = aoclsparse_coo_mat;
     mat->coo_mat.row_ind  = row_ind;
     mat->coo_mat.col_ind  = col_ind;
     mat->coo_mat.val      = val;
