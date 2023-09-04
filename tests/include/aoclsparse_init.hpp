@@ -202,7 +202,7 @@ inline void aoclsparse_init_coo_matrix(std::vector<aoclsparse_int> &row_ind,
     std::sort(row_ind.begin(), row_ind.end());
 
     // Sample column indices
-    std::vector<bool> check(nnz, false);
+    std::vector<bool> check(N, false);
 
     i = 0;
     while(i < nnz)

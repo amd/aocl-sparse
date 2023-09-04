@@ -1948,6 +1948,75 @@ aoclsparse_status aoclsparse_silu_smoother(aoclsparse_operation       op,
                                            const float               *approx_inv_diag,
                                            float                     *x,
                                            const float               *b);
+/**@}*/
+
+/*! \ingroup level3_module
+ *  \brief Addition of two sparse matrices
+ *
+ *  \details 
+ *  <tt>aoclsparse_(s/d/c/z)add</tt> sums two sparse matrices and returns the result as a newly allocated sparse matrix for real and complex types, respectively. It performs the following operation:
+ *  \f[
+ *    C = \alpha * op ( A ) + B
+ *  \f]
+ *  with
+ *  \f[
+ *     op(A) = \left\{
+ *     \begin{array}{ll}
+ *         A,   & \text{if op} = \text{aoclsparse\_operation\_none} \\
+ *         A^T, & \text{if op} = \text{aoclsparse\_operation\_transpose} \\
+ *         A^H, & \text{if op} = \text{aoclsparse\_operation\_conjugate\_transpose}
+ *     \end{array}
+ *     \right.
+ *  \f]
+ *  where \f$A\f$ is a \f$m \times n\f$ matrix and \f$B\f$ is a \f$m \times n\f$ matrix
+ *  if op = \ref aoclsparse_operation_none and \f$n \times m\f$ otherwise and the result
+ *  matrix \f$C\f$ has the same dimension as \f$B\f$.
+ * 
+ *  \note Only matrices in CSR format are supported in this release.
+ *
+ *  @param[in]  op      matrix \f$A\f$ operation type.
+ *  @param[in]  alpha   scalar with same precision as \f$A\f$ and \f$B\f$ matrix
+ *  @param[in]  A       source sparse matrix \f$A\f$
+ *  @param[in]  B       source sparse matrix \f$B\f$
+ *  @param[out] *C      pointer to the sparse output matrix \f$C\f$
+ *
+ *  \retval     aoclsparse_status_success               The operation completed successfully.
+ *  \retval     aoclsparse_status_invalid_pointer       \p A or \p B or \p C are invalid
+ *  \retval     aoclsparse_status_invalid_size          The dimensions of \p A and \p B are not compatible.
+ *  \retval     aoclsparse_status_memory_error          Memory allocation failure.
+ *  \retval     aoclsparse_status_not_implemented       Matrices are not in CSR format.
+ */
+/**@{*/
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_sadd(const aoclsparse_operation op,
+                                  const aoclsparse_matrix    A,
+                                  const float                alpha,
+                                  const aoclsparse_matrix    B,
+                                  aoclsparse_matrix         *C);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_dadd(const aoclsparse_operation op,
+                                  const aoclsparse_matrix    A,
+                                  const double               alpha,
+                                  const aoclsparse_matrix    B,
+                                  aoclsparse_matrix         *C);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_cadd(const aoclsparse_operation     op,
+                                  const aoclsparse_matrix        A,
+                                  const aoclsparse_float_complex alpha,
+                                  const aoclsparse_matrix        B,
+                                  aoclsparse_matrix             *C);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_zadd(const aoclsparse_operation      op,
+                                  const aoclsparse_matrix         A,
+                                  const aoclsparse_double_complex alpha,
+                                  const aoclsparse_matrix         B,
+                                  aoclsparse_matrix              *C);
+
+/**@}*/
 
 #ifdef __cplusplus
 }

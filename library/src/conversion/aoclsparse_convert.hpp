@@ -544,17 +544,17 @@ aoclsparse_status aoclsparse_csr2bsr_template(aoclsparse_int             m,
 }
 
 template <typename T>
-aoclsparse_status aoclsparse_csr2csc_template(aoclsparse_int             m,
-                                              aoclsparse_int             n,
-                                              aoclsparse_int             nnz,
-                                              const aoclsparse_mat_descr descr,
-                                              aoclsparse_index_base      baseCSC,
-                                              const aoclsparse_int      *csr_row_ptr,
-                                              const aoclsparse_int      *csr_col_ind,
-                                              const T                   *csr_val,
-                                              aoclsparse_int            *csc_row_ind,
-                                              aoclsparse_int            *csc_col_ptr,
-                                              T                         *csc_val)
+aoclsparse_status aoclsparse_csr2csc_template(aoclsparse_int        m,
+                                              aoclsparse_int        n,
+                                              aoclsparse_int        nnz,
+                                              aoclsparse_index_base baseCSR,
+                                              aoclsparse_index_base baseCSC,
+                                              const aoclsparse_int *csr_row_ptr,
+                                              const aoclsparse_int *csr_col_ind,
+                                              const T              *csr_val,
+                                              aoclsparse_int       *csc_row_ind,
+                                              aoclsparse_int       *csc_col_ptr,
+                                              T                    *csc_val)
 {
     // Check sizes
     if(m < 0 || n < 0 || nnz < 0)
@@ -571,7 +571,7 @@ aoclsparse_status aoclsparse_csr2csc_template(aoclsparse_int             m,
     }
 
     //Check base index for validity
-    if((descr->base != aoclsparse_index_base_zero) && (descr->base != aoclsparse_index_base_one))
+    if((baseCSR != aoclsparse_index_base_zero) && (baseCSR != aoclsparse_index_base_one))
     {
         return aoclsparse_status_invalid_value;
     }
@@ -605,7 +605,6 @@ aoclsparse_status aoclsparse_csr2csc_template(aoclsparse_int             m,
         return aoclsparse_status_invalid_pointer;
     }
 
-    aoclsparse_index_base base = descr->base;
     // csc_col_ptr comes from the user; initialize it to 0
     for(aoclsparse_int i = 0; i < n + 1; ++i)
     {
@@ -615,7 +614,7 @@ aoclsparse_status aoclsparse_csr2csc_template(aoclsparse_int             m,
     // Determine nnz per column
     for(aoclsparse_int i = 0; i < nnz; ++i)
     {
-        ++csc_col_ptr[csr_col_ind[i] - base + 1];
+        ++csc_col_ptr[csr_col_ind[i] - baseCSR + 1];
     }
 
     // Scan
@@ -627,11 +626,11 @@ aoclsparse_status aoclsparse_csr2csc_template(aoclsparse_int             m,
     // Fill row indices and values
     for(aoclsparse_int i = 0; i < m; ++i)
     {
-        aoclsparse_int row_begin = csr_row_ptr[i] - base;
-        aoclsparse_int row_end   = csr_row_ptr[i + 1] - base;
+        aoclsparse_int row_begin = csr_row_ptr[i] - baseCSR;
+        aoclsparse_int row_end   = csr_row_ptr[i + 1] - baseCSR;
         for(aoclsparse_int j = row_begin; j < row_end; ++j)
         {
-            aoclsparse_int col = csr_col_ind[j] - base;
+            aoclsparse_int col = csr_col_ind[j] - baseCSR;
             aoclsparse_int idx = csc_col_ptr[col];
             csc_row_ind[idx]   = i + baseCSC;
             csc_val[idx]       = csr_val[j];
