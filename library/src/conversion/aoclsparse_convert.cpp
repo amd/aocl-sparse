@@ -200,14 +200,14 @@ aoclsparse_status aoclsparse_csr2blkcsr(aoclsparse_int        m,
     blk_row_ptr_local.assign(csr_row_ptr, csr_row_ptr + m + 1);
 
     /*
-      TODO: can the below logic be optimized? 
+      TODO: can the below logic be optimized?
       Some comments from Jan as part of "Support to one-base indexing" commit:
-      We could build the arrays easily with the base we want. 
-      Second question is why to actually preserve 1-base in this case given that it is purely 
-      internal format. Yet another question is why even the original routine uses *_local arrays 
-      given that proper size is known and the destination arrays have been allocated. 
+      We could build the arrays easily with the base we want.
+      Second question is why to actually preserve 1-base in this case given that it is purely
+      internal format. Yet another question is why even the original routine uses *_local arrays
+      given that proper size is known and the destination arrays have been allocated.
       We should be also more careful in this routine with catching memory allocations and
-      given the fact that nRowsblk is not constant, many local arrays will trigger memory 
+      given the fact that nRowsblk is not constant, many local arrays will trigger memory
       allocation (which is probably unnecessary).
     */
     for(int iRow = 0; iRow < m; iRow += nRowsblk)
@@ -830,6 +830,49 @@ extern "C" aoclsparse_status aoclsparse_dcsr2dense(aoclsparse_int             m,
 {
     return aoclsparse_csr2dense_template(
         m, n, descr, csr_val, csr_row_ptr, csr_col_ind, A, ld, order);
+}
+
+extern "C" aoclsparse_status aoclsparse_ccsr2dense(aoclsparse_int                  m,
+                                                   aoclsparse_int                  n,
+                                                   const aoclsparse_mat_descr      descr,
+                                                   const aoclsparse_float_complex *csr_val,
+                                                   const aoclsparse_int           *csr_row_ptr,
+                                                   const aoclsparse_int           *csr_col_ind,
+                                                   aoclsparse_float_complex       *A,
+                                                   aoclsparse_int                  ld,
+                                                   aoclsparse_order                order)
+{
+    return aoclsparse_csr2dense_template<std::complex<float>>(m,
+                                                              n,
+                                                              descr,
+                                                              (const std::complex<float> *)csr_val,
+                                                              csr_row_ptr,
+                                                              csr_col_ind,
+                                                              (std::complex<float> *)A,
+                                                              ld,
+                                                              order);
+}
+
+extern "C" aoclsparse_status aoclsparse_zcsr2dense(aoclsparse_int                   m,
+                                                   aoclsparse_int                   n,
+                                                   const aoclsparse_mat_descr       descr,
+                                                   const aoclsparse_double_complex *csr_val,
+                                                   const aoclsparse_int            *csr_row_ptr,
+                                                   const aoclsparse_int            *csr_col_ind,
+                                                   aoclsparse_double_complex       *A,
+                                                   aoclsparse_int                   ld,
+                                                   aoclsparse_order                 order)
+{
+    return aoclsparse_csr2dense_template<std::complex<double>>(
+        m,
+        n,
+        descr,
+        (const std::complex<double> *)csr_val,
+        csr_row_ptr,
+        csr_col_ind,
+        (std::complex<double> *)A,
+        ld,
+        order);
 }
 
 template <typename T>

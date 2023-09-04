@@ -118,7 +118,7 @@ aoclsparse_status aoclsparse_zaxpyi(
  *  @param[in]
  *  x       Array of at least \f$nnz\f$ complex elements.
  *  @param[in]
- *  indx    Vector of indices of length at least \f$nnz\f$. Each entry of this vector must contain a valid index into \f$y\f$ and 
+ *  indx    Vector of indices of length at least \f$nnz\f$. Each entry of this vector must contain a valid index into \f$y\f$ and
  *          be unique. The entries of \p indx are not checked for validity.
  *  @param[in]
  *  y       Array of at least \f$\max(indx_i, i \in \{ 1,\ldots,nnz\})\f$ complex elements.
@@ -161,7 +161,7 @@ aoclsparse_status aoclsparse_zdotci(
  *  @param[in]
  *  x       Array of at least \f$nnz\f$ complex elements.
  *  @param[in]
- *  indx    Vector of indices of length at least \f$nnz\f$. Each entry of this vector must contain a valid index into \f$y\f$ and 
+ *  indx    Vector of indices of length at least \f$nnz\f$. Each entry of this vector must contain a valid index into \f$y\f$ and
  *          be unique. The entries of \p indx are not checked for validity.
  *  @param[in]
  *  y       Array of at least \f$\max(indx_i, i \in \{ 1,\ldots,nnz\})\f$ complex elements.
@@ -205,7 +205,7 @@ aoclsparse_status aoclsparse_zdotui(
  *  @param[in]
  *  x       Array of at least \f$nnz\f$ real elements.
  *  @param[in]
- *  indx    Vector of indices of length at least \f$nnz\f$. Each entry of this vector must contain a valid index into \f$y\f$ and 
+ *  indx    Vector of indices of length at least \f$nnz\f$. Each entry of this vector must contain a valid index into \f$y\f$ and
  *          be unique. The entries of \p indx are not checked for validity.
  *  @param[in]
  *  y       Array of at least \f$\max(indx_i, i \in \{ 1,\ldots,nnz\})\f$ complex elements.
@@ -233,10 +233,10 @@ double aoclsparse_ddoti(const aoclsparse_int  nnz,
  *
  *  \details
  *
- *  \p aoclsparse_ssctr (float) and \p aoclsparse_dsctr (double) scatter the elements of a  
+ *  \p aoclsparse_ssctr (float) and \p aoclsparse_dsctr (double) scatter the elements of a
  *  compressed sparse vector into a dense vecor.
- * 
- *  Let \f$y\in R^m\f$ be a dense vector, \f$x\f$ be a compressed sparse vector and \f$I_x\f$ 
+ *
+ *  Let \f$y\in R^m\f$ be a dense vector, \f$x\f$ be a compressed sparse vector and \f$I_x\f$
  *  be an indices vector of length at least \p nnz described by \p indx, then
  *
  *  \f[
@@ -260,7 +260,7 @@ double aoclsparse_ddoti(const aoclsparse_int  nnz,
  *  x       Array of \f$nnz\f$ elements to be scattered.
  *  @param[in]
  *  indx    Indices of \f$nnz\f$  elements to be scattered. The elements in this vector are
- *          only checked for non-negativity. The user should make sure that index is less than 
+ *          only checked for non-negativity. The user should make sure that index is less than
  *          the size of \p y.
  *  @param[out]
  *  y       Array of at least \f$\max(indx_i, i \in \{ 1,\ldots,nnz\})\f$  elements.
@@ -290,10 +290,10 @@ aoclsparse_status aoclsparse_dsctr(const aoclsparse_int  nnz,
  *
  *  \details
  *
- *  \p aoclsparse_csctr (complex float) and \p aoclsparse_zsctr (complex double) scatter the elements of a  
+ *  \p aoclsparse_csctr (complex float) and \p aoclsparse_zsctr (complex double) scatter the elements of a
  *  compressed sparse vector into a dense vecor.
- * 
- *  Let \f$y\in C^m\f$ be a dense vector, \f$x\f$ be a compressed sparse vector and \f$I_x\f$ 
+ *
+ *  Let \f$y\in C^m\f$ be a dense vector, \f$x\f$ be a compressed sparse vector and \f$I_x\f$
  *  be an indices vector of length at least \p nnz described by \p indx, then
  *
  *  \f[
@@ -317,7 +317,7 @@ aoclsparse_status aoclsparse_dsctr(const aoclsparse_int  nnz,
  *  x       Array of \f$nnz\f$ elements to be scattered.
  *  @param[in]
  *  indx    Indices of \f$nnz\f$  elements to be scattered. The elements in this vector are
- *          only checked for non-negativity. The user should make sure that index is less than 
+ *          only checked for non-negativity. The user should make sure that index is less than
  *          the size of \p y.
  *  @param[out]
  *  y       Array of at least \f$\max(indx_i, i \in \{ 1,\ldots,nnz\})\f$ elements.
@@ -374,7 +374,7 @@ aoclsparse_status
  *  @param[in]
  *  nnz       The number of elements in \f$x\f$ and \f$indx\f$.
  *  @param[in,out]
- *  x       Array of at least \f$nnz\f$ elements in compressed form. The elements of the array are updated 
+ *  x       Array of at least \f$nnz\f$ elements in compressed form. The elements of the array are updated
  *          after applying Givens rotation.
  *  @param[in]
  *  indx    Indices of \f$nnz\f$  elements used for Givens rotation. The elements in this vector are
@@ -391,7 +391,7 @@ aoclsparse_status
  *  \retval     aoclsparse_status_success The operation completed successfully.
  *  \retval     aoclsparse_status_invalid_pointer At least one of the pointers \p x, \p indx, \p y is invalid.
  *  \retval     aoclsparse_status_invalid_size Indicates that provided \p nnz is less than zero.
- *  \retval     aoclsparse_status_invalid_index_value At least one of the indices in indx is negative. With this error, 
+ *  \retval     aoclsparse_status_invalid_index_value At least one of the indices in indx is negative. With this error,
  *              the values of vectors x and y are undefined.
  *
  */
@@ -493,7 +493,7 @@ aoclsparse_status
  *
  *  \details
  *  The \f$\verb+aoclsparse_?gthrz+\f$ is a group of functions that gather the elements
- * 
+ *
  *  indexed in \p indx from the dense vector \p y into the sparse vector \p x.
  *  The gathered elements in \f$y\f$ are replaced by zero.
  *
@@ -599,8 +599,8 @@ aoclsparse_status
  *  \endcode
  *
  *  \note
- *  Currently, \p trans = \ref aoclsparse\_operation\_none and 
- *  \p trans = \ref aoclsparse\_operation\_transpose is supported. 
+ *  Currently, \p trans = \ref aoclsparse\_operation\_none and
+ *  \p trans = \ref aoclsparse\_operation\_transpose is supported.
  *  Currently, for \ref aoclsparse_matrix_type = \ref aoclsparse_matrix_type_symmetric,
  *  only lower triangular matrices are supported.
  *
@@ -641,7 +641,7 @@ aoclsparse_status
  *              \p csr\_row\_ptr, \p csr\_col\_ind, \p x, \p beta or \p y pointer is
  *              invalid.
  *  \retval     aoclsparse_status_not_implemented
- *              \p trans is not \ref aoclsparse_operation_none and 
+ *              \p trans is not \ref aoclsparse_operation_none and
  *              \p trans is not \ref aoclsparse_operation_transpose.
  *              \ref aoclsparse_matrix_type is not \ref aoclsparse_matrix_type_general, or
  *              \ref aoclsparse_matrix_type is not \ref aoclsparse_matrix_type_symmetric.
@@ -753,7 +753,7 @@ aoclsparse_status aoclsparse_dcsrmv(aoclsparse_operation       trans,
  *  @param[in]
  *  nnz         number of non-zero entries of the sparse ELL matrix.
  *  @param[in]
- *  descr       descriptor of the sparse ELL matrix. Both, base-zero and 
+ *  descr       descriptor of the sparse ELL matrix. Both, base-zero and
  *              base-one input arrays of ELL matrix are supported
  *  @param[in]
  *  ell_val     array that contains the elements of the sparse ELL matrix. Padded
@@ -1025,7 +1025,7 @@ aoclsparse_status aoclsparse_ddiamv(aoclsparse_operation       trans,
 *  @param[in]
 *  alpha       scalar \f$\alpha\f$.
 *  @param[in]
-*  descr       descriptor of the sparse BSR matrix. Both, base-zero and 
+*  descr       descriptor of the sparse BSR matrix. Both, base-zero and
  *              base-one input arrays of BSR matrix are supported
 *  @param[in]
 *  bsr_val     array of \p nnzb blocks of the sparse BSR matrix.
@@ -1124,9 +1124,9 @@ aoclsparse_status aoclsparse_dbsrmv(aoclsparse_operation       trans,
  *  @param[in]
  *  descr       descriptor of the sparse CSR matrix. Currently,
  *              \ref aoclsparse_matrix_type_general, aoclsparse_matrix_type_triangular, and
- *              \ref aoclsparse_matrix_type_symmetric are supported. 
- *              Both base-zero and base-one are supported, however, 
- *              the index base needs to match the one used at when 
+ *              \ref aoclsparse_matrix_type_symmetric are supported.
+ *              Both base-zero and base-one are supported, however,
+ *              the index base needs to match the one used at when
  *              aoclsparse_matrix was created.
  *  @param[in]
  *  x           array of \p n elements (\f$op(A) = A\f$) or \p m elements
@@ -1143,7 +1143,7 @@ aoclsparse_status aoclsparse_dbsrmv(aoclsparse_operation       trans,
  *              structures related to the sparse matrix \p A, \p x, \p beta or \p y has
  *              an invalid pointer.
  *  \retval     aoclsparse_status_not_implemented
- *              \p trans != \ref aoclsparse_operation_none 
+ *              \p trans != \ref aoclsparse_operation_none
  *              \p trans != \ref aoclsparse_operation_transpose
  *              \ref aoclsparse_matrix_type != \ref aoclsparse_matrix_type_general
  *              \ref aoclsparse_matrix_type != \ref aoclsparse_matrix_type_symmetric
@@ -1430,6 +1430,209 @@ aoclsparse_status aoclsparse_ztrsv_kid(aoclsparse_operation             trans,
 /**@}*/
 
 /*! \ingroup level3_module
+ *  \brief Sparse matrix Sparse matrix multiplication for real and complex datatypes.
+ *  \details
+ *  \p aoclsparse_sp2m multiplies two sparse matrices in CSR storage format. The
+ *  result is stored in a newly allocated sparse matrix in CSR format, such that
+ *  \f[
+ *    C :=  op(A) \cdot op(B),
+ *  \f]
+ *  with
+ *  \f[
+ *     op(A) = \left\{
+ *     \begin{array}{ll}
+ *         A,   & \text{if opA} = \text{aoclsparse\_operation\_none} \\
+ *         A^T, & \text{if opA} = \text{aoclsparse\_operation\_transpose} \\
+ *         A^H, & \text{if opA} = \text{aoclsparse\_operation\_conjugate\_transpose}
+ *     \end{array}
+ *     \right.
+ *  \f]
+ *  and
+ *  \f[
+ *    op(B) = \left\{
+ *    \begin{array}{ll}
+ *        B,   & \text{if opB} = \text{aoclsparse\_operation\_none} \\
+ *        B^T, & \text{if opB} = \text{aoclsparse\_operation\_transpose} \\
+ *        B^H, & \text{if opB} = \text{aoclsparse\_operation\_conjugate\_transpose}
+ *    \end{array}
+ *    \right.
+ *  \f]
+ *  where \f$A\f$ is a  \f$m \times k\f$ matrix ,\f$B\f$ is a \f$k \times n\f$ matrix,
+ *  resulting in  \f$m \times n\f$ matrix \f$C\f$, for opA and opB  =
+ *  \ref aoclsparse_operation_none. \f$A\f$ is a \f$k \times m\f$ matrix
+ *  when opA = \ref aoclsparse_operation_transpose or \ref aoclsparse_operation_conjugate_transpose
+ *  and \f$B\f$ is a \f$n \times k\f$ matrix when opB = \ref aoclsparse_operation_transpose
+ *  or \ref aoclsparse_operation_conjugate_transpose
+ *
+ *  aoclsparse_sp2m can be run in single-stage or two-stage. The single-stage algorithm
+ *  allocates and computes the entire output matrix in a single stage
+ *  \ref aoclsparse_stage_full_computation. Whereas, in two-stage algorithm, the first
+ *  stage \ref aoclsparse_stage_nnz_count allocates memory for the output matrix and
+ *  computes the number of entries of the matrix. The second stage
+ *  \ref aoclsparse_stage_finalize computes column indices of non-zero elements and
+ *  values of the output matrix. The second stage has to be invoked only after the
+ *  first stage. But, it can be also be invoked multiple times consecutively when the
+ *  sparsity structure of input matrices remains unchanged, with only the values getting
+ *  updated.
+ *
+ *  @param[in]
+ *  opA     matrix \f$A\f$ operation type.
+ *  @param[in]
+ *  descrA      descriptor of the sparse CSR matrix \f$A\f$. Currently, only
+ *              \ref aoclsparse_matrix_type_general is supported.
+ *  @param[in]
+ *  A        sparse CSR matrix \f$A\f$ .
+ *  @param[in]
+ *  opB     matrix \f$B\f$ operation type.
+ *  @param[in]
+ *  descrB      descriptor of the sparse CSR matrix \f$B\f$. Currently, only
+ *              \ref aoclsparse_matrix_type_general is supported.
+ *  @param[in]
+ *  B        sparse CSR matrix \f$B\f$ .
+ *  @param[in]
+ *  request     Specifies full computation or two-stage algorithm
+ *              \ref aoclsparse_stage_nnz_count , Only rowIndex array of the
+ *              CSR matrix is computed internally. The output sparse CSR matrix
+ *              can be extracted to measure the memory required for full operation.
+ *              \ref aoclsparse_stage_finalize . Finalize computation of remaining
+ *              output arrays ( column indices and values of output matrix entries) .
+ *              Has to be called only after aoclsparse_sp2m call with
+ *              aoclsparse_stage_nnz_count parameter.
+ *              \ref aoclsparse_stage_full_computation . Perform the entire
+ *              computation in a single step.
+ *
+ *  @param[out]
+ *  *C        Pointer to sparse CSR matrix \f$C\f$ .
+ *  	      Matrix \f$C\f$ arrays will always have zero-based indexing, irrespective of matrix \f$A\f$
+ *  	      or matrix \f$B\f$ being one-based or zero-based indexing.
+ *  	      The column indices of the output matrix in CSR format can appear unsorted.
+ *
+ *  \retval     aoclsparse_status_success the operation completed successfully.
+ *  \retval     aoclsparse_status_invalid_pointer \p descrA, \p descrB, \p A, \p B, \p C is invalid.
+ *  \retval     aoclsparse_status_invalid_size input size parameters contain an invalid value.
+ *  \retval     aoclsparse_status_invalid_value input parameters contain an invalid value.
+ *  \retval     aoclsparse_status_wrong_type A and B matrix datatypes dont match.
+ *  \retval     aoclsparse_status_memory_error Memory allocation failure.
+ *  \retval     aoclsparse_status_not_implemented
+ *              \ref aoclsparse_matrix_type is not \ref aoclsparse_matrix_type_general.
+ *
+ *  \par Example
+ *  Shows multiplication of 2 sparse matrices to give a newly allocated sparse matrix
+ *  \code{.c}
+ *      aoclsparse_matrix  A;
+ *      aoclsparse_create_dcsr(A, base, M, K, nnz_A, csr_row_ptr_A.data(), csr_col_ind_A.data(), csr_val_A.data());
+ *      aoclsparse_matrix  B;
+ *      aoclsparse_create_dcsr(B, base, K, N, nnz_B, csr_row_ptr_B.data(), csr_col_ind_B.data(), csr_val_B.data());
+ *
+ *      aoclsparse_matrix  C = NULL;
+ *      aoclsparse_int *csr_row_ptr_C = NULL;
+ *      aoclsparse_int *csr_col_ind_C = NULL;
+ *      double             *csr_val_C = NULL;
+ *      aoclsparse_int C_M, C_N;
+ *      aoclsparse_status status;
+ *      request =  aoclsparse_stage_full_computation;
+ *      status = aoclsparse_sp2m(opA,
+ *              descrA,
+ *              A,
+ *              opB,
+ *              descrB,
+ *              B,
+ *              request,
+ *              &C);
+ *
+ *      aoclsparse_export_dcsr(C, &base, &C_M, &C_N, &nnz_C, &csr_row_ptr_C, &csr_col_ind_C, (void **)&csr_val_C);
+ *
+ *  \endcode
+*/
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_sp2m(aoclsparse_operation       opA,
+                                  const aoclsparse_mat_descr descrA,
+                                  const aoclsparse_matrix    A,
+                                  aoclsparse_operation       opB,
+                                  const aoclsparse_mat_descr descrB,
+                                  const aoclsparse_matrix    B,
+                                  const aoclsparse_request   request,
+                                  aoclsparse_matrix         *C);
+/**@}*/
+
+/*! \ingroup level3_module
+ *  \brief Sparse matrix Sparse matrix multiplication for real and complex datatypes.
+ *  \details
+ *  \p aoclsparse_spmm multiplies two sparse matrices in CSR storage format. The
+ *  result is stored in a newly allocated sparse matrix in CSR format, such that
+ *  \f[
+ *    C :=  op(A) \cdot B,
+ *  \f]
+ *  with
+ *  \f[
+ *     op(A) = \left\{
+ *     \begin{array}{ll}
+ *         A,   & \text{if opA} = \text{aoclsparse\_operation\_none} \\
+ *         A^T, & \text{if opA} = \text{aoclsparse\_operation\_transpose} \\
+ *         A^H, & \text{if opA} = \text{aoclsparse\_operation\_conjugate\_transpose}
+ *     \end{array}
+ *     \right.
+ *  \f]
+ *  where \f$A\f$ is a  \f$m \times k\f$ matrix ,\f$B\f$ is a \f$k \times n\f$ matrix,
+ *  resulting in  \f$m \times n\f$ matrix \f$C\f$, for opA = \ref aoclsparse_operation_none.
+ *  \f$A\f$ is a \f$k \times m\f$ matrix when opA = \ref aoclsparse_operation_transpose
+ *  or \ref aoclsparse_operation_conjugate_transpose
+ *
+ *  @param[in]
+ *  opA     matrix \f$A\f$ operation type.
+ *
+ *  @param[in]
+ *  A        sparse CSR matrix \f$A\f$.
+ *
+ *  @param[in]
+ *  B        sparse CSR matrix \f$B\f$.
+ *
+ *  @param[out]
+ *  *C        Pointer to sparse CSR matrix \f$C\f$ .
+ *  	      Matrix \f$C\f$ arrays will always have zero-based indexing, irrespective of matrix \f$A\f$
+ *  	      or matrix \f$B\f$ being one-based or zero-based indexing.
+ *  	      The column indices of the output matrix in CSR format can appear unsorted.
+ *
+ *  \retval     aoclsparse_status_success the operation completed successfully.
+ *  \retval     aoclsparse_status_invalid_pointer \p A, \p B, \p C is invalid.
+ *  \retval     aoclsparse_status_invalid_size input size parameters contain an invalid value.
+ *  \retval     aoclsparse_status_invalid_value input parameters contain an invalid value.
+ *  \retval     aoclsparse_status_wrong_type A and B matrix datatypes dont match.
+ *  \retval     aoclsparse_status_memory_error Memory allocation failure.
+ *
+ *  \par Example
+ *  Shows multiplication of 2 sparse matrices to give a newly allocated sparse matrix
+ *  \code{.c}
+ *      aoclsparse_matrix  A;
+ *      aoclsparse_create_dcsr(A, base, M, K, nnz_A, csr_row_ptr_A.data(), csr_col_ind_A.data(), csr_val_A.data());
+ *      aoclsparse_matrix  B;
+ *      aoclsparse_create_dcsr(B, base, K, N, nnz_B, csr_row_ptr_B.data(), csr_col_ind_B.data(), csr_val_B.data());
+ *
+ *      aoclsparse_matrix  C = NULL;
+ *      aoclsparse_int *csr_row_ptr_C = NULL;
+ *      aoclsparse_int *csr_col_ind_C = NULL;
+ *      double             *csr_val_C = NULL;
+ *      aoclsparse_int C_M, C_N;
+ *      aoclsparse_status status;
+ *      status = aoclsparse_spmm(opA,
+ *              A,
+ *              B,
+ *              &C);
+ *
+ *      aoclsparse_export_dcsr(C, &base, &C_M, &C_N, &nnz_C, &csr_row_ptr_C, &csr_col_ind_C, (void **)&csr_val_C);
+ *
+ *  \endcode
+*/
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_spmm(aoclsparse_operation    opA,
+                                  const aoclsparse_matrix A,
+                                  const aoclsparse_matrix B,
+                                  aoclsparse_matrix      *C);
+/**@}*/
+
+/*! \ingroup level3_module
  *  \brief Sparse matrix dense matrix multiplication using CSR storage format
  *
  *  \details
@@ -1474,8 +1677,8 @@ aoclsparse_status aoclsparse_ztrsv_kid(aoclsparse_operation             trans,
  *  @param[in]
  *  A           Sparse CSR matrix \f$A\f$ structure.
  *  @param[in]
- *  Descr       Descriptor of the sparse CSR matrix \f$A\f$. Currently, only
- *              \ref aoclsparse_matrix_type_general is supported. base-zero and
+ *  descr       descriptor of the sparse CSR matrix \f$A\f$. Currently, only
+ *              \ref aoclsparse_matrix_type_general is supported. Both, base-zero and
  *              base-one input arrays of CSR matrix are supported
  *  @param[in]
  *  Order       Aoclsparse_order_row/aoclsparse_order_column for dense matrix
@@ -1698,7 +1901,7 @@ aoclsparse_status aoclsparse_scsr2m(aoclsparse_operation       trans_A,
  *  A            sparse matrix handle. Currently ILU functionality is supported only for CSR matrix format.
  *  @param[in]
  *  descr      descriptor of the sparse matrix handle \p A. Currently, only
- *              \ref aoclsparse_matrix_type_symmetric is supported. Both, base-zero and 
+ *              \ref aoclsparse_matrix_type_symmetric is supported. Both, base-zero and
  *              base-one input arrays of CSR matrix are supported
  *  @param[out]
  *  precond_csr_val        output pointer that contains

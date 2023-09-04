@@ -139,6 +139,7 @@ endif()
 set(EXAMPLE_EXECUTABLES
     sample_zgthr
     sample_spmv
+    sample_zsp2m
     sample_csr2m
     sample_dtrsv
     sample_ztrsv

@@ -791,6 +791,33 @@ aoclsparse_status aoclsparse_csr2dense(aoclsparse_int             m,
 {
     return aoclsparse_dcsr2dense(m, n, descr, csr_val, csr_row_ptr, csr_col_ind, A, ld, order);
 }
+template <>
+aoclsparse_status aoclsparse_csr2dense(aoclsparse_int                  m,
+                                       aoclsparse_int                  n,
+                                       const aoclsparse_mat_descr      descr,
+                                       const aoclsparse_float_complex *csr_val,
+                                       const aoclsparse_int           *csr_row_ptr,
+                                       const aoclsparse_int           *csr_col_ind,
+                                       aoclsparse_float_complex       *A,
+                                       aoclsparse_int                  ld,
+                                       aoclsparse_order                order)
+{
+    return aoclsparse_ccsr2dense(m, n, descr, csr_val, csr_row_ptr, csr_col_ind, A, ld, order);
+}
+
+template <>
+aoclsparse_status aoclsparse_csr2dense(aoclsparse_int                   m,
+                                       aoclsparse_int                   n,
+                                       const aoclsparse_mat_descr       descr,
+                                       const aoclsparse_double_complex *csr_val,
+                                       const aoclsparse_int            *csr_row_ptr,
+                                       const aoclsparse_int            *csr_col_ind,
+                                       aoclsparse_double_complex       *A,
+                                       aoclsparse_int                   ld,
+                                       aoclsparse_order                 order)
+{
+    return aoclsparse_zcsr2dense(m, n, descr, csr_val, csr_row_ptr, csr_col_ind, A, ld, order);
+}
 
 template <>
 aoclsparse_status aoclsparse_ilu_smoother(aoclsparse_operation       op,

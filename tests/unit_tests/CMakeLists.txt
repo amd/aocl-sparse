@@ -40,6 +40,7 @@ endif()
 set(utils_source common_data_utils.cpp ../common/aoclsparse_template_specialization.cpp ../common/aoclsparse_utility.cpp)
 include_directories(${CMAKE_SOURCE_DIR}/library/src/include
                     ${CMAKE_SOURCE_DIR}/library/src/solvers
+                    ${CMAKE_SOURCE_DIR}/library/src/conversion
                     ${CMAKE_SOURCE_DIR}/library/src/analysis
                     ${CMAKE_SOURCE_DIR}/library/src/level2
                     ${CMAKE_SOURCE_DIR}/library/src/level1
@@ -62,6 +63,8 @@ set(GTEST_EXECUTABLES
     blkcsrmv_tests
     csrmm_tests
     csr2m_tests
+    sp2m_tests
+    spmm_tests
     hint_tests
     ilu_tests
     trsv_tests
