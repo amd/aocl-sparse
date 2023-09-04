@@ -265,7 +265,6 @@ struct get_data_type<aoclsparse_double_complex>
         return aoclsparse_zmat;
     }
 };
-
 template <>
 struct get_data_type<std::complex<float>>
 {

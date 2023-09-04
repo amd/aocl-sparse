@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2021-2022 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2021-2023 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,8 +32,7 @@ aoclsparse_status aoclsparse_dcsr2m(aoclsparse_operation       transA,
                                     aoclsparse_request         request,
                                     aoclsparse_matrix         *csrC)
 {
-    return aoclsparse_csr2m_template<double>(
-        transA, descrA, csrA, transB, descrB, csrB, request, csrC);
+    return aoclsparse_csr2m_t<double>(transA, descrA, csrA, transB, descrB, csrB, request, csrC);
 }
 
 aoclsparse_status aoclsparse_scsr2m(aoclsparse_operation       transA,
@@ -45,6 +44,5 @@ aoclsparse_status aoclsparse_scsr2m(aoclsparse_operation       transA,
                                     aoclsparse_request         request,
                                     aoclsparse_matrix         *csrC)
 {
-    return aoclsparse_csr2m_template<float>(
-        transA, descrA, csrA, transB, descrB, csrB, request, csrC);
+    return aoclsparse_csr2m_t<float>(transA, descrA, csrA, transB, descrB, csrB, request, csrC);
 }

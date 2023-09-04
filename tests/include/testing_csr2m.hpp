@@ -265,7 +265,7 @@ void testing_csr2m(const Arguments &arg)
                 aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, &csrC));
         }
         aoclsparse_export_csr<T>(
-            csrC, &base, &C_M, &C_N, &nnz_C, &csr_row_ptr_C, &csr_col_ind_C, &csr_val_C);
+            csrC, &baseC, &C_M, &C_N, &nnz_C, &csr_row_ptr_C, &csr_col_ind_C, &csr_val_C);
 
         aoclsparse_order_column_index(C_M, nnz_C, csr_row_ptr_C, csr_col_ind_C, csr_val_C);
 

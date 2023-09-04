@@ -171,7 +171,7 @@ namespace
         aoclsparse_matrix csrC = NULL;
         request                = aoclsparse_stage_full_computation;
         EXPECT_EQ(aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, &csrC),
-                  aoclsparse_status_invalid_value);
+                  aoclsparse_status_invalid_size);
         aoclsparse_destroy(csrA);
         aoclsparse_destroy(csrB);
 
@@ -191,7 +191,7 @@ namespace
         csrC->nnz = 0;
         request   = aoclsparse_stage_finalize;
         EXPECT_EQ(aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, &csrC),
-                  aoclsparse_status_invalid_value);
+                  aoclsparse_status_invalid_size);
         aoclsparse_destroy(csrA);
         aoclsparse_destroy(csrB);
         aoclsparse_destroy(csrC);
@@ -608,23 +608,14 @@ namespace
         aoclsparse_create_mat_descr(&descrA);
         aoclsparse_create_mat_descr(&descrB);
 
-        // and expect not_implemented for aoclsparse_operation_transpose(transA & transB)
+        // and expect not_implemented for !aoclsparse_matrix_type_general for matrix A and B
         aoclsparse_matrix csrA;
         aoclsparse_create_csr(csrA, base, m, k, nnzA, csr_row_ptrA, csr_col_indA, csr_valA);
         aoclsparse_matrix csrB;
         aoclsparse_create_csr(csrB, base, k, n, nnzB, csr_row_ptrB, csr_col_indB, csr_valB);
         aoclsparse_matrix csrC = NULL;
         request                = aoclsparse_stage_full_computation;
-        EXPECT_EQ(
-            aoclsparse_csr2m<T>(
-                aoclsparse_operation_transpose, descrA, csrA, transB, descrB, csrB, request, &csrC),
-            aoclsparse_status_not_implemented);
-        EXPECT_EQ(
-            aoclsparse_csr2m<T>(
-                transA, descrA, csrA, aoclsparse_operation_transpose, descrB, csrB, request, &csrC),
-            aoclsparse_status_not_implemented);
 
-        // and expect not_implemented for !aoclsparse_matrix_type_general for matrix A and B
         aoclsparse_set_mat_index_base(descrB, aoclsparse_index_base_zero);
         aoclsparse_set_mat_type(descrA, aoclsparse_matrix_type_symmetric);
         EXPECT_EQ(aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, &csrC),

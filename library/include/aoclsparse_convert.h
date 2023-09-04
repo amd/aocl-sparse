@@ -77,14 +77,14 @@ aoclsparse_status aoclsparse_csr2ellthyb_width(aoclsparse_int        m,
 *  that \p ell_val and \p ell_col_ind are allocated. Allocation size is computed by the
 *  number of rows times the number of ELL non-zero elements per row, such that
 *  \f$\text{nnz}_{\text{ELL}} = m \cdot \text{ell\_width}\f$. The number of ELL
-*  non-zero elements per row is obtained by aoclsparse_csr2ell_width(). 
+*  non-zero elements per row is obtained by aoclsparse_csr2ell_width().
 *  The index base is preserved during the conversion.
 *
 *  @param[in]
 *  m           number of rows of the sparse CSR matrix.
 *  @param[in]
-*  descr       descriptor of the input sparse CSR matrix. 
-*              Only the base index is used in the conversion process, 
+*  descr       descriptor of the input sparse CSR matrix.
+*              Only the base index is used in the conversion process,
 *              the remaining descriptor elements are ignored.
 *  @param[in]
 *  csr_val     array containing the values of the sparse CSR matrix.
@@ -189,8 +189,8 @@ aoclsparse_status aoclsparse_dcsr2ellthyb(aoclsparse_int        m,
 *  @param[in]
 *  n           number of cols of the sparse CSR matrix.
 *  @param[in]
-*  descr       descriptor of the input sparse CSR matrix. 
-*              Only the base index is used in computing the diagonals, 
+*  descr       descriptor of the input sparse CSR matrix.
+*              Only the base index is used in computing the diagonals,
 *              the remaining descriptor elements are ignored.
 *  @param[in]
 *  nnz         number of non-zero entries of the sparse CSR matrix.
@@ -225,7 +225,7 @@ aoclsparse_status aoclsparse_csr2dia_ndiag(aoclsparse_int             m,
 *  \p aoclsparse_csr2dia converts a CSR matrix into an DIA matrix. It is assumed,
 *  that \p dia_val and \p dia_offset are allocated. Allocation size is computed by the
 *  number of rows times the number of diagonals. The number of DIA
-*  diagonals is obtained by aoclsparse_csr2dia_ndiag().The index base is 
+*  diagonals is obtained by aoclsparse_csr2dia_ndiag().The index base is
 *  preserved during the conversion.
 *
 *  @param[in]
@@ -233,8 +233,8 @@ aoclsparse_status aoclsparse_csr2dia_ndiag(aoclsparse_int             m,
 *  @param[in]
 *  n           number of cols of the sparse CSR matrix.
 *  @param[in]
-*  descr       descriptor of the input sparse CSR matrix. 
-*              Only the base index is used in the conversion process, 
+*  descr       descriptor of the input sparse CSR matrix.
+*              Only the base index is used in the conversion process,
 *              the remaining descriptor elements are ignored.
 *  @param[in]
 *  csr_row_ptr array of \p m+1 elements that point to the start of every row of the
@@ -295,8 +295,8 @@ aoclsparse_status aoclsparse_dcsr2dia(aoclsparse_int             m,
 *  n           number of columns of the sparse CSR matrix.
 *
 *  @param[in]
-*  descr       descriptor of the input sparse CSR matrix. 
-*              Only the base index is used in computing the nnz blocks, 
+*  descr       descriptor of the input sparse CSR matrix.
+*              Only the base index is used in computing the nnz blocks,
 *              the remaining descriptor elements are ignored.
 *  @param[in]
 *  csr_row_ptr integer array containing \p m+1 elements that point to the start of each row of the CSR matrix
@@ -336,7 +336,7 @@ aoclsparse_status aoclsparse_csr2bsr_nnz(aoclsparse_int             m,
 *  that \p bsr_val, \p bsr_col_ind and \p bsr_row_ptr are allocated. Allocation size
 *  for \p bsr_row_ptr is computed as \p mb+1 where \p mb is the number of block rows in
 *  the BSR matrix. Allocation size for \p bsr_val and \p bsr_col_ind is computed using
-*  \p csr2bsr_nnz() which also fills in \p bsr_row_ptr. The index base is preserved 
+*  \p csr2bsr_nnz() which also fills in \p bsr_row_ptr. The index base is preserved
 *  during the conversion.
 *
 *  @param[in]
@@ -344,7 +344,7 @@ aoclsparse_status aoclsparse_csr2bsr_nnz(aoclsparse_int             m,
 *  @param[in]
 *  n            number of columns in the sparse CSR matrix.
 *  @param[in]
-*  descr        descriptor of the input sparse CSR matrix. Only the base index 
+*  descr        descriptor of the input sparse CSR matrix. Only the base index
 *               is used in the conversion process, the remaining descriptor elements are ignored.
 *  @param[in]
 *  csr_val      array of \p nnz elements containing the values of the sparse CSR matrix.
@@ -401,7 +401,7 @@ aoclsparse_status aoclsparse_dcsr2bsr(aoclsparse_int             m,
 *
 *  \details
 *  \p aoclsparse_csr2csc converts a CSR matrix into a CSC matrix. \p aoclsparse_csr2csc
-*  can also be used to convert a CSC matrix into a CSR matrix. The index base can be 
+*  can also be used to convert a CSC matrix into a CSR matrix. The index base can be
 *  modified during the conversion.
 *
 *  \note
@@ -414,7 +414,7 @@ aoclsparse_status aoclsparse_dcsr2bsr(aoclsparse_int             m,
 *  @param[in]
 *  nnz         number of non-zero entries of the sparse CSR matrix.
 *  @param[in]
-*  descr       descriptor of the input sparse CSR matrix.Only the base index 
+*  descr       descriptor of the input sparse CSR matrix.Only the base index
 *               is used in the conversion process, the remaining descriptor elements are ignored.
 *  @param[in]
 *  baseCSC     the desired index base (zero or one) for the converted matrix.
@@ -482,7 +482,7 @@ aoclsparse_status aoclsparse_dcsr2csc(aoclsparse_int             m,
  *  n           number of columns of the dense matrix \p A.
  *
  *  @param[in]
- *  descr       the descriptor of the dense matrix \p A, the supported matrix type is \ref aoclsparse_matrix_type_general. 
+ *  descr       the descriptor of the dense matrix \p A, the supported matrix type is \ref aoclsparse_matrix_type_general.
  *              Base index from the descriptor is used in the conversion process.
  *
  *  @param[in]
@@ -527,6 +527,28 @@ aoclsparse_status aoclsparse_dcsr2dense(aoclsparse_int             m,
                                         double                    *A,
                                         aoclsparse_int             ld,
                                         aoclsparse_order           order);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_ccsr2dense(aoclsparse_int                  m,
+                                        aoclsparse_int                  n,
+                                        const aoclsparse_mat_descr      descr,
+                                        const aoclsparse_float_complex *csr_val,
+                                        const aoclsparse_int           *csr_row_ptr,
+                                        const aoclsparse_int           *csr_col_ind,
+                                        aoclsparse_float_complex       *A,
+                                        aoclsparse_int                  ld,
+                                        aoclsparse_order                order);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_zcsr2dense(aoclsparse_int                   m,
+                                        aoclsparse_int                   n,
+                                        const aoclsparse_mat_descr       descr,
+                                        const aoclsparse_double_complex *csr_val,
+                                        const aoclsparse_int            *csr_row_ptr,
+                                        const aoclsparse_int            *csr_col_ind,
+                                        aoclsparse_double_complex       *A,
+                                        aoclsparse_int                   ld,
+                                        aoclsparse_order                 order);
 /**@}*/
 
 DLL_PUBLIC
