@@ -25,14 +25,13 @@
 #define AOCLSPARSE_GTHR_HPP
 
 #include "aoclsparse.h"
+#include "aoclsparse_utils.hpp"
 
-#include <complex>
 #include <type_traits>
 
 /*
  * Gather and gather_zero reference implementations
  * It is assumed that all pointers and data are valid.
- * Only check is made for indx to check that entries are not negative (remove if appropiate)
  */
 template <typename T, bool L>
 inline aoclsparse_status gthr_ref(const aoclsparse_int                  nnz,
@@ -96,6 +95,79 @@ aoclsparse_status aoclsparse_gthr(const aoclsparse_int                  nnz,
     {
     default: // Reference implementation
         return gthr_ref<T, L>(nnz, y, x, indx);
+        break;
+    }
+
+    return aoclsparse_status_success;
+}
+
+/*
+ * Gather and gather_zero reference implementations with stride
+ * It is assumed that all pointers and data are valid.
+ * Only check is made for indx to check that entries are not negative (remove if appropiate)
+ */
+template <typename T, bool L>
+inline aoclsparse_status gthrs_ref(const aoclsparse_int                  nnz,
+                                   std::conditional_t<L, T *, const T *> y,
+                                   T                                    *x,
+                                   aoclsparse_int                        stride)
+{
+    if constexpr(L == true)
+    {
+        for(aoclsparse_int i = 0; i < nnz; ++i)
+        {
+            x[i]          = y[stride * i];
+            y[stride * i] = aoclsparse_numeric::zero<T>();
+        }
+    }
+    else
+    {
+        for(aoclsparse_int i = 0; i < nnz; ++i)
+        {
+            x[i] = y[stride * i];
+        }
+    }
+    return aoclsparse_status_success;
+}
+
+/*
+ * aoclsparse_gthrs dispatcher with stride
+ * handles both cases gather (L:=false) and gatherz (L:=true)
+ * Note that y is inout for gatherz and in otherwise.
+ */
+template <typename T, bool L>
+aoclsparse_status aoclsparse_gthrs(const aoclsparse_int                  nnz,
+                                   std::conditional_t<L, T *, const T *> y,
+                                   T                                    *x,
+                                   aoclsparse_int                        stride,
+                                   const aoclsparse_int                  kid)
+{
+    // Check size
+    if(nnz < 0)
+    {
+        return aoclsparse_status_invalid_size;
+    }
+
+    // Quick return if possible
+    if(nnz == 0)
+    {
+        return aoclsparse_status_success;
+    }
+
+    // Check pointer arguments
+    if(y == nullptr || x == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+
+    //check stride
+    if(stride < 0)
+        return aoclsparse_status_invalid_size;
+
+    switch(kid)
+    {
+    default: // Reference implementation
+        return gthrs_ref<T, L>(nnz, y, x, stride);
         break;
     }
 

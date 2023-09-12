@@ -21,11 +21,13 @@
  *
  * ************************************************************************ */
 #include "aoclsparse.h"
+#include "aoclsparse_context.h"
+#include "aoclsparse_descr.h"
+#include "aoclsparse_mat_structures.h"
 #include "common_data_utils.h"
 #include "gtest/gtest.h"
-#include "aoclsparse.hpp"
 
-#include <complex>
+#include <algorithm>
 #include <vector>
 
 namespace
@@ -59,6 +61,36 @@ namespace
             x_exp.assign({1, 4, 6});
             y_exp.assign({0, 2, 3, 0, 5, 0, 7, 8, 9});
         }
+    }
+    template <typename T>
+    void init_strided_data(aoclsparse_int &m,
+                           aoclsparse_int &n,
+                           aoclsparse_int &nnz,
+                           aoclsparse_int &stride,
+                           std::vector<T> &x,
+                           std::vector<T> &y,
+                           std::vector<T> &x_gold)
+    {
+        m      = 7;
+        n      = 7;
+        nnz    = 49;
+        stride = m + 5;
+        y.resize(stride * n);
+        x.resize(m);
+        x_gold.resize(m);
+
+        y = {bc((T)1.0), bc((T)2.0), bc((T)3.0), bc((T)4.0), bc((T)5.0), bc((T)6.0), bc((T)7.0),
+             bc((T)0),   bc((T)0),   bc((T)34),  bc((T)0),   bc((T)13),  bc((T)1.0), bc((T)2.0),
+             bc((T)3.0), bc((T)4.0), bc((T)5.0), bc((T)6.0), bc((T)7.0), bc((T)0),   bc((T)0),
+             bc((T)34),  bc((T)0),   bc((T)13),  bc((T)1.0), bc((T)2.0), bc((T)3.0), bc((T)4.0),
+             bc((T)5.0), bc((T)6.0), bc((T)7.0), bc((T)0),   bc((T)0),   bc((T)34),  bc((T)0),
+             bc((T)13),  bc((T)1.0), bc((T)2.0), bc((T)3.0), bc((T)4.0), bc((T)5.0), bc((T)6.0),
+             bc((T)7.0), bc((T)0),   bc((T)0),   bc((T)34),  bc((T)0),   bc((T)13),  bc((T)1.0),
+             bc((T)2.0), bc((T)3.0), bc((T)4.0), bc((T)5.0), bc((T)6.0), bc((T)7.0), bc((T)0),
+             bc((T)0),   bc((T)34),  bc((T)0),   bc((T)13),  bc((T)1.0), bc((T)2.0), bc((T)3.0),
+             bc((T)4.0), bc((T)5.0), bc((T)6.0), bc((T)7.0), bc((T)0),   bc((T)0),   bc((T)34),
+             bc((T)0),   bc((T)13),  bc((T)1.0), bc((T)2.0), bc((T)3.0), bc((T)4.0), bc((T)5.0),
+             bc((T)6.0), bc((T)7.0), bc((T)0),   bc((T)0),   bc((T)34),  bc((T)0),   bc((T)13)};
     }
 
     // Positive test case with checking output correctness
@@ -294,6 +326,98 @@ namespace
                   aoclsparse_status_invalid_index_value);
     }
 
+    //Gather with stride
+    // Positive test case with checking output correctness
+    template <typename T>
+    void test_gthrs_success()
+    {
+        aoclsparse_int            m, n, nnz;
+        aoclsparse_int            stride;
+        std::vector<T>            x_gold;
+        std::vector<T>            y;
+        std::vector<T>            x;
+        T                         xtol;
+        decltype(std::real(xtol)) tol;
+        xtol = (T)0;
+        tol  = std::real(xtol); // get the tolerance.
+
+        init_strided_data(m, n, nnz, stride, x, y, x_gold);
+        for(aoclsparse_int col = 0; col < n; col++)
+        {
+            T val = col + 1;
+            // expect success
+            EXPECT_EQ(aoclsparse_gthrs<T>(n, &y[col], &x[0], stride), aoclsparse_status_success);
+
+            x_gold = {
+                bc((T)val), bc((T)val), bc((T)val), bc((T)val), bc((T)val), bc((T)val), bc((T)val)};
+            if(tol <= 0.0)
+                tol = 10;
+            if constexpr(std::is_same_v<T, std::complex<double>>
+                         || std::is_same_v<T, std::complex<float>>)
+            {
+                EXPECT_COMPLEX_ARR_NEAR(m, x, x_gold, expected_precision<decltype(tol)>(tol));
+            }
+            else
+            {
+                EXPECT_ARR_NEAR(m, &x[0], &x_gold[0], expected_precision<decltype(tol)>(tol));
+            }
+        }
+    }
+    // Several tests in one when nullptr is passed instead
+    // of valid data
+    template <typename T>
+    void test_gthrs_nullptr()
+    {
+        aoclsparse_int m, n, nnz;
+        aoclsparse_int stride;
+        std::vector<T> x_gold;
+        std::vector<T> y;
+        std::vector<T> x;
+
+        init_strided_data(m, n, nnz, stride, x, y, x_gold);
+
+        // In turns pass nullptr in every single pointer argument
+        // and expect pointer error
+        EXPECT_EQ(aoclsparse_gthrs<T>(nnz, nullptr, x.data(), stride),
+                  aoclsparse_status_invalid_pointer);
+        EXPECT_EQ(aoclsparse_gthrs<T>(nnz, y.data(), nullptr, stride),
+                  aoclsparse_status_invalid_pointer);
+    }
+    // tests with wrong scalar data n, m, nnz
+    template <typename T>
+    void test_gthrs_wrong_size()
+    {
+        aoclsparse_int m, n, nnz;
+        aoclsparse_int stride;
+        std::vector<T> x_gold;
+        std::vector<T> y;
+        std::vector<T> x;
+
+        init_strided_data(m, n, nnz, stride, x, y, x_gold);
+
+        // In turns pass negative nnz
+        // and expect invalid size error
+        EXPECT_EQ(aoclsparse_gthrs<T>(-3, y.data(), x.data(), stride),
+                  aoclsparse_status_invalid_size);
+
+        EXPECT_EQ(aoclsparse_gthrs<T>(nnz, y.data(), x.data(), -1), aoclsparse_status_invalid_size);
+    }
+    // zero vector size is valid - just do nothing
+    template <typename T>
+    void test_gthrs_do_nothing()
+    {
+        aoclsparse_int m, n, nnz;
+        aoclsparse_int stride;
+        std::vector<T> x_gold;
+        std::vector<T> y;
+        std::vector<T> x;
+
+        init_strided_data(m, n, nnz, stride, x, y, x_gold);
+
+        // pass zero nnz
+        // and expect success
+        EXPECT_EQ(aoclsparse_gthrs<T>(0, y.data(), x.data(), stride), aoclsparse_status_success);
+    }
     TEST(gthr, SuccessDouble)
     {
         test_gthr_success<double>();
@@ -462,5 +586,74 @@ namespace
     TEST(gthrz, InvalidIndxCFloat)
     {
         test_gthrz_invalid_index<std::complex<float>>();
+    }
+
+    //gather with stride
+    TEST(gthrs, SuccessDouble)
+    {
+        test_gthr_success<double>();
+    }
+    TEST(gthrs, SuccessFloat)
+    {
+        test_gthrs_success<float>();
+    }
+    TEST(gthrs, SuccessCDouble)
+    {
+        test_gthrs_success<std::complex<double>>();
+    }
+    TEST(gthrs, SuccessCFloat)
+    {
+        test_gthrs_success<std::complex<float>>();
+    }
+
+    TEST(gthrs, NullArgDouble)
+    {
+        test_gthrs_nullptr<double>();
+    }
+    TEST(gthrs, NullArgFloat)
+    {
+        test_gthrs_nullptr<float>();
+    }
+    TEST(gthrs, NullArgCDouble)
+    {
+        test_gthrs_nullptr<std::complex<double>>();
+    }
+    TEST(gthrs, NullArgCFloat)
+    {
+        test_gthrs_nullptr<std::complex<float>>();
+    }
+
+    TEST(gthrs, WrongSizeDouble)
+    {
+        test_gthrs_wrong_size<double>();
+    }
+    TEST(gthrs, WrongSizeFloat)
+    {
+        test_gthrs_wrong_size<float>();
+    }
+    TEST(gthrs, WrongSizeCDouble)
+    {
+        test_gthrs_wrong_size<std::complex<double>>();
+    }
+    TEST(gthrs, WrongSizeCFloat)
+    {
+        test_gthrs_wrong_size<std::complex<float>>();
+    }
+
+    TEST(gthrs, DoNothingDouble)
+    {
+        test_gthrs_do_nothing<double>();
+    }
+    TEST(gthrs, DoNothingFloat)
+    {
+        test_gthrs_do_nothing<float>();
+    }
+    TEST(gthrs, DoNothingCDouble)
+    {
+        test_gthrs_do_nothing<std::complex<double>>();
+    }
+    TEST(gthrs, DoNothingCFloat)
+    {
+        test_gthrs_do_nothing<std::complex<float>>();
     }
 } // namespace

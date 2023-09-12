@@ -24,9 +24,6 @@
 /*
  * Unit-tests for TRiangular SolVers (aoclsparse_trsv)
  */
-#include <complex>
-#define aoclsparse_float_complex std::complex<float>
-#define aoclsparse_double_complex std::complex<double>
 #include "aoclsparse.h"
 #include "aoclsparse_context.h"
 #include "aoclsparse_descr.h"

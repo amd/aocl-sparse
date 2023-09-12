@@ -25,6 +25,7 @@
 #include "aoclsparse_mat_structures.h"
 #include "gtest/gtest.h"
 #include "aoclsparse.hpp"
+#include "aoclsparse_reference.hpp"
 
 #include <array>
 #include <cmath>
@@ -146,8 +147,34 @@
             << " by abs err: " << abs(std::real(x[i]) - std::real(y[i]));        \
     }
 
-// Define precision to which we expect the results to match ==================================
+#define EXPECT_MAT_NEAR(m, n, ld, x, y, abs_error)                                      \
+    for(size_t c = 0; c < (size_t)m; c++)                                               \
+    {                                                                                   \
+        for(size_t j = 0; j < (size_t)n; j++)                                           \
+        {                                                                               \
+            size_t offset = c * ld + j;                                                 \
+            EXPECT_NEAR(((x)[offset]), ((y)[offset]), abs_error)                        \
+                << "Vectors " #x " and " #y " different at index j =" << offset << "."; \
+        }                                                                               \
+    }
+#define EXPECT_COMPLEX_MAT_NEAR(m, n, ld, x, y, abs_error)                                    \
+    for(size_t c = 0; c < (size_t)m; c++)                                                     \
+    {                                                                                         \
+        for(size_t j = 0; j < (size_t)n; j++)                                                 \
+        {                                                                                     \
+            size_t offset = c * ld + j;                                                       \
+            EXPECT_NEAR(std::real(x[offset]), std::real(y[offset]), abs_error)                \
+                << " Real parts of " #x " and " #y " differ at index j = " << offset          \
+                << " values are: " << std::real(x[offset]) << " and " << std::real(y[offset]) \
+                << " by abs err: " << abs(std::real(x[offset]) - std::real(y[offset]));       \
+            EXPECT_NEAR(std::imag(x[offset]), std::imag(y[offset]), abs_error)                \
+                << " Imaginary parts of " #x " and " #y " differ at index j = " << (offset)   \
+                << " values are: " << std::imag(x[offset]) << " and " << std::imag(y[offset]) \
+                << " by abs err: " << abs(std::real(x[offset]) - std::real(y[offset]));       \
+        }                                                                                     \
+    }
 
+// Define precision to which we expect the results to match ==================================
 template <typename T>
 struct safeguard
 {
@@ -234,8 +261,10 @@ enum matrix_id
     invalid_mat,
 };
 
-// DB for linear system equations: returns matrix, rhs, expected sol, tolerance, ....
+// DB for linear system equations: returns matrix, rhs, expected sol, tolerance,
 // Use create_linear_system(...)
+// Warning: Don't change the order of these enums, some test rely on it.
+// Append towards the end any new problem id.
 enum linear_system_id
 {
     /* Used by TRSV */
@@ -278,12 +307,17 @@ enum linear_system_id
     N25_UU_ITx_aB,
     N25_UHx_aB,
     N25_UU_IHx_aB,
-    // Matrix used for hinting
+    // matrix used for hinting
     D7Lx_aB_hint,
     A_nullptr,
     D1_descr_nullptr,
     D1_neg_num_hint,
-    D1_mattype_gen_hint
+    D1_mattype_gen_hint,
+    // matrices used for TRSM
+    SM_S7_XB910,
+    SM_S7_XB1716,
+    SM_S1X1_XB1X1,
+    SM_S1X1_XB1X3
 };
 
 template <typename T>
@@ -576,6 +610,15 @@ inline T bc(T v)
 };
 
 template <typename T>
+inline T bcd(T v, T w)
+{
+    if constexpr(std::is_same_v<T, std::complex<float>> || std::is_same_v<T, std::complex<double>>)
+        return T(std::real(v), std::real(w));
+    else
+        return v;
+};
+
+template <typename T>
 aoclsparse_status create_linear_system(linear_system_id                id,
                                        std::string                    &title,
                                        aoclsparse_operation           &trans,
@@ -590,21 +633,23 @@ aoclsparse_status create_linear_system(linear_system_id                id,
                                        std::vector<aoclsparse_int>    &icrowa,
                                        std::vector<aoclsparse_int>    &icola,
                                        std::vector<T>                 &aval,
-                                       std::array<aoclsparse_int, 10> &iparm,
+                                       std::array<aoclsparse_int, 10> &iparm, //in-out parameter
                                        std::array<T, 10>              &dparm,
                                        aoclsparse_status              &exp_status)
 {
     aoclsparse_status    status = aoclsparse_status_success;
-    aoclsparse_int       n, nnz;
+    aoclsparse_int       n, nnz, big_m, big_n, k;
     aoclsparse_diag_type diag;
     aoclsparse_fill_mode fill_mode;
+    aoclsparse_order     order;
+    T                    beta;
+    std::vector<T>       wcolxref, wcolb;
     const bool           cplx
         = std::is_same_v<T, std::complex<float>> || std::is_same_v<T, std::complex<double>>;
 
     alpha      = (T)1;
     xtol       = (T)0; // By default not used, set only for ill conditioned problems
     exp_status = aoclsparse_status_success;
-    std::fill(iparm.begin(), iparm.end(), 0);
     std::fill(dparm.begin(), dparm.end(), 0);
     switch(id)
     {
@@ -1654,7 +1699,258 @@ aoclsparse_status create_linear_system(linear_system_id                id,
         aoclsparse_set_mat_index_base(descr, base);
         exp_status = aoclsparse_status_success;
         break;
+    case SM_S7_XB910:
+    case SM_S7_XB1716:
+        /*
+         * Small sparse 7x7 matrix A used to solve multiple RHS vectors
+         * Targeted for testing TRSM triangle(A) X = alpha B with L or U
+         * "X" and "B" are purposefully larger to test strides and layouts.
+         * The actual sub-matrices X and B are a window of the larger XBIG
+         * and BIGB matrices, and
+         * OUT PARAM: iparm[0] = indicates where X (window starts in XBIG)
+         * OUT PARAM: iparm[1] = ldx
+         * OUT PARAM: iparm[2] = indicates where B (window starts in BIGB)
+         * OUT PARAM: iparm[3] = ldb
+         * IN PARAM:  iparm[4] = indicates whether X/B dense matrices are row major(0) or column major(1)
+         * IN PARAM:  iparm[5] = indicates the no of columns in X/B dense matrices
+         */
+        fill_mode = aoclsparse_fill_mode_lower;
+        trans     = aoclsparse_operation_none;
+        diag      = aoclsparse_diag_type_non_unit;
+        n         = 7;
+        nnz       = 34;
+        alpha     = (T)1.0;
+        icrowa.resize(n + 1);
+        icrowa = {0, 5, 10, 15, 21, 26, 30, 34};
+        icola.resize(nnz);
+        icola = {0, 1, 4, 5, 6, 0, 1, 2, 3, 5, 1, 2, 3, 4, 6, 0, 2,
+                 3, 4, 5, 6, 1, 2, 3, 4, 5, 0, 2, 3, 5, 2, 3, 4, 6};
+        // update row pointer and column index arrays to reflect values as per base-index
+        // icrowa = icrowa + base;
+        transform(icrowa.begin(), icrowa.end(), icrowa.begin(), [base](aoclsparse_int &d) {
+            return d + base;
+        });
+        // icola = icola + base;
+        transform(icola.begin(), icola.end(), icola.begin(), [base](aoclsparse_int &d) {
+            return d + base;
+        });
+        aval.resize(nnz);
+        aval = {bc((T)-2), bc((T)1),  bc((T)3), bc((T)7),  bc(-(T)1), bc((T)2), bc((T)-4),
+                bc((T)1),  bc((T)2),  bc((T)4), bc((T)6),  bc((T)-2), bc((T)9), bc((T)1),
+                bc((T)9),  bc(-(T)9), bc((T)1), bc((T)-2), bc((T)1),  bc((T)1), bc((T)1),
+                bc((T)8),  bc((T)2),  bc((T)1), bc((T)-2), bc((T)2),  bc((T)8), bc((T)4),
+                bc((T)3),  bc((T)7),  bc((T)3), bc((T)6),  bc((T)9),  bc((T)2)};
+        if(aoclsparse_create_csr(A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
+           != aoclsparse_status_success)
+            return aoclsparse_status_internal_error;
+        if(aoclsparse_create_mat_descr(&descr) != aoclsparse_status_success)
+            return aoclsparse_status_internal_error;
 
+        descr->type      = aoclsparse_matrix_type_triangular;
+        descr->fill_mode = fill_mode;
+        descr->diag_type = diag;
+        aoclsparse_set_mat_index_base(descr, base);
+        switch(id)
+        {
+        case SM_S7_XB910:
+            // A Sparse 7x7, X,B dense 9x10
+            title = "A[7,7] X(7,k) = alpha * B(7,k), XBIG,BIGB[9,10]";
+            //allocate dense matrices of size = (n+2) * (n+2) to cover all k = (2, (m-2), m, (m+2)) scenarios
+            xref.resize((n + 2) * (n + 3));
+            // clang-format off
+                xref.assign({bc((T)1.1),bc((T)1.2),bc((T)1.3),bc((T)1.4),bc((T)1.5),bc((T)1.6),bc((T)1.7),bc((T)1.8),bc((T)1.9),bc((T)1.11),
+                             bc((T)2.1),bc((T)2.2),bc((T)2.3),bc((T)2.4),bc((T)2.5),bc((T)2.6),bc((T)2.7),bc((T)2.8),bc((T)2.9),bc((T)2.11),
+                             bc((T)3.1),bc((T)3.2),bc((T)3.3),bc((T)3.4),bc((T)3.5),bc((T)3.6),bc((T)3.7),bc((T)3.8),bc((T)3.9),bc((T)3.11),
+                             bc((T)4.1),bc((T)4.2),bc((T)4.3),bc((T)4.4),bc((T)4.5),bc((T)4.6),bc((T)4.7),bc((T)4.8),bc((T)4.9),bc((T)4.11),
+                             bc((T)5.1),bc((T)5.2),bc((T)5.3),bc((T)5.4),bc((T)5.5),bc((T)5.6),bc((T)5.7),bc((T)5.8),bc((T)5.9),bc((T)5.11),
+                             bc((T)6.1),bc((T)6.2),bc((T)6.3),bc((T)6.4),bc((T)6.5),bc((T)6.6),bc((T)6.7),bc((T)6.8),bc((T)6.9),bc((T)6.11),
+                             bc((T)7.1),bc((T)7.2),bc((T)7.3),bc((T)7.4),bc((T)7.5),bc((T)7.6),bc((T)7.7),bc((T)7.8),bc((T)7.9),bc((T)7.11),
+                             bc((T)8.1),bc((T)8.2),bc((T)8.3),bc((T)8.4),bc((T)8.5),bc((T)8.6),bc((T)8.7),bc((T)8.8),bc((T)8.9),bc((T)8.11),
+                             bc((T)9.1),bc((T)9.2),bc((T)9.3),bc((T)9.4),bc((T)9.5),bc((T)9.6),bc((T)9.7),bc((T)9.8),bc((T)9.9),bc((T)9.11)});
+            // clang-format on
+            /*
+             * starting offset to reach the window of X, and B
+             */
+            iparm[0] = 0; // starting_offset X
+            iparm[1] = n + 3; //ldx = n+3 = 10
+            iparm[2] = 0; // starting_offset B
+            iparm[3] = n + 3; // ldb = n+3 as well
+            x.resize((n + 2) * (n + 3));
+            std::fill(x.begin(), x.end(), (T)0);
+            b.resize((n + 2) * (n + 3));
+            break;
+        case SM_S7_XB1716:
+            // A Sparse 7x7, X,B dense 17x16
+            title = "A[7,7] X(7,k) = alpha * B(7,k), XBIG,BIGB[17,16]";
+            big_m = 17;
+            big_n = 16;
+            //allocate dense matrices of size = 16 * 17 to access a window of 9x9 and cover all k (= 2, (m-2), m, (m+2)) scenarios
+            xref.resize(big_m * big_n);
+            // clang-format off
+                xref.assign({-1, -1, -1, -1,         -1,        -1,        -1,        -1,        -1,        -1,        -1,        -1,        -1, -1, -1, -1,
+                             -1, -1, -1, -1,         -1,        -1,        -1,        -1,        -1,        -1,        -1,        -1,        -1, -1, -1, -1,
+                             -1, -1, -1, -1,         -1,        -1,        -1,        -1,        -1,        -1,        -1,        -1,        -1, -1, -1, -1,
+                             -1, -1, -1, -1,         -1,        -1,        -1,        -1,        -1,        -1,        -1,        -1,        -1, -1, -1, -1,
+                             -1, -1, -1, -1, bc((T)1.1),bc((T)1.2),bc((T)1.3),bc((T)1.4),bc((T)1.5),bc((T)1.6),bc((T)1.7),bc((T)1.8),bc((T)1.9), -1, -1, -1,
+                             -1, -1, -1, -1, bc((T)2.1),bc((T)2.2),bc((T)2.3),bc((T)2.4),bc((T)2.5),bc((T)2.6),bc((T)2.7),bc((T)2.8),bc((T)2.9), -1, -1, -1,
+                             -1, -1, -1, -1, bc((T)3.1),bc((T)3.2),bc((T)3.3),bc((T)3.4),bc((T)3.5),bc((T)3.6),bc((T)3.7),bc((T)3.8),bc((T)3.9), -1, -1, -1,
+                             -1, -1, -1, -1, bc((T)4.1),bc((T)4.2),bc((T)4.3),bc((T)4.4),bc((T)4.5),bc((T)4.6),bc((T)4.7),bc((T)4.8),bc((T)4.9), -1, -1, -1,
+                             -1, -1, -1, -1, bc((T)5.1),bc((T)5.2),bc((T)5.3),bc((T)5.4),bc((T)5.5),bc((T)5.6),bc((T)5.7),bc((T)5.8),bc((T)5.9), -1, -1, -1,
+                             -1, -1, -1, -1, bc((T)6.1),bc((T)6.2),bc((T)6.3),bc((T)6.4),bc((T)6.5),bc((T)6.6),bc((T)6.7),bc((T)6.8),bc((T)6.9), -1, -1, -1,
+                             -1, -1, -1, -1, bc((T)7.1),bc((T)7.2),bc((T)7.3),bc((T)7.4),bc((T)7.5),bc((T)7.6),bc((T)7.7),bc((T)7.8),bc((T)7.9), -1, -1, -1,
+                             -1, -1, -1, -1, bc((T)8.1),bc((T)8.2),bc((T)8.3),bc((T)8.4),bc((T)8.5),bc((T)8.6),bc((T)8.7),bc((T)8.8),bc((T)8.9), -1, -1, -1,
+                             -1, -1, -1, -1, bc((T)9.1),bc((T)9.2),bc((T)9.3),bc((T)9.4),bc((T)9.5),bc((T)9.6),bc((T)9.7),bc((T)9.8),bc((T)9.9), -1, -1, -1,
+                             -1, -1, -1, -1,         -1,        -1,        -1,        -1,        -1,        -1,        -1,        -1,        -1, -1, -1, -1,
+                             -1, -1, -1, -1,         -1,        -1,        -1,        -1,        -1,        -1,        -1,        -1,        -1, -1, -1, -1,
+                             -1, -1, -1, -1,         -1,        -1,        -1,        -1,        -1,        -1,        -1,        -1,        -1, -1, -1, -1,
+                             -1, -1, -1, -1,         -1,        -1,        -1,        -1,        -1,        -1,        -1,        -1,        -1, -1, -1, -1});
+            // clang-format on
+            /*
+             * Starting offset to reach window of XRef = (4 * big_n + stride_left(4) = 68)
+             */
+            iparm[0] = (4 * big_n) + 4; // starting_offset_x
+            iparm[1] = big_n; // leading dimension ldx
+            iparm[2] = (3 * big_n) + 2; // starting_offset_b
+            iparm[3] = big_n - 5;
+            x.resize(big_m * big_n);
+            std::fill(x.begin(), x.end(), (T)0);
+            b.resize(big_m * big_n);
+            break;
+        default:
+            return aoclsparse_status_internal_error;
+            break;
+        }
+        beta  = (T)0;
+        order = (aoclsparse_order)iparm[4]; //matrix layout
+        k     = iparm[5]; //no of columns in dense matrix, X/B
+        wcolxref.resize(n);
+        wcolb.resize(n);
+        //Build B[]
+        std::fill(b.begin(), b.end(), (T)-1);
+        if(order == aoclsparse_order_column) //col major order
+        {
+            for(int col = 0; col < k; col++)
+            {
+                //Generate 'b' for known xref[]
+                ref_csrmvtrg(alpha,
+                             n,
+                             n,
+                             &aval[0],
+                             &icola[0],
+                             &icrowa[0],
+                             fill_mode,
+                             diag,
+                             base,
+                             &xref[iparm[0] + (col * iparm[1])],
+                             beta,
+                             &b[iparm[2] + (col * iparm[3])]);
+            }
+        }
+        else if(order == aoclsparse_order_row) //row major order
+        {
+            for(int col = 0; col < k; col++)
+            {
+                aoclsparse_gthrs(n, &xref[iparm[0] + col], &wcolxref[0], iparm[1]);
+                //Generate 'b' for known xref[]
+                ref_csrmvtrg(alpha,
+                             n,
+                             n,
+                             &aval[0],
+                             &icola[0],
+                             &icrowa[0],
+                             fill_mode,
+                             diag,
+                             base,
+                             &wcolxref[0],
+                             beta,
+                             &wcolb[0]);
+                aoclsparse_sctrs<T>(n, &wcolb[0], iparm[3], &b[iparm[2] + col], 0);
+            }
+        }
+        break;
+    case SM_S1X1_XB1X1:
+    case SM_S1X1_XB1X3:
+        fill_mode = aoclsparse_fill_mode_lower;
+        trans     = aoclsparse_operation_none;
+        diag      = aoclsparse_diag_type_non_unit;
+        n         = 1;
+        nnz       = 1;
+        alpha     = (T)1.0;
+        icrowa.resize(n + 1);
+        icrowa = {0, 1};
+        icola.resize(nnz);
+        icola = {0};
+        // update row pointer and column index arrays to reflect values as per base-index
+        icrowa[0] = icrowa[0] + base;
+        icrowa[1] = icrowa[1] + base;
+        icola[0]  = icola[0] + base;
+        aval.resize(nnz);
+        aval = {bc((T)2)};
+        if(aoclsparse_create_csr(A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
+           != aoclsparse_status_success)
+            return aoclsparse_status_internal_error;
+        if(aoclsparse_create_mat_descr(&descr) != aoclsparse_status_success)
+            return aoclsparse_status_internal_error;
+
+        descr->type      = aoclsparse_matrix_type_triangular;
+        descr->fill_mode = fill_mode;
+        descr->diag_type = diag;
+        aoclsparse_set_mat_index_base(descr, base);
+        switch(id)
+        {
+        case SM_S1X1_XB1X1:
+            title = "very small m, A(1x1) . X(1x1) = alpha * B(1x1)";
+            xref.resize(1);
+            xref.assign({bc((T)1.1)});
+            iparm[0] = 0; // starting_offset_x
+            iparm[1] = 1; // leading dimension ldx
+            iparm[2] = iparm[0]; // starting_offset_b
+            iparm[3] = iparm[1]; // ldb
+            x.resize(1);
+            x[0] = (T)0;
+            b.resize(1);
+            if constexpr(std::is_same_v<T, std::complex<double>>
+                         || std::is_same_v<T, std::complex<float>>)
+            {
+                b[0] = bcd((T)2.178, (T)0.44);
+            }
+            else
+            {
+                b[0] = (T)2.2;
+            }
+            break;
+        case SM_S1X1_XB1X3:
+            title = "very small m with different k, A(1x1) . X(1x3) = alpha * B(1x3)";
+            xref.resize(3);
+            xref.assign({bc((T)1.1), bc((T)2.1), bc((T)3.1)});
+            iparm[0] = 0; // starting_offset_x
+            iparm[1] = 1; // leading dimension ldx
+            iparm[2] = iparm[0]; // starting_offset_b
+            iparm[3] = iparm[1]; // ldb
+            x.resize(3);
+            x[0] = (T)0;
+            x[1] = (T)0;
+            x[2] = (T)0;
+            b.resize(3);
+            if constexpr(std::is_same_v<T, std::complex<double>>
+                         || std::is_same_v<T, std::complex<float>>)
+            {
+                b[0] = bcd((T)2.178, (T)0.44);
+                b[1] = bcd((T)4.158, (T)0.84);
+                b[2] = bcd((T)6.138, (T)1.24);
+            }
+            else
+            {
+                b[0] = (T)2.2;
+                b[1] = (T)4.2;
+                b[2] = (T)6.2;
+            }
+            break;
+        default:
+            return aoclsparse_status_internal_error;
+            break;
+        }
+        break;
     default:
         // no data with id found
         return aoclsparse_status_internal_error;

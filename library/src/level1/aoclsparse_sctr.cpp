@@ -86,3 +86,57 @@ extern "C" aoclsparse_status aoclsparse_dsctr(const aoclsparse_int  nnz,
     status = aoclsparse_scatter<double>(nnz, x, indx, y, kid);
     return status;
 }
+
+/*
+ * Performs scatter operation of a complex (float precision) compressed sparse vector (x)
+ * to a complex full storage vector (y).
+ */
+extern "C" aoclsparse_status
+    aoclsparse_csctrs(const aoclsparse_int nnz, const void *x, aoclsparse_int stride, void *y)
+{
+    aoclsparse_int    kid    = -1;
+    aoclsparse_status status = aoclsparse_status_success;
+    status                   = aoclsparse_scatters<std::complex<float>>(
+        nnz, (std::complex<float> *)x, stride, (std::complex<float> *)y, kid);
+    return status;
+}
+
+/*
+ * Performs scatter operation of a complex (double precision) compressed sparse vector (x)
+ * to a complex full storage vector (y).
+ */
+extern "C" aoclsparse_status
+    aoclsparse_zsctrs(const aoclsparse_int nnz, const void *x, aoclsparse_int stride, void *y)
+{
+    aoclsparse_int    kid    = -1;
+    aoclsparse_status status = aoclsparse_status_success;
+    status                   = aoclsparse_scatters<std::complex<double>>(
+        nnz, (std::complex<double> *)x, stride, (std::complex<double> *)y, kid);
+    return status;
+}
+
+/*
+ * Performs scatter operation of a real (float precision) compressed sparse vector (x)
+ * to a real full storage vector (y).
+ */
+extern "C" aoclsparse_status
+    aoclsparse_ssctrs(const aoclsparse_int nnz, const float *x, aoclsparse_int stride, float *y)
+{
+    aoclsparse_int    kid = -1;
+    aoclsparse_status status;
+    status = aoclsparse_scatters<float>(nnz, x, stride, y, kid);
+    return status;
+}
+
+/*
+ * Performs scatter operation of a real (double precision) compressed sparse vector (x)
+ * to a real full storage vector (y).
+ */
+extern "C" aoclsparse_status
+    aoclsparse_dsctrs(const aoclsparse_int nnz, const double *x, aoclsparse_int stride, double *y)
+{
+    aoclsparse_int    kid = -1;
+    aoclsparse_status status;
+    status = aoclsparse_scatters<double>(nnz, x, stride, y, kid);
+    return status;
+}

@@ -23,13 +23,11 @@
 #include "aoclsparse.h"
 #include "aoclsparse_context.h"
 #include "aoclsparse_analysis.hpp"
-#include "aoclsparse_auxiliary.hpp"
 #include "aoclsparse_csr_util.hpp"
 #include "aoclsparse_optimize_data.hpp"
+#include "aoclsparse_utils.hpp"
 
 #include <algorithm>
-#include <climits>
-#include <cmath>
 /*
  *===========================================================================
  *   C wrapper
@@ -742,5 +740,73 @@ aoclsparse_status aoclsparse_set_lu_smoother_hint(aoclsparse_matrix          A,
     }
     // Add the hint at the start of the linked list
     aoclsparse_add_hint(A->optim_data, aoclsparse_action_ilu0, descr, trans, expected_no_of_calls);
+    return aoclsparse_status_success;
+}
+aoclsparse_status aoclsparse_set_sm_hint(aoclsparse_matrix                       A,
+                                         aoclsparse_operation                    trans,
+                                         const aoclsparse_mat_descr              descr,
+                                         [[maybe_unused]] const aoclsparse_order order,
+                                         const aoclsparse_int                    dense_matrix_dim,
+                                         aoclsparse_int expected_no_of_calls)
+{
+    // Check inputs
+    if(!A || !descr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    if(expected_no_of_calls < 0)
+    {
+        return aoclsparse_status_invalid_value;
+    }
+
+    // Check sizes
+    if(A->m < 0)
+    {
+        return aoclsparse_status_invalid_size;
+    }
+    else if(A->n < 0)
+    {
+        return aoclsparse_status_invalid_size;
+    }
+
+    if(A->m != A->n) // Matrix not square
+    {
+        return aoclsparse_status_invalid_value;
+    }
+    // Invalid column length of dense matrix
+    if(dense_matrix_dim < 0)
+    {
+        return aoclsparse_status_invalid_value;
+    }
+    // Check index base
+    if(descr->base != aoclsparse_index_base_zero && descr->base != aoclsparse_index_base_one)
+    {
+        return aoclsparse_status_invalid_value;
+    }
+    // Check for base index incompatibility
+    // There is an issue that zero-based indexing is defined in two separate places and
+    // can lead to ambiguity, we check that both are consistent.
+    if(A->base != descr->base)
+    {
+        return aoclsparse_status_invalid_value;
+    }
+
+    if(descr->type != aoclsparse_matrix_type_symmetric
+       && descr->type != aoclsparse_matrix_type_triangular)
+    {
+        return aoclsparse_status_invalid_value;
+    }
+    if(descr->fill_mode != aoclsparse_fill_mode_lower
+       && descr->fill_mode != aoclsparse_fill_mode_upper)
+    {
+        return aoclsparse_status_not_implemented;
+    }
+    if(trans != aoclsparse_operation_none && trans != aoclsparse_operation_transpose
+       && trans != aoclsparse_operation_conjugate_transpose)
+    {
+        return aoclsparse_status_invalid_value;
+    }
+    // Add the hint to the linked list
+    aoclsparse_add_hint(A->optim_data, aoclsparse_action_sm, descr, trans, expected_no_of_calls);
     return aoclsparse_status_success;
 }

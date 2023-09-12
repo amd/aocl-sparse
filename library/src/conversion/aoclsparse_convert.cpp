@@ -24,10 +24,9 @@
 #include "aoclsparse.h"
 #include "aoclsparse_auxiliary.hpp"
 #include "aoclsparse_convert.hpp"
+#include "aoclsparse_utils.hpp"
 
 #include <algorithm>
-#include <cmath>
-#include <limits.h>
 
 /*
  *===========================================================================

@@ -26,6 +26,7 @@
 #define AOCLSPARSE_REFERENCE_HPP
 
 #include "aoclsparse.h"
+#include "aoclsparse_utils.hpp"
 
 /* This file contains reference implementations of matrix operations
  * which are used for comparisons of the results while testing
@@ -79,9 +80,9 @@ aoclsparse_status ref_csrmvsym(T                     alpha,
     bool keep_diag = diag == aoclsparse_diag_type_non_unit;
     bool unit_diag = diag == aoclsparse_diag_type_unit;
 
-    if(beta == 0.)
+    if(beta == aoclsparse_numeric::zero<T>())
         for(aoclsparse_int i = 0; i < m; i++)
-            y[i] = 0.;
+            y[i] = aoclsparse_numeric::zero<T>();
     else
         for(aoclsparse_int i = 0; i < m; i++)
             y[i] = beta * y[i];
@@ -176,9 +177,9 @@ aoclsparse_status ref_csrmvtrg(T                     alpha,
     bool keep_diag = diag == aoclsparse_diag_type_non_unit;
     bool unit_diag = diag == aoclsparse_diag_type_unit;
 
-    if(beta == 0.)
+    if(beta == aoclsparse_numeric::zero<T>())
         for(aoclsparse_int i = 0; i < m; i++)
-            y[i] = 0.;
+            y[i] = aoclsparse_numeric::zero<T>();
     else
         for(aoclsparse_int i = 0; i < m; i++)
             y[i] = beta * y[i];
@@ -254,9 +255,9 @@ aoclsparse_status ref_csrmv(T                     alpha,
         if(csr_row_ptr[i] > csr_row_ptr[i + 1])
             return aoclsparse_status_invalid_value;
 
-    if(beta == 0.)
+    if(beta == aoclsparse_numeric::zero<T>())
         for(aoclsparse_int i = 0; i < m; i++)
-            y[i] = 0.;
+            y[i] = aoclsparse_numeric::zero<T>();
     else
         for(aoclsparse_int i = 0; i < m; i++)
             y[i] = beta * y[i];
@@ -313,9 +314,9 @@ aoclsparse_status ref_csrmvt(T                     alpha,
         if(csr_row_ptr[i] > csr_row_ptr[i + 1])
             return aoclsparse_status_invalid_value;
 
-    if(beta == 0.)
+    if(beta == aoclsparse_numeric::zero<T>())
         for(aoclsparse_int i = 0; i < n; i++)
-            y[i] = 0.;
+            y[i] = aoclsparse_numeric::zero<T>();
     else
         for(aoclsparse_int i = 0; i < n; i++)
             y[i] = beta * y[i];
@@ -385,9 +386,9 @@ aoclsparse_status ref_csrmvtrgt(T                     alpha,
     bool keep_diag = diag == aoclsparse_diag_type_non_unit;
     bool unit_diag = diag == aoclsparse_diag_type_unit;
 
-    if(beta == 0.)
+    if(beta == aoclsparse_numeric::zero<T>())
         for(aoclsparse_int i = 0; i < m; i++)
-            y[i] = 0.;
+            y[i] = aoclsparse_numeric::zero<T>();
     else
         for(aoclsparse_int i = 0; i < m; i++)
             y[i] = beta * y[i];
