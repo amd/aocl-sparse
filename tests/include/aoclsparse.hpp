@@ -212,6 +212,9 @@ template <typename T>
 aoclsparse_status
     aoclsparse_gthrz(const aoclsparse_int nnz, T *y, T *x, const aoclsparse_int *indx);
 
+template <typename T>
+aoclsparse_status
+    aoclsparse_gthrs(const aoclsparse_int nnz, const T *y, T *x, aoclsparse_int stride);
 /*
  * ===========================================================================
  *    Conversion
@@ -331,6 +334,13 @@ aoclsparse_status aoclsparse_sctr(const aoclsparse_int nnz,
                                   const aoclsparse_int *__restrict__ indx,
                                   T *__restrict__ y,
                                   const aoclsparse_int kid);
+
+template <typename T>
+aoclsparse_status aoclsparse_sctrs(const aoclsparse_int nnz,
+                                   const T *__restrict__ x,
+                                   aoclsparse_int stride,
+                                   T *__restrict__ y,
+                                   const aoclsparse_int kid);
 
 template <typename T>
 aoclsparse_status aoclsparse_roti(const aoclsparse_int nnz,

@@ -23,25 +23,34 @@
 #ifndef AOCLSPARSE_H_
 #define AOCLSPARSE_H_
 
-/** \mainpage AOCL-Sparse Introduction
-*AOCL-Sparse is a library that contains basic linear algebra subroutines for sparse matrices and vectors
-*optimized for AMD EPYC family of processors. It is designed to be used with C and C++.
-*The current functionality of AOCL-Sparse is organized in the following categories:
-* <ol><li>Sparse Level 3 functions describe the operations between a matrix in sparse format and a
-*          matrix in dense/sparse format.</li>
-* <li>Sparse Level 2 functions describe the operations between a matrix in sparse format and a
-*   vector in dense format.</li>
-* <li>Sprase Level 1 functions perform vector operations such as dot product, vector additions on
-*   sparse vectors, i.e., vectors stored in a compressed form. </li>
-* <li>Iterative sparse solvers that solve a linear system of equations.</li>
-* <li>Analysis and execute functionalities for performing optimized Sparse Matrix-Dense Vector
-* multiplication and Sparse Solver.</li>
-* <li>Sparse Format Conversion functions describe operations on a matrix in sparse format to
-* obtain a different matrix format.</li>
-*<li>Sparse Auxiliary Functions describe auxiliary functions.</li></ol>
-
-*
-*/
+/** \mainpage The AMD AOCL-Sparse Library
+ *
+ *  # Introduction
+ *
+ * The AMD Optimized CPU Library AOCL-Sparse is a library that contains Basic Linear Algebra Subroutines for sparse matrices and vectors
+ * (Sparse BLAS) and is optimized for AMD EPYC and RYZEN family of CPU processors. It implements numerical algorithms in C++ while providing a 
+ * public-facing C interface.
+ *
+ * Functionality of AMD AOCL-Sparse library is organized in the following categories
+ * <ol>
+ * <li> <b>Sparse Level 1</b> functions perform vector operations such as dot product, vector additions on
+ *   sparse vectors, and other similar operations. </li>
+ *
+ * <li><b>Sparse Level 2</b> functions describe the operations between a matrix in sparse format and a
+ *   vector in dense format.</li>
+ *
+ * <li><b>Sparse Level 3</b> functions describe the operations between a matrix in sparse format and one or more
+ *          dense/sparse matrices.</li>
+ *
+ * <li><b>Iterative sparse solvers</b> that solve sparse linear system of equations.</li>
+ *
+ * <li><b>Analysis and execute functionalities</b> for performing optimized operations.</li>
+ *
+ * <li>Sparse format conversion functions for translating matrices in a variety of
+ * sparse storage formats.</li>
+ *
+ *<li>Sparse auxiliary functions used to perform miscelaneous tasks adjacent to the ones described above.</li></ol>
+ */
 
 #include "aoclsparse_analysis.h"
 #include "aoclsparse_auxiliary.h"

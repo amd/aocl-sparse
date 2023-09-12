@@ -35,8 +35,7 @@
 #include "aoclsparse_itsol_options.hpp"
 #include "aoclsparse_mv.hpp"
 #include "aoclsparse_trsv.hpp"
-
-#include <cmath>
+#include "aoclsparse_utils.hpp"
 
 // Define all entries for rinfo[] array
 // All solvers using rinfo need to stick to these entries

@@ -29,10 +29,10 @@
 #include "aoclsparse_auxiliary.hpp"
 #include "aoclsparse_csr_util.hpp"
 #include "aoclsparse_optimize_data.hpp"
+#include "aoclsparse_utils.hpp"
 
 #include <cstring>
 #include <string>
-
 #define STRINGIFY(x) _STRINGIFY(x)
 #define _STRINGIFY(x) #x
 

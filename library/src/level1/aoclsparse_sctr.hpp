@@ -44,8 +44,7 @@ template <typename T>
 inline aoclsparse_status sctr_ref(aoclsparse_int nnz,
                                   const T *__restrict__ x,
                                   const aoclsparse_int *__restrict__ indx,
-                                  T *__restrict__ y,
-                                  [[maybe_unused]] aoclsparse_int kid)
+                                  T *__restrict__ y)
 {
     aoclsparse_int i;
     for(i = 0; i < nnz; i++)
@@ -80,12 +79,72 @@ inline aoclsparse_status aoclsparse_scatter(aoclsparse_int nnz,
         return aoclsparse_status_success;
     }
 
+    // Check size
     if(nnz < 0)
     {
         return aoclsparse_status_invalid_size;
     }
-    else
+
+    switch(kid)
     {
-        return sctr_ref<T>(nnz, x, indx, y, kid);
+    default: // Reference implementation
+        return sctr_ref<T>(nnz, x, indx, y);
+        break;
+    }
+}
+
+/*
+ * Scatter reference implementation with stride
+ * It is assumed that all pointers and data are valid.
+ */
+template <typename T>
+inline aoclsparse_status
+    sctrs_ref(aoclsparse_int nnz, const T *__restrict__ x, aoclsparse_int stride, T *__restrict__ y)
+{
+    aoclsparse_int i;
+
+    for(i = 0; i < nnz; i++)
+    {
+        y[stride * i] = x[i];
+    }
+    return aoclsparse_status_success;
+}
+/*
+ * aoclsparse_scatter dispatcher with stride
+ */
+template <typename T>
+inline aoclsparse_status aoclsparse_scatters(aoclsparse_int nnz,
+                                             const T *__restrict__ x,
+                                             aoclsparse_int stride,
+                                             T *__restrict__ y,
+                                             aoclsparse_int kid)
+{
+    // Check pointer arguments
+    if((nullptr == x) || (nullptr == y))
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+
+    // Quick return if possible
+    if(nnz == 0)
+    {
+        return aoclsparse_status_success;
+    }
+
+    //invalid stride
+    if(stride < 0)
+        return aoclsparse_status_invalid_size;
+
+    //Check Size
+    if(nnz < 0)
+    {
+        return aoclsparse_status_invalid_size;
+    }
+
+    switch(kid)
+    {
+    default: // Reference implementation
+        return sctrs_ref<T>(nnz, x, stride, y);
+        break;
     }
 }

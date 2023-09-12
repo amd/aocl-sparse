@@ -92,4 +92,35 @@ extern "C" aoclsparse_status
         nnz, (std::complex<double> *)y, (std::complex<double> *)x, indx, kid);
 }
 
+//gather with stride
+extern "C" aoclsparse_status
+    aoclsparse_sgthrs(const aoclsparse_int nnz, const float *y, float *x, aoclsparse_int stride)
+{
+    aoclsparse_int kid = 0;
+    return aoclsparse_gthrs<float, false>(nnz, y, x, stride, kid);
+}
+
+extern "C" aoclsparse_status
+    aoclsparse_dgthrs(const aoclsparse_int nnz, const double *y, double *x, aoclsparse_int stride)
+{
+    aoclsparse_int kid = 0;
+    return aoclsparse_gthrs<double, false>(nnz, y, x, stride, kid);
+}
+
+extern "C" aoclsparse_status
+    aoclsparse_cgthrs(const aoclsparse_int nnz, const void *y, void *x, aoclsparse_int stride)
+{
+    aoclsparse_int kid = 0;
+    return aoclsparse_gthrs<std::complex<float>, false>(
+        nnz, (const std::complex<float> *)y, (std::complex<float> *)x, stride, kid);
+}
+
+extern "C" aoclsparse_status
+    aoclsparse_zgthrs(const aoclsparse_int nnz, const void *y, void *x, aoclsparse_int stride)
+{
+    aoclsparse_int kid = 0;
+    return aoclsparse_gthrs<std::complex<double>, false>(
+        nnz, (const std::complex<double> *)y, (std::complex<double> *)x, stride, kid);
+}
+
 #undef C_IMPL

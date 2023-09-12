@@ -23,6 +23,7 @@
 #include "aoclsparse.h"
 #include "gtest/gtest.h"
 #include "aoclsparse_auxiliary.hpp"
+#include "aoclsparse_utils.hpp"
 
 #include <complex>
 #include <cstdlib>

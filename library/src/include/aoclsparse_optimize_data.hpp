@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022-2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,6 +34,7 @@ enum aoclsparse_hinted_action
     aoclsparse_action_mm,
     aoclsparse_action_2m,
     aoclsparse_action_ilu0,
+    aoclsparse_action_sm,
 };
 
 /* Linked list of all the hint information that was passed through the 

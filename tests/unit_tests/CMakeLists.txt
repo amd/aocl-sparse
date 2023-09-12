@@ -22,10 +22,14 @@
 # ########################################################################
 
 include(FetchContent)
+set(FETCHCONTENT_QUIET off)
+get_filename_component(fc_base "./external"
+                       REALPATH BASE_DIR "${CMAKE_BINARY_DIR}")
+set(FETCHCONTENT_BASE_DIR ${fc_base})
 FetchContent_Declare(
   googletest
   GIT_REPOSITORY https://github.com/google/googletest.git
-  GIT_TAG v1.13.0
+  GIT_TAG v1.14.0
 )
 # For Windows: Prevent overriding the parent project's compiler/linker settings
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
@@ -89,6 +93,7 @@ set(GTEST_EXECUTABLES
     order_tests
     copy_tests
     export_mat_tests
+    trsm_tests
 )
 foreach(TNAME ${GTEST_EXECUTABLES})
     add_executable(${TNAME} ${TNAME}.cpp ${utils_source})

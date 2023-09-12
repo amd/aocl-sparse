@@ -26,7 +26,7 @@
 #include "aoclsparse.h"
 #include "aoclsparse_descr.h"
 #include "aoclsparse_types.h"
-#include "aoclsparse_auxiliary.hpp"
+#include "aoclsparse_utils.hpp"
 
 #if defined(_WIN32) || defined(_WIN64)
 //Windows equivalent of gcc c99 type qualifier __restrict__
