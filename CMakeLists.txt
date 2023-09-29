@@ -110,6 +110,13 @@ ENDIF()
 
 set(COMPILER_FLAGS_COMMON "")
 set(OpenMP_Library "")
+
+# Add empty "cleanall" target
+# for other targets to add dependencies to it
+add_custom_target( cleanall
+  COMMAND ${CMAKE_MAKE_PROGRAM} clean
+)
+
 # Dependencies
 include(cmake/Dependencies.cmake)
 

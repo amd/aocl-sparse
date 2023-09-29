@@ -142,47 +142,22 @@ void aoclsparse_itsol_handle_prn_options(aoclsparse_itsol_handle handle);
  * \section anchor_itsol_options Options
  * The iterative solver framework has the following options.
  *
- * | **Option name** |  Type  | Default value|
- * |:----------------|:------:|-------------:|
- * | **cg iteration limit** | integer | \f$ i = 500\f$ |
- * | Set CG iteration limit|||
- * | Valid values: \f$1 \le i\f$. |||
- * | |||
- * | **gmres iteration limit** | integer | \f$ i = 150\f$ |
- * | Set GMRES iteration limit|||
- * | Valid values: \f$1 \le i\f$. |||
- * | |||
- * | **gmres restart iterations** | integer | \f$ i = 20\f$ |
- * | Set GMRES restart iterations|||
- * | Valid values: \f$1 \le i\f$. |||
- * | |||
- * | **cg rel tolerance** | real | \f$ r = 1.08735e-06\f$ |
- * | Set relative convergence tolerance for cg method|||
- * | Valid values: \f$0 \le r\f$. |||
- * | |||
- * | **cg abs tolerance** | real | \f$ r = 0\f$ |
- * | Set absolute convergence tolerance for cg method|||
- * | Valid values: \f$0 \le r\f$. |||
- * | |||
- * | **gmres rel tolerance** | real | \f$ r = 1.08735e-06\f$ |
- * | Set relative convergence tolerance for gmres method|||
- * | Valid values: \f$0 \le r\f$. |||
- * | |||
- * | **gmres abs tolerance** | real | \f$ r = 1e-06\f$ |
- * | Set absolute convergence tolerance for gmres method|||
- * | Valid values: \f$0 \le r\f$. |||
- * | |||
- * | **iterative method** | string | \f$ s = \f$ `cg` |
- * | Choose solver to use|||
- * | Valid values: \f$s =\f$ `cg`, `gm res`, `gmres`, or `pcg`. |||
- * | |||
- * | **cg preconditioner** | string | \f$ s = \f$ `none` |
- * | Choose preconditioner to use with cg method|||
- * | Valid values: \f$s =\f$ `gs`, `none`, `sgs`, `symgs`, or `user`. |||
- * | |||
- * | **gmres preconditioner** | string | \f$ s = \f$ `none` |
- * | Choose preconditioner to use with gmres method|||
- * | Valid values: \f$s =\f$ `ilu0`, `none`, or `user`. |||
+ * @rst
+ * .. csv-table:: 
+ *    :header: "Option name", "Type", "Default", "Description", "Constraints"
+ *
+ *    "**cg iteration limit**", "integer", ":math:`i = 500`", "Set CG iteration limit", ":math:`1 \le i`."
+ *    "**gmres iteration limit**", "integer", ":math:`i = 150`", "Set GMRES iteration limit", ":math:`1 \le i`."
+ *    "**gmres restart iterations**", "integer", ":math:`i = 20`", "Set GMRES restart iterations", ":math:`1 \le i`."
+ *    "**cg rel tolerance**", "real", ":math:`r = 1.08735e-06`", "Set relative convergence tolerance for cg method", ":math:`0 \le r`."
+ *    "**cg abs tolerance**", "real", ":math:`r = 0`", "Set absolute convergence tolerance for cg method", ":math:`0 \le r`."
+ *    "**gmres rel tolerance**", "real", ":math:`r = 1.08735e-06`", "Set relative convergence tolerance for gmres method", ":math:`0 \le r`."
+ *    "**gmres abs tolerance**", "real", ":math:`r = 1e-06`", "Set absolute convergence tolerance for gmres method", ":math:`0 \le r`."
+ *    "**iterative method**", "string", ":math:`s = cg`", "Choose solver to use", ":math:`s =` `cg`, `gm res`, `gmres`, or `pcg`."
+ *    "**cg preconditioner**", "string", ":math:`s = none`", "Choose preconditioner to use with cg method", ":math:`s =` `gs`, `none`, `sgs`, `symgs`, or `user`."
+ *    "**gmres preconditioner**", "string", ":math:`s = none`", "Choose preconditioner to use with gmres method", ":math:`s =` `ilu0`, `none`, or `user`."
+ *
+ * @endrst
  *
  * \note It is worth noting that only some options apply to each specific
  * solver, e.g. name of options that begin with "cg" affect the behaviour of the CG solver.
