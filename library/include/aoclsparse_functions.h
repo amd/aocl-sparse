@@ -45,7 +45,7 @@ extern "C" {
  *  be an indices vector of length at least \p nnz described by \p indx, then
  *
  *  \f[
- *     y_{I_{x_{i}}} = a*x_i + y_{I_{x_{i}}}, i\in\{1,\ldots,\text{\ttfamily nnz}\}.
+ *     y_{I_{x_{i}}} = a*x_i + y_{I_{x_{i}}}, i\in\{1,\ldots,\text{nnz}\}.
  *  \f]
  *
  *  A possible C implementation could be
@@ -238,7 +238,7 @@ double aoclsparse_ddoti(const aoclsparse_int  nnz,
  *  be an indices vector of length at least \p nnz described by \p indx, then
  *
  *  \f[
- *     y_{I_{x_{i}}} = x_i, i\in\{1,\ldots,\text{\ttfamily nnz}\}.
+ *     y_{I_{x_{i}}} = x_i, i\in\{1,\ldots,\text{nnz}\}.
  *  \f]
  *
  *  A possible C implementation for real vectors could be
@@ -297,7 +297,7 @@ aoclsparse_status
  *
  *  Let \f$y\f$ be a dense vector of length \f$n>0\f$, \f$x\f$ be a compressed sparse vector with \p nnz > 0 nonzeros, and
  *  \p stride be a striding distance, then
- *  \f$ y_{\text{\ttfamily stride} \times i} = x_i,\quad i\in\{1,\ldots,\text{\ttfamily nnz}\}.\f$
+ *  \f$ y_{\text{stride} \times i} = x_i,\quad i\in\{1,\ldots,\text{nnz}\}.\f$
  *
  *  A possible C implementation for real vectors could be
  *
@@ -427,7 +427,7 @@ aoclsparse_status aoclsparse_droti(const aoclsparse_int  nnz,
  *  from the same space and \f$I_x\f$ be a set of indices of size \f$0<\f$ \p nnz
  *  \f$\le m\f$ described by \p indx, then
  *  \f[
- *     x_i = y_{I_{x_i}}, i\in\{1,\ldots,\text{\ttfamily nnz}\}.
+ *     x_i = y_{I_{x_i}}, i\in\{1,\ldots,\text{nnz}\}.
  *  \f]
  *  For double precision complex vectors use \p aoclsparse_zgthr and for single
  *  precision complex vectors use \p aoclsparse_cgthr.
@@ -501,9 +501,9 @@ aoclsparse_status
  *  from the same space and \f$I_x\f$ be a set of indices of size \f$0<\f$ \p nnz
  *  \f$\le m\f$ described by \p indx, then
  *  \f[
- *     x_i = y_{I_{x_i}}, i\in\{1,\ldots,\text{\ttfamily nnz}\},
+ *     x_i = y_{I_{x_i}}, i\in\{1,\ldots,\text{nnz}\},
  * \text{ and after the assignment, }
- *     y_{I_{x_i}}=0, i\in\{1,\ldots,\text{\ttfamily nnz}\}.
+ *     y_{I_{x_i}}=0, i\in\{1,\ldots,\text{nnz}\}.
  *  \f]
  *  For double precision complex vectors use \p aoclsparse_zgthrz and for single
  *  precision complex vectors use \p aoclsparse_cgthrz.
@@ -576,7 +576,7 @@ aoclsparse_status
  *  Let \f$y\in R^m\f$ (or \f$C^m\f$) be a dense vector, \f$x\f$ be a sparse vector
  *  from the same space and \p stride be a (positive) striding distance, then
  *  \f$
- *     x_i = y_{\text{\ttfamily stride} \times i}, \quad i\in\{1,\ldots,\text{\ttfamily nnz}\}.
+ *     x_i = y_{\text{stride} \times i}, \quad i\in\{1,\ldots,\text{nnz}\}.
  *  \f$
  *
  *  A possible C implementation for real vectors could be
@@ -2264,7 +2264,7 @@ aoclsparse_status aoclsparse_scsr2m(aoclsparse_operation       trans_A,
  *              \ref aoclsparse_matrix_type is not \ref aoclsparse_matrix_type_symmetric or
  *              input matrix \p A is not in CSR format
  *
- *  \par For a usage example, see the ILU example in  \f$\ttfamily tests/include\f$ folder.
+ *  For a usage example, see the ILU example in \p tests/include folder.
  */
 
 /**@{*/
