@@ -64,7 +64,4 @@ add_custom_target( coverage
   DEPENDS coverage-report
 )
 
-add_custom_target( cleanall
-  COMMAND ${CMAKE_MAKE_PROGRAM} clean
-  DEPENDS coverage-clean
-)
+add_dependencies(cleanall coverage-clean)
