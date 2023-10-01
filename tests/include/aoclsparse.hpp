@@ -69,6 +69,29 @@ aoclsparse_status aoclsparse_add(const aoclsparse_operation op,
                                  const aoclsparse_matrix    B,
                                  aoclsparse_matrix         *C);
 
+template <typename T>
+aoclsparse_status aoclsparse_spmmd(const aoclsparse_operation      op,
+                                   const aoclsparse_matrix         A,
+                                   const aoclsparse_matrix         B,
+                                   const aoclsparse_order          layout,
+                                   T                              *C,
+                                   aoclsparse_int                  ldc,
+                                   [[maybe_unused]] aoclsparse_int kid);
+
+template <typename T>
+aoclsparse_status aoclsparse_sp2md(const aoclsparse_operation      opA,
+                                   const aoclsparse_mat_descr      descrA,
+                                   const aoclsparse_matrix         A,
+                                   const aoclsparse_operation      opB,
+                                   const aoclsparse_mat_descr      descrB,
+                                   const aoclsparse_matrix         B,
+                                   T                               alpha,
+                                   T                               beta,
+                                   T                              *C,
+                                   aoclsparse_order                layout,
+                                   aoclsparse_int                  ldc,
+                                   [[maybe_unused]] aoclsparse_int kid);
+
 /*
  * ===========================================================================
  *    level 2 SPARSE

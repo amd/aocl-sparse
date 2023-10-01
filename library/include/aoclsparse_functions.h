@@ -2098,6 +2098,209 @@ aoclsparse_status aoclsparse_zcsrmm(aoclsparse_operation             op,
                                     aoclsparse_int                   ldc);
 /**@}*/
 
+//-------------------------------------------------------------------------------------------
+/*! \ingroup level3_module
+ *  \brief Matrix multiplication of two sparse matrices stored in the CSR storage format. The output
+ *         matrix is stored in a dense format.
+ *  \details
+ *  \f$\verb+aoclsparse_?spmmd+\f$ multiplies a sparse
+ *  matrix \f$A\f$  and a sparse matrix \f$B\f$, both stored in the CSR storage format, and saves the result in a dense  matrix \f$C\f$, such that
+ *  \f[
+ *    C := op(A) \cdot B,
+ *  \f]
+ *  with
+ *  \f[
+ *    op(A) = \left\{
+ *    \begin{array}{ll}
+ *        A,   & \text{if op} = \text{aoclsparse\_operation\_none} \\
+ *        A^T, & \text{if op} = \text{aoclsparse\_operation\_transpose} \\
+ *        A^H, & \text{if op} = \text{aoclsparse\_operation\_conjugate\_transpose}
+ *    \end{array}
+ *    \right.
+ *  \f]
+ *
+ *
+ *  @param[in]
+ *  op     Operation to perform on matrix \f$A\f$.
+ *  @param[in]
+ *  A      Matrix structure containing sparse matrix \f$A\f$ of size \f$m \times k\f$.
+ *  @param[in]
+ *  B      Matrix structure containing sparse matrix \f$B\f$ of size \f$k \times n\f$ if \p op is \ref aoclsparse_operation_none otherwise of size \f$m \times n\f$.
+ *  @param[in]
+ *  layout Ordering of the dense output matrix: valid values are \ref oclsparse_order_row and \ref aoclsparse_order_column.
+ *  @param[inout]
+ *  C      Dense output matrix \f$C\f$ of size \f$m \times n\f$ if \p op is \ref aoclsparse_operation_none, otherwise of size \f$k \times n\f$ containing the matrix-matrix product of \f$A\f$ and \f$B\f$.
+ *  @param[in]
+ *  ldc    Leading dimension of \f$C\f$, e.g., for C stored in \p aoclsparse_order_row, \p ldc 
+ *         must be at least \f$\max{(1, m)}\f$  when \f$op(A) = A\f$, or 
+ *         \f$\max{(1, k)}\f$ if \f$op(A) = A^T\f$ or \f$op(A) = A^H\f$.
+ *
+ *  \retval     aoclsparse_status_success The operation completed successfully.
+ *  \retval     aoclsparse_status_invalid_size \p m, \p n, \p k, \p nnz or \p ldc is not valid.
+ *  \retval     aoclsparse_status_invalid_pointer \p A, \p B or \p C pointer is not valid.
+ *  \retval     aoclsparse_status_wrong_type \ref aoclsparse_matrix_data_type does not match the precision type (s/d/c/z).
+ *  \retval     aoclsparse_status_not_implemented
+ *              \ref aoclsparse_matrix_format_type is not \ref aoclsparse_csr_mat.
+ *
+*/
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_sspmmd(const aoclsparse_operation op,
+                                    const aoclsparse_matrix    A,
+                                    const aoclsparse_matrix    B,
+                                    const aoclsparse_order     layout,
+                                    float                     *C,
+                                    const aoclsparse_int       ldc);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_dspmmd(const aoclsparse_operation op,
+                                    const aoclsparse_matrix    A,
+                                    const aoclsparse_matrix    B,
+                                    const aoclsparse_order     layout,
+                                    double                    *C,
+                                    const aoclsparse_int       ldc);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_cspmmd(const aoclsparse_operation op,
+                                    const aoclsparse_matrix    A,
+                                    const aoclsparse_matrix    B,
+                                    const aoclsparse_order     layout,
+                                    aoclsparse_float_complex  *C,
+                                    const aoclsparse_int       ldc);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_zspmmd(const aoclsparse_operation op,
+                                    const aoclsparse_matrix    A,
+                                    const aoclsparse_matrix    B,
+                                    const aoclsparse_order     layout,
+                                    aoclsparse_double_complex *C,
+                                    const aoclsparse_int       ldc);
+
+/**@}*/
+
+//-------------------------------------------------------------------------------------------
+/*! \ingroup level3_module
+ *  \brief A variant of matrix multiplication of two sparse matrices stored in the CSR storage format. The output
+ *         matrix is stored in a dense format. Supports operations on both sparse matrices.
+ *  \details
+ *  \f$\verb+aoclsparse_?sp2md+\f$ multiplies a sparse 
+ *  matrix \f$A\f$  and a sparse matrix \f$B\f$, both stored in the CSR storage format, and saves the result in a dense matrix \f$C\f$, such that
+ *  \f[
+ *    C := \alpha \cdot op(A) \cdot op(B) + \beta \cdot C,
+ *  \f]
+ *  with
+ *  \f[
+ *    op(A) = \left\{
+ *    \begin{array}{ll}
+ *        A,   & \text{if opA} = \text{aoclsparse\_operation\_none} \\
+ *        A^T, & \text{if opA} = \text{aoclsparse\_operation\_transpose} \\
+ *        A^H, & \text{if opA} = \text{aoclsparse\_operation\_conjugate\_transpose}
+ *    \end{array}
+ *    \right.
+ *  \f]
+ *  and
+ *  \f[
+ *    op(B) = \left\{
+ *    \begin{array}{ll}
+ *        B,   & \text{if opB} = \text{aoclsparse\_operation\_none} \\
+ *        B^T, & \text{if opB} = \text{aoclsparse\_operation\_transpose} \\
+ *        B^H, & \text{if opB} = \text{aoclsparse\_operation\_conjugate\_transpose}
+ *    \end{array}
+ *    \right.
+ *  \f]
+ *
+ *  @param[in]
+ *  opA     Operation to perform on matrix \f$A\f$.
+ *  @param[in]
+ *  descrA  Descriptor of A. Only \ref aoclsparse_matrix_type_general is supported at present. 
+ *          As a consequence, all other parameters within the descriptor are ignored.
+ *  @param[in]
+ *  A     Matrix structure containing sparse matrix \f$A\f$ of size \f$m \times k\f$.
+ *  @param[in]
+ *  opB     Operation to perform on matrix \f$B\f$.
+ *  @param[in]
+ *  descrB  Descriptor of B. Only \ref aoclsparse_matrix_type_general is supported at present.
+ *          As a consequence, all other parameters within the descriptor are ignored.
+ *  @param[in]
+ *  B      Matrix structure containing sparse matrix \f$B\f$ of size \f$k \times n\f$ if \p op is \ref aoclsparse_operation_none otherwise of size \f$m \times n\f$.
+ *  @param[in]
+ *  alpha  Value of \f$ \alpha\f$.
+ *  @param[in]
+ *  beta   Value of \f$ \beta\f$.
+ *  @param[inout]
+ *  C      Dense output matrix \f$C\f$.
+ *  @param[in]
+ *  layout Ordering of the dense output matrix: valid values are \ref oclsparse_order_row and \ref aoclsparse_order_column.
+ *  @param[in]
+ *  ldc    Leading dimension of \f$C\f$, e.g., for C stored in \p aoclsparse_order_row, \p ldc 
+ *         must be at least \f$\max{(1, m)}\f$ (\f$op(A) = A\f$) or 
+ *         \f$\max{(1, k)}\f$ (\f$op(A) = A^T\f$ or \f$op(A) = A^H\f$).
+ *
+ *  \retval     aoclsparse_status_success The operation completed successfully.
+ *  \retval     aoclsparse_status_invalid_size \p m, \p n, \p k, \p nnz or \p ldc is not valid.
+ *  \retval     aoclsparse_status_invalid_pointer \p A, \p B or \p C pointer is not valid.
+ *  \retval     aoclsparse_status_wrong_type \ref aoclsparse_matrix_data_type does not match the precision type (s/d/c/z).
+ *  \retval     aoclsparse_status_not_implemented
+ *              \ref aoclsparse_matrix_format_type is not \ref aoclsparse_csr_mat.
+ *  \retval     aoclsparse_status_internal_error An internal error occurred.
+ * 
+*/
+
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_ssp2md(const aoclsparse_operation opA,
+                                    const aoclsparse_mat_descr descrA,
+                                    const aoclsparse_matrix    A,
+                                    const aoclsparse_operation opB,
+                                    const aoclsparse_mat_descr descrB,
+                                    const aoclsparse_matrix    B,
+                                    const float                alpha,
+                                    const float                beta,
+                                    float                     *C,
+                                    const aoclsparse_order     layout,
+                                    const aoclsparse_int       ldc);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_dsp2md(const aoclsparse_operation opA,
+                                    const aoclsparse_mat_descr descrA,
+                                    const aoclsparse_matrix    A,
+                                    const aoclsparse_operation opB,
+                                    const aoclsparse_mat_descr descrB,
+                                    const aoclsparse_matrix    B,
+                                    const double               alpha,
+                                    const double               beta,
+                                    double                    *C,
+                                    const aoclsparse_order     layout,
+                                    const aoclsparse_int       ldc);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_csp2md(const aoclsparse_operation opA,
+                                    const aoclsparse_mat_descr descrA,
+                                    const aoclsparse_matrix    A,
+                                    const aoclsparse_operation opB,
+                                    const aoclsparse_mat_descr descrB,
+                                    const aoclsparse_matrix    B,
+                                    aoclsparse_float_complex   alpha,
+                                    aoclsparse_float_complex   beta,
+                                    aoclsparse_float_complex  *C,
+                                    const aoclsparse_order     layout,
+                                    const aoclsparse_int       ldc);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_zsp2md(const aoclsparse_operation opA,
+                                    const aoclsparse_mat_descr descrA,
+                                    const aoclsparse_matrix    A,
+                                    const aoclsparse_operation opB,
+                                    const aoclsparse_mat_descr descrB,
+                                    const aoclsparse_matrix    B,
+                                    aoclsparse_double_complex  alpha,
+                                    aoclsparse_double_complex  beta,
+                                    aoclsparse_double_complex *C,
+                                    const aoclsparse_order     layout,
+                                    const aoclsparse_int       ldc);
+
+/**@}*/
+
 /*! \ingroup level3_module
  *  \brief Sparse matrix Sparse matrix multiplication using CSR storage format
  *  for single and double precision datatypes.

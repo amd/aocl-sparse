@@ -48,6 +48,7 @@
 // Level3
 #include "testing_csr2m.hpp"
 #include "testing_csrmm.hpp"
+#include "testing_sp2md.hpp"
 
 //Solvers
 #include "testing_ilu.hpp"
@@ -310,6 +311,11 @@ int main(int argc, char *argv[])
             testing_csr2m<double>(arg);
         else if(precision == 's')
             testing_csr2m<float>(arg);
+    }
+    else if(strcmp(arg.function, "sp2md") == 0)
+    {
+        if(precision == 'd')
+            testing_sp2md<double>(arg);
     }
     else if(strcmp(arg.function, "ilu") == 0)
     {

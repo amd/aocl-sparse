@@ -27,9 +27,7 @@
 #include "aoclsparse_mat_structures.h"
 #include "aoclsparse_types.h"
 #include "aoclsparse_auxiliary.hpp"
-#include "aoclsparse_csr_util.hpp"
 #include "aoclsparse_optimize_data.hpp"
-#include "aoclsparse_utils.hpp"
 
 #include <cstring>
 #include <string>
@@ -880,51 +878,8 @@ void aoclsparse_init_mat(aoclsparse_matrix             A,
 }
 
 /********************************************************************************
- * \brief aoclsparse_create_csr_t sets the sparse matrix in the CSR format
- * for any data type
- ********************************************************************************/
-template <typename T>
-aoclsparse_status aoclsparse_create_csr_t(aoclsparse_matrix    *mat,
-                                          aoclsparse_index_base base,
-                                          aoclsparse_int        M,
-                                          aoclsparse_int        N,
-                                          aoclsparse_int        nnz,
-                                          aoclsparse_int       *row_ptr,
-                                          aoclsparse_int       *col_idx,
-                                          T                    *val)
-{
-    aoclsparse_status status;
-    if(!mat)
-        return aoclsparse_status_invalid_pointer;
-    *mat = nullptr;
-    // Validate the input parameters
-    if((status = aoclsparse_mat_check_internal(
-            M, N, nnz, row_ptr, col_idx, val, shape_general, base, nullptr))
-       != aoclsparse_status_success)
-    {
-        return status;
-    }
-    try
-    {
-        *mat = new _aoclsparse_matrix;
-    }
-    catch(std::bad_alloc &)
-    {
-        return aoclsparse_status_memory_error;
-    }
-    aoclsparse_init_mat(*mat, base, M, N, nnz, aoclsparse_csr_mat);
-    (*mat)->val_type            = get_data_type<T>();
-    (*mat)->mat_type            = aoclsparse_csr_mat;
-    (*mat)->csr_mat.csr_row_ptr = row_ptr;
-    (*mat)->csr_mat.csr_col_ptr = col_idx;
-    (*mat)->csr_mat.csr_val     = val;
-    (*mat)->csr_mat_is_users    = true;
-
-    return aoclsparse_status_success;
-}
-
-/********************************************************************************
  * \brief aoclsparse_create_csc_t sets the sparse matrix in the CSC format
+ * \brief aoclsparse_create_csc sets the sparse matrix in the CSC format
  * for any data type
  ********************************************************************************/
 template <typename T>
