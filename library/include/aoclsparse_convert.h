@@ -187,7 +187,7 @@ aoclsparse_status aoclsparse_dcsr2ellthyb(aoclsparse_int        m,
 *  @param[in]
 *  m           number of rows of the sparse CSR matrix.
 *  @param[in]
-*  n           number of cols of the sparse CSR matrix.
+*  n           number of columns of the sparse CSR matrix.
 *  @param[in]
 *  descr       descriptor of the input sparse CSR matrix.
 *              Only the base index is used in computing the diagonals,
@@ -414,7 +414,7 @@ aoclsparse_status aoclsparse_dcsr2bsr(aoclsparse_int             m,
 *  @param[in]
 *  nnz         number of non-zero entries of the sparse CSR matrix.
 *  @param[in]
-*  descr       descriptor of the input sparse CSR matrix.Only the base index
+*  descr       descriptor of the input sparse CSR matrix. Only the base index
 *               is used in the conversion process, the remaining descriptor elements are ignored.
 *  @param[in]
 *  baseCSC     the desired index base (zero or one) for the converted matrix.
@@ -512,24 +512,24 @@ aoclsparse_status aoclsparse_zcsr2csc(aoclsparse_int                   m,
  *              Base index from the descriptor is used in the conversion process.
  *
  *  @param[in]
- *  csr_val     array of nnz ( = \p csr_row_ptr[m] - \p csr_row_ptr[0] ) nonzero elements of matrix \p A.
+ *  csr_val     array of size at least \p nnz nonzero elements of matrix \p A.
  *  @param[in]
- *  csr_row_ptr integer array of m+1 elements that contains the start of every row and the end of the last row plus one.
+ *  csr_row_ptr CSR row pointer array of size (\p m+1).
  *  @param[in]
- *  csr_col_ind integer array of nnz ( = \p csr_row_ptr[m] - csr_row_ptr[0] ) column indices of the non-zero elements of matrix \p A.
+ *  csr_col_ind An array of CSR column indices of at least \p nnz column indices of the nonzero elements of matrix \p A.
  *
  *  @param[out]
- *  A           array of dimensions (\p ld, \p n)
+ *  A           array of dimensions (\p lda, \p n)
  *
  *  @param[in]
- *  ld          leading dimension of dense array \p A.
+ *  lda          leading dimension of dense array \p A.
  *  @param[in]
- *  order       memory layout of a dense matrix \p A.
+ *  order       memory layout of a dense matrix \p A. It can be either \ref aoclsparse_order_column or \ref aoclsparse_order_row.
  *
  *  \retval     aoclsparse_status_success the operation completed successfully.
- *  \retval     aoclsparse_status_invalid_size \p m or \p n or \p ld is invalid.
- *  \retval     aoclsparse_status_invalid_pointer \p A or \p csr\_val \p csr_row_ptr or \p csr_col_ind
- *              pointer is invalid.
+ *  \retval     aoclsparse_status_invalid_size \p m or \p n or \p lda is invalid.
+ *  \retval     aoclsparse_status_invalid_pointer Any of the pointers \p A, \p csr\_val, \p csr_row_ptr, \p csr_col_ind
+ *              pointers is invalid.
  */
 /**@{*/
 DLL_PUBLIC
@@ -575,6 +575,7 @@ aoclsparse_status aoclsparse_zcsr2dense(aoclsparse_int                   m,
                                         aoclsparse_double_complex       *A,
                                         aoclsparse_int                   ld,
                                         aoclsparse_order                 order);
+
 /**@}*/
 
 DLL_PUBLIC

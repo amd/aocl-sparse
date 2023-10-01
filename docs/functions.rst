@@ -113,6 +113,14 @@ Level 3
 .. doxygenfunction:: aoclsparse_dadd
 .. doxygenfunction:: aoclsparse_cadd
 .. doxygenfunction:: aoclsparse_zadd
+.. doxygenfunction:: aoclsparse_sspmmd
+.. doxygenfunction:: aoclsparse_dspmmd
+.. doxygenfunction:: aoclsparse_cspmmd
+.. doxygenfunction:: aoclsparse_zspmmd
+.. doxygenfunction:: aoclsparse_ssp2md
+.. doxygenfunction:: aoclsparse_dsp2md
+.. doxygenfunction:: aoclsparse_csp2md
+.. doxygenfunction:: aoclsparse_zsp2md         
 
 Miscellaneous 
 =============
@@ -127,4 +135,3 @@ Miscellaneous
    .. doxygenfunction:: aoclsparse_sellthybmv
    .. doxygenfunction:: aoclsparse_dellthybmv
    .. doxygenfunction:: aoclsparse_dblkcsrmv
-

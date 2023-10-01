@@ -157,6 +157,121 @@ aoclsparse_status aoclsparse_add(const aoclsparse_operation      op,
 }
 
 template <>
+aoclsparse_status aoclsparse_spmmd(aoclsparse_operation            op,
+                                   const aoclsparse_matrix         A,
+                                   const aoclsparse_matrix         B,
+                                   aoclsparse_order                layout,
+                                   float                          *C,
+                                   aoclsparse_int                  ldc,
+                                   [[maybe_unused]] aoclsparse_int kid)
+{
+    return aoclsparse_sspmmd(op, A, B, layout, C, ldc);
+}
+
+template <>
+aoclsparse_status aoclsparse_spmmd(aoclsparse_operation            op,
+                                   const aoclsparse_matrix         A,
+                                   const aoclsparse_matrix         B,
+                                   aoclsparse_order                layout,
+                                   double                         *C,
+                                   aoclsparse_int                  ldc,
+                                   [[maybe_unused]] aoclsparse_int kid)
+{
+    return aoclsparse_dspmmd(op, A, B, layout, C, ldc);
+}
+
+template <>
+aoclsparse_status aoclsparse_spmmd(aoclsparse_operation            op,
+                                   const aoclsparse_matrix         A,
+                                   const aoclsparse_matrix         B,
+                                   aoclsparse_order                layout,
+                                   aoclsparse_float_complex       *C,
+                                   aoclsparse_int                  ldc,
+                                   [[maybe_unused]] aoclsparse_int kid)
+{
+    return aoclsparse_cspmmd(op, A, B, layout, C, ldc);
+}
+
+template <>
+aoclsparse_status aoclsparse_spmmd(aoclsparse_operation            op,
+                                   const aoclsparse_matrix         A,
+                                   const aoclsparse_matrix         B,
+                                   aoclsparse_order                layout,
+                                   aoclsparse_double_complex      *C,
+                                   aoclsparse_int                  ldc,
+                                   [[maybe_unused]] aoclsparse_int kid)
+{
+    return aoclsparse_zspmmd(op, A, B, layout, C, ldc);
+}
+template <>
+aoclsparse_status aoclsparse_sp2md(const aoclsparse_operation      opA,
+                                   const aoclsparse_mat_descr      descrA,
+                                   const aoclsparse_matrix         A,
+                                   const aoclsparse_operation      opB,
+                                   const aoclsparse_mat_descr      descrB,
+                                   const aoclsparse_matrix         B,
+                                   const float                     alpha,
+                                   const float                     beta,
+                                   float                          *C,
+                                   const aoclsparse_order          layout,
+                                   const aoclsparse_int            ldc,
+                                   [[maybe_unused]] aoclsparse_int kid)
+{
+    return aoclsparse_ssp2md(opA, descrA, A, opB, descrB, B, alpha, beta, C, layout, ldc);
+}
+
+template <>
+aoclsparse_status aoclsparse_sp2md(const aoclsparse_operation      opA,
+                                   const aoclsparse_mat_descr      descrA,
+                                   const aoclsparse_matrix         A,
+                                   const aoclsparse_operation      opB,
+                                   const aoclsparse_mat_descr      descrB,
+                                   const aoclsparse_matrix         B,
+                                   const double                    alpha,
+                                   const double                    beta,
+                                   double                         *C,
+                                   const aoclsparse_order          layout,
+                                   const aoclsparse_int            ldc,
+                                   [[maybe_unused]] aoclsparse_int kid)
+{
+    return aoclsparse_dsp2md(opA, descrA, A, opB, descrB, B, alpha, beta, C, layout, ldc);
+}
+
+template <>
+aoclsparse_status aoclsparse_sp2md(const aoclsparse_operation      opA,
+                                   const aoclsparse_mat_descr      descrA,
+                                   const aoclsparse_matrix         A,
+                                   const aoclsparse_operation      opB,
+                                   const aoclsparse_mat_descr      descrB,
+                                   const aoclsparse_matrix         B,
+                                   aoclsparse_float_complex        alpha,
+                                   aoclsparse_float_complex        beta,
+                                   aoclsparse_float_complex       *C,
+                                   const aoclsparse_order          layout,
+                                   const aoclsparse_int            ldc,
+                                   [[maybe_unused]] aoclsparse_int kid)
+{
+    return aoclsparse_csp2md(opA, descrA, A, opB, descrB, B, alpha, beta, C, layout, ldc);
+}
+
+template <>
+aoclsparse_status aoclsparse_sp2md(const aoclsparse_operation      opA,
+                                   const aoclsparse_mat_descr      descrA,
+                                   const aoclsparse_matrix         A,
+                                   const aoclsparse_operation      opB,
+                                   const aoclsparse_mat_descr      descrB,
+                                   const aoclsparse_matrix         B,
+                                   aoclsparse_double_complex       alpha,
+                                   aoclsparse_double_complex       beta,
+                                   aoclsparse_double_complex      *C,
+                                   const aoclsparse_order          layout,
+                                   const aoclsparse_int            ldc,
+                                   [[maybe_unused]] aoclsparse_int kid)
+{
+    return aoclsparse_zsp2md(opA, descrA, A, opB, descrB, B, alpha, beta, C, layout, ldc);
+}
+
+template <>
 aoclsparse_status aoclsparse_csrmv(aoclsparse_operation       trans,
                                    const float               *alpha,
                                    aoclsparse_int             m,

@@ -176,6 +176,8 @@ set(EXAMPLE_EXECUTABLES
     sample_dtrsm
     sample_ztrsm
     sample_spmv_c
+    sample_spmmd
+    sample_sp2md
 )
 # Take all sample executables also as test targets
 foreach(SNAME ${EXAMPLE_EXECUTABLES})
