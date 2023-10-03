@@ -262,7 +262,7 @@ aoclsparse_status
             idxstart = csr_icrow[i] - base;
             // strictly L elements in each row are icrow[i]..idiag[i]-1
             idxend = csr_idiag[i] - base;
-            // multiply with all strictry L triangle elements (and their transpose)
+            // multiply with all strictly L triangle elements (and their transpose)
             for(idx = idxstart; idx < idxend; idx++)
             {
                 val = alpha * csr_val[idx];
@@ -291,7 +291,7 @@ aoclsparse_status
 
             // strictly U elements in each row are idiag[i]+1..icrow[i+1]-1
             idxend = csr_icrow[i + 1] - base;
-            // multiply with all strictry L triangle elements (and their transpose)
+            // multiply with all strictly U triangle elements (and their transpose)
             for(idx = idx + 1; idx < idxend; idx++)
             {
                 val = alpha * csr_val[idx];
@@ -464,13 +464,98 @@ aoclsparse_status
 
             // strictly U elements in each row are idiag[i]+1..icrow[i+1]-1
             idxend = csr_icrow[i + 1] - base;
-            // multiply with all strictry L triangle elements (and their transpose)
+            // multiply with all strictly U triangle elements (and their transpose)
             for(idx = idx + 1; idx < idxend; idx++)
             {
                 val = alpha * csr_val[idx];
                 j   = csr_icol[idx] - base;
                 y[i] += val * x[j];
                 y[j] += alpha * aoclsparse::conj(csr_val[idx]) * x[i];
+            }
+        }
+    }
+    return aoclsparse_status_success;
+}
+
+/* this is adjusted aoclsparse_csrmv_symm_internal() to work with hermitian matrices
+ * for transpose op
+ */
+template <typename T>
+aoclsparse_status
+    aoclsparse_csrmv_hermt_internal(aoclsparse_index_base base,
+                                    T                     alpha,
+                                    aoclsparse_int        m,
+                                    aoclsparse_diag_type  diag_type,
+                                    aoclsparse_fill_mode  fill_mode,
+                                    const T *__restrict__ csr_val,
+                                    const aoclsparse_int *__restrict__ csr_icol,
+                                    const aoclsparse_int *__restrict__ csr_icrow,
+                                    const aoclsparse_int *__restrict__ csr_idiag,
+                                    [[maybe_unused]] const aoclsparse_int *__restrict__ csr_iurow,
+                                    const T *__restrict__ x,
+                                    T beta,
+                                    T *__restrict__ y)
+{
+
+    aoclsparse_int i, j, idx, idxstart, idxend;
+    T              val;
+
+    // Perform (beta * y)
+    if(beta == static_cast<T>(0))
+    {
+        // if beta==0 and y contains any NaNs, we can zero y directly
+        for(i = 0; i < m; i++)
+            y[i] = 0.;
+    }
+    else if(beta != static_cast<T>(1))
+    {
+        for(i = 0; i < m; i++)
+            y[i] = beta * y[i];
+    }
+
+    if(fill_mode == aoclsparse_fill_mode_lower)
+    {
+        for(i = 0; i < m; i++)
+        {
+            idxstart = csr_icrow[i] - base;
+            // strictly L elements in each row are icrow[i]..idiag[i]-1
+            idxend = csr_idiag[i] - base;
+            // multiply with all strictly L triangle elements (and their transpose)
+            for(idx = idxstart; idx < idxend; idx++)
+            {
+                val = alpha * aoclsparse::conj(csr_val[idx]);
+                j   = csr_icol[idx] - base;
+                y[i] += val * x[j];
+                y[j] += (alpha * csr_val[idx] * x[i]);
+            }
+            if(diag_type == aoclsparse_diag_type_non_unit)
+                y[i] += alpha * csr_val[idxend] * x[i];
+            else if(diag_type == aoclsparse_diag_type_unit)
+                y[i] += alpha * x[i];
+            //else zero diagonal
+        }
+    }
+    else
+    { // fill_mode==aoclsparse_fill_mode_upper
+        for(i = 0; i < m; i++)
+        {
+            // diag is at csr_idiag[i]
+            idx = csr_idiag[i] - base;
+            if(diag_type == aoclsparse_diag_type_non_unit)
+                y[i] += alpha * csr_val[idx] * x[i];
+            else if(diag_type == aoclsparse_diag_type_unit)
+                y[i] += alpha * x[i];
+            //else zero diagonal
+
+            // strictly U elements in each row are idiag[i]+1..icrow[i+1]-1
+            idxend = csr_icrow[i + 1] - base;
+            // multiply with all strictly U triangle elements (and their transpose)
+            for(idx = idx + 1; idx < idxend; idx++)
+            {
+                val = alpha * aoclsparse::conj(csr_val[idx]);
+                j   = csr_icol[idx] - base;
+                y[i] += val * x[j];
+                y[j] += (alpha * csr_val[idx] * x[i]);
             }
         }
     }

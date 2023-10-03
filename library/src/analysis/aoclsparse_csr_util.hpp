@@ -331,12 +331,7 @@ aoclsparse_status aoclsparse_csr_optimize(aoclsparse_matrix A)
         return aoclsparse_status_invalid_pointer;
 
     // Make sure we have the right type before proceeding
-    if(!((A->val_type == aoclsparse_dmat && std::is_same_v<T, double>)
-         || (A->val_type == aoclsparse_smat && std::is_same_v<T, float>)
-         || (A->val_type == aoclsparse_zmat && std::is_same_v<T, std::complex<double>>)
-         || (A->val_type == aoclsparse_cmat && std::is_same_v<T, std::complex<float>>)
-         || (A->val_type == aoclsparse_zmat && std::is_same_v<T, aoclsparse_double_complex>)
-         || (A->val_type == aoclsparse_cmat && std::is_same_v<T, aoclsparse_float_complex>)))
+    if(A->val_type != get_data_type<T>())
         return aoclsparse_status_wrong_type;
 
     //Make sure base-index is the correct value

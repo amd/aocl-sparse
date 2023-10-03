@@ -154,6 +154,7 @@ set(EXAMPLE_EXECUTABLES
     sample_dotp
     sample_sctr
     sample_roti
+    sample_dotmv
     sample_axpyi
     sample_csrmm
     sample_dtrsm

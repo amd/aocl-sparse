@@ -1440,3 +1440,52 @@ aoclsparse_status aoclsparse_export_csc(const aoclsparse_matrix     mat,
 {
     return aoclsparse_export_zcsc(mat, base, m, n, nnz, col_ptr, row_idx, val);
 }
+
+template <>
+aoclsparse_status aoclsparse_dotmv(const aoclsparse_operation op,
+                                   float                      alpha,
+                                   aoclsparse_matrix          A,
+                                   aoclsparse_mat_descr       descr,
+                                   float                     *x,
+                                   float                      beta,
+                                   float                     *y,
+                                   float                     *d)
+{
+    return aoclsparse_sdotmv(op, alpha, A, descr, x, beta, y, d);
+}
+template <>
+aoclsparse_status aoclsparse_dotmv(const aoclsparse_operation op,
+                                   double                     alpha,
+                                   aoclsparse_matrix          A,
+                                   aoclsparse_mat_descr       descr,
+                                   double                    *x,
+                                   double                     beta,
+                                   double                    *y,
+                                   double                    *d)
+{
+    return aoclsparse_ddotmv(op, alpha, A, descr, x, beta, y, d);
+}
+template <>
+aoclsparse_status aoclsparse_dotmv(const aoclsparse_operation op,
+                                   aoclsparse_float_complex   alpha,
+                                   aoclsparse_matrix          A,
+                                   aoclsparse_mat_descr       descr,
+                                   aoclsparse_float_complex  *x,
+                                   aoclsparse_float_complex   beta,
+                                   aoclsparse_float_complex  *y,
+                                   aoclsparse_float_complex  *d)
+{
+    return aoclsparse_cdotmv(op, alpha, A, descr, x, beta, y, d);
+}
+template <>
+aoclsparse_status aoclsparse_dotmv(const aoclsparse_operation op,
+                                   aoclsparse_double_complex  alpha,
+                                   aoclsparse_matrix          A,
+                                   aoclsparse_mat_descr       descr,
+                                   aoclsparse_double_complex *x,
+                                   aoclsparse_double_complex  beta,
+                                   aoclsparse_double_complex *y,
+                                   aoclsparse_double_complex *d)
+{
+    return aoclsparse_zdotmv(op, alpha, A, descr, x, beta, y, d);
+}

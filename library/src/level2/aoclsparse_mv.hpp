@@ -63,7 +63,7 @@ aoclsparse_status aoclsparse_mv_t(aoclsparse_operation op,
 {
     aoclsparse_status     status;
     _aoclsparse_mat_descr descr_cpy;
-    //aoclsparse_mat_descr descr_cpy = descr;
+
     aoclsparse_copy_mat_descr(&descr_cpy, descr);
     if(A == nullptr)
         return aoclsparse_status_invalid_pointer;
@@ -111,11 +111,16 @@ aoclsparse_status aoclsparse_mv_t(aoclsparse_operation op,
     if((descr->type == aoclsparse_matrix_type_symmetric
         || descr->type == aoclsparse_matrix_type_hermitian)
        && A->m != A->n)
-        return aoclsparse_status_invalid_value;
+        return aoclsparse_status_invalid_size;
 
     // Quick return if possible
     T zero = 0;
-    if(A->m == 0 || A->n == 0)
+    /* Diag_type is applicable for symm/herm/tri matrices. Internal functions
+     * will handle diag_type=unit and nnz=0 case for such matrices. General
+     * matrix with nnz=0 should update y (aoclsparse_dcsrmv() has quick return
+     * which doesn't update y. Hence adding this nnz=0 & general matrix check here.)
+     */
+    if(A->m == 0 || A->n == 0 || (A->nnz == 0 && descr->type == aoclsparse_matrix_type_general))
     {
         aoclsparse_int dim = op == aoclsparse_operation_none ? A->m : A->n;
         if(beta != zero)
@@ -289,7 +294,19 @@ aoclsparse_status aoclsparse_mv_t(aoclsparse_operation op,
         }
         else if(descr->type == aoclsparse_matrix_type_hermitian)
         {
-            return aoclsparse_status_not_implemented;
+            return aoclsparse_csrmv_hermt_internal(descr_cpy.base,
+                                                   alpha,
+                                                   A->m,
+                                                   descr_cpy.diag_type,
+                                                   descr_cpy.fill_mode,
+                                                   (T *)A->opt_csr_mat.csr_val,
+                                                   A->opt_csr_mat.csr_col_ptr,
+                                                   A->opt_csr_mat.csr_row_ptr,
+                                                   A->idiag,
+                                                   A->iurow,
+                                                   x,
+                                                   beta,
+                                                   y);
         }
         break;
 
@@ -388,10 +405,8 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
                                 T                          beta,
                                 T                         *y)
 {
-    aoclsparse_status status;
-
+    aoclsparse_status     status;
     _aoclsparse_mat_descr descr_cpy;
-    //aoclsparse_mat_descr descr_cpy = descr;
     aoclsparse_copy_mat_descr(&descr_cpy, descr);
 
     // still check A, in case the template is called directly
@@ -450,11 +465,16 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
         return aoclsparse_status_not_implemented;
 
     if(descr->type == aoclsparse_matrix_type_symmetric && A->m != A->n)
-        return aoclsparse_status_invalid_value;
+        return aoclsparse_status_invalid_size;
 
     // Quick return if possible
     T zero = 0;
-    if(A->m == 0 || A->n == 0)
+    /* Diag_type is applicable for symm/herm/tri matrices. Internal functions
+     * will handle diag_type=unit and nnz=0 case for such matrices. General
+     * matrix with nnz=0 should update y (aoclsparse_dcsrmv() has quick return
+     * which doesn't update y. Hence adding this nnz=0 & general matrix check here.)
+     */
+    if(A->m == 0 || A->n == 0 || (A->nnz == 0 && descr->type == aoclsparse_matrix_type_general))
     {
         aoclsparse_int dim = op == aoclsparse_operation_none ? A->m : A->n;
         if(beta != zero)
