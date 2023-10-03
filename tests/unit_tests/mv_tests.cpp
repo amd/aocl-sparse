@@ -167,7 +167,7 @@ namespace
         }
         aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_symmetric);
         EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A, descr, x, &beta, y),
-                  aoclsparse_status_invalid_value);
+                  aoclsparse_status_invalid_size);
 
         aoclsparse_destroy_mat_descr(descr);
         EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
@@ -1074,19 +1074,12 @@ namespace
             EXPECT_EQ(aoclsparse_mv<T>(op_a, &alpha, A, descrA, x.data(), &beta, nullptr),
                       aoclsparse_status_invalid_pointer);
             break;
-        case 1: // test not implemented cases
-            ASSERT_EQ(aoclsparse_set_mat_type(descrA, aoclsparse_matrix_type_hermitian),
-                      aoclsparse_status_success);
-            op_a = aoclsparse_operation_transpose;
-            EXPECT_EQ(aoclsparse_mv<T>(op_a, &alpha, A, descrA, x.data(), &beta, y.data()),
-                      aoclsparse_status_not_implemented);
-            break;
-        case 2: // test invalid type / value cases
+        case 1: // test invalid type / value cases
             ASSERT_EQ(aoclsparse_set_mat_type(descrA, aoclsparse_matrix_type_symmetric),
                       aoclsparse_status_success);
             A->m = A->n + 1;
             EXPECT_EQ(aoclsparse_mv<T>(op_a, &alpha, A, descrA, x.data(), &beta, y.data()),
-                      aoclsparse_status_invalid_value);
+                      aoclsparse_status_invalid_size);
             A->m            = A->n;
             A->input_format = aoclsparse_ell_mat;
             EXPECT_EQ(aoclsparse_mv<T>(op_a, &alpha, A, descrA, x.data(), &beta, y.data()),
@@ -1336,14 +1329,9 @@ namespace
         mv_cmplx_failures<aoclsparse_double_complex>(8, 8, 27, zero, op_h, 0, mat_h, fl_up, diag_u);
     }
 
-    TEST(mv, CmplxNotImpl)
-    {
-        mv_cmplx_failures<aoclsparse_double_complex>(8, 8, 27, zero, op_h, 1, mat_h, fl_up, diag_u);
-    }
-
     TEST(mv, CmplxInvalid)
     {
-        mv_cmplx_failures<aoclsparse_double_complex>(8, 8, 27, zero, op_h, 2, mat_h, fl_up, diag_u);
+        mv_cmplx_failures<aoclsparse_double_complex>(8, 8, 27, zero, op_h, 1, mat_h, fl_up, diag_u);
     }
 
     /* Transpose operation for a hermitian matrix is not implemented 

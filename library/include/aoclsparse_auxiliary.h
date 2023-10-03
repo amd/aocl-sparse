@@ -632,7 +632,7 @@ aoclsparse_status aoclsparse_order_mat(aoclsparse_matrix mat);
  *  col_ptr     array of \p n+1 elements that point to the start
  *              of every col of the sparse CSC matrix.
  *  @param[out]
- *  row_idx     array of \p nnz elements containing the row indices of the sparse
+ *  row_ind     array of \p nnz elements containing the row indices of the sparse
  *              CSC matrix.
  *  @param[out]
  *  val         array of \p nnz elements of the sparse CSC matrix.

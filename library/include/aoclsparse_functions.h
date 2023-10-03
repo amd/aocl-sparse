@@ -1436,6 +1436,113 @@ aoclsparse_status aoclsparse_ztrsv_kid(aoclsparse_operation             trans,
                                        const aoclsparse_int             kid);
 /**@}*/
 
+/*! \ingroup level2_module
+ *  \brief Performs sparse matrix-vector multiplication followed by vector-vector multiplication
+ *
+ *  \details
+ *  \p aoclsparse_?dotmv multiplies the scalar \f$\alpha\f$ with a sparse \f$m \times n\f$
+ *  matrix, defined in a sparse storage format, and the dense vector \f$x\f$ and adds the
+ *  result to the dense vector \f$y\f$ that is multiplied by the scalar \f$\beta\f$,
+ *  such that
+ *  \f[
+ *    y := \alpha \cdot op(A) \cdot x + \beta \cdot y,
+ *  \f]
+ *  with
+ *  \f[
+ *    op(A) = \left\{
+ *    \begin{array}{ll}
+ *        A,   & \text{if op} = \text{aoclsparse\_operation\_none} \\
+ *        A^T, & \text{if op} = \text{aoclsparse\_operation\_transpose} \\
+ *        A^H, & \text{if op} = \text{aoclsparse\_operation\_conjugate\_transpose}
+ *    \end{array}
+ *    \right.
+ *  \f]
+ *
+ * followed by dot product of dense vectors \f$x\f$ and \f$y\f$ such that
+ * \f[
+ *   \text{d} = \left\{
+ *    \begin{array}{ll}
+ *        \sum_{i=0}^{min(m,n)-1} x_{i} * y_{i}, & \text{real case} \\
+ *        \sum_{i=0}^{min(m,n)-1} \text{conj}(x_i) * y_{i}, & \text{complex case}
+ *    \end{array}
+ *    \right.
+ * \f]
+ *
+ *  \note
+ *  Currently, Hermitian matrix is not supported.
+ *
+ *  @param[in]
+ *  op          matrix operation type.
+ *  @param[in]
+ *  alpha       scalar \f$\alpha\f$.
+ *  @param[in]
+ *  A           the sparse \f$m \times n\f$ matrix structure that is created using
+ *              <tt>aoclsparse_create_(s/d/c/z)csr</tt>
+ *  @param[in]
+ *  descr       descriptor of the sparse CSR matrix. Both base-zero and base-one
+ *              are supported, however, the index base needs to match the one used
+ *              when aoclsparse_matrix was created.
+ *  @param[in]
+ *  x           array of atleast \p n elements if \f$op(A) = A\f$ or atleast \p m elements
+ *              if \f$op(A) = A^T or A^H\f$.
+ *  @param[in]
+ *  beta        scalar \f$\beta\f$.
+ *  @param[inout]
+ *  y           array of atleast \p m elements if \f$op(A) = A\f$ or atleast \p n elements
+ *              if \f$op(A) = A^T or A^H\f$.
+ *  @param[out]
+ *  d           dot product of y and x
+ *
+ *  \retval     aoclsparse_status_success         the operation completed successfully.
+ *  \retval     aoclsparse_status_invalid_size    \p m, \p n or \p nnz is invalid.
+ *  \retval     aoclsparse_status_invalid_value   (base != \ref aoclsparse_index_base_zero) or,
+ *                  (base != \ref aoclsparse_index_base_one) or, matrix base and descr base value do not match.
+ *  \retval     aoclsparse_status_invalid_pointer \p descr, \p internal structures
+ *                  related to the sparse matrix  \p A, \p x, \p y or \p d are invalid pointer.
+ *  \retval     aoclsparse_status_wrong_type      matrix data type is not supported.
+ *  \retval     aoclsparse_status_not_implemented
+ *                  ( \ref aoclsparse_matrix_type == \ref aoclsparse_matrix_type_hermitian) or,
+ *                  ( \ref aoclsparse_matrix_format_type != \ref aoclsparse_csr_mat)
+ */
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_sdotmv(const aoclsparse_operation op,
+                                    const float                alpha,
+                                    aoclsparse_matrix          A,
+                                    const aoclsparse_mat_descr descr,
+                                    const float               *x,
+                                    const float                beta,
+                                    float                     *y,
+                                    float                     *d);
+DLL_PUBLIC
+aoclsparse_status aoclsparse_ddotmv(const aoclsparse_operation op,
+                                    const double               alpha,
+                                    aoclsparse_matrix          A,
+                                    const aoclsparse_mat_descr descr,
+                                    const double              *x,
+                                    const double               beta,
+                                    double                    *y,
+                                    double                    *d);
+DLL_PUBLIC
+aoclsparse_status aoclsparse_cdotmv(const aoclsparse_operation      op,
+                                    const aoclsparse_float_complex  alpha,
+                                    aoclsparse_matrix               A,
+                                    const aoclsparse_mat_descr      descr,
+                                    const aoclsparse_float_complex *x,
+                                    const aoclsparse_float_complex  beta,
+                                    aoclsparse_float_complex       *y,
+                                    aoclsparse_float_complex       *d);
+DLL_PUBLIC
+aoclsparse_status aoclsparse_zdotmv(const aoclsparse_operation       op,
+                                    const aoclsparse_double_complex  alpha,
+                                    aoclsparse_matrix                A,
+                                    const aoclsparse_mat_descr       descr,
+                                    const aoclsparse_double_complex *x,
+                                    const aoclsparse_double_complex  beta,
+                                    aoclsparse_double_complex       *y,
+                                    aoclsparse_double_complex       *d);
+/**@}*/
+
 /*! \ingroup level3_module
  *  \brief Solve sparse triangular linear system of equations with multiple right hand sides
  *         for real/complex single and double data precisions.

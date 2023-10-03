@@ -199,6 +199,16 @@ aoclsparse_status aoclsparse_csrsv(aoclsparse_operation       trans,
                                    const T                   *x,
                                    T                         *y);
 
+template <typename T>
+aoclsparse_status aoclsparse_dotmv(const aoclsparse_operation op,
+                                   T                          alpha,
+                                   aoclsparse_matrix          A,
+                                   aoclsparse_mat_descr       descr,
+                                   T                         *x,
+                                   T                          beta,
+                                   T                         *y,
+                                   T                         *d);
+
 /*
  * ===========================================================================
  *    level 1 SPARSE
@@ -215,6 +225,24 @@ aoclsparse_status
 template <typename T>
 aoclsparse_status
     aoclsparse_gthrs(const aoclsparse_int nnz, const T *y, T *x, aoclsparse_int stride);
+
+template <typename T, typename R>
+R aoclsparse_dot(const aoclsparse_int nnz,
+                 const T *__restrict__ x,
+                 const aoclsparse_int *__restrict__ indx,
+                 const T *__restrict__ y,
+                 T *__restrict__ dot,
+                 bool                 conj,
+                 const aoclsparse_int kid);
+
+template <typename T>
+aoclsparse_status aoclsparse_axpyi(aoclsparse_int nnz,
+                                   T              a,
+                                   const T *__restrict__ x,
+                                   const aoclsparse_int *__restrict__ indx,
+                                   T *__restrict__ y,
+                                   [[maybe_unused]] const aoclsparse_int kid);
+
 /*
  * ===========================================================================
  *    Conversion
@@ -302,20 +330,6 @@ aoclsparse_status aoclsparse_csr2dense(aoclsparse_int             m,
 
 /*
  * ===========================================================================
- *    level 1 SPARSE
- * ===========================================================================
- */
-template <typename T, typename R>
-R aoclsparse_dot(const aoclsparse_int nnz,
-                 const T *__restrict__ x,
-                 const aoclsparse_int *__restrict__ indx,
-                 const T *__restrict__ y,
-                 T *__restrict__ dot,
-                 bool                 conj,
-                 const aoclsparse_int kid);
-
-/*
- * ===========================================================================
  *    Sparse Solvers
  * ===========================================================================
  */
@@ -384,14 +398,6 @@ aoclsparse_status aoclsparse_createcoo(aoclsparse_matrix    &mat,
                                        aoclsparse_int       *row_ind,
                                        aoclsparse_int       *col_idx,
                                        T                    *val);
-
-template <typename T>
-aoclsparse_status aoclsparse_axpyi(aoclsparse_int nnz,
-                                   T              a,
-                                   const T *__restrict__ x,
-                                   const aoclsparse_int *__restrict__ indx,
-                                   T *__restrict__ y,
-                                   [[maybe_unused]] const aoclsparse_int kid);
 
 template <typename T>
 aoclsparse_status aoclsparse_export_csr(const aoclsparse_matrix mat,
