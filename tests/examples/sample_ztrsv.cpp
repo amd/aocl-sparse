@@ -70,8 +70,12 @@ int main()
     aoclsparse_index_base base = aoclsparse_index_base_zero;
     aoclsparse_mat_descr  descr_a;
     aoclsparse_operation  trans = aoclsparse_operation_none;
-    assert(aoclsparse_create_zcsr(A, base, m, n, nnz, icrow, icol, aval.data())
-           == aoclsparse_status_success);
+    status = aoclsparse_create_zcsr(A, base, m, n, nnz, icrow, icol, aval.data());
+    if(status != aoclsparse_status_success)
+    {
+        std::cerr << "Error creating the matrix, status = " << status << std::endl;
+        return 1;
+    }
     aoclsparse_create_mat_descr(&descr_a);
 
     /* Solve the lower triangular system Lx = b, 
