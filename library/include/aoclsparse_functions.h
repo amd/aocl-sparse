@@ -1280,7 +1280,7 @@ aoclsparse_status aoclsparse_dcsrsv(aoclsparse_operation       trans,
  *  \brief Sparse triangular solver for real/complex single and double data precisions.
  *
  *  \details
- *  The functions \f$\verb+aoclsparse_?trsv+\f$ solve sparse lower (or upper) triangular 
+ *  The functions \f$\verb+aoclsparse_?trsv+\f$ solve sparse lower (or upper) triangular
  *  linear system of equations. The system is defined by the sparse
  *  \f$m \times m\f$ matrix \f$A\f$, the dense solution \f$m\f$-vector
  *  \f$x\f$, and the right-hand side dense \f$m\f$-vector \f$b\f$. Vector \f$b\f$ is
@@ -1309,8 +1309,8 @@ aoclsparse_status aoclsparse_dcsrsv(aoclsparse_operation       trans,
  *  are all considered to be unitary.
  *
  *  \note
- *  The input matrix need not be (upper or lower) triangular matrix, in the \p descr, the \p fill_mode 
- *  entity specifies which triangle to consider, namely, if \p fill_mode = \ref aoclsparse_fill_mode_lower, 
+ *  The input matrix need not be (upper or lower) triangular matrix, in the \p descr, the \p fill_mode
+ *  entity specifies which triangle to consider, namely, if \p fill_mode = \ref aoclsparse_fill_mode_lower,
  * then \f[
  *    op(L) \cdot x = \alpha \cdot b,
  *  \f] otherwise, if \p fill_mode = \ref aoclsparse_fill_mode_upper, then
@@ -1328,21 +1328,22 @@ aoclsparse_status aoclsparse_dcsrsv(aoclsparse_operation       trans,
  *  There is a `_kid` (Kernel ID) variation of TRSV, namely with a suffix of `_kid`, this solver allows to choose which
  *  TRSV kernel to use (if possible). Currently the possible choices are:
  *  `kid=0` Reference implementation (No explicit AVX instructions).
- *  `kid=1` Reference AVX 256-bit implementation only for double data precision and for 
+ *  `kid=1` Reference AVX 256-bit implementation only for double data precision and for
  *          operations \ref aoclsparse_operation_none and \ref aoclsparse_operation_transpose.
  *  `kid=2` Kernel Template version using AVX/AVX2 extensions.
  *  `kid=3` Kernel Template version using AVX512F+ CPU extensions.
  *  Any other Kernel ID value will default to `kid=0`.
  *
  *  @param[in]
- *  trans       matrix operation type, either \ref aoclsparse_operation_none, \ref aoclsparse_operation_transpose, 
+ *  trans       matrix operation type, either \ref aoclsparse_operation_none, \ref aoclsparse_operation_transpose,
  *              or \ref aoclsparse_operation_conjugate_transpose.
  *  @param[in]
  *  alpha       scalar \f$\alpha\f$, used to premultiply right-hand side vector \f$b\f$.
  *  @param[inout]
  *  A           matrix data. \p A is modified only if solver requires to optimize matrix data.
  *  @param[in]
- *  descr       matrix descriptor.
+ *  descr       matrix descriptor. Supported matrix types are \ref aoclsparse_matrix_type_symmetric and
+ *              \ref aoclsparse_matrix_type_triangular.
  *  @param[in]
  *  b           array of \p m elements, storing the right-hand side.
  *  @param[out]
