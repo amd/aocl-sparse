@@ -210,13 +210,13 @@ aoclsparse_fill_mode aoclsparse_get_mat_fill_mode(const aoclsparse_mat_descr des
  *
  *  \details
  *  \p aoclsparse_set_mat_diag_type sets the matrix diagonal type of a matrix
- *  descriptor. Valid diagonal types are \ref aoclsparse_diag_type_unit or
- *  \ref aoclsparse_diag_type_non_unit.
+ *  descriptor. Valid diagonal types are \ref aoclsparse_diag_type_unit,
+ *  \ref aoclsparse_diag_type_non_unit or \ref aoclsparse_diag_type_zero.
  *
  *  @param[inout]
  *  descr       the matrix descriptor.
  *  @param[in]
- *  diag_type   \ref aoclsparse_diag_type_unit or \ref aoclsparse_diag_type_non_unit.
+ *  diag_type   \ref aoclsparse_diag_type_unit or \ref aoclsparse_diag_type_non_unit or \ref aoclsparse_diag_type_zero.
  *
  *  \retval aoclsparse_status_success the operation completed successfully.
  *  \retval aoclsparse_status_invalid_pointer \p descr pointer is invalid.
@@ -236,7 +236,7 @@ aoclsparse_status aoclsparse_set_mat_diag_type(aoclsparse_mat_descr descr,
  *  @param[in]
  *  descr   the matrix descriptor.
  *
- *  \returns \ref aoclsparse_diag_type_unit or \ref aoclsparse_diag_type_non_unit.
+ *  \returns \ref aoclsparse_diag_type_unit or \ref aoclsparse_diag_type_non_unit or \ref aoclsparse_diag_type_zero.
  */
 DLL_PUBLIC
 aoclsparse_diag_type aoclsparse_get_mat_diag_type(const aoclsparse_mat_descr descr);

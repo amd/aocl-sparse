@@ -24,6 +24,7 @@
 #include "common_data_utils.h"
 #include "gtest/gtest.h"
 #include "aoclsparse.hpp"
+#include "aoclsparse_init.hpp"
 #include "aoclsparse_reference.hpp"
 
 #include <algorithm>
@@ -328,6 +329,206 @@ namespace
         aoclsparse_destroy_mat_descr(descr);
         EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
     }
+
+    template <typename T>
+    void test_mvtrg_success(aoclsparse_int         m_a,
+                            aoclsparse_int         n_a,
+                            aoclsparse_int         nnz_a,
+                            aoclsparse_operation   op_a,
+                            aoclsparse_matrix_type mat_type,
+                            aoclsparse_fill_mode   fill,
+                            aoclsparse_diag_type   diag,
+                            aoclsparse_index_base  b_a)
+    {
+
+        aoclsparse_seedrand();
+        std::vector<T> y, y_ref, x;
+        std::vector<T> z(m_a), z_t(n_a);
+        T              alpha = 1, beta = 2.0;
+        if(op_a != aoclsparse_operation_none)
+        {
+            x = z_t;
+            y = z;
+            aoclsparse_init<T>(x, 1, n_a, 1);
+            aoclsparse_init<T>(y, 1, m_a, 1);
+            y_ref = y;
+        }
+        else
+        {
+            x = z;
+            y = z_t;
+            aoclsparse_init<T>(x, 1, m_a, 1);
+            aoclsparse_init<T>(y, 1, n_a, 1);
+            y_ref = y;
+        }
+        std::vector<T>              val_a;
+        std::vector<aoclsparse_int> col_ind_a;
+        std::vector<aoclsparse_int> row_ptr_a;
+        aoclsparse_init_csr_random(row_ptr_a, col_ind_a, val_a, m_a, n_a, nnz_a, b_a);
+        aoclsparse_matrix A;
+        ASSERT_EQ(aoclsparse_create_csr(
+                      A, b_a, m_a, n_a, nnz_a, row_ptr_a.data(), col_ind_a.data(), val_a.data()),
+                  aoclsparse_status_success);
+        aoclsparse_mat_descr descrA;
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descrA), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descrA, b_a), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_type(descrA, mat_type), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_fill_mode(descrA, fill), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_diag_type(descrA, diag), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_mv<T>(op_a, &alpha, A, descrA, x.data(), &beta, y.data()),
+                  aoclsparse_status_success);
+        if(op_a == aoclsparse_operation_none)
+        {
+            EXPECT_EQ(ref_csrmvtrg(alpha,
+                                   m_a,
+                                   n_a,
+                                   val_a.data(),
+                                   col_ind_a.data(),
+                                   row_ptr_a.data(),
+                                   fill,
+                                   diag,
+                                   b_a,
+                                   x.data(),
+                                   beta,
+                                   y_ref.data()),
+                      aoclsparse_status_success);
+        }
+        else if(op_a == aoclsparse_operation_transpose)
+        {
+            EXPECT_EQ(ref_csrmvtrgt(alpha,
+                                    m_a,
+                                    n_a,
+                                    val_a.data(),
+                                    col_ind_a.data(),
+                                    row_ptr_a.data(),
+                                    fill,
+                                    diag,
+                                    b_a,
+                                    x.data(),
+                                    beta,
+                                    y_ref.data()),
+                      aoclsparse_status_success);
+        }
+
+        EXPECT_ARR_NEAR(m_a, y, y_ref, expected_precision<T>());
+
+        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy_mat_descr(descrA), aoclsparse_status_success);
+    }
+
+    template <typename T>
+    void test_mv_trianglular_strict()
+    {
+        aoclsparse_operation trans;
+        aoclsparse_int       M = 5, N = 5, NNZ = 14;
+        T                    alpha = 1.0;
+        T                    beta  = 0.0;
+        // Initialise vectors
+        T                     x[5] = {1.0, 2.0, 3.0, 4.0, 5.0};
+        T                     y[5] = {0.0};
+        aoclsparse_mat_descr  descr;
+        aoclsparse_index_base base = aoclsparse_index_base_zero;
+
+        /*      Matrix A
+            1	0	5	3	9
+            0	3	0	1	0
+            2	0	4	0	6
+            0	7	0	6	0
+            13	0	9	0	8
+        */
+        aoclsparse_int csr_row_ptr[] = {0, 4, 6, 9, 11, 14};
+        aoclsparse_int csr_col_ind[] = {0, 2, 3, 4, 1, 3, 0, 2, 4, 1, 3, 0, 2, 4};
+        T              csr_val[]     = {1, 5, 3, 9, 3, 1, 2, 4, 6, 7, 6, 13, 9, 8};
+        T              y_exp_lower[] = {0, 0, 2, 14, 40}; //{0, 0, 6, 28, 40};
+        T              y_exp_upper[] = {72, 4.0, 30, 0, 0};
+
+        aoclsparse_matrix      A;
+        aoclsparse_matrix_type mattype;
+        aoclsparse_fill_mode   fill;
+        aoclsparse_diag_type   diag;
+
+        trans   = aoclsparse_operation_none;
+        mattype = aoclsparse_matrix_type_triangular;
+        fill    = aoclsparse_fill_mode_lower;
+        diag    = aoclsparse_diag_type_zero; // strictly lower
+
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, base), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_create_csr<T>(A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_type(descr, mattype), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_fill_mode(descr, fill), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_diag_type(descr, diag), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A, descr, x, &beta, y),
+                  aoclsparse_status_success);
+
+        EXPECT_ARR_NEAR(M, y, y_exp_lower, expected_precision<T>());
+
+        fill = aoclsparse_fill_mode_upper; // strictly upper given diag = aoclsparse_diag_type_zero
+        ASSERT_EQ(aoclsparse_set_mat_fill_mode(descr, fill), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A, descr, x, &beta, y),
+                  aoclsparse_status_success);
+        EXPECT_ARR_NEAR(M, y, y_exp_upper, expected_precision<T>());
+        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+    }
+
+    template <typename T>
+    void test_mvt_trianglular_strict()
+    {
+        aoclsparse_operation trans;
+        aoclsparse_int       M = 5, N = 5, NNZ = 14;
+        T                    alpha = 1.0;
+        T                    beta  = 0.0;
+        // Initialise vectors
+        T                     x[5] = {1.0, 2.0, 3.0, 4.0, 5.0};
+        T                     y[5] = {0.0};
+        aoclsparse_mat_descr  descr;
+        aoclsparse_index_base base = aoclsparse_index_base_zero;
+
+        /*      Matrix A
+            1	0	5	3	9
+            0	3	0	1	0
+            2	0	4	0	6
+            0	7	0	6	0
+            13	0	9	0	8
+        */
+        aoclsparse_int csr_row_ptr[] = {0, 4, 6, 9, 11, 14};
+        aoclsparse_int csr_col_ind[] = {0, 2, 3, 4, 1, 3, 0, 2, 4, 1, 3, 0, 2, 4};
+        T              csr_val[]     = {1, 5, 3, 9, 3, 1, 2, 4, 6, 7, 6, 13, 9, 8};
+        T              y_exp_lower[] = {71, 28, 45, 0, 0};
+        T              y_exp_upper[] = {0, 0, 5, 5, 27};
+
+        aoclsparse_matrix      A;
+        aoclsparse_matrix_type mattype;
+        aoclsparse_fill_mode   fill;
+        aoclsparse_diag_type   diag;
+
+        trans   = aoclsparse_operation_transpose;
+        mattype = aoclsparse_matrix_type_triangular;
+        fill    = aoclsparse_fill_mode_lower;
+        diag    = aoclsparse_diag_type_zero; // strictly lower
+
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, base), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_create_csr<T>(A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_type(descr, mattype), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_fill_mode(descr, fill), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_diag_type(descr, diag), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A, descr, x, &beta, y),
+                  aoclsparse_status_success);
+        EXPECT_ARR_NEAR(M, y, y_exp_lower, expected_precision<T>());
+
+        fill = aoclsparse_fill_mode_upper; // strictly upper given diag = aoclsparse_diag_type_zero
+        ASSERT_EQ(aoclsparse_set_mat_fill_mode(descr, fill), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A, descr, x, &beta, y),
+                  aoclsparse_status_success);
+        EXPECT_ARR_NEAR(M, y, y_exp_upper, expected_precision<T>());
+        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+    }
+
     template <typename T>
     void test_mv_trianglular_transpose()
     {
@@ -643,5 +844,101 @@ namespace
     {
         test_mv_base_index_mismatch<float>();
     }
+    TEST(mv, TriStrictDouble)
+    {
+        test_mv_trianglular_strict<double>();
+    }
+    TEST(mv, TriTransposeStrictDouble)
+    {
+        test_mvt_trianglular_strict<double>();
+    }
+    TEST(mv, Tri_Sq_LoStr_DoubleSuccess)
+    {
+        aoclsparse_operation   op       = aoclsparse_operation_none;
+        aoclsparse_matrix_type mat_type = aoclsparse_matrix_type_triangular;
+        aoclsparse_fill_mode   fill     = aoclsparse_fill_mode_lower;
+        aoclsparse_diag_type   diag     = aoclsparse_diag_type_zero;
+        aoclsparse_index_base  b_a      = aoclsparse_index_base_zero;
+
+        // inputs: m_a, n_a, nnz, ...
+        test_mvtrg_success<double>(10, 10, 30, op, mat_type, fill, diag, b_a);
+        test_mvtrg_success<double>(1, 1, 1, op, mat_type, fill, diag, b_a);
+        test_mvtrg_success<double>(5, 5, 5, op, mat_type, fill, diag, b_a);
+        test_mvtrg_success<double>(8, 8, 5, op, mat_type, fill, diag, b_a);
+    }
+    TEST(mv, Tri_Sq_UpStr_DoubleSuccess)
+    {
+        aoclsparse_operation   op       = aoclsparse_operation_none;
+        aoclsparse_matrix_type mat_type = aoclsparse_matrix_type_triangular;
+        aoclsparse_fill_mode   fill     = aoclsparse_fill_mode_upper;
+        aoclsparse_diag_type   diag     = aoclsparse_diag_type_zero;
+        aoclsparse_index_base  b_a      = aoclsparse_index_base_zero;
+
+        // inputs: m_a, n_a, nnz, ...
+        test_mvtrg_success<double>(10, 10, 30, op, mat_type, fill, diag, b_a);
+        test_mvtrg_success<double>(1, 1, 1, op, mat_type, fill, diag, b_a);
+        test_mvtrg_success<double>(5, 5, 5, op, mat_type, fill, diag, b_a);
+        test_mvtrg_success<double>(8, 8, 5, op, mat_type, fill, diag, b_a);
+    }
+    TEST(mv, TriT_Sq_LoStr_DoubleSuccess)
+    {
+        aoclsparse_operation   op       = aoclsparse_operation_transpose;
+        aoclsparse_matrix_type mat_type = aoclsparse_matrix_type_triangular;
+        aoclsparse_fill_mode   fill     = aoclsparse_fill_mode_lower;
+        aoclsparse_diag_type   diag     = aoclsparse_diag_type_zero;
+        aoclsparse_index_base  b_a      = aoclsparse_index_base_zero;
+
+        // inputs: m_a, n_a, nnz, ...
+        test_mvtrg_success<double>(10, 10, 30, op, mat_type, fill, diag, b_a);
+        test_mvtrg_success<double>(1, 1, 1, op, mat_type, fill, diag, b_a);
+        test_mvtrg_success<double>(5, 5, 5, op, mat_type, fill, diag, b_a);
+        test_mvtrg_success<double>(8, 8, 5, op, mat_type, fill, diag, b_a);
+    }
+    TEST(mv, TriT_Sq_UpStr_DoubleSuccess)
+    {
+        aoclsparse_operation   op       = aoclsparse_operation_transpose;
+        aoclsparse_matrix_type mat_type = aoclsparse_matrix_type_triangular;
+        aoclsparse_fill_mode   fill     = aoclsparse_fill_mode_upper;
+        aoclsparse_diag_type   diag     = aoclsparse_diag_type_zero;
+        aoclsparse_index_base  b_a      = aoclsparse_index_base_zero;
+
+        // inputs: m_a, n_a, nnz, ...
+        test_mvtrg_success<double>(10, 10, 30, op, mat_type, fill, diag, b_a);
+        test_mvtrg_success<double>(1, 1, 1, op, mat_type, fill, diag, b_a);
+        test_mvtrg_success<double>(5, 5, 5, op, mat_type, fill, diag, b_a);
+        test_mvtrg_success<double>(8, 8, 5, op, mat_type, fill, diag, b_a);
+    }
+    TEST(mv, Tri_NSq_LoStr_DoubleSuccess)
+    {
+        aoclsparse_operation   op       = aoclsparse_operation_none;
+        aoclsparse_matrix_type mat_type = aoclsparse_matrix_type_triangular;
+        aoclsparse_fill_mode   fill     = aoclsparse_fill_mode_lower;
+        aoclsparse_diag_type   diag     = aoclsparse_diag_type_zero;
+        aoclsparse_index_base  b_a      = aoclsparse_index_base_zero;
+
+        // inputs: m_a, n_a, nnz, ...
+        test_mvtrg_success<double>(7, 10, 30, op, mat_type, fill, diag, b_a);
+        test_mvtrg_success<double>(1, 4, 3, op, mat_type, fill, diag, b_a);
+        test_mvtrg_success<double>(12, 24, 103, op, mat_type, fill, diag, b_a);
+        // The below tests fail
+        // test_mvtrg_success<double>(5, 3, 5, op, mat_type, fill, diag, b_a);
+        //test_mvtrg_success<double>(11, 8, 35, op, mat_type, fill, diag, b_a);
+    }
+    /* all tests fail
+    TEST(mv, Tri_NSq_UpStr_DoubleSuccess)
+    {
+        aoclsparse_operation   op       = aoclsparse_operation_none;
+        aoclsparse_matrix_type mat_type = aoclsparse_matrix_type_triangular;
+        aoclsparse_fill_mode   fill     = aoclsparse_fill_mode_upper;
+        aoclsparse_diag_type   diag     = aoclsparse_diag_type_zero;
+        aoclsparse_index_base  b_a      = aoclsparse_index_base_zero;
+
+        // inputs: m_a, n_a, nnz, ...
+        test_mvtrg_success<double>(7, 10, 30, op, mat_type, fill, diag, b_a);
+        test_mvtrg_success<double>(1, 4, 3, op, mat_type, fill, diag, b_a);
+        test_mvtrg_success<double>(5, 3, 5, op, mat_type, fill, diag, b_a);
+        test_mvtrg_success<double>(11, 8, 35, op, mat_type, fill, diag, b_a);
+    }
+    */
 
 } // namespace

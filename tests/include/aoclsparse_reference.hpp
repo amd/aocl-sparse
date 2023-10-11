@@ -37,7 +37,7 @@
  * Supported:
  * - zero/one-based indexing
  * - L/U triangle
- * - non-unit/unit diagonal
+ * - non-unit/unit diagonal/zero diagonal
  * CSR doesn't need to be sorted in rows and doesn't need to contain only
  * the given triangle, the unuseful parts (and out of bounds indices)
  * are ignored. Duplicate entries are summed.
@@ -77,6 +77,7 @@ aoclsparse_status ref_csrmvsym(T                     alpha,
 
     bool is_lower  = fill == aoclsparse_fill_mode_lower;
     bool keep_diag = diag == aoclsparse_diag_type_non_unit;
+    bool unit_diag = diag == aoclsparse_diag_type_unit;
 
     if(beta == 0.)
         for(aoclsparse_int i = 0; i < m; i++)
@@ -114,7 +115,7 @@ aoclsparse_status ref_csrmvsym(T                     alpha,
                 }
             }
         }
-        if(!keep_diag)
+        if(unit_diag)
         {
             // add unit diagonal
             y[i] += alpha * x[i];
@@ -132,7 +133,7 @@ aoclsparse_status ref_csrmvsym(T                     alpha,
  * Supported:
  * - zero/one-based indexing
  * - L/U triangle
- * - non-unit/unit diagonal
+ * - non-unit/unit diagonal/zero diagonal
  * CSR doesn't need to be sorted in rows and doesn't need to contain only
  * the given triangle, the unuseful parts (and out of bounds indices)
  * are ignored. Duplicate entries are summed.
@@ -173,6 +174,7 @@ aoclsparse_status ref_csrmvtrg(T                     alpha,
 
     bool is_lower  = fill == aoclsparse_fill_mode_lower;
     bool keep_diag = diag == aoclsparse_diag_type_non_unit;
+    bool unit_diag = diag == aoclsparse_diag_type_unit;
 
     if(beta == 0.)
         for(aoclsparse_int i = 0; i < m; i++)
@@ -204,7 +206,9 @@ aoclsparse_status ref_csrmvtrg(T                     alpha,
                     y[i] += alpha * csr_val[idx] * x[j];
             }
         }
-        if(!keep_diag)
+        // if diag is aoclsparse_diag_type_zero, then we do not add the diagonal
+        // leading to strict triangular (lower/upper) spmv
+        if(unit_diag)
         {
             // add unit diagonal
             y[i] += alpha * x[i];
@@ -338,7 +342,7 @@ aoclsparse_status ref_csrmvt(T                     alpha,
  * Supported:
  * - zero/one-based indexing
  * - L/U triangle
- * - non-unit/unit diagonal
+ * - non-unit/unit diagonal/zero diagonal
  * CSR doesn't need to be sorted in rows and doesn't need to contain only
  * the given triangle, the unuseful parts (and out of bounds indices)
  * are ignored. Duplicate entries are summed.
@@ -379,6 +383,7 @@ aoclsparse_status ref_csrmvtrgt(T                     alpha,
 
     bool is_lower  = fill == aoclsparse_fill_mode_lower;
     bool keep_diag = diag == aoclsparse_diag_type_non_unit;
+    bool unit_diag = diag == aoclsparse_diag_type_unit;
 
     if(beta == 0.)
         for(aoclsparse_int i = 0; i < m; i++)
@@ -416,7 +421,9 @@ aoclsparse_status ref_csrmvtrgt(T                     alpha,
                 }
             }
         }
-        if(!keep_diag)
+        // if diag is aoclsparse_diag_type_zero, then we do not add the diagonal
+        // leading to strict triangular (lower/upper) spmv
+        if(unit_diag)
         {
             // add unit diagonal
             y[i] += alpha * x[i];

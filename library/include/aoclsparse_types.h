@@ -211,7 +211,8 @@ typedef enum aoclsparse_matrix_format_type_
 typedef enum aoclsparse_diag_type_
 {
     aoclsparse_diag_type_non_unit = 0, /**< diagonal entries are non-unity. */
-    aoclsparse_diag_type_unit     = 1 /**< diagonal entries are unity */
+    aoclsparse_diag_type_unit     = 1, /**< diagonal entries are unity */
+    aoclsparse_diag_type_zero     = 2 /**< ignore diagonal entries: for strict L/U matrices */
 } aoclsparse_diag_type;
 
 /*! \ingroup types_module

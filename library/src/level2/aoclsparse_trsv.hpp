@@ -1155,6 +1155,12 @@ aoclsparse_status
         return aoclsparse_status_invalid_value;
     }
 
+    // Matrix is singular, system cannot be solved
+    if(descr->diag_type == aoclsparse_diag_type_zero)
+    {
+        return aoclsparse_status_invalid_value;
+    }
+
     if(descr->fill_mode != aoclsparse_fill_mode_lower
        && descr->fill_mode != aoclsparse_fill_mode_upper)
         return aoclsparse_status_not_implemented;
