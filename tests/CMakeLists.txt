@@ -64,9 +64,6 @@ if (BUILD_CLIENTS_SAMPLES)
 endif()
 
 if (BUILD_UNIT_TESTS)  
-  # TODO: trsv and hint tests need to be merged into google unit testing framework eventually
-  # and remove the folder ./tests/functionality
-  add_subdirectory(functionality)
   add_subdirectory(unit_tests)
 endif()
 
