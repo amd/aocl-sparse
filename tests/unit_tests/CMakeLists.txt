@@ -37,7 +37,7 @@ if(NOT googletest_POPULATED)
   add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR} EXCLUDE_FROM_ALL)
 endif()
 
-set(utils_source common_data_utils.cpp ../common/aoclsparse_template_specialization.cpp)
+set(utils_source common_data_utils.cpp ../common/aoclsparse_template_specialization.cpp ../common/aoclsparse_utility.cpp)
 include_directories(${CMAKE_SOURCE_DIR}/library/src/include
                     ${CMAKE_SOURCE_DIR}/library/src/solvers
                     ${CMAKE_SOURCE_DIR}/library/src/analysis

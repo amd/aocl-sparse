@@ -1112,9 +1112,7 @@ aoclsparse_status aoclsparse_dbsrmv(aoclsparse_operation       trans,
  *
  *
  *  \note
- *  Currently, only \p trans = \ref aoclsparse_operation_none is supported.
- *  Currently, for \ref aoclsparse_matrix_type = \ref aoclsparse_matrix_type_symmetric,
- *  only lower triangular matrices are supported.
+ *  Currently, only \p trans = \ref aoclsparse_operation_none or aoclsparse_operation_transpose is supported.
  *
  *  @param[in]
  *  op          matrix operation type.
@@ -1124,9 +1122,9 @@ aoclsparse_status aoclsparse_dbsrmv(aoclsparse_operation       trans,
  *  A           the sparse matrix structure that is created using
  *              \ref aoclsparse_create_dcsr.
  *  @param[in]
- *  descr       descriptor of the sparse CSR matrix. Currently, only
- *              \ref aoclsparse_matrix_type_general and
- *              \ref aoclsparse_matrix_type_symmetric is supported. 
+ *  descr       descriptor of the sparse CSR matrix. Currently,
+ *              \ref aoclsparse_matrix_type_general, aoclsparse_matrix_type_triangular, and
+ *              \ref aoclsparse_matrix_type_symmetric are supported. 
  *              Both base-zero and base-one are supported, however, 
  *              the index base needs to match the one used at when 
  *              aoclsparse_matrix was created.
@@ -1145,9 +1143,11 @@ aoclsparse_status aoclsparse_dbsrmv(aoclsparse_operation       trans,
  *              structures related to the sparse matrix \p A, \p x, \p beta or \p y has
  *              an invalid pointer.
  *  \retval     aoclsparse_status_not_implemented
- *              \p trans != \ref aoclsparse_operation_none or
- *              \ref aoclsparse_matrix_type != \ref aoclsparse_matrix_type_general.
- *              \ref aoclsparse_matrix_type != \ref aoclsparse_matrix_type_symmetric.
+ *              \p trans != \ref aoclsparse_operation_none 
+ *              \p trans != \ref aoclsparse_operation_transpose
+ *              \ref aoclsparse_matrix_type != \ref aoclsparse_matrix_type_general
+ *              \ref aoclsparse_matrix_type != \ref aoclsparse_matrix_type_symmetric
+ *              \ref aoclsparse_matrix_type != \ref aoclsparse_matrix_type_triangular
  *
  *  \par Example
  *  This example performs a sparse matrix vector multiplication in CSR format

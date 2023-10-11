@@ -392,6 +392,12 @@ aoclsparse_status
     if(descr->type != aoclsparse_matrix_type_general
        && descr->type != aoclsparse_matrix_type_symmetric)
         return aoclsparse_status_invalid_value;
+    // Singular matrix, SymGS is not defined
+    if(descr->diag_type == aoclsparse_diag_type_zero)
+    {
+        return aoclsparse_status_invalid_value;
+    }
+
     aoclsparse_copy_mat_descr(&descr_cpy, descr);
     aoclsparse_set_mat_type(&descr_cpy, aoclsparse_matrix_type_triangular);
 
@@ -1302,7 +1308,8 @@ aoclsparse_status aoclsparse_cg_solve(
     if((itsol->cg)->precond == 3) // Add other preconds here...
     {
         // Symmetric Gauss-Seidel requested, allocate some memory
-        if(!(mat->opt_csr_full_diag) && descr->diag_type != aoclsparse_diag_type_unit)
+        if((!(mat->opt_csr_full_diag) && descr->diag_type != aoclsparse_diag_type_unit)
+           || descr->diag_type == aoclsparse_diag_type_zero)
             // Gauss-Seidel needs a full diagonal to perform the triangle solve
             return aoclsparse_status_invalid_value;
         try

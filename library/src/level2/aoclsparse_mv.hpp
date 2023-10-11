@@ -149,7 +149,7 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
         return aoclsparse_mv_general(op, alpha, A, descr, x, beta, y);
         // In UK/HPCG branch this would go only to AVX2 CSR
         // y = alpha A * x + beta y
-        /*return aoclsparse_csrmv_vectorized_avx2ptr(descr->base,
+        /*return aoclsparse_csrmv_vectorized_avx2ptr(descr,
                                                    alpha,
                                                    A->m,
                                                    A->n,
@@ -203,7 +203,7 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
         //kernels as per transpose operation
         if(op == aoclsparse_operation_none)
         {
-            return aoclsparse_csrmv_vectorized_avx2ptr(descr->base,
+            return aoclsparse_csrmv_vectorized_avx2ptr(descr,
                                                        alpha,
                                                        A->m,
                                                        A->n,
@@ -219,7 +219,7 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
         }
         else if(op == aoclsparse_operation_transpose)
         {
-            return aoclsparse_csrmvt_ptr(descr->base,
+            return aoclsparse_csrmvt_ptr(descr,
                                          alpha,
                                          A->m,
                                          A->n,

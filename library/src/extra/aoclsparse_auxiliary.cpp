@@ -222,7 +222,8 @@ aoclsparse_status aoclsparse_set_mat_diag_type(aoclsparse_mat_descr descr,
     {
         return aoclsparse_status_invalid_pointer;
     }
-    if(diag_type != aoclsparse_diag_type_unit && diag_type != aoclsparse_diag_type_non_unit)
+    if(diag_type != aoclsparse_diag_type_unit && diag_type != aoclsparse_diag_type_non_unit
+       && diag_type != aoclsparse_diag_type_zero)
     {
         return aoclsparse_status_invalid_value;
     }

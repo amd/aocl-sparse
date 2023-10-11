@@ -59,11 +59,11 @@ aoclsparse_status aoclsparse_csrmv_vectorized_avx2(aoclsparse_index_base base,
                                                    aoclsparse_context *context);
 
 template <typename T>
-aoclsparse_status aoclsparse_csrmv_vectorized_avx2ptr(aoclsparse_index_base base,
-                                                      const T               alpha,
-                                                      aoclsparse_int        m,
-                                                      aoclsparse_int        n,
-                                                      aoclsparse_int        nnz,
+aoclsparse_status aoclsparse_csrmv_vectorized_avx2ptr(const aoclsparse_mat_descr descr,
+                                                      const T                    alpha,
+                                                      aoclsparse_int             m,
+                                                      aoclsparse_int             n,
+                                                      aoclsparse_int             nnz,
                                                       const T *__restrict__ aval,
                                                       const aoclsparse_int *__restrict__ icol,
                                                       const aoclsparse_int *__restrict__ crstart,
@@ -207,10 +207,12 @@ aoclsparse_status aoclsparse_csrmv_symm(aoclsparse_index_base base,
 /* this is adjusted aoclsparse_csrmv_symm() to work above opt_csr_mat for L & U triangle
  * computes if L:
  *   y = beta*y + alpha*(L+D+L')*x    if diag_type=non_unit  or
- *   y = beta*y + alpha*(L+I+L')*x    if diag_type=unit
+ *   y = beta*y + alpha*(L+I+L')*x    if diag_type=unit or
+ *   y = beta*y + alpha*(L+L')*x      if diag_type=zero
  * and if U:
  *   y = beta*y + alpha*(U'+D+U)*x    if diag_type=non_unit  or
- *   y = beta*y + alpha*(U'+I+U)*x    if diag_type=unit
+ *   y = beta*y + alpha*(U'+I+U)*x    if diag_type=unit or
+ *   y = beta*y + alpha*(U'+U)*x      if diag_type=zero
  * where L & D & U are strictly L triangle and diag and U of the matrix
  * I is identity, assumes diag is always present
  *
@@ -268,8 +270,9 @@ aoclsparse_status
             }
             if(diag_type == aoclsparse_diag_type_non_unit)
                 y[i] += alpha * csr_val[idxend] * x[i];
-            else // unit diagonal
+            else if(diag_type == aoclsparse_diag_type_unit)
                 y[i] += alpha * x[i];
+            //else zero diagonal
         }
     }
     else
@@ -280,8 +283,10 @@ aoclsparse_status
             idx = csr_idiag[i] - base;
             if(diag_type == aoclsparse_diag_type_non_unit)
                 y[i] += alpha * csr_val[idx] * x[i];
-            else // unit diagonal
+            else if(diag_type == aoclsparse_diag_type_unit)
                 y[i] += alpha * x[i];
+            //else zero diagonal
+
             // strictly U elements in each row are idiag[i]+1..icrow[i+1]-1
             idxend = csr_icrow[i + 1] - base;
             // multiply with all strictry L triangle elements (and their transpose)
@@ -354,10 +359,10 @@ aoclsparse_status aoclsparse_csrmvt(aoclsparse_index_base base,
  * pointer (useful when a specific triangle part of the matrix is provided)
  */
 template <typename T>
-aoclsparse_status aoclsparse_csrmvt_ptr(aoclsparse_index_base base,
-                                        const T               alpha,
-                                        aoclsparse_int        m,
-                                        aoclsparse_int        n,
+aoclsparse_status aoclsparse_csrmvt_ptr(const aoclsparse_mat_descr descr,
+                                        const T                    alpha,
+                                        aoclsparse_int             m,
+                                        aoclsparse_int             n,
                                         const T *__restrict__ csr_val,
                                         const aoclsparse_int *__restrict__ csr_col_ind,
                                         const aoclsparse_int *__restrict__ crstart,
@@ -366,9 +371,26 @@ aoclsparse_status aoclsparse_csrmvt_ptr(aoclsparse_index_base base,
                                         const T beta,
                                         T *__restrict__ y)
 {
+    aoclsparse_index_base base            = descr->base;
     const aoclsparse_int *csr_col_ind_fix = csr_col_ind - base;
     const T              *csr_val_fix     = csr_val - base;
     T                    *y_fix           = y - base;
+    aoclsparse_int        start_offset = 0, end_offset = 0;
+
+    // if the matrix is triangular without explicit diagonal,
+    // compute corrections for start and end pointers
+    if((descr->type != aoclsparse_matrix_type_general)
+       && (descr->diag_type == aoclsparse_diag_type_unit
+           || descr->diag_type == aoclsparse_diag_type_zero))
+    {
+        if(descr->fill_mode == aoclsparse_fill_mode_lower) /* L triangle */
+            end_offset = -1;
+        else /*U triangle*/
+            start_offset = 1;
+    }
+    bool diag_first = start_offset && descr->diag_type == aoclsparse_diag_type_unit;
+    bool diag_last  = end_offset && descr->diag_type == aoclsparse_diag_type_unit;
+
     if(beta == static_cast<T>(0))
     {
         // if beta==0 and y contains any NaNs, we can zero y directly
@@ -384,16 +406,25 @@ aoclsparse_status aoclsparse_csrmvt_ptr(aoclsparse_index_base base,
             y[i] = beta * y[i];
         }
     }
+
     // Iterate over each row of the input matrix and
     // Perform matrix-vector product for each non-zero of the ith row
     for(aoclsparse_int i = 0; i < m; i++)
     {
+        aoclsparse_int rstart = crstart[i] + start_offset;
+        aoclsparse_int rend   = crend[i] + end_offset;
+
         T axi = alpha * x[i];
-        for(aoclsparse_int j = crstart[i]; j < crend[i]; j++)
+        if(diag_first)
+            y_fix[i + base] += axi;
+        for(aoclsparse_int j = rstart; j < rend; j++)
         {
             aoclsparse_int col_idx = csr_col_ind_fix[j];
             y_fix[col_idx] += csr_val_fix[j] * axi;
         }
+
+        if(diag_last)
+            y_fix[i + base] += axi;
     }
     return aoclsparse_status_success;
 }

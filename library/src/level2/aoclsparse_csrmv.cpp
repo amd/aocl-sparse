@@ -608,11 +608,11 @@ extern "C" aoclsparse_status aoclsparse_dcsrmv(aoclsparse_operation       trans,
 
 template <>
 aoclsparse_status
-    aoclsparse_csrmv_vectorized_avx2ptr([[maybe_unused]] aoclsparse_index_base base,
-                                        [[maybe_unused]] const float           alpha,
-                                        [[maybe_unused]] aoclsparse_int        m,
-                                        [[maybe_unused]] aoclsparse_int        n,
-                                        [[maybe_unused]] aoclsparse_int        nnz,
+    aoclsparse_csrmv_vectorized_avx2ptr([[maybe_unused]] const aoclsparse_mat_descr descr,
+                                        [[maybe_unused]] const float                alpha,
+                                        [[maybe_unused]] aoclsparse_int             m,
+                                        [[maybe_unused]] aoclsparse_int             n,
+                                        [[maybe_unused]] aoclsparse_int             nnz,
                                         [[maybe_unused]] const float *__restrict__ aval,
                                         [[maybe_unused]] const aoclsparse_int *__restrict__ icol,
                                         [[maybe_unused]] const aoclsparse_int *__restrict__ crstart,
@@ -626,7 +626,7 @@ aoclsparse_status
 }
 
 template <>
-aoclsparse_status aoclsparse_csrmv_vectorized_avx2ptr(aoclsparse_index_base           base,
+aoclsparse_status aoclsparse_csrmv_vectorized_avx2ptr(const aoclsparse_mat_descr      descr,
                                                       const double                    alpha,
                                                       aoclsparse_int                  m,
                                                       [[maybe_unused]] aoclsparse_int n,
@@ -641,9 +641,26 @@ aoclsparse_status aoclsparse_csrmv_vectorized_avx2ptr(aoclsparse_index_base     
                                                       [[maybe_unused]] aoclsparse_context *context)
 {
     __m256d               vec_vals, vec_x, vec_y;
-    const aoclsparse_int *icol_fix = icol - base;
-    const double         *aval_fix = aval - base;
-    const double         *x_fix    = x - base;
+    aoclsparse_index_base base         = descr->base;
+    const aoclsparse_int *icol_fix     = icol - base;
+    const double         *aval_fix     = aval - base;
+    const double         *x_fix        = x - base;
+    aoclsparse_int        start_offset = 0, end_offset = 0;
+
+    // if the matrix is triangular without explicit diagonal,
+    // compute corrections for start and end pointers
+    if((descr->type != aoclsparse_matrix_type_general)
+       && (descr->diag_type == aoclsparse_diag_type_unit
+           || descr->diag_type == aoclsparse_diag_type_zero))
+    {
+        if(descr->fill_mode == aoclsparse_fill_mode_lower) /* L triangle */
+            end_offset = -1;
+        else /*U triangle*/
+            start_offset = 1;
+    }
+    bool diag_first = start_offset && descr->diag_type == aoclsparse_diag_type_unit;
+    bool diag_last  = end_offset && descr->diag_type == aoclsparse_diag_type_unit;
+
 #ifdef _OPENMP
     aoclsparse_int chunk = (m / context->num_threads) ? (m / context->num_threads) : 1;
 #pragma omp parallel for num_threads(context->num_threads) \
@@ -654,13 +671,19 @@ aoclsparse_status aoclsparse_csrmv_vectorized_avx2ptr(aoclsparse_index_base     
         aoclsparse_int j;
         double         result = 0.0;
         vec_y                 = _mm256_setzero_pd();
-        // Andrew aoclsparse_int nnz    = csr_row_ptr[i + 1] - csr_row_ptr[i];
-        aoclsparse_int nnz    = crend[i] - crstart[i];
+        aoclsparse_int rstart = crstart[i] + start_offset;
+        aoclsparse_int rend   = crend[i] + end_offset;
+        aoclsparse_int nnz    = rend - rstart;
         aoclsparse_int k_iter = nnz / 4;
         aoclsparse_int k_rem  = nnz % 4;
 
+        // add unit diagonal (zero diagonal is nothing to do and non_unit is included)
+        // ToDo: check if the condition below impacts HPCG performance
+        if(diag_first)
+            result += x_fix[i + base];
+
         //Loop in multiples of 4 non-zeroes
-        for(j = crstart[i]; j < crend[i] - k_rem; j += 4)
+        for(j = rstart; j < rend - k_rem; j += 4)
         {
             //(csr_val[j] (csr_val[j+1] (csr_val[j+2] (csr_val[j+3]
             vec_vals = _mm256_loadu_pd(&aval_fix[j]);
@@ -698,14 +721,20 @@ aoclsparse_status aoclsparse_csrmv_vectorized_avx2ptr(aoclsparse_index_base     
         }
 
         //Remainder loop for nnz%4
-        for(j = crend[i] - k_rem; j < crend[i]; j++)
+        for(j = rend - k_rem; j < rend; j++)
         {
             result += aval_fix[j] * x_fix[icol_fix[j]];
         }
 
+        if(diag_last)
+            result += x_fix[i + base];
+
         // Perform alpha * A * x
         result = alpha * result;
-        result += beta * y[i];
+        if(beta != static_cast<double>(0))
+        {
+            result += beta * y[i];
+        }
         y[i] = result;
     }
     return aoclsparse_status_success;
