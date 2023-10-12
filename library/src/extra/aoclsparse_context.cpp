@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2021-2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2021-2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,8 +24,9 @@
 #include "aoclsparse.h"
 #include "aoclsparse_context.h"
 
-#include <alci/cpu_features.h>
 #include <cstdlib>
+
+#include "alci/cxx/cpu.hh"
 #if defined(AOCLSPARSE_DISABLE_SYSTEM)
 
 // This branch defines a pthread-like API, aoclsparse_pthread_*(), and implements it
@@ -173,8 +174,9 @@ void aoclsparse_thread_init_rntm_from_env(aoclsparse_context *context)
 
 void aoclsparse_isa_init(aoclsparse_context *context)
 {
+    alci::Cpu core{0};
     // Check if the target supports AVX512
-    if(alc_cpu_has_avx512f())
+    if(core.isAvailable(alci::ALC_E_FLAG_AVX512F))
     {
         context->is_avx512 = true;
     }
