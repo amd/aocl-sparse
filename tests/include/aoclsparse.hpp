@@ -50,15 +50,15 @@ aoclsparse_status aoclsparse_csr2m(aoclsparse_operation       transA,
                                    aoclsparse_matrix         *csrC);
 
 template <typename T>
-aoclsparse_status aoclsparse_csrmm(aoclsparse_operation       trans,
-                                   const T                   *alpha,
-                                   const aoclsparse_matrix    csr,
+aoclsparse_status aoclsparse_csrmm(aoclsparse_operation       op,
+                                   T                          alpha,
+                                   const aoclsparse_matrix    A,
                                    const aoclsparse_mat_descr descr,
                                    aoclsparse_order           order,
                                    const T                   *B,
                                    aoclsparse_int             n,
                                    aoclsparse_int             ldb,
-                                   const T                   *beta,
+                                   T                          beta,
                                    T                         *C,
                                    aoclsparse_int             ldc);
 

@@ -53,35 +53,67 @@ aoclsparse_status aoclsparse_csr2m<float>(aoclsparse_operation       transA,
 }
 
 template <>
-aoclsparse_status aoclsparse_csrmm(aoclsparse_operation       trans,
-                                   const float               *alpha,
-                                   const aoclsparse_matrix    csr,
+aoclsparse_status aoclsparse_csrmm(aoclsparse_operation       op,
+                                   float                      alpha,
+                                   const aoclsparse_matrix    A,
                                    const aoclsparse_mat_descr descr,
                                    aoclsparse_order           order,
                                    const float               *B,
                                    aoclsparse_int             n,
                                    aoclsparse_int             ldb,
-                                   const float               *beta,
+                                   float                      beta,
                                    float                     *C,
                                    aoclsparse_int             ldc)
 {
-    return aoclsparse_scsrmm(trans, alpha, csr, descr, order, B, n, ldb, beta, C, ldc);
+    return aoclsparse_scsrmm(op, alpha, A, descr, order, B, n, ldb, beta, C, ldc);
 }
 
 template <>
-aoclsparse_status aoclsparse_csrmm(aoclsparse_operation       trans,
-                                   const double              *alpha,
-                                   const aoclsparse_matrix    csr,
+aoclsparse_status aoclsparse_csrmm(aoclsparse_operation       op,
+                                   double                     alpha,
+                                   const aoclsparse_matrix    A,
                                    const aoclsparse_mat_descr descr,
                                    aoclsparse_order           order,
                                    const double              *B,
                                    aoclsparse_int             n,
                                    aoclsparse_int             ldb,
-                                   const double              *beta,
+                                   double                     beta,
                                    double                    *C,
                                    aoclsparse_int             ldc)
 {
-    return aoclsparse_dcsrmm(trans, alpha, csr, descr, order, B, n, ldb, beta, C, ldc);
+    return aoclsparse_dcsrmm(op, alpha, A, descr, order, B, n, ldb, beta, C, ldc);
+}
+
+template <>
+aoclsparse_status aoclsparse_csrmm(aoclsparse_operation            op,
+                                   aoclsparse_float_complex        alpha,
+                                   const aoclsparse_matrix         A,
+                                   const aoclsparse_mat_descr      descr,
+                                   aoclsparse_order                order,
+                                   const aoclsparse_float_complex *B,
+                                   aoclsparse_int                  n,
+                                   aoclsparse_int                  ldb,
+                                   aoclsparse_float_complex        beta,
+                                   aoclsparse_float_complex       *C,
+                                   aoclsparse_int                  ldc)
+{
+    return aoclsparse_ccsrmm(op, alpha, A, descr, order, B, n, ldb, beta, C, ldc);
+}
+
+template <>
+aoclsparse_status aoclsparse_csrmm(aoclsparse_operation             op,
+                                   aoclsparse_double_complex        alpha,
+                                   const aoclsparse_matrix          A,
+                                   const aoclsparse_mat_descr       descr,
+                                   aoclsparse_order                 order,
+                                   const aoclsparse_double_complex *B,
+                                   aoclsparse_int                   n,
+                                   aoclsparse_int                   ldb,
+                                   aoclsparse_double_complex        beta,
+                                   aoclsparse_double_complex       *C,
+                                   aoclsparse_int                   ldc)
+{
+    return aoclsparse_zcsrmm(op, alpha, A, descr, order, B, n, ldb, beta, C, ldc);
 }
 
 template <>

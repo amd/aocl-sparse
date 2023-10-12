@@ -25,11 +25,14 @@
 #define AOCLSPARSE_CSRMM_HPP
 #include "aoclsparse.h"
 #include "aoclsparse_descr.h"
+#include "aoclsparse_auxiliary.hpp"
+#include "aoclsparse_convert.hpp"
 
 #include <algorithm>
 #include <cmath>
+#include <complex>
 #include <immintrin.h>
-
+#include <vector>
 #if defined(_WIN32) || defined(_WIN64)
 //Windows equivalent of gcc c99 type qualifier __restrict__
 #define __restrict__ __restrict
@@ -46,19 +49,127 @@ typedef union
     double  d[2] __attribute__((aligned(64)));
 } v2df_t;
 
-aoclsparse_status aoclsparse_csrmm_col_major(const double              *alpha,
+template <typename T>
+aoclsparse_status aoclsparse_csrmm_col_major_ref(T                          alpha,
+                                                 const aoclsparse_mat_descr descr,
+                                                 const T *__restrict__ csr_val,
+                                                 const aoclsparse_int *__restrict__ csr_col_ind,
+                                                 const aoclsparse_int *__restrict__ csr_row_ptr,
+                                                 aoclsparse_int m,
+                                                 const T       *B,
+                                                 aoclsparse_int n,
+                                                 aoclsparse_int ldb,
+                                                 T              beta,
+                                                 T             *C,
+                                                 aoclsparse_int ldc)
+{
+    T                     zero = 0.0;
+    aoclsparse_index_base base = descr->base;
+    if(alpha == zero)
+    {
+        for(aoclsparse_int j = 0; j < n; ++j)
+        {
+            for(aoclsparse_int i = 0; i < m; ++i)
+            {
+                aoclsparse_int idx_C = i + j * ldc;
+                C[idx_C]             = beta * C[idx_C];
+            }
+        }
+    }
+    else
+    {
+        for(aoclsparse_int j = 0; j < n; ++j)
+        {
+            for(aoclsparse_int i = 0; i < m; ++i)
+            {
+                aoclsparse_int row_begin = csr_row_ptr[i] - base;
+                aoclsparse_int row_end   = csr_row_ptr[i + 1] - base;
+                aoclsparse_int idx_C     = i + j * ldc;
+                T              sum       = 0.0;
+
+                for(aoclsparse_int k = row_begin; k < row_end; ++k)
+                {
+                    aoclsparse_int idx_B = ((csr_col_ind[k] - base) + j * ldb);
+                    sum                  = csr_val[k] * B[idx_B] + sum;
+                }
+                C[idx_C] = ((beta * C[idx_C]) + (alpha * sum));
+            }
+        }
+    }
+    return aoclsparse_status_success;
+}
+
+template <typename T>
+aoclsparse_status aoclsparse_csrmm_row_major_ref(T                          alpha,
+                                                 const aoclsparse_mat_descr descr,
+                                                 const T *__restrict__ csr_val,
+                                                 const aoclsparse_int *__restrict__ csr_col_ind,
+                                                 const aoclsparse_int *__restrict__ csr_row_ptr,
+                                                 aoclsparse_int m,
+                                                 const T       *B,
+                                                 aoclsparse_int n,
+                                                 aoclsparse_int ldb,
+                                                 T              beta,
+                                                 T             *C,
+                                                 aoclsparse_int ldc)
+{
+    T                     zero = 0.0;
+    aoclsparse_index_base base = descr->base;
+    if(alpha == zero)
+    {
+        for(aoclsparse_int i = 0; i < m; ++i)
+        {
+            for(aoclsparse_int j = 0; j < n; ++j)
+            {
+                aoclsparse_int idx_C = i * ldc + j;
+                C[idx_C]             = beta * C[idx_C];
+            }
+        }
+    }
+    else
+    {
+        for(aoclsparse_int i = 0; i < m; ++i)
+        {
+            for(aoclsparse_int j = 0; j < n; ++j)
+            {
+                // ind_C
+                aoclsparse_int idx_C = i * ldc + j;
+                C[idx_C]             = beta * C[idx_C];
+            }
+        }
+
+        for(aoclsparse_int i = 0; i < m; ++i)
+        {
+            aoclsparse_int row_begin = csr_row_ptr[i] - base;
+            aoclsparse_int row_end   = csr_row_ptr[i + 1] - base;
+
+            for(aoclsparse_int j = row_begin; j < row_end; ++j)
+            {
+                // ind_C
+                aoclsparse_int idx_C = i * ldc;
+                aoclsparse_int idx_B = (csr_col_ind[j] - base) * ldb;
+                for(aoclsparse_int k = 0; k < n; ++k)
+                {
+                    C[idx_C + k] += csr_val[j] * B[idx_B + k] * alpha;
+                }
+            }
+        }
+    }
+    return aoclsparse_status_success;
+}
+
+aoclsparse_status aoclsparse_csrmm_col_major(const double               alpha,
                                              const aoclsparse_mat_descr descr,
                                              const double *__restrict__ csr_val,
                                              const aoclsparse_int *__restrict__ csr_col_ind,
                                              const aoclsparse_int *__restrict__ csr_row_ptr,
-                                             aoclsparse_int                  m,
-                                             [[maybe_unused]] aoclsparse_int k,
-                                             const double                   *B,
-                                             aoclsparse_int                  n,
-                                             aoclsparse_int                  ldb,
-                                             const double                   *beta,
-                                             double                         *C,
-                                             aoclsparse_int                  ldc)
+                                             aoclsparse_int m,
+                                             const double  *B,
+                                             aoclsparse_int n,
+                                             aoclsparse_int ldb,
+                                             const double   beta,
+                                             double        *C,
+                                             aoclsparse_int ldc)
 {
     // Number of sub-blocks of 4 columns in B matrix
     aoclsparse_int j_iter = n / 4;
@@ -256,10 +367,10 @@ aoclsparse_status aoclsparse_csrmm_col_major(const double              *alpha,
             sum[3] = vec_C_3.d[0] + vec_C_3.d[1];
 
             // if beta = 0 , C= alpha*A*B
-            if(*beta == static_cast<double>(0))
+            if(beta == static_cast<double>(0))
             {
                 // if beta = 0 & alpha = 1, C= A*B
-                if(*alpha == static_cast<double>(1))
+                if(alpha == static_cast<double>(1))
                 {
                     C[idx_C]   = sum[0];
                     C[idx_C_1] = sum[1];
@@ -269,19 +380,19 @@ aoclsparse_status aoclsparse_csrmm_col_major(const double              *alpha,
                 // if beta = 0 & alpha != 1, C= alpha*A*B
                 else
                 {
-                    C[idx_C]   = *alpha * sum[0];
-                    C[idx_C_1] = *alpha * sum[1];
-                    C[idx_C_2] = *alpha * sum[2];
-                    C[idx_C_3] = *alpha * sum[3];
+                    C[idx_C]   = alpha * sum[0];
+                    C[idx_C_1] = alpha * sum[1];
+                    C[idx_C_2] = alpha * sum[2];
+                    C[idx_C_3] = alpha * sum[3];
                 }
             }
             // if beta != 0 & alpha != 1, C= beta*C + alpha*A*B
             else
             {
-                C[idx_C]   = std::fma(*beta, C[idx_C], *alpha * sum[0]);
-                C[idx_C_1] = std::fma(*beta, C[idx_C_1], *alpha * sum[1]);
-                C[idx_C_2] = std::fma(*beta, C[idx_C_2], *alpha * sum[2]);
-                C[idx_C_3] = std::fma(*beta, C[idx_C_3], *alpha * sum[3]);
+                C[idx_C]   = std::fma(beta, C[idx_C], alpha * sum[0]);
+                C[idx_C_1] = std::fma(beta, C[idx_C_1], alpha * sum[1]);
+                C[idx_C_2] = std::fma(beta, C[idx_C_2], alpha * sum[2]);
+                C[idx_C_3] = std::fma(beta, C[idx_C_3], alpha * sum[3]);
             }
         }
     }
@@ -416,10 +527,10 @@ aoclsparse_status aoclsparse_csrmm_col_major(const double              *alpha,
             sum[2] = vec_C_2.d[0] + vec_C_2.d[1];
 
             // if beta == 0 ,C= alpha*A*B
-            if(*beta == static_cast<double>(0))
+            if(beta == static_cast<double>(0))
             {
                 // if beta == 0 & alpha == 1, C= A*B
-                if(*alpha == static_cast<double>(1))
+                if(alpha == static_cast<double>(1))
                 {
                     C[idx_C]   = sum[0];
                     C[idx_C_1] = sum[1];
@@ -428,17 +539,17 @@ aoclsparse_status aoclsparse_csrmm_col_major(const double              *alpha,
                 // if beta == 0 & alpha != 1, C= alpha*A*B
                 else
                 {
-                    C[idx_C]   = *alpha * sum[0];
-                    C[idx_C_1] = *alpha * sum[1];
-                    C[idx_C_2] = *alpha * sum[2];
+                    C[idx_C]   = alpha * sum[0];
+                    C[idx_C_1] = alpha * sum[1];
+                    C[idx_C_2] = alpha * sum[2];
                 }
             }
             // if beta != 0 & alpha != 1, C= beta*C + alpha*A*B
             else
             {
-                C[idx_C]   = std::fma(*beta, C[idx_C], *alpha * sum[0]);
-                C[idx_C_1] = std::fma(*beta, C[idx_C_1], *alpha * sum[1]);
-                C[idx_C_2] = std::fma(*beta, C[idx_C_2], *alpha * sum[2]);
+                C[idx_C]   = std::fma(beta, C[idx_C], alpha * sum[0]);
+                C[idx_C_1] = std::fma(beta, C[idx_C_1], alpha * sum[1]);
+                C[idx_C_2] = std::fma(beta, C[idx_C_2], alpha * sum[2]);
             }
         }
     }
@@ -543,10 +654,10 @@ aoclsparse_status aoclsparse_csrmm_col_major(const double              *alpha,
             sum[1] = vec_C_1.d[0] + vec_C_1.d[1];
 
             // if beta == 0 ,C= alpha*A*B
-            if(*beta == static_cast<double>(0))
+            if(beta == static_cast<double>(0))
             {
                 // if beta == 0 & alpha == 1, C= A*B
-                if(*alpha == static_cast<double>(1))
+                if(alpha == static_cast<double>(1))
                 {
                     C[idx_C]   = sum[0];
                     C[idx_C_1] = sum[1];
@@ -554,15 +665,15 @@ aoclsparse_status aoclsparse_csrmm_col_major(const double              *alpha,
                 // if beta == 0 & alpha != 1, C= alpha*A*B
                 else
                 {
-                    C[idx_C]   = *alpha * sum[0];
-                    C[idx_C_1] = *alpha * sum[1];
+                    C[idx_C]   = alpha * sum[0];
+                    C[idx_C_1] = alpha * sum[1];
                 }
             }
             // if beta != 0 & alpha != 1, C= beta*C + alpha*A*B
             else
             {
-                C[idx_C]   = std::fma(*beta, C[idx_C], *alpha * sum[0]);
-                C[idx_C_1] = std::fma(*beta, C[idx_C_1], *alpha * sum[1]);
+                C[idx_C]   = std::fma(beta, C[idx_C], alpha * sum[0]);
+                C[idx_C_1] = std::fma(beta, C[idx_C_1], alpha * sum[1]);
             }
         }
     }
@@ -643,42 +754,41 @@ aoclsparse_status aoclsparse_csrmm_col_major(const double              *alpha,
             sum = vec_C.d[0] + vec_C.d[1];
 
             // if beta == 0 ,C= alpha*A*B
-            if(*beta == static_cast<double>(0))
+            if(beta == static_cast<double>(0))
             {
                 // if beta == 0 & alpha == 1, C= A*B
-                if(*alpha == static_cast<double>(1))
+                if(alpha == static_cast<double>(1))
                 {
                     C[idx_C] = sum;
                 }
                 // if beta == 0 & alpha != 1, C= alpha*A*B
                 else
                 {
-                    C[idx_C] = *alpha * sum;
+                    C[idx_C] = alpha * sum;
                 }
             }
             // if beta != 0 & alpha != 1, C= beta*C + alpha*A*B
             else
             {
-                C[idx_C] = std::fma(*beta, C[idx_C], *alpha * sum);
+                C[idx_C] = std::fma(beta, C[idx_C], alpha * sum);
             }
         }
     }
     return aoclsparse_status_success;
 }
 
-aoclsparse_status aoclsparse_csrmm_col_major(const float               *alpha,
+aoclsparse_status aoclsparse_csrmm_col_major(const float                alpha,
                                              const aoclsparse_mat_descr descr,
                                              const float *__restrict__ csr_val,
                                              const aoclsparse_int *__restrict__ csr_col_ind,
                                              const aoclsparse_int *__restrict__ csr_row_ptr,
-                                             aoclsparse_int                  m,
-                                             [[maybe_unused]] aoclsparse_int k,
-                                             const float                    *B,
-                                             aoclsparse_int                  n,
-                                             aoclsparse_int                  ldb,
-                                             const float                    *beta,
-                                             float                          *C,
-                                             aoclsparse_int                  ldc)
+                                             aoclsparse_int m,
+                                             const float   *B,
+                                             aoclsparse_int n,
+                                             aoclsparse_int ldb,
+                                             const float    beta,
+                                             float         *C,
+                                             aoclsparse_int ldc)
 {
     // Number of sub-blocks of 4 columns in B matrix
     aoclsparse_int j_iter = n / 4;
@@ -833,20 +943,20 @@ aoclsparse_status aoclsparse_csrmm_col_major(const float               *alpha,
                 sum[3] += csr_val[k] * B[idx_B_3];
             }
             // if beta = 0 , C= alpha*A*B
-            if(*beta == static_cast<float>(0))
+            if(beta == static_cast<float>(0))
             {
-                C[idx_C]   = *alpha * sum[0];
-                C[idx_C_1] = *alpha * sum[1];
-                C[idx_C_2] = *alpha * sum[2];
-                C[idx_C_3] = *alpha * sum[3];
+                C[idx_C]   = alpha * sum[0];
+                C[idx_C_1] = alpha * sum[1];
+                C[idx_C_2] = alpha * sum[2];
+                C[idx_C_3] = alpha * sum[3];
             }
             // if beta != 0 & alpha != 1, C= beta*C + alpha*A*B
             else
             {
-                C[idx_C]   = std::fma(*beta, C[idx_C], *alpha * sum[0]);
-                C[idx_C_1] = std::fma(*beta, C[idx_C_1], *alpha * sum[1]);
-                C[idx_C_2] = std::fma(*beta, C[idx_C_2], *alpha * sum[2]);
-                C[idx_C_3] = std::fma(*beta, C[idx_C_3], *alpha * sum[3]);
+                C[idx_C]   = std::fma(beta, C[idx_C], alpha * sum[0]);
+                C[idx_C_1] = std::fma(beta, C[idx_C_1], alpha * sum[1]);
+                C[idx_C_2] = std::fma(beta, C[idx_C_2], alpha * sum[2]);
+                C[idx_C_3] = std::fma(beta, C[idx_C_3], alpha * sum[3]);
             }
         }
     }
@@ -958,18 +1068,18 @@ aoclsparse_status aoclsparse_csrmm_col_major(const float               *alpha,
                 sum[2] += csr_val[k] * B[idx_B_2];
             }
             // if beta = 0 , C= alpha*A*B
-            if(*beta == static_cast<float>(0))
+            if(beta == static_cast<float>(0))
             {
-                C[idx_C]   = *alpha * sum[0];
-                C[idx_C_1] = *alpha * sum[1];
-                C[idx_C_2] = *alpha * sum[2];
+                C[idx_C]   = alpha * sum[0];
+                C[idx_C_1] = alpha * sum[1];
+                C[idx_C_2] = alpha * sum[2];
             }
             // if beta != 0 & alpha != 1, C= beta*C + alpha*A*B
             else
             {
-                C[idx_C]   = std::fma(*beta, C[idx_C], *alpha * sum[0]);
-                C[idx_C_1] = std::fma(*beta, C[idx_C_1], *alpha * sum[1]);
-                C[idx_C_2] = std::fma(*beta, C[idx_C_2], *alpha * sum[2]);
+                C[idx_C]   = std::fma(beta, C[idx_C], alpha * sum[0]);
+                C[idx_C_1] = std::fma(beta, C[idx_C_1], alpha * sum[1]);
+                C[idx_C_2] = std::fma(beta, C[idx_C_2], alpha * sum[2]);
             }
         }
     }
@@ -1059,16 +1169,16 @@ aoclsparse_status aoclsparse_csrmm_col_major(const float               *alpha,
                 sum[1] += csr_val[k] * B[idx_B_1];
             }
             // if beta = 0 , C= alpha*A*B
-            if(*beta == static_cast<float>(0))
+            if(beta == static_cast<float>(0))
             {
-                C[idx_C]   = *alpha * sum[0];
-                C[idx_C_1] = *alpha * sum[1];
+                C[idx_C]   = alpha * sum[0];
+                C[idx_C_1] = alpha * sum[1];
             }
             // if beta != 0 & alpha != 1, C= beta*C + alpha*A*B
             else
             {
-                C[idx_C]   = std::fma(*beta, C[idx_C], *alpha * sum[0]);
-                C[idx_C_1] = std::fma(*beta, C[idx_C_1], *alpha * sum[1]);
+                C[idx_C]   = std::fma(beta, C[idx_C], alpha * sum[0]);
+                C[idx_C_1] = std::fma(beta, C[idx_C_1], alpha * sum[1]);
             }
         }
     }
@@ -1137,79 +1247,32 @@ aoclsparse_status aoclsparse_csrmm_col_major(const float               *alpha,
                 sum += csr_val[k] * B[idx_B];
             }
             // if beta = 0 , C= alpha*A*B
-            if(*beta == static_cast<float>(0))
+            if(beta == static_cast<float>(0))
             {
-                C[idx_C] = *alpha * sum;
+                C[idx_C] = alpha * sum;
             }
             // if beta != 0 & alpha != 1, C= beta*C + alpha*A*B
             else
             {
-                C[idx_C] = std::fma(*beta, C[idx_C], *alpha * sum);
+                C[idx_C] = std::fma(beta, C[idx_C], alpha * sum);
             }
         }
     }
     return aoclsparse_status_success;
 }
 
-aoclsparse_status aoclsparse_csrmm_row_major(const double              *alpha,
-                                             const aoclsparse_mat_descr descr,
-                                             const double *__restrict__ csr_val,
-                                             const aoclsparse_int *__restrict__ csr_col_ind,
-                                             const aoclsparse_int *__restrict__ csr_row_ptr,
-                                             aoclsparse_int                  m,
-                                             [[maybe_unused]] aoclsparse_int k,
-                                             const double                   *B,
-                                             aoclsparse_int                  n,
-                                             aoclsparse_int                  ldb,
-                                             const double                   *beta,
-                                             double                         *C,
-                                             aoclsparse_int                  ldc)
-{
-    aoclsparse_index_base base = descr->base;
-    for(aoclsparse_int i = 0; i < m; ++i)
-    {
-        for(aoclsparse_int j = 0; j < n; ++j)
-        {
-            double         row_begin = csr_row_ptr[i] - base;
-            double         row_end   = csr_row_ptr[i + 1] - base;
-            aoclsparse_int idx_C     = i * ldc + j;
-
-            double sum = static_cast<double>(0);
-
-            for(aoclsparse_int k = row_begin; k < row_end; ++k)
-            {
-                aoclsparse_int idx_B = 0;
-                idx_B                = (j + (csr_col_ind[k] - base) * ldb);
-
-                sum = std::fma(csr_val[k], B[idx_B], sum);
-            }
-
-            if(*beta == static_cast<double>(0))
-            {
-                C[idx_C] = *alpha * sum;
-            }
-            else
-            {
-                C[idx_C] = std::fma(*beta, C[idx_C], *alpha * sum);
-            }
-        }
-    }
-    return aoclsparse_status_success;
-}
-
-aoclsparse_status aoclsparse_csrmm_row_major(const float               *alpha,
+aoclsparse_status aoclsparse_csrmm_row_major(const float                alpha,
                                              const aoclsparse_mat_descr descr,
                                              const float *__restrict__ csr_val,
                                              const aoclsparse_int *__restrict__ csr_col_ind,
                                              const aoclsparse_int *__restrict__ csr_row_ptr,
-                                             aoclsparse_int                  m,
-                                             [[maybe_unused]] aoclsparse_int k,
-                                             const float                    *B,
-                                             aoclsparse_int                  n,
-                                             aoclsparse_int                  ldb,
-                                             const float                    *beta,
-                                             float                          *C,
-                                             aoclsparse_int                  ldc)
+                                             aoclsparse_int m,
+                                             const float   *B,
+                                             aoclsparse_int n,
+                                             aoclsparse_int ldb,
+                                             const float    beta,
+                                             float         *C,
+                                             aoclsparse_int ldc)
 {
     // Number of sub-blocks of 4 columns in B matrix
     aoclsparse_int j_iter = n / 4;
@@ -1351,20 +1414,20 @@ aoclsparse_status aoclsparse_csrmm_row_major(const float               *alpha,
                 sum[3] += csr_val[k] * B[idx_B_3];
             }
             // if beta = 0 , C= alpha*A*B
-            if(*beta == static_cast<float>(0))
+            if(beta == static_cast<float>(0))
             {
-                C[idx_C]   = *alpha * sum[0];
-                C[idx_C_1] = *alpha * sum[1];
-                C[idx_C_2] = *alpha * sum[2];
-                C[idx_C_3] = *alpha * sum[3];
+                C[idx_C]   = alpha * sum[0];
+                C[idx_C_1] = alpha * sum[1];
+                C[idx_C_2] = alpha * sum[2];
+                C[idx_C_3] = alpha * sum[3];
             }
             // if beta != 0 & alpha != 1, C= beta*C + alpha*A*B
             else
             {
-                C[idx_C]   = std::fma(*beta, C[idx_C], *alpha * sum[0]);
-                C[idx_C_1] = std::fma(*beta, C[idx_C_1], *alpha * sum[1]);
-                C[idx_C_2] = std::fma(*beta, C[idx_C_2], *alpha * sum[2]);
-                C[idx_C_3] = std::fma(*beta, C[idx_C_3], *alpha * sum[3]);
+                C[idx_C]   = std::fma(beta, C[idx_C], alpha * sum[0]);
+                C[idx_C_1] = std::fma(beta, C[idx_C_1], alpha * sum[1]);
+                C[idx_C_2] = std::fma(beta, C[idx_C_2], alpha * sum[2]);
+                C[idx_C_3] = std::fma(beta, C[idx_C_3], alpha * sum[3]);
             }
         }
     }
@@ -1470,18 +1533,18 @@ aoclsparse_status aoclsparse_csrmm_row_major(const float               *alpha,
                 sum[2] += csr_val[k] * B[idx_B_2];
             }
             // if beta = 0 , C= alpha*A*B
-            if(*beta == static_cast<float>(0))
+            if(beta == static_cast<float>(0))
             {
-                C[idx_C]   = *alpha * sum[0];
-                C[idx_C_1] = *alpha * sum[1];
-                C[idx_C_2] = *alpha * sum[2];
+                C[idx_C]   = alpha * sum[0];
+                C[idx_C_1] = alpha * sum[1];
+                C[idx_C_2] = alpha * sum[2];
             }
             // if beta != 0 & alpha != 1, C= beta*C + alpha*A*B
             else
             {
-                C[idx_C]   = std::fma(*beta, C[idx_C], *alpha * sum[0]);
-                C[idx_C_1] = std::fma(*beta, C[idx_C_1], *alpha * sum[1]);
-                C[idx_C_2] = std::fma(*beta, C[idx_C_2], *alpha * sum[2]);
+                C[idx_C]   = std::fma(beta, C[idx_C], alpha * sum[0]);
+                C[idx_C_1] = std::fma(beta, C[idx_C_1], alpha * sum[1]);
+                C[idx_C_2] = std::fma(beta, C[idx_C_2], alpha * sum[2]);
             }
         }
     }
@@ -1567,16 +1630,16 @@ aoclsparse_status aoclsparse_csrmm_row_major(const float               *alpha,
                 sum[1] += csr_val[k] * B[idx_B_1];
             }
             // if beta = 0 , C= alpha*A*B
-            if(*beta == static_cast<float>(0))
+            if(beta == static_cast<float>(0))
             {
-                C[idx_C]   = *alpha * sum[0];
-                C[idx_C_1] = *alpha * sum[1];
+                C[idx_C]   = alpha * sum[0];
+                C[idx_C_1] = alpha * sum[1];
             }
             // if beta != 0 & alpha != 1, C= beta*C + alpha*A*B
             else
             {
-                C[idx_C]   = std::fma(*beta, C[idx_C], *alpha * sum[0]);
-                C[idx_C_1] = std::fma(*beta, C[idx_C_1], *alpha * sum[1]);
+                C[idx_C]   = std::fma(beta, C[idx_C], alpha * sum[0]);
+                C[idx_C_1] = std::fma(beta, C[idx_C_1], alpha * sum[1]);
             }
         }
     }
@@ -1642,17 +1705,233 @@ aoclsparse_status aoclsparse_csrmm_row_major(const float               *alpha,
                 sum += csr_val[k] * B[idx_B];
             }
             // if beta = 0 , C= alpha*A*B
-            if(*beta == static_cast<float>(0))
+            if(beta == static_cast<float>(0))
             {
-                C[idx_C] = *alpha * sum;
+                C[idx_C] = alpha * sum;
             }
             // if beta != 0 & alpha != 1, C= beta*C + alpha*A*B
             else
             {
-                C[idx_C] = std::fma(*beta, C[idx_C], *alpha * sum);
+                C[idx_C] = std::fma(beta, C[idx_C], alpha * sum);
             }
         }
     }
     return aoclsparse_status_success;
 }
+
+template <typename T>
+aoclsparse_status aoclsparse_csrmm(aoclsparse_operation            op,
+                                   const T                         alpha,
+                                   const aoclsparse_matrix         A,
+                                   const aoclsparse_mat_descr      descr,
+                                   aoclsparse_order                order,
+                                   const T                        *B,
+                                   aoclsparse_int                  n,
+                                   aoclsparse_int                  ldb,
+                                   const T                         beta,
+                                   T                              *C,
+                                   aoclsparse_int                  ldc,
+                                   [[maybe_unused]] aoclsparse_int kid)
+{
+    // Check for valid matrix, descriptor
+    if(A == nullptr || B == nullptr || C == nullptr || descr == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+
+    aoclsparse_int        m           = A->m;
+    aoclsparse_int        k           = A->n;
+    const aoclsparse_int *csr_col_ind = A->csr_mat.csr_col_ptr;
+    const aoclsparse_int *csr_row_ptr = A->csr_mat.csr_row_ptr;
+    const T              *csr_val     = static_cast<T *>(A->csr_mat.csr_val);
+
+    T zero = 0.0;
+    T one  = 1.0;
+
+    // Verify the matrix types and T are consistent
+    if(!((A->val_type == aoclsparse_smat && std::is_same_v<T, float>)
+         || (A->val_type == aoclsparse_dmat && std::is_same_v<T, double>)
+         || (A->val_type == aoclsparse_cmat && std::is_same_v<T, std::complex<float>>)
+         || (A->val_type == aoclsparse_zmat && std::is_same_v<T, std::complex<double>>)))
+        return aoclsparse_status_wrong_type;
+
+    // Check index base
+    if(descr->base != aoclsparse_index_base_zero && descr->base != aoclsparse_index_base_one)
+    {
+        return aoclsparse_status_invalid_value;
+    }
+    // Check for base index incompatibility
+    if(A->base != descr->base)
+    {
+        return aoclsparse_status_invalid_value;
+    }
+
+    if(descr->type != aoclsparse_matrix_type_general)
+    {
+        // TODO
+        return aoclsparse_status_not_implemented;
+    }
+    // Check sizes
+    if(m < 0 || n < 0 || k < 0)
+    {
+        return aoclsparse_status_invalid_size;
+    }
+
+    // Quick return if possible
+    if(m == 0 || n == 0 || k == 0)
+    {
+        return aoclsparse_status_success;
+    }
+
+    // Check the rest of pointer arguments
+    if(csr_val == nullptr || csr_row_ptr == nullptr || csr_col_ind == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+
+    if(alpha == zero && beta == one)
+    {
+        return aoclsparse_status_success;
+    }
+
+    // Check leading dimension of B
+    // if(ldb < std::max((aoclsparse_int)1, order == aoclsparse_order_column ? k : n))
+    // Commented the above usage of std::max - the usage of std::max had syntax issues while resolving the 'max' on windows.
+    // TODO: Verify if the issues are due to inclusion of blis/libflame dependencies.
+    aoclsparse_int check_ldb;
+    if(op == aoclsparse_operation_none)
+        check_ldb = (order == aoclsparse_order_column ? k : n);
+    else
+        check_ldb = (order == aoclsparse_order_column ? m : n);
+    if(ldb < (((aoclsparse_int)1) >= check_ldb ? (aoclsparse_int)1 : check_ldb))
+    {
+        return aoclsparse_status_invalid_size;
+    }
+
+    // Check leading dimension of C
+    // if(ldc < std::max((aoclsparse_int)1, order == aoclsparse_order_column ? m : n))
+    // Commented the above usage of std::max - the usage of std::max had syntax issues while resolving the 'max' on windows.
+    // TODO: Verify if the issues are due to inclusion of blis/libflame dependencies.
+    aoclsparse_int check_ldc;
+    if(op == aoclsparse_operation_none)
+        check_ldc = (order == aoclsparse_order_column ? m : n);
+    else
+        check_ldc = (order == aoclsparse_order_column ? k : n);
+    if(ldc < (((aoclsparse_int)1) >= check_ldc ? (aoclsparse_int)1 : check_ldc))
+    {
+        return aoclsparse_status_invalid_size;
+    }
+
+    if(op == aoclsparse_operation_conjugate_transpose || op == aoclsparse_operation_transpose)
+    {
+        std::vector<aoclsparse_int> csr_row_ptr_A;
+        std::vector<aoclsparse_int> csr_col_ind_A;
+        std::vector<T>              csr_val_A;
+        csr_val_A.resize(A->nnz);
+        csr_col_ind_A.resize(A->nnz);
+        csr_row_ptr_A.resize(A->n + 1);
+        aoclsparse_status status = aoclsparse_csr2csc_template(A->m,
+                                                               A->n,
+                                                               A->nnz,
+                                                               descr,
+                                                               descr->base,
+                                                               csr_row_ptr,
+                                                               csr_col_ind,
+                                                               csr_val,
+                                                               csr_col_ind_A.data(),
+                                                               csr_row_ptr_A.data(),
+                                                               csr_val_A.data());
+        if(status != aoclsparse_status_success)
+            return aoclsparse_status_internal_error;
+
+        if(op == aoclsparse_operation_conjugate_transpose)
+        {
+            for(aoclsparse_int idx = 0; idx < A->nnz; idx++)
+                csr_val_A[idx] = aoclsparse::conj(csr_val_A[idx]);
+        }
+
+        if(order == aoclsparse_order_column)
+        {
+            if constexpr(std::is_same_v<T, double> || std::is_same_v<T, float>)
+                return aoclsparse_csrmm_col_major(alpha,
+                                                  descr,
+                                                  csr_val_A.data(),
+                                                  csr_col_ind_A.data(),
+                                                  csr_row_ptr_A.data(),
+                                                  k,
+                                                  B,
+                                                  n,
+                                                  ldb,
+                                                  beta,
+                                                  C,
+                                                  ldc);
+            else
+                return aoclsparse_csrmm_col_major_ref(alpha,
+                                                      descr,
+                                                      csr_val_A.data(),
+                                                      csr_col_ind_A.data(),
+                                                      csr_row_ptr_A.data(),
+                                                      k,
+                                                      B,
+                                                      n,
+                                                      ldb,
+                                                      beta,
+                                                      C,
+                                                      ldc);
+        }
+        else
+        {
+            if constexpr(std::is_same_v<T, float>)
+                return aoclsparse_csrmm_row_major(alpha,
+                                                  descr,
+                                                  csr_val_A.data(),
+                                                  csr_col_ind_A.data(),
+                                                  csr_row_ptr_A.data(),
+                                                  k,
+                                                  B,
+                                                  n,
+                                                  ldb,
+                                                  beta,
+                                                  C,
+                                                  ldc);
+            else
+                return aoclsparse_csrmm_row_major_ref(alpha,
+                                                      descr,
+                                                      csr_val_A.data(),
+                                                      csr_col_ind_A.data(),
+                                                      csr_row_ptr_A.data(),
+                                                      k,
+                                                      B,
+                                                      n,
+                                                      ldb,
+                                                      beta,
+                                                      C,
+                                                      ldc);
+        }
+    }
+    if(op == aoclsparse_operation_none)
+    {
+        if(order == aoclsparse_order_column)
+        {
+            if constexpr(std::is_same_v<T, double> || std::is_same_v<T, float>)
+                return aoclsparse_csrmm_col_major(
+                    alpha, descr, csr_val, csr_col_ind, csr_row_ptr, m, B, n, ldb, beta, C, ldc);
+            else
+                return aoclsparse_csrmm_col_major_ref(
+                    alpha, descr, csr_val, csr_col_ind, csr_row_ptr, m, B, n, ldb, beta, C, ldc);
+        }
+        else
+        {
+            if constexpr(std::is_same_v<T, float>)
+                return aoclsparse_csrmm_row_major(
+                    alpha, descr, csr_val, csr_col_ind, csr_row_ptr, m, B, n, ldb, beta, C, ldc);
+            else
+                return aoclsparse_csrmm_row_major_ref(
+                    alpha, descr, csr_val, csr_col_ind, csr_row_ptr, m, B, n, ldb, beta, C, ldc);
+        }
+    }
+    else
+        return aoclsparse_status_not_implemented;
+}
+
 #endif /* AOCLSPARSE_CSRMM_HPP*/

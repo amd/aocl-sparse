@@ -43,6 +43,22 @@
 // Restore
 #pragma GCC diagnostic pop
 
+/* Conjugate functionality the returns both complex and real types */
+/* The standard std::conj return only complex types */
+namespace aoclsparse
+{
+    template <typename T>
+    constexpr T conj(const T a)
+    {
+        if constexpr(std::is_same_v<T, std::complex<double>>
+                     || std::is_same_v<T, std::complex<float>>)
+        {
+            return std::conj(a);
+        }
+        return a;
+    }
+}
+
 /* Check that the size of integers in the used libraries is OK. */
 static_assert(
     sizeof(f77_int) == sizeof(aoclsparse_int),

@@ -75,6 +75,7 @@ target_include_directories(aoclsparse
                                    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/level2>
                                    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/level1>
                                    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/extra>
+                                   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/conversion>
                            PUBLIC  $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/library/include>
                                    $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
                                    $<BUILD_INTERFACE:${LAPACK_INCLUDE_DIRS}>
