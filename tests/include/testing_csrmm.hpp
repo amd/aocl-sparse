@@ -35,8 +35,10 @@
 #include "aoclsparse_test.hpp"
 #include "aoclsparse_utility.hpp"
 
+//Currently we are supporting only real types.
+//ToDo: Enable support for complex types.
 template <typename T>
-aoclsparse_status aoclsparse_csrmm_col_major_ref(const T              *alpha,
+aoclsparse_status aoclsparse_csrmm_col_major_ref(const T               alpha,
                                                  aoclsparse_index_base base,
                                                  const T *__restrict__ csr_val,
                                                  const aoclsparse_int *__restrict__ csr_col_ind,
@@ -46,34 +48,31 @@ aoclsparse_status aoclsparse_csrmm_col_major_ref(const T              *alpha,
                                                  const T                        *B,
                                                  aoclsparse_int                  n,
                                                  aoclsparse_int                  ldb,
-                                                 const T                        *beta,
+                                                 const T                         beta,
                                                  T                              *C,
                                                  aoclsparse_int                  ldc)
 {
     for(aoclsparse_int i = 0; i < m; ++i)
     {
+        aoclsparse_int row_begin = csr_row_ptr[i] - base;
+        aoclsparse_int row_end   = csr_row_ptr[i + 1] - base;
         for(aoclsparse_int j = 0; j < n; ++j)
         {
-            T              row_begin = csr_row_ptr[i] - base;
-            T              row_end   = csr_row_ptr[i + 1] - base;
-            aoclsparse_int idx_C     = i + j * ldc;
-
-            T sum = static_cast<T>(0);
+            aoclsparse_int idx_C = i + j * ldc;
+            T              sum   = static_cast<T>(0);
 
             for(aoclsparse_int k = row_begin; k < row_end; ++k)
             {
-                aoclsparse_int idx_B = 0;
-                idx_B                = (csr_col_ind[k] - base + j * ldb);
-
-                sum = std::fma(csr_val[k], B[idx_B], sum);
+                aoclsparse_int idx_B = ((csr_col_ind[k] - base) + j * ldb);
+                sum                  = std::fma(csr_val[k], B[idx_B], sum);
             }
-            if(*beta == static_cast<T>(0))
+            if(beta == static_cast<T>(0))
             {
-                C[idx_C] = *alpha * sum;
+                C[idx_C] = alpha * sum;
             }
             else
             {
-                C[idx_C] = std::fma(*beta, C[idx_C], *alpha * sum);
+                C[idx_C] = std::fma(beta, C[idx_C], alpha * sum);
             }
         }
     }
@@ -81,7 +80,7 @@ aoclsparse_status aoclsparse_csrmm_col_major_ref(const T              *alpha,
 }
 
 template <typename T>
-aoclsparse_status aoclsparse_csrmm_row_major_ref(const T              *alpha,
+aoclsparse_status aoclsparse_csrmm_row_major_ref(const T               alpha,
                                                  aoclsparse_index_base base,
                                                  const T *__restrict__ csr_val,
                                                  const aoclsparse_int *__restrict__ csr_col_ind,
@@ -91,35 +90,32 @@ aoclsparse_status aoclsparse_csrmm_row_major_ref(const T              *alpha,
                                                  const T                        *B,
                                                  aoclsparse_int                  n,
                                                  aoclsparse_int                  ldb,
-                                                 const T                        *beta,
+                                                 const T                         beta,
                                                  T                              *C,
                                                  aoclsparse_int                  ldc)
 {
     for(aoclsparse_int i = 0; i < m; ++i)
     {
+        aoclsparse_int row_begin = csr_row_ptr[i] - base;
+        aoclsparse_int row_end   = csr_row_ptr[i + 1] - base;
         for(aoclsparse_int j = 0; j < n; ++j)
         {
-            T              row_begin = csr_row_ptr[i] - base;
-            T              row_end   = csr_row_ptr[i + 1] - base;
-            aoclsparse_int idx_C     = i * ldc + j;
-
-            T sum = static_cast<T>(0);
+            aoclsparse_int idx_C = i * ldc + j;
+            T              sum   = static_cast<T>(0);
 
             for(aoclsparse_int k = row_begin; k < row_end; ++k)
             {
-                aoclsparse_int idx_B = 0;
-                idx_B                = (j + (csr_col_ind[k] - base) * ldb);
-
-                sum = std::fma(csr_val[k], B[idx_B], sum);
+                aoclsparse_int idx_B = (j + (csr_col_ind[k] - base) * ldb);
+                sum                  = std::fma(csr_val[k], B[idx_B], sum);
             }
 
-            if(*beta == static_cast<T>(0))
+            if(beta == static_cast<T>(0))
             {
-                C[idx_C] = *alpha * sum;
+                C[idx_C] = alpha * sum;
             }
             else
             {
-                C[idx_C] = std::fma(*beta, C[idx_C], *alpha * sum);
+                C[idx_C] = std::fma(beta, C[idx_C], alpha * sum);
             }
         }
     }
@@ -162,36 +158,29 @@ void testing_csrmm(const Arguments &arg)
     std::cout << aoclsparse_get_version() << std::endl;
 #endif
     // Sample matrix
-    aoclsparse_init_csr_matrix(csr_row_ptr,
-                               csr_col_ind,
-                               csr_val,
-                               (transA == aoclsparse_operation_none ? M : K),
-                               (transA == aoclsparse_operation_none ? K : M),
-                               nnz,
-                               base,
-                               mat,
-                               filename.c_str(),
-                               issymm,
-                               true);
+    aoclsparse_init_csr_matrix(
+        csr_row_ptr, csr_col_ind, csr_val, M, K, nnz, base, mat, filename.c_str(), issymm, true);
     if(mat == aoclsparse_matrix_file_mtx)
         N = M;
 
     // Some matrix properties
-    aoclsparse_int    A_m   = (transA == aoclsparse_operation_none ? M : K);
-    aoclsparse_int    A_n   = (transA == aoclsparse_operation_none ? K : M);
-    aoclsparse_int    B_m   = K;
-    aoclsparse_int    B_n   = N;
-    aoclsparse_int    C_m   = M;
-    aoclsparse_int    C_n   = N;
-    aoclsparse_int    ldb   = order == aoclsparse_order_column ? K : N;
-    aoclsparse_int    ldc   = order == aoclsparse_order_column ? M : N;
-    aoclsparse_int    nrowB = order == aoclsparse_order_column ? ldb : B_m;
-    aoclsparse_int    ncolB = order == aoclsparse_order_column ? B_n : ldb;
-    aoclsparse_int    nrowC = order == aoclsparse_order_column ? ldc : C_m;
-    aoclsparse_int    ncolC = order == aoclsparse_order_column ? C_n : ldc;
-    aoclsparse_matrix csr;
+    aoclsparse_int A_m, A_n, B_m, B_n, C_m, C_n, ldb, ldc, nrowB, ncolB, nrowC, ncolC;
+    A_m   = (transA == aoclsparse_operation_none ? M : K);
+    A_n   = (transA == aoclsparse_operation_none ? K : M);
+    B_m   = (transA == aoclsparse_operation_none ? K : M);
+    B_n   = N;
+    C_m   = A_m;
+    C_n   = B_n;
+    ldb   = order == aoclsparse_order_column ? B_m : B_n;
+    ldc   = order == aoclsparse_order_column ? C_m : C_n;
+    nrowB = order == aoclsparse_order_column ? ldb : B_m;
+    ncolB = order == aoclsparse_order_column ? B_n : ldb;
+    nrowC = order == aoclsparse_order_column ? ldc : C_m;
+    ncolC = order == aoclsparse_order_column ? C_n : ldc;
+
+    aoclsparse_matrix A;
     aoclsparse_create_csr(
-        csr, base, A_m, A_n, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data());
+        A, base, M, K, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data());
     // Allocate memory for matrix
     std::vector<T> B(nrowB * ncolB);
     std::vector<T> C(nrowC * ncolC);
@@ -202,14 +191,23 @@ void testing_csrmm(const Arguments &arg)
     aoclsparse_init<T>(C, nrowC, ncolC, nrowC);
     C_gold = C;
 
+    //Provides verficiation only for aoclsparse_operation_none.
+    //ToDo:
+    //Enable functional verification for aoclsparse_operation_transpose and aoclsparse_operation_conjugate_transpose.
     if(arg.unit_check)
     {
-        CHECK_AOCLSPARSE_ERROR(aoclsparse_csrmm(
-            transA, &alpha, csr, descr, order, B.data(), B_n, ldb, &beta, C.data(), ldc));
+        if(transA != aoclsparse_operation_none)
+        {
+            std::cout << "At persent, verification is supported only when transposeA is set to N\n";
+            aoclsparse_destroy(A);
+            return;
+        }
+        CHECK_AOCLSPARSE_ERROR(aoclsparse_csrmm<T>(
+            transA, alpha, A, descr, order, B.data(), B_n, ldb, beta, C.data(), ldc));
         // Reference SPMM CSR implementation
         if(order == aoclsparse_order_column)
         {
-            aoclsparse_csrmm_col_major_ref<T>(&alpha,
+            aoclsparse_csrmm_col_major_ref<T>(alpha,
                                               base,
                                               csr_val.data(),
                                               csr_col_ind.data(),
@@ -219,14 +217,14 @@ void testing_csrmm(const Arguments &arg)
                                               B.data(),
                                               B_n,
                                               ldb,
-                                              &beta,
+                                              beta,
                                               C_gold.data(),
                                               ldc);
             near_check_general<T>(nrowC, ncolC, ldc, C_gold.data(), C.data());
         }
         else
         {
-            aoclsparse_csrmm_row_major_ref<T>(&alpha,
+            aoclsparse_csrmm_row_major_ref<T>(alpha,
                                               base,
                                               csr_val.data(),
                                               csr_col_ind.data(),
@@ -236,7 +234,7 @@ void testing_csrmm(const Arguments &arg)
                                               B.data(),
                                               B_n,
                                               ldb,
-                                              &beta,
+                                              beta,
                                               C_gold.data(),
                                               ldc);
 
@@ -252,7 +250,7 @@ void testing_csrmm(const Arguments &arg)
     {
         cpu_time_start = aoclsparse_clock();
         CHECK_AOCLSPARSE_ERROR(aoclsparse_csrmm(
-            transA, &alpha, csr, descr, order, B.data(), B_n, ldb, &beta, C.data(), ldc));
+            transA, alpha, A, descr, order, B.data(), B_n, ldb, beta, C.data(), ldc));
         cpu_time_used = aoclsparse_clock_min_diff(cpu_time_used, cpu_time_start);
     }
 
@@ -277,7 +275,6 @@ void testing_csrmm(const Arguments &arg)
               << std::setw(12) << number_hot_calls << std::setw(12)
               << (arg.unit_check ? "yes" : "no") << std::endl;
 
-    aoclsparse_destroy(csr);
+    aoclsparse_destroy(A);
 }
-
 #endif // TESTING_CSRMM_HPP

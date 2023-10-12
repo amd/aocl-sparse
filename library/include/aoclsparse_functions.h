@@ -1433,10 +1433,10 @@ aoclsparse_status aoclsparse_ztrsv_kid(aoclsparse_operation             trans,
  *  \brief Sparse matrix dense matrix multiplication using CSR storage format
  *
  *  \details
- *  \p aoclsparse_csrmm multiplies the scalar \f$\alpha\f$ with a sparse \f$m \times k\f$
- *  matrix \f$A\f$, defined in CSR storage format, and the dense \f$k \times n\f$
+ *  \p aoclsparse_(s/d/c/z)csrmm multiplies a scalar \f$\alpha\f$ with a sparse \f$m \times k\f$
+ *  matrix \f$A\f$, defined in CSR storage format, and a dense \f$k \times n\f$
  *  matrix \f$B\f$ and adds the result to the dense \f$m \times n\f$ matrix \f$C\f$ that
- *  is multiplied by the scalar \f$\beta\f$, such that
+ *  is multiplied by a scalar \f$\beta\f$, such that
  *  \f[
  *    C := \alpha \cdot op(A) \cdot B + \beta \cdot C,
  *  \f]
@@ -1468,70 +1468,95 @@ aoclsparse_status aoclsparse_ztrsv_kid(aoclsparse_operation             trans,
  *
  *
  *  @param[in]
- *  trans_A     matrix \f$A\f$ operation type.
+ *  Op          Matrix \f$A\f$ operation type.
  *  @param[in]
- *  alpha       scalar \f$\alpha\f$.
+ *  Alpha       Scalar \f$\alpha\f$.
  *  @param[in]
- *  csr         sparse CSR matrix \f$A\f$ structure.
+ *  A           Sparse CSR matrix \f$A\f$ structure.
  *  @param[in]
- *  descr       descriptor of the sparse CSR matrix \f$A\f$. Currently, only
- *              \ref aoclsparse_matrix_type_general is supported. Both, base-zero and 
+ *  Descr       Descriptor of the sparse CSR matrix \f$A\f$. Currently, only
+ *              \ref aoclsparse_matrix_type_general is supported. base-zero and
  *              base-one input arrays of CSR matrix are supported
  *  @param[in]
- *  order       aoclsparse_order_row/aoclsparse_order_column for dense matrix
+ *  Order       Aoclsparse_order_row/aoclsparse_order_column for dense matrix
  *  @param[in]
- *  B           array of dimension \f$ldb \times n\f$ or
+ *  B           Array of dimension \f$ldb \times n\f$ or
  *              \f$ldb \times k\f$ .
  *  @param[in]
- *  n           number of columns of the dense matrix \f$B\f$ and \f$C\f$.
+ *  N           Number of columns of the dense matrix \f$B\f$ and \f$C\f$.
  *  @param[in]
- *  ldb         leading dimension of \f$B\f$, must be at least \f$\max{(1, k)}\f$
+ *  Ldb         Leading dimension of \f$B\f$, must be at least \f$\max{(1, k)}\f$
  *              (\f$op(A) = A\f$) or \f$\max{(1, m)}\f$ (\f$op(A) = A^T\f$ or
  *              \f$op(A) = A^H\f$).
  *  @param[in]
- *  beta        scalar \f$\beta\f$.
+ *  Beta        Scalar \f$\beta\f$.
  *  @param[inout]
- *  C           array of dimension \f$ldc \times n\f$.
+ *  C           Array of dimension \f$ldc \times n\f$.
  *  @param[in]
- *  ldc         leading dimension of \f$C\f$, must be at least \f$\max{(1, m)}\f$
+ *  Ldc         Leading dimension of \f$C\f$, must be at least \f$\max{(1, m)}\f$
  *              (\f$op(A) = A\f$) or \f$\max{(1, k)}\f$ (\f$op(A) = A^T\f$ or
  *              \f$op(A) = A^H\f$).
  *
- *  \retval     aoclsparse_status_success the operation completed successfully.
- *  \retval     aoclsparse_status_invalid_size \p m, \p n, \p k, \p nnz, \p ldb or \p ldc
+ *  \retval     aoclsparse_status_success The operation completed successfully.
+ *  \retval     aoclsparse_status_invalid_size The value of \p m, \p n, \p k, \p nnz, \p ldb or \p ldc
  *              is invalid.
- *  \retval     aoclsparse_status_invalid_pointer \p descr, \p alpha, \p csr,
- *              \p B, \p beta or \p C pointer is invalid.
+ *  \retval     aoclsparse_status_invalid_pointer The pointer \p descr, \p A, \p B, or \p C
+ *              is invalid.
+ *  \retval     aoclsparse_status_invalid_value The value of \p descr->base, \p A->base is invalid.
  *  \retval     aoclsparse_status_not_implemented
  *              \ref aoclsparse_matrix_type is not \ref aoclsparse_matrix_type_general.
  *
 */
 /**@{*/
 DLL_PUBLIC
-aoclsparse_status aoclsparse_scsrmm(aoclsparse_operation       trans_A,
-                                    const float               *alpha,
-                                    const aoclsparse_matrix    csr,
+aoclsparse_status aoclsparse_scsrmm(aoclsparse_operation       op,
+                                    const float                alpha,
+                                    const aoclsparse_matrix    A,
                                     const aoclsparse_mat_descr descr,
                                     aoclsparse_order           order,
                                     const float               *B,
                                     aoclsparse_int             n,
                                     aoclsparse_int             ldb,
-                                    const float               *beta,
+                                    const float                beta,
                                     float                     *C,
                                     aoclsparse_int             ldc);
 
 DLL_PUBLIC
-aoclsparse_status aoclsparse_dcsrmm(aoclsparse_operation       trans_A,
-                                    const double              *alpha,
-                                    const aoclsparse_matrix    csr,
+aoclsparse_status aoclsparse_dcsrmm(aoclsparse_operation       op,
+                                    const double               alpha,
+                                    const aoclsparse_matrix    A,
                                     const aoclsparse_mat_descr descr,
                                     aoclsparse_order           order,
                                     const double              *B,
                                     aoclsparse_int             n,
                                     aoclsparse_int             ldb,
-                                    const double              *beta,
+                                    const double               beta,
                                     double                    *C,
                                     aoclsparse_int             ldc);
+DLL_PUBLIC
+aoclsparse_status aoclsparse_ccsrmm(aoclsparse_operation            op,
+                                    const aoclsparse_float_complex  alpha,
+                                    const aoclsparse_matrix         A,
+                                    const aoclsparse_mat_descr      descr,
+                                    aoclsparse_order                order,
+                                    const aoclsparse_float_complex *B,
+                                    aoclsparse_int                  n,
+                                    aoclsparse_int                  ldb,
+                                    const aoclsparse_float_complex  beta,
+                                    aoclsparse_float_complex       *C,
+                                    aoclsparse_int                  ldc);
+DLL_PUBLIC
+aoclsparse_status aoclsparse_zcsrmm(aoclsparse_operation             op,
+                                    const aoclsparse_double_complex  alpha,
+                                    const aoclsparse_matrix          A,
+                                    const aoclsparse_mat_descr       descr,
+                                    aoclsparse_order                 order,
+                                    const aoclsparse_double_complex *B,
+                                    aoclsparse_int                   n,
+                                    aoclsparse_int                   ldb,
+                                    const aoclsparse_double_complex  beta,
+                                    aoclsparse_double_complex       *C,
+                                    aoclsparse_int                   ldc);
 /**@}*/
 
 /*! \ingroup level3_module
