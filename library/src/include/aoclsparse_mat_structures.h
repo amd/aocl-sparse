@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022-2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -205,6 +205,9 @@ struct _aoclsparse_matrix
     // csc matrix
     bool                   csc_mat_is_users = false;
     struct _aoclsparse_csc csc_mat;
+
+    // used to indicate if any additional memory required further performance optimization purposes
+    aoclsparse_memory_usage mem_policy = aoclsparse_memory_usage_unrestricted;
 };
 
 #endif // AOCLSPARSE_MAT_STRUCTS_H

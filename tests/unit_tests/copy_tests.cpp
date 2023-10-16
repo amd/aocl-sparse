@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -116,6 +116,7 @@ namespace
                       &src, aoclsparse_index_base_one, m, n, nnz, row_ptr1, col_idx1, val),
                   aoclsparse_status_success);
         aoclsparse_create_mat_descr(&descr);
+        aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_one);
         ASSERT_EQ(aoclsparse_set_sv_hint(src, aoclsparse_operation_none, descr, 1),
                   aoclsparse_status_success);
 
@@ -127,9 +128,9 @@ namespace
 
         // 0-base matrix, m=0, n=3, nnz = 0
         aoclsparse_int col_idx2[] = {0, 0};
-        aoclsparse_int row_ptr2[] = {1};
+        aoclsparse_int row_ptr2[] = {0};
         ASSERT_EQ(aoclsparse_create_scsr(
-                      &src, aoclsparse_index_base_one, 0, n, 0, row_ptr2, col_idx2, val),
+                      &src, aoclsparse_index_base_zero, 0, n, 0, row_ptr2, col_idx2, val),
                   aoclsparse_status_success);
         aoclsparse_create_mat_descr(&descr);
         ASSERT_EQ(aoclsparse_set_sv_hint(src, aoclsparse_operation_none, descr, 1),
@@ -175,6 +176,7 @@ namespace
                       &src, aoclsparse_index_base_one, m, n, nnz, col_ptr1, row_idx1, val),
                   aoclsparse_status_success);
         aoclsparse_create_mat_descr(&descr);
+        aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_one);
         ASSERT_EQ(aoclsparse_set_sv_hint(src, aoclsparse_operation_none, descr, 1),
                   aoclsparse_status_success);
 
@@ -186,9 +188,9 @@ namespace
 
         // 0-based matrix, m=2, n=0, nnz=0
         aoclsparse_int row_idx2[] = {0, 0};
-        aoclsparse_int col_ptr2[] = {1};
+        aoclsparse_int col_ptr2[] = {0};
         ASSERT_EQ(aoclsparse_create_dcsc(
-                      &src, aoclsparse_index_base_one, m, 0, 0, col_ptr2, row_idx2, val),
+                      &src, aoclsparse_index_base_zero, m, 0, 0, col_ptr2, row_idx2, val),
                   aoclsparse_status_success);
         aoclsparse_create_mat_descr(&descr);
         ASSERT_EQ(aoclsparse_set_sv_hint(src, aoclsparse_operation_none, descr, 1),
@@ -234,6 +236,7 @@ namespace
                       &src, aoclsparse_index_base_one, m, n, nnz, row_idx1, col_idx1, val),
                   aoclsparse_status_success);
         aoclsparse_create_mat_descr(&descr);
+        aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_one);
         ASSERT_EQ(aoclsparse_set_sv_hint(src, aoclsparse_operation_none, descr, 1),
                   aoclsparse_status_success);
 
@@ -247,7 +250,7 @@ namespace
         aoclsparse_int row_idx2[] = {0, 0};
         aoclsparse_int col_idx2[] = {0, 0};
         ASSERT_EQ(aoclsparse_create_ccoo(
-                      &src, aoclsparse_index_base_one, m, n, 0, row_idx2, col_idx2, val),
+                      &src, aoclsparse_index_base_zero, m, n, 0, row_idx2, col_idx2, val),
                   aoclsparse_status_success);
         aoclsparse_create_mat_descr(&descr);
         ASSERT_EQ(aoclsparse_set_sv_hint(src, aoclsparse_operation_none, descr, 1),

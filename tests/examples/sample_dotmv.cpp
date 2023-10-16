@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023-2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -69,7 +69,7 @@ int main(void)
     double d_exp    = 36;
 
     //to identify hint id(which routine is to be executed, destroyed later)
-    //aoclsparse_set_dotmv_hint(A, op, descr, 1);
+    aoclsparse_set_dotmv_hint(A, op, descr, 1);
 
     // Optimize the matrix, "A"
     aoclsparse_optimize(A);

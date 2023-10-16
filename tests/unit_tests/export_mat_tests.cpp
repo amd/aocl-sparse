@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -265,10 +265,12 @@ namespace
             aoclsparse_int        exp_col_idx1[] = {0, 3, 1, 2, 1, 3, 4, 4};
             float                 exp_valf1[]    = {1.0f, 2.0f, 3.0f, 0.0f, 5.0f, 6.0f, 7.0f, 8.0f};
             aoclsparse_create_mat_descr(&descr);
+            aoclsparse_set_mat_index_base(descr, in_base);
             ASSERT_EQ(
                 aoclsparse_create_csr(&A, in_base, m, n, nnz, csr_row_ptr1, csr_col_idx1, valf1),
                 aoclsparse_status_success);
-            aoclsparse_set_mv_hint(A, aoclsparse_operation_none, descr, 1);
+            ASSERT_EQ(aoclsparse_set_mv_hint(A, aoclsparse_operation_none, descr, 1),
+                      aoclsparse_status_success);
             aoclsparse_optimize(A);
             EXPECT_EQ(
                 aoclsparse_export_csr(
@@ -299,6 +301,7 @@ namespace
         aoclsparse_int csr_col_idx2[] = {0, 3, 1, 3, 4, 1, 4};
         float          valf2[]        = {1.0f, 2.0f, 3.0f, 6.0f, 7.0f, 5.0f, 8.0f};
         aoclsparse_create_mat_descr(&descr);
+        aoclsparse_set_mat_index_base(descr, in_base);
         ASSERT_EQ(aoclsparse_create_csr(&A, in_base, m, n, nnz, csr_row_ptr2, csr_col_idx2, valf2),
                   aoclsparse_status_success);
         aoclsparse_set_mv_hint(A, aoclsparse_operation_none, descr, 1);

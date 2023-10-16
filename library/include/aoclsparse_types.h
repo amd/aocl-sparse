@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020-2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -295,6 +295,32 @@ typedef enum aoclsparse_request_
     = 1, /**< Finalize computation. Has to be called only after csr2m call with aoclsparse\_stage\_nnz\_count parameter. */
     aoclsparse_stage_full_computation = 2, /**< Perform the entire computation in a single step. */
 } aoclsparse_request;
+
+/*! \ingroup types_module
+ *  \brief List of successive over-relaxation operation.
+ *
+ *  \details
+ *  This is a list of supported \ref aoclsparse_sor types that are used by aoclsparse_?sorv function.
+ */
+typedef enum aoclsparse_sor_type_
+{
+    aoclsparse_sor_forward   = 0, /**< Forward sweep. */
+    aoclsparse_sor_backward  = 1, /**< Backward sweep. */
+    aoclsparse_sor_symmetric = 2 /**< Symmetric preconditioner. */
+} aoclsparse_sor_type;
+
+/*! \ingroup types_module
+ *  \brief List of memory utilization policy.
+ *
+ *  \details
+ *  This is a list of supported \ref aoclsparse_memory_usage types that are used by optimization routine.
+ */
+typedef enum aoclsparse_memory_usage_
+{
+    aoclsparse_memory_usage_minimal = 0, /**< Allocate memory only for auxiliary structures.*/
+    aoclsparse_memory_usage_unrestricted
+    = 1 /**< Allocate memory upto matrix size for appropriate sparse format conversion. Default value. */
+} aoclsparse_memory_usage;
 
 #ifdef __cplusplus
 }

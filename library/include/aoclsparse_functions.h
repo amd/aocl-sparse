@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -1467,9 +1467,6 @@ aoclsparse_status aoclsparse_ztrsv_kid(aoclsparse_operation             trans,
  *    \end{array}
  *    \right.
  * \f]
- *
- *  \note
- *  Currently, Hermitian matrix is not supported.
  *
  *  @param[in]
  *  op          matrix operation type.
