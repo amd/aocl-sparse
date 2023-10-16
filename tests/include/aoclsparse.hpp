@@ -423,6 +423,10 @@ aoclsparse_status aoclsparse_create_coo(aoclsparse_matrix    *mat,
                                         T                    *val);
 
 template <typename T>
+aoclsparse_status
+    aoclsparse_set_value(aoclsparse_matrix mat, aoclsparse_int row, aoclsparse_int col, T val);
+
+template <typename T>
 aoclsparse_status aoclsparse_export_csr(const aoclsparse_matrix mat,
                                         aoclsparse_index_base  *base,
                                         aoclsparse_int         *m,

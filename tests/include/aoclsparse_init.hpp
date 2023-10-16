@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -686,6 +686,93 @@ inline void aoclsparse_init_coo_matrix(std::vector<aoclsparse_int> &coo_row_ind,
     {
         aoclsparse_init_coo_mtx(
             filename, coo_row_ind, coo_col_ind, coo_val, M, N, nnz, base, issymm, general);
+    }
+}
+
+/* ==================================================================================== */
+/*! \brief Create a random aoclsparse_matrix in the given format (csr, csc, coo) and return
+ *  the underlying vectors as 4 arrays - row and column indices and values and compressed
+ *  pointer array (for CSR or CSC, otherwise empty). Invalid values (e.g., M, N, NNZ<0) will
+ *  get corrected to 0. */
+template <typename T>
+aoclsparse_status aoclsparse_init_matrix_random(aoclsparse_index_base         base,
+                                                aoclsparse_int               &M,
+                                                aoclsparse_int               &N,
+                                                aoclsparse_int               &NNZ,
+                                                aoclsparse_matrix_format_type format_type,
+                                                std::vector<aoclsparse_int>  &coo_row,
+                                                std::vector<aoclsparse_int>  &coo_col,
+                                                std::vector<T>               &coo_val,
+                                                std::vector<aoclsparse_int>  &ptr,
+                                                aoclsparse_matrix            &mat)
+{
+    mat = nullptr;
+
+    // fix weird values
+    if(M <= 0)
+    {
+        M   = 0;
+        NNZ = 0;
+    }
+    if(N <= 0)
+    {
+        N   = 0;
+        NNZ = 0;
+    }
+    if(NNZ < 0)
+        NNZ = 0;
+    if(NNZ > M * N)
+        NNZ = M * N;
+
+    if(NNZ > 0)
+        aoclsparse_init_coo_random(coo_row, coo_col, coo_val, M, N, NNZ, base);
+    else
+    {
+        // to have not NULL pointers when we pass them to aoclsparse_create_*()
+        coo_row.reserve(1);
+        coo_col.reserve(1);
+        coo_val.reserve(1);
+    }
+
+    switch(format_type)
+    {
+    case aoclsparse_coo_mat:
+        // note, coo indices sorted already by the generator in CSR order
+        ptr.clear();
+        return aoclsparse_create_coo(
+            &mat, base, M, N, NNZ, coo_row.data(), coo_col.data(), coo_val.data());
+
+    case aoclsparse_csr_mat:
+        coo_to_csr(M, NNZ, coo_row, ptr, base);
+        return aoclsparse_create_csr(
+            &mat, base, M, N, NNZ, ptr.data(), coo_col.data(), coo_val.data());
+
+    case aoclsparse_csc_mat:
+    {
+        // find permutation to match CSC order
+        std::vector<aoclsparse_int> perm(NNZ);
+        std::iota(perm.begin(), perm.end(), 0);
+        std::sort(perm.begin(), perm.end(), [coo_col, coo_row](auto a, auto b) {
+            if(coo_col[a] == coo_col[b])
+                return coo_row[a] < coo_row[b];
+            return coo_col[a] < coo_col[b];
+        });
+        std::vector<aoclsparse_int> tmp_row = coo_row;
+        std::vector<T>              tmp_val = coo_val;
+        for(aoclsparse_int i = 0; i < NNZ; i++)
+        {
+            coo_row[i] = tmp_row[perm[i]];
+            coo_val[i] = tmp_val[perm[i]];
+        }
+        // sorting coo_col has the same effect as shuffling with perm[]
+        std::sort(coo_col.begin(), coo_col.end());
+
+        coo_to_csr(N, NNZ, coo_col, ptr, base);
+        return aoclsparse_create_csc(
+            &mat, base, M, N, NNZ, ptr.data(), coo_row.data(), coo_val.data());
+    }
+    default:
+        return aoclsparse_status_not_implemented;
     }
 }
 #endif // AOCLSPARSE_INIT_HPP

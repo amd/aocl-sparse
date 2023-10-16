@@ -237,15 +237,62 @@ aoclsparse_status aoclsparse_set_mat_diag_type(aoclsparse_mat_descr descr,
 DLL_PUBLIC
 aoclsparse_diag_type aoclsparse_get_mat_diag_type(const aoclsparse_mat_descr descr);
 
+/*! \brief Set a new value to an existing nonzero in the matrix.
+ *
+ *  \details
+ *  \P{aoclsparse_?set_value} modifies the value of an existing nonzero element specified by its coordinates.
+ *  The row and column coordinates need to match the base (0 or 1-base) of the matrix.
+ *  The change directly affects user's arrays if the matrix was created using aoclsparse_create_scsr(),
+ *  aoclsparse_create_scsc(), aoclsparse_create_scoo() or other variants.
+ *
+ *  \note   The successful modification invalidates existing optimized data so it is desirable to call
+ *          aoclsparse_optimize() once all modifications are performed.
+ *
+ *  \param[inout] A             The sparse matrix to be modified.
+ *  \param[in]     row_idx      The row index of the element to be updated.
+ *  \param[in]     col_idx      The column index of the element to be updated.
+ *  \param[in]     val          The value to be updated.
+ *
+ *  \retval aoclsparse_status_success               The operation completed successfully.
+ *  \retval aoclsparse_status_invalid_pointer       The matrix handler \p A is invalid
+ *  \retval aoclsparse_status_invalid_value         The cooridante \p row_idx or \p col_idx is out of matrix bound
+ *  \retval aoclsparse_status_wrong_type            Matrix has different data type then the one used in API
+ *  \retval aoclsparse_status_not_implemented       Matrix format is not supported for this operation
+ *  \retval aoclsparse_status_invalid_index_value   The specified element does not exist in the matrix
+ */
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_zset_value(aoclsparse_matrix         A,
+                                        aoclsparse_int            row_idx,
+                                        aoclsparse_int            col_idx,
+                                        aoclsparse_double_complex val);
+DLL_PUBLIC
+aoclsparse_status aoclsparse_cset_value(aoclsparse_matrix        A,
+                                        aoclsparse_int           row_idx,
+                                        aoclsparse_int           col_idx,
+                                        aoclsparse_float_complex val);
+DLL_PUBLIC
+aoclsparse_status aoclsparse_dset_value(aoclsparse_matrix A,
+                                        aoclsparse_int    row_idx,
+                                        aoclsparse_int    col_idx,
+                                        double            val);
+DLL_PUBLIC
+aoclsparse_status aoclsparse_sset_value(aoclsparse_matrix A,
+                                        aoclsparse_int    row_idx,
+                                        aoclsparse_int    col_idx,
+                                        float             val);
+/**@}*/
+
 /*! \ingroup aux_module
  *  \brief Creates a new \ref aoclsparse_matrix based on CSR (Compressed Sparse Row) format.
  *
  *  \details
  *  \P{aoclsparse_create_?csr} creates \ref aoclsparse_matrix and initializes it with
- *  input parameters passed. The input arrays are left unchanged except for the call to
- *  \ref aoclsparse_order_mat, which performs ordering of column indices of the matrix. To avoid any
+ *  input parameters passed. The input arrays are left unchanged by the library except for the call to
+ *  aoclsparse_order_mat(), which performs ordering of column indices of the matrix,
+ *  or aoclsparse_sset_value() and variants, which modify the value of a nonzero element. To avoid any
  *  changes to the input data, aoclsparse_copy() can be used. To convert any other format to CSR,
- *  aoclsparse_convert() can be used. Matrix should be destroyed at the end using aoclsparse_destroy().
+ *  aoclsparse_convert_csr() can be used. Matrix should be destroyed at the end using aoclsparse_destroy().
  *
  *  @param[out]
  *  mat the pointer to the CSR sparse matrix allocated in the API.
@@ -321,7 +368,10 @@ aoclsparse_status aoclsparse_create_zcsr(aoclsparse_matrix         *mat,
  *  \details
  *  \P{aoclsparse_create_?coo} creates \ref aoclsparse_matrix and initializes it with
  *  input parameters passed. Array data must not be modified by the user while matrix is alive as
- *  the pointers are copied, not the data. Matrix should be destroyed at the end using aoclsparse_destroy().
+ *  the pointers are copied, not the data. The input arrays are left unchanged
+ *  by the library except for the call to aoclsparse_sset_value() and variants,
+ *  which modify the value of a nonzero element. Matrix should be destroyed at
+ *  the end using aoclsparse_destroy().
  *
  *  @param[inout] mat       the pointer to the COO sparse matrix.
  *  @param[in]    base      \ref aoclsparse_index_base_zero or \ref aoclsparse_index_base_one
@@ -479,8 +529,9 @@ aoclsparse_int aoclsparse_get_vec_extn_context(void);
  *
  *  \details
  *  \P{aoclsparse_create_?csc} creates \ref aoclsparse_matrix and initializes it with
- *  input parameters passed. The input arrays are left unchanged except for the call to
- *  \ref aoclsparse_order_mat, which performs ordering of row indices of the matrix. To avoid any
+ *  input parameters passed. The input arrays are left unchanged by the library except for the call to
+ *  aoclsparse_order_mat(), which performs ordering of row indices of the matrix,
+ *  or aoclsparse_sset_value() and variants, which modify the value of a nonzero element. To avoid any
  *  changes to the input data, aoclsparse_copy() can be used. Matrix should be destroyed at the end
  *  using aoclsparse_destroy().
  *
@@ -588,7 +639,7 @@ aoclsparse_status aoclsparse_copy(const aoclsparse_matrix    src,
  *  \P{aoclsparse_order} orders column indices within a row for matrix in CSR format and row indices
  *  within a column for CSC format. It also adjusts value array accordingly. Ordering is implemented
  *  only for CSR and CSC format. aoclsparse_copy() can be used to get exact copy of data
- *  aoclsparse_convert() can be used to convert any format to CSR. Matrix should be destroyed
+ *  aoclsparse_convert_csr() can be used to convert any format to CSR. Matrix should be destroyed
  *  at the end using aoclsparse_destroy().
  *
  *  @param[inout]
