@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023-2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -111,7 +111,7 @@ int main(void)
     order  = aoclsparse_order_column;
     ldb    = m;
     ldx    = m;
-    status = aoclsparse_set_sm_hint(A, trans, descr_a, order, k, 1);
+    status = aoclsparse_set_sm_hint(A, trans, descr_a, order, 1);
     if(status != aoclsparse_status_success)
     {
         std::cerr << "Error returned from aoclsparse_set_sm_hint, status = " << status << "."
@@ -179,7 +179,7 @@ int main(void)
     trans = aoclsparse_operation_conjugate_transpose;
     order = aoclsparse_order_row;
     aoclsparse_set_mat_fill_mode(descr_a, aoclsparse_fill_mode_upper);
-    status = aoclsparse_set_sm_hint(A, trans, descr_a, order, k, 1);
+    status = aoclsparse_set_sm_hint(A, trans, descr_a, order, 1);
     if(status != aoclsparse_status_success)
     {
         std::cerr << "Error returned from aoclsparse_set_sm_hint, status = " << status << "."

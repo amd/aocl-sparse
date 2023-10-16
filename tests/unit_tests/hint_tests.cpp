@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -41,30 +41,29 @@ namespace
         bool                        opt_csr_is_users;
     } sol_opt_csr;
 
-    void hint_optimize(aoclsparse_int        mv_hints,
-                       aoclsparse_int        trsv_hints,
-                       aoclsparse_int        lu_hints,
-                       aoclsparse_mat_descr &descr,
-                       aoclsparse_operation  trans,
-                       aoclsparse_matrix    &A)
+    void
+        hint_optimize(aoclsparse_mat_descr &descr, aoclsparse_operation trans, aoclsparse_matrix &A)
     {
-        if(mv_hints > 0)
-        {
-            ASSERT_EQ(aoclsparse_set_mv_hint(A, trans, descr, mv_hints), aoclsparse_status_success);
-        }
-        if(trsv_hints > 0)
-        {
-            // Only works with symmetric matrices
-            aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_symmetric);
-            ASSERT_EQ(aoclsparse_set_sv_hint(A, trans, descr, trsv_hints),
-                      aoclsparse_status_success);
-        }
-        if(lu_hints > 0)
-        {
-            // Currently there is nothing to test for LU hints
-            ASSERT_EQ(aoclsparse_set_lu_smoother_hint(A, trans, descr, lu_hints),
-                      aoclsparse_status_success);
-        }
+        ASSERT_EQ(aoclsparse_set_mv_hint(A, trans, descr, 10), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_dotmv_hint(A, trans, descr, 15), aoclsparse_status_success);
+
+        // Only works with symmetric matrices
+        aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_symmetric);
+        ASSERT_EQ(aoclsparse_set_sv_hint(A, trans, descr, 20), aoclsparse_status_success);
+
+        // Currently there is nothing to test for LU hints
+        ASSERT_EQ(aoclsparse_set_lu_smoother_hint(A, trans, descr, 25), aoclsparse_status_success);
+
+        ASSERT_EQ(aoclsparse_set_mm_hint(A, trans, descr, 5), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_2m_hint(A, trans, descr, 10), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_lu_smoother_hint(A, trans, descr, 15), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_sm_hint(A, trans, descr, aoclsparse_order_row, 20),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_symgs_hint(A, trans, descr, 25), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_sorv_hint(A, descr, aoclsparse_sor_backward, 5),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_memory_hint(A, aoclsparse_memory_usage_unrestricted),
+                  aoclsparse_status_success);
 
         ASSERT_EQ(aoclsparse_optimize(A), aoclsparse_status_success);
 
@@ -223,7 +222,7 @@ namespace
         ASSERT_EQ(create_matrix(mid, m, n, nnz, icrow, icol, aval, A, descr, 1),
                   aoclsparse_status_success);
         expected_sorted_csr(sol, mid);
-        hint_optimize(100, 100, 100, descr, trans, A);
+        hint_optimize(descr, trans, A);
         check_opt_csr(A, sol);
         ASSERT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
@@ -247,7 +246,6 @@ namespace
         aoclsparse_matrix    A_null = NULL;
         aoclsparse_operation trans  = aoclsparse_operation_none;
         aoclsparse_order     order  = aoclsparse_order_row;
-        aoclsparse_int       matdim = 42;
         aoclsparse_mat_descr descr;
         ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_symmetric),
@@ -263,11 +261,88 @@ namespace
                   aoclsparse_status_invalid_pointer);
         EXPECT_EQ(aoclsparse_set_lu_smoother_hint(A_null, trans, descr, 1),
                   aoclsparse_status_invalid_pointer);
-        EXPECT_EQ(aoclsparse_set_sm_hint(A_null, trans, descr, order, matdim, 1),
+        EXPECT_EQ(aoclsparse_set_sm_hint(A_null, trans, descr, order, 1),
                   aoclsparse_status_invalid_pointer);
+
+        EXPECT_EQ(aoclsparse_set_dotmv_hint(A_null, trans, descr, 1),
+                  aoclsparse_status_invalid_pointer);
+        EXPECT_EQ(aoclsparse_set_symgs_hint(A_null, trans, descr, 1),
+                  aoclsparse_status_invalid_pointer);
+        EXPECT_EQ(aoclsparse_set_sorv_hint(A_null, descr, aoclsparse_sor_symmetric, 1),
+                  aoclsparse_status_invalid_pointer);
+        EXPECT_EQ(aoclsparse_set_memory_hint(A_null, aoclsparse_memory_usage_minimal),
+                  aoclsparse_status_invalid_pointer);
+
         EXPECT_EQ(aoclsparse_optimize(A_null), aoclsparse_status_invalid_pointer);
 
         EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
     }
 
+    TEST(Hint, InvalidValues)
+    {
+        aoclsparse_matrix    A;
+        float                val[]     = {2.0f, 8.0f, 10.0f};
+        aoclsparse_int       col_idx[] = {0, 0, 1};
+        aoclsparse_int       row_ptr[] = {0, 1, 3};
+        aoclsparse_operation trans     = aoclsparse_operation_none;
+        aoclsparse_mat_descr descr;
+
+        ASSERT_EQ(
+            aoclsparse_create_scsr(&A, aoclsparse_index_base_zero, 2, 2, 3, row_ptr, col_idx, val),
+            aoclsparse_status_success);
+
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_symmetric),
+                  aoclsparse_status_success);
+
+        // invalid order (10, neither row, nor column)
+        EXPECT_EQ(aoclsparse_set_sm_hint(A, trans, descr, (aoclsparse_order)10, 1),
+                  aoclsparse_status_invalid_value);
+
+        // invalid sor_type
+        EXPECT_EQ(aoclsparse_set_sorv_hint(A, descr, (aoclsparse_sor_type)-1, 1),
+                  aoclsparse_status_invalid_value);
+        // negaive number of calls
+        EXPECT_EQ(aoclsparse_set_sorv_hint(A, descr, aoclsparse_sor_forward, -4),
+                  aoclsparse_status_invalid_value);
+        EXPECT_EQ(aoclsparse_set_sorv_hint(A, descr, aoclsparse_sor_forward, 0),
+                  aoclsparse_status_invalid_value);
+
+        // invalid memory_usage
+        EXPECT_EQ(aoclsparse_set_memory_hint(A, (aoclsparse_memory_usage)3),
+                  aoclsparse_status_invalid_value);
+
+        // invalid operation
+        EXPECT_EQ(aoclsparse_set_mv_hint(A, (aoclsparse_operation)116, descr, 1),
+                  aoclsparse_status_invalid_value);
+        // invalid descr->base
+        descr->base = (aoclsparse_index_base)5;
+        EXPECT_EQ(aoclsparse_set_mm_hint(A, trans, descr, 1), aoclsparse_status_invalid_value);
+
+        // descr->base and mat->base don't match
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_one),
+                  aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_set_sv_hint(A, trans, descr, 1), aoclsparse_status_invalid_value);
+
+        // invalid descr->fill_mode
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_zero),
+                  aoclsparse_status_success);
+        descr->fill_mode = (aoclsparse_fill_mode)10;
+        EXPECT_EQ(aoclsparse_set_2m_hint(A, trans, descr, 1), aoclsparse_status_invalid_value);
+
+        // invalid descr->diag_type
+        descr->fill_mode = aoclsparse_fill_mode_lower;
+        descr->diag_type = (aoclsparse_diag_type)30;
+        EXPECT_EQ(aoclsparse_set_lu_smoother_hint(A, trans, descr, 1),
+                  aoclsparse_status_invalid_value);
+
+        // invalid matrix type
+        descr->diag_type = aoclsparse_diag_type_non_unit;
+        descr->type      = (aoclsparse_matrix_type)10;
+        EXPECT_EQ(aoclsparse_set_lu_smoother_hint(A, trans, descr, 1),
+                  aoclsparse_status_invalid_value);
+
+        ASSERT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+    }
 } // namespace

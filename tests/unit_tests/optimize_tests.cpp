@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -83,12 +83,12 @@ namespace
         EXPECT_EQ(aoclsparse_optimize(A), aoclsparse_status_invalid_size);
 
         // Invalid row_ptr values
+        A->nnz = 3;
         aoclsparse_mat_descr descr;
         aoclsparse_create_mat_descr(&descr);
         ASSERT_EQ(aoclsparse_set_sv_hint(A, aoclsparse_operation_none, descr, 1),
                   aoclsparse_status_success);
 
-        A->nnz = 3;
         // a) row_ptr[0] is invalid
         aoclsparse_int row_ptr0[] = {1, 1, 3};
         A->csr_mat.csr_row_ptr    = row_ptr0;

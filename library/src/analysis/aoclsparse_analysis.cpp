@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -469,8 +469,9 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
         optimized              = optimized && optd->action_optimized;
         optd->action_optimized = true;
         // Increment the actions counter that are implemented
-        if(optd->act == aoclsparse_action_mv && optd->trans == aoclsparse_operation_none
-           && A->val_type == aoclsparse_dmat && optd->nop > 0)
+        if((optd->act == aoclsparse_action_mv || optd->act == aoclsparse_action_dotmv)
+           && optd->trans == aoclsparse_operation_none && A->val_type == aoclsparse_dmat
+           && optd->nop > 0)
             mv_count++;
         else if(optd->act == aoclsparse_action_ilu0 && optd->nop > 0)
             ilu_count++;
@@ -519,310 +520,175 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
     }
     return ret;
 }
-aoclsparse_status aoclsparse_set_mv_hint(aoclsparse_matrix          A,
-                                         aoclsparse_operation       trans,
-                                         const aoclsparse_mat_descr descr,
-                                         aoclsparse_int             expected_no_of_calls)
-{
-    if(!A)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    //check descriptor
-    if(descr == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    // Check index base
-    if((A->base != aoclsparse_index_base_zero) && (A->base != aoclsparse_index_base_one))
-    {
-        return aoclsparse_status_invalid_value;
-    }
-    // Check sizes
-    if(A->m < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    else if(A->n < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    // Sanity check
-    if((A->m == 0 || A->n == 0))
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    if(A->nnz < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    // Check CSR matrix is populated, it not return an error. ToDo: need to handle CSC / COO cases later
-    if((A->csr_mat.csr_row_ptr == nullptr) || (A->csr_mat.csr_col_ptr == nullptr)
-       || (A->csr_mat.csr_val == nullptr))
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    // Add the hint at the start of the linked list
-    aoclsparse_add_hint(A->optim_data, aoclsparse_action_mv, descr, trans, expected_no_of_calls);
-    return aoclsparse_status_success;
-}
-aoclsparse_status aoclsparse_set_sv_hint(aoclsparse_matrix          A,
-                                         aoclsparse_operation       trans,
-                                         const aoclsparse_mat_descr descr,
-                                         aoclsparse_int             expected_no_of_calls)
-{
-    // Check inputs
-    if(!A || !descr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    if(expected_no_of_calls < 0)
-    {
-        return aoclsparse_status_invalid_value;
-    }
-    // Add the hint to the linked list
-    aoclsparse_add_hint(A->optim_data, aoclsparse_action_sv, descr, trans, expected_no_of_calls);
-    return aoclsparse_status_success;
-}
-aoclsparse_status aoclsparse_set_mm_hint(aoclsparse_matrix          A,
-                                         aoclsparse_operation       trans,
-                                         const aoclsparse_mat_descr descr,
-                                         aoclsparse_int             expected_no_of_calls)
-{
-    if(!A)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    //check descriptor
-    if(descr == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    // Check index base
-    if(descr->base != aoclsparse_index_base_zero)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-    if(descr->type != aoclsparse_matrix_type_symmetric)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-    if(trans != aoclsparse_operation_none)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-    // Check sizes
-    if(A->m < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    else if(A->n < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    // Sanity check
-    if((A->m == 0 || A->n == 0))
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    if(A->nnz < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    // Check CSR matrix is populated, it not return an error. ToDo: need to handle CSC / COO cases later
-    if((A->csr_mat.csr_row_ptr == nullptr) || (A->csr_mat.csr_col_ptr == nullptr)
-       || (A->csr_mat.csr_val == nullptr))
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    // Add the hint at the start of the linked list
-    aoclsparse_add_hint(A->optim_data, aoclsparse_action_mm, descr, trans, expected_no_of_calls);
-    return aoclsparse_status_success;
-}
-aoclsparse_status aoclsparse_set_2m_hint(aoclsparse_matrix          A,
-                                         aoclsparse_operation       trans,
-                                         const aoclsparse_mat_descr descr,
-                                         aoclsparse_int             expected_no_of_calls)
-{
-    if(!A)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    //check descriptor
-    if(descr == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    // Check index base
-    if(descr->base != aoclsparse_index_base_zero)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-    if(descr->type != aoclsparse_matrix_type_symmetric)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-    if(trans != aoclsparse_operation_none)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-    // Check sizes
-    if(A->m < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    else if(A->n < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    // Sanity check
-    if((A->m == 0 || A->n == 0))
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    if(A->nnz < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    // Check CSR matrix is populated, it not return an error. ToDo: need to handle CSC / COO cases later
-    if((A->csr_mat.csr_row_ptr == nullptr) || (A->csr_mat.csr_col_ptr == nullptr)
-       || (A->csr_mat.csr_val == nullptr))
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    // Add the hint at the start of the linked list
-    aoclsparse_add_hint(A->optim_data, aoclsparse_action_2m, descr, trans, expected_no_of_calls);
-    return aoclsparse_status_success;
-}
-aoclsparse_status aoclsparse_set_lu_smoother_hint(aoclsparse_matrix          A,
-                                                  aoclsparse_operation       trans,
-                                                  const aoclsparse_mat_descr descr,
-                                                  aoclsparse_int             expected_no_of_calls)
-{
-    if(!A)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    //check descriptor
-    if(descr == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    // Check index base
-    if(descr->base != aoclsparse_index_base_zero)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-    if(descr->type != aoclsparse_matrix_type_symmetric)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-    if(trans != aoclsparse_operation_none)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-    // Check sizes
-    if(A->m < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    else if(A->n < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    // Sanity check
-    if((A->m == 0 || A->n == 0))
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    if(A->nnz < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    // Check CSR matrix is populated, it not return an error. ToDo: need to handle CSC / COO cases later
-    if((A->csr_mat.csr_row_ptr == nullptr) || (A->csr_mat.csr_col_ptr == nullptr)
-       || (A->csr_mat.csr_val == nullptr))
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    // Add the hint at the start of the linked list
-    aoclsparse_add_hint(A->optim_data, aoclsparse_action_ilu0, descr, trans, expected_no_of_calls);
-    return aoclsparse_status_success;
-}
-aoclsparse_status aoclsparse_set_sm_hint(aoclsparse_matrix                       A,
-                                         aoclsparse_operation                    trans,
-                                         const aoclsparse_mat_descr              descr,
-                                         [[maybe_unused]] const aoclsparse_order order,
-                                         const aoclsparse_int                    dense_matrix_dim,
-                                         aoclsparse_int expected_no_of_calls)
-{
-    // Check inputs
-    if(!A || !descr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    if(expected_no_of_calls < 0)
-    {
-        return aoclsparse_status_invalid_value;
-    }
 
-    // Check sizes
-    if(A->m < 0)
+aoclsparse_status aoclsparse_set_hint(aoclsparse_matrix          mat,
+                                      aoclsparse_hinted_action   act,
+                                      aoclsparse_operation       trans,
+                                      const aoclsparse_mat_descr descr,
+                                      aoclsparse_int             expected_no_of_calls)
+{
+    // Check matrix and descriptor
+    if((mat == nullptr) || (descr == nullptr))
     {
-        return aoclsparse_status_invalid_size;
-    }
-    else if(A->n < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-
-    if(A->m != A->n) // Matrix not square
-    {
-        return aoclsparse_status_invalid_value;
-    }
-    // Invalid column length of dense matrix
-    if(dense_matrix_dim < 0)
-    {
-        return aoclsparse_status_invalid_value;
+        return aoclsparse_status_invalid_pointer;
     }
     // Check index base
-    if(descr->base != aoclsparse_index_base_zero && descr->base != aoclsparse_index_base_one)
+    if((descr->base != aoclsparse_index_base_zero) && (descr->base != aoclsparse_index_base_one))
     {
         return aoclsparse_status_invalid_value;
     }
     // Check for base index incompatibility
     // There is an issue that zero-based indexing is defined in two separate places and
     // can lead to ambiguity, we check that both are consistent.
-    if(A->base != descr->base)
+    if(mat->base != descr->base)
+    {
+        return aoclsparse_status_invalid_value;
+    }
+    if((trans != aoclsparse_operation_none) && (trans != aoclsparse_operation_transpose)
+       && (trans != aoclsparse_operation_conjugate_transpose))
+    {
+        return aoclsparse_status_invalid_value;
+    }
+    if((descr->fill_mode != aoclsparse_fill_mode_lower)
+       && (descr->fill_mode != aoclsparse_fill_mode_upper))
+    {
+        return aoclsparse_status_invalid_value;
+    }
+    if((descr->diag_type != aoclsparse_diag_type_non_unit)
+       && (descr->diag_type != aoclsparse_diag_type_unit)
+       && (descr->diag_type != aoclsparse_diag_type_zero))
+    {
+        return aoclsparse_status_invalid_value;
+    }
+    if((descr->type != aoclsparse_matrix_type_general)
+       && (descr->type != aoclsparse_matrix_type_symmetric)
+       && (descr->type != aoclsparse_matrix_type_triangular)
+       && (descr->type != aoclsparse_matrix_type_hermitian))
+    {
+        return aoclsparse_status_invalid_value;
+    }
+    if(expected_no_of_calls <= 0)
     {
         return aoclsparse_status_invalid_value;
     }
 
-    if(descr->type != aoclsparse_matrix_type_symmetric
-       && descr->type != aoclsparse_matrix_type_triangular)
+    // Check if action is valid or not
+    if((act <= aoclsparse_action_none) && (act >= aoclsparse_action_max))
+    {
+        return aoclsparse_status_invalid_operation;
+    }
+    // Add the hint at the start of the linked list
+    return aoclsparse_add_hint(mat->optim_data, act, descr, trans, expected_no_of_calls);
+}
+aoclsparse_status aoclsparse_set_mv_hint(aoclsparse_matrix          mat,
+                                         aoclsparse_operation       trans,
+                                         const aoclsparse_mat_descr descr,
+                                         aoclsparse_int             expected_no_of_calls)
+{
+    return aoclsparse_set_hint(mat, aoclsparse_action_mv, trans, descr, expected_no_of_calls);
+}
+
+aoclsparse_status aoclsparse_set_dotmv_hint(aoclsparse_matrix          mat,
+                                            aoclsparse_operation       trans,
+                                            const aoclsparse_mat_descr descr,
+                                            aoclsparse_int             expected_no_of_calls)
+{
+    return aoclsparse_set_hint(mat, aoclsparse_action_dotmv, trans, descr, expected_no_of_calls);
+}
+aoclsparse_status aoclsparse_set_sv_hint(aoclsparse_matrix          mat,
+                                         aoclsparse_operation       trans,
+                                         const aoclsparse_mat_descr descr,
+                                         aoclsparse_int             expected_no_of_calls)
+{
+    return aoclsparse_set_hint(mat, aoclsparse_action_sv, trans, descr, expected_no_of_calls);
+}
+aoclsparse_status aoclsparse_set_mm_hint(aoclsparse_matrix          mat,
+                                         aoclsparse_operation       trans,
+                                         const aoclsparse_mat_descr descr,
+                                         aoclsparse_int             expected_no_of_calls)
+{
+    return aoclsparse_set_hint(mat, aoclsparse_action_mm, trans, descr, expected_no_of_calls);
+}
+aoclsparse_status aoclsparse_set_2m_hint(aoclsparse_matrix          mat,
+                                         aoclsparse_operation       trans,
+                                         const aoclsparse_mat_descr descr,
+                                         aoclsparse_int             expected_no_of_calls)
+{
+    return aoclsparse_set_hint(mat, aoclsparse_action_2m, trans, descr, expected_no_of_calls);
+}
+aoclsparse_status aoclsparse_set_lu_smoother_hint(aoclsparse_matrix          mat,
+                                                  aoclsparse_operation       trans,
+                                                  const aoclsparse_mat_descr descr,
+                                                  aoclsparse_int             expected_no_of_calls)
+{
+    return aoclsparse_set_hint(mat, aoclsparse_action_ilu0, trans, descr, expected_no_of_calls);
+}
+aoclsparse_status aoclsparse_set_sm_hint(aoclsparse_matrix          mat,
+                                         aoclsparse_operation       trans,
+                                         const aoclsparse_mat_descr descr,
+                                         const aoclsparse_order     order,
+                                         aoclsparse_int             expected_no_of_calls)
+{
+    aoclsparse_hinted_action act;
+    if((order != aoclsparse_order_row) && (order != aoclsparse_order_column))
     {
         return aoclsparse_status_invalid_value;
     }
-    if(descr->fill_mode != aoclsparse_fill_mode_lower
-       && descr->fill_mode != aoclsparse_fill_mode_upper)
+    if(order == aoclsparse_order_row)
     {
-        return aoclsparse_status_not_implemented;
+        act = aoclsparse_action_sm_row;
     }
-    if(trans != aoclsparse_operation_none && trans != aoclsparse_operation_transpose
-       && trans != aoclsparse_operation_conjugate_transpose)
+    else
+    {
+        act = aoclsparse_action_sm_col;
+    }
+    return aoclsparse_set_hint(mat, act, trans, descr, expected_no_of_calls);
+}
+aoclsparse_status aoclsparse_set_symgs_hint(aoclsparse_matrix          mat,
+                                            aoclsparse_operation       trans,
+                                            const aoclsparse_mat_descr descr,
+                                            aoclsparse_int             expected_no_of_calls)
+{
+    return aoclsparse_set_hint(mat, aoclsparse_action_symgs, trans, descr, expected_no_of_calls);
+}
+aoclsparse_status aoclsparse_set_sorv_hint(aoclsparse_matrix          mat,
+                                           const aoclsparse_mat_descr descr,
+                                           const aoclsparse_sor_type  type,
+                                           const aoclsparse_int       expected_no_of_calls)
+{
+    aoclsparse_hinted_action act;
+    if((type != aoclsparse_sor_forward) && (type != aoclsparse_sor_backward)
+       && (type != aoclsparse_sor_symmetric))
     {
         return aoclsparse_status_invalid_value;
     }
-    // Add the hint to the linked list
-    aoclsparse_add_hint(A->optim_data, aoclsparse_action_sm, descr, trans, expected_no_of_calls);
+    if(type == aoclsparse_sor_forward)
+    {
+        act = aoclsparse_action_sorv_forward;
+    }
+    else if(type == aoclsparse_sor_backward)
+    {
+        act = aoclsparse_action_sorv_backward;
+    }
+    else
+    {
+        act = aoclsparse_action_sorv_symm;
+    }
+    return aoclsparse_set_hint(mat, act, aoclsparse_operation_none, descr, expected_no_of_calls);
+}
+
+aoclsparse_status aoclsparse_set_memory_hint(aoclsparse_matrix             mat,
+                                             const aoclsparse_memory_usage policy)
+{
+    if(mat == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    if((policy != aoclsparse_memory_usage_minimal)
+       && (policy != aoclsparse_memory_usage_unrestricted))
+    {
+        return aoclsparse_status_invalid_value;
+    }
+    mat->mem_policy = policy;
     return aoclsparse_status_success;
 }

@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022-2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,7 +34,14 @@ enum aoclsparse_hinted_action
     aoclsparse_action_mm,
     aoclsparse_action_2m,
     aoclsparse_action_ilu0,
-    aoclsparse_action_sm,
+    aoclsparse_action_sm_row,
+    aoclsparse_action_sm_col,
+    aoclsparse_action_dotmv,
+    aoclsparse_action_symgs,
+    aoclsparse_action_sorv_forward,
+    aoclsparse_action_sorv_backward,
+    aoclsparse_action_sorv_symm,
+    aoclsparse_action_max, // add any new action before this
 };
 
 /* Linked list of all the hint information that was passed through the 

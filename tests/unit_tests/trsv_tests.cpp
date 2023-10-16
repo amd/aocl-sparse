@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -803,7 +803,9 @@ namespace
         aoclsparse_status              status, exp_status;
         aoclsparse_index_base          base = (aoclsparse_index_base)base_index;
 
-        status = create_linear_system<T>(id,
+        // number of calls need to be >0
+        iparm[0] = 2;
+        status   = create_linear_system<T>(id,
                                          title,
                                          trans,
                                          A,
