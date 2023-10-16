@@ -72,6 +72,17 @@ aoclsparse_create\_?csc()
     :outline:
 .. doxygenfunction:: aoclsparse_create_zcsc
 
+aoclsparse\_?set_value()
+-------------------------
+
+.. doxygenfunction:: aoclsparse_sset_value
+    :outline:
+.. doxygenfunction:: aoclsparse_dset_value
+    :outline:
+.. doxygenfunction:: aoclsparse_cset_value
+    :outline:
+.. doxygenfunction:: aoclsparse_zset_value
+
 aoclsparse_destroy()
 --------------------
 

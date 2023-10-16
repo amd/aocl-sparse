@@ -1398,6 +1398,38 @@ aoclsparse_status aoclsparse_create_coo(aoclsparse_matrix         *mat,
 };
 
 template <>
+aoclsparse_status
+    aoclsparse_set_value(aoclsparse_matrix mat, aoclsparse_int row, aoclsparse_int col, float val)
+{
+    return aoclsparse_sset_value(mat, row, col, val);
+};
+
+template <>
+aoclsparse_status
+    aoclsparse_set_value(aoclsparse_matrix mat, aoclsparse_int row, aoclsparse_int col, double val)
+{
+    return aoclsparse_dset_value(mat, row, col, val);
+};
+
+template <>
+aoclsparse_status aoclsparse_set_value(aoclsparse_matrix        mat,
+                                       aoclsparse_int           row,
+                                       aoclsparse_int           col,
+                                       aoclsparse_float_complex val)
+{
+    return aoclsparse_cset_value(mat, row, col, val);
+};
+
+template <>
+aoclsparse_status aoclsparse_set_value(aoclsparse_matrix         mat,
+                                       aoclsparse_int            row,
+                                       aoclsparse_int            col,
+                                       aoclsparse_double_complex val)
+{
+    return aoclsparse_zset_value(mat, row, col, val);
+};
+
+template <>
 aoclsparse_status aoclsparse_axpyi(aoclsparse_int nnz,
                                    float          a,
                                    const float *__restrict__ x,
