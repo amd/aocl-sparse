@@ -177,8 +177,8 @@ extern const size_t data_size[];
 
 namespace aoclsparse_numeric
 {
-    /* Provide a zero for all types */
-    /* Default definition handles real types */
+    /* Provide a "zero" for all floating point data types */
+    /* Default definition handles real/std types */
     template <typename T>
     struct zero
     {
@@ -206,24 +206,48 @@ namespace aoclsparse_numeric
             return value;
         }
     };
-    template <>
-    struct zero<std::complex<float>>
-    {
-        static constexpr std::complex<float> value{0, 0};
-        constexpr operator std::complex<float>() const noexcept
-        {
-            return value;
-        }
-    };
-    template <>
-    struct zero<std::complex<double>>
-    {
-        static constexpr std::complex<double> value{0, 0};
-        constexpr operator std::complex<double>() const noexcept
-        {
-            return value;
-        }
-    };
+}
+
+/* Convenience operator for comparing with zero<T>
+ * These enable the comparisons
+ * T a // for T \in { float, double, std::complex<float|double> and aoclsparse_?_complex }
+ * a == zero<T> and a != zero<T>, as well as the swapped variants
+ * zero<T> == a and zero<T> != a.
+ *
+ * Warning: these operators should not be used for tolerance-based comparisons, i.e., for a
+ * set tolerance (eps>0) to query if variable (a) can be considered zero or not, use a tolerance
+ * approach such as |a| < eps.
+ */
+template <typename T>
+constexpr bool operator==(const T &lhs, [[maybe_unused]] const aoclsparse_numeric::zero<T> &_)
+{
+    if constexpr(std::is_same_v<T, aoclsparse_float_complex>
+                 || std::is_same_v<T, aoclsparse_double_complex>)
+        return lhs.real == 0 && lhs.imag == 0;
+    else
+        return lhs == (T)0;
+}
+
+template <typename T>
+constexpr bool operator==(const aoclsparse_numeric::zero<T> &lhs, const T &rhs)
+{
+    return rhs == lhs;
+}
+
+template <typename T>
+constexpr bool operator!=(const T &lhs, [[maybe_unused]] const aoclsparse_numeric::zero<T> &_)
+{
+    if constexpr(std::is_same_v<T, aoclsparse_float_complex>
+                 || std::is_same_v<T, aoclsparse_double_complex>)
+        return lhs.real != 0 || lhs.imag != 0;
+    else
+        return lhs != (T)0;
+}
+
+template <typename T>
+constexpr bool operator!=(const aoclsparse_numeric::zero<T> &lhs, const T &rhs)
+{
+    return rhs != lhs;
 }
 
 /*

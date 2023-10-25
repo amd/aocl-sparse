@@ -20,8 +20,11 @@
  * THE SOFTWARE.
  *
  * ************************************************************************ */
+#include "aoclsparse.h"
 #include "gtest/gtest.h"
+#include "aoclsparse_auxiliary.hpp"
 
+#include <complex>
 #include <cstdlib>
 #include <iostream>
 
@@ -113,5 +116,173 @@ namespace
             cout << "  AVX512_VPOPCNTDQ : "
                  << (core.isAvailable(ALC_E_FLAG_AVX512_VPOPCNTDQ) ? "YES" : "NO") << "\n";
         }
+    }
+}
+
+// AOCLSPARSE_NUMERIC unit-tests
+// Tests for object zero<T>
+
+template <typename T>
+bool eq(T x, bool ltor = true)
+{
+    if(ltor)
+        return x == aoclsparse_numeric::zero<T>();
+    else
+        return aoclsparse_numeric::zero<T>() == x;
+}
+
+template <typename T>
+bool neq(T x, bool ltor = true)
+{
+    if(ltor)
+        return x != aoclsparse_numeric::zero<T>();
+    else
+        return aoclsparse_numeric::zero<T>() != x;
+}
+
+namespace
+{
+    using namespace aoclsparse_numeric;
+    TEST(Utils, Zero)
+    {
+        // test accessor
+        float z_s = zero<float>();
+        EXPECT_EQ(z_s, 0.0f);
+
+        double z_d = zero<double>();
+        EXPECT_EQ(z_d, 0.0);
+
+        aoclsparse_float_complex z_c = zero<aoclsparse_float_complex>();
+        EXPECT_EQ(z_c.imag, 0.0f);
+        EXPECT_EQ(z_c.real, 0.0f);
+
+        aoclsparse_double_complex z_z = zero<aoclsparse_double_complex>();
+        EXPECT_EQ(z_z.imag, 0.0);
+        EXPECT_EQ(z_z.real, 0.0);
+
+        std::complex<float> z_cc = zero<std::complex<float>>();
+        EXPECT_EQ(z_cc, 0.0f + 0.0if);
+
+        std::complex<double> z_zz = zero<std::complex<double>>();
+        EXPECT_EQ(z_zz, 0.0 + 0.0i);
+
+        // test ::value
+        z_s = zero<float>::value;
+        EXPECT_EQ(z_s, 0.0f);
+
+        z_s = zero<double>::value;
+        EXPECT_EQ(z_d, 0.0);
+
+        z_c = zero<aoclsparse_float_complex>::value;
+        EXPECT_EQ(z_c.imag, 0.0f);
+        EXPECT_EQ(z_c.real, 0.0f);
+
+        z_z = zero<aoclsparse_double_complex>::value;
+        EXPECT_EQ(z_z.imag, 0.0);
+        EXPECT_EQ(z_z.real, 0.0);
+
+        z_cc = zero<std::complex<float>>::value;
+        EXPECT_EQ(z_cc, 0.0f + 0.0if);
+
+        z_zz = zero<std::complex<double>>::value;
+        EXPECT_EQ(z_zz, 0.0 + 0.0i);
+    }
+    TEST(Utils, ZeroOptr)
+    {
+        float                     zero_s{0}, one_s{1};
+        double                    zero_d{0}, one_d{1};
+        aoclsparse_float_complex  zero_c{0, 0}, one_c{1, 0}, one_ic{0, 1}, one_bc{1, 1};
+        aoclsparse_double_complex zero_z{0, 0}, one_z{1, 0}, one_iz{0, 1}, one_bz{1, 1};
+        std::complex<float>       zero_cc{0}, one_cc{1, 0}, one_icc{0, 1}, one_bcc{1, 1};
+        std::complex<double>      zero_zz{0}, one_zz{1, 0}, one_izz{0, 1}, one_bzz{1, 1};
+        // x==0, x!=0
+        EXPECT_EQ(eq(zero_s), true);
+        EXPECT_EQ(eq(zero_d), true);
+        EXPECT_EQ(eq(zero_c), true);
+        EXPECT_EQ(eq(zero_z), true);
+        EXPECT_EQ(eq(zero_cc), true);
+        EXPECT_EQ(eq(zero_zz), true);
+
+        EXPECT_EQ(eq(one_s), false);
+        EXPECT_EQ(eq(one_d), false);
+        EXPECT_EQ(eq(one_c), false);
+        EXPECT_EQ(eq(one_z), false);
+        EXPECT_EQ(eq(one_cc), false);
+        EXPECT_EQ(eq(one_zz), false);
+        EXPECT_EQ(eq(one_ic), false);
+        EXPECT_EQ(eq(one_iz), false);
+        EXPECT_EQ(eq(one_icc), false);
+        EXPECT_EQ(eq(one_izz), false);
+        EXPECT_EQ(eq(one_bc), false);
+        EXPECT_EQ(eq(one_bz), false);
+        EXPECT_EQ(eq(one_bcc), false);
+        EXPECT_EQ(eq(one_bzz), false);
+
+        EXPECT_EQ(neq(zero_s), false);
+        EXPECT_EQ(neq(zero_d), false);
+        EXPECT_EQ(neq(zero_c), false);
+        EXPECT_EQ(neq(zero_z), false);
+        EXPECT_EQ(neq(zero_cc), false);
+        EXPECT_EQ(neq(zero_zz), false);
+
+        EXPECT_EQ(neq(one_s), true);
+        EXPECT_EQ(neq(one_d), true);
+        EXPECT_EQ(neq(one_c), true);
+        EXPECT_EQ(neq(one_z), true);
+        EXPECT_EQ(neq(one_cc), true);
+        EXPECT_EQ(neq(one_zz), true);
+        EXPECT_EQ(neq(one_ic), true);
+        EXPECT_EQ(neq(one_iz), true);
+        EXPECT_EQ(neq(one_icc), true);
+        EXPECT_EQ(neq(one_izz), true);
+        EXPECT_EQ(neq(one_bc), true);
+        EXPECT_EQ(neq(one_bz), true);
+        EXPECT_EQ(neq(one_bcc), true);
+        EXPECT_EQ(neq(one_bzz), true);
+
+        // 0==x, 0!=x
+        EXPECT_EQ((eq(zero_s, false)), true);
+        EXPECT_EQ((eq(zero_d, false)), true);
+        EXPECT_EQ((eq(zero_c, false)), true);
+        EXPECT_EQ((eq(zero_z, false)), true);
+        EXPECT_EQ((eq(zero_cc, false)), true);
+        EXPECT_EQ((eq(zero_zz, false)), true);
+
+        EXPECT_EQ((eq(one_s, false)), false);
+        EXPECT_EQ((eq(one_d, false)), false);
+        EXPECT_EQ((eq(one_c, false)), false);
+        EXPECT_EQ((eq(one_z, false)), false);
+        EXPECT_EQ((eq(one_cc, false)), false);
+        EXPECT_EQ((eq(one_zz, false)), false);
+        EXPECT_EQ((eq(one_ic, false)), false);
+        EXPECT_EQ((eq(one_iz, false)), false);
+        EXPECT_EQ((eq(one_icc, false)), false);
+        EXPECT_EQ((eq(one_izz, false)), false);
+        EXPECT_EQ((eq(one_bc, false)), false);
+        EXPECT_EQ((eq(one_bz, false)), false);
+        EXPECT_EQ((eq(one_bcc, false)), false);
+        EXPECT_EQ((eq(one_bzz, false)), false);
+
+        EXPECT_EQ((neq(zero_s, false)), false);
+        EXPECT_EQ((neq(zero_d, false)), false);
+        EXPECT_EQ((neq(zero_c, false)), false);
+        EXPECT_EQ((neq(zero_z, false)), false);
+        EXPECT_EQ((neq(zero_cc, false)), false);
+        EXPECT_EQ((neq(zero_zz, false)), false);
+
+        EXPECT_EQ((neq(one_s, false)), true);
+        EXPECT_EQ((neq(one_d, false)), true);
+        EXPECT_EQ((neq(one_c, false)), true);
+        EXPECT_EQ((neq(one_z, false)), true);
+        EXPECT_EQ((neq(one_cc, false)), true);
+        EXPECT_EQ((neq(one_zz, false)), true);
+        EXPECT_EQ((neq(one_ic, false)), true);
+        EXPECT_EQ((neq(one_iz, false)), true);
+        EXPECT_EQ((neq(one_icc, false)), true);
+        EXPECT_EQ((neq(one_izz, false)), true);
+        EXPECT_EQ((neq(one_bc, false)), true);
+        EXPECT_EQ((neq(one_bz, false)), true);
+        EXPECT_EQ((neq(one_bcc, false)), true);
+        EXPECT_EQ((neq(one_bzz, false)), true);
     }
 }
