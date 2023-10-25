@@ -1098,65 +1098,57 @@ aoclsparse_status aoclsparse_dbsrmv(aoclsparse_operation       trans,
 /**@}*/
 
 /*! \ingroup level2_module
- *  \brief Single & Double precision sparse matrix vector multiplication using optimized mv routines
+ *  \brief Computes sparse matrix vector multiplication for real/complex single and double data precisions.
  *
  *  \details
- *  \p aoclsparse_?mv multiplies the scalar \f$\alpha\f$ with a sparse \f$m \times n\f$
- *  matrix, defined in a sparse storage format, and the dense vector \f$x\f$ and adds the
- *  result to the dense vector \f$y\f$ that is multiplied by the scalar \f$\beta\f$,
+ *  \p aoclsparse_(s/d/c/z)mv performs a sparse matrix vector multiplication
  *  such that
  *  \f[
  *    y := \alpha \cdot op(A) \cdot x + \beta \cdot y,
  *  \f]
- *  with
+ *  where, x and y are dense vectors, alpha and beta are scalars, and A is a sparse matrix structure.
+ *  The matrix operation 'op' is defined as: 
  *  \f[
  *    op(A) = \left\{
  *    \begin{array}{ll}
- *        A,   & \text{if trans} = \text{aoclsparse\_operation\_none} \\
- *        A^T, & \text{if trans} = \text{aoclsparse\_operation\_transpose} \\
- *        A^H, & \text{if trans} = \text{aoclsparse\_operation\_conjugate\_transpose}
+ *        A,   & \text{if op} = \text{aoclsparse\_operation\_none} \\
+ *        A^T, & \text{if op} = \text{aoclsparse\_operation\_transpose} \\
+ *        A^H, & \text{if op} = \text{aoclsparse\_operation\_conjugate\_transpose}
  *    \end{array}
  *    \right.
  *  \f]
  *
  *
- *  \note
- *  Currently, only \p trans = \ref aoclsparse_operation_none is supported.
- *  Currently, for \ref aoclsparse_matrix_type = \ref aoclsparse_matrix_type_symmetric,
- *  only lower triangular matrices are supported.
- *
  *  @param[in]
- *  op          matrix operation type.
+ *  op          Matrix operation.
  *  @param[in]
- *  alpha       scalar \f$\alpha\f$.
+ *  alpha       Scalar \f$\alpha\f$.
  *  @param[in]
- *  A           the sparse matrix structure that is created using
- *              \ref aoclsparse_create_dcsr.
+ *  A           The sparse matrix structure containing a sparse matrix of dimension
+ *              (\f$ m \cdot n \f$) that is created using \ref aoclsparse_create_?csr.
  *  @param[in]
- *  descr       descriptor of the sparse CSR matrix. Currently, only
- *              \ref aoclsparse_matrix_type_general and
- *              \ref aoclsparse_matrix_type_symmetric is supported. 
- *              Both base-zero and base-one are supported, however, 
- *              the index base needs to match the one used at when 
+ *  descr       Descriptor of the sparse matrix can be one of the following:
+ *              \ref aoclsparse_matrix_type_general, \ref aoclsparse_matrix_type_triangular, 
+ *              \ref aoclsparse_matrix_type_symmetric, and \ref aoclsparse_matrix_type_hermitian.
+ *              Both base-zero and base-one are supported, however,
+ *              the index base needs to match the one used at when
  *              aoclsparse_matrix was created.
  *  @param[in]
- *  x           array of \p n elements (\f$op(A) = A\f$) or \p m elements
+ *  x           An array of \p n elements (\f$op(A) = A\f$) or \p m elements
  *              (\f$op(A) = A^T\f$ or \f$op(A) = A^H\f$).
  *  @param[in]
- *  beta        scalar \f$\beta\f$.
+ *  beta        Scalar \f$\beta\f$.
  *  @param[inout]
- *  y           array of \p m elements (\f$op(A) = A\f$) or \p n elements
+ *  y           An array of \p m elements (\f$op(A) = A\f$) or \p n elements
  *              (\f$op(A) = A^T\f$ or \f$op(A) = A^H\f$).
  *
- *  \retval     aoclsparse_status_success the operation completed successfully.
- *  \retval     aoclsparse_status_invalid_size \p m, \p n or \p nnz is invalid.
- *  \retval     aoclsparse_status_invalid_pointer \p descr, \p alpha, \p internal
+ *  \retval     aoclsparse_status_success The operation completed successfully.
+ *  \retval     aoclsparse_status_invalid_size The value of \p m, \p n or \p nnz is invalid.
+ *  \retval     aoclsparse_status_invalid_pointer \p descr, \p alpha, internal
  *              structures related to the sparse matrix \p A, \p x, \p beta or \p y has
  *              an invalid pointer.
- *  \retval     aoclsparse_status_not_implemented
- *              \p trans != \ref aoclsparse_operation_none or
- *              \ref aoclsparse_matrix_type != \ref aoclsparse_matrix_type_general.
- *              \ref aoclsparse_matrix_type != \ref aoclsparse_matrix_type_symmetric.
+ *  \retval     aoclsparse_status_not_implemented The requested functionality is not implemented.
+ *            
  *
  */
 /**@{*/
@@ -1178,6 +1170,24 @@ aoclsparse_status aoclsparse_dmv(aoclsparse_operation       op,
                                  const double              *x,
                                  const double              *beta,
                                  double                    *y);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_cmv(aoclsparse_operation            op,
+                                 const aoclsparse_float_complex *alpha,
+                                 aoclsparse_matrix               A,
+                                 const aoclsparse_mat_descr      descr,
+                                 const aoclsparse_float_complex *x,
+                                 const aoclsparse_float_complex *beta,
+                                 aoclsparse_float_complex       *y);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_zmv(aoclsparse_operation             op,
+                                 const aoclsparse_double_complex *alpha,
+                                 aoclsparse_matrix                A,
+                                 const aoclsparse_mat_descr       descr,
+                                 const aoclsparse_double_complex *x,
+                                 const aoclsparse_double_complex *beta,
+                                 aoclsparse_double_complex       *y);
 
 /**@}*/
 

@@ -604,7 +604,7 @@ inline void aoclsparse_init_csr_random(std::vector<aoclsparse_int> &row_ptr,
 {
     // Compute non-zero entries of the matrix
     if(!nnz)
-        nnz = M * ((M > 1000 || N > 1000) ? 2.0 / std::max(M, N) : 0.02) * N;
+        nnz = M * ((M > 1000 || N > 1000) ? 2.0 / (std::max)(M, N) : 0.02) * N;
 
     // Exit with error if nnz is greater than size of matrix
     if(nnz > M * N)
@@ -631,7 +631,7 @@ inline void aoclsparse_init_coo_random(std::vector<aoclsparse_int> &row_ind,
 {
     // Compute non-zero entries of the matrix
     if(!nnz)
-        nnz = M * ((M > 1000 || N > 1000) ? 2.0 / std::max(M, N) : 0.02) * N;
+        nnz = M * ((M > 1000 || N > 1000) ? 2.0 / (std::max)(M, N) : 0.02) * N;
 
     // Sample random matrix
     aoclsparse_init_coo_matrix(row_ind, col_ind, val, M, N, nnz, base);

@@ -311,7 +311,9 @@ extern "C" aoclsparse_status aoclsparse_smv(aoclsparse_operation       op,
                                             const float               *beta,
                                             float                     *y)
 {
-    // All input checks are done in the templated version
+    // All input checks are done in the templated version except for alpha and beta
+    if(alpha == nullptr || beta == nullptr)
+        return aoclsparse_status_invalid_pointer;
     return aoclsparse_mv(op, *alpha, A, descr, x, *beta, y);
 }
 
@@ -323,6 +325,45 @@ extern "C" aoclsparse_status aoclsparse_dmv(aoclsparse_operation       op,
                                             const double              *beta,
                                             double                    *y)
 {
-    // All input checks are done in the templated version
+    if(alpha == nullptr || beta == nullptr)
+        return aoclsparse_status_invalid_pointer;
     return aoclsparse_mv(op, *alpha, A, descr, x, *beta, y);
+}
+
+extern "C" aoclsparse_status aoclsparse_cmv(aoclsparse_operation            op,
+                                            const aoclsparse_float_complex *alpha,
+                                            aoclsparse_matrix               A,
+                                            const aoclsparse_mat_descr      descr,
+                                            const aoclsparse_float_complex *x,
+                                            const aoclsparse_float_complex *beta,
+                                            aoclsparse_float_complex       *y)
+{
+    if(alpha == nullptr || beta == nullptr)
+        return aoclsparse_status_invalid_pointer;
+    return aoclsparse_mv_t<std::complex<float>>(op,
+                                                *((const std::complex<float> *)alpha),
+                                                A,
+                                                descr,
+                                                (std::complex<float> *)x,
+                                                *((const std::complex<float> *)beta),
+                                                (std::complex<float> *)y);
+}
+
+extern "C" aoclsparse_status aoclsparse_zmv(aoclsparse_operation             op,
+                                            const aoclsparse_double_complex *alpha,
+                                            aoclsparse_matrix                A,
+                                            const aoclsparse_mat_descr       descr,
+                                            const aoclsparse_double_complex *x,
+                                            const aoclsparse_double_complex *beta,
+                                            aoclsparse_double_complex       *y)
+{
+    if(alpha == nullptr || beta == nullptr)
+        return aoclsparse_status_invalid_pointer;
+    return aoclsparse_mv_t<std::complex<double>>(op,
+                                                 *((const std::complex<double> *)alpha),
+                                                 A,
+                                                 descr,
+                                                 (std::complex<double> *)x,
+                                                 *((const std::complex<double> *)beta),
+                                                 (std::complex<double> *)y);
 }

@@ -29,8 +29,52 @@
 
 #include <algorithm>
 
+#include "blis.hh"
+
 namespace
 {
+    aoclsparse_operation   op_t    = aoclsparse_operation_transpose;
+    aoclsparse_operation   op_h    = aoclsparse_operation_conjugate_transpose;
+    aoclsparse_operation   op_n    = aoclsparse_operation_none;
+    aoclsparse_index_base  zero    = aoclsparse_index_base_zero;
+    aoclsparse_index_base  one     = aoclsparse_index_base_one;
+    aoclsparse_fill_mode   fl_up   = aoclsparse_fill_mode_upper;
+    aoclsparse_fill_mode   fl_lo   = aoclsparse_fill_mode_lower;
+    aoclsparse_diag_type   diag_u  = aoclsparse_diag_type_unit;
+    aoclsparse_diag_type   diag_nu = aoclsparse_diag_type_non_unit;
+    aoclsparse_diag_type   diag_z  = aoclsparse_diag_type_zero;
+    aoclsparse_matrix_type mat_s   = aoclsparse_matrix_type_symmetric;
+    aoclsparse_matrix_type mat_t   = aoclsparse_matrix_type_triangular;
+    aoclsparse_matrix_type mat_h   = aoclsparse_matrix_type_hermitian;
+
+    template <typename T>
+    struct tolerance
+    {
+        using type = T;
+    };
+    template <>
+    struct tolerance<std::complex<float>>
+    {
+        using type = float;
+    };
+    template <>
+    struct tolerance<std::complex<double>>
+    {
+        using type = double;
+    };
+    template <>
+    struct tolerance<aoclsparse_float_complex>
+    {
+        using type = float;
+    };
+    template <>
+    struct tolerance<aoclsparse_double_complex>
+    {
+        using type = double;
+    };
+
+    template <typename T>
+    using tolerance_t = typename tolerance<T>::type;
 
     // Several tests in one when nullptr is passed instead of valid data
     template <typename T>
@@ -736,8 +780,9 @@ namespace
         T                    alpha = 1.0;
         T                    beta  = 0.0;
         // Initialise vectors
-        T x[5] = {1.0, 2.0, 3.0, 4.0, 5.0};
-        T y[5] = {0.0};
+        T x[5]     = {1.0, 2.0, 3.0, 4.0, 5.0};
+        T y[5]     = {0.0};
+        T y_exp[5] = {1, 26, 12, 26, 68};
 
         aoclsparse_index_base base = aoclsparse_index_base_zero;
         aoclsparse_mat_descr  descr;
@@ -753,13 +798,310 @@ namespace
 
         aoclsparse_create_csr<T>(A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
 
-        //TODO: conjugate transpose should work without any error, once the support is added.
-        //The expected return code should be aoclsparse_status_success and it should work.
+        // Note: real conjugate transpose is same transpose.
         EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A, descr, x, &beta, y),
-                  aoclsparse_status_not_implemented);
+                  aoclsparse_status_success);
+
+        EXPECT_ARR_NEAR(M, y, y_exp, expected_precision<T>());
+        EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+    }
+
+    template <typename T>
+    void mv_cmplx_success_sq5x5_all_ops(aoclsparse_operation op = aoclsparse_operation_none)
+    {
+        tolerance_t<T> abserr = sqrt(std::numeric_limits<tolerance_t<T>>::epsilon());
+
+        // matrix A
+        /*
+        1+i     0       0       0       2
+        0       2+2i    1-i     0       0 
+        0       1-i     3+3i    0       2+3i
+        0       0       0       4+4i    0
+        2       0       2+3i    0       5+5i
+        */
+
+        aoclsparse_int M = 5, N = 5, NNZ = 11;
+        T              alpha = {1.0, 0.0};
+        T              beta  = {0.0, 0.0};
+        // Initialise vectors
+        T x[5] = {{0, 1}, {2, 1}, {3, 0}, {4, -1}, {5, 2}};
+        //        T y_exp[5]      = {{9, 5}, {5, 3}, {16, 17}, {20, 12}, {21, 46}};
+        T y_conj_exp[5] = {{11, 5}, {9, 1}, {26, -17}, {12, -20}, {41, -22}};
+        T y[5]          = {0, 0};
+        T y_gold[5]     = {0, 0};
+
+        aoclsparse_index_base base = aoclsparse_index_base_zero;
+        aoclsparse_mat_descr  descr;
+        aoclsparse_matrix     A;
+        aoclsparse_int        csr_row_ptr[] = {0, 2, 4, 7, 8, 11};
+        aoclsparse_int        csr_col_ind[] = {0, 4, 1, 2, 1, 2, 4, 3, 0, 2, 4};
+        T                     csr_val[]     = {{1, 1},
+                                               {2, 0},
+                                               {2, 2},
+                                               {1, -1},
+                                               {1, -1},
+                                               {3, 3},
+                                               {2, 3},
+                                               {4, 4},
+                                               {2, 0},
+                                               {2, 3},
+                                               {5, 5}};
+
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, base), aoclsparse_status_success);
+
+        aoclsparse_create_csr<T>(A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
+
+        EXPECT_EQ(aoclsparse_mv<T>(op, &alpha, A, descr, x, &beta, y), aoclsparse_status_success);
+
+        const std::complex<double> alphap = *reinterpret_cast<const std::complex<double> *>(&alpha);
+        const std::complex<double> betap  = *reinterpret_cast<const std::complex<double> *>(&beta);
+
+        if(op == aoclsparse_operation_none)
+        {
+            EXPECT_EQ(ref_csrmv(alphap,
+                                M,
+                                N,
+                                (std::complex<double> *)csr_val,
+                                csr_col_ind,
+                                csr_row_ptr,
+                                base,
+                                (std::complex<double> *)x,
+                                betap,
+                                (std::complex<double> *)y_gold),
+                      aoclsparse_status_success);
+        }
+        else if(op == aoclsparse_operation_transpose)
+        {
+            EXPECT_EQ(ref_csrmvt(alphap,
+                                 M,
+                                 N,
+                                 (std::complex<double> *)csr_val,
+                                 csr_col_ind,
+                                 csr_row_ptr,
+                                 base,
+                                 (std::complex<double> *)x,
+                                 betap,
+                                 (std::complex<double> *)y_gold),
+                      aoclsparse_status_success);
+        }
+        else if(op == aoclsparse_operation_conjugate_transpose)
+        {
+
+            for(aoclsparse_int i = 0; i < M; i++)
+                ((std::complex<double> *)y_gold)[i] = ((std::complex<double> *)y_conj_exp)[i];
+        }
+
+        EXPECT_COMPLEX_ARR_NEAR(
+            M, ((std::complex<double> *)y), ((std::complex<double> *)y_gold), abserr);
 
         EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+    }
+
+    // test success cases
+    template <typename T>
+    void mv_cmplx_success(aoclsparse_int         m_a,
+                          aoclsparse_int         n_a,
+                          aoclsparse_int         nnz_a,
+                          aoclsparse_index_base  b_a,
+                          aoclsparse_operation   op_a,
+                          aoclsparse_int         id       = 0,
+                          aoclsparse_matrix_type mat_type = aoclsparse_matrix_type_general,
+                          aoclsparse_fill_mode   fill     = aoclsparse_fill_mode_lower,
+                          aoclsparse_diag_type   diag     = aoclsparse_diag_type_non_unit)
+    {
+        tolerance_t<T>  abserr = sqrt(std::numeric_limits<tolerance_t<T>>::epsilon());
+        CBLAS_ORDER     layout = CblasRowMajor;
+        CBLAS_TRANSPOSE trans  = CblasNoTrans;
+        aoclsparse_int  ydim;
+        if(op_a == op_t)
+        {
+            trans = CblasTrans;
+        }
+        else if(op_a == op_h)
+        {
+            trans = CblasConjTrans;
+        }
+        else if(op_a == op_n)
+        {
+            trans = CblasNoTrans;
+        }
+
+        aoclsparse_seedrand();
+        std::vector<T> y, y_ref, x;
+        std::vector<T> z(m_a), z_t(n_a);
+        T              alpha = {1, 0}, beta = {0, 0};
+        if(id == 1)
+        {
+            alpha = {1, 1};
+            beta  = {-1, 2};
+        }
+        else if(id == 2)
+        {
+            alpha = {1, -2};
+            beta  = {0, 0};
+        }
+        if(op_a == aoclsparse_operation_none)
+        {
+            x = z_t;
+            y = z;
+            aoclsparse_init<T>(x, 1, n_a, 1);
+            aoclsparse_init<T>(y, 1, m_a, 1);
+            y_ref = y;
+            ydim  = m_a;
+        }
+        else
+        {
+            x = z;
+            y = z_t;
+            aoclsparse_init<T>(x, 1, m_a, 1);
+            aoclsparse_init<T>(y, 1, n_a, 1);
+            y_ref = y;
+            ydim  = n_a;
+        }
+        aoclsparse_seedrand();
+        std::vector<T>              val_a;
+        std::vector<aoclsparse_int> col_ind_a;
+        std::vector<aoclsparse_int> row_ptr_a;
+        std::vector<T>              dense_A(m_a * n_a);
+        aoclsparse_init_csr_random(row_ptr_a, col_ind_a, val_a, m_a, n_a, nnz_a, b_a);
+        aoclsparse_matrix A;
+        ASSERT_EQ(aoclsparse_create_csr(
+                      A, b_a, m_a, n_a, nnz_a, row_ptr_a.data(), col_ind_a.data(), val_a.data()),
+                  aoclsparse_status_success);
+        aoclsparse_mat_descr descrA;
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descrA), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descrA, b_a), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_type(descrA, mat_type), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_fill_mode(descrA, fill), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_diag_type(descrA, diag), aoclsparse_status_success);
+
+        ASSERT_EQ(aoclsparse_csr2dense(m_a,
+                                       n_a,
+                                       descrA,
+                                       val_a.data(),
+                                       row_ptr_a.data(),
+                                       col_ind_a.data(),
+                                       dense_A.data(),
+                                       n_a,
+                                       aoclsparse_order_row),
+                  aoclsparse_status_success);
+
+        EXPECT_EQ(aoclsparse_mv<T>(op_a, &alpha, A, descrA, x.data(), &beta, y.data()),
+                  aoclsparse_status_success);
+        blis::gemv(layout,
+                   trans,
+                   (int64_t)m_a,
+                   (int64_t)n_a,
+                   *reinterpret_cast<const std::complex<double> *>(&alpha),
+                   (std::complex<double> *)dense_A.data(),
+                   (int64_t)n_a,
+                   (std::complex<double> *)x.data(),
+                   1,
+                   *reinterpret_cast<const std::complex<double> *>(&beta),
+                   (std::complex<double> *)y_ref.data(),
+                   1);
+
+        EXPECT_COMPLEX_ARR_NEAR(ydim,
+                                ((std::complex<double> *)y.data()),
+                                ((std::complex<double> *)y_ref.data()),
+                                abserr);
+
+        aoclsparse_destroy_mat_descr(descrA);
+        aoclsparse_destroy(A);
+    }
+
+    // test failures cases
+    template <typename T>
+    void mv_cmplx_failures(aoclsparse_int         m_a,
+                           aoclsparse_int         n_a,
+                           aoclsparse_int         nnz_a,
+                           aoclsparse_index_base  b_a,
+                           aoclsparse_operation   op_a,
+                           aoclsparse_int         id       = 0,
+                           aoclsparse_matrix_type mat_type = aoclsparse_matrix_type_general,
+                           aoclsparse_fill_mode   fill     = aoclsparse_fill_mode_lower,
+                           aoclsparse_diag_type   diag     = aoclsparse_diag_type_non_unit)
+    {
+        aoclsparse_seedrand();
+        std::vector<T> y, x;
+        std::vector<T> z(m_a), z_t(n_a);
+        T              alpha = {1, 0}, beta = {0, 0};
+        if(op_a == aoclsparse_operation_none)
+        {
+            x = z_t;
+            y = z;
+            aoclsparse_init<T>(x, 1, n_a, 1);
+            aoclsparse_init<T>(y, 1, m_a, 1);
+        }
+        else
+        {
+            x = z;
+            y = z_t;
+            aoclsparse_init<T>(x, 1, m_a, 1);
+            aoclsparse_init<T>(y, 1, n_a, 1);
+        }
+        aoclsparse_seedrand();
+        std::vector<T>              val_a;
+        std::vector<aoclsparse_int> col_ind_a;
+        std::vector<aoclsparse_int> row_ptr_a;
+        aoclsparse_init_csr_random(row_ptr_a, col_ind_a, val_a, m_a, n_a, nnz_a, b_a);
+        aoclsparse_matrix A;
+        ASSERT_EQ(aoclsparse_create_csr(
+                      A, b_a, m_a, n_a, nnz_a, row_ptr_a.data(), col_ind_a.data(), val_a.data()),
+                  aoclsparse_status_success);
+        aoclsparse_mat_descr descrA;
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descrA), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descrA, b_a), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_type(descrA, mat_type), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_fill_mode(descrA, fill), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_diag_type(descrA, diag), aoclsparse_status_success);
+
+        // test null pointers
+        switch(id)
+        {
+        case 0: // test null cases
+            EXPECT_EQ(aoclsparse_mv<T>(op_a, nullptr, A, descrA, x.data(), &beta, y.data()),
+                      aoclsparse_status_invalid_pointer);
+            EXPECT_EQ(aoclsparse_mv<T>(op_a, &alpha, A, nullptr, x.data(), &beta, y.data()),
+                      aoclsparse_status_invalid_pointer);
+            EXPECT_EQ(aoclsparse_mv<T>(op_a, &alpha, A, descrA, nullptr, &beta, y.data()),
+                      aoclsparse_status_invalid_pointer);
+            EXPECT_EQ(aoclsparse_mv<T>(op_a, &alpha, A, descrA, x.data(), nullptr, y.data()),
+                      aoclsparse_status_invalid_pointer);
+            EXPECT_EQ(aoclsparse_mv<T>(op_a, &alpha, A, descrA, x.data(), &beta, nullptr),
+                      aoclsparse_status_invalid_pointer);
+            break;
+        case 1: // test not implemented cases
+            ASSERT_EQ(aoclsparse_set_mat_type(descrA, aoclsparse_matrix_type_hermitian),
+                      aoclsparse_status_success);
+            op_a = aoclsparse_operation_transpose;
+            EXPECT_EQ(aoclsparse_mv<T>(op_a, &alpha, A, descrA, x.data(), &beta, y.data()),
+                      aoclsparse_status_not_implemented);
+            break;
+        case 2: // test invalid type / value cases
+            ASSERT_EQ(aoclsparse_set_mat_type(descrA, aoclsparse_matrix_type_symmetric),
+                      aoclsparse_status_success);
+            A->m = A->n + 1;
+            EXPECT_EQ(aoclsparse_mv<T>(op_a, &alpha, A, descrA, x.data(), &beta, y.data()),
+                      aoclsparse_status_invalid_value);
+            A->m            = A->n;
+            A->input_format = aoclsparse_ell_mat;
+            EXPECT_EQ(aoclsparse_mv<T>(op_a, &alpha, A, descrA, x.data(), &beta, y.data()),
+                      aoclsparse_status_not_implemented);
+            A->input_format = aoclsparse_csr_mat;
+            A->base         = (aoclsparse_index_base)2;
+            EXPECT_EQ(aoclsparse_mv<T>(op_a, &alpha, A, descrA, x.data(), &beta, y.data()),
+                      aoclsparse_status_invalid_value);
+
+            break;
+        default:
+            break;
+        }
+        aoclsparse_destroy_mat_descr(descrA);
+        aoclsparse_destroy(A);
     }
 
     TEST(mv, NullArgDouble)
@@ -844,6 +1186,184 @@ namespace
     {
         test_mv_base_index_mismatch<float>();
     }
+    TEST(mv, CmplxSuccessSq5x5AllOpN)
+    {
+        //mv_cmplx_success_sq5x5_all_ops<std::complex<double>>();
+        //mv_cmplx_success_sq5x5_all_ops<aoclsparse_float_complex>();
+        mv_cmplx_success_sq5x5_all_ops<aoclsparse_double_complex>(op_n);
+    }
+    TEST(mv, CmplxSuccessSq5x5AllOpT)
+    {
+        mv_cmplx_success_sq5x5_all_ops<aoclsparse_double_complex>(op_t);
+    }
+    TEST(mv, CmplxSuccessSq5x5AllOpH)
+    {
+        mv_cmplx_success_sq5x5_all_ops<aoclsparse_double_complex>(op_h);
+    }
+    TEST(mv, CmplxGSuccessOpN)
+    {
+        mv_cmplx_success<aoclsparse_double_complex>(3, 2, 3, zero, op_n, 0);
+        mv_cmplx_success<aoclsparse_double_complex>(10, 12, 40, zero, op_n, 0);
+        mv_cmplx_success<aoclsparse_double_complex>(8, 1, 4, zero, op_n, 0);
+        mv_cmplx_success<aoclsparse_double_complex>(1, 9, 9, zero, op_n, 0);
+        mv_cmplx_success<aoclsparse_double_complex>(7, 9, 19, one, op_n, 0);
+        mv_cmplx_success<aoclsparse_double_complex>(7, 9, 29, one, op_n, 1);
+        mv_cmplx_success<aoclsparse_double_complex>(11, 9, 39, one, op_n, 2);
+        mv_cmplx_success<aoclsparse_double_complex>(8, 8, 8, one, op_n, 0);
+    }
+    TEST(mv, CmplxGSuccessOpT)
+    {
+        mv_cmplx_success<aoclsparse_double_complex>(3, 2, 3, zero, op_t, 0);
+        mv_cmplx_success<aoclsparse_double_complex>(10, 12, 40, zero, op_t, 0);
+        mv_cmplx_success<aoclsparse_double_complex>(8, 1, 4, zero, op_t, 0);
+        mv_cmplx_success<aoclsparse_double_complex>(1, 9, 9, zero, op_t, 0);
+        mv_cmplx_success<aoclsparse_double_complex>(7, 9, 19, one, op_t, 0);
+        mv_cmplx_success<aoclsparse_double_complex>(7, 9, 29, one, op_t, 1);
+        mv_cmplx_success<aoclsparse_double_complex>(11, 9, 39, one, op_t, 2);
+        mv_cmplx_success<aoclsparse_double_complex>(8, 8, 8, one, op_t, 0);
+    }
+    TEST(mv, CmplxGSuccessOpH)
+    {
+        mv_cmplx_success<aoclsparse_double_complex>(3, 2, 3, zero, op_h, 0);
+        mv_cmplx_success<aoclsparse_double_complex>(10, 12, 40, zero, op_h, 0);
+        mv_cmplx_success<aoclsparse_double_complex>(8, 1, 4, zero, op_h, 0);
+        mv_cmplx_success<aoclsparse_double_complex>(1, 9, 9, zero, op_h, 0);
+        mv_cmplx_success<aoclsparse_double_complex>(7, 9, 19, one, op_h, 0);
+        mv_cmplx_success<aoclsparse_double_complex>(7, 9, 29, one, op_h, 1);
+        mv_cmplx_success<aoclsparse_double_complex>(11, 9, 39, one, op_h, 2);
+        mv_cmplx_success<aoclsparse_double_complex>(8, 8, 8, one, op_h, 0);
+    }
+
+    // ToDo: One-base testing missing as csr2dense doesn't support it at present
+    TEST(mv, CmplxSymSuccessOpN)
+    {
+        mv_cmplx_success<aoclsparse_double_complex>(3, 3, 3, zero, op_n, 0, mat_s, fl_lo, diag_nu);
+        mv_cmplx_success<aoclsparse_double_complex>(
+            10, 10, 37, zero, op_n, 0, mat_s, fl_lo, diag_nu);
+        mv_cmplx_success<aoclsparse_double_complex>(
+            10, 10, 37, zero, op_n, 0, mat_s, fl_lo, diag_u);
+        mv_cmplx_success<aoclsparse_double_complex>(8, 8, 27, zero, op_n, 0, mat_s, fl_up, diag_nu);
+        mv_cmplx_success<aoclsparse_double_complex>(8, 8, 20, zero, op_n, 0, mat_s, fl_up, diag_u);
+    }
+    TEST(mv, CmplxSymSuccessOpT)
+    {
+        mv_cmplx_success<aoclsparse_double_complex>(3, 3, 3, zero, op_t, 0, mat_s, fl_lo, diag_nu);
+        mv_cmplx_success<aoclsparse_double_complex>(
+            10, 10, 37, zero, op_t, 0, mat_s, fl_lo, diag_nu);
+        mv_cmplx_success<aoclsparse_double_complex>(
+            10, 10, 37, zero, op_t, 0, mat_s, fl_lo, diag_u);
+        mv_cmplx_success<aoclsparse_double_complex>(8, 8, 27, zero, op_t, 0, mat_s, fl_up, diag_nu);
+        mv_cmplx_success<aoclsparse_double_complex>(8, 8, 20, zero, op_t, 0, mat_s, fl_up, diag_u);
+    }
+    TEST(mv, CmplxSymSuccessOpH)
+    {
+        mv_cmplx_success<aoclsparse_double_complex>(3, 3, 3, zero, op_h, 0, mat_s, fl_lo, diag_nu);
+        mv_cmplx_success<aoclsparse_double_complex>(
+            10, 10, 37, zero, op_h, 0, mat_s, fl_lo, diag_nu);
+        mv_cmplx_success<aoclsparse_double_complex>(
+            10, 10, 37, zero, op_h, 0, mat_s, fl_lo, diag_u);
+        mv_cmplx_success<aoclsparse_double_complex>(8, 8, 27, zero, op_h, 0, mat_s, fl_up, diag_nu);
+        mv_cmplx_success<aoclsparse_double_complex>(8, 8, 20, zero, op_h, 0, mat_s, fl_up, diag_u);
+    }
+    TEST(mv, CmplxTriSuccessOpN)
+    {
+        mv_cmplx_success<aoclsparse_double_complex>(3, 3, 3, zero, op_n, 0, mat_t, fl_lo, diag_nu);
+        mv_cmplx_success<aoclsparse_double_complex>(
+            10, 10, 37, zero, op_n, 0, mat_t, fl_lo, diag_nu);
+        mv_cmplx_success<aoclsparse_double_complex>(
+            10, 10, 37, zero, op_n, 0, mat_t, fl_lo, diag_z);
+        mv_cmplx_success<aoclsparse_double_complex>(
+            10, 10, 37, zero, op_n, 0, mat_t, fl_lo, diag_u);
+
+        mv_cmplx_success<aoclsparse_double_complex>(8, 8, 27, zero, op_n, 0, mat_t, fl_up, diag_nu);
+    }
+    TEST(mv, CmplxTriSuccessOpT)
+    {
+        mv_cmplx_success<aoclsparse_double_complex>(3, 3, 3, zero, op_t, 0, mat_t, fl_lo, diag_nu);
+        mv_cmplx_success<aoclsparse_double_complex>(
+            10, 10, 37, zero, op_t, 0, mat_t, fl_lo, diag_nu);
+        mv_cmplx_success<aoclsparse_double_complex>(8, 8, 27, zero, op_t, 0, mat_t, fl_up, diag_nu);
+        mv_cmplx_success<aoclsparse_double_complex>(
+            10, 10, 37, zero, op_t, 0, mat_t, fl_lo, diag_u);
+    }
+    TEST(mv, CmplxTriSuccessOpH)
+    {
+        mv_cmplx_success<aoclsparse_double_complex>(3, 3, 3, zero, op_h, 0, mat_t, fl_lo, diag_nu);
+        mv_cmplx_success<aoclsparse_double_complex>(
+            10, 10, 37, zero, op_h, 0, mat_t, fl_lo, diag_nu);
+        mv_cmplx_success<aoclsparse_double_complex>(8, 8, 27, zero, op_h, 0, mat_t, fl_up, diag_nu);
+        mv_cmplx_success<aoclsparse_double_complex>(
+            10, 10, 37, zero, op_h, 0, mat_t, fl_lo, diag_u);
+        mv_cmplx_success<aoclsparse_double_complex>(
+            10, 10, 37, zero, op_h, 0, mat_t, fl_lo, diag_z);
+    }
+
+    TEST(mv, CmplxHermSuccessOpN)
+    {
+        // Need to pass only unit diagonals as a hermitian matrix needs real diagonals
+        // Our random generation doesn't support it
+        mv_cmplx_success<aoclsparse_double_complex>(3, 3, 3, zero, op_n, 0, mat_h, fl_lo, diag_u);
+        mv_cmplx_success<aoclsparse_double_complex>(
+            10, 10, 37, zero, op_n, 0, mat_h, fl_lo, diag_u);
+        mv_cmplx_success<aoclsparse_double_complex>(8, 8, 27, zero, op_n, 0, mat_h, fl_up, diag_u);
+        mv_cmplx_success<aoclsparse_double_complex>(8, 8, 27, zero, op_n, 0, mat_h, fl_up, diag_z);
+
+        // The below is not correct, but still passes as the op in non-transpose
+        mv_cmplx_success<aoclsparse_double_complex>(8, 8, 27, zero, op_n, 0, mat_h, fl_up, diag_nu);
+
+        // Test cases when alpha != (1,0) and beta != (0,0)
+        mv_cmplx_success<aoclsparse_double_complex>(
+            11, 11, 43, zero, op_n, 1, mat_h, fl_up, diag_z);
+        mv_cmplx_success<aoclsparse_double_complex>(
+            13, 13, 71, zero, op_n, 2, mat_h, fl_lo, diag_z);
+    }
+
+    TEST(mv, CmplxHermSuccessOpH)
+    {
+        // Need to pass only unit diagonals as a hermitian matrix needs real diagonals
+        // Our random generation doesn't support it
+        mv_cmplx_success<aoclsparse_double_complex>(3, 3, 3, zero, op_h, 0, mat_h, fl_lo, diag_u);
+        mv_cmplx_success<aoclsparse_double_complex>(
+            10, 10, 37, zero, op_h, 0, mat_h, fl_lo, diag_u);
+        mv_cmplx_success<aoclsparse_double_complex>(8, 8, 27, zero, op_h, 0, mat_h, fl_up, diag_u);
+        mv_cmplx_success<aoclsparse_double_complex>(8, 8, 27, zero, op_h, 0, mat_h, fl_up, diag_z);
+        // the below test fails as expected as diag is complex
+        //        mv_cmplx_success<aoclsparse_double_complex>(8, 8, 27, zero, op_h, 0, mat_h, fl_up, diag_nu);
+    }
+
+    TEST(mv, CmplxNull)
+    {
+        mv_cmplx_failures<aoclsparse_double_complex>(8, 8, 27, zero, op_h, 0, mat_h, fl_up, diag_u);
+    }
+
+    TEST(mv, CmplxNotImpl)
+    {
+        mv_cmplx_failures<aoclsparse_double_complex>(8, 8, 27, zero, op_h, 1, mat_h, fl_up, diag_u);
+    }
+
+    TEST(mv, CmplxInvalid)
+    {
+        mv_cmplx_failures<aoclsparse_double_complex>(8, 8, 27, zero, op_h, 2, mat_h, fl_up, diag_u);
+    }
+
+    /* Transpose operation for a hermitian matrix is not implemented 
+ * The below tests will fail  
+ */
+    /*
+    TEST(mv, CmplxHermSuccessOpT)
+    {
+        // Need to pass only unit diagonals as a hermitian matrix needs real diagonals
+        // Our random generation doesn't support it
+        mv_cmplx_success<aoclsparse_double_complex>(3, 3, 3, zero, op_t, 0, mat_h, fl_lo, diag_u);
+        mv_cmplx_success<aoclsparse_double_complex>(
+            10, 10, 37, zero, op_h, 0, mat_h, fl_lo, diag_u);
+        mv_cmplx_success<aoclsparse_double_complex>(8, 8, 27, zero, op_t, 0, mat_h, fl_up, diag_u);
+        mv_cmplx_success<aoclsparse_double_complex>(8, 8, 27, zero, op_t, 0, mat_h, fl_up, diag_z);
+        // the below test fails as expected as diag is complex
+//        mv_cmplx_success<aoclsparse_double_complex>(8, 8, 27, zero, op_t, 0, mat_h, fl_up, diag_nu);
+    }
+*/
+
     TEST(mv, TriStrictDouble)
     {
         test_mv_trianglular_strict<double>();
@@ -852,6 +1372,7 @@ namespace
     {
         test_mvt_trianglular_strict<double>();
     }
+
     TEST(mv, Tri_Sq_LoStr_DoubleSuccess)
     {
         aoclsparse_operation   op       = aoclsparse_operation_none;
