@@ -622,7 +622,8 @@ aoclsparse_status
                                         [[maybe_unused]] float *__restrict__ y,
                                         [[maybe_unused]] aoclsparse_context *context)
 {
-    return aoclsparse_status_not_implemented;
+    return aoclsparse_csrmv_ptr(
+        descr, alpha, m, n, aval, icol, crstart, crend, x, beta, y, context);
 }
 
 template <>

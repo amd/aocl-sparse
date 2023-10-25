@@ -27,10 +27,41 @@
 
 #include <algorithm>
 #include <cmath>
+#include <complex>
 #include <limits.h>
 
 namespace
 {
+
+    template <typename T>
+    struct tolerance
+    {
+        using type = T;
+    };
+    template <>
+    struct tolerance<std::complex<float>>
+    {
+        using type = float;
+    };
+    template <>
+    struct tolerance<std::complex<double>>
+    {
+        using type = double;
+    };
+    template <>
+    struct tolerance<aoclsparse_float_complex>
+    {
+        using type = float;
+    };
+    template <>
+    struct tolerance<aoclsparse_double_complex>
+    {
+        using type = double;
+    };
+
+    template <typename T>
+    using tolerance_t = typename tolerance<T>::type;
+
     template <typename T>
     void test_csr_to_csc()
     {
@@ -313,6 +344,219 @@ namespace
         EXPECT_ARR_NEAR((M * N), dense_mat, dense_colmajor_gold, expected_precision<T>());
         EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
     }
+
+    // tests for complex data types csr to dense (dense in row major)
+    // - matrix formats - general, symmetric, triangular, hermitian
+    // - descriptors - matrix type, fill, diagonals
+    template <typename T>
+    void test_csr_to_dense_cmplx(aoclsparse_matrix_type mat_type,
+                                 aoclsparse_fill_mode   fill,
+                                 aoclsparse_diag_type   diag,
+                                 aoclsparse_int         id)
+    {
+        aoclsparse_int        ld;
+        aoclsparse_mat_descr  descr;
+        aoclsparse_index_base base;
+        aoclsparse_order      order;
+        tolerance_t<T>        abserr = sqrt(std::numeric_limits<tolerance_t<T>>::epsilon());
+
+        // matrix A to test for general/sym/tri cases
+        /*
+        1+i     0       0       0       4
+        0       2+2i    1+i     0       0 
+        0       1-i     3+3i    0       2+3i
+        0       0       0       4+4i    0
+        2       0       2+3i    0       5+5i
+        */
+
+        // matrix B to test the hermitian case
+        /*
+        1       0       0       0       4
+        0       2       1+i     0       0 
+        0       1-i     3       0       2+3i
+        0       0       0       4       0
+        2       0       2+3i    0       5
+        */
+        aoclsparse_int M = 5, N = 5;
+        base = aoclsparse_index_base_zero;
+        T dense[25];
+        for(aoclsparse_int i = 0; i < 25; i++)
+            dense[i] = {-1, -1};
+        order                          = aoclsparse_order_row;
+        ld                             = N;
+        aoclsparse_int csr_row_ptr_A[] = {0, 2, 4, 7, 8, 11};
+        aoclsparse_int csr_col_ind_A[] = {0, 4, 1, 2, 1, 2, 4, 3, 0, 2, 4};
+        T              csr_val_A[]     = {{1, 1},
+                                          {4, 0},
+                                          {2, 2},
+                                          {1, 1},
+                                          {1, -1},
+                                          {3, 3},
+                                          {2, 3},
+                                          {4, 4},
+                                          {2, 0},
+                                          {2, 3},
+                                          {5, 5}};
+
+        aoclsparse_int csr_row_ptr_B[] = {0, 2, 4, 7, 8, 11};
+        aoclsparse_int csr_col_ind_B[] = {0, 4, 1, 2, 1, 2, 4, 3, 0, 2, 4};
+        T              csr_val_B[]     = {{1, 0},
+                                          {4, 0},
+                                          {2, 0},
+                                          {1, 1},
+                                          {1, -1},
+                                          {3, 0},
+                                          {2, 3},
+                                          {4, 0},
+                                          {2, 0},
+                                          {2, 3},
+                                          {5, 0}};
+
+        T g[] = {{1, 1}, {0, 0}, {0, 0},  {0, 0}, {4, 0}, {0, 0}, {2, 2}, {1, 1}, {0, 0},
+                 {0, 0}, {0, 0}, {1, -1}, {3, 3}, {0, 0}, {2, 3}, {0, 0}, {0, 0}, {0, 0},
+                 {4, 4}, {0, 0}, {2, 0},  {0, 0}, {2, 3}, {0, 0}, {5, 5}};
+
+        T s_lo_u[] = {{1, 0}, {0, 0}, {0, 0},  {0, 0}, {2, 0}, {0, 0}, {1, 0}, {1, -1}, {0, 0},
+                      {0, 0}, {0, 0}, {1, -1}, {1, 0}, {0, 0}, {2, 3}, {0, 0}, {0, 0},  {0, 0},
+                      {1, 0}, {0, 0}, {2, 0},  {0, 0}, {2, 3}, {0, 0}, {1, 0}};
+
+        T s_lo_nu[] = {{1, 1}, {0, 0}, {0, 0},  {0, 0}, {2, 0}, {0, 0}, {2, 2}, {1, -1}, {0, 0},
+                       {0, 0}, {0, 0}, {1, -1}, {3, 3}, {0, 0}, {2, 3}, {0, 0}, {0, 0},  {0, 0},
+                       {4, 4}, {0, 0}, {2, 0},  {0, 0}, {2, 3}, {0, 0}, {5, 5}};
+
+        T s_up_u[] = {{1, 0}, {0, 0}, {0, 0}, {0, 0}, {4, 0}, {0, 0}, {1, 0}, {1, 1}, {0, 0},
+                      {0, 0}, {0, 0}, {1, 1}, {1, 0}, {0, 0}, {2, 3}, {0, 0}, {0, 0}, {0, 0},
+                      {1, 0}, {0, 0}, {4, 0}, {0, 0}, {2, 3}, {0, 0}, {1, 0}};
+
+        T s_up_nu[] = {{1, 1}, {0, 0}, {0, 0}, {0, 0}, {4, 0}, {0, 0}, {2, 2}, {1, 1}, {0, 0},
+                       {0, 0}, {0, 0}, {1, 1}, {3, 3}, {0, 0}, {2, 3}, {0, 0}, {0, 0}, {0, 0},
+                       {4, 4}, {0, 0}, {4, 0}, {0, 0}, {2, 3}, {0, 0}, {5, 5}};
+
+        T t_lo_nu[] = {{1, 1}, {0, 0}, {0, 0},  {0, 0}, {0, 0}, {0, 0}, {2, 2}, {0, 0}, {0, 0},
+                       {0, 0}, {0, 0}, {1, -1}, {3, 3}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0},
+                       {4, 4}, {0, 0}, {2, 0},  {0, 0}, {2, 3}, {0, 0}, {5, 5}};
+
+        T t_lo_u[] = {{1, 0}, {0, 0}, {0, 0},  {0, 0}, {0, 0}, {0, 0}, {1, 0}, {0, 0}, {0, 0},
+                      {0, 0}, {0, 0}, {1, -1}, {1, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0},
+                      {1, 0}, {0, 0}, {2, 0},  {0, 0}, {2, 3}, {0, 0}, {1, 0}};
+
+        T t_up_nu[] = {{1, 1}, {0, 0}, {0, 0}, {0, 0}, {4, 0}, {0, 0}, {2, 2}, {1, 1}, {0, 0},
+                       {0, 0}, {0, 0}, {0, 0}, {3, 3}, {0, 0}, {2, 3}, {0, 0}, {0, 0}, {0, 0},
+                       {4, 4}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {5, 5}};
+
+        T t_up_u[] = {{1, 0}, {0, 0}, {0, 0}, {0, 0}, {4, 0}, {0, 0}, {1, 0}, {1, 1}, {0, 0},
+                      {0, 0}, {0, 0}, {0, 0}, {1, 0}, {0, 0}, {2, 3}, {0, 0}, {0, 0}, {0, 0},
+                      {1, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {1, 0}};
+
+        T h_lo_nu[] = {{1, 0}, {0, 0}, {0, 0},  {0, 0}, {2, 0}, {0, 0},  {2, 0}, {1, 1}, {0, 0},
+                       {0, 0}, {0, 0}, {1, -1}, {3, 0}, {0, 0}, {2, -3}, {0, 0}, {0, 0}, {0, 0},
+                       {4, 0}, {0, 0}, {2, 0},  {0, 0}, {2, 3}, {0, 0},  {5, 0}};
+
+        T h_lo_u[] = {{1, 0}, {0, 0}, {0, 0},  {0, 0}, {2, 0}, {0, 0},  {1, 0}, {1, 1}, {0, 0},
+                      {0, 0}, {0, 0}, {1, -1}, {1, 0}, {0, 0}, {2, -3}, {0, 0}, {0, 0}, {0, 0},
+                      {1, 0}, {0, 0}, {2, 0},  {0, 0}, {2, 3}, {0, 0},  {1, 0}};
+
+        T h_up_nu[] = {{1, 0}, {0, 0}, {0, 0},  {0, 0}, {4, 0},  {0, 0}, {2, 0}, {1, 1}, {0, 0},
+                       {0, 0}, {0, 0}, {1, -1}, {3, 0}, {0, 0},  {2, 3}, {0, 0}, {0, 0}, {0, 0},
+                       {4, 0}, {0, 0}, {4, 0},  {0, 0}, {2, -3}, {0, 0}, {5, 0}};
+
+        T h_up_u[] = {{1, 0}, {0, 0}, {0, 0},  {0, 0}, {4, 0},  {0, 0}, {1, 0}, {1, 1}, {0, 0},
+                      {0, 0}, {0, 0}, {1, -1}, {1, 0}, {0, 0},  {2, 3}, {0, 0}, {0, 0}, {0, 0},
+                      {1, 0}, {0, 0}, {4, 0},  {0, 0}, {2, -3}, {0, 0}, {1, 0}};
+
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        base = aoclsparse_index_base_zero;
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, base), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_type(descr, mat_type), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_fill_mode(descr, fill), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_diag_type(descr, diag), aoclsparse_status_success);
+
+        if(id <= 8)
+        {
+            ASSERT_EQ(aoclsparse_csr2dense(
+                          M, N, descr, csr_val_A, csr_row_ptr_A, csr_col_ind_A, dense, ld, order),
+                      aoclsparse_status_success);
+        }
+        else
+        {
+            ASSERT_EQ(aoclsparse_csr2dense(
+                          M, N, descr, csr_val_B, csr_row_ptr_B, csr_col_ind_B, dense, ld, order),
+                      aoclsparse_status_success);
+        }
+
+        switch(id)
+        {
+        case 0: // general matrix
+            EXPECT_COMPLEX_ARR_NEAR(
+                (M * N), ((std::complex<double> *)dense), ((std::complex<double> *)g), abserr);
+            break;
+        case 1: // Symmetric matrix - lower/diag non unit
+            EXPECT_COMPLEX_ARR_NEAR((M * N),
+                                    ((std::complex<double> *)dense),
+                                    ((std::complex<double> *)s_lo_nu),
+                                    abserr);
+            break;
+        case 2: // Symmetric matrix - lower/diag unit
+            EXPECT_COMPLEX_ARR_NEAR(
+                (M * N), ((std::complex<double> *)dense), ((std::complex<double> *)s_lo_u), abserr);
+            break;
+        case 3: // Symmetric matrix - upper/diag non unit
+            EXPECT_COMPLEX_ARR_NEAR((M * N),
+                                    ((std::complex<double> *)dense),
+                                    ((std::complex<double> *)s_up_nu),
+                                    abserr);
+            break;
+        case 4: // Symmetric matrix - upper/diag unit
+            EXPECT_COMPLEX_ARR_NEAR(
+                (M * N), ((std::complex<double> *)dense), ((std::complex<double> *)s_up_u), abserr);
+            break;
+        case 5: // Triangular matrix - lower/diag non unit
+            EXPECT_COMPLEX_ARR_NEAR((M * N),
+                                    ((std::complex<double> *)dense),
+                                    ((std::complex<double> *)t_lo_nu),
+                                    abserr);
+            break;
+        case 6: // Triangular matrix - lower/diag unit
+            EXPECT_COMPLEX_ARR_NEAR(
+                (M * N), ((std::complex<double> *)dense), ((std::complex<double> *)t_lo_u), abserr);
+            break;
+        case 7: // Triangular matrix - upper/diag non unit
+            EXPECT_COMPLEX_ARR_NEAR((M * N),
+                                    ((std::complex<double> *)dense),
+                                    ((std::complex<double> *)t_up_nu),
+                                    abserr);
+            break;
+        case 8: // Triangular matrix - upper/diag unit
+            EXPECT_COMPLEX_ARR_NEAR(
+                (M * N), ((std::complex<double> *)dense), ((std::complex<double> *)t_up_u), abserr);
+            break;
+        case 9: // Hermitian matrix - lower/diag non unit
+            EXPECT_COMPLEX_ARR_NEAR((M * N),
+                                    ((std::complex<double> *)dense),
+                                    ((std::complex<double> *)h_lo_nu),
+                                    abserr);
+            break;
+        case 10: // Hermitian matrix - lower/diag unit
+            EXPECT_COMPLEX_ARR_NEAR(
+                (M * N), ((std::complex<double> *)dense), ((std::complex<double> *)h_lo_u), abserr);
+            break;
+        case 11: // Hermitian matrix - upper/diag non unit
+            EXPECT_COMPLEX_ARR_NEAR((M * N),
+                                    ((std::complex<double> *)dense),
+                                    ((std::complex<double> *)h_up_nu),
+                                    abserr);
+            break;
+        case 12: // Hermitian matrix - upper/diag unit
+            EXPECT_COMPLEX_ARR_NEAR(
+                (M * N), ((std::complex<double> *)dense), ((std::complex<double> *)h_up_u), abserr);
+            break;
+        default:
+            ASSERT_EQ(aoclsparse_status_success, aoclsparse_status_not_implemented);
+            break;
+        }
+        EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+    }
+
     TEST(convert, ConversionCSR2CSCDouble)
     {
         test_csr_to_csc<double>();
@@ -328,6 +572,110 @@ namespace
     TEST(convert, ConversionCSR2DenseFloat)
     {
         test_csr_to_dense<float>();
+    }
+
+    TEST(convert, CSR2DenseCmplxG)
+    {
+        test_csr_to_dense_cmplx<aoclsparse_double_complex>(aoclsparse_matrix_type_general,
+                                                           aoclsparse_fill_mode_lower,
+                                                           aoclsparse_diag_type_non_unit,
+                                                           0);
+    }
+
+    TEST(convert, CSR2DenseCmplxSLoNU)
+    {
+        test_csr_to_dense_cmplx<aoclsparse_double_complex>(aoclsparse_matrix_type_symmetric,
+                                                           aoclsparse_fill_mode_lower,
+                                                           aoclsparse_diag_type_non_unit,
+                                                           1);
+    }
+
+    TEST(convert, CSR2DenseCmplxSLoU)
+    {
+        test_csr_to_dense_cmplx<aoclsparse_double_complex>(aoclsparse_matrix_type_symmetric,
+                                                           aoclsparse_fill_mode_lower,
+                                                           aoclsparse_diag_type_unit,
+                                                           2);
+    }
+
+    TEST(convert, CSR2DenseCmplxSUpNU)
+    {
+        test_csr_to_dense_cmplx<aoclsparse_double_complex>(aoclsparse_matrix_type_symmetric,
+                                                           aoclsparse_fill_mode_upper,
+                                                           aoclsparse_diag_type_non_unit,
+                                                           3);
+    }
+
+    TEST(convert, CSR2DenseCmplxSUpU)
+    {
+        test_csr_to_dense_cmplx<aoclsparse_double_complex>(aoclsparse_matrix_type_symmetric,
+                                                           aoclsparse_fill_mode_upper,
+                                                           aoclsparse_diag_type_unit,
+                                                           4);
+    }
+
+    TEST(convert, CSR2DenseCmplxTLoNU)
+    {
+        test_csr_to_dense_cmplx<aoclsparse_double_complex>(aoclsparse_matrix_type_triangular,
+                                                           aoclsparse_fill_mode_lower,
+                                                           aoclsparse_diag_type_non_unit,
+                                                           5);
+    }
+
+    TEST(convert, CSR2DenseCmplxTLoU)
+    {
+        test_csr_to_dense_cmplx<aoclsparse_double_complex>(aoclsparse_matrix_type_triangular,
+                                                           aoclsparse_fill_mode_lower,
+                                                           aoclsparse_diag_type_unit,
+                                                           6);
+    }
+
+    TEST(convert, CSR2DenseCmplxTUpNU)
+    {
+        test_csr_to_dense_cmplx<aoclsparse_double_complex>(aoclsparse_matrix_type_triangular,
+                                                           aoclsparse_fill_mode_upper,
+                                                           aoclsparse_diag_type_non_unit,
+                                                           7);
+    }
+
+    TEST(convert, CSR2DenseCmplxTUpU)
+    {
+        test_csr_to_dense_cmplx<aoclsparse_double_complex>(aoclsparse_matrix_type_triangular,
+                                                           aoclsparse_fill_mode_upper,
+                                                           aoclsparse_diag_type_unit,
+                                                           8);
+    }
+
+    TEST(convert, CSR2DenseCmplxHLoNU)
+    {
+        test_csr_to_dense_cmplx<aoclsparse_double_complex>(aoclsparse_matrix_type_hermitian,
+                                                           aoclsparse_fill_mode_lower,
+                                                           aoclsparse_diag_type_non_unit,
+                                                           9);
+    }
+
+    TEST(convert, CSR2DenseCmplxHLoU)
+    {
+        test_csr_to_dense_cmplx<aoclsparse_double_complex>(aoclsparse_matrix_type_hermitian,
+                                                           aoclsparse_fill_mode_lower,
+                                                           aoclsparse_diag_type_unit,
+                                                           10);
+    }
+
+    TEST(convert, CSR2DenseCmplxHUpNU)
+    {
+        test_csr_to_dense_cmplx<aoclsparse_double_complex>(aoclsparse_matrix_type_hermitian,
+                                                           aoclsparse_fill_mode_upper,
+                                                           aoclsparse_diag_type_non_unit,
+                                                           11);
+    }
+
+    TEST(convert, CSR2DenseCmplxHUpU)
+    {
+        test_csr_to_dense_cmplx<aoclsparse_double_complex>(aoclsparse_matrix_type_hermitian,
+                                                           aoclsparse_fill_mode_upper,
+                                                           aoclsparse_diag_type_unit,
+                                                           12);
     }
 
 } // namespace

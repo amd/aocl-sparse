@@ -401,6 +401,30 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
 }
 
 template <>
+aoclsparse_status aoclsparse_mv(aoclsparse_operation             op,
+                                const aoclsparse_double_complex *alpha,
+                                aoclsparse_matrix                A,
+                                const aoclsparse_mat_descr       descr,
+                                const aoclsparse_double_complex *x,
+                                const aoclsparse_double_complex *beta,
+                                aoclsparse_double_complex       *y)
+{
+    return aoclsparse_zmv(op, alpha, A, descr, x, beta, y);
+}
+
+template <>
+aoclsparse_status aoclsparse_mv(aoclsparse_operation            op,
+                                const aoclsparse_float_complex *alpha,
+                                aoclsparse_matrix               A,
+                                const aoclsparse_mat_descr      descr,
+                                const aoclsparse_float_complex *x,
+                                const aoclsparse_float_complex *beta,
+                                aoclsparse_float_complex       *y)
+{
+    return aoclsparse_cmv(op, alpha, A, descr, x, beta, y);
+}
+
+template <>
 aoclsparse_status aoclsparse_diamv(aoclsparse_operation       trans,
                                    const float               *alpha,
                                    aoclsparse_int             m,
