@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020 Advanced Micro Devices, Inc.All rights reserved.
+ * Copyright (c) 2020-2023 Advanced Micro Devices, Inc.All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -153,7 +153,7 @@ struct aoclsparse_command_line_args
     void aoclsparse_get_cmdline_argument(aoclsparse_int index, T &val)
     {
         using namespace std;
-        if(index < args.size())
+        if((size_t)index < args.size())
         {
             istringstream str_stream(args[index]);
             str_stream >> val;
@@ -192,7 +192,7 @@ struct aoclsparse_command_line_args
             vals.clear();
 
             // Recover from multi-value string
-            for(aoclsparse_int i = 0; i < keys.size(); ++i)
+            for(aoclsparse_int i = 0; i < (aoclsparse_int)keys.size(); ++i)
             {
                 if(keys[i] == string(arg_name))
                 {

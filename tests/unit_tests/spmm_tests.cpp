@@ -317,7 +317,7 @@ namespace
                              dense_b.data(),
                              n_b,
                              aoclsparse_order_row);
-        aoclsparse_int m = m_c, n = n_c, k;
+        aoclsparse_int m = m_c, n = n_c, k = -1;
         if(op_a == aoclsparse_operation_none)
         {
             k = n_a; // m_b
