@@ -240,6 +240,6 @@ namespace
                        {"RectMat_MgtNwMissngDiagElms", M7_rect_N5_2holes},
                        {"PartialOrderingNoCopy", N59_partial_sort}};
 
-    INSTANTIATE_TEST_CASE_P(HintSuite, Pos, ::testing::ValuesIn(hlist));
+    INSTANTIATE_TEST_SUITE_P(HintSuite, Pos, ::testing::ValuesIn(hlist));
 
 } // namespace

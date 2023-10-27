@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022-2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -126,22 +126,20 @@ namespace aoclsparse_options
         aoclsparse_int setby; // 0 default, 1 user, 2 solver
         bool           hidden; // option is hidden to the user (not used)
         aoclsparse_int pgrp; // printing group (pretty print options, not used)
-
+        const string   setby_l[3] = {"(default)", "(user)", "(solver)"};
         OptionBase(){};
-        ~OptionBase(){};
-
-        const string setby_l[3] = {"(default)", "(user)", "(solver)"};
-
-        virtual string PrintOption(void)          = 0;
-        virtual string PrintDetails(bool doxygen) = 0;
-
         void SetName(string str)
         {
             name = str;
             util.PrepareString(name);
         }
 
+    private:
+        virtual string PrintOption(void)          = 0;
+        virtual string PrintDetails(bool doxygen) = 0;
+
     public:
+        virtual ~OptionBase(){};
         string GetName(void)
         {
             return name;

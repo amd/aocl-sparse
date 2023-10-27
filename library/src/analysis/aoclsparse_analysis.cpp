@@ -74,8 +74,7 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
     else
         ell_width = mn_nnz_gt_nnza;
     // 2: csr_rows_with_nnz_lt_10, ell_csr_nnz (hybrid fillin), ...
-    aoclsparse_int ell_m = 0, ell_csr_nnz = 0, ell_csr_g_ew_l_10 = 0, ell_csr_g_ew_g_10 = 0,
-                   csr_lt_10 = 0, rem = 0;
+    aoclsparse_int ell_m = 0, ell_csr_nnz = 0, ell_csr_g_ew_l_10 = 0, ell_csr_g_ew_g_10 = 0;
     for(aoclsparse_int i = 0; i < m; ++i)
     {
         aoclsparse_int row_nnz = row_ptr[i + 1] - row_ptr[i];
@@ -89,9 +88,6 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
             else
                 ell_csr_g_ew_g_10++;
         }
-        if(row_nnz <= 10)
-            csr_lt_10++;
-        rem += row_nnz % 4;
     }
     aoclsparse_int ell_nnz = ell_width * m + ell_csr_nnz;
     // 3: Fill-in for csr_br4 implementation

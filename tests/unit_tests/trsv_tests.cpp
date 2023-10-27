@@ -858,7 +858,7 @@ namespace
 #endif
         trsv_hint_driver<double>(id, base);
     }
-    INSTANTIATE_TEST_CASE_P(TrsvSuite, PosHDouble, ::testing::ValuesIn(trsv_hint_list));
+    INSTANTIATE_TEST_SUITE_P(TrsvSuite, PosHDouble, ::testing::ValuesIn(trsv_hint_list));
 
     class PosHFloat : public testing::TestWithParam<trsv_list_t>
     {
@@ -872,6 +872,6 @@ namespace
 #endif
         trsv_hint_driver<float>(id, base);
     }
-    INSTANTIATE_TEST_CASE_P(TrsvSuite, PosHFloat, ::testing::ValuesIn(trsv_hint_list));
+    INSTANTIATE_TEST_SUITE_P(TrsvSuite, PosHFloat, ::testing::ValuesIn(trsv_hint_list));
 }
 // namespace
