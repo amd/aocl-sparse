@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,12 @@
 #include "common_data_utils.h"
 #include "gtest/gtest.h"
 #include "aoclsparse.hpp"
+#include "aoclsparse_check.hpp"
+#include "aoclsparse_datatype2string.hpp"
+#include "aoclsparse_init.hpp"
+#include "aoclsparse_random.hpp"
+#include "aoclsparse_reference.hpp"
+#include "aoclsparse_utility.hpp"
 
 #include <algorithm>
 #include <vector>
@@ -34,748 +40,270 @@ using namespace std;
 
 namespace
 {
-    template <typename T, typename F>
-    static bool array_complex_match(T *a, F *b, int size, bool isConj)
-    {
-        T *x = reinterpret_cast<T *>(b);
-        for(int i = 0; i < size; i++)
-        {
-            if(a[i].real != x[i].real && a[i].imag != x[i].imag * (isConj ? -1 : 1))
-                return false;
-        }
-        return true;
-    }
-
-    template <typename T, typename F>
-    static bool array_match(T *a, F *b, int size)
-    {
-        T *x = reinterpret_cast<T *>(b);
-        for(int i = 0; i < size; i++)
-        {
-            if(a[i] != x[i])
-                return false;
-        }
-        return true;
-    }
-
-    void startup(vector<aoclsparse_int> &A_row,
-                 vector<aoclsparse_int> &A_col,
-                 vector<aoclsparse_int> &B_row,
-                 vector<aoclsparse_int> &B_col,
-                 bool                    is_transpose,
-                 bool                    isAOneBase,
-                 bool                    isBOneBase,
-                 bool                    isAZeroNNZ,
-                 bool                    isBZeroNNZ,
-                 bool                    getTranspose = false)
-    {
-        if(is_transpose)
-        {
-            if(isAZeroNNZ)
-            {
-                A_row.assign({0, 0, 0, 0, 0});
-                A_col.assign({0});
-            }
-            else
-            {
-                A_row.assign({0, 1, 3, 3, 4});
-                A_col.assign({0, 0, 1, 2});
-            }
-        }
-        else
-        {
-            if(isAZeroNNZ)
-            {
-                A_row.assign({0, 0, 0, 0});
-                A_col.assign({0});
-            }
-            else
-            {
-                A_row.assign({0, 2, 3, 4});
-                A_col.assign({0, 1, 1, 3});
-            }
-            if(getTranspose)
-            {
-                if(isAOneBase)
-                {
-                    transform(
-                        A_row.begin(), A_row.end(), A_row.begin(), [&](auto x) { return x + 1; });
-                    transform(
-                        A_col.begin(), A_col.end(), A_col.begin(), [&](auto x) { return x + 1; });
-                }
-                return;
-            }
-        }
-
-        if(isBZeroNNZ)
-        {
-            B_row.assign({0, 0, 0, 0});
-            B_col.assign({0});
-        }
-        else
-        {
-            B_row.assign({0, 2, 4, 5});
-            B_col.assign({0, 1, 1, 2, 3});
-        }
-        if(isAOneBase)
-        {
-            transform(A_row.begin(), A_row.end(), A_row.begin(), [&](auto x) { return x + 1; });
-            transform(A_col.begin(), A_col.end(), A_col.begin(), [&](auto x) { return x + 1; });
-        }
-        if(isBOneBase)
-        {
-            transform(B_row.begin(), B_row.end(), B_row.begin(), [&](auto x) { return x + 1; });
-            transform(B_col.begin(), B_col.end(), B_col.begin(), [&](auto x) { return x + 1; });
-        }
-    }
-
     typedef struct
     {
         const char           *testname;
         aoclsparse_operation  op;
-        bool                  isTransposed;
-        bool                  isAZeroNNZ;
-        bool                  isBZeroNNZ;
         aoclsparse_index_base base_A;
         aoclsparse_index_base base_B;
         aoclsparse_int        M;
         aoclsparse_int        N;
-        aoclsparse_int        nnz;
+        aoclsparse_int        nnzA;
+        aoclsparse_int        nnzB;
     } AddCSRParam;
-
-    double                    A_val_double[]          = {1, 3, 2, 5};
-    float                     A_val_float[]           = {1, 3, 2, 5};
-    aoclsparse_float_complex  A_val_complexf[]        = {{1, 1}, {3, 1}, {4, 2}, {1, 5}};
-    aoclsparse_double_complex A_val_complexd[]        = {{1, 1}, {3, 1}, {4, 2}, {1, 5}};
-    double                    B_val_double[]          = {4, 9, 3, 5, 1};
-    float                     B_val_float[]           = {4, 9, 3, 5, 1};
-    aoclsparse_float_complex  B_val_complexf[]        = {{4, 2}, {9, 3}, {1, 3}, {2, 5}, {4, 1}};
-    aoclsparse_double_complex B_val_complexd[]        = {{4, 2}, {9, 3}, {1, 3}, {2, 5}, {4, 1}};
-    double                    C_val_double[]          = {5, 12, 5, 5, 6};
-    float                     C_val_float[]           = {5, 12, 5, 5, 6};
-    aoclsparse_float_complex  C_0nnz_BMat_complexf[]  = {{0, 2}, {2, 4}, {2, 6}, {-4, 6}};
-    aoclsparse_double_complex C_0nnz_BMat_complexd[]  = {{0, 2}, {2, 4}, {2, 6}, {-4, 6}};
-    aoclsparse_float_complex  CConj_0nnz_BMat_compf[] = {{2, 0}, {4, 2}, {6, 2}, {6, -4}};
-    aoclsparse_double_complex CConj_0nnz_BMat_compd[] = {{2, 0}, {4, 2}, {6, 2}, {6, -4}};
-    aoclsparse_float_complex  C_val_complexf[]        = {{4, 4}, {11, 7}, {3, 9}, {2, 5}, {0, 7}};
-    aoclsparse_double_complex C_val_complexd[]        = {{4, 4}, {11, 7}, {3, 9}, {2, 5}, {0, 7}};
-    aoclsparse_float_complex  CConj_val_complexf[]    = {{6, 2}, {13, 5}, {7, 5}, {2, 5}, {10, -3}};
-    aoclsparse_double_complex CConj_val_complexd[]    = {{6, 2}, {13, 5}, {7, 5}, {2, 5}, {10, -3}};
 
     template <typename T>
     void test_csr_add(aoclsparse_operation  op,
-                      bool                  isTransposed,
-                      bool                  isAZeroNNZ,
-                      bool                  isBZeroNNZ,
                       aoclsparse_index_base base_A,
                       aoclsparse_index_base base_B,
                       aoclsparse_int        M,
                       aoclsparse_int        N,
-                      aoclsparse_int        NNZ,
-                      T                    *Val,
-                      T                    *Val_B,
-                      T                    *Val_C,
-                      T                     alpha)
+                      aoclsparse_int        nnz_A,
+                      aoclsparse_int        nnz_B)
     {
         aoclsparse_matrix      src_mat_A = nullptr, src_mat_B = nullptr, dest_mat = nullptr;
-        vector<aoclsparse_int> A_row, A_col, B_row, B_col;
-        startup(A_row, A_col, B_row, B_col, isTransposed, base_A, base_B, isAZeroNNZ, isBZeroNNZ);
-        int A_nnz = 0, B_nnz = 0;
-        if(!isAZeroNNZ)
-            A_nnz = 4;
-        if(!isBZeroNNZ)
-            B_nnz = 5;
+        vector<aoclsparse_int> A_row, A_col, B_row, B_col, C_row_ref, C_col_ref;
+        vector<T>              A_val, B_val, C_val_ref;
+        aoclsparse_int         B_m = M, B_n = N, C_nnz = nnz_A + nnz_B;
+        const char             filename[] = "";
+        bool                   issymm, general = true;
+        aoclsparse_matrix_sort sort = aoclsparse_unsorted; //aoclsparse_fully_sorted;
 
-        if(isTransposed)
+        aoclsparse_seedrand();
+        T alpha = random_generator_normal<T>();
 
-            EXPECT_EQ(aoclsparse_create_csr(
-                          &src_mat_A, base_A, N, M, A_nnz, A_row.data(), A_col.data(), Val),
-                      aoclsparse_status_success);
-        else
-            EXPECT_EQ(aoclsparse_create_csr(
-                          &src_mat_A, base_A, M, N, A_nnz, A_row.data(), A_col.data(), Val),
-                      aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_create_csr(
-                      &src_mat_B, base_B, M, N, B_nnz, B_row.data(), B_col.data(), Val_B),
+        ASSERT_EQ(aoclsparse_init_csr_matrix(A_row,
+                                             A_col,
+                                             A_val,
+                                             M,
+                                             N,
+                                             nnz_A,
+                                             base_A,
+                                             aoclsparse_matrix_random,
+                                             filename,
+                                             issymm,
+                                             general,
+                                             sort),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_create_csr(
+                      &src_mat_A, base_A, M, N, nnz_A, A_row.data(), A_col.data(), A_val.data()),
                   aoclsparse_status_success);
 
-        aoclsparse_int       *row_ptr = nullptr;
-        aoclsparse_int       *col_ind = nullptr;
-        T                    *val     = nullptr;
-        aoclsparse_int        n, m, nnz;
-        aoclsparse_index_base b;
+        if(op != aoclsparse_operation_none)
+        {
+            swap(B_m, B_n);
+        }
+
+        ASSERT_EQ(aoclsparse_init_csr_matrix(B_row,
+                                             B_col,
+                                             B_val,
+                                             B_m,
+                                             B_n,
+                                             nnz_B,
+                                             base_B,
+                                             aoclsparse_matrix_random,
+                                             filename,
+                                             issymm,
+                                             general,
+                                             sort),
+                  aoclsparse_status_success);
+        ASSERT_EQ(
+            aoclsparse_create_csr(
+                &src_mat_B, base_B, B_m, B_n, nnz_B, B_row.data(), B_col.data(), B_val.data()),
+            aoclsparse_status_success);
+
+        C_row_ref.resize(B_m + 1);
+        if(C_nnz > 0)
+        {
+            C_col_ref.resize(C_nnz);
+            C_val_ref.resize(C_nnz);
+        }
+        else
+        {
+            C_col_ref.reserve(1);
+            C_val_ref.reserve(1);
+        }
+
+        ASSERT_EQ(ref_add(op,
+                          base_A,
+                          M,
+                          N,
+                          A_row.data(),
+                          A_col.data(),
+                          A_val.data(),
+                          alpha,
+                          base_B,
+                          B_m,
+                          B_n,
+                          B_row.data(),
+                          B_col.data(),
+                          B_val.data(),
+                          C_nnz,
+                          C_row_ref.data(),
+                          C_col_ref.data(),
+                          C_val_ref.data()),
+                  aoclsparse_status_success);
+
+        std::vector<aoclsparse_int> row_ptr, col_ind;
+        std::vector<T>              val;
+        aoclsparse_int              n, m, nnz;
+        aoclsparse_index_base       b;
 
         EXPECT_EQ(aoclsparse_add(op, src_mat_A, alpha, src_mat_B, &dest_mat),
                   aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_export_csr(dest_mat, &b, &m, &n, &nnz, &row_ptr, &col_ind, &val),
-                  aoclsparse_status_success);
-        EXPECT_EQ(b, base_A);
-        EXPECT_EQ(nnz, NNZ);
-        if(base_A != base_B)
-        {
-            if(base_A)
-            {
-                transform(B_row.begin(), B_row.end(), B_row.begin(), [](auto x) { return x + 1; });
-                transform(B_col.begin(), B_col.end(), B_col.begin(), [](auto x) { return x + 1; });
-            }
-            else
-            {
-                transform(B_row.begin(), B_row.end(), B_row.begin(), [](auto x) { return x - 1; });
-                transform(B_col.begin(), B_col.end(), B_col.begin(), [](auto x) { return x - 1; });
-            }
-        }
-        if(!isBZeroNNZ)
-        {
-            EXPECT_EQ_VEC(M + 1, row_ptr, B_row);
-            EXPECT_EQ_VEC(NNZ, col_ind, B_col);
-        }
-        else
-        {
-            if(!isTransposed)
-            {
-                EXPECT_EQ_VEC(M + 1, row_ptr, A_row);
-                EXPECT_EQ_VEC(NNZ, col_ind, A_col);
-            }
-            else
-            {
-                startup(A_row,
-                        A_col,
-                        B_row,
-                        B_col,
-                        false,
-                        base_A,
-                        base_B,
-                        isAZeroNNZ,
-                        isBZeroNNZ,
-                        true);
-                EXPECT_EQ_VEC(M + 1, row_ptr, A_row);
-                EXPECT_EQ_VEC(NNZ, col_ind, A_col);
-            }
-        }
-        EXPECT_TRUE(array_match(Val_C, val, NNZ));
 
-        if(isTransposed)
-        {
-            EXPECT_EQ(m, M);
-            EXPECT_EQ(n, N);
-        }
-        else
-        {
-            EXPECT_EQ(m, M);
-            EXPECT_EQ(n, N);
-        }
-        EXPECT_EQ(aoclsparse_destroy(&dest_mat), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(&src_mat_A), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(&src_mat_B), aoclsparse_status_success);
-    }
-
-    template <typename T>
-    void test_csr_add_complex(aoclsparse_operation  op,
-                              bool                  isTransposed,
-                              bool                  isAZeroNNZ,
-                              bool                  isBZeroNNZ,
-                              aoclsparse_index_base base_A,
-                              aoclsparse_index_base base_B,
-                              aoclsparse_int        M,
-                              aoclsparse_int        N,
-                              aoclsparse_int        NNZ,
-                              T                    *Val,
-                              T                    *Val_B,
-                              T                    *Val_C,
-                              T                     alpha)
-    {
-        aoclsparse_matrix      src_mat_A = nullptr, src_mat_B = nullptr, dest_mat = nullptr;
-        vector<aoclsparse_int> A_row, A_col, B_row, B_col;
-        startup(A_row, A_col, B_row, B_col, isTransposed, base_A, base_B, isAZeroNNZ, isBZeroNNZ);
-        int A_nnz = 0, B_nnz = 0;
-        if(!isAZeroNNZ)
-            A_nnz = 4;
-        if(!isBZeroNNZ)
-            B_nnz = 5;
-
-        if(isTransposed)
-            EXPECT_EQ(aoclsparse_create_csr(
-                          &src_mat_A, base_A, N, M, A_nnz, A_row.data(), A_col.data(), Val),
-                      aoclsparse_status_success);
-        else
-            EXPECT_EQ(aoclsparse_create_csr(
-                          &src_mat_A, base_A, M, N, A_nnz, A_row.data(), A_col.data(), Val),
-                      aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_create_csr(
-                      &src_mat_B, base_B, M, N, B_nnz, B_row.data(), B_col.data(), Val_B),
+        EXPECT_EQ(aocl_csr_sorted_export(dest_mat, b, m, n, nnz, row_ptr, col_ind, val),
                   aoclsparse_status_success);
 
-        aoclsparse_int       *row_ptr = nullptr;
-        aoclsparse_int       *col_ind = nullptr;
-        T                    *val     = nullptr;
-        aoclsparse_int        n, m, nnz;
-        aoclsparse_index_base b;
-
-        EXPECT_EQ(aoclsparse_add(op, src_mat_A, alpha, src_mat_B, &dest_mat),
+        EXPECT_EQ(csrmat_check(B_m,
+                               B_n,
+                               C_nnz,
+                               base_A,
+                               C_row_ref,
+                               C_col_ref,
+                               C_val_ref,
+                               m,
+                               n,
+                               nnz,
+                               b,
+                               row_ptr,
+                               col_ind,
+                               val),
                   aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_export_csr(dest_mat, &b, &m, &n, &nnz, &row_ptr, &col_ind, &val),
-                  aoclsparse_status_success);
-        EXPECT_EQ(b, base_A);
-        EXPECT_EQ(nnz, NNZ);
-        if(base_A != base_B)
-        {
-            if(base_A)
-            {
-                transform(B_row.begin(), B_row.end(), B_row.begin(), [](auto x) { return x + 1; });
-                transform(B_col.begin(), B_col.end(), B_col.begin(), [](auto x) { return x + 1; });
-            }
-            else
-            {
-                transform(B_row.begin(), B_row.end(), B_row.begin(), [](auto x) { return x - 1; });
-                transform(B_col.begin(), B_col.end(), B_col.begin(), [](auto x) { return x - 1; });
-            }
-        }
-        if(!isBZeroNNZ)
-        {
-            EXPECT_EQ_VEC(M + 1, row_ptr, B_row);
-            EXPECT_EQ_VEC(NNZ, col_ind, B_col);
-        }
-        else
-        {
-            if(!isTransposed)
-            {
-                EXPECT_EQ_VEC(M + 1, row_ptr, A_row);
-                EXPECT_EQ_VEC(NNZ, col_ind, A_col);
-            }
-            else
-            {
-                startup(A_row,
-                        A_col,
-                        B_row,
-                        B_col,
-                        false,
-                        base_A,
-                        base_B,
-                        isAZeroNNZ,
-                        isBZeroNNZ,
-                        true);
-                EXPECT_EQ_VEC(M + 1, row_ptr, A_row);
-                EXPECT_EQ_VEC(NNZ, col_ind, A_col);
-            }
-        }
-        EXPECT_TRUE(
-            array_complex_match(Val_C, val, NNZ, op == aoclsparse_operation_conjugate_transpose));
 
-        if(isTransposed)
-        {
-            EXPECT_EQ(m, M);
-            EXPECT_EQ(n, N);
-        }
-        else
-        {
-            EXPECT_EQ(m, M);
-            EXPECT_EQ(n, N);
-        }
         EXPECT_EQ(aoclsparse_destroy(&dest_mat), aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_destroy(&src_mat_A), aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_destroy(&src_mat_B), aoclsparse_status_success);
     }
 
     // List of all desired negative tests
-    const AddCSRParam AddCSRValues[] = {{"CSR_0B_ADD",
+    const AddCSRParam AddCSRValues[] = {{"CSR_00B",
                                          aoclsparse_operation_none,
-                                         false,
-                                         false,
-                                         false,
                                          aoclsparse_index_base_zero,
                                          aoclsparse_index_base_zero,
-                                         3,
-                                         4,
+                                         10,
+                                         11,
+                                         15,
                                          5},
-                                        {"CSR_1B_ADD",
+                                        {"CSR_10B_dense",
                                          aoclsparse_operation_none,
-                                         false,
-                                         false,
-                                         false,
                                          aoclsparse_index_base_one,
                                          aoclsparse_index_base_zero,
-                                         3,
-                                         4,
-                                         5},
-                                        {"CSR_BMat_1B_ADD",
+                                         10,
+                                         11,
+                                         95,
+                                         50},
+                                        {"CSR_01B_thin",
                                          aoclsparse_operation_none,
-                                         false,
-                                         false,
-                                         false,
                                          aoclsparse_index_base_zero,
                                          aoclsparse_index_base_one,
-                                         3,
-                                         4,
-                                         5},
-                                        {"CSR_1B_BMat_1B_ADD",
+                                         1,
+                                         100,
+                                         6,
+                                         12},
+                                        {"CSR_11B_tall",
                                          aoclsparse_operation_none,
-                                         false,
-                                         false,
-                                         false,
                                          aoclsparse_index_base_one,
                                          aoclsparse_index_base_one,
-                                         3,
-                                         4,
-                                         5},
-                                        {"CSR_0nnz_0B_ADD",
+                                         97,
+                                         1,
+                                         25,
+                                         93},
+                                        {"CSR_00B_0nnzA",
                                          aoclsparse_operation_none,
-                                         false,
-                                         true,
-                                         false,
                                          aoclsparse_index_base_zero,
                                          aoclsparse_index_base_zero,
                                          3,
                                          4,
-                                         5},
-                                        {"CSR_0nnz_1B_ADD",
+                                         0,
+                                         2},
+                                        {"CSR_11B_0nnzB",
                                          aoclsparse_operation_none,
-                                         false,
-                                         true,
-                                         false,
-                                         aoclsparse_index_base_one,
-                                         aoclsparse_index_base_zero,
-                                         3,
-                                         4,
-                                         5},
-                                        {"CSR_0nnz_0B_BMat_1B_ADD",
-                                         aoclsparse_operation_none,
-                                         false,
-                                         true,
-                                         false,
-                                         aoclsparse_index_base_zero,
-                                         aoclsparse_index_base_one,
-                                         3,
-                                         4,
-                                         5},
-                                        {"CSR_0nnz_1B_BMat_1B_ADD",
-                                         aoclsparse_operation_none,
-                                         false,
-                                         true,
-                                         false,
                                          aoclsparse_index_base_one,
                                          aoclsparse_index_base_one,
-                                         3,
                                          4,
-                                         5},
-                                        {"CSRT_0B_ADD",
-                                         aoclsparse_operation_transpose,
-                                         true,
-                                         false,
-                                         false,
-                                         aoclsparse_index_base_zero,
-                                         aoclsparse_index_base_zero,
-                                         3,
-                                         4,
-                                         5},
-                                        {"CSRT_1B_ADD",
-                                         aoclsparse_operation_transpose,
-                                         true,
-                                         false,
-                                         false,
-                                         aoclsparse_index_base_one,
-                                         aoclsparse_index_base_zero,
-                                         3,
-                                         4,
-                                         5},
-                                        {"CSRT_0B_BMat_1B_ADD",
-                                         aoclsparse_operation_transpose,
-                                         true,
-                                         false,
-                                         false,
-                                         aoclsparse_index_base_zero,
-                                         aoclsparse_index_base_one,
-                                         3,
-                                         4,
-                                         5},
-                                        {"CSRT_1B_BMat_1B_ADD",
-                                         aoclsparse_operation_transpose,
-                                         true,
-                                         false,
-                                         false,
-                                         aoclsparse_index_base_one,
-                                         aoclsparse_index_base_one,
-                                         3,
-                                         4,
-                                         5},
-                                        {"CSRT_0nnz_0B_ADD",
-                                         aoclsparse_operation_transpose,
-                                         true,
-                                         true,
-                                         false,
-                                         aoclsparse_index_base_zero,
-                                         aoclsparse_index_base_zero,
-                                         3,
-                                         4,
-                                         5},
-                                        {"CSRT_0nnz_1B_ADD",
-                                         aoclsparse_operation_transpose,
-                                         true,
-                                         true,
-                                         false,
-                                         aoclsparse_index_base_one,
-                                         aoclsparse_index_base_zero,
-                                         3,
-                                         4,
-                                         5},
-                                        {"CSRT_0nnz_0B_BMat_1B_ADD",
-                                         aoclsparse_operation_transpose,
-                                         true,
-                                         true,
-                                         false,
-                                         aoclsparse_index_base_zero,
-                                         aoclsparse_index_base_one,
-                                         3,
-                                         4,
-                                         5},
-                                        {"CSRT_0nnz_1B_BMat_1B_ADD",
-                                         aoclsparse_operation_transpose,
-                                         true,
-                                         true,
-                                         false,
-                                         aoclsparse_index_base_one,
-                                         aoclsparse_index_base_one,
-                                         3,
-                                         4,
-                                         5},
-                                        {"CSRCT_0B_ADD",
-                                         aoclsparse_operation_conjugate_transpose,
-                                         true,
-                                         false,
-                                         false,
-                                         aoclsparse_index_base_zero,
-                                         aoclsparse_index_base_zero,
-                                         3,
-                                         4,
-                                         5},
-                                        {"CSRCT_1B_ADD",
-                                         aoclsparse_operation_conjugate_transpose,
-                                         true,
-                                         false,
-                                         false,
-                                         aoclsparse_index_base_one,
-                                         aoclsparse_index_base_zero,
-                                         3,
-                                         4,
-                                         5},
-                                        {"CSRCT_BMat_1B_ADD",
-                                         aoclsparse_operation_conjugate_transpose,
-                                         true,
-                                         false,
-                                         false,
-                                         aoclsparse_index_base_zero,
-                                         aoclsparse_index_base_one,
-                                         3,
-                                         4,
-                                         5},
-                                        {"CSRCT_1B_BMat_1B_ADD",
-                                         aoclsparse_operation_conjugate_transpose,
-                                         true,
-                                         false,
-                                         false,
-                                         aoclsparse_index_base_one,
-                                         aoclsparse_index_base_one,
-                                         3,
-                                         4,
-                                         5},
-                                        {"CSRCT_0nnz_0B_ADD",
-                                         aoclsparse_operation_conjugate_transpose,
-                                         true,
-                                         true,
-                                         false,
-                                         aoclsparse_index_base_zero,
-                                         aoclsparse_index_base_zero,
-                                         3,
-                                         4,
-                                         5},
-                                        {"CSRCT_0nnz_1B_ADD",
-                                         aoclsparse_operation_conjugate_transpose,
-                                         true,
-                                         true,
-                                         false,
-                                         aoclsparse_index_base_one,
-                                         aoclsparse_index_base_zero,
-                                         3,
-                                         4,
-                                         5},
-                                        {"CSRCT_0nnz_0B_BMat_1B_ADD",
-                                         aoclsparse_operation_conjugate_transpose,
-                                         true,
-                                         true,
-                                         false,
-                                         aoclsparse_index_base_zero,
-                                         aoclsparse_index_base_one,
-                                         3,
-                                         4,
-                                         5},
-                                        {"CSRCT_0nnz_1B_BMat_1B_ADD",
-                                         aoclsparse_operation_conjugate_transpose,
-                                         true,
-                                         true,
-                                         false,
-                                         aoclsparse_index_base_one,
-                                         aoclsparse_index_base_one,
-                                         3,
-                                         4,
-                                         5},
-                                        {"CSR_0nnz_Bmat_0B_ADD",
-                                         aoclsparse_operation_none,
-                                         false,
-                                         false,
-                                         true,
-                                         aoclsparse_index_base_zero,
-                                         aoclsparse_index_base_zero,
-                                         3,
-                                         4,
-                                         4},
-                                        {"CSR_0nnz_Bmat_1B_ADD",
-                                         aoclsparse_operation_none,
-                                         false,
-                                         false,
-                                         true,
-                                         aoclsparse_index_base_one,
-                                         aoclsparse_index_base_zero,
-                                         3,
-                                         4,
-                                         4},
-                                        {"CSR_0nnz_BMat_1B_ADD",
-                                         aoclsparse_operation_none,
-                                         false,
-                                         false,
-                                         true,
-                                         aoclsparse_index_base_zero,
-                                         aoclsparse_index_base_one,
-                                         3,
-                                         4,
-                                         4},
-                                        {"CSR_0nnz_1B_BMat_1B_ADD",
-                                         aoclsparse_operation_none,
-                                         false,
-                                         false,
-                                         true,
-                                         aoclsparse_index_base_one,
-                                         aoclsparse_index_base_one,
-                                         3,
-                                         4,
-                                         4},
-                                        {"CSR_0nnz_Bmat_0nnz_0B_ADD",
-                                         aoclsparse_operation_none,
-                                         false,
-                                         true,
-                                         true,
-                                         aoclsparse_index_base_zero,
-                                         aoclsparse_index_base_zero,
-                                         3,
-                                         4,
+                                         9,
+                                         34,
                                          0},
-                                        {"CSR_0nnz_1B_Bmat_0nnz_ADD",
-                                         aoclsparse_operation_none,
-                                         false,
-                                         true,
-                                         true,
+                                        {"CSRT_00B",
+                                         aoclsparse_operation_transpose,
+                                         aoclsparse_index_base_zero,
+                                         aoclsparse_index_base_zero,
+                                         6,
+                                         4,
+                                         5,
+                                         22},
+                                        {"CSRT_10B_tall",
+                                         aoclsparse_operation_transpose,
                                          aoclsparse_index_base_one,
                                          aoclsparse_index_base_zero,
+                                         67,
                                          3,
-                                         4,
+                                         60,
+                                         10},
+                                        {"CSRT_01B_very_sparse",
+                                         aoclsparse_operation_transpose,
+                                         aoclsparse_index_base_zero,
+                                         aoclsparse_index_base_one,
+                                         31,
+                                         43,
+                                         5,
+                                         6},
+                                        {"CSRT_11B_0nnzA",
+                                         aoclsparse_operation_transpose,
+                                         aoclsparse_index_base_one,
+                                         aoclsparse_index_base_one,
+                                         13,
+                                         9,
+                                         0,
+                                         34},
+                                        {"CSRT_10B_0nnz_both",
+                                         aoclsparse_operation_transpose,
+                                         aoclsparse_index_base_one,
+                                         aoclsparse_index_base_zero,
+                                         2,
+                                         2,
+                                         0,
                                          0},
-                                        {"CSRT_0nnz_1B_Bmat_ADD",
+                                        {"CSRT_11B_1x1",
                                          aoclsparse_operation_transpose,
-                                         true,
-                                         false,
-                                         true,
                                          aoclsparse_index_base_one,
-                                         aoclsparse_index_base_zero,
-                                         3,
-                                         4,
-                                         4},
-                                        {"CSRT_0nnz_Bmat_0B_ADD",
-                                         aoclsparse_operation_transpose,
-                                         true,
-                                         false,
-                                         true,
-                                         aoclsparse_index_base_zero,
-                                         aoclsparse_index_base_zero,
-                                         3,
-                                         4,
-                                         4},
-                                        {"CSRT_0nnz_Bmat_1B_BMat_ADD",
-                                         aoclsparse_operation_transpose,
-                                         true,
-                                         false,
-                                         true,
-                                         aoclsparse_index_base_zero,
                                          aoclsparse_index_base_one,
-                                         3,
-                                         4,
-                                         4},
-                                        {"CSRT_0nnz_Bmat_0nnz_0B_ADD",
-                                         aoclsparse_operation_transpose,
-                                         true,
-                                         true,
-                                         true,
+                                         1,
+                                         1,
+                                         1,
+                                         1},
+                                        {"CSRCT_00B_0nnzB",
+                                         aoclsparse_operation_conjugate_transpose,
                                          aoclsparse_index_base_zero,
                                          aoclsparse_index_base_zero,
-                                         3,
-                                         4,
+                                         8,
+                                         7,
+                                         5,
                                          0},
-                                        {"CSRT_0nnz_Bmat_0nnz_1B_ADD",
+                                        {"CSRCT_01B",
+                                         aoclsparse_operation_conjugate_transpose,
+                                         aoclsparse_index_base_one,
+                                         aoclsparse_index_base_zero,
+                                         5,
+                                         9,
+                                         15,
+                                         23},
+                                        {"CSRCT_11B_square",
+                                         aoclsparse_operation_conjugate_transpose,
+                                         aoclsparse_index_base_one,
+                                         aoclsparse_index_base_one,
+                                         9,
+                                         9,
+                                         70,
+                                         53},
+                                        {"CSRT_11B_tiny",
                                          aoclsparse_operation_transpose,
-                                         true,
-                                         true,
-                                         true,
-                                         aoclsparse_index_base_one,
                                          aoclsparse_index_base_zero,
-                                         3,
+                                         aoclsparse_index_base_zero,
+                                         1,
                                          4,
-                                         0},
-                                        {"CSRCT_0nnz_Bmat_1B_ADD",
-                                         aoclsparse_operation_conjugate_transpose,
-                                         true,
-                                         false,
-                                         true,
-                                         aoclsparse_index_base_one,
-                                         aoclsparse_index_base_zero,
-                                         3,
-                                         4,
-                                         4},
-                                        {"CSRCT_0nnz_Bmat_0B_ADD",
-                                         aoclsparse_operation_conjugate_transpose,
-                                         true,
-                                         false,
-                                         true,
-                                         aoclsparse_index_base_zero,
-                                         aoclsparse_index_base_zero,
-                                         3,
-                                         4,
-                                         4},
-                                        {"CSRCT_0nnz_Bmat_1B_BMat_ADD",
-                                         aoclsparse_operation_conjugate_transpose,
-                                         true,
-                                         false,
-                                         true,
-                                         aoclsparse_index_base_zero,
-                                         aoclsparse_index_base_one,
-                                         3,
-                                         4,
-                                         4},
-                                        {"CSRCT_0nnz_Bmat_0nnz_0B_ADD",
-                                         aoclsparse_operation_conjugate_transpose,
-                                         true,
-                                         true,
-                                         true,
-                                         aoclsparse_index_base_zero,
-                                         aoclsparse_index_base_zero,
-                                         3,
-                                         4,
-                                         0},
-                                        {"CSRCT_0nnz_Bmat_0nnz_1B_ADD",
-                                         aoclsparse_operation_conjugate_transpose,
-                                         true,
-                                         true,
-                                         true,
-                                         aoclsparse_index_base_one,
-                                         aoclsparse_index_base_zero,
-                                         3,
-                                         4,
+                                         1,
                                          0}};
 
     // It is used to when testing::PrintToString(GetParam()) to generate test name for ctest
@@ -784,169 +312,43 @@ namespace
         *os << param.testname;
     }
 
-    class AddCSRSuite : public testing::TestWithParam<AddCSRParam>
+    class CSR : public testing::TestWithParam<AddCSRParam>
     {
     };
 
     // tests with double type
-    TEST_P(AddCSRSuite, Double)
+    TEST_P(CSR, Double)
     {
         const AddCSRParam &param = GetParam();
-        double            *c_val = nullptr;
-        if(!param.isAZeroNNZ)
-        {
-            if(param.isBZeroNNZ)
-            {
-                c_val = A_val_double;
-            }
-            else
-            {
-                c_val = C_val_double;
-            }
-        }
-        else
-        {
-            if(!param.isBZeroNNZ)
-                c_val = B_val_double;
-        }
-        test_csr_add(param.op,
-                     param.isTransposed,
-                     param.isAZeroNNZ,
-                     param.isBZeroNNZ,
-                     param.base_A,
-                     param.base_B,
-                     param.M,
-                     param.N,
-                     param.nnz,
-                     A_val_double,
-                     B_val_double,
-                     c_val,
-                     1.0);
+        test_csr_add<double>(
+            param.op, param.base_A, param.base_B, param.M, param.N, param.nnzA, param.nnzB);
     }
 
     // tests with float type
-    TEST_P(AddCSRSuite, Float)
+    TEST_P(CSR, Float)
     {
         const AddCSRParam &param = GetParam();
-        float             *c_val = nullptr;
-        if(!param.isAZeroNNZ)
-        {
-            if(param.isBZeroNNZ)
-            {
-                c_val = A_val_float;
-            }
-            else
-            {
-                c_val = C_val_float;
-            }
-        }
-        else
-        {
-            if(!param.isBZeroNNZ)
-                c_val = B_val_float;
-        }
-        test_csr_add(param.op,
-                     param.isTransposed,
-                     param.isAZeroNNZ,
-                     param.isBZeroNNZ,
-                     param.base_A,
-                     param.base_B,
-                     param.M,
-                     param.N,
-                     param.nnz,
-                     A_val_float,
-                     B_val_float,
-                     c_val,
-                     1.0f);
+        test_csr_add<float>(
+            param.op, param.base_A, param.base_B, param.M, param.N, param.nnzA, param.nnzB);
     }
 
-    // tests with double type
-    TEST_P(AddCSRSuite, ComplexDouble)
+    // tests with comlex double type
+    TEST_P(CSR, ComplexDouble)
     {
-        const AddCSRParam         &param = GetParam();
-        aoclsparse_double_complex *c_val = nullptr;
-        if(!param.isAZeroNNZ)
-        {
-            if(param.isBZeroNNZ)
-            {
-                if(param.op == aoclsparse_operation_conjugate_transpose)
-                    c_val = CConj_0nnz_BMat_compd;
-                else
-                    c_val = C_0nnz_BMat_complexd;
-            }
-            else
-            {
-
-                if(param.op == aoclsparse_operation_conjugate_transpose)
-                    c_val = CConj_val_complexd;
-                else
-                    c_val = C_val_complexd;
-            }
-        }
-        else
-        {
-            if(!param.isBZeroNNZ)
-                c_val = B_val_complexd;
-        }
-        test_csr_add_complex(param.op,
-                             param.isTransposed,
-                             param.isAZeroNNZ,
-                             param.isBZeroNNZ,
-                             param.base_A,
-                             param.base_B,
-                             param.M,
-                             param.N,
-                             param.nnz,
-                             A_val_complexd,
-                             B_val_complexd,
-                             c_val,
-                             {1.0, 1.0});
+        const AddCSRParam &param = GetParam();
+        test_csr_add<aoclsparse_double_complex>(
+            param.op, param.base_A, param.base_B, param.M, param.N, param.nnzA, param.nnzB);
     }
 
-    // tests with float type
-    TEST_P(AddCSRSuite, ComplexFloat)
+    // tests with complex float type
+    TEST_P(CSR, ComplexFloat)
     {
-        const AddCSRParam        &param = GetParam();
-        aoclsparse_float_complex *c_val = nullptr;
-        if(!param.isAZeroNNZ)
-        {
-            if(param.isBZeroNNZ)
-            {
-                if(param.op == aoclsparse_operation_conjugate_transpose)
-                    c_val = CConj_0nnz_BMat_compf;
-                else
-                    c_val = C_0nnz_BMat_complexf;
-            }
-            else
-            {
-
-                if(param.op == aoclsparse_operation_conjugate_transpose)
-                    c_val = CConj_val_complexf;
-                else
-                    c_val = C_val_complexf;
-            }
-        }
-        else
-        {
-            if(!param.isBZeroNNZ)
-                c_val = B_val_complexf;
-        }
-        test_csr_add_complex(param.op,
-                             param.isTransposed,
-                             param.isAZeroNNZ,
-                             param.isBZeroNNZ,
-                             param.base_A,
-                             param.base_B,
-                             param.M,
-                             param.N,
-                             param.nnz,
-                             A_val_complexf,
-                             B_val_complexf,
-                             c_val,
-                             {1.0f, 1.0f});
+        const AddCSRParam &param = GetParam();
+        test_csr_add<aoclsparse_float_complex>(
+            param.op, param.base_A, param.base_B, param.M, param.N, param.nnzA, param.nnzB);
     }
 
-    INSTANTIATE_TEST_SUITE_P(ADDTestSuite, AddCSRSuite, testing::ValuesIn(AddCSRValues));
+    INSTANTIATE_TEST_SUITE_P(AddTestSuite, CSR, testing::ValuesIn(AddCSRValues));
 
     TEST(AddValidationSuite, MatrixDimensionTest)
     {
@@ -997,6 +399,46 @@ namespace
                   aoclsparse_status_invalid_pointer);
         EXPECT_EQ(aoclsparse_destroy(&B), aoclsparse_status_success);
         delete val;
+    }
+
+    TEST(AddValidationSuite, WrongMatrixFormatTest)
+    {
+        aoclsparse_matrix      A = nullptr, B = nullptr, C = nullptr;
+        vector<aoclsparse_int> row_ptr(6, 0), col_ptr(1, 0);
+        aoclsparse_int         m = 5, n = 5, nnz = 0;
+        aoclsparse_index_base  base = aoclsparse_index_base_zero;
+        float                 *val  = new float;
+        EXPECT_EQ(aoclsparse_create_coo(&A, base, m, n, nnz, row_ptr.data(), col_ptr.data(), val),
+                  aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_create_csr(&B, base, m, n, nnz, row_ptr.data(), col_ptr.data(), val),
+                  aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_add(aoclsparse_operation_transpose, A, 0.1f, B, &C),
+                  aoclsparse_status_not_implemented);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&B), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&C), aoclsparse_status_success);
+        delete val;
+    }
+
+    TEST(AddValidationSuite, WrongMatrixTypeTest)
+    {
+        aoclsparse_matrix      A = nullptr, B = nullptr, C = nullptr;
+        vector<aoclsparse_int> row_ptr(6, 0), col_ptr(1, 0);
+        aoclsparse_int         m = 5, n = 5, nnz = 0;
+        aoclsparse_index_base  base = aoclsparse_index_base_zero;
+        float                 *fval = new float;
+        double                *dval = new double;
+        EXPECT_EQ(aoclsparse_create_csr(&A, base, m, n, nnz, row_ptr.data(), col_ptr.data(), dval),
+                  aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_create_csr(&B, base, m, n, nnz, row_ptr.data(), col_ptr.data(), fval),
+                  aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_add(aoclsparse_operation_transpose, A, 0.1f, B, &C),
+                  aoclsparse_status_wrong_type);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&B), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&C), aoclsparse_status_success);
+        delete dval;
+        delete fval;
     }
 
 } // namespacecd
