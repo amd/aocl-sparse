@@ -137,6 +137,28 @@ aoclsparse_status aoclsparse_add(const aoclsparse_operation op,
 }
 
 template <>
+aoclsparse_status aoclsparse_add(const aoclsparse_operation op,
+                                 const aoclsparse_matrix    A,
+                                 const std::complex<float>  alpha,
+                                 const aoclsparse_matrix    B,
+                                 aoclsparse_matrix         *C)
+{
+    return aoclsparse_cadd(
+        op, A, aoclsparse_float_complex{std::real(alpha), std::imag(alpha)}, B, C);
+}
+
+template <>
+aoclsparse_status aoclsparse_add(const aoclsparse_operation op,
+                                 const aoclsparse_matrix    A,
+                                 const std::complex<double> alpha,
+                                 const aoclsparse_matrix    B,
+                                 aoclsparse_matrix         *C)
+{
+    return aoclsparse_zadd(
+        op, A, aoclsparse_double_complex{std::real(alpha), std::imag(alpha)}, B, C);
+}
+
+template <>
 aoclsparse_status aoclsparse_add(const aoclsparse_operation     op,
                                  const aoclsparse_matrix        A,
                                  const aoclsparse_float_complex alpha,
@@ -154,30 +176,6 @@ aoclsparse_status aoclsparse_add(const aoclsparse_operation      op,
                                  aoclsparse_matrix              *C)
 {
     return aoclsparse_zadd(op, A, alpha, B, C);
-}
-
-template <>
-aoclsparse_status aoclsparse_add(const aoclsparse_operation op,
-                                 const aoclsparse_matrix    A,
-                                 const std::complex<float>  alpha,
-                                 const aoclsparse_matrix    B,
-                                 aoclsparse_matrix         *C)
-{
-    const aoclsparse_float_complex *pAlpha
-        = reinterpret_cast<const aoclsparse_float_complex *>(&alpha);
-    return aoclsparse_cadd(op, A, *pAlpha, B, C);
-}
-
-template <>
-aoclsparse_status aoclsparse_add(const aoclsparse_operation op,
-                                 const aoclsparse_matrix    A,
-                                 const std::complex<double> alpha,
-                                 const aoclsparse_matrix    B,
-                                 aoclsparse_matrix         *C)
-{
-    const aoclsparse_double_complex *pAlpha
-        = reinterpret_cast<const aoclsparse_double_complex *>(&alpha);
-    return aoclsparse_zadd(op, A, *pAlpha, B, C);
 }
 
 template <>
@@ -2405,6 +2403,7 @@ aoclsparse_status aoclsparse_export_csc(const aoclsparse_matrix mat,
 {
     return aoclsparse_export_dcsc(mat, base, m, n, nnz, col_ptr, row_idx, val);
 }
+
 template <>
 aoclsparse_status aoclsparse_export_csc(const aoclsparse_matrix    mat,
                                         aoclsparse_index_base     *base,
