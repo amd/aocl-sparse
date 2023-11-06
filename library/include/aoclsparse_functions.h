@@ -446,7 +446,6 @@ aoclsparse_status aoclsparse_sroti(const aoclsparse_int  nnz,
  *
  *  For double precision complex vectors use aoclsparse_zgthr() and for single
  *  precision complex vectors use aoclsparse_cgthr().
- *  @endrst
  *
  *  @param[in]
  *  nnz         number of non-zero entries of \f$x\f$.

@@ -77,4 +77,12 @@ template <typename T>
 void register_tests_dotci([[maybe_unused]] std::vector<testsetting<T>> &testqueue)
 {
 }
+template <typename T>
+void register_tests_symgs([[maybe_unused]] std::vector<testsetting<T>> &testqueue)
+{
+}
+template <typename T>
+void register_tests_symgs_mv([[maybe_unused]] std::vector<testsetting<T>> &testqueue)
+{
+}
 #endif

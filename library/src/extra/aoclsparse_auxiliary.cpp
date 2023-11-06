@@ -521,6 +521,7 @@ aoclsparse_status aoclsparse_destroy(aoclsparse_matrix *A)
         aoclsparse_destroy_ilu(&((*A)->ilu_info));
         aoclsparse_destroy_csc(*A);
         aoclsparse_destroy_coo(*A);
+        aoclsparse_destroy_symgs(&((*A)->symgs_info));
         delete *A;
         *A = NULL;
     }
@@ -885,7 +886,27 @@ aoclsparse_status aoclsparse_destroy_ilu(_aoclsparse_ilu *ilu_info)
     }
     return aoclsparse_status_success;
 }
-
+/********************************************************************************
+ * \brief aoclsparse_matrix is a structure holding the sparse matrix A.
+ * The working buffers of SYMGS needs to be deallocated.
+ *******************************************************************************/
+aoclsparse_status aoclsparse_destroy_symgs(_aoclsparse_symgs *sgs_info)
+{
+    if(sgs_info != NULL)
+    {
+        if(sgs_info->r != NULL)
+        {
+            ::operator delete(sgs_info->r);
+            sgs_info->r = NULL;
+        }
+        if(sgs_info->q != NULL)
+        {
+            ::operator delete(sgs_info->q);
+            sgs_info->q = NULL;
+        }
+    }
+    return aoclsparse_status_success;
+}
 aoclsparse_status aoclsparse_destroy_opt_csr(aoclsparse_matrix A)
 {
     if(!A->opt_csr_is_users)
@@ -1359,4 +1380,22 @@ aoclsparse_status aoclsparse_export_csc_t(const aoclsparse_matrix mat,
     *nnz  = mat->nnz;
     *base = mat->base;
     return aoclsparse_status_success;
+}
+
+/********************************************************************************
+ * \brief assign matrix properties such as fill_mode, matrix type, transpose and
+ * diagonal type to descriptor and transpose parameters provided. These output
+ * params (descr_dest, trans_dest) would be used to access either strict triangles
+ * or triangles with diagonal in Gauss Seidel process.
+ ********************************************************************************/
+void set_symgs_matrix_properties(aoclsparse_mat_descr  descr_dest,
+                                 aoclsparse_operation *trans_dest,
+                                 aoclsparse_fill_mode &fmode,
+                                 aoclsparse_diag_type &dtype,
+                                 aoclsparse_operation &trans)
+{
+    aoclsparse_set_mat_fill_mode(descr_dest, fmode);
+    aoclsparse_set_mat_diag_type(descr_dest, dtype);
+    *trans_dest = trans;
+    return;
 }

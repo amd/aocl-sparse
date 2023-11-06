@@ -111,6 +111,19 @@ struct _aoclsparse_ilu
 };
 
 /********************************************************************************
+ * \brief _aoclsparse_symgs is a structure holding data members for SYMGS operation.
+ * It holds working buffers such as residual buffer for Gauss Seidel operatoin
+ * It should be destroyed at the end using aoclsparse_destroy_symgs().
+ *******************************************************************************/
+struct _aoclsparse_symgs
+{
+    void *r = NULL; //residual
+    void *q = NULL; //temporary buffer
+    // true: SGS Optimization/Working-Buffer-Allocation already done, else needs to be performed
+    bool sgs_ready = false;
+};
+
+/********************************************************************************
  * \brief aoclsparse_csc is a structure holding the aoclsparse matrix
  * in csc format. It must be initialized using aoclsparse_create_(s/d/c/z)csc()
  * and the retured handle must be passed to all subsequent library function
@@ -211,6 +224,9 @@ struct _aoclsparse_matrix
 
     //ilu members
     struct _aoclsparse_ilu ilu_info;
+
+    //symgs
+    struct _aoclsparse_symgs symgs_info;
 
     // optimized csr matrix
     // It is checked, sorted in rows, has a diagonal element in each row,

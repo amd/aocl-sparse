@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,9 +22,11 @@
  * ************************************************************************ */
 
 #pragma once
-#ifndef TESTING_CSRMV_HPP
-#define TESTING_CSRMV_HPP
+#ifndef TESTING_SYMGS_HPP
+#define TESTING_SYMGS_HPP
 
+#include "aoclsparse_analysis.h"
+#include "aoclsparse_convert.h"
 #include "aoclsparse.hpp"
 #include "aoclsparse_arguments.hpp"
 #include "aoclsparse_check.hpp"
@@ -37,15 +39,13 @@
 #include "aoclsparse_utility.hpp"
 
 #ifdef EXT_BENCHMARKING
-#include "ext_benchmarking.hpp"
-// define register_tests_*() which add new tests
+#include "ext_benchmarking.hpp" // defines register_tests_*()
 #else
-#include "aoclsparse_no_ext_benchmarking.hpp"
-// or their dummy version adding no additional tests
+#include "aoclsparse_no_ext_benchmarking.hpp" // defines them as empty/do nothing
 #endif
 
 template <typename T>
-int testing_csrmv_aocl(const Arguments &arg, testdata<T> &td, double timings[])
+int testing_symgs_aocl(const Arguments &arg, testdata<T> &td, double timings[])
 {
     int                    status  = 0;
     aoclsparse_int         m       = td.m;
@@ -59,6 +59,7 @@ int testing_csrmv_aocl(const Arguments &arg, testdata<T> &td, double timings[])
 
     // Create matrix descriptor & set it as requested by command line arguments
     aoclsparse_mat_descr descr = NULL;
+    aoclsparse_matrix    A;
     try
     {
         NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_create_mat_descr(&descr));
@@ -68,28 +69,29 @@ int testing_csrmv_aocl(const Arguments &arg, testdata<T> &td, double timings[])
         NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mat_index_base(descr, base));
 
         int number_hot_calls = arg.iters;
-        if constexpr(std::is_same_v<T, float>
-                     || std::is_same_v<T, double>) // TODO FIXME enable complex
-        {
-            // Performance run
-            for(int iter = 0; iter < number_hot_calls; ++iter)
-            {
-                td.y                  = td.y_in;
-                double cpu_time_start = aoclsparse_clock();
-                NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_csrmv(trans,
-                                                            &td.alpha,
+        int hint             = 1000;
+        NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_create_csr<T>(&A,
+                                                            base,
                                                             m,
                                                             n,
                                                             nnz,
-                                                            td.csr_valA.data(),
-                                                            td.csr_col_indA.data(),
                                                             td.csr_row_ptrA.data(),
-                                                            descr,
-                                                            td.x.data(),
-                                                            &td.beta,
-                                                            td.y.data()));
-                timings[iter] = aoclsparse_clock_diff(cpu_time_start);
-            }
+                                                            td.csr_col_indA.data(),
+                                                            td.csr_valA.data()));
+        //to identify hint id(which routine is to be executed, destroyed later)
+        NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_set_symgs_hint(A, trans, descr, hint));
+        NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_set_memory_hint(A, aoclsparse_memory_usage_minimal));
+
+        // Optimize the matrix, "A"
+        NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_optimize(A));
+
+        //run for predecided iterations and then check for residual and convergence
+        for(int iter = 0; iter < number_hot_calls; ++iter)
+        {
+            double cpu_time_start = aoclsparse_clock();
+            NEW_CHECK_AOCLSPARSE_ERROR(
+                aoclsparse_symgs(trans, A, descr, td.alpha, td.b.data(), td.x.data()));
+            timings[iter] = aoclsparse_clock_diff(cpu_time_start);
         }
     }
     catch(BenchmarkException &e)
@@ -97,39 +99,38 @@ int testing_csrmv_aocl(const Arguments &arg, testdata<T> &td, double timings[])
         status = 1;
     }
     aoclsparse_destroy_mat_descr(descr);
+    aoclsparse_destroy(&A);
+
     return status;
 }
-
 template <typename T>
-int testing_csrmv(const Arguments &arg)
+int testing_symgs(const Arguments &arg)
 {
-    int                    status   = 0;
-    aoclsparse_operation   trans    = arg.transA;
-    aoclsparse_matrix_type mattype  = arg.mattypeA;
-    aoclsparse_fill_mode   fill     = arg.uplo;
-    aoclsparse_diag_type   diag     = arg.diag;
-    aoclsparse_index_base  base     = arg.baseA;
-    aoclsparse_matrix_init mat      = arg.matrix;
-    std::string            filename = arg.filename;
+    int                    status  = 0;
+    aoclsparse_int         m       = arg.M;
+    aoclsparse_int         n       = arg.N;
+    aoclsparse_int         nnz     = arg.nnz;
+    aoclsparse_operation   trans   = arg.transA;
+    aoclsparse_matrix_type mattype = arg.mattypeA;
+    aoclsparse_fill_mode   fill    = arg.uplo;
+    aoclsparse_diag_type   diag    = arg.diag;
+    aoclsparse_index_base  base    = arg.baseA;
+    aoclsparse_matrix_init mat     = arg.matrix;
     bool                   issymm;
+    std::string            filename = arg.filename;
+    std::vector<T>         x_gold; // reference result
 
-    // the queue of test functions to run, normally it would be just one API
-    // unless more tests are registered via EXT_BENCHMARKING
+    //std::vector<std::pair<std::string,testfunc>> testqueue;  // or std::map?
     std::vector<testsetting<T>> testqueue;
-    testqueue.push_back({"aocl_csrmv", &testing_csrmv_aocl<T>});
-    register_tests_csrmv(testqueue);
+    testqueue.push_back({"aocl_symgs_hint", &testing_symgs_aocl<T>});
+    register_tests_symgs(testqueue);
 
     // create relevant test data for this API
     testdata<T> td;
-    td.m    = arg.M;
-    td.n    = arg.N;
-    td.nnzA = arg.nnz;
 
     // space for results
     std::vector<double> timings(arg.iters);
 
-    //At present alpha and beta have the same real / imaginary parts.
-    //TODO: support distinct real and imaginary parts
     if constexpr(std::is_same_v<T, aoclsparse_float_complex>
                  || std::is_same_v<T, std::complex<float>>)
     {
@@ -147,47 +148,53 @@ int testing_csrmv(const Arguments &arg)
         td.alpha = static_cast<T>(arg.alpha);
         td.beta  = static_cast<T>(arg.beta);
     }
+
     aoclsparse_seedrand();
 
-    // Sample matrix
+    if(mat == aoclsparse_matrix_random)
+    {
+        std::cerr
+            << "SYMGS requires diagonally dominant and symmetric positive definite matrix for "
+               "ensuring convergence."
+            << std::endl
+            << "Current implementation of random matrix generation does not support this property."
+            << std::endl;
+        return 2;
+    }
+
     aoclsparse_init_csr_matrix(td.csr_row_ptrA,
                                td.csr_col_indA,
                                td.csr_valA,
-                               td.m,
-                               td.n,
-                               td.nnzA,
+                               m,
+                               n,
+                               nnz,
                                base,
                                mat,
                                filename.c_str(),
                                issymm,
                                true);
 
+    td.m    = m;
+    td.n    = n;
+    td.nnzA = nnz;
+
+    //exit since SYMGS expects a square matrix
+    if(td.m != td.n)
+    {
+        std::cerr << "SYMGS requires a square matrix" << std::endl;
+        return -1;
+    }
+
     // Allocate memory for vectors
-    aoclsparse_int xdim, ydim;
-    if(trans == aoclsparse_operation_none)
-    {
-        xdim = td.n;
-        ydim = td.m;
-    }
-    else
-    {
-        xdim = td.m;
-        ydim = td.n;
-    }
-    td.x.resize(xdim);
-    td.y_in.resize(ydim);
-    td.y.resize(ydim);
-    std::vector<T> y_gold(ydim);
+    td.x.resize(n);
+    td.b.resize(m);
+    x_gold.resize(n);
 
-    // Initialize data
-    aoclsparse_init<T>(td.x, 1, xdim, 1);
-    aoclsparse_init<T>(td.y_in, 1, ydim, 1);
-    y_gold = td.y_in;
-    td.y   = td.y_in;
+    //initialize x
+    aoclsparse_init<T>(x_gold, 1, m, 1);
 
-    if(arg.unit_check)
-    {
-        CHECK_AOCLSPARSE_ERROR(ref_csrmv(trans,
+    //Generate RHS using a known "x_gold"
+    NEW_CHECK_AOCLSPARSE_ERROR(ref_csrmv(trans,
                                          td.alpha,
                                          td.m,
                                          td.n,
@@ -198,42 +205,67 @@ int testing_csrmv(const Arguments &arg)
                                          fill,
                                          diag,
                                          base,
-                                         td.x.data(),
+                                         x_gold.data(),
                                          td.beta,
-                                         y_gold.data()));
-    }
+                                         td.b.data()));
 
-    int    number_hot_calls = arg.iters;
-    double gflop = spmv_gflop_count<T>(td.m, td.nnzA, td.beta != aoclsparse_numeric::zero<T>());
-    double gbyte
-        = csrmv_gbyte_count<T>(td.m, td.n, td.nnzA, td.beta != aoclsparse_numeric::zero<T>());
+    int number_hot_calls = arg.iters;
+    //flops and bw is computed over total no of iterations the kernel ran.
+    double total_iterations = 0, fnops_precond = 0;
+    double fbytes_precond = 0;
+    double cpu_gflops = 0.0, cpu_gbyte = 0.0;
+    total_iterations = 2; //2 spmv calls and 2 trsv calls
+
+    if(td.beta == aoclsparse_numeric::zero<T>())
+    {
+        // number of spmv flops
+        fnops_precond += total_iterations * (2.0 * nnz);
+        //spmv read/writes
+        fbytes_precond += ((m + 1 + nnz) * sizeof(aoclsparse_int) + (m + n + nnz) * sizeof(T));
+    }
+    else
+    {
+        // number of spmv flops
+        fnops_precond += total_iterations * (2.0 * nnz + m /*non-zero beta computations*/);
+        //spmv read/writes
+        fbytes_precond += ((m + 1 + nnz) * sizeof(aoclsparse_int)
+                           + (m + n + nnz + m /*non-zero beta computations*/) * sizeof(T));
+    }
+    // number of trsv flops
+    fnops_precond
+        += total_iterations * (2.0 * nnz + m + (diag == aoclsparse_diag_type_non_unit ? m : 0));
+    // trsv read/writes
+    fbytes_precond += ((m + 1 + nnz) * sizeof(aoclsparse_int) + (m + n + nnz) * sizeof(T));
+
+    fnops_precond  = fnops_precond / 1.0E9;
+    fbytes_precond = fbytes_precond / 1.0E9;
 
     std::cout.precision(2);
     std::cout.setf(std::ios::fixed);
     std::cout.setf(std::ios::left);
 
-    for(unsigned itest = 0; itest < testqueue.size(); ++itest)
+    for(size_t itest = 0; itest < testqueue.size(); ++itest)
     {
         std::cout << "-----" << testqueue[itest].name << "-----" << std::endl;
 
         // Run the test loop
         status += testqueue[itest].tf(arg, td, timings.data());
 
-        // Check the results against the reference result
-        if(arg.unit_check)
-        {
-            if(near_check_general<T>(1, ydim, 1, y_gold.data(), td.y.data()))
-                return 2;
-        }
+        // SYMGS is a precondtioner which fits into a larger Sparse Solver and
+        // on it own, requires more iterations to converge depending upon the matrix properties.
+        // Validation with a reference "x_gold" (as in A.x_gold = alpha.b) for a single iteration of SYMGS is not
+        // an exact match, provided "x_gold" is the final convergence solution.
 
-        // analyze the results - at the moment just take the minimum
+        // analyze the results - at the moment just take minimum as before
         double cpu_time_used = DBL_MAX;
         for(int iter = 0; iter < number_hot_calls; ++iter)
+        {
             cpu_time_used = (std::min)(cpu_time_used, timings[iter]);
+        }
 
         // count flops
-        double cpu_gflops = gflop / cpu_time_used;
-        double cpu_gbyte  = gbyte / cpu_time_used;
+        cpu_gflops = fnops_precond / cpu_time_used;
+        cpu_gbyte  = fbytes_precond / cpu_time_used;
 
         // store/print results
         std::cout << std::setw(12) << "M" << std::setw(12) << "N" << std::setw(12) << "nnz"
@@ -241,7 +273,7 @@ int testing_csrmv(const Arguments &arg)
                   << "GFlop/s" << std::setw(12) << "GB/s" << std::setw(12) << "msec"
                   << std::setw(12) << "iter" << std::setw(12) << "verified" << std::endl;
 
-        std::cout << std::setw(12) << td.m << std::setw(12) << td.n << std::setw(12) << td.nnzA
+        std::cout << std::setw(12) << m << std::setw(12) << n << std::setw(12) << nnz
                   << std::setw(12) << arg.alpha << std::setw(12) << arg.beta << std::setw(12)
                   << cpu_gflops << std::setw(12) << cpu_gbyte << std::setw(12) << std::scientific
                   << cpu_time_used * 1e3 << std::setw(12) << number_hot_calls << std::setw(12)
@@ -250,4 +282,4 @@ int testing_csrmv(const Arguments &arg)
     return status;
 }
 
-#endif // TESTING_CSRMV_HPP
+#endif // TESTING_SYMGS_HPP

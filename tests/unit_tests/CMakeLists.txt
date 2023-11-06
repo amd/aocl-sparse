@@ -23,7 +23,12 @@
 
 include(FetchContent)
 set(FETCHCONTENT_QUIET off)
-get_filename_component(fc_base "./external"
+
+# by default, the third party sources (google test) are located inside <build_directory>/external.
+if(NOT CMAKE_EXTERNAL_BUILD_DIR)
+    set(CMAKE_EXTERNAL_BUILD_DIR "./external")
+endif()
+get_filename_component(fc_base ${CMAKE_EXTERNAL_BUILD_DIR}
                        REALPATH BASE_DIR "${CMAKE_BINARY_DIR}")
 set(FETCHCONTENT_BASE_DIR ${fc_base})
 FetchContent_Declare(
@@ -93,6 +98,7 @@ set(GTEST_EXECUTABLES
     spmmd_tests
     sp2md_tests
     syprd_tests
+    symgs_tests
 )
 foreach(TNAME ${GTEST_EXECUTABLES})
     add_executable(${TNAME} ${TNAME}.cpp ${utils_source})

@@ -26,6 +26,7 @@
 #define AOCLSPARSE_REFERENCE_HPP
 
 #include "aoclsparse.h"
+#include "aoclsparse_arguments.hpp"
 #include "aoclsparse_utils.hpp"
 
 /* This file contains reference implementations of matrix operations

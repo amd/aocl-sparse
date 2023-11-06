@@ -397,6 +397,42 @@ aoclsparse_status aoclsparse_optimize_ilu0(aoclsparse_matrix A)
     return ret;
 }
 /*
+    SYMGS optimize API allocates working buffers
+*/
+aoclsparse_status aoclsparse_optimize_symgs(aoclsparse_matrix A)
+{
+    aoclsparse_status ret = aoclsparse_status_success;
+    void             *r, *q;
+    //If already allocated, then no need to reallocate. So return. Need to happen only once in the beginning
+    if(A->symgs_info.sgs_ready == true)
+    {
+        return ret;
+    }
+
+    try
+    {
+        r = ::operator new(data_size[A->val_type] * A->m);
+    }
+    catch(std::bad_alloc &)
+    {
+        return aoclsparse_status_memory_error;
+    }
+    try
+    {
+        q = ::operator new(data_size[A->val_type] * A->m);
+    }
+    catch(std::bad_alloc &)
+    {
+        ::operator delete(r);
+        return aoclsparse_status_memory_error;
+    }
+    A->symgs_info.r = r;
+    A->symgs_info.q = q;
+    //turn this flag on to indicate necessary allocations for SGS have been done
+    A->symgs_info.sgs_ready = true;
+    return ret;
+}
+/*
     ILU optimize API allocates working buffers and also
     memory for the precondtioned csr value buffer
 */
@@ -462,7 +498,7 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
     // Go through the linked list of hinted actions to decide which action to take
     optimized               = true;
     optd                    = A->optim_data;
-    aoclsparse_int mv_count = 0, ilu_count = 0;
+    aoclsparse_int mv_count = 0, ilu_count = 0, sgs_count = 0;
     aoclsparse_int other_count = 0, sum = 0;
     while(optd)
     {
@@ -475,6 +511,8 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
             mv_count++;
         else if(optd->act == aoclsparse_action_ilu0 && optd->nop > 0)
             ilu_count++;
+        else if(optd->act == aoclsparse_action_symgs && optd->nop > 0)
+            sgs_count++;
         else
             other_count++;
         sum++;
@@ -517,6 +555,11 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
     {
         // Only ilu hints have been passed
         ret = aoclsparse_optimize_ilu(A);
+    }
+    else if(sgs_count)
+    {
+        // Symgs Optimize/work-array allocations
+        ret = aoclsparse_optimize_symgs(A);
     }
     return ret;
 }

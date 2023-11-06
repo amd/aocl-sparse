@@ -32,19 +32,11 @@
 #include <cmath>
 #include <limits>
 
-// Ignore compiler warning from BLIS
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#pragma GCC diagnostic ignored "-Wtype-limits"
-#pragma GCC diagnostic ignored "-Wunused-function"
-// The fix order of BLIS/Flame headers
 // clang-format off
 #include "blis.h"
 #include "cblas.hh"
 #include "FLAME.h"
 // clang-format on
-// Restore
-#pragma GCC diagnostic pop
 
 /* Check that the size of integers in the used libraries is OK. */
 static_assert(
@@ -57,9 +49,15 @@ static_assert(
 aoclsparse_status aoclsparse_destroy_mv(aoclsparse_matrix A);
 aoclsparse_status aoclsparse_destroy_2m(aoclsparse_matrix A);
 aoclsparse_status aoclsparse_destroy_ilu(_aoclsparse_ilu *ilu_info);
+aoclsparse_status aoclsparse_destroy_symgs(_aoclsparse_symgs *sgs_info);
 aoclsparse_status aoclsparse_destroy_opt_csr(aoclsparse_matrix A);
 aoclsparse_status aoclsparse_destroy_csc(aoclsparse_matrix A);
 aoclsparse_status aoclsparse_destroy_coo(aoclsparse_matrix A);
+void              set_symgs_matrix_properties(aoclsparse_mat_descr  descr_dest,
+                                              aoclsparse_operation *trans_dest,
+                                              aoclsparse_fill_mode &fmode,
+                                              aoclsparse_diag_type &dtype,
+                                              aoclsparse_operation &trans);
 
 void aoclsparse_init_mat(aoclsparse_matrix             A,
                          aoclsparse_index_base         base,

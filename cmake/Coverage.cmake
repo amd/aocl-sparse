@@ -1,5 +1,5 @@
 ################################################################################
-# Copyright (c) 2023 Advanced Micro Devices, Inc.
+# Copyright (c) 2023-2024 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files(the "Software"), to deal
@@ -28,7 +28,7 @@ find_program(LCOV NAMES lcov HINTS "/usr" PATH_SUFFIXES "bin" DOC "lcov - a grap
 find_program(GCOV NAMES $ENV{GCOV_NAME} gcov HINTS "/usr" PATH_SUFFIXES "bin" DOC "GNU gcov binary" REQUIRED)
 find_program(GENHTML NAMES genhtml HINTS "/usr" PATH_SUFFIXES "bin" DOC "genhtml - Generate HTML view from LCOV coverage data files" REQUIRED)
 
-set(LCOV_FILTERS "'/usr/*';'/*/_deps/*';'/*/boost/*';'/*/spack/*'")
+set(LCOV_FILTERS "'/usr/*';'/*/_deps/*';'/*/boost/*';'/*/spack/*';'/*/external/*';'*/gcc/include_*';'*/aocc/include_*'")
 set(LCOV_FLAGS "--rc;lcov_branch_coverage=1")
 set(GENHTML_FLAGS "--branch-coverage;--rc;genhtml_med_limit=80;--rc;genhtml_hi_limit=95;--legend")
 

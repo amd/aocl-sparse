@@ -168,6 +168,9 @@ struct testdata
     std::vector<aoclsparse_int>
         indx; //index array to store the indices of the nnz elements in the sparse vector
     T   s; // scalar used to store result in doti, dotci, dotui
+
+    //Solvers, Level-3
+    std::vector<T> b; // rhs in case of symgs, trsm
 };
 
 /* Type for any test function to be added to the testqueue, either internal (AOCL)

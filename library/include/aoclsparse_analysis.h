@@ -247,7 +247,6 @@ DLL_PUBLIC
 aoclsparse_status aoclsparse_set_memory_hint(aoclsparse_matrix             mat,
                                              const aoclsparse_memory_usage policy);
 /**@}*/
-
 #ifdef __cplusplus
 }
 #endif

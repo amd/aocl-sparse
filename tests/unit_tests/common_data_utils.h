@@ -307,9 +307,25 @@ enum linear_system_id
     SM_S7_XB910,
     SM_S7_XB1716,
     SM_S1X1_XB1X1,
-    SM_S1X1_XB1X3
+    SM_S1X1_XB1X3,
+    // SYMGS Problems
+    GS_S7,
+    GS_MV_S7,
+    GS_TRIDIAG_M5,
+    GS_MV_TRIDIAG_M5,
+    GS_BLOCK_TRDIAG_S9,
+    GS_MV_BLOCK_TRDIAG_S9,
+    GS_CONVERGE_S4,
+    GS_MV_CONVERGE_S4,
+    GS_NONSYM_S4,
+    GS_MV_NONSYM_S4,
+    GS_HR4,
+    GS_MV_HR4,
+    GS_TRIANGLE_S5,
+    GS_MV_TRIANGLE_S5,
+    GS_SYMM_ALPHA2_S9,
+    GS_MV_SYMM_ALPHA2_S9
 };
-
 template <typename T>
 aoclsparse_status create_matrix(matrix_id                    mid,
                                 aoclsparse_int              &m,
@@ -625,6 +641,11 @@ inline T bcd(T v, T w)
  * iparm[1] = ldx
  * iparm[2] = starting offset B
  * iparm[3] = ldb
+ * Custom SYMGS/SYMGS-MV problems to solve A.x = b:
+ * INPUTS
+ * iparm[6] = matrix type
+ * iparm[7] = fill mode
+ * iparm[8] = transpose mode;
  */
 template <typename T>
 aoclsparse_status
@@ -646,14 +667,15 @@ aoclsparse_status
                          std::array<T, 10>              &dparm,
                          aoclsparse_status              &exp_status)
 {
-    aoclsparse_status    status = aoclsparse_status_success;
-    aoclsparse_int       n, nnz, big_m, big_n, k;
-    aoclsparse_diag_type diag;
-    aoclsparse_fill_mode fill_mode;
-    aoclsparse_order     order;
-    T                    beta;
-    std::vector<T>       wcolxref, wcolb;
-    const bool           cplx
+    aoclsparse_status      status = aoclsparse_status_success;
+    aoclsparse_int         n, nnz, big_m, big_n, k;
+    aoclsparse_diag_type   diag;
+    aoclsparse_matrix_type mattype;
+    aoclsparse_fill_mode   fill_mode;
+    aoclsparse_order       order;
+    T                      beta;
+    std::vector<T>         wcolxref, wcolb;
+    const bool             cplx
         = std::is_same_v<T, std::complex<float>> || std::is_same_v<T, std::complex<double>>;
     // Set defaults.
     title = "N/A";
@@ -1967,6 +1989,1230 @@ aoclsparse_status
                 b[0] = (T)2.2;
                 b[1] = (T)4.2;
                 b[2] = (T)6.2;
+            }
+            break;
+        default:
+            return aoclsparse_status_internal_error;
+            break;
+        }
+        break;
+    case GS_S7:
+    case GS_MV_S7:
+        /*
+            small m = 7
+            A = [ 7.00000  -0.54907   0.00000   0.00000   2.11036  -0.55651   0.00000;
+                -0.54907   7.49175   0.00000   0.00000   0.00000   0.29361   0.00000;
+                0.00000    0.00000  7.00000   0.00000   0.00000   0.00000   0.00000;
+                0.00000    0.00000  0.00000   5.79194   0.37467   0.00000   0.00000;
+                2.11036    0.00000  0.00000   0.37467   7.00000   0.00000   0.00000;
+                -0.55651   0.29361   0.00000   0.00000   0.00000   7.00000   0.00000;
+                0.00000    0.00000  0.00000   0.00000   0.00000   0.00000   7.00000;
+                ]
+        */
+        title     = "small symmetric m, A.x = b, solve for x using Gauss Seidel Preconditioner";
+        mattype   = (aoclsparse_matrix_type)iparm[6]; // matrix type
+        fill_mode = (aoclsparse_fill_mode)iparm[7]; // fill mode
+        trans     = (aoclsparse_operation)iparm[8]; //transpose mode
+        diag      = aoclsparse_diag_type_non_unit;
+
+        alpha = (T)1;
+        n     = 7;
+        nnz   = 17;
+
+        x.resize(n);
+        x = {bc((T)1.0), bc((T)1.0), bc((T)1.0), bc((T)1.0), bc((T)1.0), bc((T)1.0), bc((T)1.0)};
+        icrowa.resize(n + 1);
+        icrowa = {0, 4, 7, 8, 10, 13, 16, 17};
+        icola.resize(nnz);
+        icola = {0, 1, 4, 5, 0, 1, 5, 2, 3, 4, 0, 3, 4, 0, 1, 5, 6};
+        // update row pointer and column index arrays to reflect values as per base-index
+        // icrowa = icrowa + base;
+        transform(icrowa.begin(), icrowa.end(), icrowa.begin(), [base](aoclsparse_int &d) {
+            return d + base;
+        });
+        // icola = icola + base;
+        transform(icola.begin(), icola.end(), icola.begin(), [base](aoclsparse_int &d) {
+            return d + base;
+        });
+
+        aval.resize(nnz);
+        aval = {bc((T)7),
+                bc((T)-0.54907),
+                bc((T)2.11036),
+                bc((T)-0.55651),
+                bc((T)-0.54907),
+                bc((T)7.49175),
+                bc((T)0.29361),
+                bc((T)7),
+                bc((T)5.79194),
+                bc((T)0.37467),
+                bc((T)2.11036),
+                bc((T)0.37467),
+                bc((T)7),
+                bc((T)-0.55651),
+                bc((T)0.29361),
+                bc((T)7),
+                bc((T)7)};
+
+        if(aoclsparse_create_csr(&A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
+           != aoclsparse_status_success)
+            return aoclsparse_status_internal_error;
+        if(aoclsparse_create_mat_descr(&descr) != aoclsparse_status_success)
+            return aoclsparse_status_internal_error;
+
+        descr->type      = aoclsparse_matrix_type_symmetric;
+        descr->fill_mode = fill_mode;
+        descr->diag_type = diag;
+        aoclsparse_set_mat_index_base(descr, base);
+        b.resize(n);
+        wcolxref.resize(n);
+        xref.resize(n);
+        if constexpr(std::is_same_v<T, std::complex<double>>
+                     || std::is_same_v<T, std::complex<float>>)
+        {
+            b = {bcd((T)12.983454, (T)2.6229200000000006),
+                 bcd((T)16.034129099999998, (T)3.2392179999999997),
+                 bcd((T)20.789999999999999, (T)4.1999999999999993),
+                 bcd((T)24.790698899999999, (T)5.008222),
+                 bcd((T)38.2229496, (T)7.7218080000000002),
+                 bcd((T)41.610402899999997, (T)8.4061419999999991),
+                 bcd((T)48.509999999999998, (T)9.7999999999999989)};
+
+            wcolxref = {bcd((T)1.0783550185695689, (T)0.10783550185695701),
+                        bcd((T)2.0516354291649486, (T)0.20516354291649494),
+                        bcd((T)3.000000, (T)0.29999999999999988),
+                        bcd((T)4.0151319990701806, (T)0.40151319990701828),
+                        bcd((T)4.7660777999451653, (T)0.47660777999451653),
+                        bcd((T)6.0475707728300723, (T)0.60475707728300709),
+                        bcd((T)7.000000, (T)0.69999999999999996)};
+        }
+        else
+        {
+            b        = {bc((T)13.114599999999999),
+                        bc((T)16.196089999999998),
+                        bc((T)21),
+                        bc((T)25.04111),
+                        bc((T)38.60904),
+                        bc((T)42.030709999999999),
+                        bc((T)49)};
+            wcolxref = {bc((T)1.0783550185695687),
+                        bc((T)2.051635429164949),
+                        bc((T)3),
+                        bc((T)4.0151319990701806),
+                        bc((T)4.7660777999451653),
+                        bc((T)6.0475707728300723),
+                        bc((T)7)};
+        }
+        switch(id)
+        {
+        case GS_S7:
+            xref = std::move(wcolxref);
+            break;
+        case GS_MV_S7:
+            //xref below contains the spmv output between "A" and computed x (symgs output)
+            if constexpr(std::is_same_v<T, std::complex<double>>
+                         || std::is_same_v<T, std::complex<float>>)
+            {
+                xref = {bcd((T)12.983454000000002, (T)2.6229200000000006),
+                        bcd((T)16.388335845101036, (T)3.3107749182022301),
+                        bcd((T)20.789999999999999, (T)4.1999999999999993),
+                        bcd((T)24.790698899999995, (T)5.008222),
+                        bcd((T)36.771185288669294, (T)7.4285222805392515),
+                        bcd((T)41.911908129415643, (T)8.4670521473566929),
+                        bcd((T)48.509999999999998, (T)9.7999999999999989)};
+            }
+            else
+            {
+                xref = {bc((T)13.114599999999998),
+                        bc((T)16.553874591011152),
+                        bc((T)21),
+                        bc((T)25.041109999999996),
+                        bc((T)37.142611402696254),
+                        bc((T)42.335260736783475),
+                        bc((T)49)};
+            }
+            break;
+        default:
+            return aoclsparse_status_internal_error;
+            break;
+        }
+        break;
+
+    case GS_TRIDIAG_M5:
+    case GS_MV_TRIDIAG_M5:
+        /*
+            small m = 5
+            A = [   239 3 0 0 0;
+                    3 239 7 0 0;
+                    0 7 239 8 0;
+                    0 0 8 239 11;
+                    0 0 0 11 239;
+                ]
+        */
+        title     = "small symmetric tridiagonal m, A.x = b, solve for x using Gauss Seidel "
+                    "Preconditioner";
+        mattype   = (aoclsparse_matrix_type)iparm[6]; // matrix type
+        fill_mode = (aoclsparse_fill_mode)iparm[7]; // fill mode
+        trans     = (aoclsparse_operation)iparm[8]; //transpose mode
+
+        diag  = aoclsparse_diag_type_non_unit;
+        xtol  = (T)0;
+        alpha = (T)1;
+        n     = 5;
+        nnz   = 13;
+        x.resize(n);
+        x = {bc((T)1.0), bc((T)1.0), bc((T)1.0), bc((T)1.0), bc((T)1.0)};
+        icrowa.resize(n + 1);
+        icrowa = {0, 2, 5, 8, 11, 13};
+        icola.resize(nnz);
+        icola = {0, 1, 0, 1, 2, 1, 2, 3, 2, 3, 4, 3, 4};
+        // update row pointer and column index arrays to reflect values as per base-index
+        // icrowa = icrowa + base;
+        transform(icrowa.begin(), icrowa.end(), icrowa.begin(), [base](aoclsparse_int &d) {
+            return d + base;
+        });
+        // icola = icola + base;
+        transform(icola.begin(), icola.end(), icola.begin(), [base](aoclsparse_int &d) {
+            return d + base;
+        });
+
+        aval.resize(nnz);
+        aval = {bc((T)239),
+                bc((T)3),
+                bc((T)3),
+                bc((T)239),
+                bc((T)7),
+                bc((T)7),
+                bc((T)239),
+                bc((T)8),
+                bc((T)8),
+                bc((T)239),
+                bc((T)11),
+                bc((T)11),
+                bc((T)239)};
+        if(aoclsparse_create_csr(&A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
+           != aoclsparse_status_success)
+            return aoclsparse_status_internal_error;
+        if(aoclsparse_create_mat_descr(&descr) != aoclsparse_status_success)
+            return aoclsparse_status_internal_error;
+
+        descr->type      = mattype;
+        descr->fill_mode = fill_mode;
+        descr->diag_type = diag;
+        aoclsparse_set_mat_index_base(descr, base);
+        wcolxref.resize(n);
+        xref.resize(n);
+        b.resize(n);
+        if constexpr(std::is_same_v<T, std::complex<double>>
+                     || std::is_same_v<T, std::complex<float>>)
+        {
+            b = {bcd((T)242.55000000000001, (T)49),
+                 bcd((T)496.98000000000002, (T)100.40000000000001),
+                 bcd((T)755.37, (T)152.59999999999999),
+                 bcd((T)1024.6500000000001, (T)207),
+                 bcd((T)1226.6099999999999, (T)247.80000000000001)};
+
+            wcolxref = {bcd((T)1.0000013846416498, (T)0.10000013846416499),
+                        bcd((T)1.9998896902152357, (T)0.19998896902152347),
+                        bcd((T)2.9983867335418628, (T)0.29983867335418624),
+                        bcd((T)3.9970789705447745, (T)0.39970789705447735),
+                        bcd((T)4.9916788264986858, (T)0.49916788264986872)};
+        }
+        else
+        {
+            b        = {bc((T)245), bc((T)502), bc((T)763), bc((T)1035), bc((T)1239)};
+            wcolxref = {bc((T)1.0000013846416498),
+                        bc((T)1.9998896902152352),
+                        bc((T)2.9983867335418632),
+                        bc((T)3.997078970544774),
+                        bc((T)4.9916788264986858)};
+        }
+        switch(id)
+        {
+        case GS_TRIDIAG_M5:
+            xref = std::move(wcolxref);
+            break;
+        case GS_MV_TRIDIAG_M5:
+            //xref below contains the spmv output between "A" and computed x (symgs output)
+            if constexpr(std::is_same_v<T, std::complex<double>>
+                         || std::is_same_v<T, std::complex<float>>)
+            {
+                xref = {bcd((T)242.55000000000001, (T)49),
+                        bcd((T)496.94272377765776, (T)100.39246945003183),
+                        bcd((T)754.96438602324633, (T)152.51805778247399),
+                        bcd((T)1023.8554605708213, (T)206.83948698400428),
+                        bcd((T)1224.6093171270866, (T)247.39582164183571)};
+            }
+            else
+            {
+                xref = {bc((T)245),
+                        bc((T)501.96234725015921),
+                        bc((T)762.59028891237006),
+                        bc((T)1034.1974349200214),
+                        bc((T)1236.9791082091785)};
+            }
+            break;
+        default:
+            return aoclsparse_status_internal_error;
+            break;
+        }
+        break;
+    case GS_BLOCK_TRDIAG_S9:
+    case GS_MV_BLOCK_TRDIAG_S9:
+        /*
+            Block Tridiagonal Matrix
+            A = [
+                      4  -1   0  -1   0   0   0   0   0;
+                    - 1   4  -1   0  -1   0   0   0   0;
+                      0  -1   4   0   0  -1   0   0   0;
+                    - 1   0   0   4  -1   0  -1   0   0;
+                      0  -1   0  -1   4  -1   0  -1   0;
+                      0   0  -1   0  -1   4   0   0  -1;
+                      0   0   0  -1   0   0   4  -1   0;
+                      0   0   0   0  -1   0  -1   4  -1;
+                      0   0   0   0   0  -1   0  -1   4;
+                ]
+        */
+        title     = "medium symmetric block tridiagonal m, A.x = b, solve for x using Gauss Seidel "
+                    "Preconditioner";
+        mattype   = (aoclsparse_matrix_type)iparm[6]; // matrix type
+        fill_mode = (aoclsparse_fill_mode)iparm[7]; // fill mode
+        trans     = (aoclsparse_operation)iparm[8]; //transpose mode
+        diag      = aoclsparse_diag_type_non_unit;
+
+        alpha = (T)1;
+        n     = 9;
+        nnz   = 33;
+        x.resize(n);
+        x = {bc((T)1.0),
+             bc((T)1.0),
+             bc((T)1.0),
+             bc((T)1.0),
+             bc((T)1.0),
+             bc((T)1.0),
+             bc((T)1.0),
+             bc((T)1.0),
+             bc((T)1.0)};
+        icrowa.resize(n + 1);
+        icrowa = {0, 3, 7, 10, 14, 19, 23, 26, 30, 33};
+        icola.resize(nnz);
+        icola = {0, 1, 3, 0, 1, 2, 4, 1, 2, 5, 0, 3, 4, 6, 1, 3, 4,
+                 5, 7, 2, 4, 5, 8, 3, 6, 7, 4, 6, 7, 8, 5, 7, 8};
+        // update row pointer and column index arrays to reflect values as per base-index
+        // icrowa = icrowa + base;
+        transform(icrowa.begin(), icrowa.end(), icrowa.begin(), [base](aoclsparse_int &d) {
+            return d + base;
+        });
+        // icola = icola + base;
+        transform(icola.begin(), icola.end(), icola.begin(), [base](aoclsparse_int &d) {
+            return d + base;
+        });
+
+        aval.resize(nnz);
+        aval = {bc((T)4),  bc((T)-1), bc((T)-1), bc((T)-1), bc((T)4),  bc((T)-1), bc((T)-1),
+                bc((T)-1), bc((T)4),  bc((T)-1), bc((T)-1), bc((T)4),  bc((T)-1), bc((T)-1),
+                bc((T)-1), bc((T)-1), bc((T)4),  bc((T)-1), bc((T)-1), bc((T)-1), bc((T)-1),
+                bc((T)4),  bc((T)-1), bc((T)-1), bc((T)4),  bc((T)-1), bc((T)-1), bc((T)-1),
+                bc((T)4),  bc((T)-1), bc((T)-1), bc((T)-1), bc((T)4)};
+        if(aoclsparse_create_csr(&A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
+           != aoclsparse_status_success)
+            return aoclsparse_status_internal_error;
+        if(aoclsparse_create_mat_descr(&descr) != aoclsparse_status_success)
+            return aoclsparse_status_internal_error;
+
+        descr->type      = mattype;
+        descr->fill_mode = fill_mode;
+        descr->diag_type = diag;
+        aoclsparse_set_mat_index_base(descr, base);
+        wcolxref.resize(n);
+        xref.resize(n);
+        b.resize(n);
+        if constexpr(std::is_same_v<T, std::complex<double>>
+                     || std::is_same_v<T, std::complex<float>>)
+        {
+            b = {bcd((T)-1.98, (T)-0.40000000000000002),
+                 bcd((T)-0.99000000000000021, (T)-0.19999999999999996),
+                 bcd((T)3.96, (T)0.79999999999999982),
+                 bcd((T)2.9699999999999989, (T)0.60000000000000009),
+                 bcd((T)0, (T)-4.4408920985006262e-16),
+                 bcd((T)6.9299999999999979, (T)1.3999999999999997),
+                 bcd((T)15.84, (T)3.2000000000000002),
+                 bcd((T)10.890000000000001, (T)2.2000000000000002),
+                 bcd((T)21.780000000000001, (T)4.4000000000000004)};
+
+            wcolxref = {bcd((T)0.47747802734374972, (T)0.047747802734374963),
+                        bcd((T)0.99206542968749967, (T)0.099206542968749992),
+                        bcd((T)2.08837890625, (T)0.20883789062499997),
+                        bcd((T)2.9178466796874991, (T)0.29178466796874997),
+                        bcd((T)2.8798828124999991, (T)0.28798828124999987),
+                        bcd((T)4.1035156249999991, (T)0.41035156249999993),
+                        bcd((T)5.79150390625, (T)0.57915039062499996),
+                        bcd((T)5.916015625, (T)0.59160156249999996),
+                        bcd((T)7.2265625, (T)0.72265625)};
+        }
+        else
+        {
+            b        = {bc((T)-2),
+                        bc((T)-1),
+                        bc((T)4),
+                        bc((T)3),
+                        bc((T)0),
+                        bc((T)7),
+                        bc((T)16),
+                        bc((T)11),
+                        bc((T)22)};
+            wcolxref = {bc((T)0.47747802734375),
+                        bc((T)0.9920654296875),
+                        bc((T)2.08837890625),
+                        bc((T)2.9178466796875),
+                        bc((T)2.8798828125),
+                        bc((T)4.103515625),
+                        bc((T)5.79150390625),
+                        bc((T)5.916015625),
+                        bc((T)7.2265625)};
+        }
+        switch(id)
+        {
+        case GS_BLOCK_TRDIAG_S9:
+            xref = std::move(wcolxref);
+            break;
+        case GS_MV_BLOCK_TRDIAG_S9:
+            //xref below contains the spmv output between "A" and computed x (symgs output)
+            if constexpr(std::is_same_v<T, std::complex<double>>
+                         || std::is_same_v<T, std::complex<float>>)
+            {
+                xref = {bcd((T)-1.98, (T)-0.40000000000000013),
+                        bcd((T)-1.4627032470703127, (T)-0.29549560546874981),
+                        bcd((T)3.225355224609376, (T)0.65158691406250013),
+                        bcd((T)2.4972967529296834, (T)0.50450439453125018),
+                        bcd((T)-2.3858129882812511, (T)-0.48198242187500051),
+                        bcd((T)4.1770458984374965, (T)0.84384765624999991),
+                        bcd((T)14.188831787109375, (T)2.8664306640625004),
+                        bcd((T)7.6884521484375004, (T)1.55322265625),
+                        bcd((T)18.697851562500002, (T)3.77734375)};
+            }
+            else
+            {
+                xref = {bc((T)-2),
+                        bc((T)-1.47747802734375),
+                        bc((T)3.2579345703125),
+                        bc((T)2.52252197265625),
+                        bc((T)-2.409912109375),
+                        bc((T)4.21923828125),
+                        bc((T)14.3321533203125),
+                        bc((T)7.76611328125),
+                        bc((T)18.88671875)};
+            }
+            break;
+        default:
+            return aoclsparse_status_internal_error;
+            break;
+        }
+        break;
+    case GS_CONVERGE_S4:
+    case GS_MV_CONVERGE_S4:
+        /*
+            Convergence Test using SYMGS Iterations
+            A = [
+                    10   -1    2    0;
+                    -1   11   -1    3;
+                     2   -1   10   -1;
+                     0    3   -1    8;
+                ]
+            This is the only input in linear system database to SYMGS/SYMGS_MV which runs for
+            8 iterations and reaches convergence. Convergence of the precondtioner is verified for
+            a simple input by setting alpha = 1, thus feeding updated x as initial-x
+            after every iteration.
+        */
+        title     = "small symmetric m and mulitple iterations, A.x = b, solve for x using Gauss "
+                    "Seidel Preconditioner";
+        mattype   = (aoclsparse_matrix_type)iparm[6]; // matrix type
+        fill_mode = (aoclsparse_fill_mode)iparm[7]; // fill mode
+        trans     = (aoclsparse_operation)iparm[8]; //transpose mode
+        diag      = aoclsparse_diag_type_non_unit;
+
+        alpha = (T)1;
+        n     = 4;
+        nnz   = 14;
+        x.resize(n);
+        x = {bc((T)1.0), bc((T)1.0), bc((T)1.0), bc((T)1.0)};
+        icrowa.resize(n + 1);
+        icrowa = {0, 3, 7, 11, 14};
+        icola.resize(nnz);
+        icola = {0, 1, 2, 0, 1, 2, 3, 0, 1, 2, 3, 1, 2, 3};
+        // update row pointer and column index arrays to reflect values as per base-index
+        // icrowa = icrowa + base;
+        transform(icrowa.begin(), icrowa.end(), icrowa.begin(), [base](aoclsparse_int &d) {
+            return d + base;
+        });
+        // icola = icola + base;
+        transform(icola.begin(), icola.end(), icola.begin(), [base](aoclsparse_int &d) {
+            return d + base;
+        });
+
+        aval.resize(nnz);
+        aval = {bc((T)10),
+                bc((T)-1),
+                bc((T)2),
+                bc((T)-1),
+                bc((T)11),
+                bc((T)-1),
+                bc((T)3),
+                bc((T)2),
+                bc((T)-1),
+                bc((T)10),
+                bc((T)-1),
+                bc((T)3),
+                bc((T)-1),
+                bc((T)8)};
+        if(aoclsparse_create_csr(&A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
+           != aoclsparse_status_success)
+            return aoclsparse_status_internal_error;
+        if(aoclsparse_create_mat_descr(&descr) != aoclsparse_status_success)
+            return aoclsparse_status_internal_error;
+
+        descr->type      = mattype;
+        descr->fill_mode = fill_mode;
+        descr->diag_type = diag;
+        aoclsparse_set_mat_index_base(descr, base);
+        wcolxref.resize(n);
+        xref.resize(n);
+        b.resize(n);
+        if constexpr(std::is_same_v<T, std::complex<double>>
+                     || std::is_same_v<T, std::complex<float>>)
+        {
+            b = {bcd((T)13.859999999999999, (T)2.7999999999999998),
+                 bcd((T)29.699999999999999, (T)6),
+                 bcd((T)25.739999999999998, (T)5.2000000000000002),
+                 bcd((T)34.649999999999999, (T)7)};
+
+            wcolxref = {bcd((T)0.99999999992700483, (T)0.099999999992700442),
+                        bcd((T)2.0000000217847944, (T)0.20000000217847949),
+                        bcd((T)3.0000000112573724, (T)0.30000000112573733),
+                        bcd((T)3.9999999237056727, (T)0.39999999237056733)};
+        }
+        else
+        {
+            b        = {bc((T)14), bc((T)30), bc((T)26), bc((T)35)};
+            wcolxref = {bc((T)0.99999999992700483),
+                        bc((T)2.0000000217847949),
+                        bc((T)3.0000000112573728),
+                        bc((T)3.9999999237056727)};
+        }
+        switch(id)
+        {
+        case GS_CONVERGE_S4:
+            xref = std::move(wcolxref);
+            break;
+        case GS_MV_CONVERGE_S4:
+            //xref below contains the spmv output between "A" and computed x (symgs output)
+            if constexpr(std::is_same_v<T, std::complex<double>>
+                         || std::is_same_v<T, std::complex<float>>)
+            {
+                xref = {bcd((T)13.859999999999999, (T)2.7999999999999994),
+                        bcd((T)29.699999999569727, (T)5.9999999999130766),
+                        bcd((T)25.740000165267894, (T)5.2000000333874539),
+                        bcd((T)34.649999449304964, (T)6.99999988874848)};
+            }
+            else
+            {
+                xref = {bc((T)13.999999999999998),
+                        bc((T)29.999999999565382),
+                        bc((T)26.000000166937269),
+                        bc((T)34.999999443742396)};
+            }
+            break;
+        default:
+            return aoclsparse_status_internal_error;
+            break;
+        }
+        break;
+    case GS_NONSYM_S4:
+    case GS_MV_NONSYM_S4:
+        /*
+            Non-Symmetric and SYMGS test
+            A = [
+                    2 1 2 1;
+                    6 -6 6 12;
+                    4 3 3 -3;
+                    2 2 -1 1;
+                 ]
+        */
+        title     = "small non-symmetric m, A.x = b, solve for x using Gauss Seidel Preconditioner";
+        mattype   = (aoclsparse_matrix_type)iparm[6]; // matrix type
+        fill_mode = (aoclsparse_fill_mode)iparm[7]; // fill mode
+        trans     = (aoclsparse_operation)iparm[8]; //transpose mode
+        diag      = aoclsparse_diag_type_non_unit;
+
+        alpha = (T)1;
+        n     = 4;
+        nnz   = 16;
+        x.resize(n);
+        x = {bc((T)1.0), bc((T)1.0), bc((T)1.0), bc((T)1.0)};
+        icrowa.resize(n + 1);
+        icrowa = {0, 4, 8, 12, 16};
+        icola.resize(nnz);
+        icola = {0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3};
+        // update row pointer and column index arrays to reflect values as per base-index
+        // icrowa = icrowa + base;
+        transform(icrowa.begin(), icrowa.end(), icrowa.begin(), [base](aoclsparse_int &d) {
+            return d + base;
+        });
+        // icola = icola + base;
+        transform(icola.begin(), icola.end(), icola.begin(), [base](aoclsparse_int &d) {
+            return d + base;
+        });
+
+        aval.resize(nnz);
+        aval = {bc((T)2),
+                bc((T)1),
+                bc((T)2),
+                bc((T)1),
+                bc((T)6),
+                bc((T)-6),
+                bc((T)6),
+                bc((T)12),
+                bc((T)4),
+                bc((T)3),
+                bc((T)3),
+                bc((T)-3),
+                bc((T)2),
+                bc((T)2),
+                bc((T)-1),
+                bc((T)1)};
+        if(aoclsparse_create_csr(&A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
+           != aoclsparse_status_success)
+            return aoclsparse_status_internal_error;
+        if(aoclsparse_create_mat_descr(&descr) != aoclsparse_status_success)
+            return aoclsparse_status_internal_error;
+
+        descr->type      = mattype;
+        descr->fill_mode = fill_mode;
+        descr->diag_type = diag;
+        aoclsparse_set_mat_index_base(descr, base);
+        wcolxref.resize(n);
+        xref.resize(n);
+        b.resize(n);
+        if constexpr(std::is_same_v<T, std::complex<double>>
+                     || std::is_same_v<T, std::complex<float>>)
+        {
+            b = {bcd((T)6, (T)0.59999999999999998),
+                 bcd((T)36, (T)3.6000000000000001),
+                 bcd((T)-1, (T)-0.10000000000000001),
+                 bcd((T)10, (T)1)};
+            if(trans == aoclsparse_operation_none)
+            {
+                wcolxref = {bcd((T)-35, (T)-1.5500000000000007),
+                            bcd((T)35.333333333333329, (T)1.3666666666666676),
+                            bcd((T)13.666666666666668, (T)0.63333333333333353),
+                            bcd((T)13.333333333333332, (T)0.46666666666666701)};
+            }
+            else if(trans == aoclsparse_operation_transpose)
+            {
+                wcolxref = {bcd((T)-406.16666666666669, (T)-8.1833333333333371),
+                            bcd((T)60.5, (T)1.2166666666666686),
+                            bcd((T)53.333333333333336, (T)1.1666666666666679),
+                            bcd((T)121, (T)2.2000000000000011)};
+            }
+        }
+        else
+        {
+            b = {bc((T)6), bc((T)36), bc((T)-1), bc((T)10)};
+            if(trans == aoclsparse_operation_none)
+            {
+                wcolxref = {bc((T)-35),
+                            bc((T)35.333333333333336),
+                            bc((T)13.666666666666666),
+                            bc((T)13.333333333333332)};
+            }
+            else if(trans == aoclsparse_operation_transpose)
+            {
+                wcolxref = {
+                    bc((T)-406.16666666666669), bc((T)60.5), bc((T)53.333333333333336), bc((T)121)};
+            }
+        }
+        switch(id)
+        {
+        case GS_NONSYM_S4:
+            xref = std::move(wcolxref);
+            break;
+        case GS_MV_NONSYM_S4:
+            //xref below contains the spmv output between "A" and computed x (symgs output)
+            if constexpr(std::is_same_v<T, std::complex<double>>
+                         || std::is_same_v<T, std::complex<float>>)
+            {
+                if(trans == aoclsparse_operation_none)
+                {
+                    xref = {bcd((T)6.0000000000000036, (T)0.60000000000000087),
+                            bcd((T)-179.19, (T)-26.100000000000009),
+                            bcd((T)-32.839999999999989, (T)-4.8999999999999995),
+                            bcd((T)0.38666666666666899, (T)-0.49999999999999889)};
+                }
+                else if(trans == aoclsparse_operation_transpose)
+                {
+                    xref = {bcd((T)5.9999999999999707, (T)0.59999999999999631),
+                            bcd((T)-366.40833333333342, (T)-44.300000000000011),
+                            bcd((T)-409.55666666666673, (T)-48.800000000000011),
+                            bcd((T)280.32166666666666, (T)33.20000000000001)};
+                }
+            }
+            else
+            {
+                if(trans == aoclsparse_operation_none)
+                {
+                    xref = {bc((T)6), bc((T)-180), bc((T)-33), bc((T)0.3333333333333286)};
+                }
+                else if(trans == aoclsparse_operation_transpose)
+                {
+                    xref = {bc((T)6),
+                            bc((T)-367.16666666666669),
+                            bc((T)-410.33333333333337),
+                            bc((T)280.83333333333326)};
+                }
+            }
+            break;
+        default:
+            return aoclsparse_status_internal_error;
+            break;
+        }
+        break;
+    case GS_HR4:
+    case GS_MV_HR4:
+        /*
+           Hermitian and SYMGS test for complex and conjugate complex transpose cases
+            A = [
+                    -154    1       1       0;
+                    1       160     -2      3;
+                    1       -2      142     4;
+                    0       3       4       178;
+                 ]
+            Imag = [
+                0       -1      2       -1;
+                1       0       0       -2;
+                -2      0       0       0;
+                1       2       0       0;
+            ];
+            A
+            -154 +   0i     1 -   1i     1 +   2i     0 -   1i;
+                1 +   1i   160 +   0i    -2 +   0i     3 -   2i;
+                1 -   2i    -2 +   0i   142 +   0i     4 +   0i;
+                0 +   1i     3 +   2i     4 +   0i   178 +   0i;
+            A(complex conjugate transpose, A')
+            -154 -   0i     1 -   1i     1 +   2i     0 -   1i;
+                1 +   1i   160 -   0i    -2 -   0i     3 -   2i;
+                1 -   2i    -2 -   0i   142 -   0i     4 -   0i;
+                0 +   1i     3 +   2i     4 -   0i   178 -   0i;
+            A(simple transpose, A.')
+            -154 +   0i     1 +   1i     1 -   2i     0 +   1i;
+                1 -   1i   160 +   0i    -2 +   0i     3 +   2i;
+                1 +   2i    -2 +   0i   142 +   0i     4 +   0i;
+                0 -   1i     3 -   2i     4 +   0i   178 +   0i;
+        */
+        title     = "small hermitian m, A.x = b, solve for x using Gauss Seidel Preconditioner";
+        mattype   = (aoclsparse_matrix_type)iparm[6]; // matrix type
+        fill_mode = (aoclsparse_fill_mode)iparm[7]; // fill mode
+        trans     = (aoclsparse_operation)iparm[8]; //transpose mode
+        diag      = aoclsparse_diag_type_non_unit;
+
+        alpha = (T)1;
+        n     = 4;
+        x.resize(n);
+        x = {bc((T)1.0), bc((T)1.0), bc((T)1.0), bc((T)1.0)};
+        icrowa.resize(n + 1);
+        b.resize(n);
+        wcolxref.resize(n);
+        xref.resize(n);
+        if constexpr(std::is_same_v<T, std::complex<double>>
+                     || std::is_same_v<T, std::complex<float>>)
+        {
+            nnz = 16;
+            icola.resize(nnz);
+            aval.resize(nnz);
+            icrowa = {0, 4, 8, 12, 16};
+            icola  = {0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3};
+            //complex, since it is hermitian, data is same for non-transpose and conj-complex-transpose cases
+            if(trans == aoclsparse_operation_none
+               || trans == aoclsparse_operation_conjugate_transpose)
+            {
+                aval     = {bcd((T)-154, (T)0),
+                            bcd((T)1, (T)-1),
+                            bcd((T)1, (T)2),
+                            bcd((T)0, (T)-1),
+                            bcd((T)1, (T)1),
+                            bcd((T)160, (T)0),
+                            bcd((T)-2, (T)0),
+                            bcd((T)3, (T)-2),
+                            bcd((T)1, (T)-2),
+                            bcd((T)-2, (T)0),
+                            bcd((T)142, (T)0),
+                            bcd((T)4, (T)0),
+                            bcd((T)0, (T)1),
+                            bcd((T)3, (T)2),
+                            bcd((T)4, (T)0),
+                            bcd((T)178, (T)0)};
+                b        = {bcd((T)-149, (T)-14.9),
+                            bcd((T)327.69999999999999, (T)25.700000000000003),
+                            bcd((T)439.19999999999999, (T)41.899999999999999),
+                            bcd((T)729.5, (T)78)};
+                wcolxref = {bcd((T)1.0000169486383628, (T)0.10002305870917698),
+                            bcd((T)2.0001717516140047, (T)0.2000861062380952),
+                            bcd((T)3.0007408507317193, (T)0.2992537289548915),
+                            bcd((T)3.9970987438291647, (T)0.40011883963381922)};
+            }
+            else if(trans == aoclsparse_operation_transpose)
+            {
+                aval     = {bcd((T)-154, (T)0),
+                            bcd((T)1, (T)1),
+                            bcd((T)1, (T)-2),
+                            bcd((T)0, (T)1),
+                            bcd((T)1, (T)-1),
+                            bcd((T)160, (T)0),
+                            bcd((T)-2, (T)0),
+                            bcd((T)3, (T)2),
+                            bcd((T)1, (T)2),
+                            bcd((T)-2, (T)0),
+                            bcd((T)142, (T)0),
+                            bcd((T)4, (T)0),
+                            bcd((T)0, (T)-1),
+                            bcd((T)3, (T)-2),
+                            bcd((T)4, (T)0),
+                            bcd((T)178, (T)0)};
+                b        = {bcd((T)-149, (T)-14.9),
+                            bcd((T)326.30000000000001, (T)39.700000000000003),
+                            bcd((T)438.80000000000001, (T)45.899999999999999),
+                            bcd((T)730.5, (T)68)};
+                wcolxref = {bcd((T)1.0000211791027867, (T)0.099980754064937963),
+                            bcd((T)2.0001854013321623, (T)0.19994960905652157),
+                            bcd((T)3.000578403975624, (T)0.3008781965158428),
+                            bcd((T)3.9971797270471652, (T)0.39930900745381376)};
+            }
+        }
+        else
+        {
+            nnz = 14;
+            icola.resize(nnz);
+            aval.resize(nnz);
+            //real, since it is symmetric data is same for non-transpose and transpose cases
+            icrowa   = {0, 3, 7, 11, 14};
+            icola    = {0, 1, 2, 0, 1, 2, 3, 0, 1, 2, 3, 1, 2, 3};
+            aval     = {bc((T)-154),
+                        bc((T)1),
+                        bc((T)1),
+                        bc((T)1),
+                        bc((T)160),
+                        bc((T)-2),
+                        bc((T)3),
+                        bc((T)1),
+                        bc((T)-2),
+                        bc((T)142),
+                        bc((T)4),
+                        bc((T)3),
+                        bc((T)4),
+                        bc((T)178)};
+            b        = {bc((T)-149), bc((T)327), bc((T)439), bc((T)730)};
+            wcolxref = {bc((T)1.0000053468333496),
+                        bc((T)2.0001756154131849),
+                        bc((T)3.000647796922669),
+                        bc((T)3.9975592157387636)};
+        }
+        // update row pointer and column index arrays to reflect values as per base-index
+        // icrowa = icrowa + base;
+        transform(icrowa.begin(), icrowa.end(), icrowa.begin(), [base](aoclsparse_int &d) {
+            return d + base;
+        });
+        // icola = icola + base;
+        transform(icola.begin(), icola.end(), icola.begin(), [base](aoclsparse_int &d) {
+            return d + base;
+        });
+
+        if(aoclsparse_create_csr(&A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
+           != aoclsparse_status_success)
+            return aoclsparse_status_internal_error;
+        if(aoclsparse_create_mat_descr(&descr) != aoclsparse_status_success)
+            return aoclsparse_status_internal_error;
+
+        descr->type      = mattype;
+        descr->fill_mode = fill_mode;
+        descr->diag_type = diag;
+        aoclsparse_set_mat_index_base(descr, base);
+
+        switch(id)
+        {
+        case GS_HR4:
+            xref = std::move(wcolxref);
+            break;
+        case GS_MV_HR4:
+            //xref below contains the spmv output between "A" and computed x (symgs output)
+            if constexpr(std::is_same_v<T, std::complex<double>>
+                         || std::is_same_v<T, std::complex<float>>)
+            {
+                if(trans == aoclsparse_operation_none
+                   || trans == aoclsparse_operation_conjugate_transpose)
+                {
+                    xref = {bcd((T)-149, (T)-14.9),
+                            bcd((T)327.71752635746162, (T)25.721468578776118),
+                            bcd((T)439.29331534204954, (T)41.794321819086136),
+                            bcd((T)728.98685978817491, (T)78.018787141220045)};
+                }
+                else if(trans == aoclsparse_operation_transpose)
+                {
+                    xref = {bcd((T)-149, (T)-14.900000000000002),
+                            bcd((T)326.32143050459626, (T)39.682427107429682),
+                            bcd((T)438.87054114103586, (T)46.022063829222404),
+                            bcd((T)730.0007412064723, (T)67.879972958244679)};
+                }
+            }
+            else
+            {
+                xref = {bc((T)-149),
+                        bc((T)327.01948586631386),
+                        bc((T)439.08187814198101),
+                        bc((T)729.56865843543017)};
+            }
+            break;
+        default:
+            return aoclsparse_status_internal_error;
+            break;
+        }
+        break;
+    case GS_TRIANGLE_S5:
+    case GS_MV_TRIANGLE_S5:
+        /*
+            Convergence Test using SYMGS Iterations
+            A = [
+                  211.00000     0.00000     0.00000     0.00000     0.00000;
+                    0.00000   271.00000     0.00000     0.00000     0.00000;
+                    2.50000     0.00000   311.00000     0.00000     0.00000;
+                    1.00000     0.00000     1.20000   287.00000     0.00000;
+                    0.50000     2.00000     3.00000     0.00000   251.00000;
+                ]
+        */
+        title     = "small triangle m and single iterations, A.x = b, solve for x using Gauss "
+                    "Seidel Preconditioner";
+        mattype   = (aoclsparse_matrix_type)iparm[6]; // matrix type
+        fill_mode = (aoclsparse_fill_mode)iparm[7]; // fill mode
+        trans     = (aoclsparse_operation)iparm[8]; //transpose mode
+        diag      = aoclsparse_diag_type_non_unit;
+
+        alpha = bc((T)2.0);
+        n     = 5;
+        nnz   = 11;
+        x.resize(n);
+        x = {bc((T)1.0), bc((T)1.0), bc((T)1.0), bc((T)1.0), bc((T)1.0)};
+        icrowa.resize(n + 1);
+        icola.resize(nnz);
+        aval.resize(nnz);
+        if(fill_mode == aoclsparse_fill_mode_lower)
+        {
+            //If Only Lower triangle is given
+            icrowa = {0, 1, 2, 4, 7, 11};
+            icola  = {0, 1, 0, 2, 0, 2, 3, 0, 1, 2, 4};
+            aval   = {bc((T)211),
+                      bc((T)271),
+                      bc((T)2.5),
+                      bc((T)311),
+                      bc((T)1),
+                      bc((T)1.2),
+                      bc((T)287),
+                      bc((T)0.5),
+                      bc((T)2),
+                      bc((T)3),
+                      bc((T)251)};
+        }
+        else if(fill_mode == aoclsparse_fill_mode_upper)
+        {
+            //If Only Upper triangle is given
+            icrowa = {0, 4, 6, 9, 10, 11};
+            icola  = {0, 2, 3, 4, 1, 4, 2, 3, 4, 3, 4};
+            aval   = {bc((T)211),
+                      bc((T)2.5),
+                      bc((T)1),
+                      bc((T)0.5),
+                      bc((T)271),
+                      bc((T)2),
+                      bc((T)311),
+                      bc((T)1.2),
+                      bc((T)3),
+                      bc((T)287),
+                      bc((T)251)};
+        }
+
+        // update row pointer and column index arrays to reflect values as per base-index
+        // icrowa = icrowa + base;
+        transform(icrowa.begin(), icrowa.end(), icrowa.begin(), [base](aoclsparse_int &d) {
+            return d + base;
+        });
+        // icola = icola + base;
+        transform(icola.begin(), icola.end(), icola.begin(), [base](aoclsparse_int &d) {
+            return d + base;
+        });
+        if(aoclsparse_create_csr(&A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
+           != aoclsparse_status_success)
+            return aoclsparse_status_internal_error;
+        if(aoclsparse_create_mat_descr(&descr) != aoclsparse_status_success)
+            return aoclsparse_status_internal_error;
+
+        descr->type      = mattype;
+        descr->fill_mode = fill_mode;
+        descr->diag_type = diag;
+        aoclsparse_set_mat_index_base(descr, base);
+        wcolxref.resize(n);
+        xref.resize(n);
+        b.resize(n);
+        if constexpr(std::is_same_v<T, std::complex<double>>
+                     || std::is_same_v<T, std::complex<float>>)
+        {
+            if((trans == aoclsparse_operation_transpose && fill_mode == aoclsparse_fill_mode_lower)
+               || (trans == aoclsparse_operation_none && fill_mode == aoclsparse_fill_mode_upper))
+            {
+                b = {bcd((T)436.50000000000006, (T)134.55000000000001),
+                     bcd((T)1070.8800000000001, (T)330.09600000000006),
+                     bcd((T)1848.4319999999998, (T)569.77440000000001),
+                     bcd((T)2227.1199999999999, (T)686.50400000000002),
+                     bcd((T)2434.7000000000003, (T)750.49000000000001)};
+            }
+            else if((trans == aoclsparse_operation_none && fill_mode == aoclsparse_fill_mode_lower)
+                    || (trans == aoclsparse_operation_transpose
+                        && fill_mode == aoclsparse_fill_mode_upper))
+            {
+                b = {bcd((T)409.33999999999997, (T)126.178),
+                     bcd((T)1051.48, (T)324.11600000000004),
+                     bcd((T)1814.8699999999999, (T)559.42900000000009),
+                     bcd((T)2236.0440000000003, (T)689.25480000000005),
+                     bcd((T)2460.8900000000003, (T)758.56299999999999)};
+            }
+            wcolxref = {bcd((T)1.9799999999999998, (T)0.40000000000000002),
+                        bcd((T)3.9600000000000004, (T)0.80000000000000004),
+                        bcd((T)5.9399999999999995, (T)1.2000000000000002),
+                        bcd((T)7.9200000000000008, (T)1.5999999999999999),
+                        bcd((T)9.9000000000000021, (T)1.9999999999999998)};
+        }
+        else
+        {
+            if((trans == aoclsparse_operation_transpose && fill_mode == aoclsparse_fill_mode_lower)
+               || (trans == aoclsparse_operation_none && fill_mode == aoclsparse_fill_mode_upper))
+            {
+                b = {bc((T)450), bc((T)1104), bc((T)1905.5999999999999), bc((T)2296), bc((T)2510)};
+            }
+            else if((trans == aoclsparse_operation_none && fill_mode == aoclsparse_fill_mode_lower)
+                    || (trans == aoclsparse_operation_transpose
+                        && fill_mode == aoclsparse_fill_mode_upper))
+            {
+                b = {bc((T)422), bc((T)1084), bc((T)1871), bc((T)2305.1999999999998), bc((T)2537)};
+            }
+            wcolxref = {bc((T)2), bc((T)4), bc((T)6), bc((T)8), bc((T)10)};
+        }
+        switch(id)
+        {
+        case GS_TRIANGLE_S5:
+            xref = std::move(wcolxref);
+            break;
+        case GS_MV_TRIANGLE_S5:
+            //xref below contains the spmv output between "A" and computed x (symgs output)
+            if constexpr(std::is_same_v<T, std::complex<double>>
+                         || std::is_same_v<T, std::complex<float>>)
+            {
+                if((trans == aoclsparse_operation_transpose
+                    && fill_mode == aoclsparse_fill_mode_lower)
+                   || (trans == aoclsparse_operation_none
+                       && fill_mode == aoclsparse_fill_mode_upper))
+                {
+                    xref = {bcd((T)436.50000000000006, (T)134.55000000000001),
+                            bcd((T)1070.8800000000001, (T)330.09600000000006),
+                            bcd((T)1848.4319999999998, (T)569.77440000000001),
+                            bcd((T)2227.1199999999994, (T)686.50400000000002),
+                            bcd((T)2434.7000000000007, (T)750.49000000000001)};
+                }
+                else if((trans == aoclsparse_operation_none
+                         && fill_mode == aoclsparse_fill_mode_lower)
+                        || (trans == aoclsparse_operation_transpose
+                            && fill_mode == aoclsparse_fill_mode_upper))
+                {
+                    xref = {bcd((T)409.33999999999997, (T)126.178),
+                            bcd((T)1051.48, (T)324.11600000000004),
+                            bcd((T)1814.8699999999997, (T)559.42900000000009),
+                            bcd((T)2236.0440000000003, (T)689.25479999999993),
+                            bcd((T)2460.8900000000008, (T)758.56299999999999)};
+                }
+            }
+            else
+            {
+                if((trans == aoclsparse_operation_transpose
+                    && fill_mode == aoclsparse_fill_mode_lower)
+                   || (trans == aoclsparse_operation_none
+                       && fill_mode == aoclsparse_fill_mode_upper))
+                {
+                    xref = {bc((T)450),
+                            bc((T)1104),
+                            bc((T)1905.5999999999999),
+                            bc((T)2296),
+                            bc((T)2510)};
+                }
+                else if((trans == aoclsparse_operation_none
+                         && fill_mode == aoclsparse_fill_mode_lower)
+                        || (trans == aoclsparse_operation_transpose
+                            && fill_mode == aoclsparse_fill_mode_upper))
+                {
+                    xref = {bc((T)422),
+                            bc((T)1084),
+                            bc((T)1871),
+                            bc((T)2305.1999999999998),
+                            bc((T)2537)};
+                }
+            }
+            break;
+        default:
+            return aoclsparse_status_internal_error;
+            break;
+        }
+        break;
+    case GS_SYMM_ALPHA2_S9:
+    case GS_MV_SYMM_ALPHA2_S9:
+        /*
+            Symmetric Matrix
+            A = [
+                    162 0 0 0 0 0 0 3 0;
+                    0 162 0 7 9 0 0 11 0;
+                    0 0 162 0 0 0 0 0 0;
+                    0 7 0 162 0 0 0 0 0;
+                    0 9 0 0 162 13 0 0 3;
+                    0 0 0 0 13 162 0 0 5;
+                    0 0 0 0 0 0 162 0 0;
+                    3 11 0 0 0 0 0 162 17;
+                    0 0 0 0 3 5 0 17 162;
+                ]
+        */
+        title     = "medium symmetric m, A.x = b, solve for x using Gauss Seidel Preconditioner";
+        mattype   = (aoclsparse_matrix_type)iparm[6]; // matrix type
+        fill_mode = (aoclsparse_fill_mode)iparm[7]; // fill mode
+        trans     = (aoclsparse_operation)iparm[8]; //transpose mode
+        diag      = aoclsparse_diag_type_non_unit;
+
+        alpha = bc((T)2.0);
+        n     = 9;
+        nnz   = 25;
+        x.resize(n);
+        x = {bc((T)1.0),
+             bc((T)1.0),
+             bc((T)1.0),
+             bc((T)1.0),
+             bc((T)1.0),
+             bc((T)1.0),
+             bc((T)1.0),
+             bc((T)1.0),
+             bc((T)1.0)};
+        icrowa.resize(n + 1);
+        icrowa = {0, 2, 6, 7, 9, 13, 16, 17, 21, 25};
+        icola.resize(nnz);
+        icola = {0, 7, 1, 3, 4, 7, 2, 1, 3, 1, 4, 5, 8, 4, 5, 8, 6, 0, 1, 7, 8, 4, 5, 7, 8};
+
+        // update row pointer and column index arrays to reflect values as per base-index
+        // icrowa = icrowa + base;
+        transform(icrowa.begin(), icrowa.end(), icrowa.begin(), [base](aoclsparse_int &d) {
+            return d + base;
+        });
+        // icola = icola + base;
+        transform(icola.begin(), icola.end(), icola.begin(), [base](aoclsparse_int &d) {
+            return d + base;
+        });
+        aval.resize(nnz);
+        aval = {bc((T)162.000000), bc((T)3.000000),  bc((T)162.000000), bc((T)7.000000),
+                bc((T)9.000000),   bc((T)11.000000), bc((T)162.000000), bc((T)7.000000),
+                bc((T)162.000000), bc((T)9.000000),  bc((T)162.000000), bc((T)13.000000),
+                bc((T)3.000000),   bc((T)13.000000), bc((T)162.000000), bc((T)5.000000),
+                bc((T)162.000000), bc((T)3.000000),  bc((T)11.000000),  bc((T)162.000000),
+                bc((T)17.000000),  bc((T)3.000000),  bc((T)5.000000),   bc((T)17.000000),
+                bc((T)162.000000)};
+        if(aoclsparse_create_mat_descr(&descr) != aoclsparse_status_success)
+            return aoclsparse_status_internal_error;
+
+        descr->type      = mattype;
+        descr->fill_mode = fill_mode;
+        descr->diag_type = diag;
+        aoclsparse_set_mat_index_base(descr, base);
+        wcolxref.resize(n);
+        xref.resize(n);
+        b.resize(n);
+
+        if constexpr(std::is_same_v<T, std::complex<double>>
+                     || std::is_same_v<T, std::complex<float>>)
+        {
+            b = {bcd((T)360.83999999999997, (T)111.22800000000001),
+                 bcd((T)940.90000000000009, (T)290.02999999999997),
+                 bcd((T)942.83999999999992, (T)290.62799999999999),
+                 bcd((T)1284.28, (T)395.87599999999998),
+                 bcd((T)1810.0200000000002, (T)557.93399999999997),
+                 bcd((T)2099.0799999999999, (T)647.03599999999994),
+                 bcd((T)2199.9599999999996, (T)678.13199999999995),
+                 bcd((T)2859.5599999999995, (T)881.45200000000011),
+                 bcd((T)3179.6599999999999, (T)980.12200000000007)};
+
+            wcolxref = {bcd((T)1.9817716906880167, (T)0.40035791731071063),
+                        bcd((T)3.9740800399396567, (T)0.80284445251306147),
+                        bcd((T)5.9399999999999986, (T)1.2),
+                        bcd((T)7.8492318244170098, (T)1.585703398872123),
+                        bcd((T)9.8185327808376517, (T)1.9835419759267974),
+                        bcd((T)11.805977999201147, (T)2.3850460604446759),
+                        bcd((T)13.859999999999996, (T)2.7999999999999998),
+                        bcd((T)15.744328702847072, (T)3.1806724652216332),
+                        bcd((T)17.626658504895179, (T)3.5609411121000374)};
+        }
+        else
+        {
+            b        = {bc((T)372),
+                        bc((T)970),
+                        bc((T)972),
+                        bc((T)1324),
+                        bc((T)1866),
+                        bc((T)2164),
+                        bc((T)2268),
+                        bc((T)2948),
+                        bc((T)3278)};
+            wcolxref = {bc((T)2.0017895865535529),
+                        bc((T)4.0142222625653083),
+                        bc((T)6),
+                        bc((T)7.9285169943606162),
+                        bc((T)9.9177098796339926),
+                        bc((T)11.925230302223381),
+                        bc((T)14),
+                        bc((T)15.903362326108159),
+                        bc((T)17.804705560500182)};
+        }
+        if(aoclsparse_create_csr(&A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
+           != aoclsparse_status_success)
+            return aoclsparse_status_internal_error;
+
+        switch(id)
+        {
+        case GS_SYMM_ALPHA2_S9:
+            xref = std::move(wcolxref);
+            break;
+        case GS_MV_SYMM_ALPHA2_S9:
+            //xref below contains the spmv output between "A" and computed x (symgs output)
+            if constexpr(std::is_same_v<T, std::complex<double>>
+                         || std::is_same_v<T, std::complex<float>>)
+            {
+                xref = {bcd((T)360.83999999999992, (T)111.22800000000001),
+                        bcd((T)940.90000000000009, (T)290.02999999999997),
+                        bcd((T)942.83999999999969, (T)290.62799999999999),
+                        bcd((T)1273.1437296566455, (T)392.44327336838865),
+                        bcd((T)1795.7019381299729, (T)553.52049433078525),
+                        bcd((T)2085.3458332419928, (T)642.80247849418117),
+                        bcd((T)2199.9599999999991, (T)678.13199999999983),
+                        bcd((T)2841.3109098557261, (T)875.82676499676541),
+                        bcd((T)3146.7757792500402, (T)969.98552370697143)};
+            }
+            else
+            {
+                xref = {bc((T)372),
+                        bc((T)970),
+                        bc((T)972),
+                        bc((T)1312.5193089243769),
+                        bc((T)1851.2391114741988),
+                        bc((T)2149.8410651979307),
+                        bc((T)2268),
+                        bc((T)2929.1865050059037),
+                        bc((T)3244.0987414948872)};
             }
             break;
         default:

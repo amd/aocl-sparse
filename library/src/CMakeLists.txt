@@ -58,6 +58,7 @@ set(AOCLSPARSE_SOURCES
   src/solvers/aoclsparse_ilu.cpp
   src/solvers/aoclsparse_itsol_functions.cpp
   src/solvers/aoclsparse_sorv.cpp
+  src/solvers/aoclsparse_symgs.cpp
 
 # Analysis
   src/analysis/aoclsparse_analysis.cpp
@@ -65,3 +66,4 @@ set(AOCLSPARSE_SOURCES
 )
 
 include(Suppressions)
+

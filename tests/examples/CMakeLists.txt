@@ -180,6 +180,10 @@ set(EXAMPLE_EXECUTABLES
     sample_spmmd
     sample_sp2md
     sample_syprd
+    sample_dsymgs
+    sample_dsymgs_mv
+    sample_zsymgs
+    sample_zsymgs_mv
 )
 # Take all sample executables also as test targets
 foreach(SNAME ${EXAMPLE_EXECUTABLES})

@@ -571,8 +571,9 @@ aoclsparse_status aoclsparse_itsol_s_solve(
  *          :language: C++
  *          :linenos:
  * @endrst
- * \{
  */
+/**@{*/
+
 DLL_PUBLIC
 aoclsparse_status aoclsparse_ssorv(aoclsparse_sor_type        sor_type,
                                    const aoclsparse_mat_descr descr,
@@ -605,6 +606,394 @@ aoclsparse_status aoclsparse_zsorv(aoclsparse_sor_type              sor_type,
                                    aoclsparse_double_complex        alpha,
                                    aoclsparse_double_complex       *x,
                                    const aoclsparse_double_complex *b);
+/**@}*/
+/*! \ingroup solvers_module
+ *  \brief Symmetric Gauss Seidel(SYMGS) Preconditioner for real/complex single and double data precisions.
+ *
+ *  \details
+ *  \P{aoclsparse_?symgs} performs an iteration of Gauss Seidel preconditioning. Krylov methods such
+ *  as CG (Conjugate Gradient) and GMRES (Generalized Minimal Residual) are used to solve large sparse
+ *  linear systems of the form
+ *  \f[
+ *  op(A)\; x = \alpha b,
+ *  \f]
+ *  where \f$A\f$ is a sparse matrix of size \f$m\f$, \f$op()\f$ is a linear operator, \f$b\f$ is a dense right-hand
+ *  side vector and \f$x\f$ is the unknown dense vector, while \f$\alpha\f$ is a scalar.
+ *  This Gauss Seidel(GS) relaxation is typically used either as a preconditioner for a Krylov solver directly,
+ *  or as a smoother in a V –cycle of a multigrid preconditioner to accelerate the convergence rate.
+ *  The Symmetric Gauss Seidel algorithm performs a forward sweep followed by a backward sweep to maintain
+ *  symmetry of the matrix operation.
+ *
+ *  To solve a linear system \f$Ax = b\f$, Gauss Seidel(GS) iteration is based on the matrix splitting
+ *  \f[ A = L + D + U = -E + D - F \f]
+ *  where \f$-E\f$ or \f$L\f$ is strictly lower triangle,
+ *  \f$D\f$ is diagonal and
+ *  \f$-F\f$ or \f$D\f$ is strictly upper triangle.
+ *  Gauss-Seidel is best derived as element-wise (refer Yousef Saad's book Iterative Methods for
+ *  Sparse Linear Systems, Second Edition, Chapter 4.1, p. 125 onwards):
+ *  \f[
+ *  x_i = \frac{1}{a_{ii}} \; \left (b_i - \sum_{j=1}^{i-1} a_{ij} \; x_j - \sum_{j=i+1}^n a_{ij} \; x_j\right)
+ *  \f]
+ *  where the first sum is lower triangle i.e., \f$-Ex\f$ and the second sum is upper triangle i.e., \f$-Fx\f$.
+ *  If we iterate through the rows \p i=1 to \p n and keep overwriting/reusing the new \f$x_{i}\f$, we get
+ *  forward GS, expressed in matrix form as,
+ *  \f[
+ *  (D-E) \; x_{k+1} = F \; x_k + b
+ *  \f]
+ *  Iterating through the rows in reverse order from \p i=n to \p 1, the upper triangle keeps using the new
+ *  \f$x_{k+1}\f$ elements and we get backward GS, expressed in matrix form as,
+ *  \f[
+ *  (D-F) \; x_{k+1} = E \; x_k + b
+ *  \f]
+ *  The above two equations can be expressed in terms of \p L, \p D and \p U as follows,
+ *  \f[
+ *  (L + D)\;x_1 = b - U\;x_0
+ *  \f]
+ *  \f[
+ *  (U + D)\;x = b - L\;x_1
+ *  \f]
+ *  So, Symmetric Gauss Seidel (SYMGS) can be computed using two \P{aoclsparse_?mv}
+ *  and two \P{aoclsparse_?trsv} operations.
+ *
+ *  The sparse matrix \f$A\f$ can be either a symmetric or a Hermitian matrix, whose fill
+ *  is indicated by \p fill_mode from the matrix descriptor \p descr
+ *  where either upper or lower triangular portion of the matrix is used.
+ *  Matrix \f$A\f$ must be of full rank,  that is, the matrix must be invertible. The linear operator \f$op()\f$ can
+ *  define the transposition or conjugate transposition operations. By default, no transposition
+ *  is performed. The right-hand-side vector \f$b\f$ and the solution vector \f$x\f$ are dense
+ *  and must be of the correct size, that is \f$m\f$. If used as fixed point iterative method,
+ *  the convergence is guaranteed for  strictly diagonally dominant and symmetric positive definite matrices from
+ *  any starting point, \p x0. However, the API can be applied to wider types of input or as a preconditioning step.
+ *  Refer Yousef Saad's Iterative Methods for Sparse Linear Systems 2nd Edition, Theorem 4.9
+ *  and related literature for mathematical theory.
+ *
+ *  \note
+ *
+ *  1. If the matrix descriptor \p descr specifies that the matrix \f$A\f$ is to be regarded as
+ *     having a unitary diagonal, then the main diagonal entries of matrix \f$A\f$ are not accessed and
+ *     are considered to all be ones.
+ *
+ *  2. If the matrix \f$A\f$ is described as upper triangular, then only the upper triangular portion of the
+ *     matrix is referenced. Conversely, if the matrix \f$A\f$ is described lower triangular, then only the
+ *     lower triangular portion of the matrix is used.
+ *
+ *  3. This set of APIs allocates couple of work array buffers of size \f$m\f$ for to store intermediate results
+ *
+ *  4. If the input matrix is of triangular type, the SGS is computed using a single \P{aoclsparse_?trsv} operation
+ *     and a quick return is made without going through the 3-step reference(described above)
+ *
+ *  @param[in]
+ *  trans       matrix operation to perform on \f$A\f$. Possible values are \ref aoclsparse_operation_none,
+ *              \ref aoclsparse_operation_transpose, and \ref aoclsparse_operation_conjugate_transpose.
+ *  @param[in]
+ *  A           sparse matrix \f$A\f$ of size \f$m\f$.
+ *  @param[in]
+ *  descr       descriptor of the sparse matrix \f$A\f$.
+ *  @param[in]
+ *  alpha       scalar \f$\alpha\f$.
+ *  @param[in]
+ *  b           dense vector, of size \f$m\f$.
+ *  @param[out]
+ *  x           solution vector \f$x,\f$ dense vector of size \f$m\f$.
+ *
+ *  \retval     aoclsparse_status_success indicates that the operation completed successfully.
+ *  \retval     aoclsparse_status_invalid_size informs that either \p m, \p n or \p nnz
+ *              is invalid. The error code also informs if the given sparse matrix \f$A\f$ is not square.
+ *  \retval     aoclsparse_status_invalid_value informs that either \p base, \p trans, matrix type \p descr->type or
+ *              fill mode \p descr->fill_mode is invalid. If the sparse matrix \f$A\f$ is not of full rank, the error code is returned to indicate that the
+ *              linear system cannot be solved.
+ *  \retval     aoclsparse_status_invalid_pointer informs that either \p descr, \p A,
+ *              \p b, or \p x pointer is invalid.
+ *  \retval     aoclsparse_status_not_implemented this error occurs when the provided matrix's
+ *              \ref aoclsparse_fill_mode is \ref aoclsparse_diag_type_unit or the input format is not \ref aoclsparse_csr_mat,
+ *              or when \ref aoclsparse_matrix_type is \ref aoclsparse_matrix_type_general and \p trans is
+ *              \ref aoclsparse_operation_conjugate_transpose.
+ * @rst
+ *
+ * .. collapse:: Example - Real space (tests/examples/sample_dsymgs.cpp)
+ *
+ *      .. only:: html
+ *
+ *         .. literalinclude:: ../tests/examples/sample_dsymgs.cpp
+ *            :language: C++
+ *            :linenos:
+ *
+ * \
+ *
+ * .. collapse:: Example - Complex space (tests/examples/sample_zsymgs.cpp)
+ *
+ *      .. only:: html
+ *
+ *         .. literalinclude:: ../tests/examples/sample_zsymgs.cpp
+ *            :language: C++
+ *            :linenos:
+ *
+ * @endrst
+ */
+
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_zsymgs(aoclsparse_operation             trans,
+                                    aoclsparse_matrix                A,
+                                    const aoclsparse_mat_descr       descr,
+                                    const aoclsparse_double_complex  alpha,
+                                    const aoclsparse_double_complex *b,
+                                    aoclsparse_double_complex       *x);
+DLL_PUBLIC
+aoclsparse_status aoclsparse_csymgs(aoclsparse_operation            trans,
+                                    aoclsparse_matrix               A,
+                                    const aoclsparse_mat_descr      descr,
+                                    const aoclsparse_float_complex  alpha,
+                                    const aoclsparse_float_complex *b,
+                                    aoclsparse_float_complex       *x);
+DLL_PUBLIC
+aoclsparse_status aoclsparse_dsymgs(aoclsparse_operation       trans,
+                                    aoclsparse_matrix          A,
+                                    const aoclsparse_mat_descr descr,
+                                    const double               alpha,
+                                    const double              *b,
+                                    double                    *x);
+DLL_PUBLIC
+aoclsparse_status aoclsparse_ssymgs(aoclsparse_operation       trans,
+                                    aoclsparse_matrix          A,
+                                    const aoclsparse_mat_descr descr,
+                                    const float                alpha,
+                                    const float               *b,
+                                    float                     *x);
+/**@}*/
+
+/*! \ingroup solvers_module
+ *  \brief Symmetric Gauss Seidel Preconditioner for real/complex single and double data precisions. (kernel flag variation).
+ *
+ *  \details
+ * @rst For full details refer to :cpp:func:`aoclsparse_?symgs()<aoclsparse_ssymgs>`.
+ *
+ * This variation of SYMGS, namely with a suffix of `_kid`, allows to choose which
+ * SYMGS kernel to use (if possible). Currently the possible choices are:
+ *
+ * :code:`kid=0`
+ *     Reference implementation (No explicit AVX instructions).
+ *
+ * Any other Kernel ID value will default to :code:`kid` = 0.
+ * @endrst
+ *
+ *  @param[in]
+ *  trans       matrix operation to perform on \f$A\f$. Possible values are \ref aoclsparse_operation_none,
+ *              \ref aoclsparse_operation_transpose, and \ref aoclsparse_operation_conjugate_transpose.
+ *  @param[in]
+ *  A           sparse matrix \f$A\f$ of size \f$m\f$.
+ *  @param[in]
+ *  descr       descriptor of the sparse matrix \f$A\f$.
+ *  @param[in]
+ *  alpha       scalar \f$\alpha\f$.
+ *  @param[in]
+ *  b           dense vector, of size \f$m\f$.
+ *  @param[out]
+ *  x           solution vector \f$x,\f$ dense vector of size \f$m\f$.
+ *  @param[in]
+ *  kid         Kernel ID, hints a request on which SYMGS kernel to use.
+ */
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_zsymgs_kid(aoclsparse_operation             trans,
+                                        aoclsparse_matrix                A,
+                                        const aoclsparse_mat_descr       descr,
+                                        const aoclsparse_double_complex  alpha,
+                                        const aoclsparse_double_complex *b,
+                                        aoclsparse_double_complex       *x,
+                                        const aoclsparse_int             kid);
+DLL_PUBLIC
+aoclsparse_status aoclsparse_csymgs_kid(aoclsparse_operation            trans,
+                                        aoclsparse_matrix               A,
+                                        const aoclsparse_mat_descr      descr,
+                                        const aoclsparse_float_complex  alpha,
+                                        const aoclsparse_float_complex *b,
+                                        aoclsparse_float_complex       *x,
+                                        const aoclsparse_int            kid);
+DLL_PUBLIC
+aoclsparse_status aoclsparse_dsymgs_kid(aoclsparse_operation       trans,
+                                        aoclsparse_matrix          A,
+                                        const aoclsparse_mat_descr descr,
+                                        const double               alpha,
+                                        const double              *b,
+                                        double                    *x,
+                                        const aoclsparse_int       kid);
+DLL_PUBLIC
+aoclsparse_status aoclsparse_ssymgs_kid(aoclsparse_operation       trans,
+                                        aoclsparse_matrix          A,
+                                        const aoclsparse_mat_descr descr,
+                                        const float                alpha,
+                                        const float               *b,
+                                        float                     *x,
+                                        const aoclsparse_int       kid);
+/**@}*/
+
+/*! \ingroup solver_module
+ *  \brief Symmetric Gauss Seidel Preconditioner followed by SPMV for single and double precision datatypes.
+ *  \details
+ *  @rst For full details refer to :cpp:func:`aoclsparse_?symgs()<aoclsparse_ssymgs>`.
+ *
+ *  This variation of SYMGS, namely with a suffix of `_mv`, performs matrix-vector multiplication between
+ *  the sparse matrix \f$A\f$ and the Gauss Seidel solution vector \f$x\f$.
+ *  @endrst
+ *  @param[in]
+ *  trans       matrix operation to perform on \f$A\f$. Possible values are \ref aoclsparse_operation_none,
+ *              \ref aoclsparse_operation_transpose, and \ref aoclsparse_operation_conjugate_transpose.
+ *  @param[in]
+ *  A           sparse matrix \f$A\f$ of size \f$m\f$.
+ *  @param[in]
+ *  descr       descriptor of the sparse matrix \f$A\f$.
+ *  @param[in]
+ *  alpha       scalar \f$\alpha\f$.
+ *  @param[in]
+ *  b           dense vector, of size \f$m\f$.
+ *  @param[out]
+ *  x           solution vector \f$x,\f$ dense vector of size \f$m\f$.
+ *  @param[out]
+ *  y           sparse-product vector \f$y,\f$ dense vector of size \f$m\f$.
+ *
+ *  \retval     aoclsparse_status_success indicates that the operation completed successfully.
+ *  \retval     aoclsparse_status_invalid_size informs that either \p m, \p n or \p nnz
+ *              is invalid. The error code also informs if the given sparse matrix \f$A\f$ is not square.
+ *  \retval     aoclsparse_status_invalid_value informs that either \p base, \p trans, matrix type \p descr->type or
+ *              fill mode \p descr->fill_mode is invalid. If the sparse matrix \f$A\f$ is not of full rank, the error code is returned to indicate that the
+ *              linear system cannot be solved.
+ *  \retval     aoclsparse_status_invalid_pointer informs that either \p descr, \p A,
+ *              \p b, \p x or \p y pointer is invalid.
+ *  \retval     aoclsparse_status_not_implemented this error occurs when the provided matrix's
+ *              \ref aoclsparse_fill_mode is \ref aoclsparse_diag_type_unit or the input format is not \ref aoclsparse_csr_mat,
+ *              or when \ref aoclsparse_matrix_type is \ref aoclsparse_matrix_type_general and \p trans is
+ *              \ref aoclsparse_operation_conjugate_transpose.
+ * @rst
+ *
+ * .. collapse:: Example - Real space (tests/examples/sample_dsymgs_mv.cpp)
+ *
+ *      .. only:: html
+ *
+ *         .. literalinclude:: ../tests/examples/sample_dsymgs_mv.cpp
+ *            :language: C++
+ *            :linenos:
+ *
+ * \
+ *
+ * .. collapse:: Example - Complex space (tests/examples/sample_zsymgs_mv.cpp)
+ *
+ *      .. only:: html
+ *
+ *         .. literalinclude:: ../tests/examples/sample_zsymgs_mv.cpp
+ *            :language: C++
+ *            :linenos:
+ *
+ * @endrst
+ */
+
+/**@{*/
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_zsymgs_mv(aoclsparse_operation             trans,
+                                       aoclsparse_matrix                A,
+                                       const aoclsparse_mat_descr       descr,
+                                       const aoclsparse_double_complex  alpha,
+                                       const aoclsparse_double_complex *b,
+                                       aoclsparse_double_complex       *x,
+                                       aoclsparse_double_complex       *y);
+DLL_PUBLIC
+aoclsparse_status aoclsparse_csymgs_mv(aoclsparse_operation            trans,
+                                       aoclsparse_matrix               A,
+                                       const aoclsparse_mat_descr      descr,
+                                       const aoclsparse_float_complex  alpha,
+                                       const aoclsparse_float_complex *b,
+                                       aoclsparse_float_complex       *x,
+                                       aoclsparse_float_complex       *y);
+DLL_PUBLIC
+aoclsparse_status aoclsparse_dsymgs_mv(aoclsparse_operation       trans,
+                                       aoclsparse_matrix          A,
+                                       const aoclsparse_mat_descr descr,
+                                       const double               alpha,
+                                       const double              *b,
+                                       double                    *x,
+                                       double                    *y);
+DLL_PUBLIC
+aoclsparse_status aoclsparse_ssymgs_mv(aoclsparse_operation       trans,
+                                       aoclsparse_matrix          A,
+                                       const aoclsparse_mat_descr descr,
+                                       const float                alpha,
+                                       const float               *b,
+                                       float                     *x,
+                                       float                     *y);
+/**@}*/
+
+/*! \ingroup solver_module
+ *  \brief Symmetric Gauss Seidel Preconditioner followed by SPMV
+ *  for single and double precision datatypes. (kernel flag variation).
+ *
+ *  \details
+ *  @rst For full details refer to :cpp:func:`aoclsparse_?symgs()<aoclsparse_ssymgs>`.
+ *
+ * This variation of Fused SYMGS, namely with a suffix of `_kid`, allows to choose which
+ * Fused SYMGS kernel to use (if possible). Currently the possible choices are:
+ *
+ * :code:`kid=0`
+ *     Reference implementation (No explicit AVX instructions).
+ *
+ * Any other Kernel ID value will default to :code:`kid` = 0.
+ * @endrst
+ *
+ *  @param[in]
+ *  trans       matrix operation to perform on \f$A\f$. Possible values are \ref aoclsparse_operation_none,
+ *              \ref aoclsparse_operation_transpose, and \ref aoclsparse_operation_conjugate_transpose.
+ *  @param[in]
+ *  A           sparse matrix \f$A\f$ of size \f$m\f$.
+ *  @param[in]
+ *  descr       descriptor of the sparse matrix \f$A\f$.
+ *  @param[in]
+ *  alpha       scalar \f$\alpha\f$.
+ *  @param[in]
+ *  b           dense vector, of size \f$m\f$.
+ *  @param[out]
+ *  x           solution vector \f$x,\f$ dense vector of size \f$m\f$.
+ *  @param[out]
+ *  y           sparse-product vector \f$y,\f$ dense vector of size \f$m\f$.
+ *  @param[in]
+ *  kid         Kernel ID, hints a request on which Fused SYMGS kernel to use.
+ */
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_zsymgs_mv_kid(aoclsparse_operation             trans,
+                                           aoclsparse_matrix                A,
+                                           const aoclsparse_mat_descr       descr,
+                                           const aoclsparse_double_complex  alpha,
+                                           const aoclsparse_double_complex *b,
+                                           aoclsparse_double_complex       *x,
+                                           aoclsparse_double_complex       *y,
+                                           const aoclsparse_int             kid);
+DLL_PUBLIC
+aoclsparse_status aoclsparse_csymgs_mv_kid(aoclsparse_operation            trans,
+                                           aoclsparse_matrix               A,
+                                           const aoclsparse_mat_descr      descr,
+                                           const aoclsparse_float_complex  alpha,
+                                           const aoclsparse_float_complex *b,
+                                           aoclsparse_float_complex       *x,
+                                           aoclsparse_float_complex       *y,
+                                           const aoclsparse_int            kid);
+DLL_PUBLIC
+aoclsparse_status aoclsparse_dsymgs_mv_kid(aoclsparse_operation       trans,
+                                           aoclsparse_matrix          A,
+                                           const aoclsparse_mat_descr descr,
+                                           const double               alpha,
+                                           const double              *b,
+                                           double                    *x,
+                                           double                    *y,
+                                           const aoclsparse_int       kid);
+DLL_PUBLIC
+aoclsparse_status aoclsparse_ssymgs_mv_kid(aoclsparse_operation       trans,
+                                           aoclsparse_matrix          A,
+                                           const aoclsparse_mat_descr descr,
+                                           const float                alpha,
+                                           const float               *b,
+                                           float                     *x,
+                                           float                     *y,
+                                           const aoclsparse_int       kid);
 /**@}*/
 #ifdef __cplusplus
 }

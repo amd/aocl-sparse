@@ -26,7 +26,6 @@
 #include "aoclsparse.h"
 #include "aoclsparse_context.h"
 #include "aoclsparse_descr.h"
-#include "aoclsparse_auxiliary.hpp"
 #include "aoclsparse_utils.hpp"
 
 #include <immintrin.h>
