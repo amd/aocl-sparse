@@ -148,6 +148,24 @@ aoclsparse_itsol\_?_rci_solve()
     :outline:
 .. doxygenfunction:: aoclsparse_itsol_d_rci_solve
 
+aoclsparse\_?symgs()
+--------------------------------
+
+.. doxygenfunction:: aoclsparse_ssymgs
+    :outline:
+.. doxygenfunction:: aoclsparse_dsymgs
+    :outline:
+.. doxygenfunction:: aoclsparse_csymgs
+    :outline:
+.. doxygenfunction:: aoclsparse_zsymgs
+
+.. doxygenfunction:: aoclsparse_ssymgs_mv
+    :outline:
+.. doxygenfunction:: aoclsparse_dsymgs_mv
+    :outline:
+.. doxygenfunction:: aoclsparse_csymgs_mv
+    :outline:
+.. doxygenfunction:: aoclsparse_zsymgs_mv
 
 aoclsparse\_?sorv()
 -------------------

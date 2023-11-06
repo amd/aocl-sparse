@@ -34,14 +34,7 @@
 #include <type_traits>
 #include <vector>
 
-// Ignore compiler warning from BLIS
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#pragma GCC diagnostic ignored "-Wtype-limits"
-#pragma GCC diagnostic ignored "-Wunused-function"
 #include "blis.hh"
-// Restore
-#pragma GCC diagnostic pop
 
 namespace
 {

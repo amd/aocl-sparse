@@ -471,6 +471,38 @@ aoclsparse_status aoclsparse_export_csc(const aoclsparse_matrix mat,
                                         aoclsparse_int        **col_ptr,
                                         aoclsparse_int        **row_idx,
                                         T                     **val);
+template <typename T>
+aoclsparse_status aoclsparse_symgs_kid(aoclsparse_operation       trans,
+                                       aoclsparse_matrix          A,
+                                       const aoclsparse_mat_descr descr,
+                                       const T                    alpha,
+                                       const T                   *b,
+                                       T                         *x,
+                                       const aoclsparse_int       kid);
+template <typename T>
+aoclsparse_status aoclsparse_symgs(aoclsparse_operation       trans,
+                                   aoclsparse_matrix          A,
+                                   const aoclsparse_mat_descr descr,
+                                   const T                    alpha,
+                                   const T                   *b,
+                                   T                         *x);
+template <typename T>
+aoclsparse_status aoclsparse_symgs_mv_kid(aoclsparse_operation       trans,
+                                          aoclsparse_matrix          A,
+                                          const aoclsparse_mat_descr descr,
+                                          const T                    alpha,
+                                          const T                   *b,
+                                          T                         *x,
+                                          T                         *y,
+                                          const aoclsparse_int       kid);
+template <typename T>
+aoclsparse_status aoclsparse_symgs_mv(aoclsparse_operation       trans,
+                                      aoclsparse_matrix          A,
+                                      const aoclsparse_mat_descr descr,
+                                      const T                    alpha,
+                                      const T                   *b,
+                                      T                         *x,
+                                      T                         *y);
 
 template <typename T>
 aoclsparse_status aoclsparse_export_coo(const aoclsparse_matrix mat,

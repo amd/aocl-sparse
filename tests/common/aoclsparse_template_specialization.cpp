@@ -1990,3 +1990,149 @@ aoclsparse_status aoclsparse_dotmv(const aoclsparse_operation op,
 {
     return aoclsparse_zdotmv(op, alpha, A, descr, x, beta, y, d);
 }
+template <>
+aoclsparse_status aoclsparse_symgs(aoclsparse_operation       trans,
+                                   aoclsparse_matrix          A,
+                                   const aoclsparse_mat_descr descr,
+                                   const float                alpha,
+                                   const float               *b,
+                                   float                     *x)
+{
+    return aoclsparse_ssymgs(trans, A, descr, alpha, b, x);
+}
+template <>
+aoclsparse_status aoclsparse_symgs(aoclsparse_operation       trans,
+                                   aoclsparse_matrix          A,
+                                   const aoclsparse_mat_descr descr,
+                                   const double               alpha,
+                                   const double              *b,
+                                   double                    *x)
+{
+    return aoclsparse_dsymgs(trans, A, descr, alpha, b, x);
+}
+template <>
+aoclsparse_status aoclsparse_symgs(aoclsparse_operation       trans,
+                                   aoclsparse_matrix          A,
+                                   const aoclsparse_mat_descr descr,
+                                   const std::complex<float>  alpha,
+                                   const std::complex<float> *b,
+                                   std::complex<float>       *x)
+{
+    const aoclsparse_float_complex *palpha
+        = reinterpret_cast<const aoclsparse_float_complex *>(&alpha);
+    const aoclsparse_float_complex *pb = reinterpret_cast<const aoclsparse_float_complex *>(b);
+    aoclsparse_float_complex       *px = reinterpret_cast<aoclsparse_float_complex *>(x);
+    return aoclsparse_csymgs(trans, A, descr, *palpha, pb, px);
+}
+template <>
+aoclsparse_status aoclsparse_symgs(aoclsparse_operation            trans,
+                                   aoclsparse_matrix               A,
+                                   const aoclsparse_mat_descr      descr,
+                                   const aoclsparse_float_complex  alpha,
+                                   const aoclsparse_float_complex *b,
+                                   aoclsparse_float_complex       *x)
+{
+    return aoclsparse_csymgs(trans, A, descr, alpha, b, x);
+}
+template <>
+aoclsparse_status aoclsparse_symgs(aoclsparse_operation        trans,
+                                   aoclsparse_matrix           A,
+                                   const aoclsparse_mat_descr  descr,
+                                   const std::complex<double>  alpha,
+                                   const std::complex<double> *b,
+                                   std::complex<double>       *x)
+{
+    const aoclsparse_double_complex *palpha
+        = reinterpret_cast<const aoclsparse_double_complex *>(&alpha);
+    const aoclsparse_double_complex *pb = reinterpret_cast<const aoclsparse_double_complex *>(b);
+    aoclsparse_double_complex       *px = reinterpret_cast<aoclsparse_double_complex *>(x);
+    return aoclsparse_zsymgs(trans, A, descr, *palpha, pb, px);
+}
+template <>
+aoclsparse_status aoclsparse_symgs(aoclsparse_operation             trans,
+                                   aoclsparse_matrix                A,
+                                   const aoclsparse_mat_descr       descr,
+                                   const aoclsparse_double_complex  alpha,
+                                   const aoclsparse_double_complex *b,
+                                   aoclsparse_double_complex       *x)
+{
+    return aoclsparse_zsymgs(trans, A, descr, alpha, b, x);
+}
+
+//symgs + mv
+template <>
+aoclsparse_status aoclsparse_symgs_mv(aoclsparse_operation       trans,
+                                      aoclsparse_matrix          A,
+                                      const aoclsparse_mat_descr descr,
+                                      const float                alpha,
+                                      const float               *b,
+                                      float                     *x,
+                                      float                     *y)
+{
+    return aoclsparse_ssymgs_mv(trans, A, descr, alpha, b, x, y);
+}
+template <>
+aoclsparse_status aoclsparse_symgs_mv(aoclsparse_operation       trans,
+                                      aoclsparse_matrix          A,
+                                      const aoclsparse_mat_descr descr,
+                                      const double               alpha,
+                                      const double              *b,
+                                      double                    *x,
+                                      double                    *y)
+{
+    return aoclsparse_dsymgs_mv(trans, A, descr, alpha, b, x, y);
+}
+template <>
+aoclsparse_status aoclsparse_symgs_mv(aoclsparse_operation       trans,
+                                      aoclsparse_matrix          A,
+                                      const aoclsparse_mat_descr descr,
+                                      const std::complex<float>  alpha,
+                                      const std::complex<float> *b,
+                                      std::complex<float>       *x,
+                                      std::complex<float>       *y)
+{
+    const aoclsparse_float_complex *palpha
+        = reinterpret_cast<const aoclsparse_float_complex *>(&alpha);
+    const aoclsparse_float_complex *pb = reinterpret_cast<const aoclsparse_float_complex *>(b);
+    aoclsparse_float_complex       *px = reinterpret_cast<aoclsparse_float_complex *>(x);
+    aoclsparse_float_complex       *py = reinterpret_cast<aoclsparse_float_complex *>(y);
+    return aoclsparse_csymgs_mv(trans, A, descr, *palpha, pb, px, py);
+}
+template <>
+aoclsparse_status aoclsparse_symgs_mv(aoclsparse_operation            trans,
+                                      aoclsparse_matrix               A,
+                                      const aoclsparse_mat_descr      descr,
+                                      const aoclsparse_float_complex  alpha,
+                                      const aoclsparse_float_complex *b,
+                                      aoclsparse_float_complex       *x,
+                                      aoclsparse_float_complex       *y)
+{
+    return aoclsparse_csymgs_mv(trans, A, descr, alpha, b, x, y);
+}
+template <>
+aoclsparse_status aoclsparse_symgs_mv(aoclsparse_operation        trans,
+                                      aoclsparse_matrix           A,
+                                      const aoclsparse_mat_descr  descr,
+                                      const std::complex<double>  alpha,
+                                      const std::complex<double> *b,
+                                      std::complex<double>       *x,
+                                      std::complex<double>       *y)
+{
+    const aoclsparse_double_complex *palpha
+        = reinterpret_cast<const aoclsparse_double_complex *>(&alpha);
+    const aoclsparse_double_complex *pb = reinterpret_cast<const aoclsparse_double_complex *>(b);
+    aoclsparse_double_complex       *px = reinterpret_cast<aoclsparse_double_complex *>(x);
+    aoclsparse_double_complex       *py = reinterpret_cast<aoclsparse_double_complex *>(y);
+    return aoclsparse_zsymgs_mv(trans, A, descr, *palpha, pb, px, py);
+}
+template <>
+aoclsparse_status aoclsparse_symgs_mv(aoclsparse_operation             trans,
+                                      aoclsparse_matrix                A,
+                                      const aoclsparse_mat_descr       descr,
+                                      const aoclsparse_double_complex  alpha,
+                                      const aoclsparse_double_complex *b,
+                                      aoclsparse_double_complex       *x,
+                                      aoclsparse_double_complex       *y)
+{
+    return aoclsparse_zsymgs_mv(trans, A, descr, alpha, b, x, y);
+}

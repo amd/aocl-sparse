@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -607,20 +607,19 @@ extern "C" aoclsparse_status aoclsparse_dcsrmv(aoclsparse_operation       trans,
 }
 
 template <>
-aoclsparse_status
-    aoclsparse_csrmv_vectorized_avx2ptr([[maybe_unused]] const aoclsparse_mat_descr descr,
-                                        [[maybe_unused]] const float                alpha,
-                                        [[maybe_unused]] aoclsparse_int             m,
-                                        [[maybe_unused]] aoclsparse_int             n,
-                                        [[maybe_unused]] aoclsparse_int             nnz,
-                                        [[maybe_unused]] const float *__restrict__ aval,
-                                        [[maybe_unused]] const aoclsparse_int *__restrict__ icol,
-                                        [[maybe_unused]] const aoclsparse_int *__restrict__ crstart,
-                                        [[maybe_unused]] const aoclsparse_int *__restrict__ crend,
-                                        [[maybe_unused]] const float *__restrict__ x,
-                                        [[maybe_unused]] const float beta,
-                                        [[maybe_unused]] float *__restrict__ y,
-                                        [[maybe_unused]] aoclsparse_context *context)
+aoclsparse_status aoclsparse_csrmv_vectorized_avx2ptr(const aoclsparse_mat_descr      descr,
+                                                      const float                     alpha,
+                                                      aoclsparse_int                  m,
+                                                      aoclsparse_int                  n,
+                                                      [[maybe_unused]] aoclsparse_int nnz,
+                                                      const float *__restrict__ aval,
+                                                      const aoclsparse_int *__restrict__ icol,
+                                                      const aoclsparse_int *__restrict__ crstart,
+                                                      const aoclsparse_int *__restrict__ crend,
+                                                      const float *__restrict__ x,
+                                                      const float beta,
+                                                      float *__restrict__ y,
+                                                      [[maybe_unused]] aoclsparse_context *context)
 {
     return aoclsparse_csrmv_ptr(
         descr, alpha, m, n, aval, icol, crstart, crend, x, beta, y, context);

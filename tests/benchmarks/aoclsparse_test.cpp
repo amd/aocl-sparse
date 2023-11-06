@@ -62,6 +62,8 @@
 
 //Solvers
 #include "testing_ilu.hpp"
+#include "testing_symgs.hpp"
+#include "testing_symgs_mv.hpp"
 
 // Testing/validating the loading of complex data from an mtx file
 // and converting it into a CSR representation
@@ -447,6 +449,28 @@ int main(int argc, char *argv[])
                       << std::endl;
             return -1;
         }
+    }
+    else if(strcmp(arg.function, "symgs") == 0)
+    {
+        if(precision == 'd')
+            return testing_symgs<double>(arg);
+        else if(precision == 's')
+            return testing_symgs<float>(arg);
+        else if(precision == 'c')
+            return testing_symgs<aoclsparse_float_complex>(arg);
+        else if(precision == 'z')
+            return testing_symgs<aoclsparse_double_complex>(arg);
+    }
+    else if(strcmp(arg.function, "symgsmv") == 0)
+    {
+        if(precision == 'd')
+            return testing_symgs_mv<double>(arg);
+        else if(precision == 's')
+            return testing_symgs_mv<float>(arg);
+        else if(precision == 'c')
+            return testing_symgs_mv<aoclsparse_float_complex>(arg);
+        else if(precision == 'z')
+            return testing_symgs_mv<aoclsparse_double_complex>(arg);
     }
     else
     {
