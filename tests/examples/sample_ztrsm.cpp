@@ -23,7 +23,6 @@
 
 #include "aoclsparse.h"
 
-#include <assert.h>
 #include <complex>
 #include <iomanip>
 #include <iostream>
@@ -74,8 +73,13 @@ int main(void)
     aoclsparse_order      order = aoclsparse_order_column;
     aoclsparse_mat_descr  descr_a;
     aoclsparse_operation  trans = aoclsparse_operation_none;
-    assert(aoclsparse_create_zcsr(A, base, m, n, nnz, icrow, icol, aval.data())
-           == aoclsparse_status_success);
+    status = aoclsparse_create_zcsr(A, base, m, n, nnz, icrow, icol, aval.data());
+    if(status != aoclsparse_status_success)
+    {
+        std::cerr << "Error returned from aoclsparse_create_zcsr, status = " << status << "."
+                  << std::endl;
+        return 3;
+    }
     aoclsparse_create_mat_descr(&descr_a);
 
     /* Case 1: Solving the lower triangular system L X = B.
@@ -104,11 +108,24 @@ int main(void)
     aoclsparse_set_mat_fill_mode(descr_a, aoclsparse_fill_mode_lower);
 
     // Prepare and call solver
-    order = aoclsparse_order_column;
-    ldb   = m;
-    ldx   = m;
-    assert(aoclsparse_set_sm_hint(A, trans, descr_a, order, k, 1) == aoclsparse_status_success);
-    assert(aoclsparse_optimize(A) == aoclsparse_status_success);
+    order  = aoclsparse_order_column;
+    ldb    = m;
+    ldx    = m;
+    status = aoclsparse_set_sm_hint(A, trans, descr_a, order, k, 1);
+    if(status != aoclsparse_status_success)
+    {
+        std::cerr << "Error returned from aoclsparse_set_sm_hint, status = " << status << "."
+                  << std::endl;
+        return 3;
+    }
+    status = aoclsparse_optimize(A);
+    if(status != aoclsparse_status_success)
+    {
+        std::cerr << "Error returned from aoclsparse_optimize, status = " << status << "."
+                  << std::endl;
+        return 3;
+    }
+
     // Solve
     status = aoclsparse_ztrsm(trans, alpha, A, descr_a, order, B.data(), k, ldb, &X[0], ldx);
     if(status != aoclsparse_status_success)
@@ -162,8 +179,20 @@ int main(void)
     trans = aoclsparse_operation_conjugate_transpose;
     order = aoclsparse_order_row;
     aoclsparse_set_mat_fill_mode(descr_a, aoclsparse_fill_mode_upper);
-    assert(aoclsparse_set_sm_hint(A, trans, descr_a, order, k, 1) == aoclsparse_status_success);
-    assert(aoclsparse_optimize(A) == aoclsparse_status_success);
+    status = aoclsparse_set_sm_hint(A, trans, descr_a, order, k, 1);
+    if(status != aoclsparse_status_success)
+    {
+        std::cerr << "Error returned from aoclsparse_set_sm_hint, status = " << status << "."
+                  << std::endl;
+        return 3;
+    }
+    status = aoclsparse_optimize(A);
+    if(status != aoclsparse_status_success)
+    {
+        std::cerr << "Error returned from aoclsparse_optimize, status = " << status << "."
+                  << std::endl;
+        return 3;
+    }
     // Solve
     status = aoclsparse_ztrsm(trans, alpha, A, descr_a, order, B.data(), k, ldb, &X[0], ldx);
     if(status != aoclsparse_status_success)
