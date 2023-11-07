@@ -818,16 +818,31 @@ namespace
 
     TEST(blkcsrmv, NullArgDouble)
     {
+        if(!aoclsparse_get_vec_extn_context())
+        {
+            GTEST_SKIP() << "Skipping avx512 specific test case, since the CPU does not have "
+                            "AVX-512 flags to run test case";
+        }
         test_blkcsrmv_nullptr<double>();
     }
 
     TEST(blkcsrmv, WrongSizeDouble)
     {
+        if(!aoclsparse_get_vec_extn_context())
+        {
+            GTEST_SKIP() << "Skipping avx512 specific test case, since the CPU does not have "
+                            "AVX-512 flags to run test case";
+        }
         test_blkcsrmv_wrong_size<double>();
     }
 
     TEST(blkcsrmv, DoNothingDouble)
     {
+        if(!aoclsparse_get_vec_extn_context())
+        {
+            GTEST_SKIP() << "Skipping avx512 specific test case, since the CPU does not have "
+                            "AVX-512 flags to run test case";
+        }
         test_blkcsrmv_do_nothing<double>();
     }
 
