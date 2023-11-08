@@ -208,7 +208,7 @@ namespace
         std::vector<T>                 aval;
         std::vector<aoclsparse_int>    icola;
         std::vector<aoclsparse_int>    icrowa;
-        std::array<aoclsparse_int, 10> iparm;
+        std::array<aoclsparse_int, 10> iparm{0};
         std::array<T, 10>              dparm;
         aoclsparse_status              exp_status;
         aoclsparse_order               order = (aoclsparse_order)layout;
@@ -217,8 +217,8 @@ namespace
         decltype(std::real(xtol)) tol;
 
         /*
-            Below parameters are inputs to create_linear_system(), which are needed to build
-            the RHS matrix B[Mxk]
+         * Below parameters are inputs to create_linear_system(), which are needed to build
+         * the RHS matrix B[Mxk]
          * iparm[4] = indicates whether X/B dense matrices are row major(0) or column major(1)
          * iparm[5] = indicates the no of columns in X/B dense matrices
          */
