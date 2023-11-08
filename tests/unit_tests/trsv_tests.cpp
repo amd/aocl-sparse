@@ -147,7 +147,7 @@ namespace
         std::vector<T>                 aval;
         std::vector<aoclsparse_int>    icola;
         std::vector<aoclsparse_int>    icrowa;
-        std::array<aoclsparse_int, 10> iparm;
+        std::array<aoclsparse_int, 10> iparm{0};
         std::array<T, 10>              dparm;
         aoclsparse_status              exp_status;
         aoclsparse_index_base          base = (aoclsparse_index_base)base_index;
@@ -798,7 +798,7 @@ namespace
         std::vector<T>                 aval;
         std::vector<aoclsparse_int>    icola;
         std::vector<aoclsparse_int>    icrowa;
-        std::array<aoclsparse_int, 10> iparm;
+        std::array<aoclsparse_int, 10> iparm{0};
         std::array<T, 10>              dparm;
         aoclsparse_status              status, exp_status;
         aoclsparse_index_base          base = (aoclsparse_index_base)base_index;

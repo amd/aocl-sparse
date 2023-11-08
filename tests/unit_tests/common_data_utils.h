@@ -618,24 +618,43 @@ inline T bcd(T v, T w)
         return v;
 };
 
+/*
+ * Database to create linear systems
+ * Inputs:
+ * matrix ID
+ * iparm: some problems are parametrized and use iparm to define the shape of the problem
+ * In general
+ * INPUT (Expected)
+ * iparm[*] = 0
+ * OUTPUT
+ * iparm[0] = a number to pass to optimize hints
+ *
+ * Custom TRSM problems A X = alpha B:
+ * INPUT/OUTPUT
+ * iparm[0] = starting offset X
+ * iparm[1] = ldx
+ * iparm[2] = starting offset B
+ * iparm[3] = ldb
+ */
 template <typename T>
-aoclsparse_status create_linear_system(linear_system_id                id,
-                                       std::string                    &title,
-                                       aoclsparse_operation           &trans,
-                                       aoclsparse_matrix              &A,
-                                       aoclsparse_mat_descr           &descr,
-                                       aoclsparse_index_base           base,
-                                       T                              &alpha,
-                                       std::vector<T>                 &b,
-                                       std::vector<T>                 &x,
-                                       std::vector<T>                 &xref,
-                                       T                              &xtol,
-                                       std::vector<aoclsparse_int>    &icrowa,
-                                       std::vector<aoclsparse_int>    &icola,
-                                       std::vector<T>                 &aval,
-                                       std::array<aoclsparse_int, 10> &iparm, //in-out parameter
-                                       std::array<T, 10>              &dparm,
-                                       aoclsparse_status              &exp_status)
+aoclsparse_status
+    create_linear_system(linear_system_id                id,
+                         std::string                    &title,
+                         aoclsparse_operation           &trans,
+                         aoclsparse_matrix              &A,
+                         aoclsparse_mat_descr           &descr,
+                         aoclsparse_index_base           base,
+                         T                              &alpha,
+                         std::vector<T>                 &b,
+                         std::vector<T>                 &x,
+                         std::vector<T>                 &xref,
+                         T                              &xtol,
+                         std::vector<aoclsparse_int>    &icrowa,
+                         std::vector<aoclsparse_int>    &icola,
+                         std::vector<T>                 &aval,
+                         std::array<aoclsparse_int, 10> &iparm, //in-out parameter def: all zeros.
+                         std::array<T, 10>              &dparm,
+                         aoclsparse_status              &exp_status)
 {
     aoclsparse_status    status = aoclsparse_status_success;
     aoclsparse_int       n, nnz, big_m, big_n, k;
@@ -646,11 +665,23 @@ aoclsparse_status create_linear_system(linear_system_id                id,
     std::vector<T>       wcolxref, wcolb;
     const bool           cplx
         = std::is_same_v<T, std::complex<float>> || std::is_same_v<T, std::complex<double>>;
-
-    alpha      = (T)1;
-    xtol       = (T)0; // By default not used, set only for ill conditioned problems
-    exp_status = aoclsparse_status_success;
+    // Set defaults.
+    title = "N/A";
+    trans = aoclsparse_operation_none;
+    A     = nullptr;
+    descr = nullptr;
+    alpha = (T)1;
+    b.resize(0);
+    x.resize(0);
+    xref.resize(0);
+    xtol = (T)0; // By default not used, set only for ill conditioned problems
+    icrowa.resize(0);
+    icola.resize(0);
+    aval.resize(0);
     std::fill(dparm.begin(), dparm.end(), 0);
+    // iparm is expected to be correctly initialized by the caller
+    exp_status = aoclsparse_status_success;
+
     switch(id)
     {
     case D7_Lx_aB:
