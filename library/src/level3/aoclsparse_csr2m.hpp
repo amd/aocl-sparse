@@ -419,7 +419,7 @@ aoclsparse_status aoclsparse_csr2m_t(aoclsparse_operation       opA,
     }
     if((A->input_format != aoclsparse_csr_mat) || (B->input_format != aoclsparse_csr_mat))
     {
-        return aoclsparse_status_invalid_value;
+        return aoclsparse_status_not_implemented;
     }
 
     if(A->val_type != get_data_type<T>())

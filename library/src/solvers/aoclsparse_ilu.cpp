@@ -46,6 +46,12 @@ extern "C" aoclsparse_status aoclsparse_silu_smoother(aoclsparse_operation      
         return aoclsparse_status_invalid_pointer;
     }
 
+    // Only CSR input format supported
+    if(A->input_format != aoclsparse_csr_mat)
+    {
+        return aoclsparse_status_not_implemented;
+    }
+
     if(op != aoclsparse_operation_none)
     {
         // TODO
@@ -98,6 +104,12 @@ extern "C" aoclsparse_status aoclsparse_dilu_smoother(aoclsparse_operation      
     if(A == nullptr)
     {
         return aoclsparse_status_invalid_pointer;
+    }
+
+    // Only CSR input format supported
+    if(A->input_format != aoclsparse_csr_mat)
+    {
+        return aoclsparse_status_not_implemented;
     }
 
     if(op != aoclsparse_operation_none)

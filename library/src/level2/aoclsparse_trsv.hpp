@@ -691,7 +691,7 @@ enum trsv_op
  * Returns: dense array `x`
  *
  * ## User inputs
- * 
+ *
  * `aoclsparse_status kt_trsv_l<SZ,SUF,EXT>`:
  *
  * - `const T alpha,`
@@ -783,7 +783,7 @@ inline aoclsparse_status kt_trsv_l(const SUF             alpha,
  * Extra AVX vectors: YES
  *
  * ## User inputs
- * 
+ *
  * `aoclsparse_status kt_trsv_lt<SZ,SUF,EXT,OP>`:
  *
  * - `const T alpha,`
@@ -802,7 +802,7 @@ inline aoclsparse_status kt_trsv_l(const SUF             alpha,
  * - `SZ`  size (in bits) of AVX vector, i.e., 256 or 512
  * - `SUF` suffix of working type, i.e., `double` or `float`
  * - `EXP` AVX capability, kt_avxext e.g. `AVX` or `AVX512F`, etc...
- * - `OP` trsv_op enum for transposition operation type 
+ * - `OP` trsv_op enum for transposition operation type
  *       trsv_op::tran Real-space transpose, and
  *       trsv_op::herm Complex-space conjugate transpose
  */
@@ -896,7 +896,7 @@ inline aoclsparse_status kt_trsv_lt(const SUF             alpha,
  * Returns: dense array `x`
  *
  * ## User inputs
- * 
+ *
  * `aoclsparse_status kt_trsv_u<SZ,SUF,EXT>`:
  *
  * - `const T alpha,`
@@ -989,7 +989,7 @@ inline aoclsparse_status kt_trsv_u(const SUF             alpha,
  * Returns: dense array `x`
  *
  * ## User inputs
- * 
+ *
  * `aoclsparse_status kt_trsv_ut<SZ,SUF,EXT,OP>`:
  *
  * - `const T alpha,`
@@ -1008,7 +1008,7 @@ inline aoclsparse_status kt_trsv_u(const SUF             alpha,
  * - `SZ`  size (in bits) of AVX vector, i.e., 256 or 512
  * - `SUF` suffix of working type, i.e., `double` or `float`
  * - `EXP` AVX capability, kt_avxext e.g. `AVX` or `AVX512F`, etc...
- * - `OP` trsv_op enum for transposition operation type 
+ * - `OP` trsv_op enum for transposition operation type
  *       trsv_op::tran Real-space transpose, and
  *       trsv_op::herm Complex-spase conjugate transpose
  */
@@ -1121,6 +1121,12 @@ aoclsparse_status
     // Quick initial checks
     if(!A || !x || !b || !descr)
         return aoclsparse_status_invalid_pointer;
+
+    // Only CSR input format supported
+    if(A->input_format != aoclsparse_csr_mat)
+    {
+        return aoclsparse_status_not_implemented;
+    }
 
     const aoclsparse_int nnz = A->nnz;
     const aoclsparse_int m   = A->m;
