@@ -47,7 +47,7 @@
 
 /* TRiangular Solver for Multiple RHS
  *  ==================================
- * Solves A*x = alpha*B or A^T*x = alpha*B or A^H*x = alpha*B with 
+ * Solves A*x = alpha*B or A^T*x = alpha*B or A^H*x = alpha*B with
  * A lower (L) or upper (U) triangular, B and X dense matrices.
  * Optimized version, requires A to have been previously "optimized". If A is not
  * optimized explicitly, it is optimized on the fly.
@@ -110,6 +110,12 @@ aoclsparse_status
     // Quick initial checks
     if(!A || !X || !B || !descr)
         return aoclsparse_status_invalid_pointer;
+
+    // Only CSR input format supported
+    if(A->input_format != aoclsparse_csr_mat)
+    {
+        return aoclsparse_status_not_implemented;
+    }
 
     const aoclsparse_int m = A->m;
 

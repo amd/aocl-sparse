@@ -1749,6 +1749,12 @@ aoclsparse_status aoclsparse_csrmm(aoclsparse_operation            op,
         return aoclsparse_status_invalid_pointer;
     }
 
+    // Only CSR input format supported
+    if(A->input_format != aoclsparse_csr_mat)
+    {
+        return aoclsparse_status_not_implemented;
+    }
+
     aoclsparse_int        m           = A->m;
     aoclsparse_int        k           = A->n;
     const aoclsparse_int *csr_col_ind = A->csr_mat.csr_col_ptr;
@@ -1759,10 +1765,7 @@ aoclsparse_status aoclsparse_csrmm(aoclsparse_operation            op,
     T one  = 1.0;
 
     // Verify the matrix types and T are consistent
-    if(!((A->val_type == aoclsparse_smat && std::is_same_v<T, float>)
-         || (A->val_type == aoclsparse_dmat && std::is_same_v<T, double>)
-         || (A->val_type == aoclsparse_cmat && std::is_same_v<T, std::complex<float>>)
-         || (A->val_type == aoclsparse_zmat && std::is_same_v<T, std::complex<double>>)))
+    if(A->val_type != get_data_type<T>())
         return aoclsparse_status_wrong_type;
 
     // Check index base
