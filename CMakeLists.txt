@@ -108,6 +108,8 @@ IF(NOT DEFINED ENV{AOCL_ROOT})
   endif()
 ENDIF()
 
+set(COMPILER_FLAGS_COMMON "")
+set(OpenMP_Library "")
 # Dependencies
 include(cmake/Dependencies.cmake)
 
@@ -163,7 +165,7 @@ else()
 endif()
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CLANG_OPTIONS_STYLE STREQUAL "GNU"))
   # Common flags
-  set(COMPILER_FLAGS_COMMON "-mtune=native;-mavx2;-mfma")
+  set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};-mtune=native;-mavx2;-mfma")
   # Release flags
   set(COMPILER_FLAGS_RELEASE "-DNDEBUG;-O3;-ftree-vectorize;-ffp-contract=fast")
   # Debug flags
@@ -186,9 +188,9 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CLANG_OPTIONS_STYLE STREQUAL "
   # Clang with MSVC style compiler options
   # Common flags
   if(USE_AVX512)
-    set(COMPILER_FLAGS_COMMON "/arch:AVX512")
+    set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};/arch:AVX512")
   else()
-    set(COMPILER_FLAGS_COMMON "/arch:AVX2")
+    set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};/arch:AVX2")
   endif()
   # Release flags
   set(COMPILER_FLAGS_RELEASE "/Ox;/Qpar;/fp:fast")
@@ -199,14 +201,12 @@ else()
   message(WARNING "Continuing compilation using tentative CXX flags...")
   set(COMPILER_FLAGS_DEBUG "-g")
   set(COMPILER_FLAGS_RELEASE "-O3;-NDEBUG")
-  set(COMPILER_FLAGS_COMMON "-mtune=native;-mavx2;-mfma")
+  set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};-mtune=native;-mavx2;-mfma")
   if(USE_AVX512)
     set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};-mavx512f;-mavx512dq;-mavx512vl")
   endif()
 endif()
-if(SUPPORT_OMP)
-  set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};${OpenMP_CXX_FLAGS}")
-endif()
+
 add_compile_options("$<$<CONFIG:Release>:${COMPILER_FLAGS_COMMON};${COMPILER_FLAGS_RELEASE}>")
 add_compile_options("$<$<CONFIG:Debug>:${COMPILER_FLAGS_COMMON};${COMPILER_FLAGS_DEBUG}>")
 
