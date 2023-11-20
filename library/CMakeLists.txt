@@ -60,14 +60,6 @@ include(src/CMakeLists.txt)
 add_library(aoclsparse ${AOCLSPARSE_SOURCES} ${PUBLIC_HEADERS})
 add_library(aocl::aoclsparse ALIAS aoclsparse)
 
-# Target link libraries
-if(SUPPORT_OMP)
-target_link_libraries(aoclsparse PRIVATE OpenMP::OpenMP_CXX
-                                 PUBLIC ${LAPACK_LIBRARIES})
-else()
-target_link_libraries(aoclsparse PUBLIC ${LAPACK_LIBRARIES})
-endif()
-
 # Target include directories
 target_include_directories(aoclsparse
                            PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/include>
@@ -84,9 +76,13 @@ target_include_directories(aoclsparse
                                    $<INSTALL_INTERFACE:include>
 )
 
-# Target compile options
-if(SUPPORT_OMP)
-  target_compile_options(aoclsparse PUBLIC ${OpenMP_CXX_FLAGS})
+# Target link libraries and compile options
+# TODO: Remove OPENMP_FOUND since OpenMP_Library is set to null in ST mode and remove the parent scope for this variable as well
+if(SUPPORT_OMP AND OPENMP_FOUND)
+  target_link_libraries(aoclsparse PRIVATE ${OpenMP_Library}
+                                  PUBLIC ${LAPACK_LIBRARIES})
+else()
+  target_link_libraries(aoclsparse PUBLIC ${LAPACK_LIBRARIES})
 endif()
 
 set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/src/level2/aoclsparse_blkcsrmv.cpp PROPERTIES COMPILE_OPTIONS "-mavx512f;-mavx512vl")
