@@ -28,14 +28,8 @@ endif()
 
 ## Common config
 option (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE "Allow out-of-source tree build for Sparse examples" ${ENABLE_OUTOFSRCTREE})
-set(MT_LIBRARIES "")
-set(PTHREAD_LIBRARY "pthread")
-set(COMPILER_OPTIONS)
-if(CMAKE_BUILD_TYPE MATCHES "Debug")
-  add_compile_options("$<$<CONFIG:Debug>:${COMPILER_FLAGS_COMMON};${COMPILER_FLAGS_DEBUG}>")
-elseif(CMAKE_BUILD_TYPE MATCHES "Release")
-  add_compile_options("$<$<CONFIG:Release>:${COMPILER_FLAGS_COMMON};${COMPILER_FLAGS_RELEASE}>")
-endif()
+set(COMPILER_OPTIONS "")
+
 ## Setup the pre-requisites for out-of-source-tree build
 if (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
     cmake_minimum_required(VERSION 3.11 FATAL_ERROR)
@@ -53,17 +47,6 @@ if (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
         set(CMAKE_SPARSE_ROOT $ENV{AOCL_ROOT})
     ENDIF()
 
-    # During out-of-source-tree build of examples, Blis and Libflame artifacts need to be found explicitly.
-    # So we call find_blis_lapack.cmake under if (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE) condition
-
-    if(SUPPORT_OMP)
-        find_package(OpenMP)
-        if (NOT OPENMP_FOUND)
-            message("-- OpenMP not found.")
-        endif()
-    endif()
-    list ( APPEND COMPILER_OPTIONS ${OpenMP_CXX_FLAGS})
-
     ## Change default installation path
     if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set (CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/../bin"
@@ -77,10 +60,6 @@ IF(WIN32)
 ELSE(WIN32)
     SET(CMAKE_FIND_LIBRARY_PREFIXES "lib")
     SET(CMAKE_FIND_LIBRARY_SUFFIXES ".so" ".a")
-    list(APPEND MT_LIBRARIES ${PTHREAD_LIBRARY})
-    IF(SUPPORT_OMP)
-        list(APPEND MT_LIBRARIES ${OpenMP_CXX_FLAGS})
-    ENDIF(SUPPORT_OMP)
 ENDIF(WIN32)
 
 if (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
@@ -90,7 +69,13 @@ if (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
     ELSE(BUILD_ILP64)
         SET(ILP_DIR "LP64")
     ENDIF(BUILD_ILP64)
+
+    ## During out-of-source-tree build of examples, Blis, Libflame, openmp and utils dependecies need to be found explicitly.
+    ## So we call Dependencies.cmake
     include(Dependencies.cmake)
+
+    set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};${COMPILER_OPTIONS}")
+
     find_library(SPARSE_LIBRARY
     NAMES "aoclsparse" "aoclsparse-d"
     HINTS  ${CMAKE_SPARSE_ROOT} ${CMAKE_SPARSE_ROOT}/sparse ${CMAKE_SPARSE_ROOT}/amd-sparse
@@ -112,6 +97,7 @@ if (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
     message(STATUS "AOCL-Sparse header and library locations")
     message(STATUS "Headers: ${SPARSE_INCLUDE_DIR}")
     message(STATUS "Library: ${SPARSE_LIBRARY}")
+    message(STATUS "Compiler flags ${COMPILER_FLAGS_COMMON}")
 else (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
     set(SPARSE_LIBRARY "aoclsparse")
     set(SPARSE_INCLUDE_DIR "")
@@ -123,8 +109,11 @@ foreach( sample_example_source ${SPARSE_SAMPLES})
     get_filename_component(sample_target ${new_name} NAME)
     add_executable( ${sample_target} ${sample_example_source})
     target_include_directories(${sample_target} PUBLIC ${SPARSE_INCLUDE_DIR} ${LAPACK_INCLUDE_DIRS} ${BLIS_INCLUDE_DIRS} ${UTILS_INCLUDE_DIRS})
-    target_link_libraries(${sample_target} ${SPARSE_LIBRARY} ${LAPACK_LIBRARIES} ${MT_LIBRARIES})
-    target_compile_options(${sample_target} PUBLIC ${COMPILER_OPTIONS})
+    target_link_libraries(${sample_target} ${SPARSE_LIBRARY} ${LAPACK_LIBRARIES} ${OpenMP_Library})
+    #define compile time options explicitly to handle out-of-source tree scenario where options would not be defined by a top-level CMakeLists file
+    target_compile_options(${sample_target} PUBLIC "$<$<CONFIG:Release>:${COMPILER_FLAGS_COMMON};${COMPILER_FLAGS_RELEASE}>")
+    target_compile_options(${sample_target} PUBLIC "$<$<CONFIG:Debug>:${COMPILER_FLAGS_COMMON};${COMPILER_FLAGS_DEBUG}>")
+
     if(NOT BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
         install(FILES ${sample_example_source} DESTINATION ${CMAKE_INSTALL_PREFIX}/examples)
     endif()
@@ -135,7 +124,10 @@ set_source_files_properties(sample_spmv_c.c PROPERTIES LANGUAGE C)
 add_executable(sample_spmv_c sample_spmv_c.c)
 set_target_properties(sample_spmv_c PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories(sample_spmv_c PUBLIC ${SPARSE_INCLUDE_DIR} ${LAPACK_INCLUDE_DIRS} ${BLIS_INCLUDE_DIRS} ${UTILS_INCLUDE_DIRS})
-target_link_libraries(sample_spmv_c ${SPARSE_LIBRARY} ${LAPACK_LIBRARIES} ${MT_LIBRARIES})
+target_link_libraries(sample_spmv_c ${SPARSE_LIBRARY} ${LAPACK_LIBRARIES} ${OpenMP_Library})
+#define compile time options explicitly to handle out-of-source tree scenario where options would not be defined by a top-level CMakeLists file
+target_compile_options(${sample_target} PUBLIC "$<$<CONFIG:Release>:${COMPILER_FLAGS_COMMON};${COMPILER_FLAGS_RELEASE}>")
+target_compile_options(${sample_target} PUBLIC "$<$<CONFIG:Debug>:${COMPILER_FLAGS_COMMON};${COMPILER_FLAGS_DEBUG}>")
 if(NOT BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
     install(FILES sample_spmv_c.c DESTINATION ${CMAKE_INSTALL_PREFIX}/examples)
 endif()

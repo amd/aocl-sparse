@@ -67,15 +67,6 @@ target_include_directories(aoclsparse-bench
     ${Boost_INCLUDE_DIRS}
 )
 
-# OpenMP cmake fix for cmake <= 3.9
-if(OPENMP_FOUND)
-  if(NOT TARGET OpenMP::OpenMP_CXX)
-    add_library(OpenMP::OpenMP_CXX IMPORTED INTERFACE)
-    set_property(TARGET OpenMP::OpenMP_CXX PROPERTY INTERFACE_COMPILE_OPTIONS ${OpenMP_CXX_FLAGS})
-    set_property(TARGET OpenMP::OpenMP_CXX PROPERTY INTERFACE_LINK_LIBRARIES ${OpenMP_CXX_FLAGS} Threads::Threads)
-  endif()
-endif()
-
 # Add aoclsparse target
 if(NOT TARGET aoclsparse)
   target_link_libraries(aoclsparse-bench PRIVATE ${AOCLSPARSE_LIBRARIES})
@@ -83,12 +74,8 @@ else()
   target_link_libraries(aoclsparse-bench PRIVATE aocl::aoclsparse )
 endif()
 
-
 # Add OpenMP
-if(OPENMP_FOUND)
-  target_link_libraries(aoclsparse-bench PRIVATE OpenMP::OpenMP_CXX)
-endif()
-
+target_link_libraries(aoclsparse-bench PRIVATE ${OpenMP_Library})
 target_link_libraries(aoclsparse-bench PUBLIC ${LAPACK_LIBRARIES})
 
 # Set benchmark output directory

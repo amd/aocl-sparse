@@ -149,16 +149,60 @@ function(aocl_libs)
 
 endfunction(aocl_libs)
 
+# ============= openmp function ================
+function(openmp_libs)
+
+  get_property(importTargets DIRECTORY "${CMAKE_SOURCE_DIR}" PROPERTY IMPORTED_TARGETS)
+  # Find OpenMP package
+  find_package(OpenMP)
+  get_property(OpenMP_Library DIRECTORY "${CMAKE_SOURCE_DIR}" PROPERTY IMPORTED_TARGETS)
+  list(REMOVE_ITEM OpenMP_Library ${importTargets})
+
+  if(NOT OPENMP_FOUND)
+    message(
+      FATAL_ERROR
+        "Error: could not find a suitable installation of openMP for the requested multi-threaded build"
+    )    
+  else()
+    option(SUPPORT_OMP "Compile WITH OpenMP support." ON)    
+
+    # OpenMP cmake fix for cmake <= 3.9
+    if(NOT TARGET OpenMP::OpenMP_CXX)
+        add_library(OpenMP::OpenMP_CXX IMPORTED INTERFACE)
+        set_property(TARGET OpenMP::OpenMP_CXX PROPERTY INTERFACE_COMPILE_OPTIONS ${OpenMP_CXX_FLAGS})
+        set_property(TARGET OpenMP::OpenMP_CXX PROPERTY INTERFACE_LINK_LIBRARIES ${OpenMP_CXX_FLAGS} Threads::Threads)
+    endif()
+
+    if(WIN32)    
+      set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};/openmp")
+    else()  
+      set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};${OpenMP_CXX_FLAGS}")
+    endif()
+
+    set(OPENMP_FOUND ${OPENMP_FOUND} PARENT_SCOPE)
+    set(OpenMP_Library ${OpenMP_Library} PARENT_SCOPE)
+    set(COMPILER_FLAGS_COMMON ${COMPILER_FLAGS_COMMON} PARENT_SCOPE)
+
+  endif()
+
+endfunction(openmp_libs)
 # ==================main=================
 
 # Add external dependencies such as Git, OpenMP Git
 find_package(Git REQUIRED)
-# Find OpenMP package
-find_package(OpenMP)
-if(NOT OPENMP_FOUND)
-  message("-- OpenMP not found.")
-else()
-  option(SUPPORT_OMP "Compile WITH OpenMP support." ON)
+
+if(SUPPORT_OMP)
+  openmp_libs()
+endif(SUPPORT_OMP)
+
+# fetch pthread library for Linux builds, irrespective of ST/MT modes
+if(NOT WIN32)
+  get_property(importTargets DIRECTORY "${CMAKE_SOURCE_DIR}" PROPERTY IMPORTED_TARGETS)
+  find_package(Threads REQUIRED)
+  get_property(Threads_Library DIRECTORY "${CMAKE_SOURCE_DIR}" PROPERTY IMPORTED_TARGETS)
+  list(REMOVE_ITEM Threads_Library ${importTargets})
+  #collect all threading libraries into a single variable for linking later  
+  set(OpenMP_Library "${OpenMP_Library};${Threads_Library}")
 endif()
 
 # clear to avoid endless appending on subsequent calls
@@ -190,5 +234,11 @@ message(STATUS "  \$LAPACK LIBRARIES......${LAPACK_LIBRARIES}")
 message(STATUS "  \$LAPACK_INCLUDE_DIRS...${LAPACK_INCLUDE_DIRS}")
 message(STATUS "  \$BLIS_INCLUDE_DIRS.....${BLIS_INCLUDE_DIRS}")
 message(STATUS "  \$UTILS_INCLUDE_DIRS....${UTILS_INCLUDE_DIRS}")
+if(SUPPORT_OMP)
+  message(STATUS "  \$OpenMP_Library....${OpenMP_Library}")
+  message(STATUS "  \$OpenMP_Flags....${COMPILER_FLAGS_COMMON}")
+else(SUPPORT_OMP)
+  message(STATUS "  \$Threads Library....${Threads_Library}")
+endif(SUPPORT_OMP)
 
 mark_as_advanced(LAPACK_LIBRARIES LAPACK_INCLUDE_DIRS BLIS_INCLUDE_DIRS)
