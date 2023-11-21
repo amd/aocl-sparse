@@ -51,9 +51,9 @@ namespace
         aoclsparse_create_mat_descr(&descrB);
 
         aoclsparse_matrix csrA;
-        aoclsparse_create_csr(csrA, base, m, k, nnzA, csr_row_ptrA, csr_col_indA, csr_valA);
+        aoclsparse_create_csr(&csrA, base, m, k, nnzA, csr_row_ptrA, csr_col_indA, csr_valA);
         aoclsparse_matrix csrB;
-        aoclsparse_create_csr(csrB, base, k, n, nnzB, csr_row_ptrB, csr_col_indB, csr_valB);
+        aoclsparse_create_csr(&csrB, base, k, n, nnzB, csr_row_ptrB, csr_col_indB, csr_valB);
         aoclsparse_matrix csrC = NULL;
         request                = aoclsparse_stage_full_computation;
         // In turns pass nullptr in every single pointer argument
@@ -71,10 +71,10 @@ namespace
         EXPECT_EQ(aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, nullptr),
                   aoclsparse_status_invalid_pointer);
         aoclsparse_destroy_mat_descr(descrA);
-        aoclsparse_destroy(csrA);
+        aoclsparse_destroy(&csrA);
         aoclsparse_destroy_mat_descr(descrB);
-        aoclsparse_destroy(csrB);
-        aoclsparse_destroy(csrC);
+        aoclsparse_destroy(&csrB);
+        aoclsparse_destroy(&csrC);
     }
     // Quick return with success when size 0 matrix is passed
 
@@ -102,36 +102,36 @@ namespace
 
         aoclsparse_matrix csrA;
         aoclsparse_create_csr(
-            csrA, base, 0, k, nnzA_zero, csr_row_ptrA_zeros, csr_col_indA, csr_valA);
+            &csrA, base, 0, k, nnzA_zero, csr_row_ptrA_zeros, csr_col_indA, csr_valA);
         aoclsparse_matrix csrB;
-        aoclsparse_create_csr(csrB, base, k, n, nnzB, csr_row_ptrB, csr_col_indB, csr_valB);
+        aoclsparse_create_csr(&csrB, base, k, n, nnzB, csr_row_ptrB, csr_col_indB, csr_valB);
         aoclsparse_matrix csrC = NULL;
         request                = aoclsparse_stage_full_computation;
         EXPECT_EQ(aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, &csrC),
                   aoclsparse_status_success);
-        aoclsparse_destroy(csrA);
-        aoclsparse_destroy(csrB);
-        aoclsparse_destroy(csrC);
+        aoclsparse_destroy(&csrA);
+        aoclsparse_destroy(&csrB);
+        aoclsparse_destroy(&csrC);
 
         aoclsparse_create_csr(
-            csrA, base, m, 0, nnzA_zero, csr_row_ptrA_zeros, csr_col_indA, csr_valA);
-        aoclsparse_create_csr(csrB, base, 0, n, nnzB_zero, csr_row_ptrB, csr_col_indB, csr_valB);
+            &csrA, base, m, 0, nnzA_zero, csr_row_ptrA_zeros, csr_col_indA, csr_valA);
+        aoclsparse_create_csr(&csrB, base, 0, n, nnzB_zero, csr_row_ptrB, csr_col_indB, csr_valB);
         request = aoclsparse_stage_full_computation;
         EXPECT_EQ(aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, &csrC),
                   aoclsparse_status_success);
-        aoclsparse_destroy(csrA);
-        aoclsparse_destroy(csrB);
-        aoclsparse_destroy(csrC);
+        aoclsparse_destroy(&csrA);
+        aoclsparse_destroy(&csrB);
+        aoclsparse_destroy(&csrC);
 
-        aoclsparse_create_csr(csrA, base, m, k, nnzA, csr_row_ptrA, csr_col_indA, csr_valA);
+        aoclsparse_create_csr(&csrA, base, m, k, nnzA, csr_row_ptrA, csr_col_indA, csr_valA);
         aoclsparse_create_csr(
-            csrB, base, k, 0, nnzB_zero, csr_row_ptrB_zeros, csr_col_indB, csr_valB);
+            &csrB, base, k, 0, nnzB_zero, csr_row_ptrB_zeros, csr_col_indB, csr_valB);
         request = aoclsparse_stage_full_computation;
         EXPECT_EQ(aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, &csrC),
                   aoclsparse_status_success);
-        aoclsparse_destroy(csrA);
-        aoclsparse_destroy(csrB);
-        aoclsparse_destroy(csrC);
+        aoclsparse_destroy(&csrA);
+        aoclsparse_destroy(&csrB);
+        aoclsparse_destroy(&csrC);
 
         aoclsparse_destroy_mat_descr(descrA);
         aoclsparse_destroy_mat_descr(descrB);
@@ -161,30 +161,30 @@ namespace
         // expect aoclsparse_status_invalid_value for csrA->n != csrB->m
         aoclsparse_matrix csrA;
         ASSERT_EQ(
-            aoclsparse_create_csr(csrA, base, m, k, nnzA, csr_row_ptrA, csr_col_indA, csr_valA),
+            aoclsparse_create_csr(&csrA, base, m, k, nnzA, csr_row_ptrA, csr_col_indA, csr_valA),
             aoclsparse_status_success);
         aoclsparse_matrix csrB;
         ASSERT_EQ(
-            aoclsparse_create_csr(csrB, base, k, n, nnzB, csr_row_ptrB, csr_col_indB, csr_valB),
+            aoclsparse_create_csr(&csrB, base, k, n, nnzB, csr_row_ptrB, csr_col_indB, csr_valB),
             aoclsparse_status_success);
         csrB->m                = k - 1;
         aoclsparse_matrix csrC = NULL;
         request                = aoclsparse_stage_full_computation;
         EXPECT_EQ(aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, &csrC),
                   aoclsparse_status_invalid_size);
-        aoclsparse_destroy(csrA);
-        aoclsparse_destroy(csrB);
+        aoclsparse_destroy(&csrA);
+        aoclsparse_destroy(&csrB);
 
         // expect aoclsparse_status_invalid_value for csrC->m = 0 , csrC->n = 0
         // TBD csr arrays for C matrix need to be defined.
         ASSERT_EQ(
-            aoclsparse_create_csr(csrA, base, m, k, nnzA, csr_row_ptrA, csr_col_indA, csr_valA),
+            aoclsparse_create_csr(&csrA, base, m, k, nnzA, csr_row_ptrA, csr_col_indA, csr_valA),
             aoclsparse_status_success);
         ASSERT_EQ(
-            aoclsparse_create_csr(csrB, base, k, n, nnzB, csr_row_ptrB, csr_col_indB, csr_valB),
+            aoclsparse_create_csr(&csrB, base, k, n, nnzB, csr_row_ptrB, csr_col_indB, csr_valB),
             aoclsparse_status_success);
         ASSERT_EQ(
-            aoclsparse_create_csr(csrC, base, k, n, nnzB, csr_row_ptrB, csr_col_indB, csr_valB),
+            aoclsparse_create_csr(&csrC, base, k, n, nnzB, csr_row_ptrB, csr_col_indB, csr_valB),
             aoclsparse_status_success);
         csrC->m   = 0;
         csrC->n   = 0;
@@ -192,25 +192,25 @@ namespace
         request   = aoclsparse_stage_finalize;
         EXPECT_EQ(aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, &csrC),
                   aoclsparse_status_invalid_size);
-        aoclsparse_destroy(csrA);
-        aoclsparse_destroy(csrB);
-        aoclsparse_destroy(csrC);
+        aoclsparse_destroy(&csrA);
+        aoclsparse_destroy(&csrB);
+        aoclsparse_destroy(&csrC);
 
         // expect aoclsparse_status_invalid_value for invalid request
         ASSERT_EQ(
-            aoclsparse_create_csr(csrA, base, m, k, nnzA, csr_row_ptrA, csr_col_indA, csr_valA),
+            aoclsparse_create_csr(&csrA, base, m, k, nnzA, csr_row_ptrA, csr_col_indA, csr_valA),
             aoclsparse_status_success);
         ASSERT_EQ(
-            aoclsparse_create_csr(csrB, base, k, n, nnzB, csr_row_ptrB, csr_col_indB, csr_valB),
+            aoclsparse_create_csr(&csrB, base, k, n, nnzB, csr_row_ptrB, csr_col_indB, csr_valB),
             aoclsparse_status_success);
         request = (aoclsparse_request)3;
         EXPECT_EQ(aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, &csrC),
                   aoclsparse_status_invalid_value);
         aoclsparse_destroy_mat_descr(descrA);
-        aoclsparse_destroy(csrA);
+        aoclsparse_destroy(&csrA);
         aoclsparse_destroy_mat_descr(descrB);
-        aoclsparse_destroy(csrB);
-        aoclsparse_destroy(csrC);
+        aoclsparse_destroy(&csrB);
+        aoclsparse_destroy(&csrC);
     }
     template <typename T>
     void test_csr2m_1step_baseOne()
@@ -258,11 +258,11 @@ namespace
                   aoclsparse_status_success);
         ASSERT_EQ(
             aoclsparse_create_csr(
-                csrA, aoclsparse_index_base_one, m, k, nnzA, csr_row_ptrA, csr_col_indA, csr_valA),
+                &csrA, aoclsparse_index_base_one, m, k, nnzA, csr_row_ptrA, csr_col_indA, csr_valA),
             aoclsparse_status_success);
         ASSERT_EQ(
             aoclsparse_create_csr(
-                csrB, aoclsparse_index_base_one, k, n, nnzB, csr_row_ptrB, csr_col_indB, csr_valB),
+                &csrB, aoclsparse_index_base_one, k, n, nnzB, csr_row_ptrB, csr_col_indB, csr_valB),
             aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, &csrC),
                   aoclsparse_status_success);
@@ -273,9 +273,9 @@ namespace
         EXPECT_ARR_NEAR((C_M + 1), csr_row_ptr_C, csr_row_ptr_C_gold, expected_precision<T>(10.0));
         EXPECT_ARR_NEAR(nnz_C, csr_col_ind_C, csr_col_ind_C_gold, expected_precision<T>(10.0));
         EXPECT_ARR_NEAR(nnz_C, csr_val_C, csr_val_C_gold, expected_precision<T>(10.0));
-        EXPECT_EQ(aoclsparse_destroy(csrA), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(csrB), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(csrC), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&csrA), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&csrB), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&csrC), aoclsparse_status_success);
 
         //A -> 1-base, B -> 0-base
         csrA          = NULL;
@@ -299,12 +299,17 @@ namespace
         }
         ASSERT_EQ(
             aoclsparse_create_csr(
-                csrA, aoclsparse_index_base_one, m, k, nnzA, csr_row_ptrA, csr_col_indA, csr_valA),
+                &csrA, aoclsparse_index_base_one, m, k, nnzA, csr_row_ptrA, csr_col_indA, csr_valA),
             aoclsparse_status_success);
-        ASSERT_EQ(
-            aoclsparse_create_csr(
-                csrB, aoclsparse_index_base_zero, k, n, nnzB, csr_row_ptrB, csr_col_indB, csr_valB),
-            aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_create_csr(&csrB,
+                                        aoclsparse_index_base_zero,
+                                        k,
+                                        n,
+                                        nnzB,
+                                        csr_row_ptrB,
+                                        csr_col_indB,
+                                        csr_valB),
+                  aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, &csrC),
                   aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_export_csr(
@@ -314,9 +319,9 @@ namespace
         EXPECT_ARR_NEAR((C_M + 1), csr_row_ptr_C, csr_row_ptr_C_gold, expected_precision<T>(10.0));
         EXPECT_ARR_NEAR(nnz_C, csr_col_ind_C, csr_col_ind_C_gold, expected_precision<T>(10.0));
         EXPECT_ARR_NEAR(nnz_C, csr_val_C, csr_val_C_gold, expected_precision<T>(10.0));
-        EXPECT_EQ(aoclsparse_destroy(csrA), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(csrB), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(csrC), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&csrA), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&csrB), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&csrC), aoclsparse_status_success);
 
         //A -> 0-base, B -> 1-base
         csrA          = NULL;
@@ -347,13 +352,18 @@ namespace
         {
             csr_col_indB[i] = csr_col_indB[i] + 1;
         }
+        ASSERT_EQ(aoclsparse_create_csr(&csrA,
+                                        aoclsparse_index_base_zero,
+                                        m,
+                                        k,
+                                        nnzA,
+                                        csr_row_ptrA,
+                                        csr_col_indA,
+                                        csr_valA),
+                  aoclsparse_status_success);
         ASSERT_EQ(
             aoclsparse_create_csr(
-                csrA, aoclsparse_index_base_zero, m, k, nnzA, csr_row_ptrA, csr_col_indA, csr_valA),
-            aoclsparse_status_success);
-        ASSERT_EQ(
-            aoclsparse_create_csr(
-                csrB, aoclsparse_index_base_one, k, n, nnzB, csr_row_ptrB, csr_col_indB, csr_valB),
+                &csrB, aoclsparse_index_base_one, k, n, nnzB, csr_row_ptrB, csr_col_indB, csr_valB),
             aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, &csrC),
                   aoclsparse_status_success);
@@ -364,7 +374,7 @@ namespace
         EXPECT_ARR_NEAR((C_M + 1), csr_row_ptr_C, csr_row_ptr_C_gold, expected_precision<T>(10.0));
         EXPECT_ARR_NEAR(nnz_C, csr_col_ind_C, csr_col_ind_C_gold, expected_precision<T>(10.0));
         EXPECT_ARR_NEAR(nnz_C, csr_val_C, csr_val_C_gold, expected_precision<T>(10.0));
-        EXPECT_EQ(aoclsparse_destroy(csrC), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&csrC), aoclsparse_status_success);
 
         //check for invalid base-index value
         csrC          = NULL;
@@ -377,8 +387,8 @@ namespace
         descrB->base = (aoclsparse_index_base)invalid_index_base;
         EXPECT_EQ(aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, &csrC),
                   aoclsparse_status_invalid_value);
-        EXPECT_EQ(aoclsparse_destroy(csrA), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(csrB), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&csrA), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&csrB), aoclsparse_status_success);
 
         EXPECT_EQ(aoclsparse_destroy_mat_descr(descrA), aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_destroy_mat_descr(descrB), aoclsparse_status_success);
@@ -427,12 +437,12 @@ namespace
 
         ASSERT_EQ(
             aoclsparse_create_csr(
-                csrA, aoclsparse_index_base_one, m, k, nnzA, csr_row_ptrA, csr_col_indA, csr_valA),
+                &csrA, aoclsparse_index_base_one, m, k, nnzA, csr_row_ptrA, csr_col_indA, csr_valA),
             aoclsparse_status_success);
 
         ASSERT_EQ(
             aoclsparse_create_csr(
-                csrB, aoclsparse_index_base_one, k, n, nnzB, csr_row_ptrB, csr_col_indB, csr_valB),
+                &csrB, aoclsparse_index_base_one, k, n, nnzB, csr_row_ptrB, csr_col_indB, csr_valB),
             aoclsparse_status_success);
 
         //Step-1
@@ -453,7 +463,7 @@ namespace
         EXPECT_ARR_NEAR((C_M + 1), csr_row_ptr_C, csr_row_ptr_C_gold, expected_precision<T>(10.0));
         EXPECT_ARR_NEAR(nnz_C, csr_col_ind_C, csr_col_ind_C_gold, expected_precision<T>(10.0));
         EXPECT_ARR_NEAR(nnz_C, csr_val_C, csr_val_C_gold, expected_precision<T>(10.0));
-        EXPECT_EQ(aoclsparse_destroy(csrC), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&csrC), aoclsparse_status_success);
 
         //check for invalid base-index value
         csrC          = NULL;
@@ -478,8 +488,8 @@ namespace
         request = aoclsparse_stage_finalize;
         EXPECT_EQ(aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, &csrC),
                   aoclsparse_status_invalid_value);
-        EXPECT_EQ(aoclsparse_destroy(csrA), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(csrB), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&csrA), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&csrB), aoclsparse_status_success);
 
         //A -> 1-base, B -> 0-base
         csrA          = NULL;
@@ -503,12 +513,17 @@ namespace
         }
         ASSERT_EQ(
             aoclsparse_create_csr(
-                csrA, aoclsparse_index_base_one, m, k, nnzA, csr_row_ptrA, csr_col_indA, csr_valA),
+                &csrA, aoclsparse_index_base_one, m, k, nnzA, csr_row_ptrA, csr_col_indA, csr_valA),
             aoclsparse_status_success);
-        ASSERT_EQ(
-            aoclsparse_create_csr(
-                csrB, aoclsparse_index_base_zero, k, n, nnzB, csr_row_ptrB, csr_col_indB, csr_valB),
-            aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_create_csr(&csrB,
+                                        aoclsparse_index_base_zero,
+                                        k,
+                                        n,
+                                        nnzB,
+                                        csr_row_ptrB,
+                                        csr_col_indB,
+                                        csr_valB),
+                  aoclsparse_status_success);
         //Step-1
         request = aoclsparse_stage_nnz_count;
         EXPECT_EQ(aoclsparse_csr2m<T>(transA, descrA, csrA, transB, descrB, csrB, request, &csrC),
@@ -524,9 +539,9 @@ namespace
         EXPECT_ARR_NEAR((C_M + 1), csr_row_ptr_C, csr_row_ptr_C_gold, expected_precision<T>(10.0));
         EXPECT_ARR_NEAR(nnz_C, csr_col_ind_C, csr_col_ind_C_gold, expected_precision<T>(10.0));
         EXPECT_ARR_NEAR(nnz_C, csr_val_C, csr_val_C_gold, expected_precision<T>(10.0));
-        EXPECT_EQ(aoclsparse_destroy(csrA), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(csrB), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(csrC), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&csrA), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&csrB), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&csrC), aoclsparse_status_success);
 
         //A -> 0-base, B -> 1-base
         csrA          = NULL;
@@ -557,13 +572,18 @@ namespace
         {
             csr_col_indB[i] = csr_col_indB[i] + 1;
         }
+        ASSERT_EQ(aoclsparse_create_csr(&csrA,
+                                        aoclsparse_index_base_zero,
+                                        m,
+                                        k,
+                                        nnzA,
+                                        csr_row_ptrA,
+                                        csr_col_indA,
+                                        csr_valA),
+                  aoclsparse_status_success);
         ASSERT_EQ(
             aoclsparse_create_csr(
-                csrA, aoclsparse_index_base_zero, m, k, nnzA, csr_row_ptrA, csr_col_indA, csr_valA),
-            aoclsparse_status_success);
-        ASSERT_EQ(
-            aoclsparse_create_csr(
-                csrB, aoclsparse_index_base_one, k, n, nnzB, csr_row_ptrB, csr_col_indB, csr_valB),
+                &csrB, aoclsparse_index_base_one, k, n, nnzB, csr_row_ptrB, csr_col_indB, csr_valB),
             aoclsparse_status_success);
         //Step-1
         request = aoclsparse_stage_nnz_count;
@@ -580,9 +600,9 @@ namespace
         EXPECT_ARR_NEAR((C_M + 1), csr_row_ptr_C, csr_row_ptr_C_gold, expected_precision<T>(10.0));
         EXPECT_ARR_NEAR(nnz_C, csr_col_ind_C, csr_col_ind_C_gold, expected_precision<T>(10.0));
         EXPECT_ARR_NEAR(nnz_C, csr_val_C, csr_val_C_gold, expected_precision<T>(10.0));
-        EXPECT_EQ(aoclsparse_destroy(csrA), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(csrB), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(csrC), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&csrA), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&csrB), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&csrC), aoclsparse_status_success);
 
         EXPECT_EQ(aoclsparse_destroy_mat_descr(descrA), aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_destroy_mat_descr(descrB), aoclsparse_status_success);
@@ -610,9 +630,9 @@ namespace
 
         // and expect not_implemented for !aoclsparse_matrix_type_general for matrix A and B
         aoclsparse_matrix csrA;
-        aoclsparse_create_csr(csrA, base, m, k, nnzA, csr_row_ptrA, csr_col_indA, csr_valA);
+        aoclsparse_create_csr(&csrA, base, m, k, nnzA, csr_row_ptrA, csr_col_indA, csr_valA);
         aoclsparse_matrix csrB;
-        aoclsparse_create_csr(csrB, base, k, n, nnzB, csr_row_ptrB, csr_col_indB, csr_valB);
+        aoclsparse_create_csr(&csrB, base, k, n, nnzB, csr_row_ptrB, csr_col_indB, csr_valB);
         aoclsparse_matrix csrC = NULL;
         request                = aoclsparse_stage_full_computation;
 
@@ -626,10 +646,10 @@ namespace
                   aoclsparse_status_not_implemented);
 
         aoclsparse_destroy_mat_descr(descrA);
-        aoclsparse_destroy(csrA);
+        aoclsparse_destroy(&csrA);
         aoclsparse_destroy_mat_descr(descrB);
-        aoclsparse_destroy(csrB);
-        aoclsparse_destroy(csrC);
+        aoclsparse_destroy(&csrB);
+        aoclsparse_destroy(&csrC);
     }
 
     void test_csr2m_wrong_datatype_float()
@@ -652,9 +672,9 @@ namespace
         aoclsparse_create_mat_descr(&descrB);
 
         aoclsparse_matrix csrA;
-        aoclsparse_create_scsr(csrA, base, m, k, nnzA, csr_row_ptrA, csr_col_indA, csr_valA);
+        aoclsparse_create_scsr(&csrA, base, m, k, nnzA, csr_row_ptrA, csr_col_indA, csr_valA);
         aoclsparse_matrix csrB;
-        aoclsparse_create_scsr(csrB, base, k, n, nnzB, csr_row_ptrB, csr_col_indB, csr_valB);
+        aoclsparse_create_scsr(&csrB, base, k, n, nnzB, csr_row_ptrB, csr_col_indB, csr_valB);
         aoclsparse_matrix csrC = NULL;
         request                = aoclsparse_stage_full_computation;
         // For float date type matrices, invoke csr2m for double precision
@@ -663,10 +683,10 @@ namespace
                   aoclsparse_status_wrong_type);
 
         aoclsparse_destroy_mat_descr(descrA);
-        aoclsparse_destroy(csrA);
+        aoclsparse_destroy(&csrA);
         aoclsparse_destroy_mat_descr(descrB);
-        aoclsparse_destroy(csrB);
-        aoclsparse_destroy(csrC);
+        aoclsparse_destroy(&csrB);
+        aoclsparse_destroy(&csrC);
     }
     void test_csr2m_wrong_datatype_double()
     {
@@ -688,9 +708,9 @@ namespace
         aoclsparse_create_mat_descr(&descrB);
 
         aoclsparse_matrix csrA;
-        aoclsparse_create_dcsr(csrA, base, m, k, nnzA, csr_row_ptrA, csr_col_indA, csr_valA);
+        aoclsparse_create_dcsr(&csrA, base, m, k, nnzA, csr_row_ptrA, csr_col_indA, csr_valA);
         aoclsparse_matrix csrB;
-        aoclsparse_create_dcsr(csrB, base, k, n, nnzB, csr_row_ptrB, csr_col_indB, csr_valB);
+        aoclsparse_create_dcsr(&csrB, base, k, n, nnzB, csr_row_ptrB, csr_col_indB, csr_valB);
         aoclsparse_matrix csrC = NULL;
         request                = aoclsparse_stage_full_computation;
         // For double date type matrices, invoke csr2m for single precision
@@ -699,10 +719,10 @@ namespace
                   aoclsparse_status_wrong_type);
 
         aoclsparse_destroy_mat_descr(descrA);
-        aoclsparse_destroy(csrA);
+        aoclsparse_destroy(&csrA);
         aoclsparse_destroy_mat_descr(descrB);
-        aoclsparse_destroy(csrB);
-        aoclsparse_destroy(csrC);
+        aoclsparse_destroy(&csrB);
+        aoclsparse_destroy(&csrC);
     }
     TEST(csr2m, NullArgDouble)
     {

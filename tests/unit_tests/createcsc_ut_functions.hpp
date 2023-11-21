@@ -38,11 +38,11 @@ void test_create_csc(aoclsparse_status     status_exp,
     aoclsparse_matrix mat = NULL;
     aoclsparse_status status;
 
-    EXPECT_EQ(status = aoclsparse_createcsc(mat, base, M, N, nnz, col_ptr, row_idx, val),
+    EXPECT_EQ(status = aoclsparse_create_csc(&mat, base, M, N, nnz, col_ptr, row_idx, val),
               status_exp);
 
     if(status == aoclsparse_status_success)
     {
-        EXPECT_EQ(aoclsparse_status_success, aoclsparse_destroy(mat));
+        EXPECT_EQ(aoclsparse_status_success, aoclsparse_destroy(&mat));
     }
 }

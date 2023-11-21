@@ -256,7 +256,7 @@ void test_gmres(matrix_id               mid,
     delete[] x;
 
     aoclsparse_itsol_destroy(&handle);
-    EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+    EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
     EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
     printf("\n");
     fflush(stdout);

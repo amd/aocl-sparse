@@ -508,7 +508,7 @@ namespace
                                          y,
                                          nRowsblk[iB]),
                   aoclsparse_status_invalid_value);
-        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
     }
     template <typename T>
@@ -621,7 +621,7 @@ namespace
                                          nRowsblk[iB]),
                   aoclsparse_status_invalid_value);
 
-        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
     }
     //Test cases for analysis and conversion routines

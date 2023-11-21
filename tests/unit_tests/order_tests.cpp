@@ -77,11 +77,11 @@ namespace
         aoclsparse_int    col_idx[] = {0, 3, 1, 3};
         double            vald[]    = {1, 6, 8, 4};
 
-        ASSERT_EQ(
-            aoclsparse_createcoo(mat, aoclsparse_index_base_zero, 4, 5, 4, row_idx, col_idx, vald),
-            aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_create_coo(
+                      &mat, aoclsparse_index_base_zero, 4, 5, 4, row_idx, col_idx, vald),
+                  aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_order_mat(mat), aoclsparse_status_not_implemented);
-        aoclsparse_destroy(mat);
+        aoclsparse_destroy(&mat);
     }
 
     TEST(order, NullArrayPointersFailure)
@@ -92,9 +92,9 @@ namespace
         double            vald[]    = {1, 6, 8, 4};
 
         // CSR matrix pointers are NULL
-        ASSERT_EQ(
-            aoclsparse_create_csr(mat, aoclsparse_index_base_zero, 5, 4, 4, row_ptr, col_idx, vald),
-            aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_create_csr(
+                      &mat, aoclsparse_index_base_zero, 5, 4, 4, row_ptr, col_idx, vald),
+                  aoclsparse_status_success);
 
         // a) csr_row_ptr is NULL
         mat->csr_mat.csr_row_ptr = NULL;
@@ -109,14 +109,14 @@ namespace
         mat->csr_mat.csr_col_ptr = col_idx;
         mat->csr_mat.csr_val     = NULL;
         EXPECT_EQ(aoclsparse_order_mat(mat), aoclsparse_status_invalid_pointer);
-        aoclsparse_destroy(mat);
+        aoclsparse_destroy(&mat);
 
         // CSC matrix pointers are NULL
         aoclsparse_int col_ptr[] = {0, 1, 2, 3, 4, 4};
         aoclsparse_int row_idx[] = {0, 3, 1, 3};
-        ASSERT_EQ(
-            aoclsparse_createcsc(mat, aoclsparse_index_base_zero, 4, 5, 4, col_ptr, row_idx, vald),
-            aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_create_csc(
+                      &mat, aoclsparse_index_base_zero, 4, 5, 4, col_ptr, row_idx, vald),
+                  aoclsparse_status_success);
 
         // a) col_ptr is NULL
         mat->csc_mat.col_ptr = NULL;
@@ -131,7 +131,7 @@ namespace
         mat->csc_mat.row_idx = row_idx;
         mat->csc_mat.val     = NULL;
         EXPECT_EQ(aoclsparse_order_mat(mat), aoclsparse_status_invalid_pointer);
-        aoclsparse_destroy(mat);
+        aoclsparse_destroy(&mat);
     }
 
     TEST(order, DoNothing)
@@ -143,22 +143,22 @@ namespace
         double                    vald[1];
 
         // complex 5x40, nnz=0
-        ASSERT_EQ(
-            aoclsparse_create_csr(mat, aoclsparse_index_base_one, 5, 40, 0, row_ptr, col_idx, valc),
-            aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_create_csr(
+                      &mat, aoclsparse_index_base_one, 5, 40, 0, row_ptr, col_idx, valc),
+                  aoclsparse_status_success);
 
         EXPECT_EQ(aoclsparse_order_mat(mat), aoclsparse_status_success);
 
-        aoclsparse_destroy(mat);
+        aoclsparse_destroy(&mat);
 
         // double 3x0
         ASSERT_EQ(
-            aoclsparse_create_csr(mat, aoclsparse_index_base_one, 3, 0, 0, row_ptr, col_idx, vald),
+            aoclsparse_create_csr(&mat, aoclsparse_index_base_one, 3, 0, 0, row_ptr, col_idx, vald),
             aoclsparse_status_success);
 
         EXPECT_EQ(aoclsparse_order_mat(mat), aoclsparse_status_success);
 
-        aoclsparse_destroy(mat);
+        aoclsparse_destroy(&mat);
     }
 
     TEST(order, InvalidDimensions)
@@ -168,9 +168,9 @@ namespace
         aoclsparse_int    col_idx[] = {0, 3, 1, 3};
         float             valf[]    = {1, 6, 8, 4};
 
-        ASSERT_EQ(
-            aoclsparse_create_csr(mat, aoclsparse_index_base_zero, 5, 4, 4, row_ptr, col_idx, valf),
-            aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_create_csr(
+                      &mat, aoclsparse_index_base_zero, 5, 4, 4, row_ptr, col_idx, valf),
+                  aoclsparse_status_success);
 
         // It is impossible to create normally any of these matricies
         // so let's build them artificially
@@ -187,7 +187,7 @@ namespace
         mat->n   = 4;
         mat->nnz = -1;
         EXPECT_EQ(aoclsparse_order_mat(mat), aoclsparse_status_invalid_value);
-        aoclsparse_destroy(mat);
+        aoclsparse_destroy(&mat);
     }
 
     TEST(order, InputCsrIsOptimized)
@@ -203,7 +203,7 @@ namespace
         aoclsparse_mat_descr descr;
 
         ASSERT_EQ(aoclsparse_create_csr(
-                      mat, aoclsparse_index_base_zero, 5, 4, 10, row_ptr, col_idx, valf),
+                      &mat, aoclsparse_index_base_zero, 5, 4, 10, row_ptr, col_idx, valf),
                   aoclsparse_status_success);
 
         // existing user csr pointers are already clean. opt_csr_is_user = true.
@@ -215,7 +215,7 @@ namespace
         EXPECT_EQ(aoclsparse_order_mat(mat), aoclsparse_status_success);
         test_ordered_mat(mat, col_idx_exp, valf_exp);
         aoclsparse_destroy_mat_descr(descr);
-        aoclsparse_destroy(mat);
+        aoclsparse_destroy(&mat);
     }
 
     TEST(order, AllRowOneNnzSuc)
@@ -229,24 +229,24 @@ namespace
 
         // CSR matrix
         ASSERT_EQ(aoclsparse_create_csr(
-                      mat, aoclsparse_index_base_zero, 5, 5, 5, row_ptr, col_idx, vald1),
+                      &mat, aoclsparse_index_base_zero, 5, 5, 5, row_ptr, col_idx, vald1),
                   aoclsparse_status_success);
 
         EXPECT_EQ(aoclsparse_order_mat(mat), aoclsparse_status_success);
         test_ordered_mat(mat, idx_exp, vald_exp);
-        aoclsparse_destroy(mat);
+        aoclsparse_destroy(&mat);
 
         // CSC matrix
         aoclsparse_int col_ptr[] = {0, 1, 2, 3, 4, 5};
         aoclsparse_int row_idx[] = {0, 1, 2, 3, 4};
         double         vald2[]   = {10, 8, 6, 4, 2};
-        ASSERT_EQ(
-            aoclsparse_createcsc(mat, aoclsparse_index_base_zero, 5, 5, 5, col_ptr, row_idx, vald2),
-            aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_create_csc(
+                      &mat, aoclsparse_index_base_zero, 5, 5, 5, col_ptr, row_idx, vald2),
+                  aoclsparse_status_success);
 
         EXPECT_EQ(aoclsparse_order_mat(mat), aoclsparse_status_success);
         test_ordered_mat(mat, idx_exp, vald_exp);
-        aoclsparse_destroy(mat);
+        aoclsparse_destroy(&mat);
     }
 
     TEST(order, AllRowTwoNnzSuc)
@@ -262,12 +262,12 @@ namespace
         aoclsparse_int col_idx_exp1[] = {0, 1, 1, 2, 2, 3, 3, 4, 0, 4};
 
         ASSERT_EQ(aoclsparse_create_csr(
-                      mat, aoclsparse_index_base_zero, 5, 5, 10, row_ptr1, col_idx1, valf1),
+                      &mat, aoclsparse_index_base_zero, 5, 5, 10, row_ptr1, col_idx1, valf1),
                   aoclsparse_status_success);
 
         EXPECT_EQ(aoclsparse_order_mat(mat), aoclsparse_status_success);
         test_ordered_mat(mat, col_idx_exp1, valf_exp);
-        aoclsparse_destroy(mat);
+        aoclsparse_destroy(&mat);
 
         // b) 1-based indexing for CSC
         aoclsparse_int col_ptr[]     = {1, 3, 5, 7, 9, 11};
@@ -276,12 +276,12 @@ namespace
         aoclsparse_int row_idx_exp[] = {1, 2, 2, 3, 3, 4, 4, 5, 1, 5};
 
         ASSERT_EQ(aoclsparse_create_csr(
-                      mat, aoclsparse_index_base_one, 5, 5, 10, col_ptr, row_idx, valf2),
+                      &mat, aoclsparse_index_base_one, 5, 5, 10, col_ptr, row_idx, valf2),
                   aoclsparse_status_success);
 
         EXPECT_EQ(aoclsparse_order_mat(mat), aoclsparse_status_success);
         test_ordered_mat(mat, row_idx_exp, valf_exp);
-        aoclsparse_destroy(mat);
+        aoclsparse_destroy(&mat);
     }
 
     TEST(order, GeneralCsrSuccess)
@@ -297,13 +297,13 @@ namespace
         aoclsparse_double_complex valcd_exp[]
             = {{9, 9}, {10, 10}, {8, 8}, {7, 7}, {5, 5}, {6, 6}, {2, 2}, {3, 3}, {4, 4}, {1, 1}};
 
-        ASSERT_EQ(aoclsparse_createcsc(
-                      mat, aoclsparse_index_base_zero, 5, 5, 10, col_ptr, row_idx, valcd),
+        ASSERT_EQ(aoclsparse_create_csc(
+                      &mat, aoclsparse_index_base_zero, 5, 5, 10, col_ptr, row_idx, valcd),
                   aoclsparse_status_success);
 
         EXPECT_EQ(aoclsparse_order_mat(mat), aoclsparse_status_success);
         test_ordered_mat(mat, col_idx_exp, valcd_exp);
-        aoclsparse_destroy(mat);
+        aoclsparse_destroy(&mat);
 
         // b) variable nnz in each CSR row. user data is not sorted and we have optimized data
         aoclsparse_int       row_ptr[]  = {0, 2, 3, 6, 10, 10};
@@ -312,7 +312,7 @@ namespace
         float                valf_exp[] = {9, 10, 8, 7, 5, 6, 2, 3, 4, 1};
         aoclsparse_mat_descr descr;
         ASSERT_EQ(aoclsparse_create_csr(
-                      mat, aoclsparse_index_base_zero, 5, 5, 10, row_ptr, col_idx, valf),
+                      &mat, aoclsparse_index_base_zero, 5, 5, 10, row_ptr, col_idx, valf),
                   aoclsparse_status_success);
         aoclsparse_create_mat_descr(&descr);
         ASSERT_EQ(aoclsparse_set_sv_hint(mat, aoclsparse_operation_none, descr, 1),
@@ -322,7 +322,7 @@ namespace
         EXPECT_EQ(aoclsparse_order_mat(mat), aoclsparse_status_success);
         test_ordered_mat(mat, col_idx_exp, valf_exp);
         aoclsparse_destroy_mat_descr(descr);
-        aoclsparse_destroy(mat);
+        aoclsparse_destroy(&mat);
     }
 
     TEST(order, SortedCsrSuccess)
@@ -338,12 +338,12 @@ namespace
             = {{10, 10}, {9, 9}, {8, 8}, {7, 7}, {6, 6}, {5, 5}, {4, 4}, {3, 3}, {2, 2}, {1, 1}};
 
         ASSERT_EQ(aoclsparse_create_csr(
-                      mat, aoclsparse_index_base_zero, 5, 5, 10, row_ptr, col_idx, valcf1),
+                      &mat, aoclsparse_index_base_zero, 5, 5, 10, row_ptr, col_idx, valcf1),
                   aoclsparse_status_success);
 
         EXPECT_EQ(aoclsparse_order_mat(mat), aoclsparse_status_success);
         test_ordered_mat(mat, idx_exp, valcf_exp);
-        aoclsparse_destroy(mat);
+        aoclsparse_destroy(&mat);
 
         // Input CSC is already sorted
         aoclsparse_int           col_ptr[] = {0, 2, 4, 6, 8, 10};
@@ -351,13 +351,13 @@ namespace
         aoclsparse_float_complex valcf2[]
             = {{10, 10}, {9, 9}, {8, 8}, {7, 7}, {6, 6}, {5, 5}, {4, 4}, {3, 3}, {2, 2}, {1, 1}};
 
-        ASSERT_EQ(aoclsparse_createcsc(
-                      mat, aoclsparse_index_base_zero, 5, 5, 10, col_ptr, row_idx, valcf2),
+        ASSERT_EQ(aoclsparse_create_csc(
+                      &mat, aoclsparse_index_base_zero, 5, 5, 10, col_ptr, row_idx, valcf2),
                   aoclsparse_status_success);
 
         EXPECT_EQ(aoclsparse_order_mat(mat), aoclsparse_status_success);
         test_ordered_mat(mat, idx_exp, valcf_exp);
-        aoclsparse_destroy(mat);
+        aoclsparse_destroy(&mat);
     }
 
 } // namespace

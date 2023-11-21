@@ -208,7 +208,7 @@ aoclsparse_status aoclsparse_csr2m_nnz_count(aoclsparse_int             m,
         }
         catch(std::bad_alloc &)
         {
-            aoclsparse_destroy(*C);
+            aoclsparse_destroy(C);
             return aoclsparse_status_memory_error;
         }
     }
@@ -536,7 +536,7 @@ aoclsparse_status aoclsparse_csr2m_t(aoclsparse_operation       opA,
             catch(std::bad_alloc &)
             {
                 /*Insufficient memory for output allocation */
-                aoclsparse_destroy(*C);
+                aoclsparse_destroy(C);
                 return aoclsparse_status_memory_error;
             }
             aoclsparse_init_mat(*C, aoclsparse_index_base_zero, m_a, n_b, 0, aoclsparse_csr_mat);

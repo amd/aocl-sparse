@@ -225,7 +225,7 @@ namespace
         expected_sorted_csr(sol, mid);
         hint_optimize(100, 100, 100, descr, trans, A);
         check_opt_csr(A, sol);
-        ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
     };
 

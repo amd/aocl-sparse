@@ -81,7 +81,7 @@ void testing_optmv(const Arguments &arg)
 
     aoclsparse_matrix A;
     CHECK_AOCLSPARSE_ERROR(aoclsparse_create_csr<T>(
-        A, base, M, N, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data()));
+        &A, base, M, N, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data()));
 
     // Allocate memory for vectors
     aoclsparse_int xdim, ydim;
@@ -182,7 +182,7 @@ void testing_optmv(const Arguments &arg)
         cpu_time_used = aoclsparse_clock_min_diff(cpu_time_used, cpu_time_start);
     }
     aoclsparse_destroy_mat_descr(descr);
-    aoclsparse_destroy(A);
+    aoclsparse_destroy(&A);
 
     double cpu_gflops = spmv_gflop_count<T>(M, nnz, beta != static_cast<T>(0)) / cpu_time_used;
     double cpu_gbyte  = ellmv_gbyte_count<T>(M, N, nnz, beta != static_cast<T>(0)) / cpu_time_used;

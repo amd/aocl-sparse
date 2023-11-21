@@ -86,7 +86,7 @@ namespace
                   aoclsparse_status_invalid_pointer);
 
         EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
     }
 
     // tests with wrong scalar data n, m, nnz
@@ -145,9 +145,9 @@ namespace
                   aoclsparse_status_invalid_pointer);
 
         EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(A_n_wrong), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(A_m_wrong), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(A_nnz_wrong), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A_n_wrong), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A_m_wrong), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A_nnz_wrong), aoclsparse_status_success);
     }
     // zero matrix size is valid - just do nothing
     template <typename T>
@@ -205,9 +205,9 @@ namespace
                   aoclsparse_status_success);
 
         EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(A_n_zero), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(A_m_zero), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(A_nnz_zero), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A_n_zero), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A_m_zero), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A_nnz_zero), aoclsparse_status_success);
     }
     // test one-base and zero-based indexing support
     template <typename T>
@@ -257,7 +257,7 @@ namespace
             aoclsparse_status_invalid_value);
 
         EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
     }
     // test not-implemented/supported scenarios
     template <typename T>
@@ -299,7 +299,7 @@ namespace
             aoclsparse_status_not_implemented);
 
         EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
     }
     // test by passing predefined matrices
     template <typename T>
@@ -371,7 +371,7 @@ namespace
             delete[] x;
             x = NULL;
             EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
-            EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+            EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
         }
     }
     //TODO add:

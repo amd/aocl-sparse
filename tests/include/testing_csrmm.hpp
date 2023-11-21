@@ -180,7 +180,7 @@ void testing_csrmm(const Arguments &arg)
 
     aoclsparse_matrix A;
     aoclsparse_create_csr(
-        A, base, M, K, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data());
+        &A, base, M, K, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data());
     // Allocate memory for matrix
     std::vector<T> B(nrowB * ncolB);
     std::vector<T> C(nrowC * ncolC);
@@ -199,7 +199,7 @@ void testing_csrmm(const Arguments &arg)
         if(transA != aoclsparse_operation_none)
         {
             std::cout << "At persent, verification is supported only when transposeA is set to N\n";
-            aoclsparse_destroy(A);
+            aoclsparse_destroy(&A);
             return;
         }
         CHECK_AOCLSPARSE_ERROR(aoclsparse_csrmm<T>(
@@ -275,6 +275,6 @@ void testing_csrmm(const Arguments &arg)
               << std::setw(12) << number_hot_calls << std::setw(12)
               << (arg.unit_check ? "yes" : "no") << std::endl;
 
-    aoclsparse_destroy(A);
+    aoclsparse_destroy(&A);
 }
 #endif // TESTING_CSRMM_HPP

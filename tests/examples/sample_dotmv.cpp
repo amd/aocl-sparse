@@ -59,7 +59,7 @@ int main(void)
     aoclsparse_int    csr_col_ind[NNZ]   = {0, 3, 1, 2, 1, 3, 4, 4};
     double            csr_val[NNZ]       = {1, 2, 3, 4, 5, 6, 7, 8};
     aoclsparse_matrix A;
-    aoclsparse_create_dcsr(A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
+    aoclsparse_create_dcsr(&A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
 
     // Initialise vectors
     double x[N]     = {1.0, 1.0, 1.0, 1.0, 1.0};
@@ -98,6 +98,6 @@ int main(void)
     std::cout << std::endl << "Output dot product: " << d << (oki ? " " : "!  ") << std::endl;
 
     aoclsparse_destroy_mat_descr(descr);
-    aoclsparse_destroy(A);
+    aoclsparse_destroy(&A);
     return 0;
 }

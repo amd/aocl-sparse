@@ -418,7 +418,7 @@ namespace
                     mm, nn, ldx, X_start, XRef_start, expected_precision<decltype(tol)>(tol));
             }
         }
-        ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
     }
 
@@ -617,7 +617,7 @@ namespace
         float             csr_val[NNZ]       = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
         aoclsparse_matrix A;
-        ASSERT_EQ(aoclsparse_create_csr<T>(A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val),
+        ASSERT_EQ(aoclsparse_create_csr<T>(&A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val),
                   aoclsparse_status_success);
 
         aoclsparse_int     ldb, ldx;
@@ -750,7 +750,7 @@ namespace
         --(A->n);
         ASSERT_EQ(status, exp_status)
             << "Test failed to validate correct dimensions from aoclsparse_trsm_kid";
-        ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
     }
 

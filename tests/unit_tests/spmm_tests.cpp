@@ -88,7 +88,7 @@ namespace
         aoclsparse_init_csr_random(row_ptr_a, col_ind_a, val_a, m_a, n_a, nnz_a, b_a);
         aoclsparse_matrix A;
         ASSERT_EQ(aoclsparse_create_csr(
-                      A, b_a, m_a, n_a, nnz_a, row_ptr_a.data(), col_ind_a.data(), val_a.data()),
+                      &A, b_a, m_a, n_a, nnz_a, row_ptr_a.data(), col_ind_a.data(), val_a.data()),
                   aoclsparse_status_success);
 
         //Randomly generate B matrix
@@ -98,7 +98,7 @@ namespace
         aoclsparse_init_csr_random(row_ptr_b, col_ind_b, val_b, m_b, n_b, nnz_b, b_b);
         aoclsparse_matrix B;
         ASSERT_EQ(aoclsparse_create_csr(
-                      B, b_b, m_b, n_b, nnz_b, row_ptr_b.data(), col_ind_b.data(), val_b.data()),
+                      &B, b_b, m_b, n_b, nnz_b, row_ptr_b.data(), col_ind_b.data(), val_b.data()),
                   aoclsparse_status_success);
 
         aoclsparse_matrix C = NULL;
@@ -107,9 +107,9 @@ namespace
         EXPECT_EQ(aoclsparse_spmm(op_a, nullptr, B, &C), aoclsparse_status_invalid_pointer);
         EXPECT_EQ(aoclsparse_spmm(op_a, A, nullptr, &C), aoclsparse_status_invalid_pointer);
         EXPECT_EQ(aoclsparse_spmm(op_a, A, B, nullptr), aoclsparse_status_invalid_pointer);
-        aoclsparse_destroy(A);
-        aoclsparse_destroy(B);
-        aoclsparse_destroy(C);
+        aoclsparse_destroy(&A);
+        aoclsparse_destroy(&B);
+        aoclsparse_destroy(&C);
     }
     // Quick return with success when size 0 matrix is passed
 
@@ -133,7 +133,7 @@ namespace
         aoclsparse_init_csr_random(row_ptr_a, col_ind_a, val_a, m_a, n_a, nnz_a, b_a);
         aoclsparse_matrix A;
         ASSERT_EQ(aoclsparse_create_csr(
-                      A, b_a, m_a, n_a, nnz_a, row_ptr_a.data(), col_ind_a.data(), val_a.data()),
+                      &A, b_a, m_a, n_a, nnz_a, row_ptr_a.data(), col_ind_a.data(), val_a.data()),
                   aoclsparse_status_success);
 
         //Randomly generate B matrix
@@ -143,21 +143,21 @@ namespace
         aoclsparse_init_csr_random(row_ptr_b, col_ind_b, val_b, m_b, n_b, nnz_b, b_b);
         aoclsparse_matrix B;
         ASSERT_EQ(aoclsparse_create_csr(
-                      B, b_b, m_b, n_b, nnz_b, row_ptr_b.data(), col_ind_b.data(), val_b.data()),
+                      &B, b_b, m_b, n_b, nnz_b, row_ptr_b.data(), col_ind_b.data(), val_b.data()),
                   aoclsparse_status_success);
 
         aoclsparse_matrix C = NULL;
         A->m                = 0;
         EXPECT_EQ(aoclsparse_spmm(op_a, A, B, &C), aoclsparse_status_success);
-        aoclsparse_destroy(C);
+        aoclsparse_destroy(&C);
 
         A->m = m_a;
         B->n = 0;
         EXPECT_EQ(aoclsparse_spmm(op_a, A, B, &C), aoclsparse_status_success);
-        aoclsparse_destroy(C);
+        aoclsparse_destroy(&C);
 
-        aoclsparse_destroy(A);
-        aoclsparse_destroy(B);
+        aoclsparse_destroy(&A);
+        aoclsparse_destroy(&B);
     }
 
     // tests for Wrong size
@@ -181,7 +181,7 @@ namespace
         aoclsparse_init_csr_random(row_ptr_a, col_ind_a, val_a, m_a, n_a, nnz_a, b_a);
         aoclsparse_matrix A;
         ASSERT_EQ(aoclsparse_create_csr(
-                      A, b_a, m_a, n_a, nnz_a, row_ptr_a.data(), col_ind_a.data(), val_a.data()),
+                      &A, b_a, m_a, n_a, nnz_a, row_ptr_a.data(), col_ind_a.data(), val_a.data()),
                   aoclsparse_status_success);
 
         //Randomly generate B matrix
@@ -191,14 +191,14 @@ namespace
         aoclsparse_init_csr_random(row_ptr_b, col_ind_b, val_b, m_b, n_b, nnz_b, b_b);
         aoclsparse_matrix B;
         ASSERT_EQ(aoclsparse_create_csr(
-                      B, b_b, m_b, n_b, nnz_b, row_ptr_b.data(), col_ind_b.data(), val_b.data()),
+                      &B, b_b, m_b, n_b, nnz_b, row_ptr_b.data(), col_ind_b.data(), val_b.data()),
                   aoclsparse_status_success);
 
         aoclsparse_matrix C = NULL;
         EXPECT_EQ(aoclsparse_spmm(op_a, A, B, &C), aoclsparse_status_invalid_size);
-        aoclsparse_destroy(A);
-        aoclsparse_destroy(B);
-        aoclsparse_destroy(C);
+        aoclsparse_destroy(&A);
+        aoclsparse_destroy(&B);
+        aoclsparse_destroy(&C);
     }
 
     void test_spmm_wrong_datatype()
@@ -214,17 +214,17 @@ namespace
         aoclsparse_int        csr_row_ptrB[] = {0, 1, 2, 3};
 
         aoclsparse_matrix A;
-        aoclsparse_create_scsr(A, base, m, k, nnzA, csr_row_ptrA, csr_col_indA, csr_valA);
+        aoclsparse_create_scsr(&A, base, m, k, nnzA, csr_row_ptrA, csr_col_indA, csr_valA);
         aoclsparse_matrix B;
-        aoclsparse_create_dcsr(B, base, k, n, nnzB, csr_row_ptrB, csr_col_indB, csr_valB);
+        aoclsparse_create_dcsr(&B, base, k, n, nnzB, csr_row_ptrB, csr_col_indB, csr_valB);
         aoclsparse_matrix C = NULL;
         // For float A and double B matrices, invoke spmm
         // and expect wrong type error
         EXPECT_EQ(aoclsparse_spmm(opA, A, B, &C), aoclsparse_status_wrong_type);
 
-        aoclsparse_destroy(A);
-        aoclsparse_destroy(B);
-        aoclsparse_destroy(C);
+        aoclsparse_destroy(&A);
+        aoclsparse_destroy(&B);
+        aoclsparse_destroy(&C);
     }
 
     // Test for success and verify results against Dense GEMM results.
@@ -256,7 +256,7 @@ namespace
         aoclsparse_init_csr_random(row_ptr_a, col_ind_a, val_a, m_a, n_a, nnz_a, b_a);
         aoclsparse_matrix A;
         ASSERT_EQ(aoclsparse_create_csr(
-                      A, b_a, m_a, n_a, nnz_a, row_ptr_a.data(), col_ind_a.data(), val_a.data()),
+                      &A, b_a, m_a, n_a, nnz_a, row_ptr_a.data(), col_ind_a.data(), val_a.data()),
                   aoclsparse_status_success);
         aoclsparse_mat_descr descrA;
         ASSERT_EQ(aoclsparse_create_mat_descr(&descrA), aoclsparse_status_success);
@@ -269,7 +269,7 @@ namespace
         aoclsparse_init_csr_random(row_ptr_b, col_ind_b, val_b, m_b, n_b, nnz_b, b_b);
         aoclsparse_matrix B;
         ASSERT_EQ(aoclsparse_create_csr(
-                      B, b_b, m_b, n_b, nnz_b, row_ptr_b.data(), col_ind_b.data(), val_b.data()),
+                      &B, b_b, m_b, n_b, nnz_b, row_ptr_b.data(), col_ind_b.data(), val_b.data()),
                   aoclsparse_status_success);
         aoclsparse_mat_descr descrB;
         ASSERT_EQ(aoclsparse_create_mat_descr(&descrB), aoclsparse_status_success);
@@ -399,12 +399,12 @@ namespace
                        (int64_t)n_c);
             EXPECT_ARR_NEAR(m_c * n_c, dense_c.data(), dense_c_exp.data(), abserr);
         }
-        aoclsparse_destroy(C);
+        aoclsparse_destroy(&C);
         aoclsparse_destroy_mat_descr(descrC);
         aoclsparse_destroy_mat_descr(descrB);
-        aoclsparse_destroy(B);
+        aoclsparse_destroy(&B);
         aoclsparse_destroy_mat_descr(descrA);
-        aoclsparse_destroy(A);
+        aoclsparse_destroy(&A);
     }
 
     TEST(spmm, NullArgAll)

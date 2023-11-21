@@ -68,7 +68,7 @@ int main(void)
     aoclsparse_int row_ptr_A[] = {0, 2, 3, 6};
     aoclsparse_int col_ind_A[] = {0, 2, 2, 0, 1, 2};
     float          val_A[]     = {1, 2, 3, 4, 5, 6};
-    aoclsparse_create_scsr(csrA, base, m, k, nnz_A, row_ptr_A, col_ind_A, val_A);
+    aoclsparse_create_scsr(&csrA, base, m, k, nnz_A, row_ptr_A, col_ind_A, val_A);
 
     // Matrix B
     // 	1  2  0
@@ -77,7 +77,7 @@ int main(void)
     aoclsparse_int row_ptr_B[] = {0, 2, 3, 4};
     aoclsparse_int col_ind_B[] = {0, 1, 2, 1};
     float          val_B[]     = {1, 2, 3, 4};
-    aoclsparse_create_scsr(csrB, base, k, n, nnz_B, row_ptr_B, col_ind_B, val_B);
+    aoclsparse_create_scsr(&csrB, base, k, n, nnz_B, row_ptr_B, col_ind_B, val_B);
 
     aoclsparse_matrix csrC          = NULL;
     aoclsparse_int   *csr_row_ptr_C = NULL;
@@ -190,8 +190,8 @@ int main(void)
 #endif
     aoclsparse_destroy_mat_descr(descrA);
     aoclsparse_destroy_mat_descr(descrB);
-    aoclsparse_destroy(csrA);
-    aoclsparse_destroy(csrB);
-    aoclsparse_destroy(csrC);
+    aoclsparse_destroy(&csrA);
+    aoclsparse_destroy(&csrB);
+    aoclsparse_destroy(&csrC);
     return 0;
 }

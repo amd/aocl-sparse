@@ -176,7 +176,7 @@ void test_cg_error(aoclsparse_status       status_exp,
               status_exp)
         << "return condition not as expected";
 
-    aoclsparse_destroy(A);
+    aoclsparse_destroy(&A);
     aoclsparse_itsol_destroy(&handle);
     aoclsparse_destroy_mat_descr(descr);
 }
@@ -256,7 +256,7 @@ void test_cg_double_call()
 
     EXPECT_ARR_NEAR(n, x_exp, x, expected_precision<T>());
 
-    aoclsparse_destroy(A);
+    aoclsparse_destroy(&A);
     aoclsparse_itsol_destroy(&handle);
     aoclsparse_destroy_mat_descr(descr);
 }
@@ -323,7 +323,7 @@ void test_cg_positive(matrix_id               mid,
     // test expected solution
     EXPECT_ARR_NEAR(n, x_exp, x, expected_precision<T>());
 
-    aoclsparse_destroy(A);
+    aoclsparse_destroy(&A);
     aoclsparse_itsol_destroy(&handle);
     aoclsparse_destroy_mat_descr(descr);
 }

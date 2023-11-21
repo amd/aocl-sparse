@@ -278,7 +278,7 @@ aoclsparse_diag_type aoclsparse_get_mat_diag_type(const aoclsparse_mat_descr des
  */
 /**@{*/
 DLL_PUBLIC
-aoclsparse_status aoclsparse_create_scsr(aoclsparse_matrix    &mat,
+aoclsparse_status aoclsparse_create_scsr(aoclsparse_matrix    *mat,
                                          aoclsparse_index_base base,
                                          aoclsparse_int        M,
                                          aoclsparse_int        N,
@@ -288,7 +288,7 @@ aoclsparse_status aoclsparse_create_scsr(aoclsparse_matrix    &mat,
                                          float                *val);
 
 DLL_PUBLIC
-aoclsparse_status aoclsparse_create_dcsr(aoclsparse_matrix    &mat,
+aoclsparse_status aoclsparse_create_dcsr(aoclsparse_matrix    *mat,
                                          aoclsparse_index_base base,
                                          aoclsparse_int        M,
                                          aoclsparse_int        N,
@@ -298,7 +298,7 @@ aoclsparse_status aoclsparse_create_dcsr(aoclsparse_matrix    &mat,
                                          double               *val);
 
 DLL_PUBLIC
-aoclsparse_status aoclsparse_create_ccsr(aoclsparse_matrix        &mat,
+aoclsparse_status aoclsparse_create_ccsr(aoclsparse_matrix        *mat,
                                          aoclsparse_index_base     base,
                                          aoclsparse_int            M,
                                          aoclsparse_int            N,
@@ -308,7 +308,7 @@ aoclsparse_status aoclsparse_create_ccsr(aoclsparse_matrix        &mat,
                                          aoclsparse_float_complex *val);
 
 DLL_PUBLIC
-aoclsparse_status aoclsparse_create_zcsr(aoclsparse_matrix         &mat,
+aoclsparse_status aoclsparse_create_zcsr(aoclsparse_matrix         *mat,
                                          aoclsparse_index_base      base,
                                          aoclsparse_int             M,
                                          aoclsparse_int             N,
@@ -345,7 +345,7 @@ aoclsparse_status aoclsparse_create_zcsr(aoclsparse_matrix         &mat,
  */
 /**@{*/
 DLL_PUBLIC
-aoclsparse_status aoclsparse_create_scoo(aoclsparse_matrix          &mat,
+aoclsparse_status aoclsparse_create_scoo(aoclsparse_matrix          *mat,
                                          const aoclsparse_index_base base,
                                          const aoclsparse_int        M,
                                          const aoclsparse_int        N,
@@ -355,7 +355,7 @@ aoclsparse_status aoclsparse_create_scoo(aoclsparse_matrix          &mat,
                                          float                      *val);
 
 DLL_PUBLIC
-aoclsparse_status aoclsparse_create_dcoo(aoclsparse_matrix          &mat,
+aoclsparse_status aoclsparse_create_dcoo(aoclsparse_matrix          *mat,
                                          const aoclsparse_index_base base,
                                          const aoclsparse_int        M,
                                          const aoclsparse_int        N,
@@ -365,7 +365,7 @@ aoclsparse_status aoclsparse_create_dcoo(aoclsparse_matrix          &mat,
                                          double                     *val);
 
 DLL_PUBLIC
-aoclsparse_status aoclsparse_create_ccoo(aoclsparse_matrix          &mat,
+aoclsparse_status aoclsparse_create_ccoo(aoclsparse_matrix          *mat,
                                          const aoclsparse_index_base base,
                                          const aoclsparse_int        M,
                                          const aoclsparse_int        N,
@@ -375,7 +375,7 @@ aoclsparse_status aoclsparse_create_ccoo(aoclsparse_matrix          &mat,
                                          aoclsparse_float_complex   *val);
 
 DLL_PUBLIC
-aoclsparse_status aoclsparse_create_zcoo(aoclsparse_matrix          &mat,
+aoclsparse_status aoclsparse_create_zcoo(aoclsparse_matrix          *mat,
                                          const aoclsparse_index_base base,
                                          const aoclsparse_int        M,
                                          const aoclsparse_int        N,
@@ -472,7 +472,7 @@ aoclsparse_status aoclsparse_export_zcsr(const aoclsparse_matrix     mat,
  */
 /**@{*/
 DLL_PUBLIC
-aoclsparse_status aoclsparse_destroy(aoclsparse_matrix &mat);
+aoclsparse_status aoclsparse_destroy(aoclsparse_matrix *mat);
 /**@}*/
 
 DLL_PUBLIC
@@ -515,7 +515,7 @@ aoclsparse_int aoclsparse_get_vec_extn_context(void);
  */
 /**@{*/
 DLL_PUBLIC
-aoclsparse_status aoclsparse_create_scsc(aoclsparse_matrix    &mat,
+aoclsparse_status aoclsparse_create_scsc(aoclsparse_matrix    *mat,
                                          aoclsparse_index_base base,
                                          aoclsparse_int        M,
                                          aoclsparse_int        N,
@@ -525,7 +525,7 @@ aoclsparse_status aoclsparse_create_scsc(aoclsparse_matrix    &mat,
                                          float                *val);
 
 DLL_PUBLIC
-aoclsparse_status aoclsparse_create_dcsc(aoclsparse_matrix    &mat,
+aoclsparse_status aoclsparse_create_dcsc(aoclsparse_matrix    *mat,
                                          aoclsparse_index_base base,
                                          aoclsparse_int        M,
                                          aoclsparse_int        N,
@@ -535,7 +535,7 @@ aoclsparse_status aoclsparse_create_dcsc(aoclsparse_matrix    &mat,
                                          double               *val);
 
 DLL_PUBLIC
-aoclsparse_status aoclsparse_create_ccsc(aoclsparse_matrix        &mat,
+aoclsparse_status aoclsparse_create_ccsc(aoclsparse_matrix        *mat,
                                          aoclsparse_index_base     base,
                                          aoclsparse_int            M,
                                          aoclsparse_int            N,
@@ -545,7 +545,7 @@ aoclsparse_status aoclsparse_create_ccsc(aoclsparse_matrix        &mat,
                                          aoclsparse_float_complex *val);
 
 DLL_PUBLIC
-aoclsparse_status aoclsparse_create_zcsc(aoclsparse_matrix         &mat,
+aoclsparse_status aoclsparse_create_zcsc(aoclsparse_matrix         *mat,
                                          aoclsparse_index_base      base,
                                          aoclsparse_int             M,
                                          aoclsparse_int             N,
