@@ -48,9 +48,9 @@ void aoclsparse_itsol_handle_prn_options(aoclsparse_itsol_handle handle)
     }
 }
 
-aoclsparse_status aoclsparse_itsol_option_set(aoclsparse_itsol_handle &handle,
-                                              const char              *option,
-                                              const char              *value)
+aoclsparse_status aoclsparse_itsol_option_set(aoclsparse_itsol_handle handle,
+                                              const char             *option,
+                                              const char             *value)
 {
     if(handle == nullptr)
         return aoclsparse_status_invalid_pointer;

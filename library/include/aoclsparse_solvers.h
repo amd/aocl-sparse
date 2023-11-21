@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022-2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -194,9 +194,9 @@ void aoclsparse_itsol_handle_prn_options(aoclsparse_itsol_handle handle);
  * \retval aoclsparse_status_internal_error an unexpected error occurred.
  */
 DLL_PUBLIC
-aoclsparse_status aoclsparse_itsol_option_set(aoclsparse_itsol_handle &handle,
-                                              const char              *option,
-                                              const char              *value);
+aoclsparse_status aoclsparse_itsol_option_set(aoclsparse_itsol_handle handle,
+                                              const char             *option,
+                                              const char             *value);
 
 /*! \ingroup solvers_module
  * \brief Initialize a problem \p handle ( \c aoclsparse_itsol_handle) for the iterative solvers suite of the library.

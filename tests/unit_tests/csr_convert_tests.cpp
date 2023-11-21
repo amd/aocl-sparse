@@ -121,13 +121,13 @@ namespace
             if(base == aoclsparse_index_base_zero)
             {
                 EXPECT_EQ(
-                    aoclsparse_createcoo(src_mat, base, M, N, NNZ, coo_row_ind, coo_col_ind, Val),
+                    aoclsparse_create_coo(&src_mat, base, M, N, NNZ, coo_row_ind, coo_col_ind, Val),
                     aoclsparse_status_success);
             }
             else
             {
-                EXPECT_EQ(aoclsparse_createcoo(
-                              src_mat, base, M, N, NNZ, coo_1b_row_ind, coo_1b_col_ind, Val),
+                EXPECT_EQ(aoclsparse_create_coo(
+                              &src_mat, base, M, N, NNZ, coo_1b_row_ind, coo_1b_col_ind, Val),
                           aoclsparse_status_success);
             }
         }
@@ -137,27 +137,29 @@ namespace
             {
                 if(base == aoclsparse_index_base_zero)
                 {
-                    EXPECT_EQ(aoclsparse_createcsc(
-                                  src_mat, base, M, N, NNZ, csrt_0b_0nnz_row_ptr, csc_row_ind, Val),
-                              aoclsparse_status_success);
+                    EXPECT_EQ(
+                        aoclsparse_create_csc(
+                            &src_mat, base, M, N, NNZ, csrt_0b_0nnz_row_ptr, csc_row_ind, Val),
+                        aoclsparse_status_success);
                 }
                 else
                 {
-                    EXPECT_EQ(aoclsparse_createcsc(
-                                  src_mat, base, M, N, NNZ, csrt_1b_0nnz_row_ptr, csc_row_ind, Val),
-                              aoclsparse_status_success);
+                    EXPECT_EQ(
+                        aoclsparse_create_csc(
+                            &src_mat, base, M, N, NNZ, csrt_1b_0nnz_row_ptr, csc_row_ind, Val),
+                        aoclsparse_status_success);
                 }
             }
             else if(base == aoclsparse_index_base_zero)
             {
                 EXPECT_EQ(
-                    aoclsparse_createcsc(src_mat, base, M, N, NNZ, csc_col_ptr, csc_row_ind, Val),
+                    aoclsparse_create_csc(&src_mat, base, M, N, NNZ, csc_col_ptr, csc_row_ind, Val),
                     aoclsparse_status_success);
             }
             else
             {
-                EXPECT_EQ(aoclsparse_createcsc(
-                              src_mat, base, M, N, NNZ, csc_1b_col_ptr, csc_1b_row_ind, Val),
+                EXPECT_EQ(aoclsparse_create_csc(
+                              &src_mat, base, M, N, NNZ, csc_1b_col_ptr, csc_1b_row_ind, Val),
                           aoclsparse_status_success);
             }
         }
@@ -168,26 +170,26 @@ namespace
                 if(base == aoclsparse_index_base_zero)
                 {
                     EXPECT_EQ(aoclsparse_create_csr(
-                                  src_mat, base, M, N, NNZ, csr_0b_0nnz_row_ptr, csr_col_ind, Val),
+                                  &src_mat, base, M, N, NNZ, csr_0b_0nnz_row_ptr, csr_col_ind, Val),
                               aoclsparse_status_success);
                 }
                 else
                 {
                     EXPECT_EQ(aoclsparse_create_csr(
-                                  src_mat, base, M, N, NNZ, csr_1b_0nnz_row_ptr, csr_col_ind, Val),
+                                  &src_mat, base, M, N, NNZ, csr_1b_0nnz_row_ptr, csr_col_ind, Val),
                               aoclsparse_status_success);
                 }
             }
             else if(base == aoclsparse_index_base_zero)
             {
                 EXPECT_EQ(
-                    aoclsparse_create_csr(src_mat, base, M, N, NNZ, csr_row_ptr, csr_col_ind, Val),
+                    aoclsparse_create_csr(&src_mat, base, M, N, NNZ, csr_row_ptr, csr_col_ind, Val),
                     aoclsparse_status_success);
             }
             else
             {
                 EXPECT_EQ(aoclsparse_create_csr(
-                              src_mat, base, M, N, NNZ, csr_1b_row_ptr, csr_1b_col_ind, Val),
+                              &src_mat, base, M, N, NNZ, csr_1b_row_ptr, csr_1b_col_ind, Val),
                           aoclsparse_status_success);
             }
         }
@@ -258,8 +260,8 @@ namespace
             EXPECT_DOUBLE_EQ_VEC(NNZ, Val, val);
         if(std::is_same_v<T, float>)
             EXPECT_FLOAT_EQ_VEC(NNZ, Val, val);
-        EXPECT_EQ(aoclsparse_destroy(dest_mat), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(src_mat), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&dest_mat), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&src_mat), aoclsparse_status_success);
     }
 
     template <typename T>
@@ -280,13 +282,13 @@ namespace
             if(base == aoclsparse_index_base_zero)
             {
                 EXPECT_EQ(
-                    aoclsparse_createcoo(src_mat, base, M, N, NNZ, coo_row_ind, coo_col_ind, Val),
+                    aoclsparse_create_coo(&src_mat, base, M, N, NNZ, coo_row_ind, coo_col_ind, Val),
                     aoclsparse_status_success);
             }
             else
             {
-                EXPECT_EQ(aoclsparse_createcoo(
-                              src_mat, base, M, N, NNZ, coo_1b_row_ind, coo_1b_col_ind, Val),
+                EXPECT_EQ(aoclsparse_create_coo(
+                              &src_mat, base, M, N, NNZ, coo_1b_row_ind, coo_1b_col_ind, Val),
                           aoclsparse_status_success);
             }
         }
@@ -296,27 +298,29 @@ namespace
             {
                 if(base == aoclsparse_index_base_zero)
                 {
-                    EXPECT_EQ(aoclsparse_createcsc(
-                                  src_mat, base, M, N, NNZ, csrt_0b_0nnz_row_ptr, csc_row_ind, Val),
-                              aoclsparse_status_success);
+                    EXPECT_EQ(
+                        aoclsparse_create_csc(
+                            &src_mat, base, M, N, NNZ, csrt_0b_0nnz_row_ptr, csc_row_ind, Val),
+                        aoclsparse_status_success);
                 }
                 else
                 {
-                    EXPECT_EQ(aoclsparse_createcsc(
-                                  src_mat, base, M, N, NNZ, csrt_1b_0nnz_row_ptr, csc_row_ind, Val),
-                              aoclsparse_status_success);
+                    EXPECT_EQ(
+                        aoclsparse_create_csc(
+                            &src_mat, base, M, N, NNZ, csrt_1b_0nnz_row_ptr, csc_row_ind, Val),
+                        aoclsparse_status_success);
                 }
             }
             else if(base == aoclsparse_index_base_zero)
             {
                 EXPECT_EQ(
-                    aoclsparse_createcsc(src_mat, base, M, N, NNZ, csc_col_ptr, csc_row_ind, Val),
+                    aoclsparse_create_csc(&src_mat, base, M, N, NNZ, csc_col_ptr, csc_row_ind, Val),
                     aoclsparse_status_success);
             }
             else
             {
-                EXPECT_EQ(aoclsparse_createcsc(
-                              src_mat, base, M, N, NNZ, csc_1b_col_ptr, csc_1b_row_ind, Val),
+                EXPECT_EQ(aoclsparse_create_csc(
+                              &src_mat, base, M, N, NNZ, csc_1b_col_ptr, csc_1b_row_ind, Val),
                           aoclsparse_status_success);
             }
         }
@@ -327,26 +331,26 @@ namespace
                 if(base == aoclsparse_index_base_zero)
                 {
                     EXPECT_EQ(aoclsparse_create_csr(
-                                  src_mat, base, M, N, NNZ, csr_0b_0nnz_row_ptr, csr_col_ind, Val),
+                                  &src_mat, base, M, N, NNZ, csr_0b_0nnz_row_ptr, csr_col_ind, Val),
                               aoclsparse_status_success);
                 }
                 else
                 {
                     EXPECT_EQ(aoclsparse_create_csr(
-                                  src_mat, base, M, N, NNZ, csr_1b_0nnz_row_ptr, csr_col_ind, Val),
+                                  &src_mat, base, M, N, NNZ, csr_1b_0nnz_row_ptr, csr_col_ind, Val),
                               aoclsparse_status_success);
                 }
             }
             else if(base == aoclsparse_index_base_zero)
             {
                 EXPECT_EQ(
-                    aoclsparse_create_csr(src_mat, base, M, N, NNZ, csr_row_ptr, csr_col_ind, Val),
+                    aoclsparse_create_csr(&src_mat, base, M, N, NNZ, csr_row_ptr, csr_col_ind, Val),
                     aoclsparse_status_success);
             }
             else
             {
                 EXPECT_EQ(aoclsparse_create_csr(
-                              src_mat, base, M, N, NNZ, csr_1b_row_ptr, csr_1b_col_ind, Val),
+                              &src_mat, base, M, N, NNZ, csr_1b_row_ptr, csr_1b_col_ind, Val),
                           aoclsparse_status_success);
             }
         }
@@ -415,8 +419,8 @@ namespace
         }
         EXPECT_TRUE(
             array_complex_match(Val, val, NNZ, (op == aoclsparse_operation_conjugate_transpose)));
-        EXPECT_EQ(aoclsparse_destroy(dest_mat), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(src_mat), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&dest_mat), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&src_mat), aoclsparse_status_success);
     }
 
     // List of all desired negative tests
@@ -933,11 +937,11 @@ namespace
         // aoclsparse_matrix src_mat, dest_mat;
         // aoclsparse_create_ell_csr_hyb(src_mat, 3, 2, ell_col_ind, ell_col_ind, val_float);
         // aoclsparse_create_csr(
-        //     dest_mat, aoclsparse_index_base_zero, 4, 3, 3, csr_row_ptr, csr_col_ind, val_float);
+        //     &dest_mat, aoclsparse_index_base_zero, 4, 3, 3, csr_row_ptr, csr_col_ind, val_float);
 
         // EXPECT_EQ(aoclsparse_convert_csr(src_mat, aoclsparse_operation_none, &dest_mat),
         //           aoclsparse_status_not_implemented);
-        // EXPECT_EQ(aoclsparse_destroy(dest_mat), aoclsparse_status_success);
-        // EXPECT_EQ(aoclsparse_destroy(src_mat), aoclsparse_status_success);
+        // EXPECT_EQ(aoclsparse_destroy(&dest_mat), aoclsparse_status_success);
+        // EXPECT_EQ(aoclsparse_destroy(&src_mat), aoclsparse_status_success);
     }
 } // namespace

@@ -70,7 +70,7 @@ int main()
     aoclsparse_index_base base = aoclsparse_index_base_zero;
     aoclsparse_mat_descr  descr_a;
     aoclsparse_operation  trans = aoclsparse_operation_none;
-    status = aoclsparse_create_zcsr(A, base, m, n, nnz, icrow, icol, aval.data());
+    status = aoclsparse_create_zcsr(&A, base, m, n, nnz, icrow, icol, aval.data());
     if(status != aoclsparse_status_success)
     {
         std::cerr << "Error creating the matrix, status = " << status << std::endl;
@@ -153,7 +153,7 @@ int main()
 
     // Destroy the aoclsparse memory
     aoclsparse_destroy_mat_descr(descr_a);
-    aoclsparse_destroy(A);
+    aoclsparse_destroy(&A);
 
     return ok ? 0 : 4;
 }

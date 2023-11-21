@@ -50,6 +50,13 @@ typedef int64_t aoclsparse_int;
 typedef int32_t aoclsparse_int;
 #endif
 
+/* C standard doesn't allow alignment on the typedef of the sructure
+ * thus remove alignas in case of pure C
+ */
+#ifndef __cplusplus
+#define alignas(s)
+#endif
+
 #if !defined(aoclsparse_float_complex)
 typedef struct alignas(2 * sizeof(float))
 {
@@ -62,6 +69,10 @@ typedef struct alignas(2 * sizeof(double))
 {
     double real, imag;
 } aoclsparse_double_complex;
+#endif
+
+#ifndef __cplusplus
+#undef alignas
 #endif
 
 /*! \ingroup types_module

@@ -69,7 +69,7 @@ int main(void)
     aoclsparse_order      order;
     aoclsparse_mat_descr  descr_a;
     aoclsparse_operation  trans;
-    status = aoclsparse_create_dcsr(A, base, m, n, nnz, icrow, icol, aval);
+    status = aoclsparse_create_dcsr(&A, base, m, n, nnz, icrow, icol, aval);
     if(status != aoclsparse_status_success)
     {
         std::cerr << "Error returned from aoclsparse_create_dcsr, status = " << status << "."
@@ -215,7 +215,7 @@ int main(void)
 
     // Destroy the aoclsparse memory
     aoclsparse_destroy_mat_descr(descr_a);
-    aoclsparse_destroy(A);
+    aoclsparse_destroy(&A);
 
     return ok ? 0 : 5;
 }

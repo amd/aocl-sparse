@@ -175,7 +175,7 @@ void testing_ilu(const Arguments &arg)
     aoclsparse_matrix A;
 
     CHECK_AOCLSPARSE_ERROR(aoclsparse_create_csr<T>(
-        A, base, M, N, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data()));
+        &A, base, M, N, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data()));
 
     // Initialize data
     T *precond_csr_val = NULL;
@@ -207,7 +207,7 @@ void testing_ilu(const Arguments &arg)
         std::cerr << "aoclSPARSE status error: Expected "
                   << aoclsparse_status_to_string(aoclsparse_status_success) << ", received "
                   << aoclsparse_status_to_string(ret) << std::endl;
-        aoclsparse_destroy(A);
+        aoclsparse_destroy(&A);
         return;
     }
 
@@ -232,7 +232,7 @@ void testing_ilu(const Arguments &arg)
     std::cout << std::setw(20) << filename.c_str() << std::setw(12) << M << std::setw(12) << nnz
               << std::setw(12) << (arg.unit_check ? "yes" : "no") << std::endl;
 
-    aoclsparse_destroy(A);
+    aoclsparse_destroy(&A);
     return;
 }
 

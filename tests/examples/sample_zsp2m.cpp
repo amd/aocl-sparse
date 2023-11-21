@@ -78,7 +78,7 @@ int main(void)
                                              {-0.88964, -2.37881},
                                              {-1.23201, 0.213152}};
     aoclsparse_create_zcsr(
-        csrA, base, k, m, nnz_A, row_ptr_A, col_ind_A, (aoclsparse_double_complex *)val_A);
+        &csrA, base, k, m, nnz_A, row_ptr_A, col_ind_A, (aoclsparse_double_complex *)val_A);
 
     // Matrix B
     aoclsparse_int            row_ptr_B[] = {0, 4, 4, 7, 8, 10};
@@ -95,7 +95,7 @@ int main(void)
                                              {-1.8152, 0.482205}};
 
     aoclsparse_create_zcsr(
-        csrB, base, k, n, nnz_B, row_ptr_B, col_ind_B, (aoclsparse_double_complex *)val_B);
+        &csrB, base, k, n, nnz_B, row_ptr_B, col_ind_B, (aoclsparse_double_complex *)val_B);
 
     aoclsparse_matrix          csrC          = NULL;
     aoclsparse_int            *csr_row_ptr_C = NULL;
@@ -209,8 +209,8 @@ int main(void)
 
     aoclsparse_destroy_mat_descr(descrA);
     aoclsparse_destroy_mat_descr(descrB);
-    aoclsparse_destroy(csrA);
-    aoclsparse_destroy(csrB);
-    aoclsparse_destroy(csrC);
+    aoclsparse_destroy(&csrA);
+    aoclsparse_destroy(&csrB);
+    aoclsparse_destroy(&csrC);
     return (ok ? 0 : 6);
 }

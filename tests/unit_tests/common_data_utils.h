@@ -826,7 +826,7 @@ aoclsparse_status
 
         aval.resize(nnz);
         aval = {bc((T)-2), bc((T)-4), bc((T)3), bc((T)5), bc((T)-7), bc((T)9), bc((T)4)};
-        if(aoclsparse_create_csr(A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
+        if(aoclsparse_create_csr(&A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
            != aoclsparse_status_success)
             return aoclsparse_status_internal_error;
         if(aoclsparse_create_mat_descr(&descr) != aoclsparse_status_success)
@@ -1102,7 +1102,7 @@ aoclsparse_status
                 bc((T)9),  bc(-(T)9), bc((T)1), bc((T)-2), bc((T)1),  bc((T)1), bc((T)1),
                 bc((T)8),  bc((T)2),  bc((T)1), bc((T)-2), bc((T)2),  bc((T)8), bc((T)4),
                 bc((T)3),  bc((T)7),  bc((T)3), bc((T)6),  bc((T)9),  bc((T)2)};
-        if(aoclsparse_create_csr(A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
+        if(aoclsparse_create_csr(&A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
            != aoclsparse_status_success)
             return aoclsparse_status_internal_error;
         if(aoclsparse_create_mat_descr(&descr) != aoclsparse_status_success)
@@ -1627,7 +1627,7 @@ aoclsparse_status
         transform(aval.begin(), aval.end(), aval.begin(), [](T &v) { return bc(v); });
         transform(xref.begin(), xref.end(), xref.begin(), [](T &v) { return bc(v); });
 
-        if(aoclsparse_create_csr(A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
+        if(aoclsparse_create_csr(&A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
            != aoclsparse_status_success)
             return aoclsparse_status_internal_error;
         if(aoclsparse_create_mat_descr(&descr) != aoclsparse_status_success)
@@ -1664,7 +1664,7 @@ aoclsparse_status
             return d + base;
         });
 
-        if(aoclsparse_create_csr(A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
+        if(aoclsparse_create_csr(&A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
            != aoclsparse_status_success)
             return aoclsparse_status_internal_error;
 
@@ -1692,7 +1692,7 @@ aoclsparse_status
             return d + base;
         });
 
-        if(aoclsparse_create_csr(A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
+        if(aoclsparse_create_csr(&A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
            != aoclsparse_status_success)
             return aoclsparse_status_internal_error;
         if(aoclsparse_create_mat_descr(&descr) != aoclsparse_status_success)
@@ -1721,7 +1721,7 @@ aoclsparse_status
             return d + base;
         });
 
-        if(aoclsparse_create_csr(A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
+        if(aoclsparse_create_csr(&A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
            != aoclsparse_status_success)
             return aoclsparse_status_internal_error;
         if(aoclsparse_create_mat_descr(&descr) != aoclsparse_status_success)
@@ -1771,7 +1771,7 @@ aoclsparse_status
                 bc((T)9),  bc(-(T)9), bc((T)1), bc((T)-2), bc((T)1),  bc((T)1), bc((T)1),
                 bc((T)8),  bc((T)2),  bc((T)1), bc((T)-2), bc((T)2),  bc((T)8), bc((T)4),
                 bc((T)3),  bc((T)7),  bc((T)3), bc((T)6),  bc((T)9),  bc((T)2)};
-        if(aoclsparse_create_csr(A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
+        if(aoclsparse_create_csr(&A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
            != aoclsparse_status_success)
             return aoclsparse_status_internal_error;
         if(aoclsparse_create_mat_descr(&descr) != aoclsparse_status_success)
@@ -1917,7 +1917,7 @@ aoclsparse_status
         icola[0]  = icola[0] + base;
         aval.resize(nnz);
         aval = {bc((T)2)};
-        if(aoclsparse_create_csr(A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
+        if(aoclsparse_create_csr(&A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
            != aoclsparse_status_success)
             return aoclsparse_status_internal_error;
         if(aoclsparse_create_mat_descr(&descr) != aoclsparse_status_success)

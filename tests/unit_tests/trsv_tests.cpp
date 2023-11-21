@@ -236,7 +236,7 @@ namespace
                 EXPECT_ARR_NEAR(n, x, xref, expected_precision<decltype(tol)>(tol));
             }
         }
-        ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
     }
 
@@ -420,14 +420,14 @@ namespace
                   aoclsparse_status_success);
 
         ASSERT_EQ(aoclsparse_create_dcsr(
-                      A, aoclsparse_index_base_zero, m, n, nnz, csr_row_ptr, csr_col_ind, csr_val),
+                      &A, aoclsparse_index_base_zero, m, n, nnz, csr_row_ptr, csr_col_ind, csr_val),
                   aoclsparse_status_success);
 
         ASSERT_EQ(aoclsparse_dtrsv_kid(trans, alpha, A, descr, b, x, kid),
                   aoclsparse_status_success);
         EXPECT_ARR_NEAR(n, x, x_gold, expected_precision<double>(10.0));
         ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
     };
     TEST(TrsvSuite, BaseOneDouble)
     {
@@ -454,7 +454,7 @@ namespace
                   aoclsparse_status_success);
 
         ASSERT_EQ(aoclsparse_create_dcsr(
-                      A, aoclsparse_index_base_one, m, n, nnz, csr_row_ptr, csr_col_ind, csr_val),
+                      &A, aoclsparse_index_base_one, m, n, nnz, csr_row_ptr, csr_col_ind, csr_val),
                   aoclsparse_status_success);
 
         ASSERT_EQ(aoclsparse_dtrsv_kid(trans, alpha, A, descr, b, x, kid),
@@ -462,7 +462,7 @@ namespace
 
         EXPECT_ARR_NEAR(n, x, x_gold, expected_precision<double>(10.0));
         ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
     };
     TEST(TrsvSuite, BaseOneFloat)
     {
@@ -489,14 +489,14 @@ namespace
                   aoclsparse_status_success);
 
         ASSERT_EQ(aoclsparse_create_scsr(
-                      A, aoclsparse_index_base_one, m, n, nnz, csr_row_ptr, csr_col_ind, csr_val),
+                      &A, aoclsparse_index_base_one, m, n, nnz, csr_row_ptr, csr_col_ind, csr_val),
                   aoclsparse_status_success);
 
         ASSERT_EQ(aoclsparse_strsv_kid(trans, alpha, A, descr, b, x, kid),
                   aoclsparse_status_success);
         EXPECT_ARR_NEAR(n, x, x_gold, expected_precision<float>(10.0));
         ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
     };
     TEST(TrsvSuite, WrongTypeDouble)
     {
@@ -528,7 +528,7 @@ namespace
         ASSERT_EQ(aoclsparse_strsv_kid(trans, alpha, A, descr, b, x, kid),
                   aoclsparse_status_wrong_type);
 
-        ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
     };
 
@@ -562,7 +562,7 @@ namespace
         ASSERT_EQ(aoclsparse_dtrsv_kid(trans, alpha, A, descr, b, x, kid),
                   aoclsparse_status_wrong_type);
         ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
     };
 
     TEST(TrsvSuite, NullPtrA)
@@ -599,7 +599,7 @@ namespace
         ASSERT_EQ(aoclsparse_dtrsv_kid(trans, alpha, A, nullptr, b, x, kid),
                   aoclsparse_status_invalid_pointer);
         ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
     };
 
     TEST(TrsvSuite, NullPtrX)
@@ -621,7 +621,7 @@ namespace
         ASSERT_EQ(aoclsparse_dtrsv_kid(trans, alpha, A, descr, b, nullptr, kid),
                   aoclsparse_status_invalid_pointer);
         ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
     };
 
     TEST(TrsvSuite, NullPtrB)
@@ -642,7 +642,7 @@ namespace
         ASSERT_EQ(aoclsparse_dtrsv_kid(trans, alpha, A, descr, nullptr, x, kid),
                   aoclsparse_status_invalid_pointer);
         ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
     };
 
     TEST(TrsvSuite, InvalidRowSize)
@@ -664,7 +664,7 @@ namespace
         ASSERT_EQ(aoclsparse_dtrsv_kid(trans, alpha, A, descr, b, x, kid),
                   aoclsparse_status_invalid_size);
         ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
     };
 
     TEST(TrsvSuite, InvalidNNZ)
@@ -686,7 +686,7 @@ namespace
         ASSERT_EQ(aoclsparse_dtrsv_kid(trans, alpha, A, descr, b, x, kid),
                   aoclsparse_status_invalid_size);
         ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
     };
 
     TEST(TrsvSuite, NoKernel)
@@ -711,7 +711,7 @@ namespace
         ASSERT_EQ(aoclsparse_strsv_kid(trans, alpha, A, descr, b, x, kid),
                   aoclsparse_status_not_implemented);
         ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
     };
 
     TEST(TrsvSuite, GeneralMatrix)
@@ -733,7 +733,7 @@ namespace
         ASSERT_EQ(aoclsparse_dtrsv_kid(trans, alpha, A, descr, b, x, kid),
                   aoclsparse_status_invalid_value);
         ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
     };
 
     TEST(TrsvSuite, NotSquare)
@@ -755,7 +755,7 @@ namespace
         ASSERT_EQ(aoclsparse_dtrsv_kid(trans, alpha, A, descr, b, x, kid),
                   aoclsparse_status_invalid_value);
         ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
     };
 
     TEST(TrsvSuite, GeneralIncompleteRank)
@@ -779,7 +779,7 @@ namespace
         ASSERT_EQ(aoclsparse_dtrsv_kid(trans, alpha, A, descr, b, x, kid),
                   aoclsparse_status_invalid_value);
         ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
     };
 
     template <typename T>
@@ -825,7 +825,7 @@ namespace
         status                = aoclsparse_set_sv_hint(A, trans, descr, ncalls);
         ASSERT_EQ(status, exp_status)
             << "failed with unexpected return from aoclsparse_set_sv_hint";
-        ASSERT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
     }
 #define ADD_TEST_HINT(ID, BASE)          \

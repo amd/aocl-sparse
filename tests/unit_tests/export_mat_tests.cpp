@@ -110,7 +110,7 @@ namespace
             aoclsparse_status_invalid_pointer);
 
         // 2) OUT param is NULL
-        ASSERT_EQ(aoclsparse_create_csr(A, in_base, m, n, nnz, csr_row_ptr, csr_col_idx, valf),
+        ASSERT_EQ(aoclsparse_create_csr(&A, in_base, m, n, nnz, csr_row_ptr, csr_col_idx, valf),
                   aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_export_csr(
                       A, NULL, &out_m, &out_n, &out_nnz, &out_row_ptr, &out_col_idx, &out_vald),
@@ -134,10 +134,10 @@ namespace
             aoclsparse_export_csr(
                 A, &out_base, &out_m, &out_n, &out_nnz, &out_row_ptr, &out_col_idx, out_vald_null),
             aoclsparse_status_invalid_pointer);
-        aoclsparse_destroy(A);
+        aoclsparse_destroy(&A);
 
         // 3) Matrix is in CSR format(unoptimized). But one of the csr_mat pointer is NULL.
-        ASSERT_EQ(aoclsparse_create_csr(A, in_base, m, n, nnz, csr_row_ptr, csr_col_idx, valf),
+        ASSERT_EQ(aoclsparse_create_csr(&A, in_base, m, n, nnz, csr_row_ptr, csr_col_idx, valf),
                   aoclsparse_status_success);
         // 3.a) csr_row_ptr is NULL
         tmp_arr                = A->csr_mat.csr_row_ptr;
@@ -161,7 +161,7 @@ namespace
             aoclsparse_export_csr(
                 A, &out_base, &out_m, &out_n, &out_nnz, &out_row_ptr, &out_col_idx, &out_valf),
             aoclsparse_status_invalid_value);
-        aoclsparse_destroy(A);
+        aoclsparse_destroy(&A);
     }
     TEST(ExportMatTest, CSR_WrongInput)
     {
@@ -183,22 +183,22 @@ namespace
         aoclsparse_int            out_m, out_n, out_nnz;
 
         // 1) Matrix is in CSC format but want to export as CSR
-        ASSERT_EQ(aoclsparse_createcsc(A, in_base, m, n, nnz, csc_col_ptr, csc_row_idx, vald),
+        ASSERT_EQ(aoclsparse_create_csc(&A, in_base, m, n, nnz, csc_col_ptr, csc_row_idx, vald),
                   aoclsparse_status_success);
         EXPECT_EQ(
             aoclsparse_export_csr(
                 A, &out_base, &out_m, &out_n, &out_nnz, &out_row_ptr, &out_col_idx, &out_vald),
             aoclsparse_status_invalid_value);
-        aoclsparse_destroy(A);
+        aoclsparse_destroy(&A);
 
         // 2) Matric data type is float but want to export as complex float
-        ASSERT_EQ(aoclsparse_create_csr(A, in_base, m, n, nnz, csr_row_ptr, csr_col_idx, valf),
+        ASSERT_EQ(aoclsparse_create_csr(&A, in_base, m, n, nnz, csr_row_ptr, csr_col_idx, valf),
                   aoclsparse_status_success);
         EXPECT_EQ(
             aoclsparse_export_csr(
                 A, &out_base, &out_m, &out_n, &out_nnz, &out_row_ptr, &out_col_idx, &out_valcf),
             aoclsparse_status_wrong_type);
-        aoclsparse_destroy(A);
+        aoclsparse_destroy(&A);
     }
     TEST(ExportMatTest, CSR_Success)
     {
@@ -228,7 +228,7 @@ namespace
         // 1) Matrix is in CSR format(unoptimized). Export csr_mat.
         {
             SCOPED_TRACE("1. CSR unoptimized");
-            ASSERT_EQ(aoclsparse_create_csr(A, in_base, m, n, nnz, csr_row_ptr, csr_col_idx, valf),
+            ASSERT_EQ(aoclsparse_create_csr(&A, in_base, m, n, nnz, csr_row_ptr, csr_col_idx, valf),
                       aoclsparse_status_success);
             EXPECT_EQ(
                 aoclsparse_export_csr(
@@ -249,7 +249,7 @@ namespace
                                out_row_ptr,
                                out_col_idx,
                                out_valf);
-            aoclsparse_destroy(A);
+            aoclsparse_destroy(&A);
         }
 
         // 2) Matrix is in CSR format(1-base, optimized). Export optimized CSR.
@@ -266,7 +266,7 @@ namespace
             float                 exp_valf1[]    = {1.0f, 2.0f, 3.0f, 0.0f, 5.0f, 6.0f, 7.0f, 8.0f};
             aoclsparse_create_mat_descr(&descr);
             ASSERT_EQ(
-                aoclsparse_create_csr(A, in_base, m, n, nnz, csr_row_ptr1, csr_col_idx1, valf1),
+                aoclsparse_create_csr(&A, in_base, m, n, nnz, csr_row_ptr1, csr_col_idx1, valf1),
                 aoclsparse_status_success);
             aoclsparse_set_mv_hint(A, aoclsparse_operation_none, descr, 1);
             aoclsparse_optimize(A);
@@ -290,7 +290,7 @@ namespace
                                out_row_ptr,
                                out_col_idx,
                                out_valf);
-            aoclsparse_destroy(A);
+            aoclsparse_destroy(&A);
         }
 
         // 3) Matrix is in CSR format(optimized) but one of the opt_csr_mat is NULL.
@@ -299,7 +299,7 @@ namespace
         aoclsparse_int csr_col_idx2[] = {0, 3, 1, 3, 4, 1, 4};
         float          valf2[]        = {1.0f, 2.0f, 3.0f, 6.0f, 7.0f, 5.0f, 8.0f};
         aoclsparse_create_mat_descr(&descr);
-        ASSERT_EQ(aoclsparse_create_csr(A, in_base, m, n, nnz, csr_row_ptr2, csr_col_idx2, valf2),
+        ASSERT_EQ(aoclsparse_create_csr(&A, in_base, m, n, nnz, csr_row_ptr2, csr_col_idx2, valf2),
                   aoclsparse_status_success);
         aoclsparse_set_mv_hint(A, aoclsparse_operation_none, descr, 1);
         aoclsparse_optimize(A);
@@ -383,7 +383,7 @@ namespace
                                out_valf);
             A->opt_csr_mat.csr_val = val;
             aoclsparse_destroy_mat_descr(descr);
-            aoclsparse_destroy(A);
+            aoclsparse_destroy(&A);
         }
     }
 
@@ -414,8 +414,8 @@ namespace
             aoclsparse_status_invalid_pointer);
 
         // 2) OUT param is NULL
-        ASSERT_EQ(aoclsparse_createcsc(
-                      A, aoclsparse_index_base_one, m, n, nnz, csc_col_ptr, csc_row_idx, valf),
+        ASSERT_EQ(aoclsparse_create_csc(
+                      &A, aoclsparse_index_base_one, m, n, nnz, csc_col_ptr, csc_row_idx, valf),
                   aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_export_csc(
                       A, NULL, &out_m, &out_n, &out_nnz, &out_col_ptr, &out_row_idx, &out_valf),
@@ -439,11 +439,11 @@ namespace
             aoclsparse_export_csc(
                 A, &out_base, &out_m, &out_n, &out_nnz, &out_col_ptr, &out_row_idx, out_vald_null),
             aoclsparse_status_invalid_pointer);
-        aoclsparse_destroy(A);
+        aoclsparse_destroy(&A);
 
         // 3) Matrix is on CSC format but one of the csc_mat pointer is NULL
-        ASSERT_EQ(aoclsparse_createcsc(
-                      A, aoclsparse_index_base_one, m, n, nnz, csc_col_ptr, csc_row_idx, valf),
+        ASSERT_EQ(aoclsparse_create_csc(
+                      &A, aoclsparse_index_base_one, m, n, nnz, csc_col_ptr, csc_row_idx, valf),
                   aoclsparse_status_success);
         tmp_arr            = A->csc_mat.col_ptr;
         A->csc_mat.col_ptr = NULL;
@@ -464,7 +464,7 @@ namespace
             aoclsparse_export_csc(
                 A, &out_base, &out_m, &out_n, &out_nnz, &out_col_ptr, &out_row_idx, &out_valf),
             aoclsparse_status_invalid_value);
-        aoclsparse_destroy(A);
+        aoclsparse_destroy(&A);
     }
     TEST(ExportMatTest, CSC_WrongInput)
     {
@@ -485,22 +485,22 @@ namespace
         aoclsparse_int             out_m, out_n, out_nnz;
 
         // 1) Matrix is in CSR format but want to export as CSC
-        ASSERT_EQ(aoclsparse_create_csr(A, in_base, m, n, nnz, csr_row_ptr, csr_col_idx, valf),
+        ASSERT_EQ(aoclsparse_create_csr(&A, in_base, m, n, nnz, csr_row_ptr, csr_col_idx, valf),
                   aoclsparse_status_success);
         EXPECT_EQ(
             aoclsparse_export_csc(
                 A, &out_base, &out_m, &out_n, &out_nnz, &out_col_ptr, &out_row_idx, &out_valf),
             aoclsparse_status_invalid_value);
-        aoclsparse_destroy(A);
+        aoclsparse_destroy(&A);
 
         // 2) Matric data type is float but want to export as complex double
-        ASSERT_EQ(aoclsparse_createcsc(A, in_base, m, n, nnz, csc_col_ptr, csc_row_idx, valf),
+        ASSERT_EQ(aoclsparse_create_csc(&A, in_base, m, n, nnz, csc_col_ptr, csc_row_idx, valf),
                   aoclsparse_status_success);
         EXPECT_EQ(
             aoclsparse_export_csc(
                 A, &out_base, &out_m, &out_n, &out_nnz, &out_col_ptr, &out_row_idx, &out_valcd),
             aoclsparse_status_wrong_type);
-        aoclsparse_destroy(A);
+        aoclsparse_destroy(&A);
     }
     TEST(ExportMatTest, CSC_Success)
     {
@@ -518,7 +518,7 @@ namespace
         aoclsparse_int        out_m, out_n, out_nnz;
 
         // Matrix is in CSC format and want to export as CSC
-        ASSERT_EQ(aoclsparse_createcsc(A, in_base, m, n, nnz, csc_col_ptr, csc_row_idx, valf),
+        ASSERT_EQ(aoclsparse_create_csc(&A, in_base, m, n, nnz, csc_col_ptr, csc_row_idx, valf),
                   aoclsparse_status_success);
         EXPECT_EQ(
             aoclsparse_export_csc(
@@ -539,7 +539,7 @@ namespace
                            out_col_ptr,
                            out_row_idx,
                            out_valf);
-        aoclsparse_destroy(A);
+        aoclsparse_destroy(&A);
     }
 
 } // namespace
