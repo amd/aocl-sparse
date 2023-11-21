@@ -64,7 +64,7 @@ int main(void)
     //Dense Matrix B
     double B[]   = {-1.0, -2.7, 3.0, 4.5, 5.8, -6.0, 1.0, -2.0, 3.0};
     double alpha = 1, beta = 0;
-    status = aoclsparse_create_dcsr(A, base, m, k, nnz, row_ptr, col_ind, csr_val);
+    status = aoclsparse_create_dcsr(&A, base, m, k, nnz, row_ptr, col_ind, csr_val);
     if(status != aoclsparse_status_success)
     {
         return status;
@@ -102,7 +102,7 @@ int main(void)
         std::cout << "\n";
     }
     aoclsparse_destroy_mat_descr(descr);
-    aoclsparse_destroy(A);
+    aoclsparse_destroy(&A);
 
     return ((ok_C ? 0 : 4));
 }

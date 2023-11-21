@@ -105,7 +105,7 @@ namespace
         aoclsparse_int    csr_col_ind[] = {0, 3, 1, 2, 1, 3, 4, 4};
         T                 csr_val[]     = {1, 2, 3, 4, 5, 6, 7, 8};
         aoclsparse_matrix A;
-        aoclsparse_create_csr<T>(A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
+        aoclsparse_create_csr<T>(&A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
 
         // pass nullptr and expect pointer error
         EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, nullptr, descr, x, &beta, y),
@@ -119,7 +119,7 @@ namespace
                   aoclsparse_status_invalid_pointer);
 
         aoclsparse_destroy_mat_descr(descr);
-        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
     }
 
     template <typename T>
@@ -144,7 +144,7 @@ namespace
         aoclsparse_int    csr_col_ind[] = {0, 3, 1, 2, 1, 2, 3, 1};
         T                 csr_val[]     = {1, 2, 3, 4, 5, 6, 7, 8};
         aoclsparse_matrix A;
-        aoclsparse_create_csr<T>(A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
+        aoclsparse_create_csr<T>(&A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
 
         if(std::is_same_v<T, double>)
         {
@@ -170,7 +170,7 @@ namespace
                   aoclsparse_status_invalid_size);
 
         aoclsparse_destroy_mat_descr(descr);
-        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
     }
     template <typename T>
     void test_mv_base_indexing()
@@ -195,7 +195,7 @@ namespace
                   aoclsparse_status_success);
 
         ASSERT_EQ(aoclsparse_create_csr<T>(
-                      A, aoclsparse_index_base_one, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val),
+                      &A, aoclsparse_index_base_one, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val),
                   aoclsparse_status_success);
 
         EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A, descr, x, &beta, y),
@@ -205,7 +205,7 @@ namespace
         EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A, descr, x, &beta, y),
                   aoclsparse_status_invalid_value);
 
-        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
     }
     template <typename T>
@@ -230,7 +230,7 @@ namespace
         ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_zero),
                   aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_create_csr<T>(
-                      A, aoclsparse_index_base_one, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val),
+                      &A, aoclsparse_index_base_one, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val),
                   aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A, descr, x, &beta, y),
                   aoclsparse_status_invalid_value);
@@ -242,7 +242,7 @@ namespace
         // TEST CASE 2: descriptor base is base-one and aoclsparse_matrix base is base-zero
         ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_one),
                   aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_create_csr<T>(A_2,
+        ASSERT_EQ(aoclsparse_create_csr<T>(&A_2,
                                            aoclsparse_index_base_zero,
                                            M,
                                            N,
@@ -253,8 +253,8 @@ namespace
                   aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A_2, descr, x, &beta, y),
                   aoclsparse_status_invalid_value);
-        EXPECT_EQ(aoclsparse_destroy(A_2), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A_2), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
     }
     template <typename T>
@@ -280,7 +280,7 @@ namespace
         aoclsparse_int    csr_col_ind[] = {0, 3, 1, 2, 1, 3, 4, 4};
         T                 csr_val[]     = {1, 2, 3, 4, 5, 6, 7, 8};
         aoclsparse_matrix A;
-        aoclsparse_create_csr<T>(A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
+        aoclsparse_create_csr<T>(&A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
 
         trans = aoclsparse_operation_none;
         aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_hermitian);
@@ -288,7 +288,7 @@ namespace
                   aoclsparse_status_not_implemented);
 
         aoclsparse_destroy_mat_descr(descr);
-        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
     }
 
     template <typename T>
@@ -314,8 +314,8 @@ namespace
         aoclsparse_int    csr_col_ind[] = {0};
         T                 csr_val[]     = {0};
         aoclsparse_matrix AM0, AN0;
-        aoclsparse_create_csr<T>(AM0, base, 0, N, 0, csr_row_ptr, csr_col_ind, csr_val);
-        aoclsparse_create_csr<T>(AN0, base, M, 0, 0, csr_row_ptr, csr_col_ind, csr_val);
+        aoclsparse_create_csr<T>(&AM0, base, 0, N, 0, csr_row_ptr, csr_col_ind, csr_val);
+        aoclsparse_create_csr<T>(&AN0, base, M, 0, 0, csr_row_ptr, csr_col_ind, csr_val);
         EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, AM0, descr, x, &beta, y),
                   aoclsparse_status_success);
 
@@ -323,8 +323,8 @@ namespace
                   aoclsparse_status_success);
 
         aoclsparse_destroy_mat_descr(descr);
-        EXPECT_EQ(aoclsparse_destroy(AM0), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(AN0), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&AM0), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&AN0), aoclsparse_status_success);
     }
 
     template <typename T>
@@ -351,27 +351,27 @@ namespace
         aoclsparse_int    csr_col_ind[8] = {0, 3, 1, 2, 1, 2, 3, 1};
         T                 csr_val[8]     = {1, 2, 3, 4, 5, 6, 7, 8};
         aoclsparse_matrix A;
-        aoclsparse_create_csr<T>(A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
+        aoclsparse_create_csr<T>(&A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
 
         aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_triangular);
         aoclsparse_set_mat_fill_mode(descr, aoclsparse_fill_mode_lower);
         EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A, descr, x, &beta, y),
                   aoclsparse_status_success);
         EXPECT_DOUBLE_EQ_VEC(5, y, exp_y_l);
-        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
 
         for(int i = 0; i < M; i++)
         {
             y[i] = 0.0;
         }
-        aoclsparse_create_csr<T>(A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
+        aoclsparse_create_csr<T>(&A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
         aoclsparse_set_mat_fill_mode(descr, aoclsparse_fill_mode_upper);
         EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A, descr, x, &beta, y),
                   aoclsparse_status_success);
         EXPECT_DOUBLE_EQ_VEC(5, y, exp_y_u);
 
         aoclsparse_destroy_mat_descr(descr);
-        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
     }
 
     template <typename T>
@@ -411,7 +411,7 @@ namespace
         aoclsparse_init_csr_random(row_ptr_a, col_ind_a, val_a, m_a, n_a, nnz_a, b_a);
         aoclsparse_matrix A;
         ASSERT_EQ(aoclsparse_create_csr(
-                      A, b_a, m_a, n_a, nnz_a, row_ptr_a.data(), col_ind_a.data(), val_a.data()),
+                      &A, b_a, m_a, n_a, nnz_a, row_ptr_a.data(), col_ind_a.data(), val_a.data()),
                   aoclsparse_status_success);
         aoclsparse_mat_descr descrA;
         ASSERT_EQ(aoclsparse_create_mat_descr(&descrA), aoclsparse_status_success);
@@ -456,7 +456,7 @@ namespace
 
         EXPECT_ARR_NEAR(m_a, y, y_ref, expected_precision<T>());
 
-        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_destroy_mat_descr(descrA), aoclsparse_status_success);
     }
 
@@ -498,7 +498,7 @@ namespace
 
         ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_set_mat_index_base(descr, base), aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_create_csr<T>(A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val),
+        ASSERT_EQ(aoclsparse_create_csr<T>(&A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val),
                   aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_set_mat_type(descr, mattype), aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_set_mat_fill_mode(descr, fill), aoclsparse_status_success);
@@ -513,7 +513,7 @@ namespace
         EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A, descr, x, &beta, y),
                   aoclsparse_status_success);
         EXPECT_ARR_NEAR(M, y, y_exp_upper, expected_precision<T>());
-        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
     }
 
@@ -555,7 +555,7 @@ namespace
 
         ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_set_mat_index_base(descr, base), aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_create_csr<T>(A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val),
+        ASSERT_EQ(aoclsparse_create_csr<T>(&A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val),
                   aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_set_mat_type(descr, mattype), aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_set_mat_fill_mode(descr, fill), aoclsparse_status_success);
@@ -569,7 +569,7 @@ namespace
         EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A, descr, x, &beta, y),
                   aoclsparse_status_success);
         EXPECT_ARR_NEAR(M, y, y_exp_upper, expected_precision<T>());
-        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
     }
 
@@ -610,7 +610,7 @@ namespace
         ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_set_mat_index_base(descr, base), aoclsparse_status_success);
 
-        aoclsparse_create_csr<T>(A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
+        aoclsparse_create_csr<T>(&A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
 
         //CASE 1: Check transpose case for lower triangular SPMV, with alpha=1.0, beta=0.0
         /*
@@ -649,7 +649,7 @@ namespace
                 alpha, M, N, csr_val, csr_col_ind, csr_row_ptr, fill, diag, base, x, beta, y_gold),
             aoclsparse_status_success);
         EXPECT_ARR_NEAR(M, y, y_gold, expected_precision<T>());
-        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
 
         //CASE 3: Check transpose case for upper triangular SPMV, with alpha=1.0, beta=0.0
         alpha = 1.0;
@@ -661,7 +661,7 @@ namespace
             0	7	0	6	0
             13	0	9	0	8
         */
-        aoclsparse_create_csr<T>(A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
+        aoclsparse_create_csr<T>(&A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
         fill = aoclsparse_fill_mode_upper;
         ASSERT_EQ(aoclsparse_set_mat_fill_mode(descr, fill), aoclsparse_status_success);
         //assign y[] with NaN value to verify tests with zero beta
@@ -702,7 +702,7 @@ namespace
         EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A, descr, x, &beta, y),
                   aoclsparse_status_invalid_value);
 
-        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
     }
     template <typename T>
@@ -739,7 +739,7 @@ namespace
             y[i] = std::numeric_limits<double>::quiet_NaN();
         }
 
-        aoclsparse_create_csr<T>(A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
+        aoclsparse_create_csr<T>(&A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
 
         ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_set_mat_index_base(descr, base), aoclsparse_status_success);
@@ -770,7 +770,7 @@ namespace
         EXPECT_ARR_NEAR(M, y, y_gold, expected_precision<T>());
 
         EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
     }
     template <typename T>
     void test_mv_conjugate_transpose()
@@ -796,7 +796,7 @@ namespace
         ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_set_mat_index_base(descr, base), aoclsparse_status_success);
 
-        aoclsparse_create_csr<T>(A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
+        aoclsparse_create_csr<T>(&A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
 
         // Note: real conjugate transpose is same transpose.
         EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A, descr, x, &beta, y),
@@ -804,7 +804,7 @@ namespace
 
         EXPECT_ARR_NEAR(M, y, y_exp, expected_precision<T>());
         EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
     }
 
     template <typename T>
@@ -851,7 +851,7 @@ namespace
         ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_set_mat_index_base(descr, base), aoclsparse_status_success);
 
-        aoclsparse_create_csr<T>(A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
+        aoclsparse_create_csr<T>(&A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
 
         EXPECT_EQ(aoclsparse_mv<T>(op, &alpha, A, descr, x, &beta, y), aoclsparse_status_success);
 
@@ -897,7 +897,7 @@ namespace
             M, ((std::complex<double> *)y), ((std::complex<double> *)y_gold), abserr);
 
         EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
     }
 
     // test success cases
@@ -969,7 +969,7 @@ namespace
         aoclsparse_init_csr_random(row_ptr_a, col_ind_a, val_a, m_a, n_a, nnz_a, b_a);
         aoclsparse_matrix A;
         ASSERT_EQ(aoclsparse_create_csr(
-                      A, b_a, m_a, n_a, nnz_a, row_ptr_a.data(), col_ind_a.data(), val_a.data()),
+                      &A, b_a, m_a, n_a, nnz_a, row_ptr_a.data(), col_ind_a.data(), val_a.data()),
                   aoclsparse_status_success);
         aoclsparse_mat_descr descrA;
         ASSERT_EQ(aoclsparse_create_mat_descr(&descrA), aoclsparse_status_success);
@@ -1010,7 +1010,7 @@ namespace
                                 abserr);
 
         aoclsparse_destroy_mat_descr(descrA);
-        aoclsparse_destroy(A);
+        aoclsparse_destroy(&A);
     }
 
     // test failures cases
@@ -1050,7 +1050,7 @@ namespace
         aoclsparse_init_csr_random(row_ptr_a, col_ind_a, val_a, m_a, n_a, nnz_a, b_a);
         aoclsparse_matrix A;
         ASSERT_EQ(aoclsparse_create_csr(
-                      A, b_a, m_a, n_a, nnz_a, row_ptr_a.data(), col_ind_a.data(), val_a.data()),
+                      &A, b_a, m_a, n_a, nnz_a, row_ptr_a.data(), col_ind_a.data(), val_a.data()),
                   aoclsparse_status_success);
         aoclsparse_mat_descr descrA;
         ASSERT_EQ(aoclsparse_create_mat_descr(&descrA), aoclsparse_status_success);
@@ -1094,7 +1094,7 @@ namespace
             break;
         }
         aoclsparse_destroy_mat_descr(descrA);
-        aoclsparse_destroy(A);
+        aoclsparse_destroy(&A);
     }
 
     TEST(mv, NullArgDouble)

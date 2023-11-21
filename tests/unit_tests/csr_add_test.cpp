@@ -189,14 +189,14 @@ namespace
         if(isTransposed)
 
             EXPECT_EQ(aoclsparse_create_csr(
-                          src_mat_A, base_A, N, M, A_nnz, A_row.data(), A_col.data(), Val),
+                          &src_mat_A, base_A, N, M, A_nnz, A_row.data(), A_col.data(), Val),
                       aoclsparse_status_success);
         else
             EXPECT_EQ(aoclsparse_create_csr(
-                          src_mat_A, base_A, M, N, A_nnz, A_row.data(), A_col.data(), Val),
+                          &src_mat_A, base_A, M, N, A_nnz, A_row.data(), A_col.data(), Val),
                       aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_create_csr(
-                      src_mat_B, base_B, M, N, B_nnz, B_row.data(), B_col.data(), Val_B),
+                      &src_mat_B, base_B, M, N, B_nnz, B_row.data(), B_col.data(), Val_B),
                   aoclsparse_status_success);
 
         aoclsparse_int       *row_ptr = nullptr;
@@ -264,9 +264,9 @@ namespace
             EXPECT_EQ(m, M);
             EXPECT_EQ(n, N);
         }
-        EXPECT_EQ(aoclsparse_destroy(dest_mat), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(src_mat_A), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(src_mat_B), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&dest_mat), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&src_mat_A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&src_mat_B), aoclsparse_status_success);
     }
 
     template <typename T>
@@ -295,14 +295,14 @@ namespace
 
         if(isTransposed)
             EXPECT_EQ(aoclsparse_create_csr(
-                          src_mat_A, base_A, N, M, A_nnz, A_row.data(), A_col.data(), Val),
+                          &src_mat_A, base_A, N, M, A_nnz, A_row.data(), A_col.data(), Val),
                       aoclsparse_status_success);
         else
             EXPECT_EQ(aoclsparse_create_csr(
-                          src_mat_A, base_A, M, N, A_nnz, A_row.data(), A_col.data(), Val),
+                          &src_mat_A, base_A, M, N, A_nnz, A_row.data(), A_col.data(), Val),
                       aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_create_csr(
-                      src_mat_B, base_B, M, N, B_nnz, B_row.data(), B_col.data(), Val_B),
+                      &src_mat_B, base_B, M, N, B_nnz, B_row.data(), B_col.data(), Val_B),
                   aoclsparse_status_success);
 
         aoclsparse_int       *row_ptr = nullptr;
@@ -371,9 +371,9 @@ namespace
             EXPECT_EQ(m, M);
             EXPECT_EQ(n, N);
         }
-        EXPECT_EQ(aoclsparse_destroy(dest_mat), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(src_mat_A), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(src_mat_B), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&dest_mat), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&src_mat_A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&src_mat_B), aoclsparse_status_success);
     }
 
     // List of all desired negative tests
@@ -955,26 +955,26 @@ namespace
         aoclsparse_int         m = 5, n = 4, nnz = 0;
         aoclsparse_index_base  base = aoclsparse_index_base_zero;
         float                 *val  = new float;
-        EXPECT_EQ(aoclsparse_create_csr(A, base, m, n, nnz, row_ptr.data(), col_ptr.data(), val),
+        EXPECT_EQ(aoclsparse_create_csr(&A, base, m, n, nnz, row_ptr.data(), col_ptr.data(), val),
                   aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_create_csr(B, base, m, n, nnz, row_ptr.data(), col_ptr.data(), val),
+        EXPECT_EQ(aoclsparse_create_csr(&B, base, m, n, nnz, row_ptr.data(), col_ptr.data(), val),
                   aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_add(aoclsparse_operation_transpose, A, 0.1f, B, &C),
                   aoclsparse_status_invalid_size);
         EXPECT_EQ(aoclsparse_add(aoclsparse_operation_conjugate_transpose, A, 0.1f, B, &C),
                   aoclsparse_status_invalid_size);
-        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(B), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(C), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_create_csr(A, base, n, m, nnz, row_ptr.data(), col_ptr.data(), val),
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&B), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&C), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_create_csr(&A, base, n, m, nnz, row_ptr.data(), col_ptr.data(), val),
                   aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_create_csr(B, base, m, n, nnz, row_ptr.data(), col_ptr.data(), val),
+        EXPECT_EQ(aoclsparse_create_csr(&B, base, m, n, nnz, row_ptr.data(), col_ptr.data(), val),
                   aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_add(aoclsparse_operation_none, A, 0.1f, B, &C),
                   aoclsparse_status_invalid_size);
-        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(B), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(C), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&B), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&C), aoclsparse_status_success);
         delete val;
     }
 
@@ -985,17 +985,17 @@ namespace
         aoclsparse_int         m = 5, n = 4, nnz = 0;
         aoclsparse_index_base  base = aoclsparse_index_base_zero;
         float                 *val  = new float;
-        EXPECT_EQ(aoclsparse_create_csr(A, base, m, n, nnz, row_ptr.data(), col_ptr.data(), val),
+        EXPECT_EQ(aoclsparse_create_csr(&A, base, m, n, nnz, row_ptr.data(), col_ptr.data(), val),
                   aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_add(aoclsparse_operation_none, A, 0.1f, B, &C),
                   aoclsparse_status_invalid_pointer);
-        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
         A = nullptr;
-        EXPECT_EQ(aoclsparse_create_csr(B, base, m, n, nnz, row_ptr.data(), col_ptr.data(), val),
+        EXPECT_EQ(aoclsparse_create_csr(&B, base, m, n, nnz, row_ptr.data(), col_ptr.data(), val),
                   aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_add(aoclsparse_operation_transpose, A, 0.1f, B, &C),
                   aoclsparse_status_invalid_pointer);
-        EXPECT_EQ(aoclsparse_destroy(B), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&B), aoclsparse_status_success);
         delete val;
     }
 

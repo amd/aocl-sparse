@@ -182,7 +182,7 @@ namespace
             }
         }
         ASSERT_EQ(
-            aoclsparse_create_csr<T>(A, base, m, n, nnz, idx_ptr.data(), idx.data(), val.data()),
+            aoclsparse_create_csr<T>(&A, base, m, n, nnz, idx_ptr.data(), idx.data(), val.data()),
             aoclsparse_status_success);
     }
 
@@ -413,7 +413,7 @@ namespace
                   aoclsparse_status_invalid_pointer);
 
         aoclsparse_destroy_mat_descr(descr);
-        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
     }
 
     template <typename T>
@@ -497,7 +497,7 @@ namespace
                   aoclsparse_status_invalid_value);
 
         aoclsparse_destroy_mat_descr(descr);
-        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
     }
 
     template <typename T>
@@ -528,7 +528,7 @@ namespace
                 verify_y_d(y, y_exp, d, d_exp);
 
             aoclsparse_destroy_mat_descr(descr);
-            EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+            EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
         }
     }
 
@@ -744,13 +744,13 @@ namespace
             SCOPED_TRACE("1. m = 1, n = 0, nnz = 0");
             ASSERT_EQ(
                 aoclsparse_create_csr<T>(
-                    A, base, m, n, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data()),
+                    &A, base, m, n, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data()),
                 aoclsparse_status_success);
             EXPECT_EQ(aoclsparse_dotmv(
                           aoclsparse_operation_none, alpha, A, descr, x.data(), beta, y.data(), &d),
                       aoclsparse_status_success);
             verify_y_d(y, y_exp, d, d_exp);
-            EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+            EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
         }
 
         // 2) m=0, n=1, nnz=0
@@ -774,13 +774,13 @@ namespace
             SCOPED_TRACE("1. m = 0, n = 1, nnz = 0");
             ASSERT_EQ(
                 aoclsparse_create_csr<T>(
-                    A, base, m, n, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data()),
+                    &A, base, m, n, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data()),
                 aoclsparse_status_success);
             EXPECT_EQ(aoclsparse_dotmv(
                           aoclsparse_operation_none, alpha, A, descr, x.data(), beta, y.data(), &d),
                       aoclsparse_status_success);
             verify_y_d(y, y_exp, d, d_exp);
-            EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+            EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
         }
 
         // 3) m=1, n=1, nnz=0
@@ -806,14 +806,14 @@ namespace
             SCOPED_TRACE("1. m = 1, n = 1, nnz = 0");
             ASSERT_EQ(
                 aoclsparse_create_csr<T>(
-                    A, base, m, n, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data()),
+                    &A, base, m, n, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data()),
                 aoclsparse_status_success);
             EXPECT_EQ(aoclsparse_dotmv(
                           aoclsparse_operation_none, alpha, A, descr, x.data(), beta, y.data(), &d),
                       aoclsparse_status_success);
 
             verify_y_d(y, y_exp, d, d_exp);
-            EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+            EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
             aoclsparse_destroy_mat_descr(descr);
         }
     }
@@ -848,14 +848,14 @@ namespace
         float                       d       = 111.0;
         float                       alpha = 1.0, beta = 2.0;
 
-        ASSERT_EQ(aoclsparse_createcsc(A,
-                                       aoclsparse_index_base_zero,
-                                       m,
-                                       n,
-                                       nnz,
-                                       col_ptr.data(),
-                                       row_idx.data(),
-                                       val.data()),
+        ASSERT_EQ(aoclsparse_create_csc(&A,
+                                        aoclsparse_index_base_zero,
+                                        m,
+                                        n,
+                                        nnz,
+                                        col_ptr.data(),
+                                        row_idx.data(),
+                                        val.data()),
                   aoclsparse_status_success);
         aoclsparse_create_mat_descr(&descr);
 
@@ -864,7 +864,7 @@ namespace
                   aoclsparse_status_not_implemented);
 
         aoclsparse_destroy_mat_descr(descr);
-        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
     }
 
     TEST(dotmv, ZeroSizeMatSuccess)

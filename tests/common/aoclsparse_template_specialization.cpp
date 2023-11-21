@@ -1110,7 +1110,7 @@ aoclsparse_status aoclsparse_sctrs(const aoclsparse_int nnz,
 }
 
 template <>
-aoclsparse_status aoclsparse_create_csr(aoclsparse_matrix    &mat,
+aoclsparse_status aoclsparse_create_csr(aoclsparse_matrix    *mat,
                                         aoclsparse_index_base base,
                                         aoclsparse_int        M,
                                         aoclsparse_int        N,
@@ -1122,7 +1122,7 @@ aoclsparse_status aoclsparse_create_csr(aoclsparse_matrix    &mat,
     return aoclsparse_create_scsr(mat, base, M, N, nnz, row_ptr, col_idx, val);
 }
 template <>
-aoclsparse_status aoclsparse_create_csr(aoclsparse_matrix    &mat,
+aoclsparse_status aoclsparse_create_csr(aoclsparse_matrix    *mat,
                                         aoclsparse_index_base base,
                                         aoclsparse_int        M,
                                         aoclsparse_int        N,
@@ -1134,7 +1134,7 @@ aoclsparse_status aoclsparse_create_csr(aoclsparse_matrix    &mat,
     return aoclsparse_create_dcsr(mat, base, M, N, nnz, row_ptr, col_idx, val);
 }
 template <>
-aoclsparse_status aoclsparse_create_csr(aoclsparse_matrix        &mat,
+aoclsparse_status aoclsparse_create_csr(aoclsparse_matrix        *mat,
                                         aoclsparse_index_base     base,
                                         aoclsparse_int            M,
                                         aoclsparse_int            N,
@@ -1146,7 +1146,7 @@ aoclsparse_status aoclsparse_create_csr(aoclsparse_matrix        &mat,
     return aoclsparse_create_ccsr(mat, base, M, N, nnz, row_ptr, col_idx, val);
 }
 template <>
-aoclsparse_status aoclsparse_create_csr(aoclsparse_matrix         &mat,
+aoclsparse_status aoclsparse_create_csr(aoclsparse_matrix         *mat,
                                         aoclsparse_index_base      base,
                                         aoclsparse_int             M,
                                         aoclsparse_int             N,
@@ -1158,7 +1158,7 @@ aoclsparse_status aoclsparse_create_csr(aoclsparse_matrix         &mat,
     return aoclsparse_create_zcsr(mat, base, M, N, nnz, row_ptr, col_idx, val);
 }
 template <>
-aoclsparse_status aoclsparse_create_csr(aoclsparse_matrix    &mat,
+aoclsparse_status aoclsparse_create_csr(aoclsparse_matrix    *mat,
                                         aoclsparse_index_base base,
                                         aoclsparse_int        M,
                                         aoclsparse_int        N,
@@ -1171,7 +1171,7 @@ aoclsparse_status aoclsparse_create_csr(aoclsparse_matrix    &mat,
         mat, base, M, N, nnz, row_ptr, col_idx, reinterpret_cast<aoclsparse_float_complex *>(val));
 }
 template <>
-aoclsparse_status aoclsparse_create_csr(aoclsparse_matrix    &mat,
+aoclsparse_status aoclsparse_create_csr(aoclsparse_matrix    *mat,
                                         aoclsparse_index_base base,
                                         aoclsparse_int        M,
                                         aoclsparse_int        N,
@@ -1184,100 +1184,100 @@ aoclsparse_status aoclsparse_create_csr(aoclsparse_matrix    &mat,
         mat, base, M, N, nnz, row_ptr, col_idx, reinterpret_cast<aoclsparse_double_complex *>(val));
 }
 template <>
-aoclsparse_status aoclsparse_createcsc(aoclsparse_matrix    &mat,
-                                       aoclsparse_index_base base,
-                                       aoclsparse_int        M,
-                                       aoclsparse_int        N,
-                                       aoclsparse_int        nnz,
-                                       aoclsparse_int       *col_ptr,
-                                       aoclsparse_int       *row_idx,
-                                       float                *val)
+aoclsparse_status aoclsparse_create_csc(aoclsparse_matrix    *mat,
+                                        aoclsparse_index_base base,
+                                        aoclsparse_int        M,
+                                        aoclsparse_int        N,
+                                        aoclsparse_int        nnz,
+                                        aoclsparse_int       *col_ptr,
+                                        aoclsparse_int       *row_idx,
+                                        float                *val)
 {
     return aoclsparse_create_scsc(mat, base, M, N, nnz, col_ptr, row_idx, val);
 }
 template <>
-aoclsparse_status aoclsparse_createcsc(aoclsparse_matrix    &mat,
-                                       aoclsparse_index_base base,
-                                       aoclsparse_int        M,
-                                       aoclsparse_int        N,
-                                       aoclsparse_int        nnz,
-                                       aoclsparse_int       *col_ptr,
-                                       aoclsparse_int       *row_idx,
-                                       double               *val)
+aoclsparse_status aoclsparse_create_csc(aoclsparse_matrix    *mat,
+                                        aoclsparse_index_base base,
+                                        aoclsparse_int        M,
+                                        aoclsparse_int        N,
+                                        aoclsparse_int        nnz,
+                                        aoclsparse_int       *col_ptr,
+                                        aoclsparse_int       *row_idx,
+                                        double               *val)
 {
     return aoclsparse_create_dcsc(mat, base, M, N, nnz, col_ptr, row_idx, val);
 }
 template <>
-aoclsparse_status aoclsparse_createcsc(aoclsparse_matrix        &mat,
-                                       aoclsparse_index_base     base,
-                                       aoclsparse_int            M,
-                                       aoclsparse_int            N,
-                                       aoclsparse_int            nnz,
-                                       aoclsparse_int           *col_ptr,
-                                       aoclsparse_int           *row_idx,
-                                       aoclsparse_float_complex *val)
+aoclsparse_status aoclsparse_create_csc(aoclsparse_matrix        *mat,
+                                        aoclsparse_index_base     base,
+                                        aoclsparse_int            M,
+                                        aoclsparse_int            N,
+                                        aoclsparse_int            nnz,
+                                        aoclsparse_int           *col_ptr,
+                                        aoclsparse_int           *row_idx,
+                                        aoclsparse_float_complex *val)
 {
     return aoclsparse_create_ccsc(mat, base, M, N, nnz, col_ptr, row_idx, val);
 }
 template <>
-aoclsparse_status aoclsparse_createcsc(aoclsparse_matrix         &mat,
-                                       aoclsparse_index_base      base,
-                                       aoclsparse_int             M,
-                                       aoclsparse_int             N,
-                                       aoclsparse_int             nnz,
-                                       aoclsparse_int            *col_ptr,
-                                       aoclsparse_int            *row_idx,
-                                       aoclsparse_double_complex *val)
+aoclsparse_status aoclsparse_create_csc(aoclsparse_matrix         *mat,
+                                        aoclsparse_index_base      base,
+                                        aoclsparse_int             M,
+                                        aoclsparse_int             N,
+                                        aoclsparse_int             nnz,
+                                        aoclsparse_int            *col_ptr,
+                                        aoclsparse_int            *row_idx,
+                                        aoclsparse_double_complex *val)
 {
     return aoclsparse_create_zcsc(mat, base, M, N, nnz, col_ptr, row_idx, val);
 }
 
 template <>
-aoclsparse_status aoclsparse_createcoo(aoclsparse_matrix    &mat,
-                                       aoclsparse_index_base base,
-                                       aoclsparse_int        M,
-                                       aoclsparse_int        N,
-                                       aoclsparse_int        nnz,
-                                       aoclsparse_int       *row_ind,
-                                       aoclsparse_int       *col_ind,
-                                       float                *val)
+aoclsparse_status aoclsparse_create_coo(aoclsparse_matrix    *mat,
+                                        aoclsparse_index_base base,
+                                        aoclsparse_int        M,
+                                        aoclsparse_int        N,
+                                        aoclsparse_int        nnz,
+                                        aoclsparse_int       *row_ind,
+                                        aoclsparse_int       *col_ind,
+                                        float                *val)
 {
     return aoclsparse_create_scoo(mat, base, M, N, nnz, row_ind, col_ind, val);
 };
 
 template <>
-aoclsparse_status aoclsparse_createcoo(aoclsparse_matrix    &mat,
-                                       aoclsparse_index_base base,
-                                       aoclsparse_int        M,
-                                       aoclsparse_int        N,
-                                       aoclsparse_int        nnz,
-                                       aoclsparse_int       *row_ind,
-                                       aoclsparse_int       *col_ind,
-                                       double               *val)
+aoclsparse_status aoclsparse_create_coo(aoclsparse_matrix    *mat,
+                                        aoclsparse_index_base base,
+                                        aoclsparse_int        M,
+                                        aoclsparse_int        N,
+                                        aoclsparse_int        nnz,
+                                        aoclsparse_int       *row_ind,
+                                        aoclsparse_int       *col_ind,
+                                        double               *val)
 {
     return aoclsparse_create_dcoo(mat, base, M, N, nnz, row_ind, col_ind, val);
 };
 template <>
-aoclsparse_status aoclsparse_createcoo(aoclsparse_matrix        &mat,
-                                       aoclsparse_index_base     base,
-                                       aoclsparse_int            M,
-                                       aoclsparse_int            N,
-                                       aoclsparse_int            nnz,
-                                       aoclsparse_int           *row_ind,
-                                       aoclsparse_int           *col_ind,
-                                       aoclsparse_float_complex *val)
+aoclsparse_status aoclsparse_create_coo(aoclsparse_matrix        *mat,
+                                        aoclsparse_index_base     base,
+                                        aoclsparse_int            M,
+                                        aoclsparse_int            N,
+                                        aoclsparse_int            nnz,
+                                        aoclsparse_int           *row_ind,
+                                        aoclsparse_int           *col_ind,
+                                        aoclsparse_float_complex *val)
 {
     return aoclsparse_create_ccoo(mat, base, M, N, nnz, row_ind, col_ind, val);
 };
 template <>
-aoclsparse_status aoclsparse_createcoo(aoclsparse_matrix         &mat,
-                                       aoclsparse_index_base      base,
-                                       aoclsparse_int             M,
-                                       aoclsparse_int             N,
-                                       aoclsparse_int             nnz,
-                                       aoclsparse_int            *row_ind,
-                                       aoclsparse_int            *col_ind,
-                                       aoclsparse_double_complex *val)
+aoclsparse_status aoclsparse_create_coo(aoclsparse_matrix         *mat,
+                                        aoclsparse_index_base      base,
+                                        aoclsparse_int             M,
+                                        aoclsparse_int             N,
+                                        aoclsparse_int             nnz,
+                                        aoclsparse_int            *row_ind,
+                                        aoclsparse_int            *col_ind,
+                                        aoclsparse_double_complex *val)
 {
     return aoclsparse_create_zcoo(mat, base, M, N, nnz, row_ind, col_ind, val);
 };

@@ -199,10 +199,10 @@ void testing_csr2m(const Arguments &arg)
     }
     aoclsparse_matrix csrA;
     aoclsparse_create_csr(
-        csrA, base, M, K, nnz_A, csr_row_ptr_A.data(), csr_col_ind_A.data(), csr_val_A.data());
+        &csrA, base, M, K, nnz_A, csr_row_ptr_A.data(), csr_col_ind_A.data(), csr_val_A.data());
     aoclsparse_matrix csrB;
     aoclsparse_create_csr(
-        csrB, base, K, N, nnz_B, csr_row_ptr_B.data(), csr_col_ind_B.data(), csr_val_B.data());
+        &csrB, base, K, N, nnz_B, csr_row_ptr_B.data(), csr_col_ind_B.data(), csr_val_B.data());
 
     aoclsparse_matrix csrC          = NULL;
     aoclsparse_int   *csr_row_ptr_C = NULL;
@@ -286,7 +286,7 @@ void testing_csr2m(const Arguments &arg)
     // Performance run
     for(int iter = 0; iter < number_hot_calls; ++iter)
     {
-        aoclsparse_destroy(csrC);
+        aoclsparse_destroy(&csrC);
         request        = aoclsparse_stage_full_computation;
         cpu_time_start = aoclsparse_clock();
         CHECK_AOCLSPARSE_ERROR(
@@ -315,9 +315,9 @@ void testing_csr2m(const Arguments &arg)
               << cpu_gflops << std::setw(12) << cpu_gbyte << std::setw(12) << cpu_time_used * 1e3
               << std::setw(12) << number_hot_calls << std::setw(12)
               << (arg.unit_check ? "yes" : "no") << std::endl;
-    aoclsparse_destroy(csrA);
-    aoclsparse_destroy(csrB);
-    aoclsparse_destroy(csrC);
+    aoclsparse_destroy(&csrA);
+    aoclsparse_destroy(&csrB);
+    aoclsparse_destroy(&csrC);
 }
 
 #endif // TESTING_CSR2M_HPP

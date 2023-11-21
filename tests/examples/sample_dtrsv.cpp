@@ -49,7 +49,7 @@ int main()
     aoclsparse_index_base base = aoclsparse_index_base_zero;
     aoclsparse_mat_descr  descr_a;
     aoclsparse_operation  trans = aoclsparse_operation_none;
-    aoclsparse_create_dcsr(A, base, m, n, nnz, icrow, icol, aval);
+    aoclsparse_create_dcsr(&A, base, m, n, nnz, icrow, icol, aval);
     aoclsparse_create_mat_descr(&descr_a);
 
     // A = L + D + U where:
@@ -112,7 +112,7 @@ int main()
 
     // destroy the aoclsparse memory
     aoclsparse_destroy_mat_descr(descr_a);
-    aoclsparse_destroy(A);
+    aoclsparse_destroy(&A);
 
     return 0;
 }

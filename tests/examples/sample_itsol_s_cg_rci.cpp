@@ -57,7 +57,7 @@ int main()
     aoclsparse_index_base base = aoclsparse_index_base_zero;
     aoclsparse_mat_descr  descr_a;
     aoclsparse_operation  trans = aoclsparse_operation_none;
-    aoclsparse_create_scsr(A, base, n, n, nnz, icrow.data(), icol.data(), aval.data());
+    aoclsparse_create_scsr(&A, base, n, n, nnz, icrow.data(), icol.data(), aval.data());
     aoclsparse_create_mat_descr(&descr_a);
     aoclsparse_set_mat_type(descr_a, aoclsparse_matrix_type_symmetric);
     aoclsparse_set_mat_fill_mode(descr_a, aoclsparse_fill_mode_lower);
@@ -178,7 +178,7 @@ int main()
     }
     aoclsparse_itsol_destroy(&handle);
     aoclsparse_destroy_mat_descr(descr_a);
-    aoclsparse_destroy(A);
+    aoclsparse_destroy(&A);
 
     return 0;
 }

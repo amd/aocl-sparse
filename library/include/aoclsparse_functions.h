@@ -1854,9 +1854,9 @@ aoclsparse_status aoclsparse_ztrsm_kid(aoclsparse_operation             trans,
  *  Shows multiplication of 2 sparse matrices to give a newly allocated sparse matrix
  *  \code{.c}
  *      aoclsparse_matrix  A;
- *      aoclsparse_create_dcsr(A, base, M, K, nnz_A, csr_row_ptr_A.data(), csr_col_ind_A.data(), csr_val_A.data());
+ *      aoclsparse_create_dcsr(&A, base, M, K, nnz_A, csr_row_ptr_A.data(), csr_col_ind_A.data(), csr_val_A.data());
  *      aoclsparse_matrix  B;
- *      aoclsparse_create_dcsr(B, base, K, N, nnz_B, csr_row_ptr_B.data(), csr_col_ind_B.data(), csr_val_B.data());
+ *      aoclsparse_create_dcsr(&B, base, K, N, nnz_B, csr_row_ptr_B.data(), csr_col_ind_B.data(), csr_val_B.data());
  *
  *      aoclsparse_matrix  C = NULL;
  *      aoclsparse_int *csr_row_ptr_C = NULL;
@@ -1940,9 +1940,9 @@ aoclsparse_status aoclsparse_sp2m(aoclsparse_operation       opA,
  *  Shows multiplication of 2 sparse matrices to give a newly allocated sparse matrix
  *  \code{.c}
  *      aoclsparse_matrix  A;
- *      aoclsparse_create_dcsr(A, base, M, K, nnz_A, csr_row_ptr_A.data(), csr_col_ind_A.data(), csr_val_A.data());
+ *      aoclsparse_create_dcsr(&A, base, M, K, nnz_A, csr_row_ptr_A.data(), csr_col_ind_A.data(), csr_val_A.data());
  *      aoclsparse_matrix  B;
- *      aoclsparse_create_dcsr(B, base, K, N, nnz_B, csr_row_ptr_B.data(), csr_col_ind_B.data(), csr_val_B.data());
+ *      aoclsparse_create_dcsr(&B, base, K, N, nnz_B, csr_row_ptr_B.data(), csr_col_ind_B.data(), csr_val_B.data());
  *
  *      aoclsparse_matrix  C = NULL;
  *      aoclsparse_int *csr_row_ptr_C = NULL;
@@ -2171,9 +2171,9 @@ aoclsparse_status aoclsparse_zcsrmm(aoclsparse_operation             op,
  *  Shows multiplication of 2 sparse matrices to give a newly allocated sparse matrix
  *  \code{.c}
  *  	aoclsparse_matrix  csrA;
- *  	aoclsparse_create_dcsr(csrA, base, M, K, nnz_A, csr_row_ptr_A.data(), csr_col_ind_A.data(), csr_val_A.data());
+ *  	aoclsparse_create_dcsr(&csrA, base, M, K, nnz_A, csr_row_ptr_A.data(), csr_col_ind_A.data(), csr_val_A.data());
  *  	aoclsparse_matrix  csrB;
- *  	aoclsparse_create_dcsr(csrB, base, K, N, nnz_B, csr_row_ptr_B.data(), csr_col_ind_B.data(), csr_val_B.data());
+ *  	aoclsparse_create_dcsr(&csrB, base, K, N, nnz_B, csr_row_ptr_B.data(), csr_col_ind_B.data(), csr_val_B.data());
  *
  * 	aoclsparse_matrix  csrC = NULL;
  * 	aoclsparse_int *csr_row_ptr_C = NULL;

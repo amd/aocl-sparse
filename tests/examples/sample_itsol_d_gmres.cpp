@@ -116,7 +116,7 @@ int main()
     aoclsparse_index_base base = aoclsparse_index_base_zero;
     aoclsparse_mat_descr  descr_a;
     aoclsparse_operation  trans = aoclsparse_operation_none;
-    aoclsparse_create_dcsr(A,
+    aoclsparse_create_dcsr(&A,
                            base,
                            (aoclsparse_int)n,
                            (aoclsparse_int)n,
@@ -211,7 +211,7 @@ int main()
     delete[] b;
     aoclsparse_itsol_destroy(&handle);
     aoclsparse_destroy_mat_descr(descr_a);
-    aoclsparse_destroy(A);
+    aoclsparse_destroy(&A);
     printf("\n");
     fflush(stdout);
 

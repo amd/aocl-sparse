@@ -72,7 +72,7 @@ namespace
         init(m, n, nnz, row_ptr, col_idx, val);
 
         EXPECT_EQ(aoclsparse_create_csr<T>(
-                      A, base, m, n, nnz, row_ptr.data(), col_idx.data(), val.data()),
+                      &A, base, m, n, nnz, row_ptr.data(), col_idx.data(), val.data()),
                   aoclsparse_status_success);
         EXPECT_EQ_VEC(
             m + 1, (aoclsparse_int *)A->csr_mat.csr_row_ptr, (aoclsparse_int *)row_ptr.data());
@@ -97,7 +97,7 @@ namespace
         EXPECT_EQ(m, A->m);
         EXPECT_EQ(n, A->n);
         EXPECT_EQ(nnz, A->nnz);
-        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
     }
 
     template <typename T>
@@ -114,12 +114,14 @@ namespace
 
         init(m, n, nnz, row_ptr, col_idx, val);
 
-        EXPECT_EQ(aoclsparse_create_csr<T>(A, base, m, n, nnz, nullptr, col_idx.data(), val.data()),
-                  aoclsparse_status_invalid_pointer);
-        EXPECT_EQ(aoclsparse_create_csr<T>(A, base, m, n, nnz, row_ptr.data(), nullptr, val.data()),
-                  aoclsparse_status_invalid_pointer);
         EXPECT_EQ(
-            aoclsparse_create_csr<T>(A, base, m, n, nnz, row_ptr.data(), col_idx.data(), nullptr),
+            aoclsparse_create_csr<T>(&A, base, m, n, nnz, nullptr, col_idx.data(), val.data()),
+            aoclsparse_status_invalid_pointer);
+        EXPECT_EQ(
+            aoclsparse_create_csr<T>(&A, base, m, n, nnz, row_ptr.data(), nullptr, val.data()),
+            aoclsparse_status_invalid_pointer);
+        EXPECT_EQ(
+            aoclsparse_create_csr<T>(&A, base, m, n, nnz, row_ptr.data(), col_idx.data(), nullptr),
             aoclsparse_status_invalid_pointer);
     }
 
@@ -138,25 +140,25 @@ namespace
         init(m, n, nnz, row_ptr, col_idx, val);
 
         EXPECT_EQ(aoclsparse_create_csr<T>(
-                      A, base, -1, n, nnz, row_ptr.data(), col_idx.data(), val.data()),
+                      &A, base, -1, n, nnz, row_ptr.data(), col_idx.data(), val.data()),
                   aoclsparse_status_invalid_size);
         EXPECT_EQ(aoclsparse_create_csr<T>(
-                      A, base, m, -1, nnz, row_ptr.data(), col_idx.data(), val.data()),
+                      &A, base, m, -1, nnz, row_ptr.data(), col_idx.data(), val.data()),
                   aoclsparse_status_invalid_size);
 
         /*
         FIXME: Fails now, need to uncomment this test after other validation related commits are merged
         EXPECT_EQ(
-            aoclsparse_create_csr<T>(A, base, m, n, 0, row_ptr.data(), col_idx.data(), val.data()),
+            aoclsparse_create_csr<T>(&A, base, m, n, 0, row_ptr.data(), col_idx.data(), val.data()),
             aoclsparse_status_invalid_value);
         */
-        EXPECT_EQ(
-            aoclsparse_create_csr<T>(A, base, m, n, -1, row_ptr.data(), col_idx.data(), val.data()),
-            aoclsparse_status_invalid_size);
+        EXPECT_EQ(aoclsparse_create_csr<T>(
+                      &A, base, m, n, -1, row_ptr.data(), col_idx.data(), val.data()),
+                  aoclsparse_status_invalid_size);
         // invalid column index for zero-based indexing
         col_idx[2] = 7; // should be between 0 and 6
         EXPECT_EQ(aoclsparse_create_csr<T>(
-                      A, base, m, n, nnz, row_ptr.data(), col_idx.data(), val.data()),
+                      &A, base, m, n, nnz, row_ptr.data(), col_idx.data(), val.data()),
                   aoclsparse_status_invalid_index_value);
 
         base = aoclsparse_index_base_one;
@@ -170,7 +172,7 @@ namespace
         // invalid column index for one-based indexing
         row_ptr.assign({1, 3, 4, 5, 8, 9});
         col_idx.assign({1, 8, 2, 3, 2, 4, 5, 7});
-        EXPECT_EQ(aoclsparse_create_csr<T>(A,
+        EXPECT_EQ(aoclsparse_create_csr<T>(&A,
                                            aoclsparse_index_base_one,
                                            m,
                                            n,
@@ -200,9 +202,9 @@ namespace
         nnz = 0;
         row_ptr.assign({0, 0, 0, 0, 0, 0});
         EXPECT_EQ(aoclsparse_create_csr<T>(
-                      A, base, m, n, nnz, row_ptr.data(), col_idx.data(), val.data()),
+                      &A, base, m, n, nnz, row_ptr.data(), col_idx.data(), val.data()),
                   aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
 
         // 2) 0*7 , nnz=0
         m = 0;
@@ -210,9 +212,9 @@ namespace
         row_ptr.assign({0});
         col_idx.assign({0});
         EXPECT_EQ(aoclsparse_create_csr<T>(
-                      A, base, m, n, nnz, row_ptr.data(), col_idx.data(), val.data()),
+                      &A, base, m, n, nnz, row_ptr.data(), col_idx.data(), val.data()),
                   aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
 
         // 3) 2*0 , nnz=0
         m   = 2;
@@ -220,9 +222,9 @@ namespace
         nnz = 0;
         row_ptr.assign({0, 0, 0});
         EXPECT_EQ(aoclsparse_create_csr<T>(
-                      A, base, m, n, nnz, row_ptr.data(), col_idx.data(), val.data()),
+                      &A, base, m, n, nnz, row_ptr.data(), col_idx.data(), val.data()),
                   aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
 
         // 4) 0*0 , nnz=0
         m   = 0;
@@ -231,9 +233,9 @@ namespace
         row_ptr.assign({0});
         col_idx.assign({0});
         EXPECT_EQ(aoclsparse_create_csr<T>(
-                      A, base, m, n, nnz, row_ptr.data(), col_idx.data(), val.data()),
+                      &A, base, m, n, nnz, row_ptr.data(), col_idx.data(), val.data()),
                   aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
 
         // 5) 2*0 , nnz=3
         m   = 2;
@@ -242,7 +244,7 @@ namespace
         row_ptr.assign({0, 2, 3});
         col_idx.assign({0, 0, 0});
         EXPECT_EQ(aoclsparse_create_csr<T>(
-                      A, base, m, n, nnz, row_ptr.data(), col_idx.data(), val.data()),
+                      &A, base, m, n, nnz, row_ptr.data(), col_idx.data(), val.data()),
                   aoclsparse_status_invalid_index_value);
     }
 

@@ -40,12 +40,12 @@ namespace
         aoclsparse_matrix mat = NULL;
         aoclsparse_status status;
 
-        EXPECT_EQ(status = aoclsparse_createcoo(mat, base, M, N, nnz, row_ind, col_ind, val),
+        EXPECT_EQ(status = aoclsparse_create_coo(&mat, base, M, N, nnz, row_ind, col_ind, val),
                   status_exp);
 
         if(status == aoclsparse_status_success)
         {
-            EXPECT_EQ(aoclsparse_status_success, aoclsparse_destroy(mat));
+            EXPECT_EQ(aoclsparse_status_success, aoclsparse_destroy(&mat));
         }
     }
 

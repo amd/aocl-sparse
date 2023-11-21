@@ -90,7 +90,7 @@ void testing_blkcsrmv(const Arguments &arg)
 
     aoclsparse_matrix A;
     CHECK_AOCLSPARSE_ERROR(aoclsparse_create_csr<T>(
-        A, base, M, N, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data()));
+        &A, base, M, N, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data()));
     //Initialize block width
     const aoclsparse_int blk_width = 8;
 
@@ -202,7 +202,7 @@ void testing_blkcsrmv(const Arguments &arg)
               << std::setw(12) << number_hot_calls << std::setw(12)
               << (arg.unit_check ? "yes" : "no") << std::endl;
 
-    aoclsparse_destroy(A);
+    aoclsparse_destroy(&A);
 }
 
 #endif // TESTING_BLKCSR_HPP

@@ -37,7 +37,7 @@ aoclsparse_status create_aoclsparse_matrix(aoclsparse_matrix           &A,
                                            std::vector<double>         &csr_val)
 {
     return aoclsparse_create_dcsr(
-        A, descr->base, m, n, nnz, &csr_row_ptr[0], &csr_col_ind[0], &csr_val[0]);
+        &A, descr->base, m, n, nnz, &csr_row_ptr[0], &csr_col_ind[0], &csr_val[0]);
 }
 
 template <>
@@ -51,7 +51,7 @@ aoclsparse_status create_aoclsparse_matrix(aoclsparse_matrix           &A,
                                            std::vector<float>          &csr_val)
 {
     return aoclsparse_create_scsr(
-        A, descr->base, m, n, nnz, &csr_row_ptr[0], &csr_col_ind[0], &csr_val[0]);
+        &A, descr->base, m, n, nnz, &csr_row_ptr[0], &csr_col_ind[0], &csr_val[0]);
 }
 
 template <>

@@ -37,7 +37,7 @@ namespace
         aoclsparse_int col_idx[] = {0, 1};
         aoclsparse_int row_ptr[] = {0, 1, 2};
         ASSERT_EQ(
-            aoclsparse_create_scsr(A, aoclsparse_index_base_zero, 2, 2, 2, row_ptr, col_idx, val),
+            aoclsparse_create_scsr(&A, aoclsparse_index_base_zero, 2, 2, 2, row_ptr, col_idx, val),
             aoclsparse_status_success);
 
         // NULL CSR row pointers
@@ -54,7 +54,7 @@ namespace
         A->csr_mat.csr_val     = nullptr;
         EXPECT_EQ(aoclsparse_optimize(A), aoclsparse_status_invalid_pointer);
 
-        aoclsparse_destroy(A);
+        aoclsparse_destroy(&A);
     }
 
     TEST(OptimizeTest, InvalidValues)
@@ -65,7 +65,7 @@ namespace
         aoclsparse_int col_idx[] = {0, 0, 1};
         aoclsparse_int row_ptr[] = {0, 1, 3};
         ASSERT_EQ(
-            aoclsparse_create_scsr(A, aoclsparse_index_base_zero, 2, 2, 3, row_ptr, col_idx, val),
+            aoclsparse_create_scsr(&A, aoclsparse_index_base_zero, 2, 2, 3, row_ptr, col_idx, val),
             aoclsparse_status_success);
 
         // Invalid row (M)
@@ -109,7 +109,7 @@ namespace
         EXPECT_EQ(aoclsparse_optimize(A), aoclsparse_status_invalid_value);
 
         aoclsparse_destroy_mat_descr(descr);
-        aoclsparse_destroy(A);
+        aoclsparse_destroy(&A);
     }
 
 } // namespace
