@@ -56,7 +56,7 @@ if(POLICY CMP0066)
 endif()
 
 # aocl-sparse project
-project(aoclsparse LANGUAGES CXX)
+project(aoclsparse LANGUAGES CXX C)
 
 # Force library install path to lib (CentOS 7 defaults to lib64)
 set(CMAKE_INSTALL_LIBDIR "lib" CACHE INTERNAL "Installation directory for libraries" FORCE)
