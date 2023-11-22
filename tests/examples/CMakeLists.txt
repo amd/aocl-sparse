@@ -40,7 +40,7 @@ endif()
 if (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
     cmake_minimum_required(VERSION 3.11 FATAL_ERROR)
 #sparse examples project
-    project(aoclsparse_examples LANGUAGES CXX)
+    project(aoclsparse_examples LANGUAGES CXX C)
 
     OPTION(BUILD_SHARED_LIBS "Build aocl-sparse as a shared library" ON)
     OPTION(BUILD_ILP64 "ILP64 Support" OFF)
@@ -130,6 +130,16 @@ foreach( sample_example_source ${SPARSE_SAMPLES})
     endif()
 endforeach( sample_example_source ${SPARSE_SAMPLES} )
 
+# C compatibility test - compile with C compiler and link with C++ compiler
+set_source_files_properties(sample_spmv_c.c PROPERTIES LANGUAGE C)
+add_executable(sample_spmv_c sample_spmv_c.c)
+set_target_properties(sample_spmv_c PROPERTIES LINKER_LANGUAGE CXX)
+target_include_directories(sample_spmv_c PUBLIC ${SPARSE_INCLUDE_DIR} ${LAPACK_INCLUDE_DIRS} ${BLIS_INCLUDE_DIRS} ${UTILS_INCLUDE_DIRS})
+target_link_libraries(sample_spmv_c ${SPARSE_LIBRARY} ${LAPACK_LIBRARIES} ${MT_LIBRARIES})
+if(NOT BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
+    install(FILES sample_spmv_c.c DESTINATION ${CMAKE_INSTALL_PREFIX}/examples)
+endif()
+
 if(NOT BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
     set(EXAMPLES_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/examples")
     install(FILES README.md DESTINATION ${EXAMPLES_INSTALL_DIR})
@@ -159,6 +169,7 @@ set(EXAMPLE_EXECUTABLES
     sample_csrmm
     sample_dtrsm
     sample_ztrsm
+    sample_spmv_c
 )
 # Take all sample executables also as test targets
 foreach(SNAME ${EXAMPLE_EXECUTABLES})
