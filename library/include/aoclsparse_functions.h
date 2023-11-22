@@ -1203,7 +1203,7 @@ aoclsparse_status aoclsparse_smv(aoclsparse_operation       op,
 
 /*! \ingroup level2_module
  *  \deprecated
- *  This API is superseeded by aoclsparse_strsv() and aoclsparse_dtrsv().
+ *  This API is superseded by aoclsparse_strsv() and aoclsparse_dtrsv().
  *  \brief Sparse triangular solve using CSR storage format for single and double
  *      data precisions.
  *
@@ -2636,6 +2636,134 @@ aoclsparse_status aoclsparse_sadd(const aoclsparse_operation op,
                                   const float                alpha,
                                   const aoclsparse_matrix    B,
                                   aoclsparse_matrix         *C);
+/**@}*/
+
+/*! \ingroup level3_module
+ *  \brief Performs symmetric triple product of a sparse matrix and a dense matrix and stores the output as a dense matrix.
+ *
+ *  \details
+ *  \P{aoclsparse_?syprd} performs product of a scalar \f$\alpha\f$, with the
+ *  symmetric triple product of a sparse\f$m \times k\f$ matrix \f$A\f$, defined in CSR format,
+ *  with a \f$k \times k\f$ symmetric dense (or Hermitian) matrix \f$B\f$, and a \f$k \times m\f$ \f$op(A)\f$.
+ *  Adds the resulting matrix to \f$m \times m\f$ symmetric dense (or Hermitian)  matrix \f$C\f$ that is multiplied
+ *  by a scalar \f$\beta\f$, such that
+ *  \f[
+ *    C := \alpha \cdot A \cdot B \cdot op(A)  + \beta \cdot C
+ *  \f]
+ *  if \f$op\f$ is \ref aoclsparse_operation_none.
+ *
+ *  Otherwise,
+ *  \f[
+ *    C := \alpha \cdot op(A) \cdot B \cdot A  + \beta \cdot C
+ *  \f]
+ *
+ *  \f[
+ *    op(A) = \left\{
+ *    \begin{array}{ll}
+ *         A^T, & \text{if } {\bf\mathsf{op}} = \text{aoclsparse}\_\text{operation}\_\text{transpose} \text{ (real matrices)}\\
+ *         A^H, & \text{if } {\bf\mathsf{op}} = \text{aoclsparse}\_\text{operation}\_\text{conjugate}\_\text{transpose} \text{ (complex matrices)}
+ *    \end{array}
+ *    \right.
+ *  \f]
+ *
+ *  <b>Notes</b>
+ *
+ * 1. This routine assumes the dense matrices (B and C) are stored in full although
+ *    the computations happen on the upper triangular portion of the matrices.
+ *
+ * 2. \ref aoclsparse_operation_transpose is only supported for real matrices.
+ *
+ * 3. \ref aoclsparse_operation_conjugate_transpose is only supported for complex matrices.
+ *
+ * 4. Complex dense matrices are assumed to be Hermitian matrices.
+ *
+ *  @param[in]
+ *  op          Matrix \f$A\f$ operation type.
+ *  @param[in]
+ *  A           Sparse CSR matrix \f$A\f$ structure.
+ *  @param[in]
+ *  B           Array of dimension \f$ldb \times ldb\f$.
+ *              Only the upper triangular matrix is used for computation.
+ *  @param[in]
+ *  orderB      \ref aoclsparse_order_row or \ref aoclsparse_order_column for dense matrix B.
+ *  @param[in]
+ *  ldb         Leading dimension of \f$B\f$, must be at least \f$\max{(1, k)}\f$
+ *              (\f$op(A) = A\f$) or \f$\max{(1, m)}\f$ (\f$op(A) = A^T\f$ or
+ *              \f$op(A) = A^H\f$).
+ *  @param[in]
+ *  alpha       Scalar \f$\alpha\f$.
+ *  @param[in]
+ *  beta        Scalar \f$\beta\f$.
+ *  @param[in, out]
+ *  C           Array of dimension \f$ldc \times ldc\f$.
+ *              Only upper triangular part of the matrix is processed.
+ *  @param[in]
+ *  orderC      \ref aoclsparse_order_row or \ref aoclsparse_order_column for dense matrix C.
+ *  @param[in]
+ *  ldc         Leading dimension of \f$C\f$, must be at least \f$\max{(1, m)}\f$
+ *              (\f$op(A) = A\f$) or \f$\max{(1, k)}\f$ (\f$op(A) = A^T\f$ or
+ *              \f$op(A) = A^H\f$).
+ *
+ *  \retval     aoclsparse_status_success The operation completed successfully.
+ *  \retval     aoclsparse_invalid_operation The operation is invalid if the matrix B and C has a
+ *              different layout ordering.
+ *  \retval     aoclsparse_status_wrong_type The data type of the matrices are not matching
+ *              or invalid.
+ *  \retval     aoclsparse_status_invalid_size The value of \p m, \p k, \p nnz, \p ldb or \p ldc
+ *              is invalid.
+ *  \retval     aoclsparse_status_invalid_pointer The pointer \p A, \p B, or \p C
+ *              is invalid.
+ *  \retval     aoclsparse_status_not_implemented The values of \p orderB and \p orderC are different.
+ *
+*/
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_ssyprd(const aoclsparse_operation op,
+                                    const aoclsparse_matrix    A,
+                                    const float               *B,
+                                    const aoclsparse_order     orderB,
+                                    const aoclsparse_int       ldb,
+                                    const float                alpha,
+                                    const float                beta,
+                                    float                     *C,
+                                    const aoclsparse_order     orderC,
+                                    const aoclsparse_int       ldc);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_dsyprd(const aoclsparse_operation op,
+                                    const aoclsparse_matrix    A,
+                                    const double              *B,
+                                    const aoclsparse_order     orderB,
+                                    const aoclsparse_int       ldb,
+                                    const double               alpha,
+                                    const double               beta,
+                                    double                    *C,
+                                    const aoclsparse_order     orderC,
+                                    const aoclsparse_int       ldc);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_csyprd(const aoclsparse_operation      op,
+                                    const aoclsparse_matrix         A,
+                                    const aoclsparse_float_complex *B,
+                                    const aoclsparse_order          orderB,
+                                    const aoclsparse_int            ldb,
+                                    const aoclsparse_float_complex  alpha,
+                                    const aoclsparse_float_complex  beta,
+                                    aoclsparse_float_complex       *C,
+                                    const aoclsparse_order          orderC,
+                                    const aoclsparse_int            ldc);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_zsyprd(const aoclsparse_operation       op,
+                                    const aoclsparse_matrix          A,
+                                    const aoclsparse_double_complex *B,
+                                    const aoclsparse_order           orderB,
+                                    const aoclsparse_int             ldb,
+                                    const aoclsparse_double_complex  alpha,
+                                    const aoclsparse_double_complex  beta,
+                                    aoclsparse_double_complex       *C,
+                                    const aoclsparse_order           orderC,
+                                    const aoclsparse_int             ldc);
 /**@}*/
 
 #ifdef __cplusplus

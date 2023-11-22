@@ -272,6 +272,66 @@ aoclsparse_status aoclsparse_sp2md(const aoclsparse_operation      opA,
 }
 
 template <>
+aoclsparse_status aoclsparse_syprd(aoclsparse_operation    op,
+                                   const aoclsparse_matrix A,
+                                   const float            *B,
+                                   aoclsparse_order        orderB,
+                                   aoclsparse_int          ldb,
+                                   float                   alpha,
+                                   float                   beta,
+                                   float                  *C,
+                                   aoclsparse_order        orderC,
+                                   aoclsparse_int          ldc)
+{
+    return aoclsparse_ssyprd(op, A, B, orderB, ldb, alpha, beta, C, orderC, ldc);
+}
+
+template <>
+aoclsparse_status aoclsparse_syprd(aoclsparse_operation    op,
+                                   const aoclsparse_matrix A,
+                                   const double           *B,
+                                   aoclsparse_order        orderB,
+                                   aoclsparse_int          ldb,
+                                   double                  alpha,
+                                   double                  beta,
+                                   double                 *C,
+                                   aoclsparse_order        orderC,
+                                   aoclsparse_int          ldc)
+{
+    return aoclsparse_dsyprd(op, A, B, orderB, ldb, alpha, beta, C, orderC, ldc);
+}
+
+template <>
+aoclsparse_status aoclsparse_syprd(aoclsparse_operation            op,
+                                   const aoclsparse_matrix         A,
+                                   const aoclsparse_float_complex *B,
+                                   aoclsparse_order                orderB,
+                                   aoclsparse_int                  ldb,
+                                   aoclsparse_float_complex        alpha,
+                                   aoclsparse_float_complex        beta,
+                                   aoclsparse_float_complex       *C,
+                                   aoclsparse_order                orderC,
+                                   aoclsparse_int                  ldc)
+{
+    return aoclsparse_csyprd(op, A, B, orderB, ldb, alpha, beta, C, orderC, ldc);
+}
+
+template <>
+aoclsparse_status aoclsparse_syprd(aoclsparse_operation             op,
+                                   const aoclsparse_matrix          A,
+                                   const aoclsparse_double_complex *B,
+                                   aoclsparse_order                 orderB,
+                                   aoclsparse_int                   ldb,
+                                   aoclsparse_double_complex        alpha,
+                                   aoclsparse_double_complex        beta,
+                                   aoclsparse_double_complex       *C,
+                                   aoclsparse_order                 orderC,
+                                   aoclsparse_int                   ldc)
+{
+    return aoclsparse_zsyprd(op, A, B, orderB, ldb, alpha, beta, C, orderC, ldc);
+}
+
+template <>
 aoclsparse_status aoclsparse_csrmv(aoclsparse_operation       trans,
                                    const float               *alpha,
                                    aoclsparse_int             m,

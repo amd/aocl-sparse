@@ -1,5 +1,5 @@
 # ########################################################################
-# Copyright (c) 2022-2023 Advanced Micro Devices, Inc.
+# Copyright (c) 2022-2024 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files(the "Software"), to deal
@@ -178,6 +178,7 @@ set(EXAMPLE_EXECUTABLES
     sample_spmv_c
     sample_spmmd
     sample_sp2md
+    sample_syprd
 )
 # Take all sample executables also as test targets
 foreach(SNAME ${EXAMPLE_EXECUTABLES})
