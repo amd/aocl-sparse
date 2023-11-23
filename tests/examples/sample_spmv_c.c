@@ -72,7 +72,7 @@ int main(void)
     status = aoclsparse_create_dcsr(&A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
     if(status != aoclsparse_status_success)
     {
-        printf("Error while creating a sparse matrix, status = %i", status);
+        printf("Error while creating a sparse matrix, status = %i\n", status);
         return 1;
     }
 
@@ -80,7 +80,7 @@ int main(void)
     status = aoclsparse_set_mv_hint(A, trans, descr, 1);
     if(status != aoclsparse_status_success)
     {
-        printf("Error while hinting operation, status = %i", status);
+        printf("Error while hinting operation, status = %i\n", status);
         return 1;
     }
 
@@ -88,7 +88,7 @@ int main(void)
     status = aoclsparse_optimize(A);
     if(status != aoclsparse_status_success)
     {
-        printf("Error while optimizing the matrix, status = %i", status);
+        printf("Error while optimizing the matrix, status = %i\n", status);
         return 1;
     }
 
@@ -97,7 +97,7 @@ int main(void)
     status = aoclsparse_dmv(trans, &alpha, A, descr, x, &beta, y);
     if(status != aoclsparse_status_success)
     {
-        printf("Error while computing SPMV, status = %i", status);
+        printf("Error while computing SPMV, status = %i\n", status);
         return 1;
     }
 
