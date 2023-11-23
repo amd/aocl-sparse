@@ -41,52 +41,22 @@ namespace TestsKT
     class KTTCommonData
     {
     public:
-        size_t               map[32]{3,  1,  0,  2,  4,  7,  5,  6,  8,  15, 13, 9,  11, 10, 12, 14,
-                                     29, 19, 18, 31, 20, 23, 22, 25, 24, 16, 21, 26, 27, 30, 28, 17};
-        float                vs[32]{1.531f, 2.753f, 2.734f, 3.870f, 3.849f, 2.586f, 4.056f, 1.143f,
-                                    2.276f, 1.437f, 3.003f, 1.972f, 3.851f, 1.793f, 3.357f, 1.221f,
-                                    3.511f, 1.713f, 1.133f, 1.170f, 1.189f, 1.226f, 2.033f, 2.114f,
-                                    1.766f, 1.447f, 2.382f, 5.192f, 4.172f, 3.173f, 1.735f, 3.031f};
-        double               vd[16]{1.131,
-                                    2.764,
-                                    3.349,
-                                    2.556,
-                                    1.376,
-                                    3.903,
-                                    2.293,
-                                    1.921,
-                                    1.291,
-                                    3.724,
-                                    1.939,
-                                    2.561,
-                                    1.237,
-                                    3.913,
-                                    6.274,
-                                    0.931};
-        std::complex<float>  vc[16]{.11f - 1if,
-                                    .22f - 2if,
-                                    .33f - 3if,
-                                    .44f - 4if,
-                                    .55f - 5if,
-                                    .66f - 6if,
-                                    .77f - 7if,
-                                    .88f - 8if,
-                                    -.11f - 1if,
-                                    -.22f - 2if,
-                                    -.33f - 3if,
-                                    -.44f - 4if,
-                                    -.55f - 5if,
-                                    -.66f - 6if,
-                                    -.77f - 7if,
-                                    -.88f - 8if};
-        std::complex<double> vz[8]{.15 - 12i,
-                                   .26 - 21i,
-                                   .37 - 13i,
-                                   .54 - 4.5i,
-                                   .15 - 5.1i,
-                                   .67 - 6.7i,
-                                   .74 - 7.2i,
-                                   .81 - 8.1i};
+        // clang-format off
+        size_t   map[32]{ 3,  1,  0,  2,  4,  7,  5,  6,  8, 15, 13,  9, 11, 10, 12, 14,
+                         29, 19, 18, 31, 20, 23, 22, 25, 24, 16, 21, 26, 27, 30, 28, 17};
+        float    vs[32]{1.5f,    2.75f,  2.0f,   3.875f,  3.5f,   2.5f,    4.0f,    1.25f,
+                        2.5f,    1.25f,  3.125f, 0.125f, -3.5f,  -1.25f,   8.125f, 10.25f,
+                        3.5f,    6.25f,  7.125f, 3.0f,    6.5f,   1.226f, -2.5f,    5.0f,
+                        9.125f, -1.125f, 2.5f,   5.125f,  4.125f, 3.25f,   3.5f,    5.5f};
+        double   vd[16]{1.5,     2.25,   3.5,    0.5,     8.25,  -3.25,    6.5,    -1.25,
+                        9.125,   5.5,   -2.25,   2.5,     7.25,  -6.25,    9.125,  -0.25};
+        std::complex<float>  vc[16]{ 2.25f -1.5if,  4.25f - 2if,    6.125f -3if,    8.25f -4if,
+                                     1.5f  -5if,    3.5f  - 6.25if, 7.75f  -7if,    9.25f -8if,
+                                    -2.5f  -1.5if, -3.25f - 2if,   -5.5f   -3if,   -7.25f -4if,
+                                    -9.75f -5if,   -2.2f  - 6if,   -4.75f  -7.5if, -6.0f  -8.125if};
+        std::complex<double> vz[8]{  1.25  -12i,    0.5   - 21.0i,  0.125  -13.0i,  3.5   -4.5i,
+                                     5.25  -8.125i, 8.5   - 6.75i,  9.5    -7.25i,  2.125 -3.0i};
+        // clang-format on
     };
 
     const KTTCommonData D;
@@ -537,33 +507,33 @@ namespace TestsKT
         double                   refd[4];
 
         as = kt_loadu_p<256, float>(&D.vs[2]);
-        bs = kt_set1_p<256, float>(2.7f);
+        bs = kt_set1_p<256, float>(2.75f);
         s  = kt_mul_p<256, float>(as, bs);
         for(size_t i = 0; i < ns; i++)
         {
-            refs[i] = D.vs[2 + i] * 2.7f;
+            refs[i] = D.vs[2 + i] * 2.75f;
         }
         EXPECT_FLOAT_EQ_VEC(ns, s, refs);
 
         ad = kt_loadu_p<256, double>(&D.vd[2]);
-        bd = kt_set1_p<256, double>(2.7);
+        bd = kt_set1_p<256, double>(2.75);
         d  = kt_mul_p<256, double>(ad, bd);
         for(size_t i = 0; i < nd; i++)
         {
-            refd[i] = D.vd[2 + i] * 2.7;
+            refd[i] = D.vd[2 + i] * 2.75;
         }
         EXPECT_DOUBLE_EQ_VEC(nd, d, refd);
 
         // complex<float> mul_p
         const size_t             nc = tsz_v<256, cfloat>;
         avxvector_t<256, cfloat> ac = kt_loadu_p<256, cfloat>(&D.vc[2]);
-        avxvector_t<256, cfloat> bc = kt_set1_p<256, cfloat>(2.6f + 4.4if);
+        avxvector_t<256, cfloat> bc = kt_set1_p<256, cfloat>(2.5f + 4.5if);
         avxvector_t<256, cfloat> sc = kt_mul_p<256, cfloat>(ac, bc);
         std::complex<float>      refc[nc];
         std::complex<float>     *pc;
         for(size_t i = 0; i < nc; i++)
         {
-            refc[i] = D.vc[2 + i] * (2.6f + 4.4if);
+            refc[i] = D.vc[2 + i] * (2.5f + 4.5if);
         }
         pc = reinterpret_cast<std::complex<float> *>(&sc);
         EXPECT_COMPLEX_FLOAT_EQ_VEC(nc, pc, refc);
@@ -571,13 +541,13 @@ namespace TestsKT
         // complex<double> mul_p
         const size_t              nz = tsz_v<256, cdouble>;
         avxvector_t<256, cdouble> az = kt_loadu_p<256, cdouble>(&D.vz[2]);
-        avxvector_t<256, cdouble> bz = kt_set1_p<256, cdouble>(2.7 + 3.5i);
+        avxvector_t<256, cdouble> bz = kt_set1_p<256, cdouble>(2.125 + 3.5i);
         avxvector_t<256, cdouble> cz = kt_mul_p<256, cdouble>(az, bz);
         std::complex<double>      refz[nz];
         std::complex<double>     *pz;
         for(size_t i = 0; i < nz; i++)
         {
-            refz[i] = D.vz[2 + i] * (2.7 + 3.5i);
+            refz[i] = D.vz[2 + i] * (2.125 + 3.5i);
         }
         pz = reinterpret_cast<std::complex<double> *>(&cz);
         EXPECT_COMPLEX_DOUBLE_EQ_VEC(nz, pz, refz);
@@ -603,38 +573,38 @@ namespace TestsKT
         EXPECT_FLOAT_EQ_VEC(ns, s, refs);
 
         ad = kt_loadu_p<512, double>(&D.vd[0]);
-        bd = kt_set1_p<512, double>(3.3);
+        bd = kt_set1_p<512, double>(3.5);
         d  = kt_mul_p<512, double>(ad, bd);
         for(size_t i = 0; i < nd; i++)
         {
-            refd[i] = D.vd[i] * 3.3;
+            refd[i] = D.vd[i] * 3.5;
         }
         EXPECT_DOUBLE_EQ_VEC(nd, d, refd);
 
         // complex<float> mul_p
         const size_t             nc = tsz_v<512, cfloat>;
         avxvector_t<512, cfloat> ac = kt_loadu_p<512, cfloat>(&D.vc[2]);
-        avxvector_t<512, cfloat> bc = kt_set1_p<512, cfloat>(2.6f + 4.4if);
+        avxvector_t<512, cfloat> bc = kt_set1_p<512, cfloat>(2.5f + 4.125if);
         avxvector_t<512, cfloat> sc = kt_mul_p<512, cfloat>(ac, bc);
         std::complex<float>      refc[nc];
         std::complex<float>     *pc;
         for(size_t i = 0; i < nc; i++)
         {
-            refc[i] = D.vc[2 + i] * (2.6f + 4.4if);
+            refc[i] = D.vc[2 + i] * (2.5f + 4.125if);
         }
         pc = reinterpret_cast<std::complex<float> *>(&sc);
         EXPECT_COMPLEX_FLOAT_EQ_VEC(nc, pc, refc);
 
         // complex<double> mul_p
         avxvector_t<512, cdouble> az = kt_loadu_p<512, cdouble>(&D.vz[2]);
-        avxvector_t<512, cdouble> bz = kt_set1_p<512, cdouble>(2.7 + 3.5i);
+        avxvector_t<512, cdouble> bz = kt_set1_p<512, cdouble>(2.75 + 3.5i);
         avxvector_t<512, cdouble> dz = kt_mul_p<512, cdouble>(az, bz);
         const size_t              nz = tsz_v<512, cdouble>;
         std::complex<double>      refz[nz];
         std::complex<double>     *pz;
         for(size_t i = 0; i < nz; i++)
         {
-            refz[i] = D.vz[2 + i] * (2.7 + 3.5i);
+            refz[i] = D.vz[2 + i] * (2.75 + 3.5i);
         }
         pz = reinterpret_cast<std::complex<double> *>(&dz);
         EXPECT_COMPLEX_DOUBLE_EQ_VEC(nz, pz, refz);
@@ -678,8 +648,8 @@ namespace TestsKT
         constexpr size_t        nc = tsz_v<256, cfloat>;
         avxvector_t<256, float> sc, ac, bc, cc;
         cfloat                  refc[nc];
-        const cfloat            vc1[nc]{1.f + 1.if, 2.f + 3if, 0.f - 4if, 1.2f + 0.6if};
-        const cfloat            vc2[nc]{-2.f + 3.if, -1.f - 2if, 3.f + 1if, 2.5f - 1.6if};
+        const cfloat            vc1[nc]{1.f + 1.if, 2.f + 3if, 0.f - 4if, 1.25f + 3.5if};
+        const cfloat            vc2[nc]{-2.f + 3.if, -1.f - 2if, 3.f + 1if, 2.5f - 5.75if};
 
         ac = kt_loadu_p<256, cfloat>(&D.vc[2]);
         bc = kt_loadu_p<256, cfloat>(vc1);
@@ -697,7 +667,7 @@ namespace TestsKT
         avxvector_t<256, double> sz, az, bz, cz;
         cdouble                  refz[nz];
         const cdouble            vz1[nz]{1. + 1.i, 2. - 4i};
-        const cdouble            vz2[nz]{-3. - 2i, 2.5 + 1.6i};
+        const cdouble            vz2[nz]{-3. - 2i, 2.5 + 1.5i};
 
         az = kt_loadu_p<256, cdouble>(&D.vz[2]);
         bz = kt_loadu_p<256, cdouble>(vz1);
@@ -748,19 +718,19 @@ namespace TestsKT
         const cfloat            vc1[nc]{1.f + 1.if,
                                         2.f + 3if,
                                         0.f - 4if,
-                                        1.2f + 0.6if,
+                                        1.2f + 0.125if,
                                         2.f + 4.if,
                                         4.f + 5if,
                                         2.f - 4if,
-                                        2.4f + 4.6if};
+                                        2.75f + 4.5if};
         const cfloat            vc2[nc]{-1.f + 1.if,
                                         -1.f - 2if,
                                         3.f + 1if,
-                                        2.5f - 1.6if,
+                                        2.5f - 1.75if,
                                         3.f + 3.if,
                                         7.f + 8if,
                                         1.f - 3if,
-                                        3.2f + 0.5if};
+                                        3.5f + 0.5if};
 
         ac = kt_loadu_p<512, cfloat>(&D.vc[2]);
         bc = kt_loadu_p<512, cfloat>(vc1);
@@ -778,7 +748,7 @@ namespace TestsKT
         avxvector_t<512, double> sz, az, bz, cz;
         cdouble                  refz[nz];
         const cdouble            vz1[nz]{1. + 1.i, 2. - 4i, 2. + 3.i, 7. - 5i};
-        const cdouble            vz2[nz]{-3. - 2i, 2.5 + 1.6i, 1. + 7.i, 5. - 8i};
+        const cdouble            vz2[nz]{-3. - 2i, 2.5 + 1.5i, 1. + 7.i, 5. - 8i};
 
         az = kt_loadu_p<512, cdouble>(&D.vz[2]);
         bz = kt_loadu_p<512, cdouble>(vz1);
