@@ -36,6 +36,13 @@ if (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
 #sparse examples project
     project(aoclsparse_examples LANGUAGES CXX C)
 
+    # Set a default build type if none was specified
+    if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+      message(STATUS "Setting build type to 'Release' as none was specified")
+      set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build" FORCE)
+      set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "" "Debug" "Release")
+    endif()
+
     OPTION(BUILD_SHARED_LIBS "Build aocl-sparse as a shared library" ON)
     OPTION(BUILD_ILP64 "ILP64 Support" OFF)
     OPTION(SUPPORT_OMP "Compile with OpenMP support." ON)
