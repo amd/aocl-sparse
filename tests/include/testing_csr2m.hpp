@@ -273,6 +273,7 @@ void testing_csr2m(const Arguments &arg)
         ublasCsrC = dMatrixType(C_M, C_N, nnz_C);
         ublasCsrC.complete_index1_data();
         ublasCsrC = uBLAS::sparse_prod(ublasCsrA, ublasCsrB, ublasCsrC);
+        ublasCsrC.complete_index1_data();
 
         unit_check_general(1, C_M + 1, 1, ublasCsrC.index1_data().begin(), csr_row_ptr_C);
 
