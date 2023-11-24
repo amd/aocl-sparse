@@ -242,4 +242,32 @@ namespace
 
     INSTANTIATE_TEST_SUITE_P(HintSuite, Pos, ::testing::ValuesIn(hlist));
 
+    TEST(Hint, NullPointerMatrix)
+    {
+        aoclsparse_matrix    A_null = NULL;
+        aoclsparse_operation trans  = aoclsparse_operation_none;
+        aoclsparse_order     order  = aoclsparse_order_row;
+        aoclsparse_int       matdim = 42;
+        aoclsparse_mat_descr descr;
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_symmetric),
+                  aoclsparse_status_success);
+
+        EXPECT_EQ(aoclsparse_set_mv_hint(A_null, trans, descr, 1),
+                  aoclsparse_status_invalid_pointer);
+        EXPECT_EQ(aoclsparse_set_sv_hint(A_null, trans, descr, 1),
+                  aoclsparse_status_invalid_pointer);
+        EXPECT_EQ(aoclsparse_set_mm_hint(A_null, trans, descr, 1),
+                  aoclsparse_status_invalid_pointer);
+        EXPECT_EQ(aoclsparse_set_2m_hint(A_null, trans, descr, 1),
+                  aoclsparse_status_invalid_pointer);
+        EXPECT_EQ(aoclsparse_set_lu_smoother_hint(A_null, trans, descr, 1),
+                  aoclsparse_status_invalid_pointer);
+        EXPECT_EQ(aoclsparse_set_sm_hint(A_null, trans, descr, order, matdim, 1),
+                  aoclsparse_status_invalid_pointer);
+        EXPECT_EQ(aoclsparse_optimize(A_null), aoclsparse_status_invalid_pointer);
+
+        EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+    }
+
 } // namespace
