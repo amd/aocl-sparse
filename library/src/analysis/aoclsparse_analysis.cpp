@@ -524,6 +524,10 @@ aoclsparse_status aoclsparse_set_mv_hint(aoclsparse_matrix          A,
                                          const aoclsparse_mat_descr descr,
                                          aoclsparse_int             expected_no_of_calls)
 {
+    if(!A)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
     //check descriptor
     if(descr == nullptr)
     {
@@ -585,6 +589,10 @@ aoclsparse_status aoclsparse_set_mm_hint(aoclsparse_matrix          A,
                                          const aoclsparse_mat_descr descr,
                                          aoclsparse_int             expected_no_of_calls)
 {
+    if(!A)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
     //check descriptor
     if(descr == nullptr)
     {
@@ -639,6 +647,10 @@ aoclsparse_status aoclsparse_set_2m_hint(aoclsparse_matrix          A,
                                          const aoclsparse_mat_descr descr,
                                          aoclsparse_int             expected_no_of_calls)
 {
+    if(!A)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
     //check descriptor
     if(descr == nullptr)
     {
@@ -693,6 +705,10 @@ aoclsparse_status aoclsparse_set_lu_smoother_hint(aoclsparse_matrix          A,
                                                   const aoclsparse_mat_descr descr,
                                                   aoclsparse_int             expected_no_of_calls)
 {
+    if(!A)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
     //check descriptor
     if(descr == nullptr)
     {
