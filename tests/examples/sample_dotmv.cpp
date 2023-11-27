@@ -89,10 +89,6 @@ int main(void)
         std::cout << y[i] << (oki ? " " : "!  ");
         ok &= oki;
     }
-    // std::cout << std::endl;
-    // std::cout << "Output Vector:" << std::endl;
-    // for(aoclsparse_int i = 0; i < M; i++)
-    //     std::cout << "y[" << i << "] = "y[i] << std::endl;
 
     oki = std::abs(d - d_exp) <= tol;
     std::cout << std::endl << "Output dot product: " << d << (oki ? " " : "!  ") << std::endl;

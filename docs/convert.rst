@@ -1,5 +1,5 @@
-.. 
-   Copyright (c) 2023 Advanced Micro Devices, Inc.
+..
+   Copyright (c) 2023-2024 Advanced Micro Devices, Inc.
 ..
    Permission is hereby granted, free of charge, to any person obtaining a copy
    of this software and associated documentation files (the "Software"), to deal
@@ -19,28 +19,72 @@
    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
    SOFTWARE.
 
-AOCL-Sparse Conversion Subprogram
-*********************************
+Conversion Functions
+********************
 
 ``aoclsparse_convert.h`` provides sparse format conversion functions.
 
+aoclsparse_csr2ell_width()
+--------------------------
+
 .. doxygenfunction:: aoclsparse_csr2ell_width
+
+aoclsparse\_?csr2ell()
+----------------------
+
 .. doxygenfunction:: aoclsparse_scsr2ell
+    :outline:
 .. doxygenfunction:: aoclsparse_dcsr2ell
+
+aoclsparse_csr2dia_ndiag()
+--------------------------
+
 .. doxygenfunction:: aoclsparse_csr2dia_ndiag
+
+aoclsparse\_?csr2dia()
+----------------------
+
 .. doxygenfunction:: aoclsparse_scsr2dia
+    :outline:
 .. doxygenfunction:: aoclsparse_dcsr2dia
+
+aoclsparse_csr2bsr_nnz()
+------------------------
+
 .. doxygenfunction:: aoclsparse_csr2bsr_nnz
+
+aoclsparse\_?csr2bsr()
+----------------------
+
 .. doxygenfunction:: aoclsparse_scsr2bsr
+    :outline:
 .. doxygenfunction:: aoclsparse_dcsr2bsr
+
+aoclsparse\_?csr2csc()
+----------------------
+
 .. doxygenfunction:: aoclsparse_scsr2csc
+    :outline:
 .. doxygenfunction:: aoclsparse_dcsr2csc
+    :outline:
 .. doxygenfunction:: aoclsparse_ccsr2csc
+    :outline:
 .. doxygenfunction:: aoclsparse_zcsr2csc
+
+aoclsparse\_?csr2dense()
+------------------------
+
 .. doxygenfunction:: aoclsparse_scsr2dense
+    :outline:
 .. doxygenfunction:: aoclsparse_dcsr2dense
+    :outline:
 .. doxygenfunction:: aoclsparse_ccsr2dense
+    :outline:
 .. doxygenfunction:: aoclsparse_zcsr2dense
+
+aoclsparse_convert_csr()
+------------------------
+
 .. doxygenfunction:: aoclsparse_convert_csr
 
 ..

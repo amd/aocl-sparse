@@ -1,5 +1,5 @@
 # ##############################################################################
-# Copyright (c) 2022-2023 Advanced Micro Devices, Inc.
+# Copyright (c) 2022-2024 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -63,6 +63,16 @@ if(NOT ${EXIT_CODE} EQUAL 0)
   message(
     FATAL_ERROR
       "Python3 package sphinxcontrib.bibtex is required to build the documentation\n   Use: ${Python3_EXECUTABLE} -m pip install sphinxcontrib.bibtex"
+  )
+endif()
+execute_process(
+  COMMAND ${Python3_EXECUTABLE} -c "import sphinx_collapse"
+  RESULT_VARIABLE EXIT_CODE
+  OUTPUT_QUIET)
+if(NOT ${EXIT_CODE} EQUAL 0)
+  message(
+    FATAL_ERROR
+      "Python3 package sphinx_collapse is required to build the documentation\n   Use: ${Python3_EXECUTABLE} -m pip install sphinx_collapse"
   )
 endif()
 
@@ -147,7 +157,7 @@ string(TIMESTAMP YEAR "%Y")
 add_custom_target(
   update_doc_dates
   # update copyright years
-  COMMAND ${SED} -i -e 
+  COMMAND ${SED} -i -e
   "s/\\(^[[:space:]]*copyright[[:space:]]*=[[:space:]]*'\\)\\([0-9]\\{4\\}-\\)\\([0-9]\\{4\\}\\)/\\1${INITIAL_YEAR}-${YEAR}/" conf.py
   # update release / version number
   COMMAND ${SED} -i -e "s/\\(^[[:space:]]*release[[:space:]]*=\\)\\(.*\\)/\\1\'${AOCLSPARSE_VERSION}\'/" conf.py
@@ -179,9 +189,9 @@ add_custom_target(
     ${SPHINX_BUILD}/latex/
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   COMMAND
-    cd ${SPHINX_BUILD}/latex && make 
+    cd ${SPHINX_BUILD}/latex && make
     && cp -v ${SPHINX_BUILD}/latex/aocl-sparse.pdf ${CMAKE_CURRENT_SOURCE_DIR}/AOCL-Sparse_API_Guide.pdf
-    && mv ${SPHINX_BUILD}/latex/aocl-sparse.pdf ${SPHINX_BUILD}/latex/${PDF_DOC_NAME}.pdf 
+    && mv ${SPHINX_BUILD}/latex/aocl-sparse.pdf ${SPHINX_BUILD}/latex/${PDF_DOC_NAME}.pdf
   DEPENDS doxygen_xml latexdeps_sphinx.pdf
   COMMENT "Generating PDF documentation")
 

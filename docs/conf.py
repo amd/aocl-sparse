@@ -1,5 +1,5 @@
 # ##############################################################################
-# Copyright (c) 2023 Advanced Micro Devices, Inc.
+# Copyright (c) 2023-2024 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -25,14 +25,13 @@
 
 # -- Project information -----------------------------------------------------
 project = 'AOCL-Sparse'
-copyright = '2020-2023, Advanced Micro Devices, Inc'
+copyright = '2020-2024, Advanced Micro Devices, Inc'
 author = 'Advanced Micro Devices, Inc'
 version = ''
 release ='4.2.0.0'
 
-
 # -- General configuration ---------------------------------------------------
-extensions = ['sphinxcontrib.bibtex', 'breathe']
+extensions = ['sphinxcontrib.bibtex', 'breathe', 'sphinx_collapse']
 bibtex_bibfiles = ['refs.bib']
 bibtex_reference_style = 'author_year'
 breathe_default_project = 'aocl-sparse'
@@ -40,11 +39,18 @@ breathe_default_project = 'aocl-sparse'
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_template']
 
-# -- Options for HTML output -------------------------------------------------
+# -- MathJax -----------------------------------------------------------------
+mathjax3_config = {
+    'chtml' : {
+        'mtextInheritFont' : 'true',
+    }
+}
 
+# -- Options for HTML output -------------------------------------------------
 html_theme = 'rocm_docs_theme'
 html_theme_options = {
     "link_main_doc": False,
     "flavor": "local",
     "repository_provider" : None,
+    "navigation_with_keys" : False,
 }

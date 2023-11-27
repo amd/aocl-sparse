@@ -1,5 +1,5 @@
-.. 
-   Copyright (c) 2023 Advanced Micro Devices, Inc.
+..
+   Copyright (c) 2023-2024 Advanced Micro Devices, Inc.
 ..
    Permission is hereby granted, free of charge, to any person obtaining a copy
    of this software and associated documentation files (the "Software"), to deal
@@ -19,8 +19,8 @@
    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
    SOFTWARE.
 
-AOCL-Sparse Iterative Linear System Solvers
-*******************************************
+Iterative Linear System Solvers
+*******************************
 
 .. _itsol_intro:
 
@@ -36,20 +36,20 @@ AOCL-Sparse Iterative Solver Suite (itsol) is an iterative framework for solving
 where :math:`A` is a sparse full-rank square matrix of size :math:`n` by :math:`n`, :math:`b` is a dense :math:`n`-vector, and :math:`x` is the vector of unknowns also of size :math:`n`.
 The framework solves the previous problem using either the Conjugate Gradient method or GMRES. It supports a variety of preconditioners (*accelerators*) such as
 Symmetric Gauss-Seidel or Incomplete LU factorization, ILU(0).
- 
+
 Iterative solvers at each step (iteration) find a better approximation to the solution of the linear system of equations in the sense that it reduces an error metric.
-In contrast, direct solvers only provide a solution once the full algorithm as been executed. A great advantage of iterative solvers is that they can be 
+In contrast, direct solvers only provide a solution once the full algorithm as been executed. A great advantage of iterative solvers is that they can be
 interrupted once an approximate solution is deemed acceptable.
 
 Forward and Reverse Communication Interfaces
 --------------------------------------------
 
-The suite presents two separate interfaces to all the iterative solvers, a direct one, :cpp:func:`aoclsparse_itsol_d_rci_solve` (:cpp:func:`aoclsparse_itsol_s_rci_solve`),
+The suite presents two separate interfaces to all the iterative solvers, a direct one, :cpp:func:`aoclsparse_itsol_d_solve` (:cpp:func:`aoclsparse_itsol_s_solve`),
 and a reverse communication (RCI) one :cpp:func:`aoclsparse_itsol_d_rci_solve` (:cpp:func:`aoclsparse_itsol_s_rci_solve`). While the underlying algorithms are exactly the same,
 the difference lies in how data is communicated to the solvers.
 
-The direct communication interface expects to have explicit access to the coefficient matrix :math:`A`. On the other hand, the reverse communication interface makes 
-no assumption on the matrix storage. Thus when the solver requires some matrix operation such as a 
+The direct communication interface expects to have explicit access to the coefficient matrix :math:`A`. On the other hand, the reverse communication interface makes
+no assumption on the matrix storage. Thus when the solver requires some matrix operation such as a
 matrix-vector product, it returns control to the user and asks the user perform the operation and provide the results by calling again the RCI solver.
 
 Recommended Workflow
@@ -59,44 +59,30 @@ For solving a linear system of equations, the following workflow is recommended:
 
 - Call :cpp:func:`aoclsparse_itsol_s_init` or :cpp:func:`aoclsparse_itsol_d_init` to initialize aoclsparse_itsol_handle.
 - Choose the solver and adjust its behaviour by setting optional parameters with :cpp:func:`aoclsparse_itsol_option_set`, see there all options available.
-- If the reverse communication interface is desired, define the system's input with :cpp:func:`aoclsparse_itsol_d_rci_input`.
-- Solve the system with either using direct interface :cpp:func:`aoclsparse_itsol_s_solve` (or :cpp:func:`aoclsparse_itsol_d_solve`) or 
+- If the reverse communication interface is desired, define the system's input with
+  :cpp:func:`aoclsparse_itsol_s_rci_input` (or :cpp:func:`aoclsparse_itsol_d_rci_input`).
+- Solve the system with either using direct interface :cpp:func:`aoclsparse_itsol_s_solve` (or :cpp:func:`aoclsparse_itsol_d_solve`) or
   reverse communication interface :cpp:func:`aoclsparse_itsol_s_rci_solve` (or :cpp:func:`aoclsparse_itsol_d_rci_solve`)
 - Free the memory with :cpp:func:`aoclsparse_itsol_destroy`.
 
 Information Array
 -----------------
 
-The array ``rinfo[100]`` is used by the solvers (e.g. :cpp:func:`aoclsparse_itsol_d_solve` or :cpp:func:`aoclsparse_itsol_s_rci_solve`) to report 
-back useful convergence metrics and other solver statistics. 
+The array ``rinfo[100]`` is used by the solvers (e.g. :cpp:func:`aoclsparse_itsol_s_solve` or :cpp:func:`aoclsparse_itsol_d_rci_solve`) to report
+back useful convergence metrics and other solver statistics.
 The user callback ``monit`` is also equipped with this array and can be used
 to view or monitor the state of the solver.
 The solver will populate the following entries with the most recent iteration data
 
-.. csv-table:: 
+.. csv-table::
    :header: "Index", "Description"
    :widths: 10, 40
 
-   "0", "Absolute residual norm, :math:`r_{\mbox{abs}} = \| Ax-b\|_2`."
+   "0", "Absolute residual norm, :math:`r_{\text{abs}} = \| Ax-b\|_2`."
    "1", "Norm of the right-hand side vector :math:`b`, :math:`\|b\|_2`."
    "2-29", "Reserved for future use."
    "30", "Iteration counter."
    "31-99", "Reserved for future use."
-
-Examples
---------
-
-Each iterative solver in the itsol suite is provided with an illustrative example on its usage. The source file for the examples can be found under the
-``tests/examples/`` folder.
-
-.. csv-table:: 
-   :header: "Solver", "Precision", "Filename", "Description"
-   :widths: 30, 10, 30, 40
-
-   "itsol forward communication interface", "double", "``sample_itsol_d_cg.cpp``", "Solves a linear system of equations using the Conjugate Gradient method."
-   "", "single", "``sample_itsol_s_cg.cpp``", ""
-   "itsol reverse communication interface", "double", "``sample_itsol_d_cg_rci.cpp``", "Solves a linear system of equations using the Conjugate Gradient method."
-   "", "single", "``sample_itsol_s_cg_rci.cpp``", ""
 
 References
 ----------
@@ -110,18 +96,56 @@ References
 API documentation
 =================
 
-.. doxygentypedef:: aoclsparse_itsol_rci_job
-.. doxygenenum:: aoclsparse_itsol_rci_job_
+.. .. doxygentypedef:: aoclsparse_itsol_rci_job
+.. .. doxygenenum:: aoclsparse_itsol_rci_job_
+
+aoclsparse_itsol_rci_job
+------------------------
+
+.. doxygenenum:: aoclsparse_itsol_rci_job
+
+aoclsparse_itsol\_?_init()
+---------------------------
+
+.. doxygenfunction:: aoclsparse_itsol_s_init
+    :outline:
+.. doxygenfunction:: aoclsparse_itsol_d_init
+
+aoclsparse_itsol_destroy()
+--------------------------
+
+.. doxygenfunction:: aoclsparse_itsol_destroy
+
+aoclsparse_itsol\_?_solve()
+----------------------------
+
+.. doxygenfunction:: aoclsparse_itsol_s_solve
+    :outline:
+.. doxygenfunction:: aoclsparse_itsol_d_solve
+
+aoclsparse_itsol_option_set()
+-----------------------------
+
+.. doxygenfunction:: aoclsparse_itsol_option_set
+
+
+aoclsparse_itsol_handle_prn_options()
+-------------------------------------
 
 .. doxygenfunction:: aoclsparse_itsol_handle_prn_options
-.. doxygenfunction:: aoclsparse_itsol_option_set
-.. doxygenfunction:: aoclsparse_itsol_d_init
-.. doxygenfunction:: aoclsparse_itsol_s_init
-.. doxygenfunction:: aoclsparse_itsol_destroy
-.. doxygenfunction:: aoclsparse_itsol_d_rci_input
+
+aoclsparse_itsol\_?_rci_input()
+--------------------------------
+
 .. doxygenfunction:: aoclsparse_itsol_s_rci_input
-.. doxygenfunction:: aoclsparse_itsol_d_rci_solve
+    :outline:
+.. doxygenfunction:: aoclsparse_itsol_d_rci_input
+
+aoclsparse_itsol\_?_rci_solve()
+--------------------------------
+
 .. doxygenfunction:: aoclsparse_itsol_s_rci_solve
-.. doxygenfunction:: aoclsparse_itsol_d_solve
-.. doxygenfunction:: aoclsparse_itsol_s_solve
+    :outline:
+.. doxygenfunction:: aoclsparse_itsol_d_rci_solve
+
 

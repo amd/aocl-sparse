@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -73,9 +73,8 @@ inline aoclsparse_status
     T              val;
     if(opA == aoclsparse_operation_none)
     {
-        rowp_b
-            = rowp_b
-              - base_a; // Correction required for 1-based index as colidx_a is used for indirection
+        // Correction required for 1-based index as colidx_a is used for indirection
+        rowp_b = rowp_b - base_a;
         for(i = 0; i < m_a; i++)
         {
             // compute the values of ith row of C (Ci)
@@ -155,9 +154,8 @@ inline aoclsparse_status
     T              val;
     if(opA == aoclsparse_operation_none)
     {
-        rowp_b
-            = rowp_b
-              - base_a; // correction required for 1-based index as colidx_a is used for indirection
+        // correction required for 1-based index as colidx_a is used for indirection
+        rowp_b = rowp_b - base_a;
         for(i = 0; i < m_a; i++)
         {
             ci = i * ldc;

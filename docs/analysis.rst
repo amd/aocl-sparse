@@ -19,19 +19,70 @@
    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
    SOFTWARE.
 
-AOCL-Sparse Analysis Functions
-******************************
+Analysis Functions
+******************
 
+
+aoclsparse_optimize()
+---------------------
 
 .. doxygenfunction:: aoclsparse_optimize
-.. doxygenfunction:: aoclsparse_set_mv_hint
-.. doxygenfunction:: aoclsparse_set_sv_hint
-.. doxygenfunction:: aoclsparse_set_mm_hint
-.. doxygenfunction:: aoclsparse_set_2m_hint
-.. doxygenfunction:: aoclsparse_set_dotmv_hint
-.. doxygenfunction:: aoclsparse_set_symgs_hint
-.. doxygenfunction:: aoclsparse_set_lu_smoother_hint
-.. doxygenfunction:: aoclsparse_set_sm_hint
-.. doxygenfunction:: aoclsparse_set_sorv_hint
-.. doxygenfunction:: aoclsparse_set_memory_hint
 
+aoclsparse_set_*_hint()
+-----------------------
+
+.. aoclsparse_set_mv_hint()
+.. ------------------------
+
+.. doxygenfunction:: aoclsparse_set_mv_hint
+   :outline:
+
+.. aoclsparse_set_sv_hint()
+.. ------------------------
+
+.. doxygenfunction:: aoclsparse_set_sv_hint
+   :outline:
+
+.. aoclsparse_set_mm_hint()
+.. ------------------------
+
+.. doxygenfunction:: aoclsparse_set_mm_hint
+   :outline:
+
+.. aoclsparse_set_2m_hint()
+.. ------------------------
+
+.. doxygenfunction:: aoclsparse_set_2m_hint
+
+.. aoclsparse_set_lu_smoother_hint()
+.. ---------------------------------
+
+.. doxygenfunction:: aoclsparse_set_lu_smoother_hint
+   :outline:
+
+.. aoclsparse_set_symgs_hint()
+.. ---------------------------
+
+.. doxygenfunction:: aoclsparse_set_symgs_hint
+   :outline:
+
+.. aoclsparse_set_dotmv_hint()
+.. ---------------------------
+
+.. doxygenfunction:: aoclsparse_set_dotmv_hint
+
+
+.. aoclsparse_set_sm_hint()
+.. ------------------------
+
+.. doxygenfunction:: aoclsparse_set_sm_hint
+
+.. aoclsparse_set_sorv_hint()
+.. --------------------------
+
+.. doxygenfunction:: aoclsparse_set_sorv_hint
+
+.. aoclsparse_set_memory_hint()
+.. -----------------------------
+
+.. doxygenfunction:: aoclsparse_set_memory_hint
