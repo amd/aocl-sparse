@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -58,13 +58,13 @@ namespace
     }
 
     template <typename T>
-    void init_csr_mat(aoclsparse_matrix           &A,
-                      std::vector<aoclsparse_int> &idx_ptr,
-                      std::vector<aoclsparse_int> &idx,
-                      std::vector<T>              &val,
-                      aoclsparse_matrix_type       type,
-                      aoclsparse_index_base        base,
-                      aoclsparse_fill_mode         fill_mode)
+    void init_non_unit_diag_csr_mat(aoclsparse_matrix           &A,
+                                    std::vector<aoclsparse_int> &idx_ptr,
+                                    std::vector<aoclsparse_int> &idx,
+                                    std::vector<T>              &val,
+                                    aoclsparse_matrix_type       type,
+                                    aoclsparse_index_base        base,
+                                    aoclsparse_fill_mode         fill_mode)
     {
         aoclsparse_int m, n, nnz;
         // Initialise matrix. Only lower part is used for general matrix
@@ -187,25 +187,16 @@ namespace
     }
 
     template <typename T>
-    void init(aoclsparse_matrix           &A,
-              std::vector<aoclsparse_int> &idx_ptr,
-              std::vector<aoclsparse_int> &idx,
-              std::vector<T>              &val,
-              T                           &alpha,
-              T                           &beta,
-              std::vector<T>              &y,
-              std::vector<T>              &x,
-              std::vector<T>              &y_exp,
-              T                           &d_exp,
-              aoclsparse_matrix_type       type,
-              aoclsparse_index_base        base,
-              aoclsparse_fill_mode         fill_mode,
-              aoclsparse_operation         op)
+    void init_non_unit_diag_exp_out(T                     &alpha,
+                                    T                     &beta,
+                                    std::vector<T>        &y,
+                                    std::vector<T>        &x,
+                                    std::vector<T>        &y_exp,
+                                    T                     &d_exp,
+                                    aoclsparse_matrix_type type,
+                                    aoclsparse_fill_mode   fill_mode,
+                                    aoclsparse_operation   op)
     {
-        // fill CSR data
-        init_csr_mat<T>(A, idx_ptr, idx, val, type, base, fill_mode);
-
-        // fill expected output, alpha, beta
         if constexpr(std::is_same_v<T, aoclsparse_double_complex>
                      || std::is_same_v<T, aoclsparse_float_complex>)
         {
@@ -264,7 +255,7 @@ namespace
                 }
             }
             else
-            {
+            { // triangular and general matrix
                 if(op == aoclsparse_operation_none)
                 {
                     d_exp = {40.0, 488.0};
@@ -338,7 +329,7 @@ namespace
                 y_exp.assign({8.0, 18.0, 10.0, 42.0, 16.0});
             }
             else
-            {
+            { // triangular and general matrix
                 d_exp = 132.0;
                 if(((op == aoclsparse_operation_none) && (fill_mode == aoclsparse_fill_mode_lower))
                    || (((op == aoclsparse_operation_transpose)
@@ -366,6 +357,260 @@ namespace
                     }
                 }
             }
+        }
+    }
+
+    template <typename T>
+    void init_zero_unit_diag_csr_mat(aoclsparse_matrix           &A,
+                                     std::vector<aoclsparse_int> &idx_ptr,
+                                     std::vector<aoclsparse_int> &idx,
+                                     std::vector<T>              &val,
+                                     aoclsparse_matrix_type       type,
+                                     aoclsparse_index_base        base,
+                                     aoclsparse_fill_mode         fill_mode)
+    {
+        aoclsparse_int m, n, nnz;
+        // Initialise matrix
+        //  | 0  1  2  3  4
+        // -|---------------
+        // 0| 0/1  0   0   2   0
+        // 1|  0  0/1  0   5   0
+        // 2|  0   0  0/1  0   0
+        // 3|  2   5   0  0/1  7
+        // 4|  0   0   0   7  0/1
+        if((type == aoclsparse_matrix_type_symmetric) || (type == aoclsparse_matrix_type_hermitian))
+            m = 5, n = 5, nnz = 3;
+        else if(type == aoclsparse_matrix_type_triangular)
+            m = 5, n = 5, nnz = 6;
+
+        if(type == aoclsparse_matrix_type_triangular)
+        {
+            idx_ptr.assign({0 + base, 1 + base, 2 + base, 2 + base, 5 + base, 6 + base});
+            idx.assign({3 + base, 3 + base, 0 + base, 1 + base, 4 + base, 3 + base});
+            if constexpr(std::is_same_v<T, aoclsparse_double_complex>
+                         || std::is_same_v<T, aoclsparse_float_complex>)
+            {
+                val.assign(
+                    {{2.0, 2.0}, {5.0, 5.0}, {2.0, 2.0}, {5.0, 5.0}, {7.0, 7.0}, {7.0, 7.0}});
+            }
+            else if constexpr(std::is_same_v<T, double> || std::is_same_v<T, float>)
+            {
+                val.assign({2.0, 5.0, 2.0, 5.0, 7.0, 7.0});
+            }
+        }
+        else
+        {
+            if(fill_mode == aoclsparse_fill_mode_lower)
+            {
+                idx_ptr.assign({0 + base, 0 + base, 0 + base, 0 + base, 2 + base, 3 + base});
+                idx.assign({0 + base, 1 + base, 3 + base});
+            }
+            else
+            {
+                idx_ptr.assign({0 + base, 1 + base, 2 + base, 2 + base, 3 + base, 3 + base});
+                idx.assign({3 + base, 3 + base, 4 + base});
+            }
+
+            if constexpr(std::is_same_v<T, aoclsparse_double_complex>
+                         || std::is_same_v<T, aoclsparse_float_complex>)
+            {
+                val.assign({{2.0, 2.0}, {5.0, 5.0}, {7.0, 7.0}});
+            }
+            else if constexpr(std::is_same_v<T, double> || std::is_same_v<T, float>)
+            {
+                val.assign({2.0, 5.0, 7.0});
+            }
+        }
+        ASSERT_EQ(
+            aoclsparse_create_csr<T>(&A, base, m, n, nnz, idx_ptr.data(), idx.data(), val.data()),
+            aoclsparse_status_success);
+    }
+
+    template <typename T>
+    void init_zero_unit_diag_exp_out(T                     &alpha,
+                                     T                     &beta,
+                                     std::vector<T>        &y,
+                                     std::vector<T>        &x,
+                                     std::vector<T>        &y_exp,
+                                     T                     &d_exp,
+                                     aoclsparse_matrix_type type,
+                                     aoclsparse_fill_mode   fill_mode,
+                                     aoclsparse_operation   op,
+                                     aoclsparse_diag_type   diag_type)
+    {
+        if constexpr(std::is_same_v<T, aoclsparse_double_complex>
+                     || std::is_same_v<T, aoclsparse_float_complex>)
+        {
+            alpha = {1.0, 1.0}, beta = {2.0, 2.0};
+            y.assign({{1.0, 1.0}, {1.0, 1.0}, {1.0, 1.0}, {1.0, 1.0}, {1.0, 1.0}});
+            x.assign({{2.0, 2.0}, {2.0, 2.0}, {2.0, 2.0}, {2.0, 2.0}, {2.0, 2.0}});
+
+            if(type == aoclsparse_matrix_type_symmetric)
+            {
+                if(op == aoclsparse_operation_conjugate_transpose)
+                {
+                    d_exp = {488.0, 40.0};
+                    y_exp.assign(
+                        {{8.0, 12.0}, {20.0, 24.0}, {0.0, 4.0}, {56.0, 60.0}, {28.0, 32.0}});
+                }
+                else
+                {
+                    d_exp = {40.0, 488.0};
+                    y_exp.assign(
+                        {{-8.0, 12.0}, {-20.0, 24.0}, {0.0, 4.0}, {-56.0, 60.0}, {-28.0, 32.0}});
+                }
+            }
+            else if(type == aoclsparse_matrix_type_hermitian)
+            {
+                d_exp = {264.0, 264.0};
+                if(fill_mode == aoclsparse_fill_mode_lower)
+                {
+                    if((op == aoclsparse_operation_none)
+                       || (op == aoclsparse_operation_conjugate_transpose))
+                    {
+                        y_exp.assign(
+                            {{8.0, 12.0}, {20.0, 24.0}, {0.0, 4.0}, {0.0, 60.0}, {-28.0, 32.0}});
+                    }
+                    else
+                    {
+                        y_exp.assign(
+                            {{-8.0, 12.0}, {-20.0, 24.0}, {0.0, 4.0}, {0.0, 60.0}, {28.0, 32.0}});
+                    }
+                }
+                else
+                {
+                    if((op == aoclsparse_operation_none)
+                       || (op == aoclsparse_operation_conjugate_transpose))
+                    {
+                        y_exp.assign(
+                            {{-8.0, 12.0}, {-20.0, 24.0}, {0.0, 4.0}, {0.0, 60.0}, {28.0, 32.0}});
+                    }
+                    else
+                    {
+                        y_exp.assign(
+                            {{8.0, 12.0}, {20.0, 24.0}, {0.0, 4.0}, {0.0, 60.0}, {-28.0, 32.0}});
+                    }
+                }
+            }
+            else
+            { // triangular matrix
+                if(op == aoclsparse_operation_none)
+                {
+                    d_exp = {40.0, 264.0};
+                    if(fill_mode == aoclsparse_fill_mode_lower)
+                        y_exp.assign(
+                            {{0.0, 4.0}, {0.0, 4.0}, {0.0, 4.0}, {-28.0, 32.0}, {-28.0, 32.0}});
+                    else
+                        y_exp.assign(
+                            {{-8.0, 12.0}, {-20.0, 24.0}, {0.0, 4.0}, {-28.0, 32.0}, {0.0, 4.0}});
+                }
+                else if(op == aoclsparse_operation_transpose)
+                {
+                    d_exp = {40.0, 264.0};
+                    if(fill_mode == aoclsparse_fill_mode_lower)
+                        y_exp.assign(
+                            {{-8.0, 12.0}, {-20.0, 24.0}, {0.0, 4.0}, {-28.0, 32.0}, {0.0, 4.0}});
+                    else
+                        y_exp.assign(
+                            {{0.0, 4.0}, {0.0, 4.0}, {0.0, 4.0}, {-28.0, 32.0}, {-28.0, 32.0}});
+                }
+                else // aoclsparse_operation_conjugate_transpose
+                {
+                    d_exp = {264.0, 40};
+                    if(fill_mode == aoclsparse_fill_mode_lower)
+                    {
+                        y_exp.assign(
+                            {{8.0, 12.0}, {20.0, 24.0}, {0.0, 4.0}, {28.0, 32.0}, {0.0, 4.0}});
+                    }
+                    else
+                    {
+                        y_exp.assign(
+                            {{0.0, 4.0}, {0.0, 4.0}, {0.0, 4.0}, {28.0, 32.0}, {28.0, 32.0}});
+                    }
+                }
+            }
+            if(diag_type == aoclsparse_diag_type_unit)
+            {
+                d_exp.real += 40.0;
+                d_exp.imag += 40.0;
+                for(int i = 0; i < y_exp.size(); i++)
+                {
+                    y_exp[i].real += 0.0;
+                    y_exp[i].imag += 4.0;
+                }
+            }
+        }
+        else if constexpr(std::is_same_v<T, double> || std::is_same_v<T, float>)
+        {
+            alpha = 1.0, beta = 2.0;
+            x.assign({2.0, 2.0, 2.0, 2.0, 2.0});
+            y.assign({1.0, 1.0, 1.0, 1.0, 1.0});
+            if(type == aoclsparse_matrix_type_symmetric)
+            {
+                d_exp = 132.0;
+                y_exp.assign({6.0, 12.0, 2.0, 30.0, 16.0});
+            }
+            else
+            { // triangular matrix
+                d_exp = 76.0;
+                if(((op == aoclsparse_operation_none) && (fill_mode == aoclsparse_fill_mode_lower))
+                   || (((op == aoclsparse_operation_transpose)
+                        || (op == aoclsparse_operation_conjugate_transpose))
+                       && (fill_mode == aoclsparse_fill_mode_upper)))
+                {
+                    y_exp.assign({2.0, 2.0, 2.0, 16.0, 16.0});
+                }
+                else
+                {
+                    y_exp.assign({6.0, 12.0, 2.0, 16.0, 2.0});
+                }
+            }
+            if(diag_type == aoclsparse_diag_type_unit)
+            {
+                d_exp += 20.0;
+                for(int i = 0; i < y_exp.size(); i++)
+                {
+                    y_exp[i] += 2.0;
+                }
+            }
+        }
+    }
+
+    template <typename T>
+    void init(aoclsparse_matrix           &A,
+              std::vector<aoclsparse_int> &idx_ptr,
+              std::vector<aoclsparse_int> &idx,
+              std::vector<T>              &val,
+              T                           &alpha,
+              T                           &beta,
+              std::vector<T>              &y,
+              std::vector<T>              &x,
+              std::vector<T>              &y_exp,
+              T                           &d_exp,
+              aoclsparse_matrix_type       type,
+              aoclsparse_index_base        base,
+              aoclsparse_fill_mode         fill_mode,
+              aoclsparse_operation         op,
+              aoclsparse_diag_type         diag_type)
+    {
+        if(diag_type == aoclsparse_diag_type_non_unit)
+        {
+            // fill CSR data with non-unit diagonal
+            init_non_unit_diag_csr_mat<T>(A, idx_ptr, idx, val, type, base, fill_mode);
+
+            // fill expected output, alpha, beta
+            init_non_unit_diag_exp_out(alpha, beta, y, x, y_exp, d_exp, type, fill_mode, op);
+        }
+        else if(((diag_type == aoclsparse_diag_type_unit)
+                 || (diag_type == aoclsparse_diag_type_zero))
+                && (type != aoclsparse_matrix_type_general))
+        {
+            // fill CSR data with non-unit diagonal
+            init_zero_unit_diag_csr_mat<T>(A, idx_ptr, idx, val, type, base, fill_mode);
+
+            // fill expected output, alpha, beta
+            init_zero_unit_diag_exp_out(
+                alpha, beta, y, x, y_exp, d_exp, type, fill_mode, op, diag_type);
         }
     }
 
@@ -398,7 +643,8 @@ namespace
                 aoclsparse_matrix_type_general,
                 base,
                 aoclsparse_fill_mode_lower,
-                aoclsparse_operation_none);
+                aoclsparse_operation_none,
+                aoclsparse_diag_type_non_unit);
 
         // pass nullptr and expect pointer error
         EXPECT_EQ(aoclsparse_dotmv(op, alpha, nullptr, descr, x.data(), beta, y.data(), &d),
@@ -442,7 +688,8 @@ namespace
                 aoclsparse_matrix_type_general,
                 base,
                 aoclsparse_fill_mode_lower,
-                aoclsparse_operation_none);
+                aoclsparse_operation_none,
+                aoclsparse_diag_type_non_unit);
         aoclsparse_create_mat_descr(&descr);
 
         // wrong data type
@@ -506,6 +753,7 @@ namespace
                     aoclsparse_index_base  base,
                     aoclsparse_fill_mode   fill_mode,
                     aoclsparse_operation   op,
+                    aoclsparse_diag_type   diag_type,
                     aoclsparse_status      status)
     {
         T                           alpha, beta;
@@ -516,11 +764,26 @@ namespace
         aoclsparse_matrix           A     = nullptr;
         aoclsparse_mat_descr        descr = nullptr;
 
-        init<T>(A, idx_ptr, idx, val, alpha, beta, y, x, y_exp, d_exp, type, base, fill_mode, op);
+        init<T>(A,
+                idx_ptr,
+                idx,
+                val,
+                alpha,
+                beta,
+                y,
+                x,
+                y_exp,
+                d_exp,
+                type,
+                base,
+                fill_mode,
+                op,
+                diag_type);
         aoclsparse_create_mat_descr(&descr);
         aoclsparse_set_mat_index_base(descr, base);
         aoclsparse_set_mat_type(descr, type);
         aoclsparse_set_mat_fill_mode(descr, fill_mode);
+        aoclsparse_set_mat_diag_type(descr, diag_type);
         {
             SCOPED_TRACE(testcase);
             EXPECT_EQ(aoclsparse_dotmv(op, alpha, A, descr, x.data(), beta, y.data(), &d), status);
@@ -534,7 +797,8 @@ namespace
 
     void test_dotmv_combs(std::string            testcase,
                           aoclsparse_matrix_type type,
-                          aoclsparse_index_base  base)
+                          aoclsparse_index_base  base,
+                          aoclsparse_diag_type   diag_type)
     {
         aoclsparse_status status = aoclsparse_status_success;
 
@@ -547,36 +811,42 @@ namespace
                            base,
                            aoclsparse_fill_mode_lower,
                            aoclsparse_operation_none,
+                           diag_type,
                            status);
         test_dotmv<double>(testcase + "-12",
                            type,
                            base,
                            aoclsparse_fill_mode_upper,
                            aoclsparse_operation_none,
+                           diag_type,
                            status);
         test_dotmv<double>(testcase + "-13",
                            type,
                            base,
                            aoclsparse_fill_mode_lower,
                            aoclsparse_operation_transpose,
+                           diag_type,
                            status);
         test_dotmv<double>(testcase + "-14",
                            type,
                            base,
                            aoclsparse_fill_mode_upper,
                            aoclsparse_operation_transpose,
+                           diag_type,
                            status);
         test_dotmv<double>(testcase + "-15",
                            type,
                            base,
                            aoclsparse_fill_mode_lower,
                            aoclsparse_operation_conjugate_transpose,
+                           diag_type,
                            status);
         test_dotmv<double>(testcase + "-16",
                            type,
                            base,
                            aoclsparse_fill_mode_upper,
                            aoclsparse_operation_conjugate_transpose,
+                           diag_type,
                            status);
 
         // 2) Testcases for float data type
@@ -589,36 +859,42 @@ namespace
                           base,
                           aoclsparse_fill_mode_lower,
                           aoclsparse_operation_none,
+                          diag_type,
                           status);
         test_dotmv<float>(testcase + "-22",
                           type,
                           base,
                           aoclsparse_fill_mode_upper,
                           aoclsparse_operation_none,
+                          diag_type,
                           status);
         test_dotmv<float>(testcase + "-23",
                           type,
                           base,
                           aoclsparse_fill_mode_lower,
                           aoclsparse_operation_transpose,
+                          diag_type,
                           status);
         test_dotmv<float>(testcase + "-24",
                           type,
                           base,
                           aoclsparse_fill_mode_upper,
                           aoclsparse_operation_transpose,
+                          diag_type,
                           status);
         test_dotmv<float>(testcase + "-25",
                           type,
                           base,
                           aoclsparse_fill_mode_lower,
                           aoclsparse_operation_conjugate_transpose,
+                          diag_type,
                           status);
         test_dotmv<float>(testcase + "-26",
                           type,
                           base,
                           aoclsparse_fill_mode_upper,
                           aoclsparse_operation_conjugate_transpose,
+                          diag_type,
                           status);
 
         // 3) Testcases for complex float data type
@@ -628,36 +904,42 @@ namespace
                                              base,
                                              aoclsparse_fill_mode_lower,
                                              aoclsparse_operation_none,
+                                             diag_type,
                                              status);
         test_dotmv<aoclsparse_float_complex>(testcase + "-32",
                                              type,
                                              base,
                                              aoclsparse_fill_mode_upper,
                                              aoclsparse_operation_none,
+                                             diag_type,
                                              status);
         test_dotmv<aoclsparse_float_complex>(testcase + "-33",
                                              type,
                                              base,
                                              aoclsparse_fill_mode_lower,
                                              aoclsparse_operation_transpose,
+                                             diag_type,
                                              status);
         test_dotmv<aoclsparse_float_complex>(testcase + "-34",
                                              type,
                                              base,
                                              aoclsparse_fill_mode_upper,
                                              aoclsparse_operation_transpose,
+                                             diag_type,
                                              status);
         test_dotmv<aoclsparse_float_complex>(testcase + "-35",
                                              type,
                                              base,
                                              aoclsparse_fill_mode_lower,
                                              aoclsparse_operation_conjugate_transpose,
+                                             diag_type,
                                              status);
         test_dotmv<aoclsparse_float_complex>(testcase + "-36",
                                              type,
                                              base,
                                              aoclsparse_fill_mode_upper,
                                              aoclsparse_operation_conjugate_transpose,
+                                             diag_type,
                                              status);
 
         // 4) Testcases for complex double data type
@@ -667,36 +949,42 @@ namespace
                                               base,
                                               aoclsparse_fill_mode_lower,
                                               aoclsparse_operation_none,
+                                              diag_type,
                                               status);
         test_dotmv<aoclsparse_double_complex>(testcase + "-42",
                                               type,
                                               base,
                                               aoclsparse_fill_mode_upper,
                                               aoclsparse_operation_none,
+                                              diag_type,
                                               status);
         test_dotmv<aoclsparse_double_complex>(testcase + "-43",
                                               type,
                                               base,
                                               aoclsparse_fill_mode_lower,
                                               aoclsparse_operation_transpose,
+                                              diag_type,
                                               status);
         test_dotmv<aoclsparse_double_complex>(testcase + "-44",
                                               type,
                                               base,
                                               aoclsparse_fill_mode_upper,
                                               aoclsparse_operation_transpose,
+                                              diag_type,
                                               status);
         test_dotmv<aoclsparse_double_complex>(testcase + "-45",
                                               type,
                                               base,
                                               aoclsparse_fill_mode_lower,
                                               aoclsparse_operation_conjugate_transpose,
+                                              diag_type,
                                               status);
         test_dotmv<aoclsparse_double_complex>(testcase + "-46",
                                               type,
                                               base,
                                               aoclsparse_fill_mode_upper,
                                               aoclsparse_operation_conjugate_transpose,
+                                              diag_type,
                                               status);
     }
 
@@ -884,36 +1172,114 @@ namespace
 
     TEST(dotmv, SuccessGeneral)
     {
-        test_dotmv_combs(
-            "SuccessGeneral-ZeroBase", aoclsparse_matrix_type_general, aoclsparse_index_base_zero);
-        test_dotmv_combs(
-            "SuccessGeneral-OneBase", aoclsparse_matrix_type_general, aoclsparse_index_base_one);
+        // non-unit diagonal
+        test_dotmv_combs("SuccessGeneral-ZeroBase-NonUnitDiag",
+                         aoclsparse_matrix_type_general,
+                         aoclsparse_index_base_zero,
+                         aoclsparse_diag_type_non_unit);
+        test_dotmv_combs("SuccessGeneral-OneBase-NonUnitDiag",
+                         aoclsparse_matrix_type_general,
+                         aoclsparse_index_base_one,
+                         aoclsparse_diag_type_non_unit);
     }
 
     TEST(dotmv, SuccessSymm)
     {
-        test_dotmv_combs(
-            "SuccessSymm-ZeroBase", aoclsparse_matrix_type_symmetric, aoclsparse_index_base_zero);
-        test_dotmv_combs(
-            "SuccessSymm-OneBase", aoclsparse_matrix_type_symmetric, aoclsparse_index_base_one);
+        // non-unit diagonal
+        test_dotmv_combs("SuccessSymm-ZeroBase-NonUnitDiag",
+                         aoclsparse_matrix_type_symmetric,
+                         aoclsparse_index_base_zero,
+                         aoclsparse_diag_type_non_unit);
+        test_dotmv_combs("SuccessSymm-OneBase-NonUnitDiag",
+                         aoclsparse_matrix_type_symmetric,
+                         aoclsparse_index_base_one,
+                         aoclsparse_diag_type_non_unit);
+
+        // unit diagonal
+        test_dotmv_combs("SuccessSymm-ZeroBase-UnitDiag",
+                         aoclsparse_matrix_type_symmetric,
+                         aoclsparse_index_base_zero,
+                         aoclsparse_diag_type_unit);
+        test_dotmv_combs("SuccessSymm-OneBase-UnitDiag",
+                         aoclsparse_matrix_type_symmetric,
+                         aoclsparse_index_base_one,
+                         aoclsparse_diag_type_unit);
+
+        // zero diagonal
+        test_dotmv_combs("SuccessSymm-ZeroBase-ZeroDiag",
+                         aoclsparse_matrix_type_symmetric,
+                         aoclsparse_index_base_zero,
+                         aoclsparse_diag_type_zero);
+        test_dotmv_combs("SuccessSymm-OneBase-ZeroDiag",
+                         aoclsparse_matrix_type_symmetric,
+                         aoclsparse_index_base_one,
+                         aoclsparse_diag_type_zero);
     }
 
     TEST(dotmv, SuccessTraingular)
     {
-        test_dotmv_combs("SuccessTraingular-ZeroBase",
+        // non-unit diagonal
+        test_dotmv_combs("SuccessTraingular-ZeroBase-NonUnitDiag",
                          aoclsparse_matrix_type_triangular,
-                         aoclsparse_index_base_zero);
-        test_dotmv_combs("SuccessTraingular-OneBase",
+                         aoclsparse_index_base_zero,
+                         aoclsparse_diag_type_non_unit);
+        test_dotmv_combs("SuccessTraingular-OneBase-NonUnitDiag",
                          aoclsparse_matrix_type_triangular,
-                         aoclsparse_index_base_one);
+                         aoclsparse_index_base_one,
+                         aoclsparse_diag_type_non_unit);
+
+        // unit diagonal
+        test_dotmv_combs("SuccessTraingular-ZeroBase-UnitDiag",
+                         aoclsparse_matrix_type_triangular,
+                         aoclsparse_index_base_zero,
+                         aoclsparse_diag_type_unit);
+        test_dotmv_combs("SuccessTraingular-OneBase-UnitDiag",
+                         aoclsparse_matrix_type_triangular,
+                         aoclsparse_index_base_one,
+                         aoclsparse_diag_type_unit);
+
+        // zero diagonal
+        test_dotmv_combs("SuccessTraingular-ZeroBase-ZeroDiag",
+                         aoclsparse_matrix_type_triangular,
+                         aoclsparse_index_base_zero,
+                         aoclsparse_diag_type_zero);
+        test_dotmv_combs("SuccessTraingular-OneBase-ZeroDiag",
+                         aoclsparse_matrix_type_triangular,
+                         aoclsparse_index_base_one,
+                         aoclsparse_diag_type_zero);
     }
 
     TEST(dotmv, SuccessHerm)
     {
-        test_dotmv_combs(
-            "SuccessHerm-ZeroBase", aoclsparse_matrix_type_hermitian, aoclsparse_index_base_zero);
-        test_dotmv_combs(
-            "SuccessHerm-OneBase", aoclsparse_matrix_type_hermitian, aoclsparse_index_base_one);
+        // non-unit diagonal
+        test_dotmv_combs("SuccessHerm-ZeroBase-NonUnitDiag",
+                         aoclsparse_matrix_type_hermitian,
+                         aoclsparse_index_base_zero,
+                         aoclsparse_diag_type_non_unit);
+        test_dotmv_combs("SuccessHerm-OneBase-NonUnitDiag",
+                         aoclsparse_matrix_type_hermitian,
+                         aoclsparse_index_base_one,
+                         aoclsparse_diag_type_non_unit);
+
+        // unit diagonal
+        test_dotmv_combs("SuccessHerm-ZeroBase-UnitDiag",
+                         aoclsparse_matrix_type_hermitian,
+                         aoclsparse_index_base_zero,
+                         aoclsparse_diag_type_unit);
+        test_dotmv_combs("SuccessHerm-OneBase-UnitDiag",
+                         aoclsparse_matrix_type_hermitian,
+                         aoclsparse_index_base_one,
+                         aoclsparse_diag_type_unit);
+
+        // zero diagonal
+        test_dotmv_combs("SuccessHerm-ZeroBase-ZeroDiag",
+                         aoclsparse_matrix_type_hermitian,
+                         aoclsparse_index_base_zero,
+                         aoclsparse_diag_type_zero);
+        test_dotmv_combs("SuccessHerm-OneBase-ZeroDiag",
+                         aoclsparse_matrix_type_hermitian,
+                         aoclsparse_index_base_one,
+                         aoclsparse_diag_type_zero);
     }
 
 } // namespace
