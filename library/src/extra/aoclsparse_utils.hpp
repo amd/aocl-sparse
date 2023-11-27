@@ -101,7 +101,7 @@ namespace aoclsparse_numeric
 
 /* Convenience operator for comparing with zero<T>
  * These enable the comparisons
- * T a // for T \in { float, double, std::complex<float|double> and aoclsparse_?_complex }
+ * T a // for T \in { float, double, std::complex<float|double> and aoclsparse_*_complex }
  * a == zero<T> and a != zero<T>, as well as the swapped variants
  * zero<T> == a and zero<T> != a.
  *
@@ -142,7 +142,7 @@ constexpr bool operator!=(const aoclsparse_numeric::zero<T> &lhs, const T &rhs)
 }
 
 /*
-    Return aoclsparse_matrix_data_type based on the input type (s/d/c/z)
+    Return aoclsparse_matrix_data_type based on the input type
 */
 template <typename T>
 struct get_data_type

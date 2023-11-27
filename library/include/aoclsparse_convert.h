@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,7 +21,7 @@
  *
  * ************************************************************************ */
 /*! \file
- *  \brief aoclsparse_convert.h provides sparse format conversion subprograms
+ *  \brief aoclsparse_convert.h provides sparse format conversion functions
  */
 #ifndef AOCLSPARSE_CONVERT_H_
 #define AOCLSPARSE_CONVERT_H_
@@ -36,7 +36,7 @@ extern "C" {
 *  \brief Convert a sparse CSR matrix into a sparse ELL matrix
 *
 *  \details
-*  \p aoclsparse_csr2ell_width computes the maximum of the per row non-zero elements
+*  \P{aoclsparse_csr2ell_width} computes the maximum of the per row non-zero elements
 *  over all rows, the ELL \p width, for a given CSR matrix.
 *
 *  @param[in]
@@ -44,7 +44,7 @@ extern "C" {
 *  @param[in]
 *  nnz         number of non-zero entries of the sparse CSR matrix.
 *  @param[in]
-*  csr_row_ptr array of \p m+1 elements that point to the start of every row of the
+*  csr_row_ptr array of \p m +1 elements that point to the start of every row of the
 *              sparse CSR matrix.
 *  @param[out]
 *  ell_width   pointer to the number of non-zero elements per row in ELL storage
@@ -52,8 +52,8 @@ extern "C" {
 *
 *  \retval     aoclsparse_status_success the operation completed successfully.
 *  \retval     aoclsparse_status_invalid_size \p m is invalid.
-*  \retval     aoclsparse_status_invalid_pointer  \p csr\_row\_ptr, or
-*              \p ell\_width pointer is invalid.
+*  \retval     aoclsparse_status_invalid_pointer  \p csr_row_ptr, or
+*              \p ell_width pointer is invalid.
 *  \retval     aoclsparse_status_internal_error an internal error occurred.
 */
 DLL_PUBLIC
@@ -62,6 +62,7 @@ aoclsparse_status aoclsparse_csr2ell_width(aoclsparse_int        m,
                                            const aoclsparse_int *csr_row_ptr,
                                            aoclsparse_int       *ell_width);
 
+/* NOT DOCUMENTED ? */
 DLL_PUBLIC
 aoclsparse_status aoclsparse_csr2ellthyb_width(aoclsparse_int        m,
                                                aoclsparse_int        nnz,
@@ -73,10 +74,10 @@ aoclsparse_status aoclsparse_csr2ellthyb_width(aoclsparse_int        m,
 *  \brief Convert a sparse CSR matrix into a sparse ELLPACK matrix
 *
 *  \details
-*  \p aoclsparse_csr2ell converts a CSR matrix into an ELL matrix. It is assumed,
+*  \P{aoclsparse_?csr2ell} converts a CSR matrix into an ELL matrix. It is assumed,
 *  that \p ell_val and \p ell_col_ind are allocated. Allocation size is computed by the
 *  number of rows times the number of ELL non-zero elements per row, such that
-*  \f$\text{nnz}_{\text{ELL}} = m \cdot \text{ell\_width}\f$. The number of ELL
+*  \f$\text{nnz}_{\text{ELL}} \f$ is equal to \p m times \p ell_width. The number of ELL
 *  non-zero elements per row is obtained by aoclsparse_csr2ell_width().
 *  The index base is preserved during the conversion.
 *
@@ -89,7 +90,7 @@ aoclsparse_status aoclsparse_csr2ellthyb_width(aoclsparse_int        m,
 *  @param[in]
 *  csr_val     array containing the values of the sparse CSR matrix.
 *  @param[in]
-*  csr_row_ptr array of \p m+1 elements that point to the start of every row of the
+*  csr_row_ptr array of \p m +1 elements that point to the start of every row of the
 *              sparse CSR matrix.
 *  @param[in]
 *  csr_col_ind array containing the column indices of the sparse CSR matrix.
@@ -103,10 +104,10 @@ aoclsparse_status aoclsparse_csr2ellthyb_width(aoclsparse_int        m,
 *
 *  \retval     aoclsparse_status_success the operation completed successfully.
 *  \retval     aoclsparse_status_invalid_handle the library context was not initialized.
-*  \retval     aoclsparse_status_invalid_size \p m or \p ell\_width is invalid.
-*  \retval     aoclsparse_status_invalid_pointer \p csr\_val,
-*              \p csr_row_ptr, \p csr\_col\_ind,  \p ell\_val or
-*              \p ell\_col\_ind pointer is invalid.
+*  \retval     aoclsparse_status_invalid_size \p m or \p ell_width is invalid.
+*  \retval     aoclsparse_status_invalid_pointer \p csr_val,
+*              \p csr_row_ptr, \p csr_col_ind,  \p ell_val or
+*              \p ell_col_ind pointer is invalid.
 *
 */
 /**@{*/
@@ -131,6 +132,7 @@ aoclsparse_status aoclsparse_dcsr2ell(aoclsparse_int             m,
                                       aoclsparse_int             ell_width);
 /**@}*/
 
+/* NOT DOCUMENTED ? */
 DLL_PUBLIC
 aoclsparse_status aoclsparse_scsr2ellt(aoclsparse_int             m,
                                        const aoclsparse_mat_descr descr,
@@ -181,7 +183,7 @@ aoclsparse_status aoclsparse_dcsr2ellthyb(aoclsparse_int        m,
 *  \brief Convert a sparse CSR matrix into a sparse DIA matrix
 *
 *  \details
-*  \p aoclsparse_csr2dia_ndiag computes the number of the diagonals
+*  \P{aoclsparse_csr2dia_ndiag} computes number of diagonals
 *  for a given CSR matrix.
 *
 *  @param[in]
@@ -195,7 +197,7 @@ aoclsparse_status aoclsparse_dcsr2ellthyb(aoclsparse_int        m,
 *  @param[in]
 *  nnz         number of non-zero entries of the sparse CSR matrix.
 *  @param[in]
-*  csr_row_ptr array of \p m+1 elements that point to the start of every row of the
+*  csr_row_ptr array of \p m +1 elements that point to the start of every row of the
 *              sparse CSR matrix.
 *  @param[in]
 *  csr_col_ind array containing the column indices of the sparse CSR matrix.
@@ -205,8 +207,8 @@ aoclsparse_status aoclsparse_dcsr2ellthyb(aoclsparse_int        m,
 *
 *  \retval     aoclsparse_status_success the operation completed successfully.
 *  \retval     aoclsparse_status_invalid_size \p m is invalid.
-*  \retval     aoclsparse_status_invalid_pointer  \p csr\_row\_ptr, or
-*              \p ell\_width pointer is invalid.
+*  \retval     aoclsparse_status_invalid_pointer  \p csr_row_ptr, or
+*              \p ell_width pointer is invalid.
 *  \retval     aoclsparse_status_internal_error an internal error occurred.
 */
 DLL_PUBLIC
@@ -222,7 +224,7 @@ aoclsparse_status aoclsparse_csr2dia_ndiag(aoclsparse_int             m,
 *  \brief Convert a sparse CSR matrix into a sparse DIA matrix
 *
 *  \details
-*  \p aoclsparse_csr2dia converts a CSR matrix into an DIA matrix. It is assumed,
+*  \P{aoclsparse_?csr2dia} converts a CSR matrix into an DIA matrix. It is assumed,
 *  that \p dia_val and \p dia_offset are allocated. Allocation size is computed by the
 *  number of rows times the number of diagonals. The number of DIA
 *  diagonals is obtained by aoclsparse_csr2dia_ndiag().The index base is
@@ -237,7 +239,7 @@ aoclsparse_status aoclsparse_csr2dia_ndiag(aoclsparse_int             m,
 *              Only the base index is used in the conversion process,
 *              the remaining descriptor elements are ignored.
 *  @param[in]
-*  csr_row_ptr array of \p m+1 elements that point to the start of every row of the
+*  csr_row_ptr array of \p m +1 elements that point to the start of every row of the
 *              sparse CSR matrix.
 *  @param[in]
 *  csr_col_ind array containing the column indices of the sparse CSR matrix.
@@ -253,10 +255,10 @@ aoclsparse_status aoclsparse_csr2dia_ndiag(aoclsparse_int             m,
 *
 *  \retval     aoclsparse_status_success the operation completed successfully.
 *  \retval     aoclsparse_status_invalid_handle the library context was not initialized.
-*  \retval     aoclsparse_status_invalid_size \p m or \p ell\_width is invalid.
-*  \retval     aoclsparse_status_invalid_pointer \p csr\_val,
-*              \p csr\_row\_ptr, \p csr\_col\_ind,  \p ell\_val or
-*              \p ell\_col\_ind pointer is invalid.
+*  \retval     aoclsparse_status_invalid_size \p m or \p ell_width is invalid.
+*  \retval     aoclsparse_status_invalid_pointer \p csr_val,
+*              \p csr_row_ptr, \p csr_col_ind,  \p ell_val or
+*              \p ell_col_ind pointer is invalid.
 *
 */
 /**@{*/
@@ -285,8 +287,8 @@ aoclsparse_status aoclsparse_dcsr2dia(aoclsparse_int             m,
 
 /*! \ingroup conv_module
 *  \brief
-*  aoclsparse_csr2bsr_nnz computes the number of nonzero block columns per row and the total number of nonzero blocks in a sparse
-*  BSR matrix given a sparse CSR matrix as input.
+*  \p aoclsparse_csr2bsr_nnz computes the number of nonzero block columns per row and
+*  the total number of nonzero blocks in a sparse BSR matrix given a sparse CSR matrix as input.
 *
 *  @param[in]
 *  m           number of rows of the sparse CSR matrix.
@@ -299,7 +301,7 @@ aoclsparse_status aoclsparse_dcsr2dia(aoclsparse_int             m,
 *              Only the base index is used in computing the nnz blocks,
 *              the remaining descriptor elements are ignored.
 *  @param[in]
-*  csr_row_ptr integer array containing \p m+1 elements that point to the start of each row of the CSR matrix
+*  csr_row_ptr integer array containing \p m +1 elements that point to the start of each row of the CSR matrix
 *
 *  @param[in]
 *  csr_col_ind integer array of the column indices for each non-zero element in the CSR matrix
@@ -308,14 +310,14 @@ aoclsparse_status aoclsparse_dcsr2dia(aoclsparse_int             m,
 *  block_dim   the block dimension of the BSR matrix. Between 1 and min(m, n)
 *
 *  @param[out]
-*  bsr_row_ptr integer array containing \p mb+1 elements that point to the start of each block row of the BSR matrix
+*  bsr_row_ptr integer array containing \p mb +1 elements that point to the start of each block row of the BSR matrix
 *
 *  @param[out]
 *  bsr_nnz     total number of nonzero elements in device or host memory.
 *
 *  \retval     aoclsparse_status_success the operation completed successfully.
-*  \retval     aoclsparse_status_invalid_size \p m or \p n or \p block\_dim is invalid.
-*  \retval     aoclsparse_status_invalid_pointer \p csr\_row\_ptr or \p csr\_col\_ind or \p bsr\_row\_ptr or \p bsr\_nnz
+*  \retval     aoclsparse_status_invalid_size \p m or \p n or \p block_dim is invalid.
+*  \retval     aoclsparse_status_invalid_pointer \p csr_row_ptr or \p csr_col_ind or \p bsr_row_ptr or \p bsr_nnz
 *              pointer is invalid.
 */
 DLL_PUBLIC
@@ -332,11 +334,11 @@ aoclsparse_status aoclsparse_csr2bsr_nnz(aoclsparse_int             m,
 *  \brief Convert a sparse CSR matrix into a sparse BSR matrix
 *
 *  \details
-*  \p aoclsparse_csr2bsr converts a CSR matrix into a BSR matrix. It is assumed,
+*  \P{aoclsparse_?csr2bsr} converts a CSR matrix into a BSR matrix. It is assumed,
 *  that \p bsr_val, \p bsr_col_ind and \p bsr_row_ptr are allocated. Allocation size
 *  for \p bsr_row_ptr is computed as \p mb+1 where \p mb is the number of block rows in
 *  the BSR matrix. Allocation size for \p bsr_val and \p bsr_col_ind is computed using
-*  \p csr2bsr_nnz() which also fills in \p bsr_row_ptr. The index base is preserved
+*  this function which also fills in \p bsr_row_ptr. The index base is preserved
 *  during the conversion.
 *
 *  @param[in]
@@ -349,7 +351,7 @@ aoclsparse_status aoclsparse_csr2bsr_nnz(aoclsparse_int             m,
 *  @param[in]
 *  csr_val      array of \p nnz elements containing the values of the sparse CSR matrix.
 *  @param[in]
-*  csr_row_ptr  array of \p m+1 elements that point to the start of every row of the
+*  csr_row_ptr  array of \p m +1 elements that point to the start of every row of the
 *               sparse CSR matrix.
 *  @param[in]
 *  csr_col_ind  array of \p nnz elements containing the column indices of the sparse CSR matrix.
@@ -364,10 +366,10 @@ aoclsparse_status aoclsparse_csr2bsr_nnz(aoclsparse_int             m,
 *  bsr_col_ind  array of \p nnzb elements containing the block column indices of the sparse BSR matrix.
 *
 *  \retval     aoclsparse_status_success the operation completed successfully.
-*  \retval     aoclsparse_status_invalid_size \p m or \p n or \p block\_dim is invalid.
-*  \retval     aoclsparse_status_invalid_pointer \p bsr\_val,
-*              \p bsr\_row\_ptr, \p bsr\_col_ind, \p csr\_val, \p csr\_row\_ptr or
-*              \p csr\_col\_ind pointer is invalid.
+*  \retval     aoclsparse_status_invalid_size \p m, or \p n, or \p block_dim is invalid.
+*  \retval     aoclsparse_status_invalid_pointer \p bsr_val,
+*              \p bsr_row_ptr, \p bsr_col_ind, \p csr_val, \p csr_row_ptr or
+*              \p csr_col_ind pointer is invalid.
 *
 */
 /**@{*/
@@ -400,7 +402,7 @@ aoclsparse_status aoclsparse_dcsr2bsr(aoclsparse_int             m,
 *  \brief Convert a sparse CSR matrix into a sparse CSC matrix
 *
 *  \details
-*  \p aoclsparse_csr2csc converts a CSR matrix into a CSC matrix. \p aoclsparse_csr2csc
+*  \P{aoclsparse_?csr2csc} converts a CSR matrix into a CSC matrix. These functions
 *  can also be used to convert a CSC matrix into a CSR matrix. The index base can be
 *  modified during the conversion.
 *
@@ -421,7 +423,7 @@ aoclsparse_status aoclsparse_dcsr2bsr(aoclsparse_int             m,
 *  @param[in]
 *  csr_val     array of \p nnz elements of the sparse CSR matrix.
 *  @param[in]
-*  csr_row_ptr array of \p m+1 elements that point to the start of every row of the
+*  csr_row_ptr array of \p m +1 elements that point to the start of every row of the
 *              sparse CSR matrix.
 *  @param[in]
 *  csr_col_ind array of \p nnz elements containing the column indices of the sparse
@@ -432,14 +434,14 @@ aoclsparse_status aoclsparse_dcsr2bsr(aoclsparse_int             m,
 *  csc_row_ind array of \p nnz elements containing the row indices of the sparse CSC
 *              matrix.
 *  @param[out]
-*  csc_col_ptr array of \p n+1 elements that point to the start of every column of the
+*  csc_col_ptr array of \p n +1 elements that point to the start of every column of the
 *              sparse CSC matrix.
 *              aoclsparse_csr2csc_buffer_size().
 *
 *  \retval     aoclsparse_status_success the operation completed successfully.
 *  \retval     aoclsparse_status_invalid_size \p m, \p n or \p nnz is invalid.
-*  \retval     aoclsparse_status_invalid_pointer \p csr\_val, \p csr\_row\_ptr,
-*              \p csr\_col\_ind, \p csc\_val, \p csc\_row\_ind, \p csc\_col\_ptr
+*  \retval     aoclsparse_status_invalid_pointer \p csr_val, \p csr_row_ptr,
+*              \p csr_col_ind, \p csc_val, \p csc_row_ind, \p csc_col_ptr
 *              is invalid.
 *
 */
@@ -514,7 +516,7 @@ aoclsparse_status aoclsparse_zcsr2csc(aoclsparse_int                   m,
  *  @param[in]
  *  csr_val     array of size at least \p nnz nonzero elements of matrix \p A.
  *  @param[in]
- *  csr_row_ptr CSR row pointer array of size (\p m+1).
+ *  csr_row_ptr CSR row pointer array of size (\p m +1).
  *  @param[in]
  *  csr_col_ind An array of CSR column indices of at least \p nnz column indices of the nonzero elements of matrix \p A.
  *
@@ -522,14 +524,14 @@ aoclsparse_status aoclsparse_zcsr2csc(aoclsparse_int                   m,
  *  A           array of dimensions (\p lda, \p n)
  *
  *  @param[in]
- *  lda          leading dimension of dense array \p A.
+ *  ld           leading dimension of dense array \p A.
  *  @param[in]
  *  order       memory layout of a dense matrix \p A. It can be either \ref aoclsparse_order_column or \ref aoclsparse_order_row.
  *
  *  \retval     aoclsparse_status_success the operation completed successfully.
- *  \retval     aoclsparse_status_invalid_size \p m or \p n or \p lda is invalid.
- *  \retval     aoclsparse_status_invalid_pointer Any of the pointers \p A, \p csr\_val, \p csr_row_ptr, \p csr_col_ind
- *              pointers is invalid.
+ *  \retval     aoclsparse_status_invalid_size \p m or \p n or \p ld is invalid.
+ *  \retval     aoclsparse_status_invalid_pointer \p A, \p csr_val, \p csr_row_ptr, or \p csr_col_ind
+ *              pointers are invalid.
  */
 /**@{*/
 DLL_PUBLIC
@@ -604,13 +606,14 @@ aoclsparse_int aoclsparse_opt_blksize(aoclsparse_int        m,
 *  \brief Convert internal representation of matrix into a sparse CSR matrix
 *
 *  \details
-*  \p aoclsparse_convert_csr converts any supported matrix format into a CSR format matrix and returns it as a new \p aoclsparse_matrix.
-*  The new matrix can also be transposed or conjugate transposed during the conversion. It should be freed by calling \p aoclsparse_destroy.
-*  The source matrix needs to be initalized using <tt>aoclsparse_create_(d/s/c/z)(coo/csc/csr)</tt> and it is not modified here.
+*  \P{aoclsparse_convert_csr} converts any supported matrix format into a CSR format matrix and returns it as a new \ref aoclsparse_matrix.
+*  The new matrix can also be transposed, or conjugated and transposed during the conversion. It should be freed by calling aoclsparse_destroy().
+*  The source matrix needs to be initalized using e.g. aoclsparse_create_scoo(), aoclsparse_create_scsr(), aoclsparse_create_scsc() or any
+*  of their variants.
 *
 *  @param[in] src_mat           source matrix used for conversion.
 *  @param[in] op                operation to be performed on destination matrix
-*  @param[out] dest_mat         destination matrix output in CSR Format of the src_mat. 
+*  @param[out] dest_mat         destination matrix output in CSR Format of the src_mat.
 *
 *  \retval    aoclsparse_status_success          the operation completed successfully
 *  \retval    aoclsparse_status_invalid_size     matrix dimension are invalid

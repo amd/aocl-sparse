@@ -1,5 +1,5 @@
-.. 
-   Copyright (c) 2023 Advanced Micro Devices, Inc.
+..
+   Copyright (c) 2023-2024 Advanced Micro Devices, Inc.
 ..
    Permission is hereby granted, free of charge, to any person obtaining a copy
    of this software and associated documentation files (the "Software"), to deal
@@ -19,44 +19,138 @@
    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
    SOFTWARE.
 
-AOCL-Sparse Auxiliary Functions
-*******************************
+Auxiliary Functions
+*******************
 
+.. Short intro text
 
-.. doxygenfunction:: aoclsparse_get_version
+aoclsparse_create_mat_descr()
+-----------------------------
+
 .. doxygenfunction:: aoclsparse_create_mat_descr
-.. doxygenfunction:: aoclsparse_copy_mat_descr
+
+aoclsparse_destroy_mat_descr()
+------------------------------
+
 .. doxygenfunction:: aoclsparse_destroy_mat_descr
-.. doxygenfunction:: aoclsparse_set_mat_index_base
-.. doxygenfunction:: aoclsparse_get_mat_index_base
-.. doxygenfunction:: aoclsparse_set_mat_type
-.. doxygenfunction:: aoclsparse_get_mat_type
-.. doxygenfunction:: aoclsparse_set_mat_fill_mode
-.. doxygenfunction:: aoclsparse_get_mat_fill_mode
-.. doxygenfunction:: aoclsparse_set_mat_diag_type
-.. doxygenfunction:: aoclsparse_get_mat_diag_type
+
+aoclsparse_copy_mat_descr()
+---------------------------
+
+.. doxygenfunction:: aoclsparse_copy_mat_descr
+
+aoclsparse_create\_?csr()
+-------------------------
+
 .. doxygenfunction:: aoclsparse_create_scsr
+    :outline:
 .. doxygenfunction:: aoclsparse_create_dcsr
+    :outline:
 .. doxygenfunction:: aoclsparse_create_ccsr
+    :outline:
 .. doxygenfunction:: aoclsparse_create_zcsr
+
+aoclsparse_create\_?coo()
+-------------------------
+
 .. doxygenfunction:: aoclsparse_create_scoo
+    :outline:
 .. doxygenfunction:: aoclsparse_create_dcoo
+    :outline:
 .. doxygenfunction:: aoclsparse_create_ccoo
+    :outline:
 .. doxygenfunction:: aoclsparse_create_zcoo
-.. doxygenfunction:: aoclsparse_export_scsr
-.. doxygenfunction:: aoclsparse_export_dcsr
-.. doxygenfunction:: aoclsparse_export_ccsr
-.. doxygenfunction:: aoclsparse_export_zcsr
-.. doxygenfunction:: aoclsparse_destroy
+
+aoclsparse_create\_?csc()
+-------------------------
+
 .. doxygenfunction:: aoclsparse_create_scsc
+    :outline:
 .. doxygenfunction:: aoclsparse_create_dcsc
+    :outline:
 .. doxygenfunction:: aoclsparse_create_ccsc
+    :outline:
 .. doxygenfunction:: aoclsparse_create_zcsc
+
+aoclsparse_destroy()
+--------------------
+
+.. doxygenfunction:: aoclsparse_destroy
+
+aoclsparse_copy()
+-----------------
+
 .. doxygenfunction:: aoclsparse_copy
+
+aoclsparse_order_mat()
+----------------------
+
 .. doxygenfunction:: aoclsparse_order_mat
+
+aoclsparse_export\_?csr()
+-------------------------
+
+.. doxygenfunction:: aoclsparse_export_scsr
+    :outline:
+.. doxygenfunction:: aoclsparse_export_dcsr
+    :outline:
+.. doxygenfunction:: aoclsparse_export_ccsr
+    :outline:
+.. doxygenfunction:: aoclsparse_export_zcsr
+
+aoclsparse_export\_?csc()
+-------------------------
+
 .. doxygenfunction:: aoclsparse_export_scsc
+    :outline:
 .. doxygenfunction:: aoclsparse_export_dcsc
+    :outline:
 .. doxygenfunction:: aoclsparse_export_ccsc
+    :outline:
 .. doxygenfunction:: aoclsparse_export_zcsc
 
+aoclsparse_get_mat_diag_type()
+------------------------------
 
+.. doxygenfunction:: aoclsparse_get_mat_diag_type
+
+aoclsparse_get_mat_fill_mode()
+------------------------------
+
+.. doxygenfunction:: aoclsparse_get_mat_fill_mode
+
+aoclsparse_get_mat_index_base()
+-------------------------------
+
+.. doxygenfunction:: aoclsparse_get_mat_index_base
+
+aoclsparse_get_mat_type()
+-------------------------
+
+.. doxygenfunction:: aoclsparse_get_mat_type
+
+aoclsparse_get_version()
+------------------------
+
+.. doxygenfunction:: aoclsparse_get_version
+
+
+aoclsparse_set_mat_diag_type()
+------------------------------
+
+.. doxygenfunction:: aoclsparse_set_mat_diag_type
+
+aoclsparse_set_mat_fill_mode()
+------------------------------
+
+.. doxygenfunction:: aoclsparse_set_mat_fill_mode
+
+aoclsparse_set_mat_index_base()
+-------------------------------
+
+.. doxygenfunction:: aoclsparse_set_mat_index_base
+
+aoclsparse_set_mat_type()
+-------------------------
+
+.. doxygenfunction:: aoclsparse_set_mat_type

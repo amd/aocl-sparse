@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020-2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -240,7 +240,7 @@ aoclsparse_diag_type aoclsparse_get_mat_diag_type(const aoclsparse_mat_descr des
 }
 
 /********************************************************************************
- * \brief aoclsparse_create_?csr sets the sparse matrix in the CSR format for
+ * \brief aoclsparse_create_csr sets the sparse matrix in the CSR format for
  * the appropriate data type (float, double, float complex, double complex).
  ********************************************************************************/
 aoclsparse_status aoclsparse_create_scsr(aoclsparse_matrix    *mat,
@@ -979,7 +979,7 @@ aoclsparse_status aoclsparse_create_coo_t(aoclsparse_matrix          *mat,
     return aoclsparse_status_success;
 }
 
-/* Copy a csc matrix 
+/* Copy a csc matrix
  * Possible exit: invalid size, invalid pointer, memory alloc
  */
 template <typename T>
@@ -1022,7 +1022,7 @@ aoclsparse_status aoclsparse_copy_csc(aoclsparse_int                n,
     return aoclsparse_status_success;
 }
 
-/* Copy a coo matrix 
+/* Copy a coo matrix
  * Possible exit: invalid size, invalid pointer, memory alloc
  */
 template <typename T>

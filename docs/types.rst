@@ -1,4 +1,4 @@
-.. 
+..
    Copyright (c) 2023-2024 Advanced Micro Devices, Inc.
 ..
    Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -22,15 +22,21 @@
 AOCL-Sparse Types
 *****************
 
-Numerical Types
+Numerical types
 ===============
 
 .. doxygentypedef:: aoclsparse_int
-.. doxygentypedef:: aoclsparse_float_complex
-.. doxygentypedef:: aoclsparse_double_complex
+.. .. doxygentypedef:: aoclsparse_float_complex
+.. .. doxygenstruct:: aoclsparse_float_complex_
+.. doxygenstruct:: aoclsparse_float_complex
+    :members:
+.. .. doxygentypedef:: aoclsparse_double_complex
+.. .. doxygenstruct:: aoclsparse_double_complex_
+.. doxygenstruct:: aoclsparse_double_complex
+    :members:
 
-Other Types
-===========
+Matrix object and descriptor
+============================
 
 .. doxygentypedef:: aoclsparse_matrix
 .. doxygentypedef:: aoclsparse_mat_descr
@@ -38,41 +44,74 @@ Other Types
 Enums
 =====
 
-.. doxygentypedef:: aoclsparse_operation
-.. doxygenenum:: aoclsparse_operation_
+Function return status
+----------------------
+.. .. doxygentypedef:: aoclsparse_status
+.. .. doxygenenum:: aoclsparse_status_
+.. doxygenenum:: aoclsparse_status
 
-.. doxygentypedef:: aoclsparse_index_base
-.. doxygenenum:: aoclsparse_index_base_
+Associated with :cpp:type:`aoclsparse_matrix`
+------------------------------------------------
 
-.. doxygentypedef:: aoclsparse_matrix_type
-.. doxygenenum:: aoclsparse_matrix_type_
+.. .. doxygentypedef:: aoclsparse_matrix_data_type
+.. .. doxygenenum:: aoclsparse_matrix_data_type_
+.. doxygenenum:: aoclsparse_matrix_data_type
 
-.. doxygentypedef:: aoclsparse_matrix_data_type
-.. doxygenenum:: aoclsparse_matrix_data_type_
+.. .. only:: internal
 
-.. doxygentypedef:: aoclsparse_ilu_type
-.. doxygenenum:: aoclsparse_ilu_type_
+    .. .. doxygenenum:: aoclsparse_matrix_format_type
+    .. .. doxygentypedef:: aoclsparse_matrix_format_type
+    .. .. doxygenenum:: aoclsparse_matrix_format_type_
 
-.. doxygentypedef:: aoclsparse_matrix_format_type
-.. doxygenenum:: aoclsparse_matrix_format_type_
+See also:
 
-.. doxygentypedef:: aoclsparse_diag_type
-.. doxygenenum:: aoclsparse_diag_type_
+* :cpp:type:`aoclsparse_index_base`
 
-.. doxygentypedef:: aoclsparse_fill_mode
-.. doxygenenum:: aoclsparse_fill_mode_
+Associated with matrix descriptor (:cpp:type:`aoclsparse_mat_descr`)
+-----------------------------------------------------------------------
 
-.. doxygentypedef:: aoclsparse_order
-.. doxygenenum:: aoclsparse_order_
+.. .. doxygentypedef:: aoclsparse_matrix_type
+.. .. doxygenenum:: aoclsparse_matrix_type_
+.. doxygenenum:: aoclsparse_matrix_type
 
-.. doxygentypedef:: aoclsparse_status
-.. doxygenenum:: aoclsparse_status_
+.. .. doxygentypedef:: aoclsparse_index_base
+.. .. doxygenenum:: aoclsparse_index_base_
+.. doxygenenum:: aoclsparse_index_base
 
-.. doxygentypedef:: aoclsparse_request
-.. doxygenenum:: aoclsparse_request_
+.. .. doxygentypedef:: aoclsparse_diag_type
+.. .. doxygenenum:: aoclsparse_diag_type_
+.. doxygenenum:: aoclsparse_diag_type
 
-.. doxygentypedef:: aoclsparse_sor_type
-.. doxygenenum:: aoclsparse_sor_type_
+.. .. doxygentypedef:: aoclsparse_fill_mode
+.. .. doxygenenum:: aoclsparse_fill_mode_
+.. doxygenenum:: aoclsparse_fill_mode
 
-.. doxygentypedef:: aoclsparse_memory_usage
-.. doxygenenum:: aoclsparse_memory_usage_
+.. .. doxygentypedef:: aoclsparse_order
+.. .. doxygenenum:: aoclsparse_order_
+.. doxygenenum:: aoclsparse_order
+
+Miscellaneous
+-------------
+
+.. .. doxygentypedef:: aoclsparse_operation
+.. .. doxygenenum:: aoclsparse_operation_
+.. doxygenenum:: aoclsparse_operation
+
+
+.. doxygentypedef:: aoclsparse_itsol_handle
+
+.. .. doxygentypedef:: aoclsparse_ilu_type
+.. .. doxygenenum:: aoclsparse_ilu_type_
+.. doxygenenum:: aoclsparse_ilu_type
+..
+.. .. doxygentypedef:: aoclsparse_request
+.. .. doxygenenum:: aoclsparse_request_
+.. doxygenenum:: aoclsparse_request
+
+.. .. doxygentypedef:: aoclsparse_sor_type
+.. .. doxygenenum:: aoclsparse_sor_type_
+.. doxygenenum:: aoclsparse_sor_type
+
+.. .. doxygentypedef:: aoclsparse_memory_usage
+.. .. doxygenenum:: aoclsparse_memory_usage_
+.. doxygenenum:: aoclsparse_memory_usage
