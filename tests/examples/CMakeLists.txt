@@ -86,7 +86,7 @@ if (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
     find_library(SPARSE_LIBRARY
     NAMES "aoclsparse" "aoclsparse-d"
     HINTS  ${CMAKE_SPARSE_ROOT} ${CMAKE_SPARSE_ROOT}/sparse ${CMAKE_SPARSE_ROOT}/amd-sparse
-    PATH_SUFFIXES  "lib/${ILP_DIR}" "lib_${ILP_DIR}" "lib"
+    PATH_SUFFIXES  "lib/${ILP_DIR}" "lib_${ILP_DIR}" "lib" "lib/${ILP_DIR}/shared" "lib/${ILP_DIR}/static"
     DOC "AOCL Sparse library")
 
     find_path(SPARSE_INCLUDE_DIR

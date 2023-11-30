@@ -10,7 +10,7 @@ AOCL-Sparse exposes a common interface that provides Basic Linear Algebra Subrou
 
 #### Building on Windows
 1. Install Visual Studio 2022 (the free version) and cmake 
-2. Install AOCL-BLAS and AOCL-LAPACK
+2. Install AOCL-BLAS, AOCL-LAPACK and AOCL-UTILS
 3. Define the environment variable AOCL_ROOT to point to AOCL libs installation
 ```
 set "AOCL_ROOT=C:\Program Files\AMD\AOCL-Windows"	
@@ -21,7 +21,7 @@ cd aocl-sparse
 ```
 5. Configure the project along with the following options depending on the build that is required:
 ```
-cmake S . -B build_directory -T ClangCL -G "Visual Studio 17 2022" -DCMAKE_CXX_COMPILER=ClangCl -DCMAKE_INSTALL_PREFIX="<aoclsparse_install_path>"
+cmake -S . -B <build_directory> -T ClangCL -G "Visual Studio 17 2022" -DCMAKE_CXX_COMPILER=ClangCl -DCMAKE_INSTALL_PREFIX="<aoclsparse_install_path>"
 
 # Configure AOCL-Sparse
 # Build options:
@@ -36,7 +36,7 @@ cmake S . -B build_directory -T ClangCL -G "Visual Studio 17 2022" -DCMAKE_CXX_C
 ```
 6. Build the project
 ```
-cmake --build build_directory --config Release --target install --verbose
+cmake --build <build_directory> --config Release --target install --verbose
 ```
 7. To run the tests/examples, export the paths for Blis, Libflame and Sparse binaries
 ```
@@ -44,6 +44,8 @@ set PATH=C:\Users\Program Files\AMD\AOCL-Windows\amd-blis\include;%PATH%
 set PATH=C:\Users\Program Files\AMD\AOCL-Windows\amd-blis\lib;%PATH%
 set PATH=C:\Users\Program Files\AMD\AOCL-Windows\amd-libflame\include;%PATH%
 set PATH=C:\Users\Program Files\AMD\AOCL-Windows\amd-libflame\lib;%PATH%
+set PATH=C:\Users\Program Files\AMD\AOCL-Windows\amd-utils\include;%PATH%
+set PATH=C:\Users\Program Files\AMD\AOCL-Windows\amd-utils\lib;%PATH%
 ```
 8. Run the examples after exporting the required library/headers paths
 ```
@@ -51,7 +53,7 @@ build_directory\tests\examples\sample_spmv.exe
 ```
 
 #### Building on Linux
-1. Install AOCL provided Blis and Libflame
+1. Install AOCL-BLAS, AOCL-LAPACK and AOCL-UTILS
 2. Define the environment variable AOCL_ROOT to point to AOCL libs installation
 ```
 export AOCL_ROOT=/opt/aocl
@@ -149,16 +151,17 @@ M     N     nnz   alpha  beta  GFlop/s  GB/s  msec      iter  verified
 ```
 
 #### Building the documentation
-To create the AOCL-Sparse PDF documentation, build with the option `BUILD_DOCS` turned on,
-and invoke the `docs` target,
+To create Sphinx based AOCL-Sparse documentation, build with the option `BUILD_DOCS` turned on,
+and invoke the `doc` target,
 ```
 cmake  ../../ -DBUILD_DOCS=ON
-make docs
+make doc
 ```
-The updated documentation can be found under the `aocl-sparse/docs` directory.
+The updated documentation can be found under the `aocl-sparse/docs/sphinx` directory.
 
-**Note** The document generation process requires a recent copy of `Doxygen` and a
-LaTeX distribution with `pdflatex`.
+**Note** Sphinx based document generation is supported only on Linux
+**Note** The document generation process requires a recent copy of `Doxygen`, a
+LaTeX distribution with `pdflatex`,`sed`, python with `rocm-docs-core`, `breathe`, `sphinx` and `sphinxcontrib.bibtex`
 
 ## License
 The [license](LICENSE.md) file can be found in the main `aocl-sparse` directory.
