@@ -53,14 +53,10 @@ function(aocl_libs)
 
     set(_utils_static_library "${_utils_library}_${_static_tag}")
     set(_utils_dyn_library "${_utils_library}")
-
   else(WIN32)
     set(CMAKE_FIND_LIBRARY_PREFIXES "lib")
-    if(BUILD_SHARED_LIBS)
-      set(CMAKE_FIND_LIBRARY_SUFFIXES ".so")
-    else(BUILD_SHARED_LIBS)
-      set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
-    endif(BUILD_SHARED_LIBS)
+    # No strict static-to-static and shared-to-shared library linking enforced for dependent libraries
+    # CMAKE_FIND_LIBRARY_SUFFIXES which decides the library suffix(.so or .a) is not set based on BUILD_SHARED_LIBS
     set(_blas_library "blis")
     set(_flame_library "flame")
     set(_mt_tag "mt")
@@ -159,18 +155,20 @@ function(openmp_libs)
   list(REMOVE_ITEM OpenMP_Library ${importTargets})
 
   if(NOT OPENMP_FOUND)
-    message(
-      FATAL_ERROR
-        "Error: could not find a suitable installation of openMP for the requested multi-threaded build"
-    )    
+    message(FATAL_ERROR
+            "Error: could not find a suitable installation of OpenMP for the requested multi-threaded build")
   else()
-    option(SUPPORT_OMP "Compile WITH OpenMP support." ON)    
-
-    # OpenMP cmake fix for cmake <= 3.9
-    if(NOT TARGET OpenMP::OpenMP_CXX)
-        add_library(OpenMP::OpenMP_CXX IMPORTED INTERFACE)
-        set_property(TARGET OpenMP::OpenMP_CXX PROPERTY INTERFACE_COMPILE_OPTIONS ${OpenMP_CXX_FLAGS})
-        set_property(TARGET OpenMP::OpenMP_CXX PROPERTY INTERFACE_LINK_LIBRARIES ${OpenMP_CXX_FLAGS} Threads::Threads)
+    # OpenMP cmake fix for cmake <= 3.9 and cases where OpenMP targets are not populated correctly
+    # setup the interface OpenMP library with all the necessary flags and libraries
+    if(NOT DEFINED OpenMP_Library)
+      add_library(OpenMP::OpenMP_${LANG} INTERFACE IMPORTED)
+      set_property(TARGET OpenMP::OpenMP_${LANG} PROPERTY
+                    INTERFACE_COMPILE_OPTIONS "$<$<COMPILE_LANGUAGE:${LANG}>:${_OpenMP_${LANG}_OPTIONS}>")
+      set_property(TARGET OpenMP::OpenMP_${LANG} PROPERTY
+                    INTERFACE_LINK_LIBRARIES "${OpenMP_${LANG}_LIBRARIES}")
+      foreach(LANG IN ITEMS C CXX)
+        list(APPEND OpenMP_Library "OpenMP::OpenMP_${LANG}")
+      endforeach()
     endif()
 
     if(WIN32)    
@@ -194,13 +192,19 @@ find_package(Git REQUIRED)
 if(SUPPORT_OMP)
   openmp_libs()
 endif(SUPPORT_OMP)
-
-# fetch pthread library for Linux builds, irrespective of ST/MT modes
+#fetch pthread library for Linux builds, irrespective of ST/MT modes
 if(NOT WIN32)
   get_property(importTargets DIRECTORY "${CMAKE_SOURCE_DIR}" PROPERTY IMPORTED_TARGETS)
   find_package(Threads REQUIRED)
   get_property(Threads_Library DIRECTORY "${CMAKE_SOURCE_DIR}" PROPERTY IMPORTED_TARGETS)
   list(REMOVE_ITEM Threads_Library ${importTargets})
+
+  # ${Threads_Library} contains imported target extracted from the output of find_package(Threads REQUIRED)
+  # if Threads_Library is empty, add the necessary pthread library
+  if(NOT DEFINED Threads_Library)
+      list(APPEND Threads_Library "Threads::Threads")
+  endif()
+
   #collect all threading libraries into a single variable for linking later  
   set(OpenMP_Library "${OpenMP_Library};${Threads_Library}")
 endif()
