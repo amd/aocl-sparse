@@ -72,17 +72,6 @@ aoclsparse_create\_?csc()
     :outline:
 .. doxygenfunction:: aoclsparse_create_zcsc
 
-aoclsparse\_?set_value()
--------------------------
-
-.. doxygenfunction:: aoclsparse_sset_value
-    :outline:
-.. doxygenfunction:: aoclsparse_dset_value
-    :outline:
-.. doxygenfunction:: aoclsparse_cset_value
-    :outline:
-.. doxygenfunction:: aoclsparse_zset_value
-
 aoclsparse_destroy()
 --------------------
 
@@ -97,6 +86,28 @@ aoclsparse_order_mat()
 ----------------------
 
 .. doxygenfunction:: aoclsparse_order_mat
+
+aoclsparse\_?set_value()
+-------------------------
+
+.. doxygenfunction:: aoclsparse_sset_value
+    :outline:
+.. doxygenfunction:: aoclsparse_dset_value
+    :outline:
+.. doxygenfunction:: aoclsparse_cset_value
+    :outline:
+.. doxygenfunction:: aoclsparse_zset_value
+
+aoclsparse\_?update_values()
+----------------------------
+
+.. doxygenfunction:: aoclsparse_supdate_values
+    :outline:
+.. doxygenfunction:: aoclsparse_dupdate_values
+    :outline:
+.. doxygenfunction:: aoclsparse_cupdate_values
+    :outline:
+.. doxygenfunction:: aoclsparse_zupdate_values
 
 aoclsparse_export\_?csr()
 -------------------------
@@ -119,6 +130,17 @@ aoclsparse_export\_?csc()
 .. doxygenfunction:: aoclsparse_export_ccsc
     :outline:
 .. doxygenfunction:: aoclsparse_export_zcsc
+
+aoclsparse_export\_?coo()
+-------------------------
+
+.. doxygenfunction:: aoclsparse_export_scoo
+    :outline:
+.. doxygenfunction:: aoclsparse_export_dcoo
+    :outline:
+.. doxygenfunction:: aoclsparse_export_ccoo
+    :outline:
+.. doxygenfunction:: aoclsparse_export_zcoo
 
 aoclsparse_get_mat_diag_type()
 ------------------------------

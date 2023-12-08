@@ -378,6 +378,34 @@ aoclsparse_status aoclsparse_create_zcoo(aoclsparse_matrix          *mat,
     return aoclsparse_create_coo_t(mat, base, M, N, nnz, row_ind, col_ind, val);
 }
 
+/********************************************************************************
+ * \brief aoclsparse_?_update_values updates the value in sparse matrix for all coordinates
+ * with the appropriate data type (float, double, float complex,
+ * double complex).
+ ********************************************************************************/
+aoclsparse_status aoclsparse_supdate_values(aoclsparse_matrix A, aoclsparse_int len, float *val)
+{
+    return aoclsparse_update_values_t(A, len, val);
+}
+
+aoclsparse_status aoclsparse_dupdate_values(aoclsparse_matrix A, aoclsparse_int len, double *val)
+{
+    return aoclsparse_update_values_t(A, len, val);
+}
+aoclsparse_status aoclsparse_cupdate_values(aoclsparse_matrix         A,
+                                            aoclsparse_int            len,
+                                            aoclsparse_float_complex *val)
+{
+    return aoclsparse_update_values_t(A, len, val);
+}
+
+aoclsparse_status aoclsparse_zupdate_values(aoclsparse_matrix          A,
+                                            aoclsparse_int             len,
+                                            aoclsparse_double_complex *val)
+{
+    return aoclsparse_update_values_t(A, len, val);
+}
+
 aoclsparse_status aoclsparse_export_scsr(const aoclsparse_matrix mat,
                                          aoclsparse_index_base  *base,
                                          aoclsparse_int         *m,
@@ -424,6 +452,54 @@ aoclsparse_status aoclsparse_export_zcsr(const aoclsparse_matrix     mat,
                                          aoclsparse_double_complex **val)
 {
     return aoclsparse_export_csr_t(mat, base, m, n, nnz, row_ptr, col_ind, val);
+}
+
+aoclsparse_status aoclsparse_export_scoo(const aoclsparse_matrix mat,
+                                         aoclsparse_index_base  *base,
+                                         aoclsparse_int         *m,
+                                         aoclsparse_int         *n,
+                                         aoclsparse_int         *nnz,
+                                         aoclsparse_int        **row_ptr,
+                                         aoclsparse_int        **col_ptr,
+                                         float                 **val)
+{
+    return aoclsparse_export_coo_t(mat, base, m, n, nnz, row_ptr, col_ptr, val);
+}
+
+aoclsparse_status aoclsparse_export_dcoo(const aoclsparse_matrix mat,
+                                         aoclsparse_index_base  *base,
+                                         aoclsparse_int         *m,
+                                         aoclsparse_int         *n,
+                                         aoclsparse_int         *nnz,
+                                         aoclsparse_int        **row_ptr,
+                                         aoclsparse_int        **col_ptr,
+                                         double                **val)
+{
+    return aoclsparse_export_coo_t(mat, base, m, n, nnz, row_ptr, col_ptr, val);
+}
+
+aoclsparse_status aoclsparse_export_ccoo(const aoclsparse_matrix    mat,
+                                         aoclsparse_index_base     *base,
+                                         aoclsparse_int            *m,
+                                         aoclsparse_int            *n,
+                                         aoclsparse_int            *nnz,
+                                         aoclsparse_int           **row_ptr,
+                                         aoclsparse_int           **col_ptr,
+                                         aoclsparse_float_complex **val)
+{
+    return aoclsparse_export_coo_t(mat, base, m, n, nnz, row_ptr, col_ptr, val);
+}
+
+aoclsparse_status aoclsparse_export_zcoo(const aoclsparse_matrix     mat,
+                                         aoclsparse_index_base      *base,
+                                         aoclsparse_int             *m,
+                                         aoclsparse_int             *n,
+                                         aoclsparse_int             *nnz,
+                                         aoclsparse_int            **row_ptr,
+                                         aoclsparse_int            **col_ptr,
+                                         aoclsparse_double_complex **val)
+{
+    return aoclsparse_export_coo_t(mat, base, m, n, nnz, row_ptr, col_ptr, val);
 }
 
 /********************************************************************************

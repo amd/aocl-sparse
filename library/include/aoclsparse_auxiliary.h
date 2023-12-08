@@ -290,7 +290,8 @@ aoclsparse_status aoclsparse_sset_value(aoclsparse_matrix A,
  *  \P{aoclsparse_create_?csr} creates \ref aoclsparse_matrix and initializes it with
  *  input parameters passed. The input arrays are left unchanged by the library except for the call to
  *  aoclsparse_order_mat(), which performs ordering of column indices of the matrix,
- *  or aoclsparse_sset_value() and variants, which modify the value of a nonzero element. To avoid any
+ *  or aoclsparse_sset_value(), aoclsparse_supdate_values() and variants, which modify
+ *  the values of a nonzero element. To avoid any
  *  changes to the input data, aoclsparse_copy() can be used. To convert any other format to CSR,
  *  aoclsparse_convert_csr() can be used. Matrix should be destroyed at the end using aoclsparse_destroy().
  *
@@ -369,9 +370,9 @@ aoclsparse_status aoclsparse_create_zcsr(aoclsparse_matrix         *mat,
  *  \P{aoclsparse_create_?coo} creates \ref aoclsparse_matrix and initializes it with
  *  input parameters passed. Array data must not be modified by the user while matrix is alive as
  *  the pointers are copied, not the data. The input arrays are left unchanged
- *  by the library except for the call to aoclsparse_sset_value() and variants,
- *  which modify the value of a nonzero element. Matrix should be destroyed at
- *  the end using aoclsparse_destroy().
+ *  by the library except for the call to aoclsparse_sset_value(),
+ *  aoclsparse_supdate_values() and variants, which modify the value of
+ *  a nonzero element. Matrix should be destroyed at the end using aoclsparse_destroy().
  *
  *  @param[inout] mat       the pointer to the COO sparse matrix.
  *  @param[in]    base      \ref aoclsparse_index_base_zero or \ref aoclsparse_index_base_one
@@ -429,6 +430,47 @@ aoclsparse_status aoclsparse_create_zcoo(aoclsparse_matrix          *mat,
                                          aoclsparse_int             *row_ind,
                                          aoclsparse_int             *col_ind,
                                          aoclsparse_double_complex  *val);
+/**@}*/
+
+/*! \brief Set new values to all existing nonzero element in the matrix.
+ *
+ *  \details
+ *  \P{aoclsparse_?update_values} overwrites all existing nonzeros in the matrix
+ *  with the new values provided in \p val array. The order of elements must
+ *  match the order in the matrix. That would be either the order at the
+ *  creation of the matrix or the sorted order if aoclsparse_order_mat() has been
+ *  called.
+ *  The change directly affects user's arrays if the matrix was created using aoclsparse_create_scsr(),
+ *  aoclsparse_create_scsc(), aoclsparse_create_scoo() or other variants.
+ *
+ *  \note   The successful update invalidates existing optimized data so it is desirable to call
+ *          aoclsparse_optimize() once all modifications are performed.
+ *
+ *  \param[inout]  A         The sparse matrix to be modified.
+ *  \param[in]     len       Length of the \p val array and the number of nonzeros in the matrix.
+ *  \param[in]     val       Array with the values to be copied.
+ *
+ *  \retval aoclsparse_status_success           The operation completed successfully.
+ *  \retval aoclsparse_status_invalid_pointer   The matrix \p A is invalid or \p val in NULL
+ *  \retval aoclsparse_status_invalid_size      \p len is not equal to nnz of matrix
+ *  \retval aoclsparse_status_wrong_type        Matrix has different data type then the one used in API
+ *  \retval aoclsparse_status_not_implemented   Matrix format is not supported for this operation
+ *
+ */
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_zupdate_values(aoclsparse_matrix          A,
+                                            aoclsparse_int             len,
+                                            aoclsparse_double_complex *val);
+DLL_PUBLIC
+aoclsparse_status aoclsparse_cupdate_values(aoclsparse_matrix         A,
+                                            aoclsparse_int            len,
+                                            aoclsparse_float_complex *val);
+DLL_PUBLIC
+aoclsparse_status aoclsparse_dupdate_values(aoclsparse_matrix A, aoclsparse_int len, double *val);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_supdate_values(aoclsparse_matrix A, aoclsparse_int len, float *val);
 /**@}*/
 
 /*! \ingroup aux_module
@@ -531,7 +573,8 @@ aoclsparse_int aoclsparse_get_vec_extn_context(void);
  *  \P{aoclsparse_create_?csc} creates \ref aoclsparse_matrix and initializes it with
  *  input parameters passed. The input arrays are left unchanged by the library except for the call to
  *  aoclsparse_order_mat(), which performs ordering of row indices of the matrix,
- *  or aoclsparse_sset_value() and variants, which modify the value of a nonzero element. To avoid any
+ *  or aoclsparse_sset_value(), aoclsparse_supdate_values() and variants, which
+ *  modify the value of a nonzero element. To avoid any
  *  changes to the input data, aoclsparse_copy() can be used. Matrix should be destroyed at the end
  *  using aoclsparse_destroy().
  *
@@ -600,6 +643,73 @@ aoclsparse_status aoclsparse_create_zcsc(aoclsparse_matrix         *mat,
                                          aoclsparse_int            *col_ptr,
                                          aoclsparse_int            *row_idx,
                                          aoclsparse_double_complex *val);
+/**@}*/
+
+/*! \brief Export a \p COO matrix.
+ *
+ *  \details
+ *  \P{aoclsparse_export_?coo} exposes the components defining the
+ *  \p COO matrix in \p mat structure by copying out the data pointers. No additional
+ *  memory is allocated. User should not modify the arrays and once aoclsparse_destroy()
+ *  is called to free \p mat, these arrays will become inaccessible. If the matrix is
+ *  not in \p COO format, an error is obtained.
+ *
+ *  @param[in] mat          the pointer to the COO sparse matrix.
+ *  @param[out] base        \ref aoclsparse_index_base_zero or \ref aoclsparse_index_base_one.
+ *  @param[out] m           number of rows of the sparse COO matrix.
+ *  @param[out] n           number of columns of the sparse COO matrix.
+ *  @param[out] nnz         number of non-zero entries of the sparse CSR matrix.
+ *  @param[out] row_ptr     array of \p nnz elements containing the row indices of the sparse
+ *                          COO matrix.
+ *  @param[out] col_ptr     array of \p nnz elements containing the column indices of the sparse
+ *                          COO matrix.
+ *  @param[out] val         array of \p nnz elements of the sparse COO matrix.
+ *
+ *  \retval aoclsparse_status_success           the operation completed successfully.
+ *  \retval aoclsparse_status_invalid_pointer   \p mat or any of the output arguments are NULL.
+ *  \retval aoclsparse_status_invalid_value     \p mat is not in COO format.
+ *  \retval aoclsparse_status_wrong_type        data type of \p mat does not match the function.
+ */
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_export_zcoo(const aoclsparse_matrix     mat,
+                                         aoclsparse_index_base      *base,
+                                         aoclsparse_int             *m,
+                                         aoclsparse_int             *n,
+                                         aoclsparse_int             *nnz,
+                                         aoclsparse_int            **row_ptr,
+                                         aoclsparse_int            **col_ptr,
+                                         aoclsparse_double_complex **val);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_export_ccoo(const aoclsparse_matrix    mat,
+                                         aoclsparse_index_base     *base,
+                                         aoclsparse_int            *m,
+                                         aoclsparse_int            *n,
+                                         aoclsparse_int            *nnz,
+                                         aoclsparse_int           **row_ptr,
+                                         aoclsparse_int           **col_ptr,
+                                         aoclsparse_float_complex **val);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_export_dcoo(const aoclsparse_matrix mat,
+                                         aoclsparse_index_base  *base,
+                                         aoclsparse_int         *m,
+                                         aoclsparse_int         *n,
+                                         aoclsparse_int         *nnz,
+                                         aoclsparse_int        **row_ptr,
+                                         aoclsparse_int        **col_ptr,
+                                         double                **val);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_export_scoo(const aoclsparse_matrix mat,
+                                         aoclsparse_index_base  *base,
+                                         aoclsparse_int         *m,
+                                         aoclsparse_int         *n,
+                                         aoclsparse_int         *nnz,
+                                         aoclsparse_int        **row_ptr,
+                                         aoclsparse_int        **col_ptr,
+                                         float                 **val);
 /**@}*/
 
 /*! \ingroup aux_module

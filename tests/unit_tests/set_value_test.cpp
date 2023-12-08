@@ -79,6 +79,12 @@ namespace
             EXPECT_EQ(std::real(val[ridx]), std::real(check_val));
             EXPECT_EQ(std::imag(val[ridx]), std::imag(check_val));
         }
+        if constexpr(std::is_same_v<T, aoclsparse_float_complex>
+                     || std::is_same_v<T, aoclsparse_double_complex>)
+        {
+            EXPECT_EQ(val[ridx].real, check_val.real);
+            EXPECT_EQ(val[ridx].imag, check_val.imag);
+        }
         if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
         {
             EXPECT_EQ(val[ridx], check_val);
@@ -151,14 +157,15 @@ namespace
         std::vector<aoclsparse_int> row_ptr(1, 0), col_ptr(1, 0);
         std::vector<float>          val(1, 1.0f);
 
-        aoclsparse_create_scoo(&src_mat,
-                               aoclsparse_index_base_zero,
-                               1,
-                               7,
-                               1,
-                               row_ptr.data(),
-                               col_ptr.data(),
-                               val.data());
+        EXPECT_EQ(aoclsparse_create_scoo(&src_mat,
+                                         aoclsparse_index_base_zero,
+                                         1,
+                                         7,
+                                         1,
+                                         row_ptr.data(),
+                                         col_ptr.data(),
+                                         val.data()),
+                  aoclsparse_status_success);
 
         EXPECT_EQ(aoclsparse_set_value(src_mat, 0, 7, 2.0f), aoclsparse_status_invalid_value);
         EXPECT_EQ(aoclsparse_set_value(src_mat, 1, 1, 2.0f), aoclsparse_status_invalid_value);
@@ -201,14 +208,15 @@ namespace
         std::vector<aoclsparse_int> row_ptr(1, 0), col_ptr(1, 0);
         std::vector<float>          val(1, 1.0f);
 
-        aoclsparse_create_scoo(&src_mat,
-                               aoclsparse_index_base_zero,
-                               1,
-                               7,
-                               1,
-                               row_ptr.data(),
-                               col_ptr.data(),
-                               val.data());
+        EXPECT_EQ(aoclsparse_create_scoo(&src_mat,
+                                         aoclsparse_index_base_zero,
+                                         1,
+                                         7,
+                                         1,
+                                         row_ptr.data(),
+                                         col_ptr.data(),
+                                         val.data()),
+                  aoclsparse_status_success);
 
         EXPECT_EQ(aoclsparse_set_value(src_mat, 1, 0, 2.0f), aoclsparse_status_invalid_value);
         EXPECT_EQ(aoclsparse_set_value(src_mat, 1, 1, 2.0f), aoclsparse_status_invalid_value);
@@ -222,14 +230,15 @@ namespace
         std::vector<aoclsparse_int> row_ptr(1, 0), col_ptr(1, 0);
         std::vector<float>          val(1, 1.0f);
 
-        aoclsparse_create_scoo(&src_mat,
-                               aoclsparse_index_base_zero,
-                               1,
-                               7,
-                               1,
-                               row_ptr.data(),
-                               col_ptr.data(),
-                               val.data());
+        EXPECT_EQ(aoclsparse_create_scoo(&src_mat,
+                                         aoclsparse_index_base_zero,
+                                         1,
+                                         7,
+                                         1,
+                                         row_ptr.data(),
+                                         col_ptr.data(),
+                                         val.data()),
+                  aoclsparse_status_success);
 
         EXPECT_EQ(aoclsparse_set_value(src_mat, 0, 2, 2.0f), aoclsparse_status_invalid_index_value);
 
@@ -243,7 +252,9 @@ namespace
         aoclsparse_int row_ptr[] = {1, 2, 3, 5}, col_idx[] = {1, 3, 1, 4};
         double         val[] = {1.1, 2.3, 3.1, 3.4};
 
-        aoclsparse_create_dcsr(&src_mat, aoclsparse_index_base_one, 3, 4, 4, row_ptr, col_idx, val);
+        EXPECT_EQ(aoclsparse_create_dcsr(
+                      &src_mat, aoclsparse_index_base_one, 3, 4, 4, row_ptr, col_idx, val),
+                  aoclsparse_status_success);
 
         EXPECT_EQ(aoclsparse_set_value(src_mat, 1, 2, 2.0), aoclsparse_status_invalid_index_value);
         EXPECT_EQ(aoclsparse_set_value(src_mat, 3, 2, 2.0), aoclsparse_status_invalid_index_value);
@@ -259,14 +270,15 @@ namespace
         std::vector<aoclsparse_int> row_ptr(1, 0), col_ptr(1, 0);
         std::vector<float>          val(1, 1.0f);
 
-        aoclsparse_create_scoo(&src_mat,
-                               aoclsparse_index_base_zero,
-                               1,
-                               7,
-                               1,
-                               row_ptr.data(),
-                               col_ptr.data(),
-                               val.data());
+        EXPECT_EQ(aoclsparse_create_scoo(&src_mat,
+                                         aoclsparse_index_base_zero,
+                                         1,
+                                         7,
+                                         1,
+                                         row_ptr.data(),
+                                         col_ptr.data(),
+                                         val.data()),
+                  aoclsparse_status_success);
 
         EXPECT_EQ(aoclsparse_set_value(src_mat, 0, 0, 2.0), aoclsparse_status_wrong_type);
 
@@ -282,14 +294,14 @@ namespace
         std::vector<aoclsparse_int> row_ptr(1, 0), col_ptr(1, 0);
         std::vector<float>          val(1, 1.0f);
 
-        aoclsparse_create_scoo(&src_mat,
+        EXPECT_EQ(aoclsparse_create_scoo(&src_mat,
                                aoclsparse_index_base_zero,
                                1,
                                7,
                                1,
                                row_ptr.data(),
                                col_ptr.data(),
-                               val.data());
+                               val.data()), aoclsparse_status_success);
         src_mat->input_format = aoclsparse_ell_mat;
 
         EXPECT_EQ(aoclsparse_set_value(src_mat, 0, 2, 2.0f), aoclsparse_status_not_implemented);
