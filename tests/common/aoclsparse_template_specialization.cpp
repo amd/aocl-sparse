@@ -1491,6 +1491,34 @@ aoclsparse_status aoclsparse_axpyi(aoclsparse_int            nnz,
 }
 
 template <>
+aoclsparse_status aoclsparse_update_values(aoclsparse_matrix mat, aoclsparse_int len, float *val)
+{
+    return aoclsparse_supdate_values(mat, len, val);
+}
+
+template <>
+aoclsparse_status aoclsparse_update_values(aoclsparse_matrix mat, aoclsparse_int len, double *val)
+{
+    return aoclsparse_dupdate_values(mat, len, val);
+}
+
+template <>
+aoclsparse_status aoclsparse_update_values(aoclsparse_matrix         mat,
+                                           aoclsparse_int            len,
+                                           aoclsparse_float_complex *val)
+{
+    return aoclsparse_cupdate_values(mat, len, val);
+}
+
+template <>
+aoclsparse_status aoclsparse_update_values(aoclsparse_matrix          mat,
+                                           aoclsparse_int             len,
+                                           aoclsparse_double_complex *val)
+{
+    return aoclsparse_zupdate_values(mat, len, val);
+}
+
+template <>
 aoclsparse_status aoclsparse_export_csr(const aoclsparse_matrix mat,
                                         aoclsparse_index_base  *base,
                                         aoclsparse_int         *m,
@@ -1586,6 +1614,55 @@ aoclsparse_status aoclsparse_export_csc(const aoclsparse_matrix     mat,
                                         aoclsparse_double_complex **val)
 {
     return aoclsparse_export_zcsc(mat, base, m, n, nnz, col_ptr, row_idx, val);
+}
+
+template <>
+aoclsparse_status aoclsparse_export_coo(const aoclsparse_matrix mat,
+                                        aoclsparse_index_base  *base,
+                                        aoclsparse_int         *m,
+                                        aoclsparse_int         *n,
+                                        aoclsparse_int         *nnz,
+                                        aoclsparse_int        **row_ptr,
+                                        aoclsparse_int        **col_ptr,
+                                        float                 **val)
+{
+    return aoclsparse_export_scoo(mat, base, m, n, nnz, row_ptr, col_ptr, val);
+}
+template <>
+aoclsparse_status aoclsparse_export_coo(const aoclsparse_matrix mat,
+                                        aoclsparse_index_base  *base,
+                                        aoclsparse_int         *m,
+                                        aoclsparse_int         *n,
+                                        aoclsparse_int         *nnz,
+                                        aoclsparse_int        **row_ptr,
+                                        aoclsparse_int        **col_ptr,
+                                        double                **val)
+{
+    return aoclsparse_export_dcoo(mat, base, m, n, nnz, row_ptr, col_ptr, val);
+}
+template <>
+aoclsparse_status aoclsparse_export_coo(const aoclsparse_matrix    mat,
+                                        aoclsparse_index_base     *base,
+                                        aoclsparse_int            *m,
+                                        aoclsparse_int            *n,
+                                        aoclsparse_int            *nnz,
+                                        aoclsparse_int           **row_ptr,
+                                        aoclsparse_int           **col_ptr,
+                                        aoclsparse_float_complex **val)
+{
+    return aoclsparse_export_ccoo(mat, base, m, n, nnz, row_ptr, col_ptr, val);
+}
+template <>
+aoclsparse_status aoclsparse_export_coo(const aoclsparse_matrix     mat,
+                                        aoclsparse_index_base      *base,
+                                        aoclsparse_int             *m,
+                                        aoclsparse_int             *n,
+                                        aoclsparse_int             *nnz,
+                                        aoclsparse_int            **row_ptr,
+                                        aoclsparse_int            **col_ptr,
+                                        aoclsparse_double_complex **val)
+{
+    return aoclsparse_export_zcoo(mat, base, m, n, nnz, row_ptr, col_ptr, val);
 }
 
 template <>

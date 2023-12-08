@@ -75,6 +75,7 @@ set(GTEST_EXECUTABLES
     createcsc_tests
     optimize_tests
     coo_tests
+    update_values_test
     gthr_tests
     dotp_tests
     sctr_tests

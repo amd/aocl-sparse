@@ -25,6 +25,7 @@
 #define AOCLSPARSE_AUXILIARY_HPP
 
 #include "aoclsparse_mat_structures.h"
+#include "aoclsparse_analysis.hpp"
 #include "aoclsparse_csr_util.hpp"
 #include "aoclsparse_utils.hpp"
 
@@ -132,6 +133,40 @@ aoclsparse_status aoclsparse_create_coo_t(aoclsparse_matrix          *mat,
                                           T                          *val);
 
 template <typename T>
+aoclsparse_status aoclsparse_update_values_t(aoclsparse_matrix A, aoclsparse_int len, T *val)
+{
+    if(A == nullptr || val == nullptr)
+        return aoclsparse_status_invalid_pointer;
+    if(len != A->nnz)
+        return aoclsparse_status_invalid_size;
+
+    if(A->val_type != get_data_type<T>())
+        return aoclsparse_status_wrong_type;
+
+    T *A_val = nullptr;
+
+    switch(A->input_format)
+    {
+    case aoclsparse_csr_mat:
+        A_val = reinterpret_cast<T *>(A->csr_mat.csr_val);
+        memcpy(A_val, val, len * sizeof(T));
+        break;
+    case aoclsparse_csc_mat:
+        A_val = reinterpret_cast<T *>(A->csc_mat.val);
+        memcpy(A_val, val, len * sizeof(T));
+        break;
+    case aoclsparse_coo_mat:
+        A_val = reinterpret_cast<T *>(A->coo_mat.val);
+        memcpy(A_val, val, len * sizeof(T));
+        break;
+    default:
+        return aoclsparse_status_not_implemented;
+    }
+
+    return aoclsparse_status_success;
+}
+
+template <typename T>
 aoclsparse_status aoclsparse_copy_csc(aoclsparse_int                n,
                                       aoclsparse_int                nnz,
                                       const struct _aoclsparse_csc *src,
@@ -167,6 +202,49 @@ aoclsparse_status aoclsparse_export_csc_t(const aoclsparse_matrix mat,
                                           aoclsparse_int        **col_ptr,
                                           aoclsparse_int        **row_idx,
                                           T                     **val);
+
+/********************************************************************************
+ * \brief aoclsparse_matrix is a structure holding the aoclsparse coo matrix.
+ * Use this routine to export the contents of this structure
+ ********************************************************************************/
+template <typename T>
+aoclsparse_status aoclsparse_export_coo_t(const aoclsparse_matrix mat,
+                                          aoclsparse_index_base  *base,
+                                          aoclsparse_int         *m,
+                                          aoclsparse_int         *n,
+                                          aoclsparse_int         *nnz,
+                                          aoclsparse_int        **row_ptr,
+                                          aoclsparse_int        **col_ptr,
+                                          T                     **val)
+{
+    if((mat == nullptr) || (base == nullptr) || (m == nullptr) || (n == nullptr) || (nnz == nullptr)
+       || (row_ptr == nullptr) || (col_ptr == nullptr) || (val == nullptr))
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    // check if data type of matrix is same as requested
+    if(mat->val_type != get_data_type<T>())
+    {
+        return aoclsparse_status_wrong_type;
+    }
+    if((mat->coo_mat.row_ind != nullptr) && (mat->coo_mat.col_ind != nullptr)
+       && (mat->coo_mat.val != nullptr))
+    {
+        *row_ptr = mat->coo_mat.row_ind;
+        *col_ptr = mat->coo_mat.col_ind;
+        *val     = static_cast<T *>(mat->coo_mat.val);
+    }
+    else
+    {
+        return aoclsparse_status_invalid_value;
+    }
+
+    *m    = mat->m;
+    *n    = mat->n;
+    *nnz  = mat->nnz;
+    *base = mat->base;
+    return aoclsparse_status_success;
+}
 
 /********************************************************************************
  * \brief generates a plane rotation with cosine and sine. Slower and more accurate

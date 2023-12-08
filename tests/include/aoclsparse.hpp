@@ -446,4 +446,17 @@ aoclsparse_status aoclsparse_export_csc(const aoclsparse_matrix mat,
                                         aoclsparse_int        **row_idx,
                                         T                     **val);
 
+template <typename T>
+aoclsparse_status aoclsparse_export_coo(const aoclsparse_matrix mat,
+                                        aoclsparse_index_base  *base,
+                                        aoclsparse_int         *m,
+                                        aoclsparse_int         *n,
+                                        aoclsparse_int         *nnz,
+                                        aoclsparse_int        **row_ptr,
+                                        aoclsparse_int        **col_ptr,
+                                        T                     **val);
+
+template <typename T>
+aoclsparse_status aoclsparse_update_values(aoclsparse_matrix mat, aoclsparse_int len, T *val);
+
 #endif /*AOCLSPARSE_HPP*/
