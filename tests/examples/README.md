@@ -60,7 +60,7 @@ Build options:
 	```
 	set SPARSE_ROOT=%HOME%\amd\aocl-sparse
 	```
-	**Note** If in case, AOCL_ROOT contains AOCL Sparse installation along with BLAS, LAPACK and UTILS libraries,   then "SPARSE_ROOT" takes precedence when searching for sparse library and headers.
+	**Note** If in case, AOCL_ROOT contains AOCL Sparse installation along with BLAS, LAPACK and UTILS libraries, then "SPARSE_ROOT" takes precedence when searching for sparse library and headers.
 4. Add library paths of Sparse, BLAS, LAPACK and UTILS to environment path variable
 	```
 	set PATH=%HOME%\amd\aocl-sparse\lib;%PATH%
@@ -72,7 +72,7 @@ Build options:
 
 5. Configure the build system to compile sample applications. Make sure the build configuration is same as the one used to build aoclsparse library for BUILD_ILP64 and SUPPORT_OMP variables.
 	```
-	cmake -S . -B out_sparse -G "Visual Studio 16  2019" -A x64 -T "LLVM" -DCMAKE_CXX_COMPILER=clang-cl -DBUILD_SHARED_LIBS=OFF -DBUILD_ILP64=ON -DSUPPORT_OMP=OFF
+	cmake -S . -B out_sparse -G "Visual Studio 17 2022" -A x64 -T "clangcl" -DCMAKE_CXX_COMPILER=clang-cl -DBUILD_SHARED_LIBS=ON -DBUILD_ILP64=OFF -DSUPPORT_OMP=OFF
 	```
 6. Compile the sample applications
 	```
@@ -83,3 +83,4 @@ Build options:
 	.\out_sparse\sample_spmv.exe
 	```
 **Note** The environment variable "SPARSE_ROOT" takes precedence when searching for sparse library and headers. If the environment variable "SPARSE_ROOT" is not defined, then SPARSE_ROOT inherits the path from AOCL_ROOT and looks for AOCL sparse installation in AOCL_ROOT. If Sparse library/headers are not found either in SPARSE_ROOT or AOCL_ROOT, then an error is returned.
+**Note** Currently multi-threading is not supported on Windows.
