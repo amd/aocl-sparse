@@ -21,37 +21,38 @@ cd aocl-sparse
 ```
 5. Configure the project along with the following options depending on the build that is required:
 ```
-cmake -S . -B <build_directory> -T ClangCL -G "Visual Studio 17 2022" -DCMAKE_CXX_COMPILER=ClangCl -DCMAKE_INSTALL_PREFIX="<aoclsparse_install_path>"
+cmake -S . -B <build_directory> -T clangcl -G "Visual Studio 17 2022" -DCMAKE_CXX_COMPILER=clang-cl -DCMAKE_INSTALL_PREFIX="<aoclsparse_install_path>"
 
 # Configure AOCL-Sparse
 # Build options:
 #   BUILD_SHARED_LIBS        - build AOCL-Sparse as a shared library (Default: ON)
 #   BUILD_ILP64              - ILP64 Support (Default: OFF)
-#   SUPPORT_OMP              - OpenMP Support (Default: ON)
+#   SUPPORT_OMP              - OpenMP Support (Default: OFF)
 #   BUILD_CLIENTS_SAMPLES    - build examples (Default: ON)
 #   BUILD_UNIT_TESTS      	 - build unit tests (Default: OFF)
 #   BUILD_CLIENTS_BENCHMARKS - build benchmarks (Default: OFF)
 #   BUILD_DOCS               - build the PDF documentation (Default: OFF)
 #   USE_AVX512               - AVX512 Support (Default: OFF)
 ```
-6. Build the project
+6. Export the paths for AOCL-BLAS, AOCL-LAPACK and AOCL-UTILS libraries.
+```
+set PATH=C:\Users\Program Files\AMD\AOCL-Windows\amd-blis\lib\LP64;%PATH%
+set PATH=C:\Users\Program Files\AMD\AOCL-Windows\amd-libflame\lib\LP64;%PATH%
+set PATH=C:\Users\Program Files\AMD\AOCL-Windows\amd-utils\lib;%PATH%
+```
+7. Build the project
 ```
 cmake --build <build_directory> --config Release --target install --verbose
 ```
-7. To run the tests/examples, export the paths for Blis, Libflame and Sparse binaries
+8. To run the tests/examples, export the path for Sparse library
 ```
-set PATH=C:\Users\Program Files\AMD\AOCL-Windows\amd-blis\include;%PATH%
-set PATH=C:\Users\Program Files\AMD\AOCL-Windows\amd-blis\lib;%PATH%
-set PATH=C:\Users\Program Files\AMD\AOCL-Windows\amd-libflame\include;%PATH%
-set PATH=C:\Users\Program Files\AMD\AOCL-Windows\amd-libflame\lib;%PATH%
-set PATH=C:\Users\Program Files\AMD\AOCL-Windows\amd-utils\include;%PATH%
-set PATH=C:\Users\Program Files\AMD\AOCL-Windows\amd-utils\lib;%PATH%
+set PATH=<aoclsparse_install_path>\lib;%PATH%
 ```
-8. Run the examples after exporting the required library/headers paths
+9. Run the examples after exporting the required library/headers paths
 ```
 build_directory\tests\examples\sample_spmv.exe 
 ```
-
+**Note** Currently multi-threading is not supported on Windows.
 #### Building on Linux
 1. Install AOCL-BLAS, AOCL-LAPACK and AOCL-UTILS
 2. Define the environment variable AOCL_ROOT to point to AOCL libs installation
