@@ -78,6 +78,7 @@ option(BUILD_DOCS "Build the documentation" OFF)
 option(COVERAGE "Do source code coverage (only GCC/Debug build)" OFF)
 option(ASAN "Enable Address SANitizer (only Debug/Linux build)" OFF)
 option(VALGRIND "Enable Valgrind checks (only Debug. Incompatible with ASAN=ON)" OFF)
+option(EXTERNAL_BENCHMARKING "Enable external benchmarking to be included to aoclsparse-bench" OFF)
 set(CMAKE_AOCL_ROOT OFF CACHE STRING "Provide AOCL_ROOT via CMake Configuration")
 
 if(WIN32)

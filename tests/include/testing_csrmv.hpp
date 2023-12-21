@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -36,42 +36,25 @@
 #include "aoclsparse_test.hpp"
 #include "aoclsparse_utility.hpp"
 
-template <typename T>
-void testing_csrmv(const Arguments &arg)
-{
-    aoclsparse_int         M        = arg.M;
-    aoclsparse_int         N        = arg.N;
-    aoclsparse_int         nnz      = arg.nnz;
-    aoclsparse_operation   trans    = arg.transA;
-    aoclsparse_matrix_type mattype  = arg.mattypeA;
-    aoclsparse_fill_mode   fill     = arg.uplo;
-    aoclsparse_diag_type   diag     = arg.diag;
-    aoclsparse_index_base  base     = arg.baseA;
-    aoclsparse_matrix_init mat      = arg.matrix;
-    std::string            filename = arg.filename;
-    bool                   issymm;
-    T                      alpha;
-    T                      beta;
+#ifdef EXT_BENCHMARKING
+#include "ext_benchmarking.hpp"
+// define register_tests_*() which add new tests
+#else
+#include "aoclsparse_no_ext_benchmarking.hpp"
+// or their dummy version adding no additional tests
+#endif
 
-    //At present alpha and beta have the same real / imaginary parts.
-    //ToDo: support distinct real and imaginary parts
-    if constexpr(std::is_same_v<T, aoclsparse_float_complex>
-                 || std::is_same_v<T, std::complex<float>>)
-    {
-        alpha = {static_cast<float>(arg.alpha), static_cast<float>(arg.alpha)};
-        beta  = {static_cast<float>(arg.beta), static_cast<float>(arg.beta)};
-    }
-    else if constexpr(std::is_same_v<T, aoclsparse_double_complex>
-                      || std::is_same_v<T, std::complex<double>>)
-    {
-        alpha = {static_cast<double>(arg.alpha), static_cast<double>(arg.alpha)};
-        beta  = {static_cast<double>(arg.beta), static_cast<double>(arg.beta)};
-    }
-    if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
-    {
-        alpha = static_cast<T>(arg.alpha);
-        beta  = static_cast<T>(arg.beta);
-    }
+template <typename T>
+int testing_csrmv_aocl(const Arguments &arg, testdata<T> &td, double timings[])
+{
+    aoclsparse_int         m       = td.m;
+    aoclsparse_int         n       = td.n;
+    aoclsparse_int         nnz     = td.nnzA;
+    aoclsparse_operation   trans   = arg.transA;
+    aoclsparse_matrix_type mattype = arg.mattypeA;
+    aoclsparse_fill_mode   fill    = arg.uplo;
+    aoclsparse_diag_type   diag    = arg.diag;
+    aoclsparse_index_base  base    = arg.baseA;
 
     // Create matrix descriptor & set it as requested by command line arguments
     aoclsparse_mat_descr descr;
@@ -81,156 +64,226 @@ void testing_csrmv(const Arguments &arg)
     CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mat_diag_type(descr, diag));
     CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mat_index_base(descr, base));
 
-    std::vector<aoclsparse_int> csr_row_ptr;
-    std::vector<aoclsparse_int> csr_col_ind;
-    std::vector<T>              csr_val;
+    int number_hot_calls = arg.iters;
+
+    if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>) // TODO FIXME enable complex
+    {
+
+        // Performance run
+        for(int iter = 0; iter < number_hot_calls; ++iter)
+        {
+            td.y                  = td.y_in;
+            double cpu_time_start = aoclsparse_clock();
+            CHECK_AOCLSPARSE_ERROR(aoclsparse_csrmv(trans,
+                                                    &td.alpha,
+                                                    m,
+                                                    n,
+                                                    nnz,
+                                                    td.csr_valA.data(),
+                                                    td.csr_col_indA.data(),
+                                                    td.csr_row_ptrA.data(),
+                                                    descr,
+                                                    td.x.data(),
+                                                    &td.beta,
+                                                    td.y.data()));
+            timings[iter] = aoclsparse_clock_diff(cpu_time_start);
+        }
+    }
+    aoclsparse_destroy_mat_descr(descr);
+
+    return 0;
+}
+
+template <typename T>
+void testing_csrmv(const Arguments &arg)
+{
+    aoclsparse_operation   trans    = arg.transA;
+    aoclsparse_matrix_type mattype  = arg.mattypeA;
+    aoclsparse_fill_mode   fill     = arg.uplo;
+    aoclsparse_diag_type   diag     = arg.diag;
+    aoclsparse_index_base  base     = arg.baseA;
+    aoclsparse_matrix_init mat      = arg.matrix;
+    std::string            filename = arg.filename;
+    bool                   issymm;
+
+    // the queue of test functions to run, normally it would be just one API
+    // unless more tests are registered via EXT_BENCHMARKING
+    std::vector<testsetting<T>> testqueue;
+    testqueue.push_back({"aocl_csrmv", &testing_csrmv_aocl<T>});
+    register_tests_csrmv(testqueue);
+
+    // create relevant test data for this API
+    testdata<T> td;
+    td.m    = arg.M;
+    td.n    = arg.N;
+    td.nnzA = arg.nnz;
+
+    // space for the API time measurements
+    std::vector<double> timings(arg.iters);
+
+    // At present alpha and beta have the same real / imaginary parts.
+    // TODO: support distinct real and imaginary parts
+    if constexpr(std::is_same_v<T, aoclsparse_float_complex>
+                 || std::is_same_v<T, std::complex<float>>)
+    {
+        td.alpha = {static_cast<float>(arg.alpha), static_cast<float>(arg.alpha)};
+        td.beta  = {static_cast<float>(arg.beta), static_cast<float>(arg.beta)};
+    }
+    else if constexpr(std::is_same_v<T, aoclsparse_double_complex>
+                      || std::is_same_v<T, std::complex<double>>)
+    {
+        td.alpha = {static_cast<double>(arg.alpha), static_cast<double>(arg.alpha)};
+        td.beta  = {static_cast<double>(arg.beta), static_cast<double>(arg.beta)};
+    }
+    if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
+    {
+        td.alpha = static_cast<T>(arg.alpha);
+        td.beta  = static_cast<T>(arg.beta);
+    }
 
     aoclsparse_seedrand();
-#if 0
-    // Print aoclsparse version
-    std::cout << aoclsparse_get_version() << std::endl;
-#endif
+
     // Sample matrix
-    aoclsparse_init_csr_matrix(
-        csr_row_ptr, csr_col_ind, csr_val, M, N, nnz, base, mat, filename.c_str(), issymm, true);
+    aoclsparse_init_csr_matrix(td.csr_row_ptrA,
+                               td.csr_col_indA,
+                               td.csr_valA,
+                               td.m,
+                               td.n,
+                               td.nnzA,
+                               base,
+                               mat,
+                               filename.c_str(),
+                               issymm,
+                               true);
 
     // Allocate memory for vectors
     aoclsparse_int xdim, ydim;
     if(trans == aoclsparse_operation_none)
     {
-        xdim = N;
-        ydim = M;
+        xdim = td.n;
+        ydim = td.m;
     }
     else
     {
-        xdim = M;
-        ydim = N;
+        xdim = td.m;
+        ydim = td.n;
     }
-    std::vector<T> x(xdim);
-    std::vector<T> y(ydim);
+    td.x.resize(xdim);
+    td.y_in.resize(ydim);
+    td.y.resize(ydim);
     std::vector<T> y_gold(ydim);
 
     // Initialize data
-    aoclsparse_init<T>(x, 1, xdim, 1);
-    aoclsparse_init<T>(y, 1, ydim, 1);
-    y_gold = y;
+    aoclsparse_init<T>(td.x, 1, xdim, 1);
+    aoclsparse_init<T>(td.y_in, 1, ydim, 1);
+    y_gold = td.y_in;
+    td.y   = td.y_in;
 
     // Having this check since these routines don't support complex types.
     if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
     {
         if(arg.unit_check)
         {
-            CHECK_AOCLSPARSE_ERROR(aoclsparse_csrmv(trans,
-                                                    &alpha,
-                                                    M,
-                                                    N,
-                                                    nnz,
-                                                    csr_val.data(),
-                                                    csr_col_ind.data(),
-                                                    csr_row_ptr.data(),
-                                                    descr,
-                                                    x.data(),
-                                                    &beta,
-                                                    y.data()));
             // Reference SPMV CSR implementation
             if(mattype == aoclsparse_matrix_type_general)
             {
                 if(trans == aoclsparse_operation_none)
-                    CHECK_AOCLSPARSE_ERROR(ref_csrmv(alpha,
-                                                     M,
-                                                     N,
-                                                     csr_val.data(),
-                                                     csr_col_ind.data(),
-                                                     csr_row_ptr.data(),
+                    CHECK_AOCLSPARSE_ERROR(ref_csrmv(td.alpha,
+                                                     td.m,
+                                                     td.n,
+                                                     td.csr_valA.data(),
+                                                     td.csr_col_indA.data(),
+                                                     td.csr_row_ptrA.data(),
                                                      base,
-                                                     x.data(),
-                                                     beta,
+                                                     td.x.data(),
+                                                     td.beta,
                                                      y_gold.data()));
                 else
-                    CHECK_AOCLSPARSE_ERROR(ref_csrmvt(alpha,
-                                                      M,
-                                                      N,
-                                                      csr_val.data(),
-                                                      csr_col_ind.data(),
-                                                      csr_row_ptr.data(),
+                    CHECK_AOCLSPARSE_ERROR(ref_csrmvt(td.alpha,
+                                                      td.m,
+                                                      td.n,
+                                                      td.csr_valA.data(),
+                                                      td.csr_col_indA.data(),
+                                                      td.csr_row_ptrA.data(),
                                                       base,
-                                                      x.data(),
-                                                      beta,
+                                                      td.x.data(),
+                                                      td.beta,
                                                       y_gold.data()));
             }
             else if(mattype == aoclsparse_matrix_type_symmetric)
             {
-                CHECK_AOCLSPARSE_ERROR(ref_csrmvsym(alpha,
-                                                    M,
-                                                    csr_val.data(),
-                                                    csr_col_ind.data(),
-                                                    csr_row_ptr.data(),
+                CHECK_AOCLSPARSE_ERROR(ref_csrmvsym(td.alpha,
+                                                    td.m,
+                                                    td.csr_valA.data(),
+                                                    td.csr_col_indA.data(),
+                                                    td.csr_row_ptrA.data(),
                                                     fill,
                                                     diag,
                                                     base,
-                                                    x.data(),
-                                                    beta,
+                                                    td.x.data(),
+                                                    td.beta,
                                                     y_gold.data()));
             }
             else if(mattype == aoclsparse_matrix_type_triangular)
             {
-                CHECK_AOCLSPARSE_ERROR(ref_csrmvtrg(alpha,
-                                                    M,
-                                                    N,
-                                                    csr_val.data(),
-                                                    csr_col_ind.data(),
-                                                    csr_row_ptr.data(),
+                CHECK_AOCLSPARSE_ERROR(ref_csrmvtrg(td.alpha,
+                                                    td.m,
+                                                    td.n,
+                                                    td.csr_valA.data(),
+                                                    td.csr_col_indA.data(),
+                                                    td.csr_row_ptrA.data(),
                                                     fill,
                                                     diag,
                                                     base,
-                                                    x.data(),
-                                                    beta,
+                                                    td.x.data(),
+                                                    td.beta,
                                                     y_gold.data()));
             }
-            near_check_general<T>(1, ydim, 1, y_gold.data(), y.data());
         }
-        int number_hot_calls = arg.iters;
 
-        double cpu_time_used = DBL_MAX;
-
-        // Performance run
-        for(int iter = 0; iter < number_hot_calls; ++iter)
-        {
-            double cpu_time_start = aoclsparse_clock();
-            CHECK_AOCLSPARSE_ERROR(aoclsparse_csrmv(trans,
-                                                    &alpha,
-                                                    M,
-                                                    N,
-                                                    nnz,
-                                                    csr_val.data(),
-                                                    csr_col_ind.data(),
-                                                    csr_row_ptr.data(),
-                                                    descr,
-                                                    x.data(),
-                                                    &beta,
-                                                    y.data()));
-            cpu_time_used = aoclsparse_clock_min_diff(cpu_time_used, cpu_time_start);
-        }
-        aoclsparse_destroy_mat_descr(descr);
-
-        double cpu_gflops = spmv_gflop_count<T>(M, nnz, beta != static_cast<T>(0)) / cpu_time_used;
-        double cpu_gbyte
-            = csrmv_gbyte_count<T>(M, N, nnz, beta != static_cast<T>(0)) / cpu_time_used;
+        int    number_hot_calls = arg.iters;
+        double gflop            = spmv_gflop_count<T>(td.m, td.nnzA, td.beta != static_cast<T>(0));
+        double gbyte = csrmv_gbyte_count<T>(td.m, td.n, td.nnzA, td.beta != static_cast<T>(0));
 
         std::cout.precision(2);
         std::cout.setf(std::ios::fixed);
         std::cout.setf(std::ios::left);
 
-        std::cout << std::setw(12) << "M" << std::setw(12) << "N" << std::setw(12) << "nnz"
-                  << std::setw(12) << "alpha" << std::setw(12) << "beta" << std::setw(12)
-                  << "GFlop/s" << std::setw(12) << "GB/s" << std::setw(12) << "msec"
-                  << std::setw(12) << "iter" << std::setw(12) << "verified" << std::endl;
+        for(int itest = 0; itest < testqueue.size(); ++itest)
+        {
+            std::cout << "-----" << testqueue[itest].name << "-----" << std::endl;
 
-        std::cout << std::setw(12) << M << std::setw(12) << N << std::setw(12) << nnz
-                  << std::setw(12) << alpha << std::setw(12) << beta << std::setw(12) << cpu_gflops
-                  << std::setw(12) << cpu_gbyte << std::setw(12) << std::scientific
-                  << cpu_time_used * 1e3 << std::setw(12) << number_hot_calls << std::setw(12)
-                  << (arg.unit_check ? "yes" : "no") << std::endl;
+            // Run the test loop
+            testqueue[itest].tf(arg, td, timings.data());
+
+            // Check the results against the reference result
+            if(arg.unit_check)
+            {
+                // TODO FIXME on error this exit() but do we want that for our benchmarking?
+                near_check_general<T>(1, ydim, 1, y_gold.data(), td.y.data());
+            }
+
+            // analyze the results - at the moment just take the minimum
+            double cpu_time_used = DBL_MAX;
+            for(int iter = 0; iter < number_hot_calls; ++iter)
+                cpu_time_used = (std::min)(cpu_time_used, timings[iter]);
+
+            // count flops
+            double cpu_gflops = gflop / cpu_time_used;
+            double cpu_gbyte  = gbyte / cpu_time_used;
+
+            // store/print results
+            std::cout << std::setw(12) << "M" << std::setw(12) << "N" << std::setw(12) << "nnz"
+                      << std::setw(12) << "alpha" << std::setw(12) << "beta" << std::setw(12)
+                      << "GFlop/s" << std::setw(12) << "GB/s" << std::setw(12) << "msec"
+                      << std::setw(12) << "iter" << std::setw(12) << "verified" << std::endl;
+
+            std::cout << std::setw(12) << td.m << std::setw(12) << td.n << std::setw(12) << td.nnzA
+                      << std::setw(12) << arg.alpha << std::setw(12) << arg.beta << std::setw(12)
+                      << cpu_gflops << std::setw(12) << cpu_gbyte << std::setw(12)
+                      << std::scientific << cpu_time_used * 1e3 << std::setw(12) << number_hot_calls
+                      << std::setw(12) << (arg.unit_check ? "yes" : "no") << std::endl;
+        }
     }
 }
 
