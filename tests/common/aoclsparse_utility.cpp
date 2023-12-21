@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -117,6 +117,11 @@ double aoclsparse_clock_min_diff(double time_min, double time_start)
         time_min = time_min_prev;
 
     return time_min;
+}
+
+double aoclsparse_clock_diff(double time_start)
+{
+    return (std::max)(aoclsparse_clock() - time_start, 0.0);
 }
 
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32) \

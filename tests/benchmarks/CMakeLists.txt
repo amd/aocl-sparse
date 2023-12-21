@@ -39,6 +39,22 @@ if(NOT Boost_FOUND)
     endif()
 endif()
 
+# fetch external benchmarking libraries, etc. if enabled
+if(EXTERNAL_BENCHMARKING)
+  if (NOT DEFINED EXT_BENCH_INC)
+    message(FATAL_ERROR "EXTERNAL_BENCHMARKING is turned ON but no EXT_BENCH_INC is provided. Set EXT_BENCH_INC to the include directory containing ext_benchmarking.hpp.")
+  endif()
+  if (NOT DEFINED EXT_BENCH_DEF OR NOT DEFINED EXT_BENCH_LIB)
+    message(WARNING "EXTERNAL_BENCHMARKING is turned ON but not all EXT_BENCH_DEF, EXT_BENCH_INC or EXT_BENCH_LIB are set.")
+  endif()
+
+  message(STATUS "[benchmark cmake lists] EXTERNAL_BENCHMARKING......${EXTERNAL_BENCHMARKING}")
+  message(STATUS "[benchmark cmake lists] EXT_BENCH_DEF..............${EXT_BENCH_DEF}")
+  message(STATUS "[benchmark cmake lists] EXT_BENCH_INC..............${EXT_BENCH_INC}")
+  message(STATUS "[benchmark cmake lists] EXT_BENCH_LIB..............${EXT_BENCH_LIB}")
+endif()
+
+
 set(AOCLSPARSE_BENCHMARK_SOURCES
   aoclsparse_test.cpp
 )
@@ -77,6 +93,13 @@ endif()
 # Add OpenMP
 target_link_libraries(aoclsparse-bench PRIVATE ${OpenMP_Library})
 target_link_libraries(aoclsparse-bench PUBLIC ${LAPACK_LIBRARIES})
+
+# fetch external benchmarking libraries, etc. if enabled
+if(EXTERNAL_BENCHMARKING)
+  add_definitions(-DEXT_BENCHMARKING ${EXT_BENCH_DEF})
+  target_link_libraries(aoclsparse-bench PRIVATE ${EXT_BENCH_LIB})
+  target_include_directories(aoclsparse-bench PRIVATE ${EXT_BENCH_INC})
+endif()
 
 # Set benchmark output directory
 set_target_properties(aoclsparse-bench PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/staging")
