@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,32 +27,35 @@
 
 #include "aoclsparse.h"
 #include "aoclsparse_context.h"
+#include "aoclsparse_utils.hpp"
 
 #include <complex>
 
-#if defined(_WIN32) || defined(_WIN64)
-//Windows equivalent of gcc c99 type qualifier __restrict__
-#define __restrict__ __restrict
-#endif
-
 /*
- * Scatter reference implementation
+ * Scatter reference implementation with stride or indexing
  * It is assumed that all pointers and data are valid.
- * Only check is made for indx to check that entries are not negative
  */
-template <typename T>
-inline aoclsparse_status sctr_ref(aoclsparse_int nnz,
-                                  const T *__restrict__ x,
-                                  const aoclsparse_int *__restrict__ indx,
-                                  T *__restrict__ y)
+template <typename T, Index::type I>
+inline aoclsparse_status
+    sctr_ref(aoclsparse_int nnz, const T *__restrict__ x, Index::index_t<I> xi, T *__restrict__ y)
 {
     aoclsparse_int i;
+
     for(i = 0; i < nnz; i++)
     {
-        if(indx[i] < 0)
-            return aoclsparse_status_invalid_index_value;
+        if constexpr(I == Index::type::strided)
+        {
+            // treat "xi" as a stride distance
+            y[xi * i] = x[i];
+        }
+        else
+        {
+            // treat "xi" as an indexing array
+            if(xi[i] < 0)
+                return aoclsparse_status_invalid_index_value;
 
-        y[indx[i]] = x[i];
+            y[xi[i]] = x[i];
+        }
     }
     return aoclsparse_status_success;
 }
@@ -60,64 +63,12 @@ inline aoclsparse_status sctr_ref(aoclsparse_int nnz,
 /*
  * aoclsparse_scatter dispatcher
  */
-template <typename T>
+template <typename T, Index::type I>
 inline aoclsparse_status aoclsparse_scatter(aoclsparse_int nnz,
                                             const T *__restrict__ x,
-                                            const aoclsparse_int *__restrict__ indx,
+                                            Index::index_t<I> xi,
                                             T *__restrict__ y,
                                             [[maybe_unused]] aoclsparse_int kid)
-{
-    // Check pointer arguments
-    if((nullptr == x) || (nullptr == indx) || (nullptr == y))
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-
-    // Quick return if possible
-    if(nnz == 0)
-    {
-        return aoclsparse_status_success;
-    }
-
-    // Check size
-    if(nnz < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-
-    switch(kid)
-    {
-    default: // Reference implementation
-        return sctr_ref<T>(nnz, x, indx, y);
-        break;
-    }
-}
-
-/*
- * Scatter reference implementation with stride
- * It is assumed that all pointers and data are valid.
- */
-template <typename T>
-inline aoclsparse_status
-    sctrs_ref(aoclsparse_int nnz, const T *__restrict__ x, aoclsparse_int stride, T *__restrict__ y)
-{
-    aoclsparse_int i;
-
-    for(i = 0; i < nnz; i++)
-    {
-        y[stride * i] = x[i];
-    }
-    return aoclsparse_status_success;
-}
-/*
- * aoclsparse_scatter dispatcher with stride
- */
-template <typename T>
-inline aoclsparse_status aoclsparse_scatters(aoclsparse_int nnz,
-                                             const T *__restrict__ x,
-                                             aoclsparse_int stride,
-                                             T *__restrict__ y,
-                                             aoclsparse_int kid)
 {
     // Check pointer arguments
     if((nullptr == x) || (nullptr == y))
@@ -131,20 +82,24 @@ inline aoclsparse_status aoclsparse_scatters(aoclsparse_int nnz,
         return aoclsparse_status_success;
     }
 
-    //invalid stride
-    if(stride < 0)
-        return aoclsparse_status_invalid_size;
-
     //Check Size
     if(nnz < 0)
     {
         return aoclsparse_status_invalid_size;
     }
 
-    switch(kid)
+    if constexpr(I == Index::type::strided)
     {
-    default: // Reference implementation
-        return sctrs_ref<T>(nnz, x, stride, y);
-        break;
+        // xi is a stride distance, check distance
+        if(xi <= 0)
+            return aoclsparse_status_invalid_size;
     }
+    else
+    {
+        // xi is an index array, check pointer
+        if(xi == nullptr)
+            return aoclsparse_status_invalid_pointer;
+    }
+
+    return sctr_ref<T, I>(nnz, x, xi, y);
 }

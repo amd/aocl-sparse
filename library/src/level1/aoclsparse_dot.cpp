@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,8 +31,8 @@
  * ===========================================================================
  */
 
-/* 
- * Computes the dot product of a conjugated complex (float precision) vector stored
+/*
+ * Computes the dot product of a conjugated complex (single precision) vector stored
  * in a compressed format (x) and a complex dense vector (y).
  */
 extern "C" aoclsparse_status aoclsparse_cdotci(
@@ -52,7 +52,7 @@ extern "C" aoclsparse_status aoclsparse_cdotci(
     return status;
 }
 
-/* 
+/*
  * Computes the dot product of a conjugated complex (double precision) vector stored
  * in a compressed format (x) and a complex dense vector (y).
  */
@@ -72,8 +72,8 @@ extern "C" aoclsparse_status aoclsparse_zdotci(
     return status;
 }
 
-/* 
- * Computes the dot product of a complex (float precision) vector stored
+/*
+ * Computes the dot product of a complex (single precision) vector stored
  * in a compressed format (x) and a complex dense vector (y).
  */
 extern "C" aoclsparse_status aoclsparse_cdotui(
@@ -92,7 +92,7 @@ extern "C" aoclsparse_status aoclsparse_cdotui(
     return status;
 }
 
-/* 
+/*
  * Computes the dot product of a complex (double precision) vector stored
  * in a compressed format (x) and a complex dense vector (y).
  */
@@ -112,8 +112,8 @@ extern "C" aoclsparse_status aoclsparse_zdotui(
     return status;
 }
 
-/* 
- * Computes the dot product of a real (float precision) vector stored
+/*
+ * Computes the dot product of a real (single precision) vector stored
  * in a compressed format (x) and a real dense vector (y).
  */
 extern "C" float aoclsparse_sdoti(const aoclsparse_int  nnz,
@@ -128,7 +128,7 @@ extern "C" float aoclsparse_sdoti(const aoclsparse_int  nnz,
     return dot;
 }
 
-/* 
+/*
  * Computes the dot product of a real (double precision) vector stored
  * in a compressed format (x) and a real dense vector (y).
  */
