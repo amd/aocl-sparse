@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022-2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,6 +27,13 @@
 #include <cmath>
 #include <complex>
 #include <limits>
+#include <type_traits>
+
+// Common defines
+#if defined(_WIN32) || defined(_WIN64)
+// Windows equivalent of gcc c99 type qualifier __restrict__
+#define __restrict__ __restrict
+#endif
 
 extern const size_t data_size[];
 
@@ -189,5 +196,23 @@ struct get_data_type<std::complex<double>>
         return aoclsparse_zmat;
     }
 };
+
+/* Common indexing for gather- and scatter-type APIs
+ * It is useful also for other API that need to handle
+ * arrays in both indexed and strided modes.
+ */
+namespace Index
+{
+    enum class type
+    {
+        strided,
+        indexed
+    };
+
+    template <type I>
+    using index_t =
+        typename std::conditional<I == type::strided, aoclsparse_int, const aoclsparse_int *>::type;
+
+}
 
 #endif

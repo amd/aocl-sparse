@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,11 +30,14 @@
  * ===========================================================================
  */
 
+// gather with index
 extern "C" aoclsparse_status
     aoclsparse_sgthr(const aoclsparse_int nnz, const float *y, float *x, const aoclsparse_int *indx)
 {
-    aoclsparse_int kid = 0;
-    return aoclsparse_gthr<float, false>(nnz, y, x, indx, kid);
+    aoclsparse_int    kid = -1;
+    aoclsparse_status status;
+    status = aoclsparse_gthr<float, gather_op::gather, Index::type::indexed>(nnz, y, x, indx, kid);
+    return status;
 }
 
 extern "C" aoclsparse_status aoclsparse_dgthr(const aoclsparse_int  nnz,
@@ -42,85 +45,109 @@ extern "C" aoclsparse_status aoclsparse_dgthr(const aoclsparse_int  nnz,
                                               double               *x,
                                               const aoclsparse_int *indx)
 {
-    aoclsparse_int kid = 0;
-    return aoclsparse_gthr<double, false>(nnz, y, x, indx, kid);
+    aoclsparse_int    kid = -1;
+    aoclsparse_status status;
+    status = aoclsparse_gthr<double, gather_op::gather, Index::type::indexed>(nnz, y, x, indx, kid);
+    return status;
 }
 
 extern "C" aoclsparse_status
     aoclsparse_cgthr(const aoclsparse_int nnz, const void *y, void *x, const aoclsparse_int *indx)
 {
-    aoclsparse_int kid = 0;
-    return aoclsparse_gthr<std::complex<float>, false>(
+    aoclsparse_int    kid = -1;
+    aoclsparse_status status;
+    status = aoclsparse_gthr<std::complex<float>, gather_op::gather, Index::type::indexed>(
         nnz, (const std::complex<float> *)y, (std::complex<float> *)x, indx, kid);
+    return status;
 }
 
 extern "C" aoclsparse_status
     aoclsparse_zgthr(const aoclsparse_int nnz, const void *y, void *x, const aoclsparse_int *indx)
 {
-    aoclsparse_int kid = 0;
-    return aoclsparse_gthr<std::complex<double>, false>(
+    aoclsparse_int    kid = -1;
+    aoclsparse_status status;
+    status = aoclsparse_gthr<std::complex<double>, gather_op::gather, Index::type::indexed>(
         nnz, (const std::complex<double> *)y, (std::complex<double> *)x, indx, kid);
+    return status;
 }
 
+// gather_zero with index
 extern "C" aoclsparse_status
     aoclsparse_sgthrz(const aoclsparse_int nnz, float *y, float *x, const aoclsparse_int *indx)
 {
-    aoclsparse_int kid = 0;
-    return aoclsparse_gthr<float, true>(nnz, y, x, indx, kid);
+    aoclsparse_int    kid = -1;
+    aoclsparse_status status;
+    status = aoclsparse_gthr<float, gather_op::gatherz, Index::type::indexed>(nnz, y, x, indx, kid);
+    return status;
 }
 
 extern "C" aoclsparse_status
     aoclsparse_dgthrz(const aoclsparse_int nnz, double *y, double *x, const aoclsparse_int *indx)
 {
-    aoclsparse_int kid = 0;
-    return aoclsparse_gthr<double, true>(nnz, y, x, indx, kid);
+    aoclsparse_int    kid = -1;
+    aoclsparse_status status;
+    status
+        = aoclsparse_gthr<double, gather_op::gatherz, Index::type::indexed>(nnz, y, x, indx, kid);
+    return status;
 }
 
 extern "C" aoclsparse_status
     aoclsparse_cgthrz(const aoclsparse_int nnz, void *y, void *x, const aoclsparse_int *indx)
 {
-    aoclsparse_int kid = 0;
-    return aoclsparse_gthr<std::complex<float>, true>(
+    aoclsparse_int    kid = -1;
+    aoclsparse_status status;
+    status = aoclsparse_gthr<std::complex<float>, gather_op::gatherz, Index::type::indexed>(
         nnz, (std::complex<float> *)y, (std::complex<float> *)x, indx, kid);
+    return status;
 }
 
 extern "C" aoclsparse_status
     aoclsparse_zgthrz(const aoclsparse_int nnz, void *y, void *x, const aoclsparse_int *indx)
 {
-    aoclsparse_int kid = 0;
-    return aoclsparse_gthr<std::complex<double>, true>(
+    aoclsparse_int    kid = -1;
+    aoclsparse_status status;
+    status = aoclsparse_gthr<std::complex<double>, gather_op::gatherz, Index::type::indexed>(
         nnz, (std::complex<double> *)y, (std::complex<double> *)x, indx, kid);
+    return status;
 }
 
-//gather with stride
+// gather with stride
 extern "C" aoclsparse_status
     aoclsparse_sgthrs(const aoclsparse_int nnz, const float *y, float *x, aoclsparse_int stride)
 {
-    aoclsparse_int kid = 0;
-    return aoclsparse_gthrs<float, false>(nnz, y, x, stride, kid);
+    aoclsparse_int    kid = -1;
+    aoclsparse_status status;
+    status
+        = aoclsparse_gthr<float, gather_op::gather, Index::type::strided>(nnz, y, x, stride, kid);
+    return status;
 }
 
 extern "C" aoclsparse_status
     aoclsparse_dgthrs(const aoclsparse_int nnz, const double *y, double *x, aoclsparse_int stride)
 {
-    aoclsparse_int kid = 0;
-    return aoclsparse_gthrs<double, false>(nnz, y, x, stride, kid);
+    aoclsparse_int    kid = -1;
+    aoclsparse_status status;
+    status
+        = aoclsparse_gthr<double, gather_op::gather, Index::type::strided>(nnz, y, x, stride, kid);
+    return status;
 }
 
 extern "C" aoclsparse_status
     aoclsparse_cgthrs(const aoclsparse_int nnz, const void *y, void *x, aoclsparse_int stride)
 {
-    aoclsparse_int kid = 0;
-    return aoclsparse_gthrs<std::complex<float>, false>(
+    aoclsparse_int    kid = -1;
+    aoclsparse_status status;
+    status = aoclsparse_gthr<std::complex<float>, gather_op::gather, Index::type::strided>(
         nnz, (const std::complex<float> *)y, (std::complex<float> *)x, stride, kid);
+    return status;
 }
 
 extern "C" aoclsparse_status
     aoclsparse_zgthrs(const aoclsparse_int nnz, const void *y, void *x, aoclsparse_int stride)
 {
-    aoclsparse_int kid = 0;
-    return aoclsparse_gthrs<std::complex<double>, false>(
+    aoclsparse_int    kid = -1;
+    aoclsparse_status status;
+    status = aoclsparse_gthr<std::complex<double>, gather_op::gather, Index::type::strided>(
         nnz, (const std::complex<double> *)y, (std::complex<double> *)x, stride, kid);
+    return status;
 }
-
-#undef C_IMPL

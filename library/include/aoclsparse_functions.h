@@ -420,7 +420,7 @@ aoclsparse_status aoclsparse_droti(const aoclsparse_int  nnz,
  *
  *  \details
  *
- *  The \f$\verb+aoclsparse_?gthr+\f$ is a group of functions that gather the elements
+ *  The \p aoclsparse_gthr() is a group of functions that gather the elements
  *  indexed in \p indx from the dense vector \p y into the sparse vector \p x.
  *
  *  Let \f$y\in R^m\f$ (or \f$C^m\f$) be a dense vector, \f$x\f$ be a sparse vector
@@ -431,15 +431,6 @@ aoclsparse_status aoclsparse_droti(const aoclsparse_int  nnz,
  *  \f]
  *  For double precision complex vectors use \p aoclsparse_zgthr and for single
  *  precision complex vectors use \p aoclsparse_cgthr.
- *
- *  A possible C implementation for real vectors could be
- *
- *  \code{.c}
- *    for(i = 0; i < nnz; ++i)
- *    {
- *       x[i] = y[indx[i]];
- *    }
- *  \endcode
  *
  *  @param[in]
  *  nnz         number of non-zero entries of \f$x\f$.
@@ -492,7 +483,7 @@ aoclsparse_status
  *  sparse vector.
  *
  *  \details
- *  The \f$\verb+aoclsparse_?gthrz+\f$ is a group of functions that gather the elements
+ *  The \p aoclsparse_gthrz() is a group of functions that gather the elements
  *
  *  indexed in \p indx from the dense vector \p y into the sparse vector \p x.
  *  The gathered elements in \f$y\f$ are replaced by zero.
@@ -507,16 +498,6 @@ aoclsparse_status
  *  \f]
  *  For double precision complex vectors use \p aoclsparse_zgthrz and for single
  *  precision complex vectors use \p aoclsparse_cgthrz.
- *
- *  A possible C implementation for real vectors could be
- *
- *  \code{.c}
- *    for(i = 0; i < nnz; ++i)
- *    {
- *       x[i] = y[indx[i]];
- *       y[indx[i]] = 0;
- *    }
- *  \endcode
  *
  *  @param[in]
  *  nnz         number of non-zero entries of \f$x\f$.
@@ -569,7 +550,7 @@ aoclsparse_status
  *
  *  \details
  *
- *  The \f$\verb+aoclsparse_?gthrs+\f$ is a group of functions that gather the elements
+ *  The \p aoclsparse_gthrs() is a group of functions that gather the elements
  *  from the dense vector \p y using a fixed stride distance and copies them into the
  *  sparse vector \p x.
  *
@@ -579,22 +560,11 @@ aoclsparse_status
  *     x_i = y_{\text{stride} \times i}, \quad i\in\{1,\ldots,\text{nnz}\}.
  *  \f$
  *
- *  A possible C implementation for real vectors could be
- *
- *  \code{.c}
- *    for(i = 0; i < nnz; ++i)
- *       x[i] = y[stride *i];
- *  \endcode
- *
- *  \note
- *  These functions are taylored for the case where \p stride is greater than 1.
- *  If stride is 1, then it is recommended to use the \f$\verb+aoclsparse_?gthr+\f$ set of
- *  functions.
- *
  *  @param[in]
  *  nnz         Number of non-zero entries of \f$x\f$.
  *              If \p nnz is zero, then none of the entries of vectors
- *              \p x and \p y are accessed.
+ *              \p x and \p y are accessed. Note that \p nnz must be such that
+ *              \p stride \f$\times\f$ \p nnz must be less or equal to \f$m\f$.
  *  @param[in]
  *  y           Pointer to dense vector \f$y\f$ of size at least \f$m\f$.
  *  @param[out]
@@ -602,9 +572,12 @@ aoclsparse_status
  *              non-zero elements.
  *  @param[in]
  *  stride      Striding distance used to access elements in the dense vector \p y.
+ *              It must be such that \p stride \f$\times\f$ \p nnz is less or equal
+ *              to \f$m\f$.
  *
  *  \retval     aoclsparse_status_success the operation completed successfully.
- *  \retval     aoclsparse_status_invalid_size either \p nnz or the \p stride parameter values are not positive.
+ *  \retval     aoclsparse_status_invalid_size at least one of the parameters \p nnz or \p stride has a
+ *              negative value.
  *  \retval     aoclsparse_status_invalid_pointer at least one of the pointers \p y,
  *              or \p x is invalid.
  */
@@ -690,10 +663,6 @@ aoclsparse_status
  *              \p trans is not \ref aoclsparse_operation_transpose.
  *              \ref aoclsparse_matrix_type is not \ref aoclsparse_matrix_type_general, or
  *              \ref aoclsparse_matrix_type is not \ref aoclsparse_matrix_type_symmetric.
- *
- *  \par Example
- *  This example performs a sparse matrix vector multiplication in CSR format
- *  using additional meta data to improve performance.
  */
 /**@{*/
 DLL_PUBLIC
@@ -1107,7 +1076,7 @@ aoclsparse_status aoclsparse_dbsrmv(aoclsparse_operation       trans,
  *    y := \alpha \cdot op(A) \cdot x + \beta \cdot y,
  *  \f]
  *  where, x and y are dense vectors, alpha and beta are scalars, and A is a sparse matrix structure.
- *  The matrix operation 'op' is defined as: 
+ *  The matrix operation 'op' is defined as:
  *  \f[
  *    op(A) = \left\{
  *    \begin{array}{ll}
@@ -1130,7 +1099,7 @@ aoclsparse_status aoclsparse_dbsrmv(aoclsparse_operation       trans,
  *              (\f$ m \cdot n \f$) that is created using \ref aoclsparse_create_?csr.
  *  @param[in]
  *  descr       Descriptor of the sparse matrix can be one of the following:
- *              \ref aoclsparse_matrix_type_general, \ref aoclsparse_matrix_type_triangular, 
+ *              \ref aoclsparse_matrix_type_general, \ref aoclsparse_matrix_type_triangular,
  *              \ref aoclsparse_matrix_type_symmetric, and \ref aoclsparse_matrix_type_hermitian.
  *              Both base-zero and base-one are supported, however,
  *              the index base needs to match the one used at when
@@ -1150,7 +1119,7 @@ aoclsparse_status aoclsparse_dbsrmv(aoclsparse_operation       trans,
  *              structures related to the sparse matrix \p A, \p x, \p beta or \p y has
  *              an invalid pointer.
  *  \retval     aoclsparse_status_not_implemented The requested functionality is not implemented.
- *            
+ *
  *
  */
 /**@{*/
@@ -2128,8 +2097,8 @@ aoclsparse_status aoclsparse_zcsrmm(aoclsparse_operation             op,
  *  @param[inout]
  *  C      Dense output matrix \f$C\f$ of size \f$m \times n\f$ if \p op is \ref aoclsparse_operation_none, otherwise of size \f$k \times n\f$ containing the matrix-matrix product of \f$A\f$ and \f$B\f$.
  *  @param[in]
- *  ldc    Leading dimension of \f$C\f$, e.g., for C stored in \p aoclsparse_order_row, \p ldc 
- *         must be at least \f$\max{(1, m)}\f$  when \f$op(A) = A\f$, or 
+ *  ldc    Leading dimension of \f$C\f$, e.g., for C stored in \p aoclsparse_order_row, \p ldc
+ *         must be at least \f$\max{(1, m)}\f$  when \f$op(A) = A\f$, or
  *         \f$\max{(1, k)}\f$ if \f$op(A) = A^T\f$ or \f$op(A) = A^H\f$.
  *
  *  \retval     aoclsparse_status_success The operation completed successfully.
@@ -2180,7 +2149,7 @@ aoclsparse_status aoclsparse_zspmmd(const aoclsparse_operation op,
  *  \brief A variant of matrix multiplication of two sparse matrices stored in the CSR storage format. The output
  *         matrix is stored in a dense format. Supports operations on both sparse matrices.
  *  \details
- *  \f$\verb+aoclsparse_?sp2md+\f$ multiplies a sparse 
+ *  \f$\verb+aoclsparse_?sp2md+\f$ multiplies a sparse
  *  matrix \f$A\f$  and a sparse matrix \f$B\f$, both stored in the CSR storage format, and saves the result in a dense matrix \f$C\f$, such that
  *  \f[
  *    C := \alpha \cdot op(A) \cdot op(B) + \beta \cdot C,
@@ -2209,7 +2178,7 @@ aoclsparse_status aoclsparse_zspmmd(const aoclsparse_operation op,
  *  @param[in]
  *  opA     Operation to perform on matrix \f$A\f$.
  *  @param[in]
- *  descrA  Descriptor of A. Only \ref aoclsparse_matrix_type_general is supported at present. 
+ *  descrA  Descriptor of A. Only \ref aoclsparse_matrix_type_general is supported at present.
  *          As a consequence, all other parameters within the descriptor are ignored.
  *  @param[in]
  *  A     Matrix structure containing sparse matrix \f$A\f$ of size \f$m \times k\f$.
@@ -2229,8 +2198,8 @@ aoclsparse_status aoclsparse_zspmmd(const aoclsparse_operation op,
  *  @param[in]
  *  layout Ordering of the dense output matrix: valid values are \ref oclsparse_order_row and \ref aoclsparse_order_column.
  *  @param[in]
- *  ldc    Leading dimension of \f$C\f$, e.g., for C stored in \p aoclsparse_order_row, \p ldc 
- *         must be at least \f$\max{(1, m)}\f$ (\f$op(A) = A\f$) or 
+ *  ldc    Leading dimension of \f$C\f$, e.g., for C stored in \p aoclsparse_order_row, \p ldc
+ *         must be at least \f$\max{(1, m)}\f$ (\f$op(A) = A\f$) or
  *         \f$\max{(1, k)}\f$ (\f$op(A) = A^T\f$ or \f$op(A) = A^H\f$).
  *
  *  \retval     aoclsparse_status_success The operation completed successfully.
@@ -2240,7 +2209,7 @@ aoclsparse_status aoclsparse_zspmmd(const aoclsparse_operation op,
  *  \retval     aoclsparse_status_not_implemented
  *              \ref aoclsparse_matrix_format_type is not \ref aoclsparse_csr_mat.
  *  \retval     aoclsparse_status_internal_error An internal error occurred.
- * 
+ *
 */
 
 /**@{*/

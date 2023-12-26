@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -40,10 +40,6 @@
 #define KT_ADDRESS_TYPE aoclsparse_int
 #include "aoclsparse_kernel_templates.hpp"
 #undef KT_ADDRESS_TYPE
-#if defined(_WIN32) || defined(_WIN64)
-//Windows equivalent of gcc c99 type qualifier __restrict__
-#define __restrict__ __restrict
-#endif
 
 /* TRiangular Solver for Multiple RHS
  *  ==================================
@@ -191,7 +187,8 @@ aoclsparse_status
     case aoclsparse_order_row:
         for(int c = 0; c < n; c++)
         {
-            status = aoclsparse_gthrs<T, false>(m, &B[c], &wcolb[0], ldb, gkid);
+            status = aoclsparse_gthr<T, gather_op::gather, Index::type::strided>(
+                m, &B[c], &wcolb[0], ldb, gkid);
             status
                 = aoclsparse_trsv<T>(transpose, alpha, A, descr, wcolb.data(), wcolx.data(), kid);
             //early exit in case there is error
@@ -199,7 +196,7 @@ aoclsparse_status
             {
                 break;
             }
-            status = aoclsparse_scatters<T>(m, &wcolx[0], ldx, &X[c], skid);
+            status = aoclsparse_scatter<T, Index::type::strided>(m, &wcolx[0], ldx, &X[c], skid);
         }
         break;
     case aoclsparse_order_column:
