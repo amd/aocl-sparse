@@ -172,10 +172,39 @@ void expect_cmp(T res, T ref)
                 << "Vectors " #x " and " #y " different at index j =" << offset << "."; \
         }                                                                               \
     }
+
+#define EXPECT_TRIMAT_NEAR(m, n, ld, x, y, abs_error)                                   \
+    for(size_t c = 0; c < (size_t)m; c++)                                               \
+    {                                                                                   \
+        for(size_t j = c; j < (size_t)n; j++)                                           \
+        {                                                                               \
+            size_t offset = c * ld + j;                                                 \
+            EXPECT_NEAR(((x)[offset]), ((y)[offset]), abs_error)                        \
+                << "Vectors " #x " and " #y " different at index j =" << offset << "."; \
+        }                                                                               \
+    }
+
 #define EXPECT_COMPLEX_MAT_NEAR(m, n, ld, x, y, abs_error)                                    \
     for(size_t c = 0; c < (size_t)m; c++)                                                     \
     {                                                                                         \
         for(size_t j = 0; j < (size_t)n; j++)                                                 \
+        {                                                                                     \
+            size_t offset = c * ld + j;                                                       \
+            EXPECT_NEAR(std::real(x[offset]), std::real(y[offset]), abs_error)                \
+                << " Real parts of " #x " and " #y " differ at index j = " << offset          \
+                << " values are: " << std::real(x[offset]) << " and " << std::real(y[offset]) \
+                << " by abs err: " << abs(std::real(x[offset]) - std::real(y[offset]));       \
+            EXPECT_NEAR(std::imag(x[offset]), std::imag(y[offset]), abs_error)                \
+                << " Imaginary parts of " #x " and " #y " differ at index j = " << (offset)   \
+                << " values are: " << std::imag(x[offset]) << " and " << std::imag(y[offset]) \
+                << " by abs err: " << abs(std::real(x[offset]) - std::real(y[offset]));       \
+        }                                                                                     \
+    }
+
+#define EXPECT_COMPLEX_TRIMAT_NEAR(m, n, ld, x, y, abs_error)                                 \
+    for(size_t c = 0; c < (size_t)m; c++)                                                     \
+    {                                                                                         \
+        for(size_t j = c; j < (size_t)n; j++)                                                 \
         {                                                                                     \
             size_t offset = c * ld + j;                                                       \
             EXPECT_NEAR(std::real(x[offset]), std::real(y[offset]), abs_error)                \

@@ -97,6 +97,7 @@ set(GTEST_EXECUTABLES
     trsm_tests
     spmmd_tests
     sp2md_tests
+    sypr_tests
     syprd_tests
     symgs_tests
 )
