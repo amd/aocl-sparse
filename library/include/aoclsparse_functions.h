@@ -2081,6 +2081,124 @@ aoclsparse_status aoclsparse_spmm(aoclsparse_operation    opA,
                                   aoclsparse_matrix      *C);
 
 /*! \ingroup level3_module
+ *  \brief Symmetric product of three sparse matrices for real and complex datatypes stored as a sparse matrix.
+ *  \details
+ *  \P{aoclsparse_sypr} multiplies three sparse matrices in CSR storage format. The result
+ *  is returned in a newly allocated symmetric or Hermitian sparse matrix stored as an upper
+ *  triangle in CSR format.
+ *
+ *  If \f$opA\f$ is \ref aoclsparse_operation_none,
+ *  \f[
+ *    C =  A \cdot B \cdot A^T,
+ *  \f]
+ *  or
+ *  \f[
+ *    C =  A \cdot B \cdot A^H,
+ *  \f]
+ *  for real or complex input matrices, respectively, where \f$A\f$ is
+ *  a \f$m \times n\f$ general matrix ,\f$B\f$ is a \f$n \times n\f$
+ *  symmetric (for real data types) or Hermitian (for complex data types)
+ *  matrix, resulting in a symmetric or Hermitian \f$m \times m\f$ matrix \f$C\f$.
+ *
+ *  Otherwise,
+ *  \f[
+ *    C =  op(A) \cdot B \cdot A,
+ *  \f]
+ *  with
+ *  \f[
+ *     op(A) = \left\{
+ *     \begin{array}{ll}
+ *         A^T, & \text{if } {\bf\mathsf{opA}} = \text{aoclsparse}\_\text{operation}\_\text{transpose} \\
+ *         A^H, & \text{if } {\bf\mathsf{opA}} = \text{aoclsparse}\_\text{operation}\_\text{conjugate}\_\text{transpose}
+ *     \end{array}
+ *     \right.
+ *  \f]
+ *  where \f$A\f$ is a \f$m \times n\f$ matrix and \f$B\f$ is a \f$m \times m\f$ symmetric
+ *  (or Hermitian) matrix, resulting in a \f$n \times n\f$ symmetric (or Hermitian)
+ *  matrix \f$C\f$.
+ *
+ *  Depending on \p request, \p aoclsparse_sypr might compute the result in a single stage
+ *  (\ref aoclsparse_stage_full_computation) or in two stages. Then the first stage
+ *  (\ref aoclsparse_stage_nnz_count) allocates memory for the new output matrix \f$C\f$
+ *  and computes its number of non-zeros and their structure which is followed by
+ *  the second stage (\ref aoclsparse_stage_finalize) to compute the column indices
+ *  and values of all elements. The second stage can be invoked multiple times (either
+ *  after \ref aoclsparse_stage_full_computation or \ref aoclsparse_stage_nnz_count)
+ *  to recompute the numerical values of \f$C\f$ on assumption that the sparsity
+ *  structure of the input matrices remained unchanged and only the values of the
+ *  non-zero elements were modified (e.g., by a call to aoclsparse_supdate_values()
+ *  and variants).
+ *
+ *  \note \p aoclsparse_sypr supports only matrices in CSR format which have sorted column
+ *  indices in each row. If the matrices are unsorted, you might want to call
+ *  aoclsparse_order_mat().
+ *  \note
+ *  Currently, \p opA = \ref aoclsparse_operation_transpose is supported only for real data types.
+ *
+ *  @param[in]
+ *  opA     matrix \f$A\f$ operation type.
+ *  @param[in]
+ *  A        sorted sparse CSR matrix \f$A\f$.
+ *  @param[in]
+ *  B        sorted sparse CSR matrix \f$B\f$ to be interpreted as symmetric (or Hermitian).
+ *  @param[in]
+ *  descrB      descriptor of the sparse CSR matrix \f$B\f$. \ref aoclsparse_matrix_type
+ *              must be
+ *              \ref aoclsparse_matrix_type_symmetric for real matrices
+ *              or
+ *              \ref aoclsparse_matrix_type_hermitian for complex matrices.
+ *              \ref aoclsparse_fill_mode might be either
+ *              \ref aoclsparse_fill_mode_upper or \ref aoclsparse_fill_mode_lower
+ *              to process the upper or lower triangular matrix part, respectively.
+ *
+ *  @param[in]
+ *  request     Specifies if the computation takes place in one stage
+ *              (\ref aoclsparse_stage_full_computation) or in two stages
+ *              (\ref aoclsparse_stage_nnz_count followed by \ref aoclsparse_stage_finalize).
+ *
+ *  @param[inout]
+ *  *C        Pointer to the new sparse CSR symmetric/Hermitian matrix \f$C\f$ .
+ *            Only upper triangle of the result matrix is computed.
+ *  	      Matrix \f$C\f$ will always have zero-based indexing, irrespective
+ *  	      of the zero/one-based indexing of the input matrices \f$A\f$ and \f$B\f$.
+ *  	      The column indices of the output matrix in CSR format might be unsorted.
+ *  	      If \p request is \ref aoclsparse_stage_finalize, matrix \f$C\f$ must
+ *  	      not be modified by the user since the last call to \p aoclsparse_sypr,
+ *  	      in the other cases is \f$C\f$ treated as an output only. The matrix
+ *  	      should be freed by aoclsparse_destroy() when no longer needed.
+ *
+ *  \retval     aoclsparse_status_success the operation completed successfully.
+ *  \retval     aoclsparse_status_invalid_pointer \p descrB, \p A, \p B or \p C is invalid.
+ *  \retval     aoclsparse_status_invalid_size Matrix dimensions do not match \p opA or \p B is not square.
+ *  \retval     aoclsparse_status_invalid_value Input parameters are invalid,
+ *              for example, \p descrB does not match \p B indexing or \p B is not
+ *              symmetric/Hermitian, \p C has been modified between stages
+ *              or \p opA or \p request is not recognized.
+ *  \retval     aoclsparse_status_wrong_type \p A and \p B matrix data types do not match.
+ *  \retval     aoclsparse_status_not_implemented
+ *              Input matrix \p A or \p B is not in CSR format.
+ *  \retval     aoclsparse_status_unsorted_input Input matrices are not sorted.
+ *  \retval     aoclsparse_status_memory_error Memory allocation failure.
+ *
+ * @rst
+ * .. collapse:: Example (tests/examples/sample_zsypr.cpp)
+ *
+ *    .. only:: html
+ *
+ *       .. literalinclude:: ../tests/examples/sample_zsypr.cpp
+ *          :language: C++
+ *          :linenos:
+ * @endrst
+ */
+DLL_PUBLIC
+aoclsparse_status aoclsparse_sypr(aoclsparse_operation       opA,
+                                  const aoclsparse_matrix    A,
+                                  const aoclsparse_matrix    B,
+                                  const aoclsparse_mat_descr descrB,
+                                  aoclsparse_matrix         *C,
+                                  const aoclsparse_request   request);
+
+/*! \ingroup level3_module
  *  \brief Sparse matrix dense matrix multiplication using CSR storage format
  *
  *  \details
