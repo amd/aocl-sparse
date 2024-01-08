@@ -22,11 +22,8 @@
  * ************************************************************************ */
 
 #include "aoclsparse.h"
-#define KT_ADDRESS_TYPE aoclsparse_int
-#include "aoclsparse_kernel_templates.hpp"
-#undef KT_ADDRESS_TYPE
-
 #include "common_data_utils.h"
+#include "aoclsparse_kernel_templates.hpp"
 
 #include <algorithm>
 #include <complex>
@@ -39,7 +36,7 @@ namespace TestsKT
     using namespace kernel_templates;
     using namespace std;
 
-    template <int SZ, typename SUF>
+    template <bsz SZ, typename SUF>
     void kt_spmv(const aoclsparse_int                  m,
                  [[maybe_unused]] const aoclsparse_int n,
                  [[maybe_unused]] const aoclsparse_int nnz,
@@ -88,7 +85,7 @@ namespace TestsKT
         }
     }
 
-    template <int SZ, typename T>
+    template <bsz SZ, typename T>
     void driver_spmv(void)
     {
         using namespace std::complex_literals;
@@ -392,21 +389,21 @@ namespace TestsKT
         EXPECT_COMPLEX_ARR_NEAR(m, b, bref, abserr);
     }
 
-    TEST(KT_L2, kt_spmv256)
+    TEST(KT_L2, kt_spmb256)
     {
-        driver_spmv<256, float>();
-        driver_spmv<256, std::complex<float>>();
-        driver_spmv<256, double>();
-        driver_spmv<256, std::complex<double>>();
+        driver_spmv<bsz::b256, float>();
+        driver_spmv<bsz::b256, std::complex<float>>();
+        driver_spmv<bsz::b256, double>();
+        driver_spmv<bsz::b256, std::complex<double>>();
     }
 
 #ifdef USE_AVX512
-    TEST(KT_L2, kt_spmv512)
+    TEST(KT_L2, kt_spmb512)
     {
-        driver_spmv<512, float>();
-        driver_spmv<512, std::complex<float>>();
-        driver_spmv<512, double>();
-        driver_spmv<512, std::complex<double>>();
+        driver_spmv<bsz::b512, float>();
+        driver_spmv<bsz::b512, std::complex<float>>();
+        driver_spmv<bsz::b512, double>();
+        driver_spmv<bsz::b512, std::complex<double>>();
     }
 #endif
 }

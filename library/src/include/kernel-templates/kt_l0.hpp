@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,14 +21,28 @@
  *
  * ************************************************************************
  */
-#ifndef AOCLSPARSE_KERNEL_TEMPLATES_T_HPP
-#define AOCLSPARSE_KERNEL_TEMPLATES_T_HPP
 
-#include "aoclsparse.h"
+#ifndef KERNEL_TEMPLATES_T_HPP
+#error "Never use "kt_l0.hpp" directly; include "kernel_templates.hpp" instead."
+#endif
 
-// Set the kt_int
-using kt_int_t = aoclsparse_int;
+#ifndef _KT_L0
+#define _KT_L0
+#include "kt_common.hpp"
 
-#include "kernel-templates/kernel_templates.hpp"
+// Add mainline L0 kernels that are architecture independent here
 
-#endif // AOCLSPARSE_KERNEL_TEMPLATES_T_HPP
+namespace kernel_templates
+{
+    // Scatter kernel
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE void
+        kt_scatter_p(const avxvector_t<SZ, SUF> a, SUF *v, const kt_int_t *b) noexcept
+    {
+        const SUF *acast = reinterpret_cast<const SUF *>(&a);
+        for(size_t k = 0; k < tsz_v<SZ, SUF>; k++)
+            v[b[k]] = acast[k];
+    }
+}
+
+#endif

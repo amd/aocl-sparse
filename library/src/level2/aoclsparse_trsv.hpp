@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,14 +28,12 @@
 #include "aoclsparse_context.h"
 #include "aoclsparse_descr.h"
 #include "aoclsparse_csr_util.hpp"
+#include "aoclsparse_kernel_templates.hpp"
 
 #include <complex>
 #include <immintrin.h>
 #include <type_traits>
 
-#define KT_ADDRESS_TYPE aoclsparse_int
-#include "aoclsparse_kernel_templates.hpp"
-#undef KT_ADDRESS_TYPE
 #if defined(_WIN32) || defined(_WIN64)
 //Windows equivalent of gcc c99 type qualifier __restrict__
 #define __restrict__ __restrict
@@ -707,12 +705,12 @@ enum trsv_op
  *
  * ##  Template inputs
  *
- * - `SZ`  size (in bits) of AVX vector, i.e., 256 or 512
+ * - `SZ`  an enum (bsz) representing the length (in bits) of AVX vector, i.e., 256 or 512
  * - `SUF` suffix of working type, i.e., `double` or `float`
  * - `EXP` AVX capability, kt_avxext e.g. `AVX` or `AVX512F`, etc...
  */
 
-template <int SZ, typename SUF, kt_avxext EXT>
+template <bsz SZ, typename SUF, kt_avxext EXT>
 inline aoclsparse_status kt_trsv_l(const SUF             alpha,
                                    aoclsparse_int        m,
                                    aoclsparse_index_base base,
@@ -799,14 +797,14 @@ inline aoclsparse_status kt_trsv_l(const SUF             alpha,
  *
  * ##  Template inputs
  *
- * - `SZ`  size (in bits) of AVX vector, i.e., 256 or 512
+ * - `SZ`  an enum (bsz) representing the length (in bits) of AVX vector, i.e., 256 or 512
  * - `SUF` suffix of working type, i.e., `double` or `float`
  * - `EXP` AVX capability, kt_avxext e.g. `AVX` or `AVX512F`, etc...
  * - `OP` trsv_op enum for transposition operation type
  *       trsv_op::tran Real-space transpose, and
  *       trsv_op::herm Complex-space conjugate transpose
  */
-template <int SZ, typename SUF, kt_avxext EXT, trsv_op OP = trsv_op::tran>
+template <bsz SZ, typename SUF, kt_avxext EXT, trsv_op OP = trsv_op::tran>
 inline aoclsparse_status kt_trsv_lt(const SUF             alpha,
                                     aoclsparse_int        m,
                                     aoclsparse_index_base base,
@@ -912,11 +910,11 @@ inline aoclsparse_status kt_trsv_lt(const SUF             alpha,
  *
  * ##  Template inputs
  *
- * - `SZ`  size (in bits) of AVX vector, i.e., 256 or 512
+ * - `SZ`  an enum (bsz) representing the length (in bits) of AVX vector, i.e., 256 or 512
  * - `SUF` suffix of working type, i.e., `double` or `float`
  * - `EXP` AVX capability, kt_avxext e.g. `AVX` or `AVX512F`, etc...
  */
-template <int SZ, typename SUF, kt_avxext EXT>
+template <bsz SZ, typename SUF, kt_avxext EXT>
 inline aoclsparse_status kt_trsv_u(const SUF             alpha,
                                    aoclsparse_int        m,
                                    aoclsparse_index_base base,
@@ -1005,14 +1003,14 @@ inline aoclsparse_status kt_trsv_u(const SUF             alpha,
  *
  * ##  Template inputs
  *
- * - `SZ`  size (in bits) of AVX vector, i.e., 256 or 512
+ * - `SZ`  an enum (bsz) representing the length (in bits) of AVX vector, i.e., 256 or 512
  * - `SUF` suffix of working type, i.e., `double` or `float`
  * - `EXP` AVX capability, kt_avxext e.g. `AVX` or `AVX512F`, etc...
  * - `OP` trsv_op enum for transposition operation type
  *       trsv_op::tran Real-space transpose, and
  *       trsv_op::herm Complex-spase conjugate transpose
  */
-template <int SZ, typename SUF, kt_avxext EXT, trsv_op OP = trsv_op::tran>
+template <bsz SZ, typename SUF, kt_avxext EXT, trsv_op OP = trsv_op::tran>
 inline aoclsparse_status kt_trsv_ut(const SUF             alpha,
                                     aoclsparse_int        m,
                                     aoclsparse_index_base base,
@@ -1280,12 +1278,12 @@ aoclsparse_status
             {
             case 3: // AVX-512F (Note: if not available then trickle down to next best)
 #if USE_AVX512
-                return kt_trsv_l<512, T, kt_avxext::ANY>(
+                return kt_trsv_l<bsz::b512, T, kt_avxext::ANY>(
                     alpha, m, base, a, icol, ilrow, idiag, b, x, unit);
                 break;
 #endif
             case 2: // AVX2
-                return kt_trsv_l<256, T, kt_avxext::AVX>(
+                return kt_trsv_l<bsz::b256, T, kt_avxext::AVX>(
                     alpha, m, base, a, icol, ilrow, idiag, b, x, unit);
                 break;
             case 1: // Reference AVX implementation
@@ -1301,12 +1299,12 @@ aoclsparse_status
             {
             case 3: // AVX-512F (Note: if not available then trickle down to next best)
 #if USE_AVX512
-                return kt_trsv_lt<512, T, kt_avxext::ANY>(
+                return kt_trsv_lt<bsz::b512, T, kt_avxext::ANY>(
                     alpha, m, base, a, icol, ilrow, idiag, b, x, unit);
                 break;
 #endif
             case 2: // AVX2
-                return kt_trsv_lt<256, T, kt_avxext::AVX>(
+                return kt_trsv_lt<bsz::b256, T, kt_avxext::AVX>(
                     alpha, m, base, a, icol, ilrow, idiag, b, x, unit);
                 break;
             case 1: // Reference AVX implementation
@@ -1324,20 +1322,20 @@ aoclsparse_status
 #if USE_AVX512
                 if constexpr(std::is_same_v<T, std::complex<float>>
                              || std::is_same_v<T, std::complex<double>>)
-                    return kt_trsv_lt<512, T, kt_avxext::ANY, trsv_op::herm>(
+                    return kt_trsv_lt<bsz::b512, T, kt_avxext::ANY, trsv_op::herm>(
                         alpha, m, base, a, icol, ilrow, idiag, b, x, unit);
                 else
-                    return kt_trsv_lt<512, T, kt_avxext::ANY>(
+                    return kt_trsv_lt<bsz::b512, T, kt_avxext::ANY>(
                         alpha, m, base, a, icol, ilrow, idiag, b, x, unit);
                 break;
 #endif
             case 2: // AVX2
                 if constexpr(std::is_same_v<T, std::complex<float>>
                              || std::is_same_v<T, std::complex<double>>)
-                    return kt_trsv_lt<256, T, kt_avxext::AVX, trsv_op::herm>(
+                    return kt_trsv_lt<bsz::b256, T, kt_avxext::AVX, trsv_op::herm>(
                         alpha, m, base, a, icol, ilrow, idiag, b, x, unit);
                 else
-                    return kt_trsv_lt<256, T, kt_avxext::AVX>(
+                    return kt_trsv_lt<bsz::b256, T, kt_avxext::AVX>(
                         alpha, m, base, a, icol, ilrow, idiag, b, x, unit);
                 break;
             case 1: // Reference AVX implementation
@@ -1363,12 +1361,12 @@ aoclsparse_status
             {
             case 3: // AVX-512F (Note: if not available then trickle down to next best)
 #if USE_AVX512
-                return kt_trsv_u<512, T, kt_avxext::ANY>(
+                return kt_trsv_u<bsz::b512, T, kt_avxext::ANY>(
                     alpha, m, base, a, icol, ilrow, iurow, b, x, unit);
                 break;
 #endif
             case 2: // AVX2
-                return kt_trsv_u<256, T, kt_avxext::AVX>(
+                return kt_trsv_u<bsz::b256, T, kt_avxext::AVX>(
                     alpha, m, base, a, icol, ilrow, iurow, b, x, unit);
                 break;
             case 1: // Reference AVX implementation
@@ -1384,12 +1382,12 @@ aoclsparse_status
             {
             case 3: // AVX-512F (Note: if not available then trickle down to next best)
 #if USE_AVX512
-                return kt_trsv_ut<512, T, kt_avxext::ANY>(
+                return kt_trsv_ut<bsz::b512, T, kt_avxext::ANY>(
                     alpha, m, base, a, icol, ilrow, iurow, b, x, unit);
                 break;
 #endif
             case 2: // AVX2
-                return kt_trsv_ut<256, T, kt_avxext::AVX>(
+                return kt_trsv_ut<bsz::b256, T, kt_avxext::AVX>(
                     alpha, m, base, a, icol, ilrow, iurow, b, x, unit);
                 break;
             case 1: // Reference AVX implementation
@@ -1407,20 +1405,20 @@ aoclsparse_status
 #if USE_AVX512
                 if constexpr(std::is_same_v<T, std::complex<float>>
                              || std::is_same_v<T, std::complex<double>>)
-                    return kt_trsv_ut<512, T, kt_avxext::ANY, trsv_op::herm>(
+                    return kt_trsv_ut<bsz::b512, T, kt_avxext::ANY, trsv_op::herm>(
                         alpha, m, base, a, icol, ilrow, iurow, b, x, unit);
                 else
-                    return kt_trsv_ut<512, T, kt_avxext::ANY>(
+                    return kt_trsv_ut<bsz::b512, T, kt_avxext::ANY>(
                         alpha, m, base, a, icol, ilrow, iurow, b, x, unit);
                 break;
 #endif
             case 2: // AVX2
                 if constexpr(std::is_same_v<T, std::complex<float>>
                              || std::is_same_v<T, std::complex<double>>)
-                    return kt_trsv_ut<256, T, kt_avxext::AVX, trsv_op::herm>(
+                    return kt_trsv_ut<bsz::b256, T, kt_avxext::AVX, trsv_op::herm>(
                         alpha, m, base, a, icol, ilrow, iurow, b, x, unit);
                 else
-                    return kt_trsv_ut<256, T, kt_avxext::AVX>(
+                    return kt_trsv_ut<bsz::b256, T, kt_avxext::AVX>(
                         alpha, m, base, a, icol, ilrow, iurow, b, x, unit);
                 break;
             case 1: // Reference AVX implementation
