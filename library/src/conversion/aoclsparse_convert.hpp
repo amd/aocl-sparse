@@ -678,7 +678,9 @@ aoclsparse_status aoclsparse_csr2dense_template(aoclsparse_int             m,
     {
         return aoclsparse_status_invalid_value;
     }
-    if(order == aoclsparse_order_column && descr->type != aoclsparse_matrix_type_general)
+    if(order == aoclsparse_order_column
+       && (descr->type == aoclsparse_matrix_type_triangular
+           || descr->type == aoclsparse_matrix_type_hermitian))
         return aoclsparse_status_not_implemented;
 
     if(descr->type != aoclsparse_matrix_type_general)
@@ -733,15 +735,60 @@ aoclsparse_status aoclsparse_csr2dense_template(aoclsparse_int             m,
                 A[row + ld * col] = static_cast<T>(0);
             }
         }
-        for(aoclsparse_int row = 0; row < m; ++row)
+        if(descr->type == aoclsparse_matrix_type_general)
         {
-            aoclsparse_int start = csr_row_ptr[row] - base;
-            aoclsparse_int end   = csr_row_ptr[row + 1] - base;
-
-            for(aoclsparse_int at = start; at < end; ++at)
+            for(aoclsparse_int row = 0; row < m; ++row)
             {
-                aoclsparse_int col_idx = csr_col_ind[at] - base;
-                A[col_idx * ld + row]  = csr_val[at];
+                aoclsparse_int start = csr_row_ptr[row] - base;
+                aoclsparse_int end   = csr_row_ptr[row + 1] - base;
+
+                for(aoclsparse_int at = start; at < end; ++at)
+                {
+                    aoclsparse_int col_idx = csr_col_ind[at] - base;
+                    A[col_idx * ld + row]  = csr_val[at];
+                }
+            }
+        } // ToDo: for the symmetric case, we don't need to be within the "order" condition
+        else if(descr->type == aoclsparse_matrix_type_symmetric)
+        {
+            diag_type = descr->diag_type;
+            for(aoclsparse_int row = 0; row < m; ++row)
+            {
+                if(diag_type == aoclsparse_diag_type_unit)
+                    A[row * ld + row] = static_cast<T>(1);
+                else if(diag_type == aoclsparse_diag_type_zero)
+                    A[row * ld + row] = static_cast<T>(0);
+                aoclsparse_int start = csr_row_ptr[row] - base;
+                aoclsparse_int end   = csr_row_ptr[row + 1] - base;
+
+                for(aoclsparse_int at = start; at < end; ++at)
+                {
+                    aoclsparse_int col_idx = csr_col_ind[at] - base;
+                    if(row == col_idx)
+                    {
+                        if(descr->diag_type == aoclsparse_diag_type_non_unit)
+                            A[row + col_idx * ld] = csr_val[at];
+                    }
+                    else
+                    {
+                        if(descr->fill_mode == aoclsparse_fill_mode_lower)
+                        {
+                            if(col_idx < row)
+                            {
+                                A[row * ld + col_idx] = csr_val[at];
+                                A[col_idx * ld + row] = csr_val[at];
+                            }
+                        }
+                        else
+                        { // descr->fill_mode == aoclsparse_fill_mode_upper
+                            if(col_idx > row)
+                            {
+                                A[row * ld + col_idx] = csr_val[at];
+                                A[col_idx * ld + row] = csr_val[at];
+                            }
+                        }
+                    }
+                }
             }
         }
     }
