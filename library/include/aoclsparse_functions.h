@@ -2291,9 +2291,10 @@ aoclsparse_status aoclsparse_sypr(aoclsparse_operation       opA,
  *  @param[in]
  *  A           Sparse CSR matrix \f$A\f$ structure.
  *  @param[in]
- *  descr       descriptor of the sparse CSR matrix \f$A\f$. Currently, only
- *              \ref aoclsparse_matrix_type_general is supported. Both, base-zero and
- *              base-one input arrays of CSR matrix are supported
+ *  descr       descriptor of the sparse CSR matrix \f$A\f$. Currently, supports
+ *              \ref aoclsparse_matrix_type_general, \ref aoclsparse_matrix_type_symmetric,
+ *              and \ref aoclsparse_matrix_type_hermitian matrices. Both, base-zero and
+ *              base-one input arrays of CSR matrix are supported.
  *  @param[in]
  *  order       \ref aoclsparse_order_row / \ref aoclsparse_order_column for dense matrix
  *  @param[in]
@@ -2321,7 +2322,8 @@ aoclsparse_status aoclsparse_sypr(aoclsparse_operation       opA,
  *              is invalid.
  *  \retval     aoclsparse_status_invalid_value The values of \p descr->base and \p A->base do not coincide.
  *  \retval     aoclsparse_status_not_implemented
- *              \ref aoclsparse_matrix_type is not \ref aoclsparse_matrix_type_general or
+ *              \ref aoclsparse_matrix_type is not one of these: \ref aoclsparse_matrix_type_general,
+ *              \ref aoclsparse_matrix_type_symmetric, \ref aoclsparse_matrix_type_hermitian  or
  *              input matrix \p A is not in CSR format
  *
  * @rst
