@@ -96,6 +96,7 @@ set(GTEST_EXECUTABLES
     export_mat_tests
     trsm_tests
     spmmd_tests
+    syrk_tests
     sp2md_tests
     sypr_tests
     syprd_tests

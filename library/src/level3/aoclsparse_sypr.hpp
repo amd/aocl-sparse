@@ -384,7 +384,7 @@ aoclsparse_status aoclsparse_sp2m_online_symab(aoclsparse_int        m,
 }
 
 /* Computes C = A^T*B (or A^H*B for complex types) where A is sorted CSR m x k,
- * B is sorted CSR m x n and the result will be 0-based C of dimension k x n.
+ * B is sorted CSR m x n and the result C of dimension k x n will have baseC.
  * If REQUEST=aoclsparse_stage_nnz_count, only icrowC and nnzC is built,
  * irowC[k+1] needs to be already allocated.
  * Otherwise all C arrays need to be allocated to big enough size (not checked).
@@ -402,6 +402,7 @@ aoclsparse_status aoclsparse_sp2m_online_atb(aoclsparse_int        m,
                                              const aoclsparse_int *icrowB,
                                              const aoclsparse_int *icolB,
                                              const T              *valB,
+                                             aoclsparse_index_base baseC,
                                              aoclsparse_int       *icrowC,
                                              aoclsparse_int       *icolC,
                                              T                    *valC,
@@ -479,6 +480,14 @@ aoclsparse_status aoclsparse_sp2m_online_atb(aoclsparse_int        m,
                 val[icolC[idx]] = 0.;
             }
         }
+    }
+    // correct base if needed, by default it is 0-based
+    if(baseC == aoclsparse_index_base_one)
+    {
+        for(aoclsparse_int i = 0; i <= k; i++)
+            icrowC[i]++;
+        for(idx = 0; idx < *nnzC; idx++)
+            icolC[idx]++;
     }
     return aoclsparse_status_success;
 }
@@ -789,6 +798,7 @@ aoclsparse_status aoclsparse_sypr_t(aoclsparse_operation       opA,
             icrowT.data(),
             icolT.data(),
             valT.data(),
+            aoclsparse_index_base_zero,
             icrowC,
             NULL,
             nullT,
@@ -827,6 +837,7 @@ aoclsparse_status aoclsparse_sypr_t(aoclsparse_operation       opA,
             icrowT.data(),
             icolT.data(),
             valT.data(),
+            aoclsparse_index_base_zero,
             (*C)->csr_mat.csr_row_ptr,
             (*C)->csr_mat.csr_col_ptr,
             (T *)((*C)->csr_mat.csr_val),

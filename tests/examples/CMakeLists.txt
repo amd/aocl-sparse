@@ -178,6 +178,7 @@ set(EXAMPLE_EXECUTABLES
     sample_ztrsm
     sample_spmv_c
     sample_spmmd
+    sample_dsyrk
     sample_sp2md
     sample_zsypr
     sample_syprd
