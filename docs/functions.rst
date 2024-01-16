@@ -302,6 +302,11 @@ aoclsparse\_?sp2md()
     :outline:
 .. doxygenfunction:: aoclsparse_zsp2md
 
+aoclsparse_syrk()
+--------------------
+
+.. doxygenfunction:: aoclsparse_syrk
+
 aoclsparse\_?sypr()
 --------------------
 

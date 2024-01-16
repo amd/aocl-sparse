@@ -2883,6 +2883,81 @@ aoclsparse_status aoclsparse_zsyprd(const aoclsparse_operation       op,
                                     const aoclsparse_int             ldc);
 /**@}*/
 
+/*! \ingroup level3_module
+ *  \brief Multiplication of a sparse matrix and its transpose (or conjugate transpose) stored as a sparse matrix.
+ *  \details
+ *  \P{aoclsparse_syrk} multiplies a sparse matrix with its transpose (or conjugate transpose) in CSR storage format.
+ *  The result is stored in a newly allocated sparse matrix in CSR format, such that
+  \f[
+ *    C := A \cdot op(A)
+ *  \f]
+ *  if \f$opA\f$ is \ref aoclsparse_operation_none.
+ *
+ *  Otherwise,
+ *  \f[
+ *    C := op(A) \cdot A,
+ *  \f]
+ *
+ * where
+ *  \f[
+ *    op(A) = \left\{
+ *    \begin{array}{ll}
+ *         A^T, & \text{transpose of } {\bf\mathsf{A}} \text{ for real matrices}\\
+ *         A^H, & \text{conjugate transpose of } {\bf\mathsf{A}} \text{ for complex matrices}\\
+ *    \end{array}
+ *    \right.
+ *  \f]
+ *
+ *  where \f$A\f$ is a  \f$m \times n\f$ matrix, opA is one of \ref aoclsparse_operation_none,
+ * \ref aoclsparse_operation_transpose (for real matrices) or \ref aoclsparse_operation_conjugate_transpose
+ * (for complex matrices). The output matrix \f$C\f$ is a sparse symmetric (or Hermitian) matrix stored as an
+ *  upper triangular matrix in CSR format.
+ *
+ *  \note \p aoclsparse_syrk assumes that the input CSR matrix has sorted column
+ *  indices in each row. If not, call aoclsparse_order_mat() before calling
+ *  \p aoclsparse_syrk.
+ *
+ *  \note \p aoclsparse_syrk currently does not support \ref aoclsparse_operation_transpose for complex \p A.
+ *
+ *  @param[in]
+ *  opA     Matrix \f$A\f$ operation type.
+ *  @param[in]
+ *  A        Sorted sparse CSR matrix \f$A\f$.
+
+ *
+ *  @param[out]
+ *  *C        Pointer to the new sparse CSR symmetric/Hermitian matrix \f$C\f$.
+ *            Only upper triangle of the result matrix is computed.
+ *  	      The column indices of the output matrix in CSR format might be unsorted.
+ *  	      The matrix should be freed by aoclsparse_destroy() when no longer needed.
+ *
+ *  \retval     aoclsparse_status_success The operation completed successfully.
+ *  \retval     aoclsparse_status_invalid_pointer \p A, \p C is invalid.
+ *  \retval     aoclsparse_status_wrong_type A and its operation type do not match.
+ *  \retval     aoclsparse_status_not_implemented The input matrix is not in the CSR format or
+ *              \p opA is aoclsparse_operation_transpose and \p A has complex values.
+ *  \retval     aoclsparse_status_invalid_value The value of opA is invalid.
+ *  \retval     aoclsparse_status_unsorted_input Input matrices are not sorted.
+ *  \retval     aoclsparse_status_memory_error Memory allocation failure.
+ *
+ * @rst
+ * .. collapse:: Example (tests/examples/sample_dsyrk.cpp)
+ *
+ *    .. only:: html
+ *
+ *       .. literalinclude:: ../tests/examples/sample_dsyrk.cpp
+ *          :language: C++
+ *          :linenos:
+ * @endrst
+ *
+ */
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_syrk(const aoclsparse_operation opA,
+                                  const aoclsparse_matrix    A,
+                                  aoclsparse_matrix         *C);
+/**@}*/
+
 #ifdef __cplusplus
 }
 #endif
