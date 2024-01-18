@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -102,23 +102,23 @@ aoclsparse_status aoclsparse_csrmv_general(aoclsparse_index_base base,
     const T              *csr_val_fix     = csr_val - base;
     const T              *x_fix           = x - base;
     /*
-        to avoid base correction logic inside core time-sensitive loops, the base addresses of column index, 
-        csr values and x vector are corrected in advance as per base. Then the correction will not be needed 
+        to avoid base correction logic inside core time-sensitive loops, the base addresses of column index,
+        csr values and x vector are corrected in advance as per base. Then the correction will not be needed
         inside the core loops.
-        Notice, the j-loop which runs for row pointers, has no corrections wrt base. 
-        In case of one-based indexed array, the loop runs from 1 to nnz+1. 
-        So the accesses made by csr_col_ind, csr_val and x need to be carefully adjusted. 
+        Notice, the j-loop which runs for row pointers, has no corrections wrt base.
+        In case of one-based indexed array, the loop runs from 1 to nnz+1.
+        So the accesses made by csr_col_ind, csr_val and x need to be carefully adjusted.
         The above hack takes care of this by indexing into correct values.
 
-        eg: 
+        eg:
         csr_col_ind[j] - base
-        is same as 
+        is same as
 
-        *(csr_col_ind + j) - base 
+        *(csr_col_ind + j) - base
         which is equal to
         *(csr_col_ind - base) + j
         which is equal to
-        csr_col_ind_fix[j] (assuming, csr_col_ind_fix = csr_col_ind - base and j >=1 if base = 1)    
+        csr_col_ind_fix[j] (assuming, csr_col_ind_fix = csr_col_ind - base and j >=1 if base = 1)
     */
 #ifdef _OPENMP
     aoclsparse_int chunk = (m / context->num_threads) ? (m / context->num_threads) : 1;
@@ -304,7 +304,7 @@ aoclsparse_status
     return aoclsparse_status_success;
 }
 
-/* This is a modified version aoclsparse_csrmv_symm_internal() to work 
+/* This is a modified version aoclsparse_csrmv_symm_internal() to work
  * with conjugate transpose
  */
 template <typename T>
@@ -391,7 +391,7 @@ aoclsparse_status
     return aoclsparse_status_success;
 }
 
-/* The following function is a modified version of aoclsparse_csrmv_symm_internal() to work with hermitian matrices. 
+/* The following function is a modified version of aoclsparse_csrmv_symm_internal() to work with hermitian matrices.
  * This function is called when the matrix type is hermitian and the operation is either aoclsparse_operation_none or
  * aoclsparse_operation_conjugate_transpose.
  */
@@ -564,8 +564,8 @@ aoclsparse_status
 
 /* Transposed SPMV
  * ============================
- * Performs SPMV operation on the transposed CSR sparse matrix and 
- * x-vector. 
+ * Performs SPMV operation on the transposed CSR sparse matrix and
+ * x-vector.
  */
 template <typename T>
 aoclsparse_status aoclsparse_csrmvt(aoclsparse_index_base base,
@@ -615,8 +615,8 @@ aoclsparse_status aoclsparse_csrmvt(aoclsparse_index_base base,
 
 /* Conjugate Transposed SPMV
  * ============================
- * Performs SPMV operation on the conjugate transposed CSR sparse matrix 
- * and x-vector. 
+ * Performs SPMV operation on the conjugate transposed CSR sparse matrix
+ * and x-vector.
  */
 template <typename T>
 aoclsparse_status aoclsparse_csrmvh(aoclsparse_index_base base,
@@ -666,7 +666,7 @@ aoclsparse_status aoclsparse_csrmvh(aoclsparse_index_base base,
 
 /* Transposed SPMV
  * ============================
- * Performs SPMV operation on the transposed CSR sparse matrix and 
+ * Performs SPMV operation on the transposed CSR sparse matrix and
  * x-vector, where rows of the matrix are given by the start and end
  * pointer (useful when a specific triangle part of the matrix is provided)
  */
@@ -743,7 +743,7 @@ aoclsparse_status aoclsparse_csrmvt_ptr(const aoclsparse_mat_descr      descr,
 
 /* Conjugate Transposed SPMV
  * ============================
- * Performs SPMV operation on the conjugated transposed CSR sparse matrix  
+ * Performs SPMV operation on the conjugated transposed CSR sparse matrix
  * and x-vector, where rows of the matrix are given by the start and end
  * pointer (useful when a specific triangle part of the matrix is provided)
  */
@@ -820,7 +820,7 @@ aoclsparse_status aoclsparse_csrmvh_ptr(const aoclsparse_mat_descr descr,
 
 /* SPMV
  * ============================
- * Performs SPMV operation on the CSR sparse matrix and 
+ * Performs SPMV operation on the CSR sparse matrix and
  * x-vector, where rows of the matrix are given by the start and end
  * pointer (useful when a specific triangle part of the matrix is provided)
  */

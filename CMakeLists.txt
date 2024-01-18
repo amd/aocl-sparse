@@ -1,5 +1,5 @@
 # ########################################################################
-# Copyright (c) 2020-2023 Advanced Micro Devices, Inc.
+# Copyright (c) 2020-2024 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -108,11 +108,11 @@ if (${VALGRIND} AND CMAKE_BUILD_TYPE MATCHES "Debug")
   endif()
 endif()
 
-#TODO: Remove 
+#TODO: Remove
 IF(NOT DEFINED ENV{AOCL_ROOT})
   #check if the CMake variable exists and if its contents is a valid directory
   if((DEFINED CMAKE_AOCL_ROOT) AND (IS_DIRECTORY "${CMAKE_AOCL_ROOT}"))
-    set(ENV{AOCL_ROOT} ${CMAKE_AOCL_ROOT}) 
+    set(ENV{AOCL_ROOT} ${CMAKE_AOCL_ROOT})
   endif()
 ENDIF()
 

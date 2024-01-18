@@ -1,3 +1,25 @@
+# ########################################################################
+# Copyright (c) 2022-2024 Advanced Micro Devices, Inc.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+#
+# ########################################################################
 
 ####################################################################
 # Creating aoclsparse unit tests  #
@@ -18,7 +40,7 @@ Date: Nov 02, 2022
 3. Adding CMake commands to include the unit test as part of aocl-sparse's CMakebuild system
 		1. Define a unique api test executable name and include the test source
 			*add_executable(gmres_utests gmres_tests.cc ${utils_source})*
-		2. Link the dependent sources and libraries 
+		2. Link the dependent sources and libraries
 			*target_link_libraries(gmres_utests aoclsparse GTest::gtest_main)*
 		3. Add the test to our "make test" environment, which in turn uses CTest to run all the unit tests. gtest_discover_tests() command should be included towards the end of the file so that the specific test gets registered into CTest automatically.
 			*gtest_discover_tests(gmres_utests)*
@@ -31,10 +53,10 @@ Execute ctest from the build directory
     ctest -j <N>
         - N : number of threads
 2. Run the failed cases verbosely
-    ctest -j <N> --output-on-failure            
+    ctest -j <N> --output-on-failure
 3. Run the tests by building in Debug mode under Linux. This will also include Address SANitization. Requires either GCC or Clang compiler with Debug build (-DCMAKE_BUILD_TYPE=Debug)
 	./gmres_utests
-	./cg_utests	
+	./cg_utests
 Notes:
 1. No need to define main() for the google tests, since it is already part of GTest library that is included as source repo dependency using FetchContent cmake command. So every cmake's clean build downloads the google test repo as per the tag provided, builds and the library built is linked against our project
 2. Address Sanitizer (ASAN) is enabled in the Linux Debug build for GCC and Clang. It is used to detect possible leaks. Any leaks are considered as test failures.

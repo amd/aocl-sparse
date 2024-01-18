@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -451,7 +451,7 @@ namespace
 
             /*
                 since BlkCSR spmv is decided in Sparse-Analysis-Framework's (SAF) optimize module, direct
-                call to csr2blkcsr conversion routine below is made to write unit tests for Block-CSRMV 
+                call to csr2blkcsr conversion routine below is made to write unit tests for Block-CSRMV
                 cases
             */
             EXPECT_EQ(aoclsparse_csr2blkcsr(m,

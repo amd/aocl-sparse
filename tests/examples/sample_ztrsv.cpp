@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023-2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -37,13 +37,13 @@ int main()
               << "-------------------------------" << std::endl
               << std::endl;
 
-    /* Solve two complex linear systems of equations 
+    /* Solve two complex linear systems of equations
      * Lx = alpha b, and U^Tx = alpha b,
      * where L is the lower triangular part of A and
      * U is the upper triangular part of A. U^H is
      * the conjugate transpose of U (a lower triangular matrix).
      * The complex matrix A is the tri-diagonal matrix in CSR format
-     * 
+     *
      * | 1+3i  2+5i     0     0 |
      * | 3     1+2i  2-2i     0 |
      * |    0     3     1  2+3i |
@@ -78,7 +78,7 @@ int main()
     }
     aoclsparse_create_mat_descr(&descr_a);
 
-    /* Solve the lower triangular system Lx = b, 
+    /* Solve the lower triangular system Lx = b,
      * here alpha=1 and b = [1+i, 4+2i, 4+i, 4].
      */
     std::vector<aoclsparse_double_complex> b = {{1., 1.}, {4., 2.}, {4., 1}, {4., 0}};
@@ -124,7 +124,7 @@ int main()
     }
     std::cout << std::endl;
 
-    /* Solve the lower triangular system U^Hx = b, 
+    /* Solve the lower triangular system U^Hx = b,
      * here alpha=1-i and b is unchanged.
      */
     alpha = {1, -1};

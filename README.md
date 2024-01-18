@@ -9,11 +9,11 @@ AOCL-Sparse exposes a common interface that provides Basic Linear Algebra Subrou
 ## Build and Installation
 
 #### Building on Windows
-1. Install Visual Studio 2022 (the free version) and cmake 
+1. Install Visual Studio 2022 (the free version) and cmake
 2. Install AOCL-BLAS, AOCL-LAPACK and AOCL-UTILS
 3. Define the environment variable AOCL_ROOT to point to AOCL libs installation
 ```
-set "AOCL_ROOT=C:\Program Files\AMD\AOCL-Windows"	
+set "AOCL_ROOT=C:\Program Files\AMD\AOCL-Windows"
 ```
 4. Navigate to checkout `aocl-sparse` directory
 ```
@@ -50,7 +50,7 @@ set PATH=<aoclsparse_install_path>\lib;%PATH%
 ```
 9. Run the examples after exporting the required library/headers paths
 ```
-build_directory\tests\examples\sample_spmv.exe 
+build_directory\tests\examples\sample_spmv.exe
 ```
 **Note** Currently multi-threading is not supported on Windows.
 #### Building on Linux
@@ -117,7 +117,7 @@ ctest -V -R <string_to_find_particular_set_of_tests>
 #### Benchmarks
 To run the provided benchmarks, AOCL-Sparse has to be built with option `BUILD_CLIENTS_BENCHMARKS` turned on,
 ```
-cmake ../../ -DBUILD_CLIENTS_BENCHMARKS=ON 
+cmake ../../ -DBUILD_CLIENTS_BENCHMARKS=ON
 make
 ```
 

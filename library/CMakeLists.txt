@@ -1,5 +1,5 @@
 # ########################################################################
-# Copyright (c) 2020-2023 Advanced Micro Devices, Inc.
+# Copyright (c) 2020-2024 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -67,7 +67,7 @@ target_include_directories(aoclsparse
                                    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/level2>
                                    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/level1>
                                    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/extra>
-                                   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/conversion>                                   
+                                   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/conversion>
                            PUBLIC  $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/library/include>
                                    $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
                                    $<BUILD_INTERFACE:${LAPACK_INCLUDE_DIRS}>

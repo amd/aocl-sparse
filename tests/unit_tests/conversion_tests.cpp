@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -363,7 +363,7 @@ namespace
         // matrix A to test for general/sym/tri cases
         /*
         1+i     0       0       0       4
-        0       2+2i    1+i     0       0 
+        0       2+2i    1+i     0       0
         0       1-i     3+3i    0       2+3i
         0       0       0       4+4i    0
         2       0       2+3i    0       5+5i
@@ -372,7 +372,7 @@ namespace
         // matrix B to test the hermitian case
         /*
         1       0       0       0       4
-        0       2       1+i     0       0 
+        0       2       1+i     0       0
         0       1-i     3       0       2+3i
         0       0       0       4       0
         2       0       2+3i    0       5

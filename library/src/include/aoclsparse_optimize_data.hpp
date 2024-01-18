@@ -44,7 +44,7 @@ enum aoclsparse_hinted_action
     aoclsparse_action_max, // add any new action before this
 };
 
-/* Linked list of all the hint information that was passed through the 
+/* Linked list of all the hint information that was passed through the
  * functions aoclsparse_*_hint()
  */
 struct aoclsparse_optimize_data
