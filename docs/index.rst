@@ -80,10 +80,10 @@ Some illustrative examples follow.
     :align: left
     :escape: @
 
-    :cpp:func:`aoclsparse_strsv`,  :code:`s`, :code:`TRSV` single precision linear system of equations TRiangular SolVer@,
-    :cpp:func:`aoclsparse_daxpyi`, :code:`d`, :code:`AXPY` perform a variant of the operation :math:`a\@,x+y` in double precision@,
-    :cpp:func:`aoclsparse_csp2m`,  :code:`c`, :code:`SP2M` sparse matrix-matrix product using complex single precision@,
-    :cpp:func:`aoclsparse_zspmm`,  :code:`z`, :code:`SPMM` sparse matrix-matrix product using complex double precision.
+    :cpp:func:`aoclsparse_strsv()`,  :code:`s`, :code:`TRSV` single precision linear system of equations TRiangular SolVer@,
+    :cpp:func:`aoclsparse_daxpyi()`, :code:`d`, :code:`AXPY` perform a variant of the operation :math:`a\@,x+y` in double precision@,
+    :cpp:func:`aoclsparse_cmv()`,    :code:`c`, :code:`SPMV` sparse matrix-vector product using complex single precision@,
+    :cpp:func:`aoclsparse_ztrsm()`,  :code:`z`, :code:`TRSM` complex double precision linear system of equations TRiangular Solver with Multiple right-hand sides.
 
 
 Throughout this document and where not ambiguous, if an API supports two or more data types described above, then it will be
