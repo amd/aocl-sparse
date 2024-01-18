@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -863,8 +863,8 @@ aoclsparse_status aoclsparse_csr2dense_template(aoclsparse_int             m,
 }
 
 /**
- *  this function will convert coo format to csr format with same base as input matrix 
- *  NOTE: all the input should from the same matrix. 
+ *  this function will convert coo format to csr format with same base as input matrix
+ *  NOTE: all the input should from the same matrix.
  *  Validation of values present in \p coo_row_ind and \p coo_col_ind is not done prior to use
 */
 template <typename T>

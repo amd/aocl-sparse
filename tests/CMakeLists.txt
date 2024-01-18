@@ -1,5 +1,5 @@
 # ########################################################################
-# Copyright (c) 2020-2023 Advanced Micro Devices, Inc.
+# Copyright (c) 2020-2024 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -63,7 +63,7 @@ if (BUILD_CLIENTS_SAMPLES)
   add_subdirectory(examples)
 endif()
 
-if (BUILD_UNIT_TESTS)  
+if (BUILD_UNIT_TESTS)
   add_subdirectory(unit_tests)
 endif()
 

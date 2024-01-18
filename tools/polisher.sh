@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+# Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -31,4 +31,11 @@ if [ ! -f .clang-format ] ; then
 fi
 
 find library tests \( -iname "*.c" -o -iname "*.cpp" -o -iname "*.h" -o -iname "*.hpp" \) -type f -print -exec clang-format --style="file:.clang-format" -i '{}' \;
+# Adjust line ends to unix
+find . -path './.git' -prune -o -type f -print0 | xargs -0 dos2unix -s -q
+
+# Remove empty spaces at the end of the lines
+# the weird grep is to match only text files (grep -I is to ignore
+# binary files, . & -q will match any text file immediately)
+find . -path './.git' -prune -o -type f  -exec grep -Iq . {} \; -print0 | xargs -0 sed -i 's/[[:space:]]*$//'
 

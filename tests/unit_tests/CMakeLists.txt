@@ -1,5 +1,5 @@
 # ########################################################################
-# Copyright (c) 2023 Advanced Micro Devices, Inc.
+# Copyright (c) 2023-2024 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -96,7 +96,7 @@ foreach(TNAME ${GTEST_EXECUTABLES})
     # For Windows shared library builds copying some relevant DLLs into the
     # unit_tests bin folder enables ctest to run without needing to update PATH
     # gtest_discover_tests does not work on Windows shared library builds - this
-    # is the best we can do for now    
+    # is the best we can do for now
     if(WIN32 AND BUILD_SHARED_LIBS)
       add_custom_command(
         TARGET ${TNAME}
@@ -105,7 +105,7 @@ foreach(TNAME ${GTEST_EXECUTABLES})
           ${CMAKE_COMMAND} -E copy_if_different
           $<TARGET_RUNTIME_DLLS:${TNAME}> $<TARGET_FILE_DIR:${TNAME}>
         COMMAND_EXPAND_LISTS)
-    endif()  
+    endif()
     target_include_directories(${TNAME} PUBLIC ${LAPACK_INCLUDE_DIRS} ${BLIS_INCLUDE_DIRS} ${UTILS_INCLUDE_DIRS})
 endforeach()
 

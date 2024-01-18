@@ -1,5 +1,5 @@
 # ##############################################################################
-# Copyright (c) 2020-2023 Advanced Micro Devices, Inc.
+# Copyright (c) 2020-2024 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -174,9 +174,9 @@ function(openmp_libs)
       endforeach()
     endif()
 
-    if(WIN32)    
+    if(WIN32)
       set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};/openmp")
-    else()  
+    else()
       set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};${OpenMP_CXX_FLAGS}")
     endif()
 
@@ -208,7 +208,7 @@ if(NOT WIN32)
       list(APPEND Threads_Library "Threads::Threads")
   endif()
 
-  #collect all threading libraries into a single variable for linking later  
+  #collect all threading libraries into a single variable for linking later
   set(OpenMP_Library "${OpenMP_Library};${Threads_Library}")
 endif()
 

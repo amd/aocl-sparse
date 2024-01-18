@@ -143,12 +143,12 @@ struct _aoclsparse_matrix
         internal base-index after correction, for consumption in execution kernels
         1. the internal base index applies to the clean csr structure opt_csr_mat, in which
             all the pointers (row_ptr, col_ind, idiag, iurow) are either in
-                    1.  base-0: if user provides a csr matrix which is unsorted or without 
+                    1.  base-0: if user provides a csr matrix which is unsorted or without
                         full-diag, then csr cleanup and base correction is performed
                     2.  base-1: if user provides a clean sorted csr matrix with full-diag in 1-base,
-                         then opt_csr_mat just points to this input matrix without copy or 
+                         then opt_csr_mat just points to this input matrix without copy or
                          base-correction.
-        2. All the conversion routines and internal spmv storage formats such as ell, ellt, ellt-hyb, 
+        2. All the conversion routines and internal spmv storage formats such as ell, ellt, ellt-hyb,
             dia, bsr, blkcsr and br4 preserve the base-index as was provided by user in his input
             csr matrix. Therefore, the final execution kernels also will use the original input
             base-index.

@@ -1,5 +1,5 @@
 #!/bin/env bash
-# Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+# Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -21,7 +21,7 @@
 
 # SYNOPSYS
 # warningtable.sh -- build a table of warnings generated during
-# compilation. Its taylored for GCC (g++) or Clang with flags such 
+# compilation. Its taylored for GCC (g++) or Clang with flags such
 # as -Wall and -Wextra
 
 BIN="$0"

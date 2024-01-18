@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -815,7 +815,7 @@ namespace
         // matrix A
         /*
         1+i     0       0       0       2
-        0       2+2i    1-i     0       0 
+        0       2+2i    1-i     0       0
         0       1-i     3+3i    0       2+3i
         0       0       0       4+4i    0
         2       0       2+3i    0       5+5i
@@ -1334,8 +1334,8 @@ namespace
         mv_cmplx_failures<aoclsparse_double_complex>(8, 8, 27, zero, op_h, 1, mat_h, fl_up, diag_u);
     }
 
-    /* Transpose operation for a hermitian matrix is not implemented 
- * The below tests will fail  
+    /* Transpose operation for a hermitian matrix is not implemented
+ * The below tests will fail
  */
     /*
     TEST(mv, CmplxHermSuccessOpT)
