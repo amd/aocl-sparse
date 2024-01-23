@@ -149,3 +149,8 @@ aoclsparse_itsol\_?_rci_solve()
 .. doxygenfunction:: aoclsparse_itsol_d_rci_solve
 
 
+aoclsparse\_?sorv()
+-------------------
+.. doxygenfunction:: aoclsparse_ssorv
+   :outline:
+.. doxygenfunction:: aoclsparse_dsorv

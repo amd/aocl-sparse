@@ -84,6 +84,7 @@ set(GTEST_EXECUTABLES
     utils_tests
     axpyi_tests
     dotmv_tests
+    sorv_tests
     conversion_tests
     order_tests
     copy_tests

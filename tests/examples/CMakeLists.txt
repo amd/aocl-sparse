@@ -167,6 +167,7 @@ set(EXAMPLE_EXECUTABLES
     sample_itsol_d_gmres
     sample_itsol_s_gmres_rci
     sample_itsol_s_gmres
+    sample_dsorv
     sample_dotp
     sample_sctr
     sample_roti

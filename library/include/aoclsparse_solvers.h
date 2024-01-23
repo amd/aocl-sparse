@@ -1,5 +1,6 @@
 /* ************************************************************************
- * Copyright (c) 2022-2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022-2024 Advanced Micro Devices, Inc. Portions of this
+ * file consist of AI-generated content.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -498,6 +499,113 @@ aoclsparse_status aoclsparse_itsol_s_solve(
     void *udata);
 /**@}*/
 
+/*! \ingroup solvers_module
+ * \brief Performs successive over-relaxation preconditioner operation for single and
+ * double precision datatypes to solve a linear system of equations \f$Ax=b\f$.
+ *
+ * \details
+ * \P{aoclsparse_?sorv} performs successive over-relaxation preconditioner on a linear
+ * system of equations represented using a sparse matrix \f$A\f$ in CSR storage format.
+ * This is an iterative technique that solves the left hand side of this expression for \p x,
+ * using an initial guess for \p x
+ * @rst
+ * .. math::
+ *    (D + \omega \, L) \, x^1 = \omega \, b - (\omega \, U + (\omega -1) \, D) \, x^0
+ * @endrst
+ * where \f$A = L + D + U\f$, \f$x^0\f$ is an input vector \p x and \f$x^1\f$ is an output stored in vector \p x.
+ *
+ * Initially
+ * \f[
+ *    x^0 = \left\{
+ *    \begin{array}{ll}
+ *      alpha * x^0, & \text{ if } alpha \neq 0 \\
+ *      0, & \text{ if } alpha = 0
+ *    \end{array}
+ *    \right.
+ *  \f]
+ * The convergence is guaranteed for strictly diagonally dominant and positive definite matrices from
+ * any starting point, \f$x^0\f$. API returns the vector x after single iteration. Caller can invoke this
+ * function in a loop until their desired convergence is reached.
+ *
+ * NOTE:
+ *
+ * 1. Input CSR matrix should have non-zero full diagonals with each diagonal occurring only once in a row.
+ *
+ * 2. API supports forward sweep on general matrix for single and double precision datatypes.
+ *
+ * @param [in]
+ * sor_type Selects the type of operation performed by the preconditioner. Only \ref aoclsparse_sor_forward
+ *          is supported at present.
+ * @param [in]
+ * descr    Descriptor of A. Only \ref aoclsparse_matrix_type_general is supported at present.
+ *          As a consequence, all other parameters within the descriptor are ignored.
+ * @param [in]
+ * A        Matrix structure containing a square sparse matrix \f$A\f$ of size \f$m \times m\f$.
+ * @param [in]
+ * omega    Relaxation factor. For better convergence, 0 < \f$\omega\f$ < 2. If \f$\omega\f$ = 1,
+ *          the preconditioner is equivalent to the Gauss-Seidel method.
+ * @param [in]
+ * alpha    Scalar value used to normalize or set to zero the vector \p x that holds an initial guess.
+ * @param [inout]
+ * x        A vector of \f$m\f$ elements that holds an initial guess as well as the solution vector.
+ * @param [in]
+ * b        A vector of \f$m\f$ elements that holds the right-hand side of the equation being solved.
+ *
+ * \retval  aoclsparse_status_success            Completed successfully.
+ * \retval  aoclsparse_status_invalid_pointer    One or more of the pointers \p A, \p descr, \p x
+ *                                               or \p b are invalid.
+ * \retval  aoclsparse_status_wrong_type         Data type of \p A does not match the function.
+ * \retval  aoclsparse_status_not_implemented    Expecting general matrix in CSR format for single
+ *                                               or double precision datatypes with \ref aoclsparse_sor_forward.
+ * \retval  aoclsparse_status_invalid_size       Matrix is not square.
+ * \retval  aoclsparse_status_invalid_value      \p M or \p N is set to a negative value; or \p A,
+ *                                               \p descr or \p sor_type has invalid value; or presence of zero-valued or
+ *                                               repeated diagonal elements.
+ *
+ * @rst
+ * .. collapse:: Example (tests/examples/sample_dsorv.cpp)
+ *
+ *    .. only:: html
+ *
+ *       .. literalinclude:: ../tests/examples/sample_dsorv.cpp
+ *          :language: C++
+ *          :linenos:
+ * @endrst
+ * \{
+ */
+DLL_PUBLIC
+aoclsparse_status aoclsparse_ssorv(aoclsparse_sor_type        sor_type,
+                                   const aoclsparse_mat_descr descr,
+                                   const aoclsparse_matrix    A,
+                                   float                      omega,
+                                   float                      alpha,
+                                   float                     *x,
+                                   const float               *b);
+DLL_PUBLIC
+aoclsparse_status aoclsparse_dsorv(aoclsparse_sor_type        sor_type,
+                                   const aoclsparse_mat_descr descr,
+                                   const aoclsparse_matrix    A,
+                                   double                     omega,
+                                   double                     alpha,
+                                   double                    *x,
+                                   const double              *b);
+DLL_PUBLIC
+aoclsparse_status aoclsparse_csorv(aoclsparse_sor_type             sor_type,
+                                   const aoclsparse_mat_descr      descr,
+                                   const aoclsparse_matrix         A,
+                                   aoclsparse_float_complex        omega,
+                                   aoclsparse_float_complex        alpha,
+                                   aoclsparse_float_complex       *x,
+                                   const aoclsparse_float_complex *b);
+DLL_PUBLIC
+aoclsparse_status aoclsparse_zsorv(aoclsparse_sor_type              sor_type,
+                                   const aoclsparse_mat_descr       descr,
+                                   const aoclsparse_matrix          A,
+                                   aoclsparse_double_complex        omega,
+                                   aoclsparse_double_complex        alpha,
+                                   aoclsparse_double_complex       *x,
+                                   const aoclsparse_double_complex *b);
+/**@}*/
 #ifdef __cplusplus
 }
 #endif
