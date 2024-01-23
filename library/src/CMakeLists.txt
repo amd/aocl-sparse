@@ -57,6 +57,7 @@ set(AOCLSPARSE_SOURCES
 # Solvers
   src/solvers/aoclsparse_ilu.cpp
   src/solvers/aoclsparse_itsol_functions.cpp
+  src/solvers/aoclsparse_sorv.cpp
 
 # Analysis
   src/analysis/aoclsparse_analysis.cpp

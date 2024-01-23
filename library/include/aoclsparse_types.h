@@ -347,7 +347,8 @@ typedef enum aoclsparse_request_
  *  \brief List of successive over-relaxation types.
  *
  *  \details
- *  This is a list of supported SOR types that are supported by \ref aoclsparse_sorv() function.
+ *  This is a list of supported SOR types that are supported by \ref aoclsparse_dsorv
+ *  (or other variants function).
  */
 typedef enum aoclsparse_sor_type_
 {

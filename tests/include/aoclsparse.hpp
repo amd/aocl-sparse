@@ -383,6 +383,15 @@ aoclsparse_status aoclsparse_ilu_smoother(aoclsparse_operation       trans,
                                           const T                   *b);
 
 template <typename T>
+aoclsparse_status aoclsparse_sorv(aoclsparse_sor_type        sor_type,
+                                  const aoclsparse_mat_descr descr,
+                                  const aoclsparse_matrix    A,
+                                  T                          omega,
+                                  T                          alpha,
+                                  T                         *x,
+                                  const T                   *b);
+
+template <typename T>
 aoclsparse_status aoclsparse_sctr(const aoclsparse_int nnz,
                                   const T *__restrict__ x,
                                   const aoclsparse_int *__restrict__ indx,

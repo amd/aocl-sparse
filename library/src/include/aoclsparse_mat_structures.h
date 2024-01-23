@@ -194,7 +194,7 @@ struct _aoclsparse_matrix
     bool opt_csr_is_users = false;
     // the original matrix had full (nonzero) diagonal, so the matrix
     // is safe for TRSVs
-    bool opt_csr_full_diag;
+    bool opt_csr_full_diag = false;
     // store if the matrix has already been optimized for this blocked SpMV
     bool blk_optimized = false;
     // position where the diagonal is located in every row

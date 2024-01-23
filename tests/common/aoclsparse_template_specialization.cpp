@@ -1183,6 +1183,51 @@ aoclsparse_status aoclsparse_ilu_smoother(aoclsparse_operation       op,
 }
 
 template <>
+aoclsparse_status aoclsparse_sorv(aoclsparse_sor_type        sor_type,
+                                  const aoclsparse_mat_descr descr,
+                                  const aoclsparse_matrix    A,
+                                  float                      omega,
+                                  float                      alpha,
+                                  float                     *x,
+                                  const float               *b)
+{
+    return aoclsparse_ssorv(sor_type, descr, A, omega, alpha, x, b);
+}
+template <>
+aoclsparse_status aoclsparse_sorv(aoclsparse_sor_type        sor_type,
+                                  const aoclsparse_mat_descr descr,
+                                  const aoclsparse_matrix    A,
+                                  double                     omega,
+                                  double                     alpha,
+                                  double                    *x,
+                                  const double              *b)
+{
+    return aoclsparse_dsorv(sor_type, descr, A, omega, alpha, x, b);
+}
+template <>
+aoclsparse_status aoclsparse_sorv(aoclsparse_sor_type             sor_type,
+                                  const aoclsparse_mat_descr      descr,
+                                  const aoclsparse_matrix         A,
+                                  aoclsparse_float_complex        omega,
+                                  aoclsparse_float_complex        alpha,
+                                  aoclsparse_float_complex       *x,
+                                  const aoclsparse_float_complex *b)
+{
+    return aoclsparse_csorv(sor_type, descr, A, omega, alpha, x, b);
+}
+template <>
+aoclsparse_status aoclsparse_sorv(aoclsparse_sor_type              sor_type,
+                                  const aoclsparse_mat_descr       descr,
+                                  const aoclsparse_matrix          A,
+                                  aoclsparse_double_complex        omega,
+                                  aoclsparse_double_complex        alpha,
+                                  aoclsparse_double_complex       *x,
+                                  const aoclsparse_double_complex *b)
+{
+    return aoclsparse_zsorv(sor_type, descr, A, omega, alpha, x, b);
+}
+
+template <>
 double aoclsparse_dot(const aoclsparse_int nnz,
                       const double *__restrict__ x,
                       const aoclsparse_int *__restrict__ indx,
