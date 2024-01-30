@@ -397,9 +397,13 @@ int main(int argc, char *argv[])
     else if(strcmp(arg.function, "csrmm") == 0)
     {
         if(precision == 'd')
-            testing_csrmm<double>(arg);
+            return testing_csrmm<double>(arg);
         else if(precision == 's')
-            testing_csrmm<float>(arg);
+            return testing_csrmm<float>(arg);
+        else if(precision == 'c')
+            return testing_csrmm<aoclsparse_float_complex>(arg);
+        else if(precision == 'z')
+            return testing_csrmm<aoclsparse_double_complex>(arg);
     }
     else if(strcmp(arg.function, "csr2m") == 0)
     {
