@@ -944,4 +944,244 @@ inline aoclsparse_status ref_complex_dot(const aoclsparse_int             nnz,
         reinterpret_cast<std::complex<double> *>(complex_dot),
         is_conjugated);
 }
+/* CSRMM reference implementation, supports float/double/complex datatypes.
+Computes multiplication of a sparse matrix 'A' in CSR format and a dense matrix 'B',
+resulting a dense vector 'C'. C = alpha * A * B + beta * C, where alpha and beta are scalars. */
+template <typename T>
+aoclsparse_status ref_csrmm_gen(T                     alpha,
+                                aoclsparse_index_base base,
+                                aoclsparse_order      order,
+                                const T *__restrict__ csr_val,
+                                const aoclsparse_int *__restrict__ csr_col_ind,
+                                const aoclsparse_int *__restrict__ csr_row_ptr,
+                                aoclsparse_int m,
+                                const T       *B,
+                                aoclsparse_int n,
+                                aoclsparse_int ldb,
+                                T              beta,
+                                T             *C,
+                                aoclsparse_int ldc)
+
+{
+    for(aoclsparse_int i = 0; i < m; ++i)
+    {
+        aoclsparse_int row_begin = csr_row_ptr[i] - base;
+        aoclsparse_int row_end   = csr_row_ptr[i + 1] - base;
+        for(aoclsparse_int j = 0; j < n; ++j)
+        {
+            aoclsparse_int idx_C;
+            if(order == aoclsparse_order_column)
+                idx_C = i + j * ldc;
+            else
+                idx_C = i * ldc + j;
+            T sum = static_cast<T>(0);
+
+            for(aoclsparse_int k = row_begin; k < row_end; ++k)
+            {
+                aoclsparse_int idx_B;
+                if(order == aoclsparse_order_column)
+                    idx_B = ((csr_col_ind[k] - base) + j * ldb);
+                else
+                    idx_B = (j + (csr_col_ind[k] - base) * ldb);
+                sum += csr_val[k] * B[idx_B];
+            }
+            C[idx_C] = beta * C[idx_C] + (alpha * sum);
+        }
+    }
+    return aoclsparse_status_success;
+}
+template <typename T>
+aoclsparse_status ref_csrmm(aoclsparse_operation   op,
+                            T                      alpha,
+                            T                     *csr_val,
+                            aoclsparse_int        *csr_col_ind,
+                            aoclsparse_int        *csr_row_ptr,
+                            aoclsparse_matrix_type mattype,
+                            aoclsparse_index_base  base,
+                            aoclsparse_order       order,
+                            aoclsparse_int         m,
+                            aoclsparse_int         k,
+                            const T               *B,
+                            aoclsparse_int         n,
+                            aoclsparse_int         ldb,
+                            T                      beta,
+                            T                     *C,
+                            aoclsparse_int         ldc)
+{
+    T zero = 0.0;
+    T one  = 1.0;
+
+    // Check for nullptr
+    if(csr_val == nullptr || csr_col_ind == nullptr || csr_row_ptr == nullptr)
+        return aoclsparse_status_invalid_pointer;
+
+    if(B == nullptr || C == nullptr)
+        return aoclsparse_status_invalid_pointer;
+
+    // Check for valid size
+    if(m < 0 || n < 0 || k < 0)
+        return aoclsparse_status_invalid_size;
+
+    // Check for valid op
+    if(op != aoclsparse_operation_none && op != aoclsparse_operation_transpose
+       && op != aoclsparse_operation_conjugate_transpose)
+        return aoclsparse_status_invalid_value;
+    if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
+        if(op == aoclsparse_operation_conjugate_transpose)
+            op = aoclsparse_operation_transpose;
+
+    // Base check
+    if(base != aoclsparse_index_base_zero && base != aoclsparse_index_base_one)
+        return aoclsparse_status_invalid_value;
+
+    // Matrix type check
+    if(mattype != aoclsparse_matrix_type_general && mattype != aoclsparse_matrix_type_symmetric
+       && mattype != aoclsparse_matrix_type_hermitian)
+        return aoclsparse_status_not_implemented;
+    if((mattype == aoclsparse_matrix_type_symmetric || mattype == aoclsparse_matrix_type_hermitian)
+       && m != k)
+        return aoclsparse_status_invalid_size;
+
+    // Check order
+    if(order != aoclsparse_order_row && order != aoclsparse_order_column)
+        return aoclsparse_status_invalid_value;
+
+    // quick return
+    if(m == 0 || n == 0 || k == 0)
+        return aoclsparse_status_success;
+    if(alpha == zero && beta == one)
+        return aoclsparse_status_success;
+
+    // Check leading dimension of B and C
+    aoclsparse_int check_ldb, check_ldc;
+    check_ldb = (order == aoclsparse_order_column ? k : n);
+    check_ldc = (order == aoclsparse_order_column ? m : n);
+
+    if(ldb < (((aoclsparse_int)1) >= check_ldb ? (aoclsparse_int)1 : check_ldb))
+        return aoclsparse_status_invalid_size;
+    if(ldc < (((aoclsparse_int)1) >= check_ldc ? (aoclsparse_int)1 : check_ldc))
+        return aoclsparse_status_invalid_size;
+
+    // Transpose/conjugate transpose of general matrix type
+    if(mattype == aoclsparse_matrix_type_general
+       && (op == aoclsparse_operation_transpose || op == aoclsparse_operation_conjugate_transpose))
+    {
+        aoclsparse_int              nnz = csr_row_ptr[k] - base;
+        std::vector<aoclsparse_int> csc_row_ind, csc_col_ptr;
+        std::vector<T>              csc_val;
+
+        csc_row_ind.resize(nnz);
+        csc_col_ptr.resize(m + 1, 0);
+        csc_val.resize(nnz);
+        aoclsparse_status status = ref_csr2csc(base,
+                                               k,
+                                               m,
+                                               csr_row_ptr,
+                                               csr_col_ind,
+                                               csr_val,
+                                               csc_row_ind.data(),
+                                               csc_col_ptr.data(),
+                                               csc_val.data());
+        if(status != aoclsparse_status_success)
+            return status;
+
+        if(op == aoclsparse_operation_conjugate_transpose)
+        {
+            for(aoclsparse_int idx = 0; idx < nnz; idx++)
+                csc_val[idx] = aoclsparse::conj(csc_val[idx]);
+        }
+
+        return ref_csrmm_gen(alpha,
+                             base,
+                             order,
+                             csc_val.data(),
+                             csc_row_ind.data(),
+                             csc_col_ptr.data(),
+                             m,
+                             B,
+                             n,
+                             ldb,
+                             beta,
+                             C,
+                             ldc);
+    }
+    else
+        return ref_csrmm_gen(
+            alpha, base, order, csr_val, csr_col_ind, csr_row_ptr, m, B, n, ldb, beta, C, ldc);
+    return aoclsparse_status_not_implemented;
+}
+template <>
+inline aoclsparse_status ref_csrmm(aoclsparse_operation            op,
+                                   aoclsparse_float_complex        alpha,
+                                   aoclsparse_float_complex       *csr_val,
+                                   aoclsparse_int                 *csr_col_ind,
+                                   aoclsparse_int                 *csr_row_ptr,
+                                   aoclsparse_matrix_type          mattype,
+                                   aoclsparse_index_base           base,
+                                   aoclsparse_order                order,
+                                   aoclsparse_int                  m,
+                                   [[maybe_unused]] aoclsparse_int k,
+                                   const aoclsparse_float_complex *B,
+                                   aoclsparse_int                  n,
+                                   aoclsparse_int                  ldb,
+                                   aoclsparse_float_complex        beta,
+                                   aoclsparse_float_complex       *C,
+                                   aoclsparse_int                  ldc)
+{
+    std::complex<float> *alphap = reinterpret_cast<std::complex<float> *>(&alpha);
+    std::complex<float> *betap  = reinterpret_cast<std::complex<float> *>(&beta);
+    return ref_csrmm<std::complex<float>>(op,
+                                          *alphap,
+                                          reinterpret_cast<std::complex<float> *>(csr_val),
+                                          csr_col_ind,
+                                          csr_row_ptr,
+                                          mattype,
+                                          base,
+                                          order,
+                                          m,
+                                          k,
+                                          reinterpret_cast<const std::complex<float> *>(B),
+                                          n,
+                                          ldb,
+                                          *betap,
+                                          reinterpret_cast<std::complex<float> *>(C),
+                                          ldc);
+}
+template <>
+inline aoclsparse_status ref_csrmm(aoclsparse_operation             op,
+                                   aoclsparse_double_complex        alpha,
+                                   aoclsparse_double_complex       *csr_val,
+                                   aoclsparse_int                  *csr_col_ind,
+                                   aoclsparse_int                  *csr_row_ptr,
+                                   aoclsparse_matrix_type           mattype,
+                                   aoclsparse_index_base            base,
+                                   aoclsparse_order                 order,
+                                   aoclsparse_int                   m,
+                                   [[maybe_unused]] aoclsparse_int  k,
+                                   const aoclsparse_double_complex *B,
+                                   aoclsparse_int                   n,
+                                   aoclsparse_int                   ldb,
+                                   aoclsparse_double_complex        beta,
+                                   aoclsparse_double_complex       *C,
+                                   aoclsparse_int                   ldc)
+{
+    std::complex<double> *alphap = reinterpret_cast<std::complex<double> *>(&alpha);
+    std::complex<double> *betap  = reinterpret_cast<std::complex<double> *>(&beta);
+    return ref_csrmm<std::complex<double>>(op,
+                                           *alphap,
+                                           reinterpret_cast<std::complex<double> *>(csr_val),
+                                           csr_col_ind,
+                                           csr_row_ptr,
+                                           mattype,
+                                           base,
+                                           order,
+                                           m,
+                                           k,
+                                           reinterpret_cast<const std::complex<double> *>(B),
+                                           n,
+                                           ldb,
+                                           *betap,
+                                           reinterpret_cast<std::complex<double> *>(C),
+                                           ldc);
+}
 #endif // AOCLSPARSE_REFERENCE_HPP

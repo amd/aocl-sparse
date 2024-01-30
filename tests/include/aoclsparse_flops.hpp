@@ -54,7 +54,10 @@ constexpr double csrsv_gflop_count(aoclsparse_int M, aoclsparse_int nnz, aoclspa
  * ===========================================================================
  */
 template <typename T>
-constexpr double csrmm_gflop_count(T N, T nnz_A, T nnz_C, bool beta = false)
+constexpr double csrmm_gflop_count(aoclsparse_int N,
+                                   aoclsparse_int nnz_A,
+                                   aoclsparse_int nnz_C,
+                                   bool           beta = false)
 {
     // Multiplication by 2 comes from 1 addition and 1 multiplication in product. Multiplication
     // by alpha and beta not counted.

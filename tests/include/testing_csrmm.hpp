@@ -1,287 +1,282 @@
 /* ************************************************************************
- * Copyright (c) 2021-2024 Advanced Micro Devices, Inc. All rights reserved.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
- * ************************************************************************ */
+    * Copyright (c) 2021-2024 Advanced Micro Devices, Inc. All rights reserved.
+    *
+    * Permission is hereby granted, free of charge, to any person obtaining a copy
+    * of this software and associated documentation files (the "Software"), to deal
+    * in the Software without restriction, including without limitation the rights
+    * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    * copies of the Software, and to permit persons to whom the Software is
+    * furnished to do so, subject to the following conditions:
+    *
+    * The above copyright notice and this permission notice shall be included in
+    * all copies or substantial portions of the Software.
+    *
+    * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+    * THE SOFTWARE.
+    *
+    * ************************************************************************ */
 
 #pragma once
 #ifndef TESTING_CSRMM_HPP
 #define TESTING_CSRMM_HPP
 
-#include "aoclsparse.h"
+#include "aoclsparse.hpp"
 #include "aoclsparse_arguments.hpp"
 #include "aoclsparse_check.hpp"
 #include "aoclsparse_flops.hpp"
 #include "aoclsparse_gbyte.hpp"
 #include "aoclsparse_init.hpp"
 #include "aoclsparse_random.hpp"
+#include "aoclsparse_reference.hpp"
+#include "aoclsparse_stats.hpp"
 #include "aoclsparse_test.hpp"
 #include "aoclsparse_utility.hpp"
 
-//Currently we are supporting only real types.
-//ToDo: Enable support for complex types.
-template <typename T>
-aoclsparse_status aoclsparse_csrmm_col_major_ref(const T               alpha,
-                                                 aoclsparse_index_base base,
-                                                 const T *__restrict__ csr_val,
-                                                 const aoclsparse_int *__restrict__ csr_col_ind,
-                                                 const aoclsparse_int *__restrict__ csr_row_ptr,
-                                                 aoclsparse_int                  m,
-                                                 [[maybe_unused]] aoclsparse_int k,
-                                                 const T                        *B,
-                                                 aoclsparse_int                  n,
-                                                 aoclsparse_int                  ldb,
-                                                 const T                         beta,
-                                                 T                              *C,
-                                                 aoclsparse_int                  ldc)
-{
-    for(aoclsparse_int i = 0; i < m; ++i)
-    {
-        aoclsparse_int row_begin = csr_row_ptr[i] - base;
-        aoclsparse_int row_end   = csr_row_ptr[i + 1] - base;
-        for(aoclsparse_int j = 0; j < n; ++j)
-        {
-            aoclsparse_int idx_C = i + j * ldc;
-            T              sum   = static_cast<T>(0);
+#ifdef EXT_BENCHMARKING
+#include "ext_benchmarking.hpp"
+#else
+#include "aoclsparse_no_ext_benchmarking.hpp"
+#endif
 
-            for(aoclsparse_int k = row_begin; k < row_end; ++k)
-            {
-                aoclsparse_int idx_B = ((csr_col_ind[k] - base) + j * ldb);
-                sum                  = std::fma(csr_val[k], B[idx_B], sum);
-            }
-            if(beta == static_cast<T>(0))
-            {
-                C[idx_C] = alpha * sum;
-            }
-            else
-            {
-                C[idx_C] = std::fma(beta, C[idx_C], alpha * sum);
-            }
+template <typename T>
+int testing_csrmm_aocl(const Arguments &arg, testdata<T> &td, double timings[])
+{
+    int                    status  = 0;
+    aoclsparse_int         m       = td.m;
+    aoclsparse_int         n       = td.n;
+    aoclsparse_int         k       = td.k;
+    aoclsparse_int         nnz     = td.nnzA;
+    aoclsparse_operation   trans   = arg.transA;
+    aoclsparse_matrix_type mattype = arg.mattypeA;
+    aoclsparse_fill_mode   fill    = arg.uplo;
+    aoclsparse_diag_type   diag    = arg.diag;
+    aoclsparse_index_base  base    = arg.baseA;
+    aoclsparse_order       order   = arg.order;
+
+    aoclsparse_mat_descr descr = nullptr;
+    aoclsparse_matrix    A;
+    try
+    {
+        // Create descriptor
+        NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_create_mat_descr(&descr));
+        NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mat_type(descr, mattype));
+        NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mat_fill_mode(descr, fill));
+        NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mat_diag_type(descr, diag));
+        NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mat_index_base(descr, base));
+
+        // Create sparse matrix 'A'
+        NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_create_csr<T>(&A,
+                                                            base,
+                                                            m,
+                                                            k,
+                                                            nnz,
+                                                            td.csr_row_ptrA.data(),
+                                                            td.csr_col_indA.data(),
+                                                            td.csr_valA.data()));
+
+        int number_hot_calls = arg.iters;
+        // Performance run
+        for(int iter = 0; iter < number_hot_calls; ++iter)
+        {
+            td.y                  = td.y_in;
+            double cpu_time_start = aoclsparse_clock();
+            NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_csrmm(trans,
+                                                        td.alpha,
+                                                        A,
+                                                        descr,
+                                                        order,
+                                                        td.x.data(),
+                                                        n,
+                                                        td.ldx,
+                                                        td.beta,
+                                                        td.y.data(),
+                                                        td.ldy));
+            timings[iter] = aoclsparse_clock_diff(cpu_time_start);
         }
     }
-    return aoclsparse_status_success;
-}
-
-template <typename T>
-aoclsparse_status aoclsparse_csrmm_row_major_ref(const T               alpha,
-                                                 aoclsparse_index_base base,
-                                                 const T *__restrict__ csr_val,
-                                                 const aoclsparse_int *__restrict__ csr_col_ind,
-                                                 const aoclsparse_int *__restrict__ csr_row_ptr,
-                                                 aoclsparse_int                  m,
-                                                 [[maybe_unused]] aoclsparse_int k,
-                                                 const T                        *B,
-                                                 aoclsparse_int                  n,
-                                                 aoclsparse_int                  ldb,
-                                                 const T                         beta,
-                                                 T                              *C,
-                                                 aoclsparse_int                  ldc)
-{
-    for(aoclsparse_int i = 0; i < m; ++i)
+    catch(BenchmarkException &e)
     {
-        aoclsparse_int row_begin = csr_row_ptr[i] - base;
-        aoclsparse_int row_end   = csr_row_ptr[i + 1] - base;
-        for(aoclsparse_int j = 0; j < n; ++j)
-        {
-            aoclsparse_int idx_C = i * ldc + j;
-            T              sum   = static_cast<T>(0);
-
-            for(aoclsparse_int k = row_begin; k < row_end; ++k)
-            {
-                aoclsparse_int idx_B = (j + (csr_col_ind[k] - base) * ldb);
-                sum                  = std::fma(csr_val[k], B[idx_B], sum);
-            }
-
-            if(beta == static_cast<T>(0))
-            {
-                C[idx_C] = alpha * sum;
-            }
-            else
-            {
-                C[idx_C] = std::fma(beta, C[idx_C], alpha * sum);
-            }
-        }
+        status = 1;
     }
-    return aoclsparse_status_success;
-}
 
+    aoclsparse_destroy_mat_descr(descr);
+    aoclsparse_destroy(&A);
+    return status;
+}
+/* CSRMM testing driver
+* Solves y := alpha*op(A)*x + beta*y
+* where A(mxk) is an aoclsparse matrix in CSR format
+* x(mxn) and y(mxn) are dense matrices
+* alpha and beta are scalars
+*/
 template <typename T>
-void testing_csrmm(const Arguments &arg)
+int testing_csrmm(const Arguments &arg)
 {
-    aoclsparse_int         M        = arg.M;
-    aoclsparse_int         N        = arg.N;
-    aoclsparse_int         K        = arg.K;
-    aoclsparse_int         nnz      = arg.nnz;
-    aoclsparse_operation   transA   = arg.transA;
+    int                    status   = 0;
+    aoclsparse_operation   trans    = arg.transA;
     aoclsparse_index_base  base     = arg.baseA;
+    aoclsparse_matrix_type mattype  = arg.mattypeA;
+    aoclsparse_fill_mode   fill     = arg.uplo;
+    aoclsparse_diag_type   diag     = arg.diag;
+    aoclsparse_order       order    = arg.order;
     aoclsparse_matrix_init mat      = arg.matrix;
     std::string            filename = arg.filename;
-    aoclsparse_order       order    = arg.order;
-    bool                   issymm   = false;
-    double                 cpu_gbyte;
-    double                 cpu_gflops;
-    double                 cpu_time_used, cpu_time_start;
-    int                    number_hot_calls;
-    T                      alpha = static_cast<T>(arg.alpha);
-    T                      beta  = static_cast<T>(arg.beta);
+    aoclsparse_matrix_sort sort     = arg.sort;
+    bool                   issymm;
 
-    // Create matrix descriptor
-    aoclsparse_local_mat_descr descr;
+    // the queue of test functions to run
+    std::vector<testsetting<T>> testqueue;
+    testqueue.push_back({"aocl_csrmm", &testing_csrmm_aocl<T>});
+    register_tests_csrmm(testqueue);
 
-    // Set matrix index base
-    CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mat_index_base(descr, base));
+    // create relevant test data for this API
+    testdata<T> td;
+    td.m    = arg.M;
+    td.n    = arg.N;
+    td.k    = arg.K;
+    td.nnzA = arg.nnz;
 
-    std::vector<aoclsparse_int> csr_row_ptr;
-    std::vector<aoclsparse_int> csr_col_ind;
-    std::vector<T>              csr_val;
+    // space for results
+    std::vector<double> timings(arg.iters);
+    // and their statistics
+    std::vector<data_stats> tstats(testqueue.size());
 
+    if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
+    {
+        td.alpha = arg.alpha;
+        td.beta  = arg.beta;
+    }
+    else
+    {
+        //else part assumes complex data type
+        td.alpha = {(tolerance_t<T>)arg.alpha, (tolerance_t<T>)arg.alpha};
+        td.beta  = {(tolerance_t<T>)arg.beta, (tolerance_t<T>)arg.beta};
+    }
     aoclsparse_seedrand();
-#if 0
-    // Print aoclsparse version
-    std::cout << aoclsparse_get_version() << std::endl;
-#endif
+
     // Sample matrix
-    aoclsparse_init_csr_matrix(
-        csr_row_ptr, csr_col_ind, csr_val, M, K, nnz, base, mat, filename.c_str(), issymm, true);
-    if(mat == aoclsparse_matrix_file_mtx)
-        N = M;
+    aoclsparse_init_csr_matrix(td.csr_row_ptrA,
+                               td.csr_col_indA,
+                               td.csr_valA,
+                               td.m,
+                               td.k,
+                               td.nnzA,
+                               base,
+                               mat,
+                               filename.c_str(),
+                               issymm,
+                               true,
+                               sort);
 
     // Some matrix properties
-    aoclsparse_int A_m, A_n, B_m, B_n, C_m, C_n, ldb, ldc, nrowB, ncolB, nrowC, ncolC;
-    A_m   = (transA == aoclsparse_operation_none ? M : K);
-    A_n   = (transA == aoclsparse_operation_none ? K : M);
-    B_m   = (transA == aoclsparse_operation_none ? K : M);
-    B_n   = N;
-    C_m   = A_m;
-    C_n   = B_n;
-    ldb   = order == aoclsparse_order_column ? B_m : B_n;
-    ldc   = order == aoclsparse_order_column ? C_m : C_n;
-    nrowB = order == aoclsparse_order_column ? ldb : B_m;
-    ncolB = order == aoclsparse_order_column ? B_n : ldb;
-    nrowC = order == aoclsparse_order_column ? ldc : C_m;
-    ncolC = order == aoclsparse_order_column ? C_n : ldc;
+    aoclsparse_int xdim, ydim;
+    xdim = (trans == aoclsparse_operation_none ? td.m : td.k);
+    ydim = (trans == aoclsparse_operation_none ? td.k : td.m);
 
-    aoclsparse_matrix A;
-    aoclsparse_create_csr(
-        &A, base, M, K, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data());
-    // Allocate memory for matrix
-    std::vector<T> B(nrowB * ncolB);
-    std::vector<T> C(nrowC * ncolC);
-    std::vector<T> C_gold(nrowC * ncolC);
+    if(order == aoclsparse_order_column)
+    {
+        td.ldx = ydim + 1; // >= ydim
+        td.ldy = xdim + 1; // >= xdim
+        td.x.resize(td.ldx * td.n);
+        td.y.resize(td.ldy * td.n);
+        aoclsparse_init<T>(td.x, td.ldx, td.n, td.ldx);
+        aoclsparse_init<T>(td.y, td.ldy, td.n, td.ldy);
+    }
 
-    // Initialize data
-    aoclsparse_init<T>(B, nrowB, ncolB, nrowB);
-    aoclsparse_init<T>(C, nrowC, ncolC, nrowC);
-    C_gold = C;
+    else if(order == aoclsparse_order_row)
+    {
+        td.ldx = td.n + 1; // >= td.n
+        td.ldy = td.n + 1; // >= td.n
+        td.x.resize(ydim * td.ldx);
+        td.y.resize(xdim * td.ldy);
+        aoclsparse_init<T>(td.x, ydim, td.ldx, ydim);
+        aoclsparse_init<T>(td.y, xdim, td.ldy, xdim);
+    }
 
-    //Provides verficiation only for aoclsparse_operation_none.
-    //ToDo:
-    //Enable functional verification for aoclsparse_operation_transpose and aoclsparse_operation_conjugate_transpose.
+    td.y_in               = td.y;
+    std::vector<T> y_gold = td.y;
+
     if(arg.unit_check)
     {
-        if(transA != aoclsparse_operation_none)
+        try
         {
-            std::cout << "At persent, verification is supported only when transposeA is set to N\n";
-            aoclsparse_destroy(&A);
-            return;
+            NEW_CHECK_AOCLSPARSE_ERROR(ref_csrmm(trans,
+                                                 td.alpha,
+                                                 td.csr_valA.data(),
+                                                 td.csr_col_indA.data(),
+                                                 td.csr_row_ptrA.data(),
+                                                 mattype,
+                                                 base,
+                                                 order,
+                                                 xdim,
+                                                 ydim,
+                                                 td.x.data(),
+                                                 td.n,
+                                                 td.ldx,
+                                                 td.beta,
+                                                 y_gold.data(),
+                                                 td.ldy));
         }
-        CHECK_AOCLSPARSE_ERROR(aoclsparse_csrmm<T>(
-            transA, alpha, A, descr, order, B.data(), B_n, ldb, beta, C.data(), ldc));
-        // Reference SPMM CSR implementation
-        if(order == aoclsparse_order_column)
+        catch(BenchmarkException &e)
         {
-            aoclsparse_csrmm_col_major_ref<T>(alpha,
-                                              base,
-                                              csr_val.data(),
-                                              csr_col_ind.data(),
-                                              csr_row_ptr.data(),
-                                              A_m,
-                                              A_n,
-                                              B.data(),
-                                              B_n,
-                                              ldb,
-                                              beta,
-                                              C_gold.data(),
-                                              ldc);
-            if(near_check_general<T>(nrowC, ncolC, ldc, C_gold.data(), C.data()))
-            {
-                aoclsparse_destroy(&A);
-                return;
-            }
-        }
-        else
-        {
-            aoclsparse_csrmm_row_major_ref<T>(alpha,
-                                              base,
-                                              csr_val.data(),
-                                              csr_col_ind.data(),
-                                              csr_row_ptr.data(),
-                                              A_m,
-                                              A_n,
-                                              B.data(),
-                                              B_n,
-                                              ldb,
-                                              beta,
-                                              C_gold.data(),
-                                              ldc);
-            if(near_check_general<T>(ncolC, nrowC, ldc, C_gold.data(), C.data()))
-            {
-                aoclsparse_destroy(&A);
-                return;
-            }
+            std::cerr << "Error computing reference CSRMM results" << std::endl;
+            return 2;
         }
     }
-    number_hot_calls = arg.iters;
 
-    cpu_time_used = DBL_MAX;
-
-    // Performance run
-    for(int iter = 0; iter < number_hot_calls; ++iter)
-    {
-        cpu_time_start = aoclsparse_clock();
-        CHECK_AOCLSPARSE_ERROR(aoclsparse_csrmm(
-            transA, alpha, A, descr, order, B.data(), B_n, ldb, beta, C.data(), ldc));
-        cpu_time_used = aoclsparse_clock_min_diff(cpu_time_used, cpu_time_start);
-    }
-
-    cpu_gflops = csrmm_gflop_count<T>(N, nnz, C_m * C_n, beta != static_cast<T>(0)) / cpu_time_used;
-    cpu_gbyte  = csrmm_gbyte_count<T>(A_m, nnz, B_m * B_n, C_m * C_n, beta != static_cast<T>(0))
-                / cpu_time_used;
+    std::string prob_name        = gen_problem_name(arg, td);
+    int         number_hot_calls = arg.iters;
+    double      gflop            = csrmm_gflop_count<T>(
+        td.n, td.nnzA, xdim * td.n, td.beta != aoclsparse_numeric::zero<T>());
+    double gbyte = csrmm_gbyte_count<T>(
+        xdim, td.nnzA, ydim * td.n, xdim * td.n, td.beta != aoclsparse_numeric::zero<T>());
 
     std::cout.precision(2);
     std::cout.setf(std::ios::fixed);
     std::cout.setf(std::ios::left);
 
-    std::cout << std::setw(12) << "M" << std::setw(12) << "N" << std::setw(12) << "K"
-              << std::setw(12) << "nnz_A" << std::setw(12) << "nnz_B" << std::setw(12) << "nnz_C"
-              << std::setw(12) << "alpha" << std::setw(12) << "beta" << std::setw(12) << "GFlop/s"
-              << std::setw(12) << "GB/s" << std::setw(12) << "msec" << std::setw(12) << "iter"
-              << std::setw(12) << "verified" << std::endl;
+    for(unsigned itest = 0; itest < testqueue.size(); ++itest)
+    {
+        status = 0;
+        std::cout << "-----" << testqueue[itest].name << "-----" << std::endl;
 
-    std::cout << std::setw(12) << M << std::setw(12) << N << std::setw(12) << K << std::setw(12)
-              << nnz << std::setw(12) << B_m * B_n << std::setw(12) << C_m * C_n << std::setw(12)
-              << alpha << std::setw(12) << beta << std::setw(12) << cpu_gflops << std::setw(12)
-              << cpu_gbyte << std::setw(12) << std::scientific << cpu_time_used * 1e3
-              << std::setw(12) << number_hot_calls << std::setw(12)
-              << (arg.unit_check ? "yes" : "no") << std::endl;
+        // Run the test loop
+        status += testqueue[itest].tf(arg, td, timings.data());
 
-    aoclsparse_destroy(&A);
+        // Check the results against the reference result
+        int verify = 0;
+        if(arg.unit_check)
+        {
+            verify = 1;
+            if((order == aoclsparse_order_column
+                && (near_check_general<T>(td.ldy, td.n, td.ldy, y_gold.data(), td.y.data())))
+               || ((order == aoclsparse_order_row)
+                   && (near_check_general<T>(xdim, td.ldy, xdim, y_gold.data(), td.y.data()))))
+            {
+                status++;
+                verify = 2;
+            }
+        }
+        compute_stats(timings.data(), timings.size(), tstats[itest]);
+        twosample_test_result cmp, *pcmp = NULL;
+
+        // compare the run against the first run (AOCL)
+        if(itest > 0)
+        {
+            cmp  = twosample_test(tstats[itest], tstats[0]);
+            pcmp = &cmp;
+            // twosample_print(cmp, testqueue[itest].name, tstats[itest],
+            // testqueue[0].name, tstats[0]); //, bool debug=false, bool onehdr=true)
+        }
+        print_results(
+            testqueue[itest].name, prob_name.c_str(), verify, tstats[itest], pcmp, itest == 0);
+    }
+    return status;
 }
+
 #endif // TESTING_CSRMM_HPP

@@ -98,4 +98,10 @@ void register_tests_trsm([[maybe_unused]] std::vector<testsetting<T>> &testqueue
 {
     //testqueue.push_back({"new_test_name",&testing_trsm_new<T>});
 }
+template <typename T>
+void register_tests_csrmm([[maybe_unused]] std::vector<testsetting<T>> &testqueue)
+{
+    // testqueue.push_back({"new_test_name", &testing_csrmm_new<T>});
+}
+
 #endif
