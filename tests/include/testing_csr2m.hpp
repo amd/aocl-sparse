@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2021-2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2021-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,6 +35,11 @@
 #include "aoclsparse_test.hpp"
 #include "aoclsparse_utility.hpp"
 //boost ublas
+// Ignore compiler warning from Boost
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-local-typedefs"
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#pragma GCC diagnostic ignored "-Wdeprecated-copy"
 #include <boost/numeric/ublas/io.hpp>
 #include <boost/numeric/ublas/matrix.hpp>
 #include <boost/numeric/ublas/matrix_proxy.hpp>
@@ -43,6 +48,8 @@
 #include <boost/numeric/ublas/traits.hpp>
 #include <boost/numeric/ublas/vector.hpp>
 #include <boost/numeric/ublas/vector_proxy.hpp>
+// Restore
+#pragma GCC diagnostic pop
 
 namespace uBLAS = boost::numeric::ublas;
 
