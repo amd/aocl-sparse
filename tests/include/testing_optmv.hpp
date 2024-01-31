@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -113,60 +113,20 @@ void testing_optmv(const Arguments &arg)
     {
         CHECK_AOCLSPARSE_ERROR(aoclsparse_mv(trans, &alpha, A, descr, x.data(), &beta, y.data()));
         // Reference SPMV CSR implementation
-        if(mattype == aoclsparse_matrix_type_general)
-        {
-            if(trans == aoclsparse_operation_none)
-                CHECK_AOCLSPARSE_ERROR(ref_csrmv(alpha,
-                                                 M,
-                                                 N,
-                                                 csr_val.data(),
-                                                 csr_col_ind.data(),
-                                                 csr_row_ptr.data(),
-                                                 base,
-                                                 x.data(),
-                                                 beta,
-                                                 y_gold.data()));
-            else
-                CHECK_AOCLSPARSE_ERROR(ref_csrmvt(alpha,
-                                                  M,
-                                                  N,
-                                                  csr_val.data(),
-                                                  csr_col_ind.data(),
-                                                  csr_row_ptr.data(),
-                                                  base,
-                                                  x.data(),
-                                                  beta,
-                                                  y_gold.data()));
-        }
-        else if(mattype == aoclsparse_matrix_type_symmetric)
-        {
-            CHECK_AOCLSPARSE_ERROR(ref_csrmvsym(alpha,
-                                                M,
-                                                csr_val.data(),
-                                                csr_col_ind.data(),
-                                                csr_row_ptr.data(),
-                                                fill,
-                                                diag,
-                                                base,
-                                                x.data(),
-                                                beta,
-                                                y_gold.data()));
-        }
-        else if(mattype == aoclsparse_matrix_type_triangular)
-        {
-            CHECK_AOCLSPARSE_ERROR(ref_csrmvtrg(alpha,
-                                                M,
-                                                N,
-                                                csr_val.data(),
-                                                csr_col_ind.data(),
-                                                csr_row_ptr.data(),
-                                                fill,
-                                                diag,
-                                                base,
-                                                x.data(),
-                                                beta,
-                                                y_gold.data()));
-        }
+        CHECK_AOCLSPARSE_ERROR(ref_csrmv(trans,
+                                         alpha,
+                                         M,
+                                         N,
+                                         csr_val.data(),
+                                         csr_col_ind.data(),
+                                         csr_row_ptr.data(),
+                                         mattype,
+                                         fill,
+                                         diag,
+                                         base,
+                                         x.data(),
+                                         beta,
+                                         y_gold.data()));
         near_check_general<T>(1, ydim, 1, y_gold.data(), y.data());
     }
     int number_hot_calls = arg.iters;
