@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -884,7 +884,8 @@ namespace
         ASSERT_EQ(aoclsparse_set_mat_index_base(descr, base), aoclsparse_status_success);
 
         //compute reference spmv output
-        ASSERT_EQ(ref_csrmv(alpha, M, N, csr_val, csr_col_ind, csr_row_ptr, base, x, beta, y_gold),
+        ASSERT_EQ(ref_csrmvgen(
+                      trans, alpha, M, N, csr_val, csr_col_ind, csr_row_ptr, base, x, beta, y_gold),
                   aoclsparse_status_success);
 
         ASSERT_EQ(aoclsparse_csr2ellthyb_width(M, NNZ, csr_row_ptr, &ell_m, &ell_width),
@@ -955,7 +956,8 @@ namespace
         ASSERT_EQ(aoclsparse_set_mat_index_base(descr, base), aoclsparse_status_success);
 
         //compute reference spmv output
-        ASSERT_EQ(ref_csrmv(alpha, M, N, csr_val, csr_col_ind, csr_row_ptr, base, x, beta, y_gold),
+        ASSERT_EQ(ref_csrmvgen(
+                      trans, alpha, M, N, csr_val, csr_col_ind, csr_row_ptr, base, x, beta, y_gold),
                   aoclsparse_status_success);
 
         ASSERT_EQ(aoclsparse_csr2ellthyb_width(M, NNZ, csr_row_ptr, &ell_m, &ell_width),

@@ -421,38 +421,20 @@ namespace
         ASSERT_EQ(aoclsparse_set_mat_diag_type(descrA, diag), aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_mv<T>(op_a, &alpha, A, descrA, x.data(), &beta, y.data()),
                   aoclsparse_status_success);
-        if(op_a == aoclsparse_operation_none)
-        {
-            EXPECT_EQ(ref_csrmvtrg(alpha,
-                                   m_a,
-                                   n_a,
-                                   val_a.data(),
-                                   col_ind_a.data(),
-                                   row_ptr_a.data(),
-                                   fill,
-                                   diag,
-                                   b_a,
-                                   x.data(),
-                                   beta,
-                                   y_ref.data()),
-                      aoclsparse_status_success);
-        }
-        else if(op_a == aoclsparse_operation_transpose)
-        {
-            EXPECT_EQ(ref_csrmvtrgt(alpha,
-                                    m_a,
-                                    n_a,
-                                    val_a.data(),
-                                    col_ind_a.data(),
-                                    row_ptr_a.data(),
-                                    fill,
-                                    diag,
-                                    b_a,
-                                    x.data(),
-                                    beta,
-                                    y_ref.data()),
-                      aoclsparse_status_success);
-        }
+        EXPECT_EQ(ref_csrmvtrg(op_a,
+                               alpha,
+                               m_a,
+                               n_a,
+                               val_a.data(),
+                               col_ind_a.data(),
+                               row_ptr_a.data(),
+                               fill,
+                               diag,
+                               b_a,
+                               x.data(),
+                               beta,
+                               y_ref.data()),
+                  aoclsparse_status_success);
 
         EXPECT_ARR_NEAR(m_a, y, y_ref, expected_precision<T>());
 
@@ -626,10 +608,20 @@ namespace
         EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A, descr, x, &beta, y),
                   aoclsparse_status_success);
 
-        EXPECT_EQ(
-            ref_csrmvtrgt(
-                alpha, M, N, csr_val, csr_col_ind, csr_row_ptr, fill, diag, base, x, beta, y_gold),
-            aoclsparse_status_success);
+        EXPECT_EQ(ref_csrmvtrg(trans,
+                               alpha,
+                               M,
+                               N,
+                               csr_val,
+                               csr_col_ind,
+                               csr_row_ptr,
+                               fill,
+                               diag,
+                               base,
+                               x,
+                               beta,
+                               y_gold),
+                  aoclsparse_status_success);
 
         EXPECT_ARR_NEAR(M, y, y_gold, expected_precision<T>());
 
@@ -644,10 +636,20 @@ namespace
         }
         EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A, descr, x, &beta, y),
                   aoclsparse_status_success);
-        EXPECT_EQ(
-            ref_csrmvtrgt(
-                alpha, M, N, csr_val, csr_col_ind, csr_row_ptr, fill, diag, base, x, beta, y_gold),
-            aoclsparse_status_success);
+        EXPECT_EQ(ref_csrmvtrg(trans,
+                               alpha,
+                               M,
+                               N,
+                               csr_val,
+                               csr_col_ind,
+                               csr_row_ptr,
+                               fill,
+                               diag,
+                               base,
+                               x,
+                               beta,
+                               y_gold),
+                  aoclsparse_status_success);
         EXPECT_ARR_NEAR(M, y, y_gold, expected_precision<T>());
         EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
 
@@ -673,10 +675,20 @@ namespace
 
         EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A, descr, x, &beta, y),
                   aoclsparse_status_success);
-        EXPECT_EQ(
-            ref_csrmvtrgt(
-                alpha, M, N, csr_val, csr_col_ind, csr_row_ptr, fill, diag, base, x, beta, y_gold),
-            aoclsparse_status_success);
+        EXPECT_EQ(ref_csrmvtrg(trans,
+                               alpha,
+                               M,
+                               N,
+                               csr_val,
+                               csr_col_ind,
+                               csr_row_ptr,
+                               fill,
+                               diag,
+                               base,
+                               x,
+                               beta,
+                               y_gold),
+                  aoclsparse_status_success);
         EXPECT_ARR_NEAR(M, y, y_gold, expected_precision<T>());
 
         //CASE 4: Check transpose case for upper triangular SPMV, with alpha=5.1, beta=3.2
@@ -690,10 +702,20 @@ namespace
         }
         EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A, descr, x, &beta, y),
                   aoclsparse_status_success);
-        EXPECT_EQ(
-            ref_csrmvtrgt(
-                alpha, M, N, csr_val, csr_col_ind, csr_row_ptr, fill, diag, base, x, beta, y_gold),
-            aoclsparse_status_success);
+        EXPECT_EQ(ref_csrmvtrg(trans,
+                               alpha,
+                               M,
+                               N,
+                               csr_val,
+                               csr_col_ind,
+                               csr_row_ptr,
+                               fill,
+                               diag,
+                               base,
+                               x,
+                               beta,
+                               y_gold),
+                  aoclsparse_status_success);
 
         EXPECT_ARR_NEAR(M, y, y_gold, expected_precision<T>());
 
@@ -827,9 +849,8 @@ namespace
         // Initialise vectors
         T x[5] = {{0, 1}, {2, 1}, {3, 0}, {4, -1}, {5, 2}};
         //        T y_exp[5]      = {{9, 5}, {5, 3}, {16, 17}, {20, 12}, {21, 46}};
-        T y_conj_exp[5] = {{11, 5}, {9, 1}, {26, -17}, {12, -20}, {41, -22}};
-        T y[5]          = {0, 0};
-        T y_gold[5]     = {0, 0};
+        T y[5]      = {0, 0};
+        T y_gold[5] = {0, 0};
 
         aoclsparse_index_base base = aoclsparse_index_base_zero;
         aoclsparse_mat_descr  descr;
@@ -858,40 +879,18 @@ namespace
         const std::complex<double> alphap = *reinterpret_cast<const std::complex<double> *>(&alpha);
         const std::complex<double> betap  = *reinterpret_cast<const std::complex<double> *>(&beta);
 
-        if(op == aoclsparse_operation_none)
-        {
-            EXPECT_EQ(ref_csrmv(alphap,
-                                M,
-                                N,
-                                (std::complex<double> *)csr_val,
-                                csr_col_ind,
-                                csr_row_ptr,
-                                base,
-                                (std::complex<double> *)x,
-                                betap,
-                                (std::complex<double> *)y_gold),
-                      aoclsparse_status_success);
-        }
-        else if(op == aoclsparse_operation_transpose)
-        {
-            EXPECT_EQ(ref_csrmvt(alphap,
-                                 M,
-                                 N,
-                                 (std::complex<double> *)csr_val,
-                                 csr_col_ind,
-                                 csr_row_ptr,
-                                 base,
-                                 (std::complex<double> *)x,
-                                 betap,
-                                 (std::complex<double> *)y_gold),
-                      aoclsparse_status_success);
-        }
-        else if(op == aoclsparse_operation_conjugate_transpose)
-        {
-
-            for(aoclsparse_int i = 0; i < M; i++)
-                ((std::complex<double> *)y_gold)[i] = ((std::complex<double> *)y_conj_exp)[i];
-        }
+        EXPECT_EQ(ref_csrmvgen(op,
+                               alphap,
+                               M,
+                               N,
+                               (std::complex<double> *)csr_val,
+                               csr_col_ind,
+                               csr_row_ptr,
+                               base,
+                               (std::complex<double> *)x,
+                               betap,
+                               (std::complex<double> *)y_gold),
+                  aoclsparse_status_success);
 
         EXPECT_COMPLEX_ARR_NEAR(
             M, ((std::complex<double> *)y), ((std::complex<double> *)y_gold), abserr);

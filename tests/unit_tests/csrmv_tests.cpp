@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -253,7 +253,8 @@ namespace
                 trans, &alpha, M, N, NNZ, csr_val, csr_col_ind, csr_row_ptr, descr, x, &beta, y),
             aoclsparse_status_success);
 
-        EXPECT_EQ(ref_csrmvt(alpha, M, N, csr_val, csr_col_ind, csr_row_ptr, base, x, beta, y_gold),
+        EXPECT_EQ(ref_csrmvgen(
+                      trans, alpha, M, N, csr_val, csr_col_ind, csr_row_ptr, base, x, beta, y_gold),
                   aoclsparse_status_success);
 
         EXPECT_ARR_NEAR(M, y, y_gold, expected_precision<T>());
@@ -270,7 +271,8 @@ namespace
             aoclsparse_csrmv<T>(
                 trans, &alpha, M, N, NNZ, csr_val, csr_col_ind, csr_row_ptr, descr, x, &beta, y),
             aoclsparse_status_success);
-        EXPECT_EQ(ref_csrmvt(alpha, M, N, csr_val, csr_col_ind, csr_row_ptr, base, x, beta, y_gold),
+        EXPECT_EQ(ref_csrmvgen(
+                      trans, alpha, M, N, csr_val, csr_col_ind, csr_row_ptr, base, x, beta, y_gold),
                   aoclsparse_status_success);
         EXPECT_ARR_NEAR(M, y, y_gold, expected_precision<T>());
 

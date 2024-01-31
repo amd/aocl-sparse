@@ -65,10 +65,8 @@ int testing_csrmv_aocl(const Arguments &arg, testdata<T> &td, double timings[])
     CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mat_index_base(descr, base));
 
     int number_hot_calls = arg.iters;
-
     if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>) // TODO FIXME enable complex
     {
-
         // Performance run
         for(int iter = 0; iter < number_hot_calls; ++iter)
         {
@@ -179,111 +177,69 @@ void testing_csrmv(const Arguments &arg)
     y_gold = td.y_in;
     td.y   = td.y_in;
 
-    // Having this check since these routines don't support complex types.
-    if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
+    if(arg.unit_check)
     {
+        CHECK_AOCLSPARSE_ERROR(ref_csrmv(trans,
+                                         td.alpha,
+                                         td.m,
+                                         td.n,
+                                         td.csr_valA.data(),
+                                         td.csr_col_indA.data(),
+                                         td.csr_row_ptrA.data(),
+                                         mattype,
+                                         fill,
+                                         diag,
+                                         base,
+                                         td.x.data(),
+                                         td.beta,
+                                         y_gold.data()));
+    }
+
+    int    number_hot_calls = arg.iters;
+    double gflop = spmv_gflop_count<T>(td.m, td.nnzA, td.beta != aoclsparse_numeric::zero<T>());
+    double gbyte
+        = csrmv_gbyte_count<T>(td.m, td.n, td.nnzA, td.beta != aoclsparse_numeric::zero<T>());
+
+    std::cout.precision(2);
+    std::cout.setf(std::ios::fixed);
+    std::cout.setf(std::ios::left);
+
+    for(unsigned itest = 0; itest < testqueue.size(); ++itest)
+    {
+        std::cout << "-----" << testqueue[itest].name << "-----" << std::endl;
+
+        // Run the test loop
+        testqueue[itest].tf(arg, td, timings.data());
+
+        // Check the results against the reference result
         if(arg.unit_check)
         {
-            // Reference SPMV CSR implementation
-            if(mattype == aoclsparse_matrix_type_general)
-            {
-                if(trans == aoclsparse_operation_none)
-                    CHECK_AOCLSPARSE_ERROR(ref_csrmv(td.alpha,
-                                                     td.m,
-                                                     td.n,
-                                                     td.csr_valA.data(),
-                                                     td.csr_col_indA.data(),
-                                                     td.csr_row_ptrA.data(),
-                                                     base,
-                                                     td.x.data(),
-                                                     td.beta,
-                                                     y_gold.data()));
-                else
-                    CHECK_AOCLSPARSE_ERROR(ref_csrmvt(td.alpha,
-                                                      td.m,
-                                                      td.n,
-                                                      td.csr_valA.data(),
-                                                      td.csr_col_indA.data(),
-                                                      td.csr_row_ptrA.data(),
-                                                      base,
-                                                      td.x.data(),
-                                                      td.beta,
-                                                      y_gold.data()));
-            }
-            else if(mattype == aoclsparse_matrix_type_symmetric)
-            {
-                CHECK_AOCLSPARSE_ERROR(ref_csrmvsym(td.alpha,
-                                                    td.m,
-                                                    td.csr_valA.data(),
-                                                    td.csr_col_indA.data(),
-                                                    td.csr_row_ptrA.data(),
-                                                    fill,
-                                                    diag,
-                                                    base,
-                                                    td.x.data(),
-                                                    td.beta,
-                                                    y_gold.data()));
-            }
-            else if(mattype == aoclsparse_matrix_type_triangular)
-            {
-                CHECK_AOCLSPARSE_ERROR(ref_csrmvtrg(td.alpha,
-                                                    td.m,
-                                                    td.n,
-                                                    td.csr_valA.data(),
-                                                    td.csr_col_indA.data(),
-                                                    td.csr_row_ptrA.data(),
-                                                    fill,
-                                                    diag,
-                                                    base,
-                                                    td.x.data(),
-                                                    td.beta,
-                                                    y_gold.data()));
-            }
-        }
-
-        int    number_hot_calls = arg.iters;
-        double gflop            = spmv_gflop_count<T>(td.m, td.nnzA, td.beta != static_cast<T>(0));
-        double gbyte = csrmv_gbyte_count<T>(td.m, td.n, td.nnzA, td.beta != static_cast<T>(0));
-
-        std::cout.precision(2);
-        std::cout.setf(std::ios::fixed);
-        std::cout.setf(std::ios::left);
-
-        for(int itest = 0; itest < testqueue.size(); ++itest)
-        {
-            std::cout << "-----" << testqueue[itest].name << "-----" << std::endl;
-
-            // Run the test loop
-            testqueue[itest].tf(arg, td, timings.data());
-
-            // Check the results against the reference result
-            if(arg.unit_check)
-            {
-                // TODO FIXME on error this exit() but do we want that for our benchmarking?
+            // TODO FIXME on error this exit() but do we want that for our benchmarking?
+            // Having this check since near_check() doesn't support complex types yet.
+            if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
                 near_check_general<T>(1, ydim, 1, y_gold.data(), td.y.data());
-            }
-
-            // analyze the results - at the moment just take the minimum
-            double cpu_time_used = DBL_MAX;
-            for(int iter = 0; iter < number_hot_calls; ++iter)
-                cpu_time_used = (std::min)(cpu_time_used, timings[iter]);
-
-            // count flops
-            double cpu_gflops = gflop / cpu_time_used;
-            double cpu_gbyte  = gbyte / cpu_time_used;
-
-            // store/print results
-            std::cout << std::setw(12) << "M" << std::setw(12) << "N" << std::setw(12) << "nnz"
-                      << std::setw(12) << "alpha" << std::setw(12) << "beta" << std::setw(12)
-                      << "GFlop/s" << std::setw(12) << "GB/s" << std::setw(12) << "msec"
-                      << std::setw(12) << "iter" << std::setw(12) << "verified" << std::endl;
-
-            std::cout << std::setw(12) << td.m << std::setw(12) << td.n << std::setw(12) << td.nnzA
-                      << std::setw(12) << arg.alpha << std::setw(12) << arg.beta << std::setw(12)
-                      << cpu_gflops << std::setw(12) << cpu_gbyte << std::setw(12)
-                      << std::scientific << cpu_time_used * 1e3 << std::setw(12) << number_hot_calls
-                      << std::setw(12) << (arg.unit_check ? "yes" : "no") << std::endl;
         }
+
+        // analyze the results - at the moment just take the minimum
+        double cpu_time_used = DBL_MAX;
+        for(int iter = 0; iter < number_hot_calls; ++iter)
+            cpu_time_used = (std::min)(cpu_time_used, timings[iter]);
+
+        // count flops
+        double cpu_gflops = gflop / cpu_time_used;
+        double cpu_gbyte  = gbyte / cpu_time_used;
+
+        // store/print results
+        std::cout << std::setw(12) << "M" << std::setw(12) << "N" << std::setw(12) << "nnz"
+                  << std::setw(12) << "alpha" << std::setw(12) << "beta" << std::setw(12)
+                  << "GFlop/s" << std::setw(12) << "GB/s" << std::setw(12) << "msec"
+                  << std::setw(12) << "iter" << std::setw(12) << "verified" << std::endl;
+
+        std::cout << std::setw(12) << td.m << std::setw(12) << td.n << std::setw(12) << td.nnzA
+                  << std::setw(12) << arg.alpha << std::setw(12) << arg.beta << std::setw(12)
+                  << cpu_gflops << std::setw(12) << cpu_gbyte << std::setw(12) << std::scientific
+                  << cpu_time_used * 1e3 << std::setw(12) << number_hot_calls << std::setw(12)
+                  << (arg.unit_check ? "yes" : "no") << std::endl;
     }
 }
 
