@@ -26,6 +26,11 @@
 #include "common_data_utils.h"
 #include "gtest/gtest.h"
 #include "aoclsparse.hpp"
+#include "aoclsparse_init.hpp"
+
+#include <algorithm>
+#include <numeric>
+#include <vector>
 
 namespace
 {
@@ -59,6 +64,10 @@ namespace
         else if(mat_type == aoclsparse_csc_mat)
         {
             EXPECT_EQ_VEC(out_n + 1, in_idx_ptr, out_idx_ptr);
+        }
+        else if(mat_type == aoclsparse_coo_mat)
+        {
+            EXPECT_EQ_VEC(out_nnz, in_idx_ptr, out_idx_ptr);
         }
 
         if constexpr(std::is_same_v<T, float>)
@@ -541,6 +550,171 @@ namespace
                            out_base,
                            out_col_ptr,
                            out_row_idx,
+                           out_valf);
+        aoclsparse_destroy(&A);
+    }
+
+    TEST(ExportMatTest, COO_NullArgs)
+    {
+        aoclsparse_matrix           A = NULL;
+        std::vector<aoclsparse_int> coo_row_idx, coo_col_idx, temp;
+        std::vector<float>          valf;
+        aoclsparse_int              m             = 10;
+        aoclsparse_int              n             = 15;
+        aoclsparse_int              nnz           = 16;
+        aoclsparse_index_base       in_base       = aoclsparse_index_base_zero, out_base;
+        aoclsparse_int             *out_row_idx   = NULL;
+        aoclsparse_int             *out_col_idx   = NULL;
+        float                      *out_valf      = NULL;
+        double                     *out_vald      = NULL;
+        double                    **out_vald_null = NULL;
+        aoclsparse_float_complex   *out_valcf     = NULL;
+        aoclsparse_double_complex  *out_valcd     = NULL;
+        aoclsparse_int              out_m, out_n, out_nnz;
+        aoclsparse_int             *tmp_arr;
+
+        // 1) Matrix is NULL
+        EXPECT_EQ(
+            aoclsparse_export_coo(
+                A, &out_base, &out_m, &out_n, &out_nnz, &out_row_idx, &out_col_idx, &out_valf),
+            aoclsparse_status_invalid_pointer);
+
+        // 2) OUT param is NULL
+        EXPECT_EQ(
+            aoclsparse_init_matrix_random(
+                in_base, m, n, nnz, aoclsparse_coo_mat, coo_row_idx, coo_col_idx, valf, temp, A),
+            aoclsparse_status_success);
+
+        EXPECT_EQ(aoclsparse_export_coo(
+                      A, NULL, &out_m, &out_n, &out_nnz, &out_row_idx, &out_col_idx, &out_vald),
+                  aoclsparse_status_invalid_pointer);
+        EXPECT_EQ(aoclsparse_export_coo(
+                      A, &out_base, NULL, &out_n, &out_nnz, &out_row_idx, &out_col_idx, &out_valcf),
+                  aoclsparse_status_invalid_pointer);
+        EXPECT_EQ(aoclsparse_export_coo(
+                      A, &out_base, &out_m, NULL, &out_nnz, &out_row_idx, &out_col_idx, &out_valcd),
+                  aoclsparse_status_invalid_pointer);
+        EXPECT_EQ(aoclsparse_export_coo(
+                      A, &out_base, &out_m, &out_n, NULL, &out_row_idx, &out_col_idx, &out_valf),
+                  aoclsparse_status_invalid_pointer);
+        EXPECT_EQ(aoclsparse_export_coo(
+                      A, &out_base, &out_m, &out_n, &out_nnz, NULL, &out_col_idx, &out_vald),
+                  aoclsparse_status_invalid_pointer);
+        EXPECT_EQ(aoclsparse_export_coo(
+                      A, &out_base, &out_m, &out_n, &out_nnz, &out_row_idx, NULL, &out_valf),
+                  aoclsparse_status_invalid_pointer);
+        EXPECT_EQ(
+            aoclsparse_export_coo(
+                A, &out_base, &out_m, &out_n, &out_nnz, &out_row_idx, &out_col_idx, out_vald_null),
+            aoclsparse_status_invalid_pointer);
+        aoclsparse_destroy(&A);
+
+        // 3) Matrix is in COO format. But one of the coo_mat pointer is NULL.
+        EXPECT_EQ(
+            aoclsparse_init_matrix_random(
+                in_base, m, n, nnz, aoclsparse_coo_mat, coo_row_idx, coo_col_idx, valf, temp, A),
+            aoclsparse_status_success);
+        // 3.a) coo -> row_idx is NULL
+        tmp_arr            = A->coo_mat.row_ind;
+        A->coo_mat.row_ind = NULL;
+        EXPECT_EQ(
+            aoclsparse_export_coo(
+                A, &out_base, &out_m, &out_n, &out_nnz, &out_row_idx, &out_col_idx, &out_valf),
+            aoclsparse_status_invalid_value);
+        // 3.b) coo -> col_idx is NULL
+        A->coo_mat.row_ind = tmp_arr;
+        tmp_arr            = A->coo_mat.col_ind;
+        A->coo_mat.col_ind = NULL;
+        EXPECT_EQ(
+            aoclsparse_export_coo(
+                A, &out_base, &out_m, &out_n, &out_nnz, &out_row_idx, &out_col_idx, &out_valf),
+            aoclsparse_status_invalid_value);
+        // 3.c) coo -> val is NULL
+        A->coo_mat.col_ind = tmp_arr;
+        A->coo_mat.val     = NULL;
+        EXPECT_EQ(
+            aoclsparse_export_coo(
+                A, &out_base, &out_m, &out_n, &out_nnz, &out_row_idx, &out_col_idx, &out_valf),
+            aoclsparse_status_invalid_value);
+        aoclsparse_destroy(&A);
+    }
+
+    TEST(ExportMatTest, COO_WrongInput)
+    {
+        aoclsparse_matrix           A = NULL;
+        std::vector<aoclsparse_int> coo_row_idx, coo_col_idx, temp;
+        std::vector<float>          valf;
+        std::vector<double>         vald;
+        aoclsparse_int              m           = 8;
+        aoclsparse_int              n           = 6;
+        aoclsparse_int              nnz         = 10;
+        aoclsparse_index_base       in_base     = aoclsparse_index_base_zero, out_base;
+        aoclsparse_int             *out_row_idx = NULL;
+        aoclsparse_int             *out_col_idx = NULL;
+        double                     *out_vald    = NULL;
+        aoclsparse_float_complex   *out_valcf   = NULL;
+        aoclsparse_int              out_m, out_n, out_nnz;
+
+        // 1) Matrix is in CSC format but want to export as COO
+        EXPECT_EQ(
+            aoclsparse_init_matrix_random(
+                in_base, m, n, nnz, aoclsparse_csc_mat, coo_row_idx, coo_col_idx, vald, temp, A),
+            aoclsparse_status_success);
+        EXPECT_EQ(
+            aoclsparse_export_coo(
+                A, &out_base, &out_m, &out_n, &out_nnz, &out_row_idx, &out_col_idx, &out_vald),
+            aoclsparse_status_invalid_value);
+        aoclsparse_destroy(&A);
+
+        // 2) Matric data type is float but want to export as complex float
+        EXPECT_EQ(
+            aoclsparse_init_matrix_random(
+                in_base, m, n, nnz, aoclsparse_coo_mat, coo_row_idx, coo_col_idx, valf, temp, A),
+            aoclsparse_status_success);
+        EXPECT_EQ(
+            aoclsparse_export_coo(
+                A, &out_base, &out_m, &out_n, &out_nnz, &out_row_idx, &out_col_idx, &out_valcf),
+            aoclsparse_status_wrong_type);
+        aoclsparse_destroy(&A);
+    }
+
+    TEST(ExportMatTest, COO_Success)
+    {
+        aoclsparse_matrix           A = NULL;
+        std::vector<aoclsparse_int> coo_row_idx, coo_col_idx, temp;
+        std::vector<float>          valf;
+        aoclsparse_int              m           = 5;
+        aoclsparse_int              n           = 9;
+        aoclsparse_int              nnz         = 8;
+        aoclsparse_index_base       in_base     = aoclsparse_index_base_one, out_base;
+        aoclsparse_int             *out_col_idx = NULL;
+        aoclsparse_int             *out_row_idx = NULL;
+        float                      *out_valf    = NULL;
+        aoclsparse_int              out_m, out_n, out_nnz;
+
+        // Matrix is in COO format and want to export as COO
+        EXPECT_EQ(
+            aoclsparse_init_matrix_random(
+                in_base, m, n, nnz, aoclsparse_coo_mat, coo_row_idx, coo_col_idx, valf, temp, A),
+            aoclsparse_status_success);
+        EXPECT_EQ(
+            aoclsparse_export_coo(
+                A, &out_base, &out_m, &out_n, &out_nnz, &out_row_idx, &out_col_idx, &out_valf),
+            aoclsparse_status_success);
+        verify_export_data(aoclsparse_coo_mat,
+                           m,
+                           n,
+                           nnz,
+                           in_base,
+                           coo_row_idx.data(),
+                           coo_col_idx.data(),
+                           valf.data(),
+                           out_m,
+                           out_n,
+                           out_nnz,
+                           out_base,
+                           out_row_idx,
+                           out_col_idx,
                            out_valf);
         aoclsparse_destroy(&A);
     }
