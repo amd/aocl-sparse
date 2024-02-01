@@ -127,7 +127,7 @@ namespace
         = {{"update_coo_0B", aoclsparse_index_base_zero, 10, 11, 15, aoclsparse_coo_mat},
            {"update_csc_1B", aoclsparse_index_base_one, 4, 3, 1, aoclsparse_csc_mat},
            {"update_csr_0B", aoclsparse_index_base_zero, 3, 9, 27, aoclsparse_csr_mat},
-           {"update_csc_0nnz", aoclsparse_index_base_zero, 7, 3, 3, aoclsparse_csc_mat}};
+           {"update_csc_0B", aoclsparse_index_base_zero, 7, 3, 3, aoclsparse_csc_mat}};
     // It is used to when testing::PrintToString(GetParam()) to generate test name for ctest
     void PrintTo(const UpdateValuesParam &param, std::ostream *os)
     {
