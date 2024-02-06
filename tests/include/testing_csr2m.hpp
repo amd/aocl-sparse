@@ -204,10 +204,10 @@ void testing_csr2m(const Arguments &arg)
             csr_val_B     = csr_val_A;
         }
     }
-    aoclsparse_matrix csrA;
+    aoclsparse_matrix csrA = NULL;
     aoclsparse_create_csr(
         &csrA, base, M, K, nnz_A, csr_row_ptr_A.data(), csr_col_ind_A.data(), csr_val_A.data());
-    aoclsparse_matrix csrB;
+    aoclsparse_matrix csrB = NULL;
     aoclsparse_create_csr(
         &csrB, base, K, N, nnz_B, csr_row_ptr_B.data(), csr_col_ind_B.data(), csr_val_B.data());
 
@@ -283,8 +283,13 @@ void testing_csr2m(const Arguments &arg)
         ublasCsrC.complete_index1_data();
 
         unit_check_general(1, C_M + 1, 1, ublasCsrC.index1_data().begin(), csr_row_ptr_C);
-
-        near_check_general<T>(1, nnz_C, 1, ublasCsrC.value_data().begin(), csr_val_C);
+        if(near_check_general<T>(1, nnz_C, 1, ublasCsrC.value_data().begin(), csr_val_C))
+        {
+            aoclsparse_destroy(&csrA);
+            aoclsparse_destroy(&csrB);
+            aoclsparse_destroy(&csrC);
+            return;
+        }
         unit_check_general(1, nnz_C, 1, ublasCsrC.index2_data().begin(), csr_col_ind_C);
     }
     number_hot_calls = arg.iters;

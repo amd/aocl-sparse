@@ -32,36 +32,6 @@
 
 namespace
 {
-
-    template <typename T>
-    struct tolerance
-    {
-        using type = T;
-    };
-    template <>
-    struct tolerance<std::complex<float>>
-    {
-        using type = float;
-    };
-    template <>
-    struct tolerance<std::complex<double>>
-    {
-        using type = double;
-    };
-    template <>
-    struct tolerance<aoclsparse_float_complex>
-    {
-        using type = float;
-    };
-    template <>
-    struct tolerance<aoclsparse_double_complex>
-    {
-        using type = double;
-    };
-
-    template <typename T>
-    using tolerance_t = typename tolerance<T>::type;
-
     template <typename T>
     void test_csr_to_csc()
     {

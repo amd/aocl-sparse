@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020-2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -156,7 +156,8 @@ void testing_csrsv(const Arguments &arg)
                                                     hy_gold.data(),
                                                     hy.data()));
         }
-        near_check_general<T>(1, M, 1, hx.data(), hy.data());
+        if(near_check_general<T>(1, M, 1, hx.data(), hy.data()))
+            return;
     }
     int number_hot_calls = arg.iters;
 

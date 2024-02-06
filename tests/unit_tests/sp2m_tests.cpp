@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -37,35 +37,6 @@
 
 namespace
 {
-    template <typename T>
-    struct tolerance
-    {
-        using type = T;
-    };
-    template <>
-    struct tolerance<std::complex<float>>
-    {
-        using type = float;
-    };
-    template <>
-    struct tolerance<std::complex<double>>
-    {
-        using type = double;
-    };
-    template <>
-    struct tolerance<aoclsparse_float_complex>
-    {
-        using type = float;
-    };
-    template <>
-    struct tolerance<aoclsparse_double_complex>
-    {
-        using type = double;
-    };
-
-    template <typename T>
-    using tolerance_t = typename tolerance<T>::type;
-
     // Several tests in one when nullptr is passed instead
     // of valid data
     template <typename T>

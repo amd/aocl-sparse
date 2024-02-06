@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -126,7 +126,8 @@ void testing_diamv(const Arguments &arg)
             }
             y_gold[i] = (beta * y_gold[i]) + result;
         }
-        near_check_general<T>(1, M, 1, y_gold.data(), y.data());
+        if(near_check_general<T>(1, M, 1, y_gold.data(), y.data()))
+            return;
     }
     int number_hot_calls = arg.iters;
 

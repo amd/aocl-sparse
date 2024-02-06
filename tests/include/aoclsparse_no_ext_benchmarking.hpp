@@ -36,7 +36,7 @@
  */
 
 template <typename T>
-void register_tests_csrmv(std::vector<testsetting<T>> &testqueue)
+void register_tests_csrmv([[maybe_unused]] std::vector<testsetting<T>> &testqueue)
 {
     //testqueue.push_back({"new_test_name",&testing_csrmv_new<T>});
 }
