@@ -241,13 +241,13 @@ int main(int argc, char *argv[])
     if(strcmp(arg.function, "csrmv") == 0)
     {
         if(precision == 's')
-            testing_csrmv<float>(arg);
+            return testing_csrmv<float>(arg);
         else if(precision == 'd')
-            testing_csrmv<double>(arg);
+            return testing_csrmv<double>(arg);
         else if(precision == 'c')
-            testing_csrmv<aoclsparse_float_complex>(arg);
+            return testing_csrmv<aoclsparse_float_complex>(arg);
         else if(precision == 'z')
-            testing_csrmv<aoclsparse_double_complex>(arg);
+            return testing_csrmv<aoclsparse_double_complex>(arg);
     }
     else if(strcmp(arg.function, "load") == 0)
     {
