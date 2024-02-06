@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,6 +30,7 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <exception>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -51,17 +52,37 @@ inline const char *aoclsparse_status_to_string(aoclsparse_status status)
         return "aoclsparse_status_invalid_size";
     case aoclsparse_status_internal_error:
         return "aoclsparse_status_internal_error";
+    case aoclsparse_status_invalid_value:
+        return "aoclsparse_status_invalid_value";
+    case aoclsparse_status_invalid_index_value:
+        return "aoclsparse_status_invalid_index_value";
+    case aoclsparse_status_maxit:
+        return "aoclsparse_status_maxit";
+    case aoclsparse_status_user_stop:
+        return "aoclsparse_status_user_stop";
+    case aoclsparse_status_wrong_type:
+        return "aoclsparse_status_wrong_type";
+    case aoclsparse_status_memory_error:
+        return "aoclsparse_status_memory_error";
+    case aoclsparse_status_numerical_error:
+        return "aoclsparse_status_numerical_error";
+    case aoclsparse_status_invalid_operation:
+        return "aoclsparse_status_invalid_operation";
     default:
         return "<undefined aoclsparse_status value>";
     }
 }
 
-inline void aoclsparse_expect_status(aoclsparse_status status, aoclsparse_status expect)
+inline void
+    aoclsparse_expect_status(aoclsparse_status status, aoclsparse_status expect, const char *msg)
 {
     if(status != expect)
     {
-        std::cerr << "aoclSPARSE status error: Expected " << aoclsparse_status_to_string(expect)
-                  << ", received " << aoclsparse_status_to_string(status) << std::endl;
+        std::cerr << "aoclsparse status error: Expected " << aoclsparse_status_to_string(expect)
+                  << ", received " << aoclsparse_status_to_string(status)
+                  << " while  executing:" << std::endl;
+        std::cerr << "   " << msg << std::endl;
+        std::cerr << "   " << __FILE__ << ":" << __LINE__ << std::endl;
         if(expect == aoclsparse_status_success)
             exit(EXIT_FAILURE);
     }
@@ -69,8 +90,31 @@ inline void aoclsparse_expect_status(aoclsparse_status status, aoclsparse_status
 
 #define EXPECT_AOCLSPARSE_STATUS aoclsparse_expect_status
 
-#define CHECK_AOCLSPARSE_ERROR2(STATUS) EXPECT_AOCLSPARSE_STATUS(STATUS, aoclsparse_status_success)
+#define CHECK_AOCLSPARSE_ERROR2(STATUS) \
+    EXPECT_AOCLSPARSE_STATUS(STATUS, aoclsparse_status_success, #STATUS)
 #define CHECK_AOCLSPARSE_ERROR(STATUS) CHECK_AOCLSPARSE_ERROR2(STATUS)
+
+// Unique exception for failures during benchmarking
+struct BenchmarkException : public std::exception
+{
+};
+
+#define NEW_EXPECT_AOCLSPARSE_STATUS(STATUS_R, STATUS_EXP, MSG)                   \
+                                                                                  \
+    {                                                                             \
+        if((STATUS_R) != (STATUS_EXP))                                            \
+        {                                                                         \
+            std::cerr << "aoclsparse status error: Expected "                     \
+                      << aoclsparse_status_to_string(STATUS_EXP) << ", received " \
+                      << aoclsparse_status_to_string(STATUS_R)                    \
+                      << " while executing:" << std::endl;                        \
+            std::cerr << "   " << (MSG) << std::endl;                             \
+            std::cerr << "   " << __FILE__ << ":" << __LINE__ << std::endl;       \
+            throw BenchmarkException();                                           \
+        }                                                                         \
+    }
+#define NEW_CHECK_AOCLSPARSE_ERROR(STATUS) \
+    NEW_EXPECT_AOCLSPARSE_STATUS(STATUS, aoclsparse_status_success, #STATUS)
 
 // ----------------------------------------------------------------------------
 // Error case which returns false when converted to bool. A void specialization

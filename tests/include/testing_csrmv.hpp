@@ -47,6 +47,7 @@
 template <typename T>
 int testing_csrmv_aocl(const Arguments &arg, testdata<T> &td, double timings[])
 {
+    int                    status  = 0;
     aoclsparse_int         m       = td.m;
     aoclsparse_int         n       = td.n;
     aoclsparse_int         nnz     = td.nnzA;
@@ -57,44 +58,55 @@ int testing_csrmv_aocl(const Arguments &arg, testdata<T> &td, double timings[])
     aoclsparse_index_base  base    = arg.baseA;
 
     // Create matrix descriptor & set it as requested by command line arguments
-    aoclsparse_mat_descr descr;
-    CHECK_AOCLSPARSE_ERROR(aoclsparse_create_mat_descr(&descr));
-    CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mat_type(descr, mattype));
-    CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mat_fill_mode(descr, fill));
-    CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mat_diag_type(descr, diag));
-    CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mat_index_base(descr, base));
-
-    int number_hot_calls = arg.iters;
-    if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>) // TODO FIXME enable complex
+    aoclsparse_mat_descr descr = NULL;
+    try
     {
-        // Performance run
-        for(int iter = 0; iter < number_hot_calls; ++iter)
+        NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_create_mat_descr(&descr));
+        NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mat_type(descr, mattype));
+        NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mat_fill_mode(descr, fill));
+        NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mat_diag_type(descr, diag));
+        NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mat_index_base(descr, base));
+
+        int number_hot_calls = arg.iters;
+        if constexpr(std::is_same_v<T, float>
+                     || std::is_same_v<T, double>) // TODO FIXME enable complex
         {
-            td.y                  = td.y_in;
-            double cpu_time_start = aoclsparse_clock();
-            CHECK_AOCLSPARSE_ERROR(aoclsparse_csrmv(trans,
-                                                    &td.alpha,
-                                                    m,
-                                                    n,
-                                                    nnz,
-                                                    td.csr_valA.data(),
-                                                    td.csr_col_indA.data(),
-                                                    td.csr_row_ptrA.data(),
-                                                    descr,
-                                                    td.x.data(),
-                                                    &td.beta,
-                                                    td.y.data()));
-            timings[iter] = aoclsparse_clock_diff(cpu_time_start);
+            // Performance run
+            for(int iter = 0; iter < number_hot_calls; ++iter)
+            {
+                td.y                  = td.y_in;
+                double cpu_time_start = aoclsparse_clock();
+                NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_csrmv(trans,
+                                                            &td.alpha,
+                                                            m,
+                                                            n,
+                                                            nnz,
+                                                            td.csr_valA.data(),
+                                                            td.csr_col_indA.data(),
+                                                            td.csr_row_ptrA.data(),
+                                                            descr,
+                                                            td.x.data(),
+                                                            &td.beta,
+                                                            td.y.data()));
+                // to test failure behavior
+                //NEW_CHECK_AOCLSPARSE_ERROR(iter == 0 ? aoclsparse_status_invalid_value
+                //                                     : aoclsparse_status_success);
+                timings[iter] = aoclsparse_clock_diff(cpu_time_start);
+            }
         }
     }
+    catch(BenchmarkException &e)
+    {
+        status = 1;
+    }
     aoclsparse_destroy_mat_descr(descr);
-
-    return 0;
+    return status;
 }
 
 template <typename T>
-void testing_csrmv(const Arguments &arg)
+int testing_csrmv(const Arguments &arg)
 {
+    int                    status   = 0;
     aoclsparse_operation   trans    = arg.transA;
     aoclsparse_matrix_type mattype  = arg.mattypeA;
     aoclsparse_fill_mode   fill     = arg.uplo;
@@ -209,7 +221,7 @@ void testing_csrmv(const Arguments &arg)
         std::cout << "-----" << testqueue[itest].name << "-----" << std::endl;
 
         // Run the test loop
-        testqueue[itest].tf(arg, td, timings.data());
+        status += testqueue[itest].tf(arg, td, timings.data());
 
         // Check the results against the reference result
         if(arg.unit_check)
@@ -241,6 +253,7 @@ void testing_csrmv(const Arguments &arg)
                   << cpu_time_used * 1e3 << std::setw(12) << number_hot_calls << std::setw(12)
                   << (arg.unit_check ? "yes" : "no") << std::endl;
     }
+    return status;
 }
 
 #endif // TESTING_CSRMV_HPP
