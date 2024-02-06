@@ -215,4 +215,59 @@ namespace Index
 
 }
 
+/* real data type for tolerance in case the templated type is of complex data
+ */
+template <typename T>
+struct tolerance
+{
+    using type = T;
+};
+template <>
+struct tolerance<std::complex<float>>
+{
+    using type = float;
+};
+template <>
+struct tolerance<std::complex<double>>
+{
+    using type = double;
+};
+template <>
+struct tolerance<aoclsparse_float_complex>
+{
+    using type = float;
+};
+template <>
+struct tolerance<aoclsparse_double_complex>
+{
+    using type = double;
+};
+
+template <typename T>
+using tolerance_t = typename tolerance<T>::type;
+
+// Define precision to which we expect the results to match ==================================
+template <typename T>
+struct safeguard
+{
+};
+// Add safeguarding scaling (may differ for each data type)
+template <>
+struct safeguard<double>
+{
+    static constexpr double value = 1.0;
+};
+template <>
+struct safeguard<float>
+{
+    static constexpr float value = 2.0f;
+};
+
+template <typename T>
+constexpr T expected_precision(T scale = (T)1.0) noexcept
+{
+    const T macheps      = std::numeric_limits<T>::epsilon();
+    const T safe_macheps = (T)2.0 * macheps;
+    return scale * safeguard<T>::value * sqrt(safe_macheps);
+}
 #endif

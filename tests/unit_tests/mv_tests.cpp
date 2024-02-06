@@ -47,35 +47,6 @@ namespace
     aoclsparse_matrix_type mat_t   = aoclsparse_matrix_type_triangular;
     aoclsparse_matrix_type mat_h   = aoclsparse_matrix_type_hermitian;
 
-    template <typename T>
-    struct tolerance
-    {
-        using type = T;
-    };
-    template <>
-    struct tolerance<std::complex<float>>
-    {
-        using type = float;
-    };
-    template <>
-    struct tolerance<std::complex<double>>
-    {
-        using type = double;
-    };
-    template <>
-    struct tolerance<aoclsparse_float_complex>
-    {
-        using type = float;
-    };
-    template <>
-    struct tolerance<aoclsparse_double_complex>
-    {
-        using type = double;
-    };
-
-    template <typename T>
-    using tolerance_t = typename tolerance<T>::type;
-
     // Several tests in one when nullptr is passed instead of valid data
     template <typename T>
     void test_mv_nullptr()

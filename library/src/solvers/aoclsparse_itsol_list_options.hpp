@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022-2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,6 +25,7 @@
 
 #include "aoclsparse_itsol_data.hpp"
 #include "aoclsparse_itsol_options.hpp"
+#include "aoclsparse_utils.hpp"
 
 #include <cmath>
 #include <vector>
@@ -90,14 +91,6 @@
  */
 
 template <typename T>
-T tolerance(T scale = (T)1.0)
-{
-    constexpr T macheps      = std::numeric_limits<T>::epsilon();
-    constexpr T safe_macheps = (T)2.0 * macheps;
-    return (T)(scale * sqrt(safe_macheps));
-};
-
-template <typename T>
 int register_options(aoclsparse_options::OptionRegistry<T> &opts)
 {
     using namespace aoclsparse_options;
@@ -140,7 +133,7 @@ int register_options(aoclsparse_options::OptionRegistry<T> &opts)
                         greaterequal,
                         1.0,
                         p_inf,
-                        tolerance((T)2.0));
+                        expected_precision((T)2.0));
         if(opts.Register(o))
             return 2;
     }
@@ -154,7 +147,7 @@ int register_options(aoclsparse_options::OptionRegistry<T> &opts)
                         greaterequal,
                         1.0,
                         p_inf,
-                        tolerance<T>());
+                        expected_precision<T>());
         if(opts.Register(o))
             return 2;
     }
@@ -199,7 +192,7 @@ int register_options(aoclsparse_options::OptionRegistry<T> &opts)
                         greaterequal,
                         1.0,
                         p_inf,
-                        tolerance((T)2.0));
+                        expected_precision((T)2.0));
         if(opts.Register(o))
             return 2;
     }
@@ -213,7 +206,7 @@ int register_options(aoclsparse_options::OptionRegistry<T> &opts)
                         greaterequal,
                         1.0,
                         p_inf,
-                        tolerance<T>());
+                        expected_precision<T>());
         if(opts.Register(o))
             return 2;
     }

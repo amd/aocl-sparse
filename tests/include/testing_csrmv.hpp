@@ -88,9 +88,6 @@ int testing_csrmv_aocl(const Arguments &arg, testdata<T> &td, double timings[])
                                                             td.x.data(),
                                                             &td.beta,
                                                             td.y.data()));
-                // to test failure behavior
-                //NEW_CHECK_AOCLSPARSE_ERROR(iter == 0 ? aoclsparse_status_invalid_value
-                //                                     : aoclsparse_status_success);
                 timings[iter] = aoclsparse_clock_diff(cpu_time_start);
             }
         }
@@ -226,10 +223,8 @@ int testing_csrmv(const Arguments &arg)
         // Check the results against the reference result
         if(arg.unit_check)
         {
-            // TODO FIXME on error this exit() but do we want that for our benchmarking?
-            // Having this check since near_check() doesn't support complex types yet.
-            if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
-                near_check_general<T>(1, ydim, 1, y_gold.data(), td.y.data());
+            if(near_check_general<T>(1, ydim, 1, y_gold.data(), td.y.data()))
+                return 2;
         }
 
         // analyze the results - at the moment just take the minimum

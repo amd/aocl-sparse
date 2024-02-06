@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023-2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -36,35 +36,6 @@
 
 namespace TestsKT
 {
-
-    template <typename T>
-    struct tolerance
-    {
-    };
-    template <>
-    struct tolerance<float>
-    {
-        using type = float;
-    };
-    template <>
-    struct tolerance<double>
-    {
-        using type = double;
-    };
-    template <>
-    struct tolerance<std::complex<float>>
-    {
-        using type = float;
-    };
-    template <>
-    struct tolerance<std::complex<double>>
-    {
-        using type = double;
-    };
-
-    template <typename T>
-    using tolerance_t = typename tolerance<T>::type;
-
     using namespace kernel_templates;
     using namespace std;
 

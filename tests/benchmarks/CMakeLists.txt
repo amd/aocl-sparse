@@ -48,10 +48,10 @@ if(EXTERNAL_BENCHMARKING)
     message(WARNING "EXTERNAL_BENCHMARKING is turned ON but not all EXT_BENCH_DEF, EXT_BENCH_INC or EXT_BENCH_LIB are set.")
   endif()
 
-  message(STATUS "[benchmark cmake lists] EXTERNAL_BENCHMARKING......${EXTERNAL_BENCHMARKING}")
-  message(STATUS "[benchmark cmake lists] EXT_BENCH_DEF..............${EXT_BENCH_DEF}")
-  message(STATUS "[benchmark cmake lists] EXT_BENCH_INC..............${EXT_BENCH_INC}")
-  message(STATUS "[benchmark cmake lists] EXT_BENCH_LIB..............${EXT_BENCH_LIB}")
+  message(STATUS "EXTERNAL_BENCHMARKING......${EXTERNAL_BENCHMARKING}")
+  message(STATUS "EXT_BENCH_DEF..............${EXT_BENCH_DEF}")
+  message(STATUS "EXT_BENCH_INC..............${EXT_BENCH_INC}")
+  message(STATUS "EXT_BENCH_LIB..............${EXT_BENCH_LIB}")
 endif()
 
 

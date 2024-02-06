@@ -127,7 +127,12 @@ void testing_optmv(const Arguments &arg)
                                          x.data(),
                                          beta,
                                          y_gold.data()));
-        near_check_general<T>(1, ydim, 1, y_gold.data(), y.data());
+        if(near_check_general<T>(1, ydim, 1, y_gold.data(), y.data()))
+        {
+            aoclsparse_destroy_mat_descr(descr);
+            aoclsparse_destroy(&A);
+            return;
+        }
     }
     int number_hot_calls = arg.iters;
 
