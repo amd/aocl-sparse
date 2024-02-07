@@ -2790,6 +2790,7 @@ aoclsparse_status aoclsparse_dilu_smoother(aoclsparse_operation       op,
  *  \retval     aoclsparse_status_success               The operation completed successfully.
  *  \retval     aoclsparse_status_invalid_pointer       \p A or \p B or \p C are invalid
  *  \retval     aoclsparse_status_invalid_size          The dimensions of \p A and \p B are not compatible.
+ *  \retval     aoclsparse_status_internal_error        Internal Error Occured
  *  \retval     aoclsparse_status_memory_error          Memory allocation failure.
  *  \retval     aoclsparse_status_not_implemented       Matrices are not in CSR format.
  * @{
