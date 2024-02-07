@@ -229,12 +229,7 @@ int testing_csrmm(const Arguments &arg)
         }
     }
 
-    std::string prob_name        = gen_problem_name(arg, td);
-    int         number_hot_calls = arg.iters;
-    double      gflop            = csrmm_gflop_count<T>(
-        td.n, td.nnzA, xdim * td.n, td.beta != aoclsparse_numeric::zero<T>());
-    double gbyte = csrmm_gbyte_count<T>(
-        xdim, td.nnzA, ydim * td.n, xdim * td.n, td.beta != aoclsparse_numeric::zero<T>());
+    std::string prob_name = gen_problem_name(arg, td);
 
     std::cout.precision(2);
     std::cout.setf(std::ios::fixed);

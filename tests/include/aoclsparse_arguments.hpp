@@ -44,6 +44,7 @@ struct Arguments
     aoclsparse_int N;
     aoclsparse_int K;
     aoclsparse_int nnz;
+    aoclsparse_int nnzB;
     aoclsparse_int blk;
     aoclsparse_int block_dim;
 
@@ -54,12 +55,14 @@ struct Arguments
     aoclsparse_operation   transB;
     aoclsparse_matrix_type mattypeA;
     aoclsparse_index_base  baseA;
+    aoclsparse_index_base  baseB;
     aoclsparse_diag_type   diag;
     aoclsparse_fill_mode   uplo;
     aoclsparse_order       order;
     aoclsparse_int         stage;
 
     aoclsparse_matrix_init matrix;
+    aoclsparse_matrix_init matrixB;
 
     aoclsparse_int         unit_check;
     aoclsparse_int         timing;
@@ -67,6 +70,7 @@ struct Arguments
     aoclsparse_matrix_sort sort;
 
     std::string filename;
+    std::string filenameB;
     char        function[64];
 
     aoclsparse_int kid;
@@ -157,7 +161,11 @@ struct testdata
     std::vector<aoclsparse_int> csr_col_indA;
     std::vector<T>              csr_valA;
 
-    // B matrix - Used for spadd, 2m, sypr
+    // B matrix - Used for spadd, 2m, sypr, add
+    // Its dimension is automatically derived from m/n/k,
+    // the API type and operation or as given in --mtxB file.
+    aoclsparse_int              mB;
+    aoclsparse_int              nB;
     aoclsparse_int              nnzB;
     std::vector<aoclsparse_int> csr_row_ptrB;
     std::vector<aoclsparse_int> csr_col_indB;
@@ -180,6 +188,15 @@ struct testdata
 
     //Solvers, Level-3
     std::vector<T> b; // rhs in case of symgs, trsm
+
+    // C matrix (computed result) for validation
+    aoclsparse_int              mC;
+    aoclsparse_int              nC;
+    aoclsparse_int              nnzC;
+    aoclsparse_index_base       baseC;
+    std::vector<aoclsparse_int> csr_row_ptrC;
+    std::vector<aoclsparse_int> csr_col_indC;
+    std::vector<T>              csr_valC;
 };
 
 /* Type for any test function to be added to the testqueue, either internal (AOCL)

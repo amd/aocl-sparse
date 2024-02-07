@@ -60,6 +60,7 @@
 #include "testing_sycsrmv.hpp"
 #include "testing_trsv.hpp"
 // Level3
+#include "testing_add.hpp"
 #include "testing_csr2m.hpp"
 #include "testing_csrmm.hpp"
 #include "testing_sp2md.hpp"
@@ -87,7 +88,8 @@ int main(int argc, char *argv[])
     arg.M          = 128;
     arg.N          = 128;
     arg.K          = 128;
-    arg.nnz        = 1;
+    arg.nnz        = 0;
+    arg.nnzB       = 0;
     arg.blk        = 4;
     arg.block_dim  = 2;
     arg.alpha      = 1.0;
@@ -100,6 +102,7 @@ int main(int argc, char *argv[])
     char transB    = 'N';
     char mattypeA  = 'G';
     int  baseA     = 0;
+    int  baseB     = 0;
     char diag      = 'N';
     char uplo      = 'L';
     int  order     = 1;
@@ -129,12 +132,18 @@ int main(int argc, char *argv[])
             "\n\t"
             "--sizennz=<Number of non-zeroes> \t  Number of the non-zeroes in sparse matrix/vector"
             "\n\t"
+            "--sizennzB=<Number of non-zeroes> \t  Number of the non-zeroes in sparse matrix B. "
+            "Only applicable for level 3 API"
+            "\n\t"
             "--sizeblk=<Blocking factor> \t  Specifies the size of blocking for blkcsr (default: 4)"
             "\n\t"
             "--blockdim=<block dimension> \t  block dimension for bsrmv (default: 2)"
             "\n\t"
             "--mtx=<matrix market (.mtx)> \t  Read from matrix market (.mtx) format. This will "
             "override parameters -sizem, -sizen, and -sizennz."
+            "\n\t"
+            "--mtxB=<matrix market (.mtx)> \t  Read from matrix market (.mtx) format for matrix B. "
+            "This will override the matrix size and -sizennzB. Only applicable for level 3 API."
             "\n\t"
             "--alpha=<scalar alpha> \t Specifies the scalar alpha (default: 1.0)"
             "\n\t"
@@ -150,6 +159,8 @@ int main(int argc, char *argv[])
             "\n\t"
             "--indexbaseA=<0/1> \t 0 = zero-based indexing, 1 = one-based indexing (default: 0)"
             "\n\t"
+            "--indexbaseB=<0/1> \t 0 = zero-based indexing, 1 = one-based indexing (default: 0)"
+            "\n\t"
             "--diag=<N/U> \t N = non-unit diagonal, U = unit diagonal (default = N)"
             "\n\t"
             "--uplo=<L/U> \t L = lower fill, U = upper fill (default = L)"
@@ -157,7 +168,7 @@ int main(int argc, char *argv[])
             "--function=<function to test> \t SPARSE function to test. (default: csrmv) Options:  "
             "\n\t\tLevel-1: gthr gthrz sctr axpyi roti doti dotui dotci"
             "\n\t\tLevel-2: csrmv optmv blkcsrmv(only precision=d) ellmv diamv bsrmv trsv dotmv"
-            "\n\t\tLevel-3: csrmm csr2m sp2md trsm"
+            "\n\t\tLevel-3: add csrmm csr2m sp2md trsm"
             "\n\t\tPreconditioners: ilu"
             "\n\t"
             "--precision=<s/d/c/z> \t Options: s,d,c,z (default: d)"
@@ -197,15 +208,18 @@ int main(int argc, char *argv[])
     args.aoclsparse_get_cmdline_argument("sizen", arg.N);
     args.aoclsparse_get_cmdline_argument("sizek", arg.K);
     args.aoclsparse_get_cmdline_argument("sizennz", arg.nnz);
+    args.aoclsparse_get_cmdline_argument("sizennzB", arg.nnzB);
     args.aoclsparse_get_cmdline_argument("sizeblk", arg.blk);
     args.aoclsparse_get_cmdline_argument("blockdim", arg.block_dim);
     args.aoclsparse_get_cmdline_argument("mtx", arg.filename);
+    args.aoclsparse_get_cmdline_argument("mtxB", arg.filenameB);
     args.aoclsparse_get_cmdline_argument("alpha", arg.alpha);
     args.aoclsparse_get_cmdline_argument("beta", arg.beta);
     args.aoclsparse_get_cmdline_argument("transposeA", transA);
     args.aoclsparse_get_cmdline_argument("transposeB", transB);
     args.aoclsparse_get_cmdline_argument("matrixtypeA", mattypeA);
     args.aoclsparse_get_cmdline_argument("indexbaseA", baseA);
+    args.aoclsparse_get_cmdline_argument("indexbaseB", baseB);
     args.aoclsparse_get_cmdline_argument("diag", diag);
     args.aoclsparse_get_cmdline_argument("uplo", uplo);
     args.aoclsparse_get_cmdline_argument("function", arg.function);
@@ -267,6 +281,7 @@ int main(int argc, char *argv[])
     }
 
     arg.baseA = (baseA == 0) ? aoclsparse_index_base_zero : aoclsparse_index_base_one;
+    arg.baseB = (baseB == 0) ? aoclsparse_index_base_zero : aoclsparse_index_base_one;
     arg.diag  = (diag == 'N') ? aoclsparse_diag_type_non_unit : aoclsparse_diag_type_unit;
     arg.uplo  = (uplo == 'L') ? aoclsparse_fill_mode_lower : aoclsparse_fill_mode_upper;
     arg.order = (order == 1) ? aoclsparse_order_column : aoclsparse_order_row;
@@ -277,7 +292,6 @@ int main(int argc, char *argv[])
     }
     else
     {
-        arg.matrix = aoclsparse_matrix_random;
         if(matrix == 'R')
         {
             arg.matrix = aoclsparse_matrix_random;
@@ -292,8 +306,28 @@ int main(int argc, char *argv[])
             return -1;
         }
     }
+    if(arg.filenameB != "")
+    {
+        arg.matrixB = aoclsparse_matrix_file_mtx;
+    }
+    else
+    {
+        // Use --matrix parameter for both A & B matrices
+        if(matrix == 'R')
+        {
+            arg.matrixB = aoclsparse_matrix_random;
+        }
+        else if(matrix == 'D')
+        {
+            arg.matrixB = aoclsparse_matrix_random_diag_dom;
+        }
+        else
+        {
+            std::cerr << "Invalid value for --matrix" << std::endl;
+            return -1;
+        }
+    }
 
-    arg.sort = aoclsparse_unsorted;
     if(sort == 'U')
     {
         arg.sort = aoclsparse_unsorted;
@@ -416,6 +450,17 @@ int main(int argc, char *argv[])
     {
         if(precision == 'd')
             testing_sp2md<double>(arg);
+    }
+    else if(strcmp(arg.function, "add") == 0)
+    {
+        if(precision == 'd')
+            return testing_add<double>(arg);
+        else if(precision == 's')
+            return testing_add<float>(arg);
+        else if(precision == 'c')
+            return testing_add<aoclsparse_float_complex>(arg);
+        else if(precision == 'z')
+            return testing_add<aoclsparse_double_complex>(arg);
     }
     else if(strcmp(arg.function, "ilu") == 0)
     {

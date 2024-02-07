@@ -69,8 +69,6 @@ include_directories(${CMAKE_SOURCE_DIR}/library/include
                     ${CMAKE_SOURCE_DIR}/library/src/include
                     ${CMAKE_SOURCE_DIR}/library/src/solvers
                     ${CMAKE_SOURCE_DIR}/library/src/analysis
-                    ${CMAKE_SOURCE_DIR}/library/src/level1
-                    ${CMAKE_SOURCE_DIR}/library/src/level2
                     ${CMAKE_SOURCE_DIR}/library/src/conversion
                     ${CMAKE_SOURCE_DIR}/library/src/extra
                     ${CMAKE_SOURCE_DIR}/library/src/level1
@@ -149,6 +147,16 @@ set(RCTMATRIXSIZESMM
   "50 49 11 490"    # 20% density
   "20 100 50 800"   # nnz per row > 30
   "20 105 80 600"   # nnz per row > 30
+)
+
+# set matrix with different sizes for ADD "m n nnz nnzB"
+set(ADDMATRIXSIZES
+  "1 99 77 21"
+  "103 1 83 63"
+  "4 53 110 73"     # more than 5% density
+  "53 3 111 111"     # more than 7% density
+  "48 48 513 432"    # more than 23% density
+  "53 43 271 180"    # more than 12% density
 )
 
 foreach(FUNCTION "csrmv" "ellmv" "diamv" "optmv") # TODO add back "csrsv", so far failing the tests
@@ -374,10 +382,33 @@ foreach(FUNCTION "trsv")
           # TRSV-UT
           add_test(FuncTest.${FUNCTION}-UT-FullDiag-Sorted-${PREC}-${SIZEM}-${SIZEM}x${SIZEN}x${SIZENNZ}xBase-${BASE} ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=${SIZEM} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --indexbaseA=${BASE} --matrixtypeA=T --uplo=U --transposeA=T --matrix=D --sort=F --verify=1 --iters=1)
           add_test(FuncTest.${FUNCTION}-UT-FullDiag-Unsorted-${PREC}-${SIZEM}-${SIZEM}x${SIZEN}x${SIZENNZ}xBase-${BASE} ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=${SIZEM} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --indexbaseA=${BASE} --matrixtypeA=T --uplo=U --transposeA=T --matrix=D --sort=U --verify=1 --iters=1)
-      endforeach(MATSIZE)
-    endforeach(BASE)
+     endforeach(MATSIZE)
+   endforeach(BASE)
+ endforeach(PREC)
+endforeach(FUNCTION)
+
+foreach(FUNCTION "add")
+  foreach(PREC "d" "s" "c" "z")
+    foreach(BASEA "0" "1")      #test for Mat A base-0 and base-1
+      foreach(BASEB "0" "1")      #test for Mat B base-0 and base-1
+        foreach(OP "N" "T")      # operation none/transpose
+          foreach(MATSIZE ${ADDMATRIXSIZES})
+            # split MATSIZE string to individual tokens
+            string(REGEX MATCHALL "[0-9]+" MATSIZE_LIST ${MATSIZE})
+            list(GET MATSIZE_LIST 0 SIZEM)
+            list(GET MATSIZE_LIST 1 SIZEN)
+            list(GET MATSIZE_LIST 2 SIZENNZ)
+            list(GET MATSIZE_LIST 3 SIZENNZB)
+
+            add_test(FuncTest.${FUNCTION}${OP}-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ}xBaseA-${BASEA}+${SIZENNZB}xBaseB-${BASEB} ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --sizennzB=${SIZENNZB} --transposeA=${OP} --indexbaseA=${BASEA} --indexbaseB=${BASEB} --stage=0 --verify=1 --iters=1)
+
+          endforeach(MATSIZE)
+        endforeach(OP)
+      endforeach(BASEB)
+    endforeach(BASEA)
   endforeach(PREC)
 endforeach(FUNCTION)
+
 # Add extra function on matrix sizes as needed
 # For example, excersice nonstandard multipliers alpha, beta
 #add_test(FuncTest.csrmv-d-100x99x333-mlt ../staging/aoclsparse-bench --function=csrmv --precision=d --sizem=100 --sizen=99 --sizennz=333 --alpha=3 --beta=-1.5 --verify=1 --iters=1)

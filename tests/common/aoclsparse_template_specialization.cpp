@@ -157,6 +157,30 @@ aoclsparse_status aoclsparse_add(const aoclsparse_operation      op,
 }
 
 template <>
+aoclsparse_status aoclsparse_add(const aoclsparse_operation op,
+                                 const aoclsparse_matrix    A,
+                                 const std::complex<float>  alpha,
+                                 const aoclsparse_matrix    B,
+                                 aoclsparse_matrix         *C)
+{
+    const aoclsparse_float_complex *pAlpha
+        = reinterpret_cast<const aoclsparse_float_complex *>(&alpha);
+    return aoclsparse_cadd(op, A, *pAlpha, B, C);
+}
+
+template <>
+aoclsparse_status aoclsparse_add(const aoclsparse_operation op,
+                                 const aoclsparse_matrix    A,
+                                 const std::complex<double> alpha,
+                                 const aoclsparse_matrix    B,
+                                 aoclsparse_matrix         *C)
+{
+    const aoclsparse_double_complex *pAlpha
+        = reinterpret_cast<const aoclsparse_double_complex *>(&alpha);
+    return aoclsparse_zadd(op, A, *pAlpha, B, C);
+}
+
+template <>
 aoclsparse_status aoclsparse_spmmd(aoclsparse_operation            op,
                                    const aoclsparse_matrix         A,
                                    const aoclsparse_matrix         B,
@@ -2158,6 +2182,40 @@ aoclsparse_status aoclsparse_export_csr(const aoclsparse_matrix     mat,
                                         aoclsparse_double_complex **val)
 {
     return aoclsparse_export_zcsr(mat, base, m, n, nnz, row_ptr, col_idx, val);
+}
+
+template <>
+aoclsparse_status aoclsparse_export_csr(const aoclsparse_matrix mat,
+                                        aoclsparse_index_base  *base,
+                                        aoclsparse_int         *m,
+                                        aoclsparse_int         *n,
+                                        aoclsparse_int         *nnz,
+                                        aoclsparse_int        **row_ptr,
+                                        aoclsparse_int        **col_idx,
+                                        std::complex<float>   **val)
+{
+    return aoclsparse_export_ccsr(
+        mat, base, m, n, nnz, row_ptr, col_idx, reinterpret_cast<aoclsparse_float_complex **>(val));
+}
+
+template <>
+aoclsparse_status aoclsparse_export_csr(const aoclsparse_matrix mat,
+                                        aoclsparse_index_base  *base,
+                                        aoclsparse_int         *m,
+                                        aoclsparse_int         *n,
+                                        aoclsparse_int         *nnz,
+                                        aoclsparse_int        **row_ptr,
+                                        aoclsparse_int        **col_idx,
+                                        std::complex<double>  **val)
+{
+    return aoclsparse_export_zcsr(mat,
+                                  base,
+                                  m,
+                                  n,
+                                  nnz,
+                                  row_ptr,
+                                  col_idx,
+                                  reinterpret_cast<aoclsparse_double_complex **>(val));
 }
 
 template <>
