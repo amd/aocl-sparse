@@ -30,6 +30,7 @@
 #include "aoclsparse_arguments.hpp"
 #include "aoclsparse_utils.hpp"
 
+#include <algorithm>
 #include <map>
 
 template <typename T>
@@ -1184,4 +1185,212 @@ inline aoclsparse_status ref_csrmm(aoclsparse_operation             op,
                                            reinterpret_cast<std::complex<double> *>(C),
                                            ldc);
 }
+
+/*
+ * ===========================================================================
+ *    level 3 SPARSE
+ * ===========================================================================
+ */
+/* Compute sparse addition: C = alpha*op(A) + B
+ * The result will match baseA and be of size mB x nB, on assumption that
+ * A and B are compatible.
+ * Arrays for the results need to be already allocated to the expected (or bigger)
+ * size which is given in nnzC on input for col_ind_C_ref[], val_C_ref[] and
+ * it is mB+1 for row_ptr_C_ref[].
+ */
+template <typename T>
+aoclsparse_status ref_add(aoclsparse_operation  op,
+                          aoclsparse_index_base baseA,
+                          aoclsparse_int        mA,
+                          aoclsparse_int        nA,
+                          aoclsparse_int       *row_ptr_A,
+                          aoclsparse_int       *col_ind_A,
+                          T                    *val_A,
+                          T                     alpha,
+                          aoclsparse_index_base baseB,
+                          aoclsparse_int        mB,
+                          aoclsparse_int        nB,
+                          aoclsparse_int       *row_ptr_B,
+                          aoclsparse_int       *col_ind_B,
+                          T                    *val_B,
+                          aoclsparse_int       &nnzC,
+                          aoclsparse_int       *row_ptr_C_ref,
+                          aoclsparse_int       *col_ind_C_ref,
+                          T                    *val_C_ref)
+{
+    if(row_ptr_A == nullptr || col_ind_A == nullptr || val_A == nullptr)
+        return aoclsparse_status_invalid_pointer;
+    if(row_ptr_B == nullptr || col_ind_B == nullptr || val_B == nullptr)
+        return aoclsparse_status_invalid_pointer;
+    if(row_ptr_C_ref == nullptr || col_ind_C_ref == nullptr || val_C_ref == nullptr)
+        return aoclsparse_status_invalid_pointer;
+
+    if(op != aoclsparse_operation_none && op != aoclsparse_operation_transpose
+       && op != aoclsparse_operation_conjugate_transpose)
+        return aoclsparse_status_invalid_value;
+    if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
+        if(op == aoclsparse_operation_conjugate_transpose)
+            op = aoclsparse_operation_transpose;
+
+    if(mA < 0 || nA < 0 || mB < 0 || nB < 0)
+        return aoclsparse_status_invalid_value;
+    if(op == aoclsparse_operation_none)
+    {
+        if(mA != mB || nA != nB)
+            return aoclsparse_status_invalid_value;
+    }
+    else
+    {
+        if(mA != nB || nA != mB)
+            return aoclsparse_status_invalid_value;
+    }
+
+    if(baseA != aoclsparse_index_base_zero && baseA != aoclsparse_index_base_one)
+        return aoclsparse_status_invalid_value;
+    if(baseB != aoclsparse_index_base_zero && baseB != aoclsparse_index_base_one)
+        return aoclsparse_status_invalid_value;
+
+    std::map<aoclsparse_int, std::map<aoclsparse_int, T>> C_map;
+
+    for(aoclsparse_int i = 0; i < mA; ++i)
+    {
+        for(aoclsparse_int j = row_ptr_A[i] - baseA; j < row_ptr_A[i + 1] - baseA; ++j)
+        {
+            aoclsparse_int row = i + baseA;
+            aoclsparse_int col = col_ind_A[j];
+            T              val = val_A[j];
+
+            if(op == aoclsparse_operation_none)
+                C_map[row][col] = val * alpha;
+            else
+            {
+                if constexpr(std::is_same_v<T, std::complex<float>>
+                             || std::is_same_v<T, std::complex<double>>)
+                {
+                    if(op == aoclsparse_operation_conjugate_transpose)
+                        val = std::conj(val);
+                }
+                C_map[col][row] = val * alpha;
+            }
+        }
+    }
+
+    for(aoclsparse_int i = 0; i < mB; ++i)
+    {
+        for(aoclsparse_int j = row_ptr_B[i] - baseB; j < row_ptr_B[i + 1] - baseB; ++j)
+        {
+            aoclsparse_int row = i + baseA;
+            aoclsparse_int col = col_ind_B[j] - baseB + baseA;
+            T              val = val_B[j];
+
+            C_map[row][col] += (val);
+        }
+    }
+
+    aoclsparse_int idx = 0;
+
+    for(auto const &[row, col_val_map] : C_map)
+    {
+        row_ptr_C_ref[row - baseA + 1] = col_val_map.size();
+        // Check if we have still enough room for the new elements
+        if((aoclsparse_int)(idx + col_val_map.size()) > nnzC)
+            return aoclsparse_status_invalid_size;
+        for(auto [col, val] : col_val_map)
+        {
+            col_ind_C_ref[idx] = col;
+            val_C_ref[idx]     = val;
+            idx++;
+        }
+    }
+
+    row_ptr_C_ref[0] = baseA;
+    for(int i = 0; i < mB; i++)
+    {
+        row_ptr_C_ref[i + 1] += row_ptr_C_ref[i];
+    }
+    nnzC = row_ptr_C_ref[mB] - baseA;
+
+    return aoclsparse_status_success;
+}
+
+template <>
+inline aoclsparse_status ref_add(aoclsparse_operation      op,
+                                 aoclsparse_index_base     baseA,
+                                 aoclsparse_int            mA,
+                                 aoclsparse_int            nA,
+                                 aoclsparse_int           *row_ptr_A,
+                                 aoclsparse_int           *col_ind_A,
+                                 aoclsparse_float_complex *val_A,
+                                 aoclsparse_float_complex  alpha,
+                                 aoclsparse_index_base     baseB,
+                                 aoclsparse_int            mB,
+                                 aoclsparse_int            nB,
+                                 aoclsparse_int           *row_ptr_B,
+                                 aoclsparse_int           *col_ind_B,
+                                 aoclsparse_float_complex *val_B,
+                                 aoclsparse_int           &nnzC,
+                                 aoclsparse_int           *row_ptr_C_ref,
+                                 aoclsparse_int           *col_ind_C_ref,
+                                 aoclsparse_float_complex *val_C_ref)
+{
+    return ref_add(op,
+                   baseA,
+                   mA,
+                   nA,
+                   row_ptr_A,
+                   col_ind_A,
+                   reinterpret_cast<std::complex<float> *>(val_A),
+                   *(reinterpret_cast<std::complex<float> *>(&alpha)),
+                   baseB,
+                   mB,
+                   nB,
+                   row_ptr_B,
+                   col_ind_B,
+                   reinterpret_cast<std::complex<float> *>(val_B),
+                   nnzC,
+                   row_ptr_C_ref,
+                   col_ind_C_ref,
+                   reinterpret_cast<std::complex<float> *>(val_C_ref));
+}
+
+template <>
+inline aoclsparse_status ref_add(aoclsparse_operation       op,
+                                 aoclsparse_index_base      baseA,
+                                 aoclsparse_int             mA,
+                                 aoclsparse_int             nA,
+                                 aoclsparse_int            *row_ptr_A,
+                                 aoclsparse_int            *col_ind_A,
+                                 aoclsparse_double_complex *val_A,
+                                 aoclsparse_double_complex  alpha,
+                                 aoclsparse_index_base      baseB,
+                                 aoclsparse_int             mB,
+                                 aoclsparse_int             nB,
+                                 aoclsparse_int            *row_ptr_B,
+                                 aoclsparse_int            *col_ind_B,
+                                 aoclsparse_double_complex *val_B,
+                                 aoclsparse_int            &nnzC,
+                                 aoclsparse_int            *row_ptr_C_ref,
+                                 aoclsparse_int            *col_ind_C_ref,
+                                 aoclsparse_double_complex *val_C_ref)
+{
+    return ref_add(op,
+                   baseA,
+                   mA,
+                   nA,
+                   row_ptr_A,
+                   col_ind_A,
+                   reinterpret_cast<std::complex<double> *>(val_A),
+                   *(reinterpret_cast<std::complex<double> *>(&alpha)),
+                   baseB,
+                   mB,
+                   nB,
+                   row_ptr_B,
+                   col_ind_B,
+                   reinterpret_cast<std::complex<double> *>(val_B),
+                   nnzC,
+                   row_ptr_C_ref,
+                   col_ind_C_ref,
+                   reinterpret_cast<std::complex<double> *>(val_C_ref));
+}
+
 #endif // AOCLSPARSE_REFERENCE_HPP

@@ -104,6 +104,14 @@ constexpr double csr2m_gbyte_count(aoclsparse_int                  M,
     return (size_A + size_B + size_C) / 1e9;
 }
 
+template <typename T>
+constexpr double csr_add_gbyte_count(aoclsparse_int M, aoclsparse_int nnz_A, aoclsparse_int nnz_B)
+{
+    return ((3 * (M + 1) * sizeof(aoclsparse_int))
+            + (((nnz_A + nnz_B) * sizeof(aoclsparse_int)) + ((nnz_A + nnz_B) * sizeof(T))))
+           / 1e9;
+}
+
 /*
  * ===========================================================================
  *    SPARSE Solvers

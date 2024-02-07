@@ -47,10 +47,13 @@ void register_tests_dotmv([[maybe_unused]] std::vector<testsetting<T>> &testqueu
 template <typename T>
 void register_tests_trsv([[maybe_unused]] std::vector<testsetting<T>> &testqueue)
 {
-    //testqueue.push_back({"new_test_name",&testing_trsv_new<T>});
 }
 template <typename T>
 void register_tests_csr2csc([[maybe_unused]] std::vector<testsetting<T>> &testqueue)
+{
+}
+template <typename T>
+void register_tests_csradd([[maybe_unused]] std::vector<testsetting<T>> &testqueue)
 {
 }
 template <typename T>
@@ -96,12 +99,10 @@ void register_tests_symgs_mv([[maybe_unused]] std::vector<testsetting<T>> &testq
 template <typename T>
 void register_tests_trsm([[maybe_unused]] std::vector<testsetting<T>> &testqueue)
 {
-    //testqueue.push_back({"new_test_name",&testing_trsm_new<T>});
 }
 template <typename T>
 void register_tests_csrmm([[maybe_unused]] std::vector<testsetting<T>> &testqueue)
 {
-    // testqueue.push_back({"new_test_name", &testing_csrmm_new<T>});
 }
 
 #endif

@@ -54,6 +54,13 @@ constexpr double csrsv_gflop_count(aoclsparse_int M, aoclsparse_int nnz, aoclspa
  * ===========================================================================
  */
 template <typename T>
+constexpr double csr_add_gflop_count(T nnz_A, T nnz_B)
+{
+    // Multiplication by 2 comes from 1 addition and 1 scalar multiplication in add. Multiplication
+    // by alpha is counted.
+    return (2.0 * nnz_A + nnz_B) / 1e9;
+}
+
 constexpr double csrmm_gflop_count(aoclsparse_int N,
                                    aoclsparse_int nnz_A,
                                    aoclsparse_int nnz_C,
