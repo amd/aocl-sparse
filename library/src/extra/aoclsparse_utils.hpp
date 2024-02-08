@@ -97,6 +97,37 @@ namespace aoclsparse_numeric
             return value;
         }
     };
+    /* Provide a quiet_NaN for all floating point data types */
+    /* Default definition handles real/std types */
+    template <typename T>
+    struct quiet_NaN
+    {
+        static constexpr T value{std::numeric_limits<T>::quiet_NaN()};
+        constexpr operator T() const noexcept
+        {
+            return value;
+        }
+    };
+    template <>
+    struct quiet_NaN<aoclsparse_float_complex>
+    {
+        static constexpr aoclsparse_float_complex value{std::numeric_limits<float>::quiet_NaN(),
+                                                        std::numeric_limits<float>::quiet_NaN()};
+        constexpr operator aoclsparse_float_complex() const noexcept
+        {
+            return value;
+        }
+    };
+    template <>
+    struct quiet_NaN<aoclsparse_double_complex>
+    {
+        static constexpr aoclsparse_double_complex value{std::numeric_limits<double>::quiet_NaN(),
+                                                         std::numeric_limits<double>::quiet_NaN()};
+        constexpr operator aoclsparse_double_complex() const noexcept
+        {
+            return value;
+        }
+    };
 }
 
 /* Convenience operator for comparing with zero<T>

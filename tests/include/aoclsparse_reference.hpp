@@ -577,4 +577,213 @@ inline aoclsparse_status ref_csrmv(aoclsparse_operation             op,
                                            reinterpret_cast<std::complex<double> *>(y));
 }
 
+/* Gather entries from dense y[] vector to a a sparse vector(x, nnz, indx) based indices from indx array
+ */
+template <typename T>
+inline aoclsparse_status
+    ref_gather(const aoclsparse_int nnz, const T *y, T *x, const aoclsparse_int *indx)
+{
+    if(x == nullptr || y == nullptr)
+        return aoclsparse_status_invalid_pointer;
+    for(aoclsparse_int i = 0; i < nnz; i++)
+    {
+        if(indx[i] < 0)
+            return aoclsparse_status_invalid_index_value;
+        x[i] = y[indx[i]];
+    }
+    return aoclsparse_status_success;
+}
+/* Gather entries from dense y[] vector to a a sparse vector(x, nnz, indx) based indices from indx array.
+   Also set the y[] indices addressed by indx[] to zero
+ */
+template <typename T>
+inline aoclsparse_status
+    ref_gatherz(const aoclsparse_int nnz, const T *y, T *y_gold, T *x, const aoclsparse_int *indx)
+{
+    if(x == nullptr || y == nullptr || y_gold == nullptr)
+        return aoclsparse_status_invalid_pointer;
+    for(aoclsparse_int i = 0; i < nnz; i++)
+    {
+        if(indx[i] < 0)
+            return aoclsparse_status_invalid_index_value;
+        x[i]            = y[indx[i]];
+        y_gold[indx[i]] = aoclsparse_numeric::zero<T>();
+    }
+    return aoclsparse_status_success;
+}
+/* scatter entries from sparse x[] vector(x, nnz, indx) to a dense vector y[] at indices defined by indx[]
+ */
+template <typename T>
+inline aoclsparse_status
+    ref_scatter(const aoclsparse_int nnz, const T *x, const aoclsparse_int *indx, T *y)
+{
+    if(x == nullptr || y == nullptr)
+        return aoclsparse_status_invalid_pointer;
+    for(aoclsparse_int i = 0; i < nnz; i++)
+    {
+        if(indx[i] < 0)
+            return aoclsparse_status_invalid_index_value;
+        y[indx[i]] = x[i];
+    }
+    return aoclsparse_status_success;
+}
+/*  Accumulate product of constant scalar(real/complex) and sparse x[] vector(x, nnz, indx) to a dense vector y[]
+    at indices defined by indx[]
+ */
+template <typename T>
+inline aoclsparse_status
+    ref_axpyi(const aoclsparse_int nnz, const T a, const T *x, const aoclsparse_int *indx, T *y)
+{
+    if(x == nullptr || y == nullptr)
+        return aoclsparse_status_invalid_pointer;
+    for(aoclsparse_int i = 0; i < nnz; i++)
+    {
+        if(indx[i] < 0)
+            return aoclsparse_status_invalid_index_value;
+        y[indx[i]] = a * x[i] + y[indx[i]];
+    }
+    return aoclsparse_status_success;
+}
+template <>
+inline aoclsparse_status ref_axpyi(const aoclsparse_int            nnz,
+                                   aoclsparse_float_complex        alpha,
+                                   const aoclsparse_float_complex *x,
+                                   const aoclsparse_int           *indx,
+                                   aoclsparse_float_complex       *y)
+{
+    std::complex<float> *alphap = reinterpret_cast<std::complex<float> *>(&alpha);
+    return ref_axpyi<std::complex<float>>(nnz,
+                                          *alphap,
+                                          reinterpret_cast<const std::complex<float> *>(x),
+                                          indx,
+                                          reinterpret_cast<std::complex<float> *>(y));
+}
+template <>
+inline aoclsparse_status ref_axpyi(const aoclsparse_int             nnz,
+                                   aoclsparse_double_complex        alpha,
+                                   const aoclsparse_double_complex *x,
+                                   const aoclsparse_int            *indx,
+                                   aoclsparse_double_complex       *y)
+{
+    std::complex<double> *alphap = reinterpret_cast<std::complex<double> *>(&alpha);
+    return ref_axpyi<std::complex<double>>(nnz,
+                                           *alphap,
+                                           reinterpret_cast<const std::complex<double> *>(x),
+                                           indx,
+                                           reinterpret_cast<std::complex<double> *>(y));
+}
+/* Compute the Givens rotation of a dense vector y[] and sparse vector x[] defined by (x, nnz, indx)
+ */
+template <typename T>
+inline aoclsparse_status ref_givens_rot(const aoclsparse_int  nnz,
+                                        const T              *x_in,
+                                        const aoclsparse_int *indx,
+                                        const T              *y_in,
+                                        T                    *x_out,
+                                        T                    *y_out,
+                                        const T               c,
+                                        const T               s)
+{
+    if(x_in == nullptr || y_in == nullptr || x_out == nullptr || y_out == nullptr)
+        return aoclsparse_status_invalid_pointer;
+    for(aoclsparse_int i = 0; i < nnz; i++)
+    {
+        if(indx[i] < 0)
+            return aoclsparse_status_invalid_index_value;
+        x_out[i]       = c * x_in[i] + s * y_in[indx[i]];
+        y_out[indx[i]] = c * y_in[indx[i]] - s * x_in[i];
+    }
+    return aoclsparse_status_success;
+}
+/* Dot product of a dense vector y[] and sparse vector x[] defined by (x, nnz, indx)
+ */
+template <typename T>
+inline aoclsparse_status ref_doti(
+    const aoclsparse_int nnz, const T *x, const aoclsparse_int *indx, const T *y, T &result)
+{
+    if(x == nullptr || y == nullptr)
+        return aoclsparse_status_invalid_pointer;
+    for(aoclsparse_int i = 0; i < nnz; i++)
+    {
+        if(indx[i] < 0)
+            return aoclsparse_status_invalid_index_value;
+        result += x[i] * y[indx[i]];
+    }
+    return aoclsparse_status_success;
+}
+/* Complex dot product of a complex dense vector y[] and complex sparse vector x[] defined by (x, nnz, indx).
+    The result is complex conjugated dot product if is_conjugated is true
+ */
+template <typename T>
+inline aoclsparse_status ref_complex_dot(const aoclsparse_int  nnz,
+                                         const T              *x,
+                                         const aoclsparse_int *indx,
+                                         const T              *y,
+                                         T                    *complex_dot,
+                                         bool                  is_conjugated)
+{
+    if(x == nullptr || y == nullptr || complex_dot == nullptr || indx == nullptr)
+        return aoclsparse_status_invalid_pointer;
+
+    *complex_dot = 0;
+    if constexpr(std::is_same_v<T, std::complex<double>> || std::is_same_v<T, std::complex<float>>)
+    {
+        if(is_conjugated)
+        {
+            for(aoclsparse_int i = 0; i < nnz; i++)
+            {
+                if(indx[i] < 0)
+                    return aoclsparse_status_invalid_index_value;
+                *complex_dot += std::conj(x[i]) * y[indx[i]];
+            }
+        }
+        else
+        {
+            for(aoclsparse_int i = 0; i < nnz; i++)
+            {
+                if(indx[i] < 0)
+                    return aoclsparse_status_invalid_index_value;
+                *complex_dot += x[i] * y[indx[i]];
+            }
+        }
+    }
+    else
+    {
+        // this function is to be used only with complex types that require complex dot product
+        return aoclsparse_status_invalid_value;
+    }
+    return aoclsparse_status_success;
+}
+template <>
+inline aoclsparse_status ref_complex_dot(const aoclsparse_int            nnz,
+                                         const aoclsparse_float_complex *x,
+                                         const aoclsparse_int           *indx,
+                                         const aoclsparse_float_complex *y,
+                                         aoclsparse_float_complex       *complex_dot,
+                                         bool                            is_conjugated)
+{
+    return ref_complex_dot<std::complex<float>>(
+        nnz,
+        reinterpret_cast<const std::complex<float> *>(x),
+        indx,
+        reinterpret_cast<const std::complex<float> *>(y),
+        reinterpret_cast<std::complex<float> *>(complex_dot),
+        is_conjugated);
+}
+template <>
+inline aoclsparse_status ref_complex_dot(const aoclsparse_int             nnz,
+                                         const aoclsparse_double_complex *x,
+                                         const aoclsparse_int            *indx,
+                                         const aoclsparse_double_complex *y,
+                                         aoclsparse_double_complex       *complex_dot,
+                                         bool                             is_conjugated)
+{
+    return ref_complex_dot<std::complex<double>>(
+        nnz,
+        reinterpret_cast<const std::complex<double> *>(x),
+        indx,
+        reinterpret_cast<const std::complex<double> *>(y),
+        reinterpret_cast<std::complex<double> *>(complex_dot),
+        is_conjugated);
+}
 #endif // AOCLSPARSE_REFERENCE_HPP

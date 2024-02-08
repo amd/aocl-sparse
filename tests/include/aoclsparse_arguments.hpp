@@ -159,9 +159,15 @@ struct testdata
     T beta;
 
     // vectors compatible with (including sizes): op(A) . x = y
+    std::vector<T> x_in; // input x
     std::vector<T> x; // input
     std::vector<T> y_in; // input y
     std::vector<T> y; // result of this computation
+
+    //Level-1
+    std::vector<aoclsparse_int>
+        indx; //index array to store the indices of the nnz elements in the sparse vector
+    T   s; // scalar used to store result in doti, dotci, dotui
 };
 
 /* Type for any test function to be added to the testqueue, either internal (AOCL)

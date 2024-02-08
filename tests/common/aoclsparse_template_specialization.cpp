@@ -791,6 +791,16 @@ aoclsparse_status aoclsparse_gthr(const aoclsparse_int        nnz,
 {
     return aoclsparse_zgthr(nnz, y, x, indx);
 }
+template <>
+aoclsparse_status aoclsparse_gthr(const aoclsparse_int             nnz,
+                                  const aoclsparse_double_complex *y,
+                                  aoclsparse_double_complex       *x,
+                                  const aoclsparse_int            *indx)
+{
+    const std::complex<double> *py = reinterpret_cast<const std::complex<double> *>(y);
+    std::complex<double>       *px = reinterpret_cast<std::complex<double> *>(x);
+    return aoclsparse_zgthr(nnz, py, px, indx);
+}
 
 template <>
 aoclsparse_status aoclsparse_gthr(const aoclsparse_int       nnz,
@@ -799,6 +809,17 @@ aoclsparse_status aoclsparse_gthr(const aoclsparse_int       nnz,
                                   const aoclsparse_int      *indx)
 {
     return aoclsparse_cgthr(nnz, y, x, indx);
+}
+
+template <>
+aoclsparse_status aoclsparse_gthr(const aoclsparse_int            nnz,
+                                  const aoclsparse_float_complex *y,
+                                  aoclsparse_float_complex       *x,
+                                  const aoclsparse_int           *indx)
+{
+    const std::complex<float> *py = reinterpret_cast<const std::complex<float> *>(y);
+    std::complex<float>       *px = reinterpret_cast<std::complex<float> *>(x);
+    return aoclsparse_cgthr(nnz, py, px, indx);
 }
 
 template <>
@@ -823,6 +844,16 @@ aoclsparse_status aoclsparse_gthrz(const aoclsparse_int  nnz,
 {
     return aoclsparse_zgthrz(nnz, y, x, indx);
 }
+template <>
+aoclsparse_status aoclsparse_gthrz(const aoclsparse_int       nnz,
+                                   aoclsparse_double_complex *y,
+                                   aoclsparse_double_complex *x,
+                                   const aoclsparse_int      *indx)
+{
+    std::complex<double> *py = reinterpret_cast<std::complex<double> *>(y);
+    std::complex<double> *px = reinterpret_cast<std::complex<double> *>(x);
+    return aoclsparse_zgthrz(nnz, py, px, indx);
+}
 
 template <>
 aoclsparse_status aoclsparse_gthrz(const aoclsparse_int  nnz,
@@ -831,6 +862,16 @@ aoclsparse_status aoclsparse_gthrz(const aoclsparse_int  nnz,
                                    const aoclsparse_int *indx)
 {
     return aoclsparse_cgthrz(nnz, y, x, indx);
+}
+template <>
+aoclsparse_status aoclsparse_gthrz(const aoclsparse_int      nnz,
+                                   aoclsparse_float_complex *y,
+                                   aoclsparse_float_complex *x,
+                                   const aoclsparse_int     *indx)
+{
+    std::complex<float> *py = reinterpret_cast<std::complex<float> *>(y);
+    std::complex<float> *px = reinterpret_cast<std::complex<float> *>(x);
+    return aoclsparse_cgthrz(nnz, py, px, indx);
 }
 
 template <>
@@ -1273,6 +1314,27 @@ aoclsparse_status aoclsparse_dot(const aoclsparse_int nnz,
         return aoclsparse_cdotui(nnz, x, indx, y, dot);
     }
 }
+template <>
+aoclsparse_status aoclsparse_dot(const aoclsparse_int nnz,
+                                 const aoclsparse_float_complex *__restrict__ x,
+                                 const aoclsparse_int *__restrict__ indx,
+                                 const aoclsparse_float_complex *__restrict__ y,
+                                 aoclsparse_float_complex *__restrict__ dot,
+                                 bool                                  conj,
+                                 [[maybe_unused]] const aoclsparse_int kid)
+{
+    const std::complex<float> *px   = reinterpret_cast<const std::complex<float> *>(x);
+    const std::complex<float> *py   = reinterpret_cast<const std::complex<float> *>(y);
+    std::complex<float>       *pdot = reinterpret_cast<std::complex<float> *>(dot);
+    if(conj)
+    {
+        return aoclsparse_cdotci(nnz, px, indx, py, pdot);
+    }
+    else
+    {
+        return aoclsparse_cdotui(nnz, px, indx, py, pdot);
+    }
+}
 
 template <>
 aoclsparse_status aoclsparse_dot(const aoclsparse_int nnz,
@@ -1290,6 +1352,27 @@ aoclsparse_status aoclsparse_dot(const aoclsparse_int nnz,
     else
     {
         return aoclsparse_zdotui(nnz, x, indx, y, dot);
+    }
+}
+template <>
+aoclsparse_status aoclsparse_dot(const aoclsparse_int nnz,
+                                 const aoclsparse_double_complex *__restrict__ x,
+                                 const aoclsparse_int *__restrict__ indx,
+                                 const aoclsparse_double_complex *__restrict__ y,
+                                 aoclsparse_double_complex *__restrict__ dot,
+                                 bool                                  conj,
+                                 [[maybe_unused]] const aoclsparse_int kid)
+{
+    const std::complex<double> *px   = reinterpret_cast<const std::complex<double> *>(x);
+    const std::complex<double> *py   = reinterpret_cast<const std::complex<double> *>(y);
+    std::complex<double>       *pdot = reinterpret_cast<std::complex<double> *>(dot);
+    if(conj)
+    {
+        return aoclsparse_zdotci(nnz, px, indx, py, pdot);
+    }
+    else
+    {
+        return aoclsparse_zdotui(nnz, px, indx, py, pdot);
     }
 }
 
@@ -1346,7 +1429,17 @@ aoclsparse_status aoclsparse_sctr(const aoclsparse_int nnz,
 {
     return aoclsparse_csctr(nnz, x, indx, y);
 }
-
+template <>
+aoclsparse_status aoclsparse_sctr(const aoclsparse_int nnz,
+                                  const aoclsparse_float_complex *__restrict__ x,
+                                  const aoclsparse_int *__restrict__ indx,
+                                  aoclsparse_float_complex *__restrict__ y,
+                                  [[maybe_unused]] const aoclsparse_int kid)
+{
+    const std::complex<float> *px = reinterpret_cast<const std::complex<float> *>(x);
+    std::complex<float>       *py = reinterpret_cast<std::complex<float> *>(y);
+    return aoclsparse_csctr(nnz, px, indx, py);
+}
 template <>
 aoclsparse_status aoclsparse_sctr(const aoclsparse_int nnz,
                                   const std::complex<double> *__restrict__ x,
@@ -1355,6 +1448,17 @@ aoclsparse_status aoclsparse_sctr(const aoclsparse_int nnz,
                                   [[maybe_unused]] const aoclsparse_int kid)
 {
     return aoclsparse_zsctr(nnz, x, indx, y);
+}
+template <>
+aoclsparse_status aoclsparse_sctr(const aoclsparse_int nnz,
+                                  const aoclsparse_double_complex *__restrict__ x,
+                                  const aoclsparse_int *__restrict__ indx,
+                                  aoclsparse_double_complex *__restrict__ y,
+                                  [[maybe_unused]] const aoclsparse_int kid)
+{
+    const std::complex<double> *px = reinterpret_cast<const std::complex<double> *>(x);
+    std::complex<double>       *py = reinterpret_cast<std::complex<double> *>(y);
+    return aoclsparse_zsctr(nnz, px, indx, py);
 }
 
 template <>
