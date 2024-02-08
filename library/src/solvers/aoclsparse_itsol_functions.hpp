@@ -34,6 +34,7 @@
 #include "aoclsparse_itsol_list_options.hpp"
 #include "aoclsparse_itsol_options.hpp"
 #include "aoclsparse_l2.hpp"
+#include "aoclsparse_lapack.hpp"
 #include "aoclsparse_mv.hpp"
 #include "aoclsparse_utils.hpp"
 
@@ -1075,7 +1076,7 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
             rr = h[j * m + j];
             hh = -hh;
 
-            aoclsparse_givens_rotation(rr, hh, c[j], s[j], h[j * m + j]);
+            libflame::lartg(&rr, &hh, &c[j], &s[j], &h[j * m + j]);
 
             g0            = g[j];
             g[j]          = c[j] * g0;
