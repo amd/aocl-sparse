@@ -99,19 +99,20 @@ struct BenchmarkException : public std::exception
 {
 };
 
-#define NEW_EXPECT_AOCLSPARSE_STATUS(STATUS_R, STATUS_EXP, MSG)                   \
-                                                                                  \
-    {                                                                             \
-        if((STATUS_R) != (STATUS_EXP))                                            \
-        {                                                                         \
-            std::cerr << "aoclsparse status error: Expected "                     \
-                      << aoclsparse_status_to_string(STATUS_EXP) << ", received " \
-                      << aoclsparse_status_to_string(STATUS_R)                    \
-                      << " while executing:" << std::endl;                        \
-            std::cerr << "   " << (MSG) << std::endl;                             \
-            std::cerr << "   " << __FILE__ << ":" << __LINE__ << std::endl;       \
-            throw BenchmarkException();                                           \
-        }                                                                         \
+#define NEW_EXPECT_AOCLSPARSE_STATUS(STATUS_R, STATUS_EXP, MSG)                    \
+    {                                                                              \
+        auto lstatus_r   = (STATUS_R);                                             \
+        auto lstatus_exp = (STATUS_EXP);                                           \
+        if(lstatus_r != lstatus_exp)                                               \
+        {                                                                          \
+            std::cerr << "aoclsparse status error: Expected "                      \
+                      << aoclsparse_status_to_string(lstatus_exp) << ", received " \
+                      << aoclsparse_status_to_string(lstatus_r)                    \
+                      << " while executing:" << std::endl;                         \
+            std::cerr << "   " << (MSG) << std::endl;                              \
+            std::cerr << "   " << __FILE__ << ":" << __LINE__ << std::endl;        \
+            throw BenchmarkException();                                            \
+        }                                                                          \
     }
 #define NEW_CHECK_AOCLSPARSE_ERROR(STATUS) \
     NEW_EXPECT_AOCLSPARSE_STATUS(STATUS, aoclsparse_status_success, #STATUS)

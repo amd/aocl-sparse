@@ -35,6 +35,15 @@
 #include "aoclsparse.h"
 
 #include <complex>
+// Level1
+#include "testing_axpyi.hpp"
+#include "testing_dotci.hpp"
+#include "testing_doti.hpp"
+#include "testing_dotui.hpp"
+#include "testing_gthr.hpp"
+#include "testing_gthrz.hpp"
+#include "testing_roti.hpp"
+#include "testing_sctr.hpp"
 // Level2
 #include "testing_blkcsrmv.hpp"
 #include "testing_bsrmv.hpp"
@@ -136,6 +145,7 @@ int main(int argc, char *argv[])
             "--uplo=<L/U> \t L = lower fill, U = upper fill (default = L)"
             "\n\t"
             "--function=<function to test> \t SPARSE function to test. (default: csrmv) Options:  "
+            "\n\t\tLevel-1: gthr gthrz sctr axpyi roti doti dotui dotci"
             "\n\t\tLevel-2: csrmv optmv blkcsrmv(only precision=d) ellmv diamv bsrmv trsv"
             "\n\t\tLevel-3: csrmm csr2m sp2md"
             "\n\t\tPreconditioners: ilu"
@@ -343,6 +353,100 @@ int main(int argc, char *argv[])
             return testing_trsv<aoclsparse_float_complex>(arg);
         else if(precision == 'z')
             return testing_trsv<aoclsparse_double_complex>(arg);
+    }
+    else if(strcmp(arg.function, "gthr") == 0)
+    {
+        if(precision == 's')
+            return testing_gthr<float>(arg);
+        else if(precision == 'd')
+            return testing_gthr<double>(arg);
+        else if(precision == 'c')
+            return testing_gthr<aoclsparse_float_complex>(arg);
+        else if(precision == 'z')
+            return testing_gthr<aoclsparse_double_complex>(arg);
+    }
+    else if(strcmp(arg.function, "gthrz") == 0)
+    {
+        if(precision == 's')
+            return testing_gthrz<float>(arg);
+        else if(precision == 'd')
+            return testing_gthrz<double>(arg);
+        else if(precision == 'c')
+            return testing_gthrz<aoclsparse_float_complex>(arg);
+        else if(precision == 'z')
+            return testing_gthrz<aoclsparse_double_complex>(arg);
+    }
+    else if(strcmp(arg.function, "sctr") == 0)
+    {
+        if(precision == 's')
+            return testing_sctr<float>(arg);
+        else if(precision == 'd')
+            return testing_sctr<double>(arg);
+        else if(precision == 'c')
+            return testing_sctr<aoclsparse_float_complex>(arg);
+        else if(precision == 'z')
+            return testing_sctr<aoclsparse_double_complex>(arg);
+    }
+    else if(strcmp(arg.function, "axpyi") == 0)
+    {
+        if(precision == 's')
+            return testing_axpyi<float>(arg);
+        else if(precision == 'd')
+            return testing_axpyi<double>(arg);
+        else if(precision == 'c')
+            return testing_axpyi<aoclsparse_float_complex>(arg);
+        else if(precision == 'z')
+            return testing_axpyi<aoclsparse_double_complex>(arg);
+    }
+    else if(strcmp(arg.function, "roti") == 0)
+    {
+        if(precision == 's')
+            return testing_roti<float>(arg);
+        else if(precision == 'd')
+            return testing_roti<double>(arg);
+        else
+        {
+            std::cerr << "Invalid precision for roti, which only supports real data" << std::endl;
+            return -1;
+        }
+    }
+    else if(strcmp(arg.function, "doti") == 0)
+    {
+        if(precision == 's')
+            return testing_doti<float>(arg);
+        else if(precision == 'd')
+            return testing_doti<double>(arg);
+        else
+        {
+            std::cerr << "Invalid precision for doti, which only supports real data" << std::endl;
+            return -1;
+        }
+    }
+    else if(strcmp(arg.function, "dotui") == 0)
+    {
+        if(precision == 'c')
+            return testing_dotui<aoclsparse_float_complex>(arg);
+        else if(precision == 'z')
+            return testing_dotui<aoclsparse_double_complex>(arg);
+        else
+        {
+            std::cerr << "Invalid precision for dotui, which only supports complex data"
+                      << std::endl;
+            return -1;
+        }
+    }
+    else if(strcmp(arg.function, "dotci") == 0)
+    {
+        if(precision == 'c')
+            return testing_dotci<aoclsparse_float_complex>(arg);
+        else if(precision == 'z')
+            return testing_dotci<aoclsparse_double_complex>(arg);
+        else
+        {
+            std::cerr << "Invalid precision for dotci, which only supports complex data"
+                      << std::endl;
+            return -1;
+        }
     }
     else
     {
