@@ -232,7 +232,13 @@ aoclsparse_status aoclsparse_csrsv(aoclsparse_operation       trans,
                                    const aoclsparse_mat_descr descr,
                                    const T                   *x,
                                    T                         *y);
-
+template <typename T>
+aoclsparse_status aoclsparse_trsv(const aoclsparse_operation trans,
+                                  const T                    alpha,
+                                  aoclsparse_matrix          A,
+                                  const aoclsparse_mat_descr descr,
+                                  const T                   *b,
+                                  T                         *x);
 template <typename T>
 aoclsparse_status aoclsparse_dotmv(const aoclsparse_operation op,
                                    T                          alpha,
