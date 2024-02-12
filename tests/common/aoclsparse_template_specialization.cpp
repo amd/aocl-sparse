@@ -586,7 +586,23 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation             op,
 {
     return aoclsparse_zmv(op, alpha, A, descr, x, beta, y);
 }
-
+template <>
+aoclsparse_status aoclsparse_mv(aoclsparse_operation        op,
+                                const std::complex<double> *alpha,
+                                aoclsparse_matrix           A,
+                                const aoclsparse_mat_descr  descr,
+                                const std::complex<double> *x,
+                                const std::complex<double> *beta,
+                                std::complex<double>       *y)
+{
+    const aoclsparse_double_complex *palpha
+        = reinterpret_cast<const aoclsparse_double_complex *>(alpha);
+    const aoclsparse_double_complex *pbeta
+        = reinterpret_cast<const aoclsparse_double_complex *>(beta);
+    aoclsparse_double_complex       *py = reinterpret_cast<aoclsparse_double_complex *>(y);
+    const aoclsparse_double_complex *px = reinterpret_cast<const aoclsparse_double_complex *>(x);
+    return aoclsparse_zmv(op, palpha, A, descr, px, pbeta, py);
+}
 template <>
 aoclsparse_status aoclsparse_mv(aoclsparse_operation            op,
                                 const aoclsparse_float_complex *alpha,
@@ -598,7 +614,23 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation            op,
 {
     return aoclsparse_cmv(op, alpha, A, descr, x, beta, y);
 }
-
+template <>
+aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
+                                const std::complex<float> *alpha,
+                                aoclsparse_matrix          A,
+                                const aoclsparse_mat_descr descr,
+                                const std::complex<float> *x,
+                                const std::complex<float> *beta,
+                                std::complex<float>       *y)
+{
+    const aoclsparse_float_complex *palpha
+        = reinterpret_cast<const aoclsparse_float_complex *>(alpha);
+    const aoclsparse_float_complex *pbeta
+        = reinterpret_cast<const aoclsparse_float_complex *>(beta);
+    aoclsparse_float_complex       *py = reinterpret_cast<aoclsparse_float_complex *>(y);
+    const aoclsparse_float_complex *px = reinterpret_cast<const aoclsparse_float_complex *>(x);
+    return aoclsparse_cmv(op, palpha, A, descr, px, pbeta, py);
+}
 template <>
 aoclsparse_status aoclsparse_diamv(aoclsparse_operation       trans,
                                    const float               *alpha,

@@ -297,6 +297,10 @@ int main(int argc, char *argv[])
             testing_optmv<float>(arg);
         else if(precision == 'd')
             testing_optmv<double>(arg);
+        else if(precision == 'c')
+            testing_optmv<aoclsparse_float_complex>(arg);
+        else if(precision == 'z')
+            testing_optmv<aoclsparse_double_complex>(arg);
     }
     else if(strcmp(arg.function, "diamv") == 0)
     {
