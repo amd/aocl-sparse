@@ -714,7 +714,75 @@ aoclsparse_status
 {
     return aoclsparse_sgthr(nnz, y, x, indx);
 }
+template <>
+aoclsparse_status aoclsparse_trsv(const aoclsparse_operation trans,
+                                  const double               alpha,
+                                  aoclsparse_matrix          A,
+                                  const aoclsparse_mat_descr descr,
+                                  const double              *b,
+                                  double                    *x)
+{
+    return aoclsparse_dtrsv(trans, alpha, A, descr, b, x);
+}
 
+template <>
+aoclsparse_status aoclsparse_trsv(const aoclsparse_operation trans,
+                                  const float                alpha,
+                                  aoclsparse_matrix          A,
+                                  const aoclsparse_mat_descr descr,
+                                  const float               *b,
+                                  float                     *x)
+{
+    return aoclsparse_strsv(trans, alpha, A, descr, b, x);
+}
+template <>
+aoclsparse_status aoclsparse_trsv(const aoclsparse_operation  trans,
+                                  const std::complex<double>  alpha,
+                                  aoclsparse_matrix           A,
+                                  const aoclsparse_mat_descr  descr,
+                                  const std::complex<double> *b,
+                                  std::complex<double>       *x)
+{
+    const aoclsparse_double_complex *palpha
+        = reinterpret_cast<const aoclsparse_double_complex *>(&alpha);
+    const aoclsparse_double_complex *pb = reinterpret_cast<const aoclsparse_double_complex *>(b);
+    aoclsparse_double_complex       *px = reinterpret_cast<aoclsparse_double_complex *>(x);
+    return aoclsparse_ztrsv(trans, *palpha, A, descr, pb, px);
+}
+template <>
+aoclsparse_status aoclsparse_trsv(const aoclsparse_operation       trans,
+                                  const aoclsparse_double_complex  alpha,
+                                  aoclsparse_matrix                A,
+                                  const aoclsparse_mat_descr       descr,
+                                  const aoclsparse_double_complex *b,
+                                  aoclsparse_double_complex       *x)
+{
+    return aoclsparse_ztrsv(trans, alpha, A, descr, b, x);
+}
+template <>
+aoclsparse_status aoclsparse_trsv(const aoclsparse_operation trans,
+                                  const std::complex<float>  alpha,
+                                  aoclsparse_matrix          A,
+                                  const aoclsparse_mat_descr descr,
+                                  const std::complex<float> *b,
+                                  std::complex<float>       *x)
+{
+    const aoclsparse_float_complex *palpha
+        = reinterpret_cast<const aoclsparse_float_complex *>(&alpha);
+    const aoclsparse_float_complex *pb = reinterpret_cast<const aoclsparse_float_complex *>(b);
+    aoclsparse_float_complex       *px = reinterpret_cast<aoclsparse_float_complex *>(x);
+    return aoclsparse_ctrsv(trans, *palpha, A, descr, pb, px);
+}
+template <>
+aoclsparse_status aoclsparse_trsv(const aoclsparse_operation      trans,
+                                  const aoclsparse_float_complex  alpha,
+                                  aoclsparse_matrix               A,
+                                  const aoclsparse_mat_descr      descr,
+                                  const aoclsparse_float_complex *b,
+                                  aoclsparse_float_complex       *x)
+{
+    return aoclsparse_ctrsv(trans, alpha, A, descr, b, x);
+}
 template <>
 aoclsparse_status aoclsparse_gthr(const aoclsparse_int        nnz,
                                   const std::complex<double> *y,

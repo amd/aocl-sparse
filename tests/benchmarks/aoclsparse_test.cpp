@@ -44,6 +44,7 @@
 #include "testing_ellmv.hpp"
 #include "testing_optmv.hpp"
 #include "testing_sycsrmv.hpp"
+#include "testing_trsv.hpp"
 
 // Level3
 #include "testing_csr2m.hpp"
@@ -98,13 +99,13 @@ int main(int argc, char *argv[])
             "\n\t"
             " --help \t  produces this help message"
             "\n\t"
-            "--sizem=<Number of rows> \t  m is only  applicable to SPARSE-2 & SPARSE-3: the number "
+            "--sizem=<Number of rows> \t  m is only  applicable to LEVEL-2 & LEVEL-3: the number "
             " of rows (default: 128)"
             "\n\t"
-            "--sizen=<Number of columns> \t  SPARSE-1:  the length of the dense vector. SPARSE-2 & "
-            "SPARSE-3: the number of columns (default: 128)"
+            "--sizen=<Number of columns> \t  LEVEL-1:  the length of the dense vector. LEVEL-2 & "
+            "LEVEL-3: the number of columns (default: 128)"
             "\n\t"
-            "--sizek=<Number of columns> \t  SPARSE-2 & SPARSE-3: the number of columns (default: "
+            "--sizek=<Number of columns> \t  LEVEL-2 & LEVEL-3: the number of columns (default: "
             "128)"
             "\n\t"
             "--sizennz=<Number of non-zeroes> \t  Number of the non-zeroes in sparse matrix/vector"
@@ -134,10 +135,12 @@ int main(int argc, char *argv[])
             "\n\t"
             "--uplo=<L/U> \t L = lower fill, U = upper fill (default = L)"
             "\n\t"
-            "--function=<function to test> \t SPARSE function to test. Options:  Level2: csrmv "
-            "optmv blkcsrmv ellmv diamv bsrmv csrsv Level3: csrmm csr2m ilu (default: csrmv)"
+            "--function=<function to test> \t SPARSE function to test. (default: csrmv) Options:  "
+            "\n\t\tLevel-2: csrmv optmv blkcsrmv(only precision=d) ellmv diamv bsrmv trsv"
+            "\n\t\tLevel-3: csrmm csr2m sp2md"
+            "\n\t\tPreconditioners: ilu"
             "\n\t"
-            "--precision=<s/d> \t Options: s,d (default: d)"
+            "--precision=<s/d/c/z> \t Options: s,d,c,z (default: d)"
             "\n\t"
             "--verify=<0/1> \t Validate results ? 0 = No, 1 = Yes (default: No)"
             "\n\t"
@@ -329,6 +332,17 @@ int main(int argc, char *argv[])
             testing_ilu<double>(arg);
         else if(precision == 's')
             testing_ilu<float>(arg);
+    }
+    else if(strcmp(arg.function, "trsv") == 0)
+    {
+        if(precision == 'd')
+            return testing_trsv<double>(arg);
+        else if(precision == 's')
+            return testing_trsv<float>(arg);
+        else if(precision == 'c')
+            return testing_trsv<aoclsparse_float_complex>(arg);
+        else if(precision == 'z')
+            return testing_trsv<aoclsparse_double_complex>(arg);
     }
     else
     {

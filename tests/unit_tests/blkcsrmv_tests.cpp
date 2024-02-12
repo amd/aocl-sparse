@@ -382,12 +382,10 @@ namespace
         std::vector<aoclsparse_int> csr_row_ptr;
         std::vector<aoclsparse_int> csr_col_ind;
         std::vector<T>              csr_val;
-        T                           x[8]      = {1.00, 2.00, 3.00, 4.00, 5.00, 6.00, 7.00, 8.00};
-        T                           y[6]      = {0};
-        T                           y_gold[6] = {8.00, 2.00, 0.00, 204.00, 23.00, 14.00};
+        T                           x[8] = {1.00, 2.00, 3.00, 4.00, 5.00, 6.00, 7.00, 8.00};
+        T                           y[6] = {0};
 
         //Initialize block width
-        const aoclsparse_int        blk_width = 8;
         std::vector<aoclsparse_int> blk_row_ptr;
         std::vector<aoclsparse_int> blk_col_ind;
         std::vector<T>              blk_csr_val;
@@ -450,10 +448,9 @@ namespace
         T                    y[6]      = {0};
         T                    y_gold[6] = {8.00, 2.00, 0.00, 204.00, 23.00, 14.00};
         aoclsparse_mat_descr descr;
-        aoclsparse_int       nRowsblk           = 2;
-        uint8_t              masks[30]          = {1, 1, 0, 255, 24, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                                                   0, 0, 0, 0,   0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-        int                  invalid_index_base = 2;
+        aoclsparse_int       nRowsblk  = 2;
+        uint8_t              masks[30] = {1, 1, 0, 255, 24, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                          0, 0, 0, 0,   0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
         ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
 
@@ -488,8 +485,7 @@ namespace
         aoclsparse_status    status;
         aoclsparse_operation trans = aoclsparse_operation_none;
         aoclsparse_mat_descr descr;
-        int                  invalid_index_base = 2;
-        aoclsparse_int       nRowsblk[3]        = {1, 2, 4};
+        aoclsparse_int       nRowsblk[3] = {1, 2, 4};
         int                  iB;
 
         aoclsparse_int              m = 6, n = 8, nnz = 14;
@@ -585,7 +581,6 @@ namespace
         aoclsparse_status    status;
         aoclsparse_operation trans = aoclsparse_operation_none;
         aoclsparse_mat_descr descr;
-        int                  invalid_index_base = 2;
         int                  iB;
         aoclsparse_int       nRowsblk[3] = {1, 2, 4};
 
