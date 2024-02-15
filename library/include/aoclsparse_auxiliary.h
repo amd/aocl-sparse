@@ -563,9 +563,6 @@ DLL_PUBLIC
 aoclsparse_status aoclsparse_destroy(aoclsparse_matrix *mat);
 /**@}*/
 
-DLL_PUBLIC
-aoclsparse_int aoclsparse_get_vec_extn_context(void);
-
 /*! \ingroup aux_module
  *  \brief Creates a new \ref aoclsparse_matrix based on CSC (Compressed Sparse Column) format.
  *

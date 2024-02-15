@@ -25,14 +25,19 @@
 #include "gtest/gtest.h"
 #include "aoclsparse.hpp"
 
+//aocl utils
+#include "alci/cxx/cpu.hh"
+
 namespace
 {
+    using namespace alci;
 
     // Several tests in one when nullptr is passed instead
     // of valid data
     template <typename T>
-    void test_blkcsrmv_nullptr()
+    void test_blkcsrmv_nullptr(aoclsparse_status blkcsrmv_status = aoclsparse_status_success)
     {
+        aoclsparse_status    status;
         aoclsparse_operation trans = aoclsparse_operation_none;
         aoclsparse_int       m = 2, n = 8, nnz = 3;
         T                    blk_csr_val[] = {3, 2, 1};
@@ -52,111 +57,121 @@ namespace
         {
             // In turns pass nullptr in every single pointer argument
             // and expect pointer error
-            EXPECT_EQ(aoclsparse_blkcsrmv<T>(trans,
-                                             &alpha,
-                                             m,
-                                             n,
-                                             nnz,
-                                             nullptr,
-                                             blk_csr_val,
-                                             blk_col_ind,
-                                             blk_row_ptr,
-                                             descr,
-                                             x,
-                                             &beta,
-                                             y,
-                                             nRowsblk[i]),
-                      aoclsparse_status_invalid_pointer);
-            EXPECT_EQ(aoclsparse_blkcsrmv<T>(trans,
-                                             &alpha,
-                                             m,
-                                             n,
-                                             nnz,
-                                             masks,
-                                             nullptr,
-                                             blk_col_ind,
-                                             blk_row_ptr,
-                                             descr,
-                                             x,
-                                             &beta,
-                                             y,
-                                             nRowsblk[i]),
-                      aoclsparse_status_invalid_pointer);
-            EXPECT_EQ(aoclsparse_blkcsrmv<T>(trans,
-                                             &alpha,
-                                             m,
-                                             n,
-                                             nnz,
-                                             masks,
-                                             blk_csr_val,
-                                             nullptr,
-                                             blk_row_ptr,
-                                             descr,
-                                             x,
-                                             &beta,
-                                             y,
-                                             nRowsblk[i]),
-                      aoclsparse_status_invalid_pointer);
-            EXPECT_EQ(aoclsparse_blkcsrmv<T>(trans,
-                                             &alpha,
-                                             m,
-                                             n,
-                                             nnz,
-                                             masks,
-                                             blk_csr_val,
-                                             blk_col_ind,
-                                             nullptr,
-                                             descr,
-                                             x,
-                                             &beta,
-                                             y,
-                                             nRowsblk[i]),
-                      aoclsparse_status_invalid_pointer);
-            EXPECT_EQ(aoclsparse_blkcsrmv<T>(trans,
-                                             &alpha,
-                                             m,
-                                             n,
-                                             nnz,
-                                             masks,
-                                             blk_csr_val,
-                                             blk_col_ind,
-                                             blk_row_ptr,
-                                             nullptr,
-                                             x,
-                                             &beta,
-                                             y,
-                                             nRowsblk[i]),
-                      aoclsparse_status_invalid_pointer);
-            EXPECT_EQ(aoclsparse_blkcsrmv<T>(trans,
-                                             &alpha,
-                                             m,
-                                             n,
-                                             nnz,
-                                             masks,
-                                             blk_csr_val,
-                                             blk_col_ind,
-                                             blk_row_ptr,
-                                             descr,
-                                             nullptr,
-                                             &beta,
-                                             y,
-                                             nRowsblk[i]),
-                      aoclsparse_status_invalid_pointer);
-            EXPECT_EQ(aoclsparse_blkcsrmv<T>(trans,
-                                             &alpha,
-                                             m,
-                                             n,
-                                             nnz,
-                                             masks,
-                                             blk_csr_val,
-                                             blk_col_ind,
-                                             blk_row_ptr,
-                                             descr,
-                                             x,
-                                             &beta,
-                                             nullptr,
-                                             nRowsblk[i]),
-                      aoclsparse_status_invalid_pointer);
+            status = aoclsparse_blkcsrmv<T>(trans,
+                                            &alpha,
+                                            m,
+                                            n,
+                                            nnz,
+                                            nullptr,
+                                            blk_csr_val,
+                                            blk_col_ind,
+                                            blk_row_ptr,
+                                            descr,
+                                            x,
+                                            &beta,
+                                            y,
+                                            nRowsblk[i]);
+            ASSERT_EQ(status, blkcsrmv_status) << "Test failed with unexpected return from "
+                                                  "aoclsparse_blkcsrmv with null mask ptr input";
+            status = aoclsparse_blkcsrmv<T>(trans,
+                                            &alpha,
+                                            m,
+                                            n,
+                                            nnz,
+                                            masks,
+                                            nullptr,
+                                            blk_col_ind,
+                                            blk_row_ptr,
+                                            descr,
+                                            x,
+                                            &beta,
+                                            y,
+                                            nRowsblk[i]);
+            ASSERT_EQ(status, blkcsrmv_status)
+                << "Test failed with unexpected return from aoclsparse_blkcsrmv with null "
+                   "blk_csr_val ptr input";
+            status = aoclsparse_blkcsrmv<T>(trans,
+                                            &alpha,
+                                            m,
+                                            n,
+                                            nnz,
+                                            masks,
+                                            blk_csr_val,
+                                            nullptr,
+                                            blk_row_ptr,
+                                            descr,
+                                            x,
+                                            &beta,
+                                            y,
+                                            nRowsblk[i]);
+            ASSERT_EQ(status, blkcsrmv_status)
+                << "Test failed with unexpected return from aoclsparse_blkcsrmv with null "
+                   "blk_col_ind ptr input";
+            status = aoclsparse_blkcsrmv<T>(trans,
+                                            &alpha,
+                                            m,
+                                            n,
+                                            nnz,
+                                            masks,
+                                            blk_csr_val,
+                                            blk_col_ind,
+                                            nullptr,
+                                            descr,
+                                            x,
+                                            &beta,
+                                            y,
+                                            nRowsblk[i]);
+            ASSERT_EQ(status, blkcsrmv_status)
+                << "Test failed with unexpected return from aoclsparse_blkcsrmv with null "
+                   "blk_row_ptr ptr input";
+            status = aoclsparse_blkcsrmv<T>(trans,
+                                            &alpha,
+                                            m,
+                                            n,
+                                            nnz,
+                                            masks,
+                                            blk_csr_val,
+                                            blk_col_ind,
+                                            blk_row_ptr,
+                                            nullptr,
+                                            x,
+                                            &beta,
+                                            y,
+                                            nRowsblk[i]);
+            ASSERT_EQ(status, blkcsrmv_status) << "Test failed with unexpected return from "
+                                                  "aoclsparse_blkcsrmv with null descr ptr input";
+            status = aoclsparse_blkcsrmv<T>(trans,
+                                            &alpha,
+                                            m,
+                                            n,
+                                            nnz,
+                                            masks,
+                                            blk_csr_val,
+                                            blk_col_ind,
+                                            blk_row_ptr,
+                                            descr,
+                                            nullptr,
+                                            &beta,
+                                            y,
+                                            nRowsblk[i]);
+            ASSERT_EQ(status, blkcsrmv_status) << "Test failed with unexpected return from "
+                                                  "aoclsparse_blkcsrmv with null x ptr input";
+            status = aoclsparse_blkcsrmv<T>(trans,
+                                            &alpha,
+                                            m,
+                                            n,
+                                            nnz,
+                                            masks,
+                                            blk_csr_val,
+                                            blk_col_ind,
+                                            blk_row_ptr,
+                                            descr,
+                                            x,
+                                            &beta,
+                                            nullptr,
+                                            nRowsblk[i]);
+            ASSERT_EQ(status, blkcsrmv_status) << "Test failed with unexpected return from "
+                                                  "aoclsparse_blkcsrmv with null y ptr input";
             //FIXME crashes: EXPECT_EQ(aoclsparse_blkcsrmv<T>(trans, nullptr, m, n, nnz, masks, blk_csr_val, blk_col_ind, blk_row_ptr, descr, x, &beta, y, nRowsblk[i]),
             //      aoclsparse_status_invalid_pointer);
             //FIXME crashes: EXPECT_EQ(aoclsparse_blkcsrmv<T>(trans, &alpha, m, n, nnz, masks, blk_csr_val, blk_col_ind, blk_row_ptr, descr, x, nullptr, y, nRowsblk[i]),
@@ -168,8 +183,9 @@ namespace
 
     // tests with wrong scalar data n, m, nnz, masks and incorrect wrong block size
     template <typename T>
-    void test_blkcsrmv_wrong_size()
+    void test_blkcsrmv_wrong_size(aoclsparse_status blkcsrmv_status = aoclsparse_status_success)
     {
+        aoclsparse_status    status;
         aoclsparse_operation trans = aoclsparse_operation_none;
         aoclsparse_int       m = 2, n = 8, nnz = 3, wrong = -1;
         T                    blk_csr_val[] = {3, 2, 1};
@@ -185,107 +201,119 @@ namespace
 
         for(int i = 0; i < 3; i++)
         {
-            EXPECT_EQ(aoclsparse_blkcsrmv<T>(trans,
-                                             &alpha,
-                                             m,
-                                             5,
-                                             nnz,
-                                             masks,
-                                             blk_csr_val,
-                                             blk_col_ind,
-                                             blk_row_ptr,
-                                             descr,
-                                             x,
-                                             &beta,
-                                             y,
-                                             nRowsblk[i]),
-                      aoclsparse_status_invalid_size);
-            EXPECT_EQ(aoclsparse_blkcsrmv<T>(trans,
-                                             &alpha,
-                                             wrong,
-                                             n,
-                                             nnz,
-                                             masks,
-                                             blk_csr_val,
-                                             blk_col_ind,
-                                             blk_row_ptr,
-                                             descr,
-                                             x,
-                                             &beta,
-                                             y,
-                                             nRowsblk[i]),
-                      aoclsparse_status_invalid_size);
-            EXPECT_EQ(aoclsparse_blkcsrmv<T>(trans,
-                                             &alpha,
-                                             m,
-                                             wrong,
-                                             nnz,
-                                             masks,
-                                             blk_csr_val,
-                                             blk_col_ind,
-                                             blk_row_ptr,
-                                             descr,
-                                             x,
-                                             &beta,
-                                             y,
-                                             nRowsblk[i]),
-                      aoclsparse_status_invalid_size);
-            EXPECT_EQ(aoclsparse_blkcsrmv<T>(trans,
-                                             &alpha,
-                                             m,
-                                             n,
-                                             wrong,
-                                             masks,
-                                             blk_csr_val,
-                                             blk_col_ind,
-                                             blk_row_ptr,
-                                             descr,
-                                             x,
-                                             &beta,
-                                             y,
-                                             nRowsblk[i]),
-                      aoclsparse_status_invalid_size);
+            status = aoclsparse_blkcsrmv<T>(trans,
+                                            &alpha,
+                                            m,
+                                            5,
+                                            nnz,
+                                            masks,
+                                            blk_csr_val,
+                                            blk_col_ind,
+                                            blk_row_ptr,
+                                            descr,
+                                            x,
+                                            &beta,
+                                            y,
+                                            nRowsblk[i]);
+            ASSERT_EQ(status, blkcsrmv_status)
+                << "Test failed with unexpected return from aoclsparse_blkcsrmv with wrong n input";
+
+            status = aoclsparse_blkcsrmv<T>(trans,
+                                            &alpha,
+                                            wrong,
+                                            n,
+                                            nnz,
+                                            masks,
+                                            blk_csr_val,
+                                            blk_col_ind,
+                                            blk_row_ptr,
+                                            descr,
+                                            x,
+                                            &beta,
+                                            y,
+                                            nRowsblk[i]);
+            ASSERT_EQ(status, blkcsrmv_status) << "Test failed with unexpected return from "
+                                                  "aoclsparse_blkcsrmv with negative m input";
+
+            status = aoclsparse_blkcsrmv<T>(trans,
+                                            &alpha,
+                                            m,
+                                            wrong,
+                                            nnz,
+                                            masks,
+                                            blk_csr_val,
+                                            blk_col_ind,
+                                            blk_row_ptr,
+                                            descr,
+                                            x,
+                                            &beta,
+                                            y,
+                                            nRowsblk[i]);
+            ASSERT_EQ(status, blkcsrmv_status) << "Test failed with unexpected return from "
+                                                  "aoclsparse_blkcsrmv with negative n input";
+
+            status = aoclsparse_blkcsrmv<T>(trans,
+                                            &alpha,
+                                            m,
+                                            n,
+                                            wrong,
+                                            masks,
+                                            blk_csr_val,
+                                            blk_col_ind,
+                                            blk_row_ptr,
+                                            descr,
+                                            x,
+                                            &beta,
+                                            y,
+                                            nRowsblk[i]);
+            ASSERT_EQ(status, blkcsrmv_status) << "Test failed with unexpected return from "
+                                                  "aoclsparse_blkcsrmv with negative nnz input";
         }
 
         //test with invalid block size
-        EXPECT_EQ(aoclsparse_blkcsrmv<T>(trans,
-                                         &alpha,
-                                         m,
-                                         n,
-                                         nnz,
-                                         masks,
-                                         blk_csr_val,
-                                         blk_col_ind,
-                                         blk_row_ptr,
-                                         descr,
-                                         x,
-                                         &beta,
-                                         y,
-                                         wrong),
-                  aoclsparse_status_invalid_size);
-        EXPECT_EQ(aoclsparse_blkcsrmv<T>(trans,
-                                         &alpha,
-                                         m,
-                                         n,
-                                         nnz,
-                                         masks,
-                                         blk_csr_val,
-                                         blk_col_ind,
-                                         blk_row_ptr,
-                                         descr,
-                                         x,
-                                         &beta,
-                                         y,
-                                         5),
-                  aoclsparse_status_invalid_size);
+        status = aoclsparse_blkcsrmv<T>(trans,
+                                        &alpha,
+                                        m,
+                                        n,
+                                        nnz,
+                                        masks,
+                                        blk_csr_val,
+                                        blk_col_ind,
+                                        blk_row_ptr,
+                                        descr,
+                                        x,
+                                        &beta,
+                                        y,
+                                        wrong);
+        ASSERT_EQ(status, blkcsrmv_status) << "Test failed with unexpected return from "
+                                              "aoclsparse_blkcsrmv with negative block size input";
+
+        status = aoclsparse_blkcsrmv<T>(trans,
+                                        &alpha,
+                                        m,
+                                        n,
+                                        nnz,
+                                        masks,
+                                        blk_csr_val,
+                                        blk_col_ind,
+                                        blk_row_ptr,
+                                        descr,
+                                        x,
+                                        &beta,
+                                        y,
+                                        5);
+        ASSERT_EQ(status, blkcsrmv_status)
+            << "Test failed with unexpected return from aoclsparse_blkcsrmv with unsupported block "
+               "size input";
 
         aoclsparse_destroy_mat_descr(descr);
     }
 
     // zero matrix size is valid - just do nothing
     template <typename T>
-    void test_blkcsrmv_do_nothing()
+    void test_blkcsrmv_do_nothing(aoclsparse_status blkcsrmv_status = aoclsparse_status_success)
     {
+        aoclsparse_status    status;
         aoclsparse_operation trans = aoclsparse_operation_none;
         aoclsparse_int       m = 2, n = 8, nnz = 3;
         T                    blk_csr_val[] = {3, 2, 1};
@@ -302,43 +330,114 @@ namespace
         // Passing zero size matrix should be OK
         for(int i = 0; i < 3; i++)
         {
-            EXPECT_EQ(aoclsparse_blkcsrmv<T>(trans,
-                                             &alpha,
-                                             0,
-                                             n,
-                                             nnz,
-                                             masks,
-                                             blk_csr_val,
-                                             blk_col_ind,
-                                             blk_row_ptr,
-                                             descr,
-                                             x,
-                                             &beta,
-                                             y,
-                                             nRowsblk[i]),
-                      aoclsparse_status_success);
-            EXPECT_EQ(aoclsparse_blkcsrmv<T>(trans,
-                                             &alpha,
-                                             m,
-                                             n,
-                                             0,
-                                             masks,
-                                             blk_csr_val,
-                                             blk_col_ind,
-                                             blk_row_ptr,
-                                             descr,
-                                             x,
-                                             &beta,
-                                             y,
-                                             nRowsblk[i]),
-                      aoclsparse_status_success);
+            status = aoclsparse_blkcsrmv<T>(trans,
+                                            &alpha,
+                                            0,
+                                            n,
+                                            nnz,
+                                            masks,
+                                            blk_csr_val,
+                                            blk_col_ind,
+                                            blk_row_ptr,
+                                            descr,
+                                            x,
+                                            &beta,
+                                            y,
+                                            nRowsblk[i]);
+            ASSERT_EQ(status, blkcsrmv_status)
+                << "Test failed with unexpected return from aoclsparse_blkcsrmv with zero size m";
+            status = aoclsparse_blkcsrmv<T>(trans,
+                                            &alpha,
+                                            m,
+                                            n,
+                                            0,
+                                            masks,
+                                            blk_csr_val,
+                                            blk_col_ind,
+                                            blk_row_ptr,
+                                            descr,
+                                            x,
+                                            &beta,
+                                            y,
+                                            nRowsblk[i]);
+            ASSERT_EQ(status, blkcsrmv_status)
+                << "Test failed with unexpected return from aoclsparse_blkcsrmv with zero size nnz";
         }
 
         aoclsparse_destroy_mat_descr(descr);
     }
+    // check for invalid base index
     template <typename T>
-    void test_blkcsrmv_baseOneBlkCSRInput()
+    void test_blkcsrmv_invalid_base(aoclsparse_status blkcsrmv_status = aoclsparse_status_success)
     {
+        aoclsparse_status    status;
+        aoclsparse_operation trans = aoclsparse_operation_none;
+        aoclsparse_mat_descr descr;
+        int                  invalid_index_base = 2;
+        int                  iB;
+        aoclsparse_int       nRowsblk[3] = {1, 2, 4};
+
+        aoclsparse_int              m = 6, n = 8, nnz = 14;
+        T                           alpha = 1.0, beta = 0.0;
+        std::vector<aoclsparse_int> csr_row_ptr;
+        std::vector<aoclsparse_int> csr_col_ind;
+        std::vector<T>              csr_val;
+        T                           x[8]      = {1.00, 2.00, 3.00, 4.00, 5.00, 6.00, 7.00, 8.00};
+        T                           y[6]      = {0};
+        T                           y_gold[6] = {8.00, 2.00, 0.00, 204.00, 23.00, 14.00};
+
+        //Initialize block width
+        const aoclsparse_int        blk_width = 8;
+        std::vector<aoclsparse_int> blk_row_ptr;
+        std::vector<aoclsparse_int> blk_col_ind;
+        std::vector<T>              blk_csr_val;
+        std::vector<uint8_t>        masks;
+
+        csr_row_ptr.assign({0, 1, 2, 2, 10, 12, 14});
+        csr_col_ind.assign({0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 3, 4, 0, 1});
+        csr_val.assign(
+            {8.00, 2.00, 3.00, 3.00, 3.00, 6.00, 10.00, 9.00, 6.00, 2.00, 2.00, 3.00, 2.00, 6.00});
+
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+
+        aoclsparse_matrix A = nullptr;
+        ASSERT_EQ(
+            create_aoclsparse_matrix<T>(A, descr, m, n, nnz, csr_row_ptr, csr_col_ind, csr_val),
+            aoclsparse_status_success);
+
+        //check if base index value is invalid
+        iB = 2; //nRowsblk = 4
+        std::fill(blk_row_ptr.begin(), blk_row_ptr.end(), 0);
+        std::fill(blk_col_ind.begin(), blk_col_ind.end(), 0);
+        std::fill(blk_csr_val.begin(), blk_csr_val.end(), 0.0);
+        std::fill(masks.begin(), masks.end(), 0);
+
+        descr->base = (aoclsparse_index_base)invalid_index_base;
+        status      = aoclsparse_blkcsrmv<T>(trans,
+                                        &alpha,
+                                        m,
+                                        n,
+                                        nnz,
+                                        masks.data(),
+                                        blk_csr_val.data(),
+                                        blk_col_ind.data(),
+                                        blk_row_ptr.data(),
+                                        descr,
+                                        x,
+                                        &beta,
+                                        y,
+                                        nRowsblk[iB]);
+        ASSERT_EQ(status, blkcsrmv_status)
+            << "Test failed to validate invalid base-index from aoclsparse_blkcsrmv";
+
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+    }
+    template <typename T>
+    void test_blkcsrmv_baseOneBlkCSRInput(aoclsparse_status blkcsrmv_status
+                                          = aoclsparse_status_success)
+    {
+        aoclsparse_status    status;
         aoclsparse_operation trans = aoclsparse_operation_none;
         aoclsparse_int       m = 6, n = 8, nnz = 14;
         T blk_csr_val[30] = {8.00, 2.00, 3.00, 3.00, 3.00, 6.00, 10.00, 9.00, 6.00, 2.00,
@@ -360,46 +459,33 @@ namespace
 
         ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_one),
                   aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_blkcsrmv<T>(trans,
-                                         &alpha,
-                                         m,
-                                         n,
-                                         nnz,
-                                         masks,
-                                         blk_csr_val,
-                                         blk_col_ind,
-                                         blk_row_ptr,
-                                         descr,
-                                         x,
-                                         &beta,
-                                         y,
-                                         nRowsblk),
-                  aoclsparse_status_success);
-
-        EXPECT_ARR_NEAR(m, y, y_gold, expected_precision<T>(10.0));
-
-        descr->base = (aoclsparse_index_base)invalid_index_base;
-        EXPECT_EQ(aoclsparse_blkcsrmv<T>(trans,
-                                         &alpha,
-                                         m,
-                                         n,
-                                         nnz,
-                                         masks,
-                                         blk_csr_val,
-                                         blk_col_ind,
-                                         blk_row_ptr,
-                                         descr,
-                                         x,
-                                         &beta,
-                                         y,
-                                         nRowsblk),
-                  aoclsparse_status_invalid_value);
-
+        status = aoclsparse_blkcsrmv<T>(trans,
+                                        &alpha,
+                                        m,
+                                        n,
+                                        nnz,
+                                        masks,
+                                        blk_csr_val,
+                                        blk_col_ind,
+                                        blk_row_ptr,
+                                        descr,
+                                        x,
+                                        &beta,
+                                        y,
+                                        nRowsblk);
+        ASSERT_EQ(status, blkcsrmv_status) << "Test failed with unexpected return from "
+                                              "aoclsparse_blkcsrmv with baseOne Block CSR input";
+        if(status == aoclsparse_status_success)
+        {
+            EXPECT_ARR_NEAR(m, y, y_gold, expected_precision<T>(10.0));
+        }
         EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
     }
     template <typename T>
-    void test_blkcsrmv_baseOneCSRInput()
+    void test_blkcsrmv_baseOneCSRInput(aoclsparse_status blkcsrmv_status
+                                       = aoclsparse_status_success)
     {
+        aoclsparse_status    status;
         aoclsparse_operation trans = aoclsparse_operation_none;
         aoclsparse_mat_descr descr;
         int                  invalid_index_base = 2;
@@ -468,52 +554,35 @@ namespace
                                             aoclsparse_index_base_one),
                       aoclsparse_status_success);
 
-            EXPECT_EQ(aoclsparse_blkcsrmv<T>(trans,
-                                             &alpha,
-                                             m,
-                                             n,
-                                             nnz,
-                                             masks.data(),
-                                             blk_csr_val.data(),
-                                             blk_col_ind.data(),
-                                             blk_row_ptr.data(),
-                                             descr,
-                                             x,
-                                             &beta,
-                                             y,
-                                             nRowsblk[iB]),
-                      aoclsparse_status_success);
-            EXPECT_ARR_NEAR(m, y, y_gold, expected_precision<T>(10.0));
+            status = aoclsparse_blkcsrmv<T>(trans,
+                                            &alpha,
+                                            m,
+                                            n,
+                                            nnz,
+                                            masks.data(),
+                                            blk_csr_val.data(),
+                                            blk_col_ind.data(),
+                                            blk_row_ptr.data(),
+                                            descr,
+                                            x,
+                                            &beta,
+                                            y,
+                                            nRowsblk[iB]);
+            ASSERT_EQ(status, blkcsrmv_status) << "Test failed with unexpected return from "
+                                                  "aoclsparse_blkcsrmv with baseOne CSR input";
+            if(status == aoclsparse_status_success)
+            {
+                EXPECT_ARR_NEAR(m, y, y_gold, expected_precision<T>(10.0));
+            }
         }
-
-        //check if base index value is invalid
-        iB = 2; //nRowsblk = 4
-        std::fill(blk_row_ptr.begin(), blk_row_ptr.end(), 0);
-        std::fill(blk_col_ind.begin(), blk_col_ind.end(), 0);
-        std::fill(blk_csr_val.begin(), blk_csr_val.end(), 0.0);
-        std::fill(masks.begin(), masks.end(), 0);
-        descr->base = (aoclsparse_index_base)invalid_index_base;
-        EXPECT_EQ(aoclsparse_blkcsrmv<T>(trans,
-                                         &alpha,
-                                         m,
-                                         n,
-                                         nnz,
-                                         masks.data(),
-                                         blk_csr_val.data(),
-                                         blk_col_ind.data(),
-                                         blk_row_ptr.data(),
-                                         descr,
-                                         x,
-                                         &beta,
-                                         y,
-                                         nRowsblk[iB]),
-                  aoclsparse_status_invalid_value);
         EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
     }
     template <typename T>
-    void test_blkcsrmv_baseZeroCSRInput()
+    void test_blkcsrmv_baseZeroCSRInput(aoclsparse_status blkcsrmv_status
+                                        = aoclsparse_status_success)
     {
+        aoclsparse_status    status;
         aoclsparse_operation trans = aoclsparse_operation_none;
         aoclsparse_mat_descr descr;
         int                  invalid_index_base = 2;
@@ -578,48 +647,27 @@ namespace
                                             aoclsparse_index_base_zero),
                       aoclsparse_status_success);
 
-            EXPECT_EQ(aoclsparse_blkcsrmv<T>(trans,
-                                             &alpha,
-                                             m,
-                                             n,
-                                             nnz,
-                                             masks.data(),
-                                             blk_csr_val.data(),
-                                             blk_col_ind.data(),
-                                             blk_row_ptr.data(),
-                                             descr,
-                                             x,
-                                             &beta,
-                                             y,
-                                             nRowsblk[iB]),
-                      aoclsparse_status_success);
-
-            EXPECT_ARR_NEAR(m, y, y_gold, expected_precision<T>(10.0));
+            status = aoclsparse_blkcsrmv<T>(trans,
+                                            &alpha,
+                                            m,
+                                            n,
+                                            nnz,
+                                            masks.data(),
+                                            blk_csr_val.data(),
+                                            blk_col_ind.data(),
+                                            blk_row_ptr.data(),
+                                            descr,
+                                            x,
+                                            &beta,
+                                            y,
+                                            nRowsblk[iB]);
+            ASSERT_EQ(status, blkcsrmv_status) << "Test failed with unexpected return from "
+                                                  "aoclsparse_blkcsrmv with baseZero CSR input";
+            if(status == aoclsparse_status_success)
+            {
+                EXPECT_ARR_NEAR(m, y, y_gold, expected_precision<T>(10.0));
+            }
         }
-
-        //check if base index value is invalid
-        iB = 2; //nRowsblk = 4
-        std::fill(blk_row_ptr.begin(), blk_row_ptr.end(), 0);
-        std::fill(blk_col_ind.begin(), blk_col_ind.end(), 0);
-        std::fill(blk_csr_val.begin(), blk_csr_val.end(), 0.0);
-        std::fill(masks.begin(), masks.end(), 0);
-
-        descr->base = (aoclsparse_index_base)invalid_index_base;
-        EXPECT_EQ(aoclsparse_blkcsrmv<T>(trans,
-                                         &alpha,
-                                         m,
-                                         n,
-                                         nnz,
-                                         masks.data(),
-                                         blk_csr_val.data(),
-                                         blk_col_ind.data(),
-                                         blk_row_ptr.data(),
-                                         descr,
-                                         x,
-                                         &beta,
-                                         y,
-                                         nRowsblk[iB]),
-                  aoclsparse_status_invalid_value);
 
         EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
@@ -815,37 +863,40 @@ namespace
     // * invalid array data (but we don't test these right now, e.g., col_ind out of bounds)
     // * nnz not matching row_ptr
     //
-
     TEST(blkcsrmv, NullArgDouble)
     {
-        if(!aoclsparse_get_vec_extn_context())
-        {
-            GTEST_SKIP() << "Skipping avx512 specific test case, since the CPU does not have "
-                            "AVX-512 flags to run test case";
-        }
-        test_blkcsrmv_nullptr<double>();
+        alci::Cpu core{0};
+        bool okblk = core.isAvailable(ALC_E_FLAG_AVX512F) && core.isAvailable(ALC_E_FLAG_AVX512VL);
+        const aoclsparse_status blkcsrmv_status
+            = okblk ? aoclsparse_status_invalid_pointer : aoclsparse_status_not_implemented;
+        test_blkcsrmv_nullptr<double>(blkcsrmv_status);
     }
-
     TEST(blkcsrmv, WrongSizeDouble)
     {
-        if(!aoclsparse_get_vec_extn_context())
-        {
-            GTEST_SKIP() << "Skipping avx512 specific test case, since the CPU does not have "
-                            "AVX-512 flags to run test case";
-        }
-        test_blkcsrmv_wrong_size<double>();
+        alci::Cpu core{0};
+        bool okblk = core.isAvailable(ALC_E_FLAG_AVX512F) && core.isAvailable(ALC_E_FLAG_AVX512VL);
+        const aoclsparse_status blkcsrmv_status
+            = okblk ? aoclsparse_status_invalid_size : aoclsparse_status_not_implemented;
+        test_blkcsrmv_wrong_size<double>(blkcsrmv_status);
     }
 
     TEST(blkcsrmv, DoNothingDouble)
     {
-        if(!aoclsparse_get_vec_extn_context())
-        {
-            GTEST_SKIP() << "Skipping avx512 specific test case, since the CPU does not have "
-                            "AVX-512 flags to run test case";
-        }
-        test_blkcsrmv_do_nothing<double>();
+        alci::Cpu core{0};
+        bool okblk = core.isAvailable(ALC_E_FLAG_AVX512F) && core.isAvailable(ALC_E_FLAG_AVX512VL);
+        const aoclsparse_status blkcsrmv_status
+            = okblk ? aoclsparse_status_success : aoclsparse_status_not_implemented;
+        test_blkcsrmv_do_nothing<double>(blkcsrmv_status);
     }
 
+    TEST(blkcsrmv, InvalidBase)
+    {
+        alci::Cpu core{0};
+        bool okblk = core.isAvailable(ALC_E_FLAG_AVX512F) && core.isAvailable(ALC_E_FLAG_AVX512VL);
+        const aoclsparse_status blkcsrmv_status
+            = okblk ? aoclsparse_status_invalid_value : aoclsparse_status_not_implemented;
+        test_blkcsrmv_invalid_base<double>(blkcsrmv_status);
+    }
     TEST(blkcsrmv, Conversion)
     {
         test_blkcsrmv_conversion<double>();
@@ -853,36 +904,27 @@ namespace
 
     TEST(blkcsrmv, AVX512BaseOneDoubleBlkCSRInput)
     {
-        // FIXME: don't run these tests if CPU does not
-        // have AVX-512 flags runnable.
-        if(!aoclsparse_get_vec_extn_context())
-        {
-            GTEST_SKIP() << "Skipping avx512 specific test case, since the CPU does not have "
-                            "AVX-512 flags to run test case";
-        }
-        test_blkcsrmv_baseOneBlkCSRInput<double>();
-    }
-    TEST(blkcsrmv, AVX512BaseOneDoubleCSRInput)
-    {
-        // FIXME: don't run these tests if CPU does not
-        // have AVX-512 flags runnable.
-        if(!aoclsparse_get_vec_extn_context())
-        {
-            GTEST_SKIP() << "Skipping avx512 specific test case, since the CPU does not have "
-                            "AVX-512 flags to run test case";
-        }
-        test_blkcsrmv_baseOneCSRInput<double>();
+        alci::Cpu core{0};
+        bool okblk = core.isAvailable(ALC_E_FLAG_AVX512F) && core.isAvailable(ALC_E_FLAG_AVX512VL);
+        const aoclsparse_status blkcsrmv_status
+            = okblk ? aoclsparse_status_success : aoclsparse_status_not_implemented;
+        test_blkcsrmv_baseOneBlkCSRInput<double>(blkcsrmv_status);
     }
 
+    TEST(blkcsrmv, AVX512BaseOneDoubleCSRInput)
+    {
+        alci::Cpu core{0};
+        bool okblk = core.isAvailable(ALC_E_FLAG_AVX512F) && core.isAvailable(ALC_E_FLAG_AVX512VL);
+        const aoclsparse_status blkcsrmv_status
+            = okblk ? aoclsparse_status_success : aoclsparse_status_not_implemented;
+        test_blkcsrmv_baseOneCSRInput<double>(blkcsrmv_status);
+    }
     TEST(blkcsrmv, AVX512BaseZeroDoubleCSRInput)
     {
-        // FIXME: don't run these tests if CPU does not
-        // have AVX-512 flags runnable.
-        if(!aoclsparse_get_vec_extn_context())
-        {
-            GTEST_SKIP() << "Skipping avx512 specific test case, since the CPU does not have "
-                            "AVX-512 flags to run test case";
-        }
-        test_blkcsrmv_baseZeroCSRInput<double>();
+        alci::Cpu core{0};
+        bool okblk = core.isAvailable(ALC_E_FLAG_AVX512F) && core.isAvailable(ALC_E_FLAG_AVX512VL);
+        const aoclsparse_status blkcsrmv_status
+            = okblk ? aoclsparse_status_success : aoclsparse_status_not_implemented;
+        test_blkcsrmv_baseZeroCSRInput<double>(blkcsrmv_status);
     }
 } // namespace

@@ -527,18 +527,6 @@ aoclsparse_status aoclsparse_destroy(aoclsparse_matrix *A)
     return ret;
 }
 
-// This function returns 1 if the architecture supports AVX512, else 0
-// ToDo: return type can be an enum covering various vector extensions like SSE, AVX2, AVX512
-aoclsparse_int aoclsparse_get_vec_extn_context(void)
-{
-    aoclsparse_init_once();
-    aoclsparse_context context;
-    context.is_avx512 = sparse_global_context.is_avx512;
-    if(context.is_avx512)
-        return 1;
-    return 0;
-}
-
 /********************************************************************************
  * \brief \P{aoclsparse_?_set_value} sets the value in sparse matrix for a particular
  * coordinate with the appropriate data type (float, double, float complex,

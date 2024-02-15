@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,6 +30,21 @@
 //Windows equivalent of gcc c99 type qualifier __restrict__
 #define __restrict__ __restrict
 #endif
+
+aoclsparse_status aoclsparse_dblkcsrmv_avx512(aoclsparse_operation       trans,
+                                              const double              *alpha,
+                                              aoclsparse_int             m,
+                                              aoclsparse_int             n,
+                                              aoclsparse_int             nnz,
+                                              const uint8_t             *masks,
+                                              const double              *blk_csr_val,
+                                              const aoclsparse_int      *blk_col_ind,
+                                              const aoclsparse_int      *blk_row_ptr,
+                                              const aoclsparse_mat_descr descr,
+                                              const double              *x,
+                                              const double              *beta,
+                                              double                    *y,
+                                              aoclsparse_int             nRowsblk);
 
 template <typename T>
 aoclsparse_status
