@@ -57,6 +57,11 @@
 // and converting it into a CSR representation
 #include "testing_complex_mtx_load.hpp"
 
+//aocl utils
+#include "alci/cxx/cpu.hh"
+
+using namespace alci;
+
 int main(int argc, char *argv[])
 {
     Arguments arg;
@@ -258,10 +263,11 @@ int main(int argc, char *argv[])
     }
     else if(strcmp(arg.function, "blkcsrmv") == 0)
     {
-        // FIXME: don't run these tests if CPU does not
-        // have AVX-512 flags runnable.
-        if(precision == 'd' && aoclsparse_get_vec_extn_context())
-            testing_blkcsrmv<double>(arg);
+        alci::Cpu core{0};
+        bool okblk = core.isAvailable(ALC_E_FLAG_AVX512F) && core.isAvailable(ALC_E_FLAG_AVX512VL);
+        //float and complex are not supported. avx512 code on non-avx512 machine not supported
+        if(precision == 'd' && okblk)
+            return testing_blkcsrmv<double>(arg);
     }
     else if(strcmp(arg.function, "ellmv") == 0)
     {

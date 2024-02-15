@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,7 +29,8 @@
 #include <intrin.h>
 #endif
 
-int bits_set(uint8_t x)
+#if defined __AVX512F__ && defined __AVX512VL__
+int                                bits_set(uint8_t x)
 {
 #if !defined(__clang__) && (defined(_WIN32) || defined(_WIN64))
     return __popcnt(x);
@@ -375,20 +376,20 @@ aoclsparse_status
 //This routine performs sparse-matrix multiplication on matrices stored in blocked CSR format.
 //Supports blocking factors of size 1x8, 2x8 and 4x8. Blocking size is chosen depending on the matrix characteristics.
 //We currently support blocked SpMV for only single threaded usecases.
-extern "C" aoclsparse_status aoclsparse_dblkcsrmv(aoclsparse_operation       trans,
-                                                  const double              *alpha,
-                                                  aoclsparse_int             m,
-                                                  aoclsparse_int             n,
-                                                  aoclsparse_int             nnz,
-                                                  const uint8_t             *masks,
-                                                  const double              *blk_csr_val,
-                                                  const aoclsparse_int      *blk_col_ind,
-                                                  const aoclsparse_int      *blk_row_ptr,
-                                                  const aoclsparse_mat_descr descr,
-                                                  const double              *x,
-                                                  const double              *beta,
-                                                  double                    *y,
-                                                  aoclsparse_int             nRowsblk)
+aoclsparse_status aoclsparse_dblkcsrmv_avx512(aoclsparse_operation       trans,
+                                              const double              *alpha,
+                                              aoclsparse_int             m,
+                                              aoclsparse_int             n,
+                                              aoclsparse_int             nnz,
+                                              const uint8_t             *masks,
+                                              const double              *blk_csr_val,
+                                              const aoclsparse_int      *blk_col_ind,
+                                              const aoclsparse_int      *blk_row_ptr,
+                                              const aoclsparse_mat_descr descr,
+                                              const double              *x,
+                                              const double              *beta,
+                                              double                    *y,
+                                              aoclsparse_int             nRowsblk)
 {
     // Read the environment variables to update global variable
     // This function updates the num_threads only once.
@@ -496,3 +497,4 @@ extern "C" aoclsparse_status aoclsparse_dblkcsrmv(aoclsparse_operation       tra
     else
         return aoclsparse_status_not_implemented;
 }
+#endif // AVX512F & AVX512VL

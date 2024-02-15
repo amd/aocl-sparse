@@ -42,8 +42,9 @@
 using namespace std;
 
 template <typename T>
-void testing_blkcsrmv(const Arguments &arg)
+int testing_blkcsrmv(const Arguments &arg)
 {
+    int                    status   = 0;
     aoclsparse_int         M        = arg.M;
     aoclsparse_int         N        = arg.N;
     aoclsparse_int         nnz      = arg.nnz;
@@ -161,7 +162,7 @@ void testing_blkcsrmv(const Arguments &arg)
         if(near_check_general<T>(1, M, 1, y_gold.data(), y.data()))
         {
             aoclsparse_destroy(&A);
-            return;
+            return 2;
         }
     }
     int    number_hot_calls = arg.iters;
@@ -207,6 +208,7 @@ void testing_blkcsrmv(const Arguments &arg)
               << (arg.unit_check ? "yes" : "no") << std::endl;
 
     aoclsparse_destroy(&A);
+    return status;
 }
 
 #endif // TESTING_BLKCSR_HPP
