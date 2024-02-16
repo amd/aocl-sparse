@@ -42,7 +42,7 @@ execute_process(
 if(NOT ${EXIT_CODE} EQUAL 0)
   message(
     FATAL_ERROR
-      "Python3 package rocm_docs is required to build the documentation\n   Use: ${Python3_EXECUTABLE} -m pip install rocm-docs-core"
+      "Python3 package rocm_docs is required to build the documentation (tested with version 0.34.2)\n   Use: ${Python3_EXECUTABLE} -m pip install \"rocm-docs-core==0.34.2\""
   )
 endif()
 execute_process(
