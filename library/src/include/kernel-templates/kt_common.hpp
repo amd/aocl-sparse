@@ -28,8 +28,6 @@
 #include <complex>
 #include <cstdint>
 #include <immintrin.h>
-#include <limits>
-#include <tuple>
 #include <type_traits>
 
 #ifdef __OPTIMIZE__
@@ -55,8 +53,8 @@ namespace kernel_templates
     // * ANY      All targets
     // * AVX      All extensions up to AVX2: AVX, FMA, ...
     // * AVX512F  AVX512 Foundations
-    // * AVX512VL Use zero-masked instrinsics, ...
     // * AVX512DQ ...
+    // * AVX512VL Use zero-masked instrinsics, ...
     // Each extension needs to be a superset of the previous
     enum kt_avxext : size_t
     {
@@ -66,7 +64,7 @@ namespace kernel_templates
         AVX2     = 2,
         AVX512F  = 2 + 4,
         AVX512DQ = 2 + 4 + 8,
-        AVX512VL = 2 + 4 + 8 + 16,
+        AVX512VL = 2 + 4 + 8 + 16
     };
 
     // Enum class that represents the vector lengths
@@ -105,16 +103,6 @@ namespace kernel_templates
         }
     };
 
-    // Checks if the base type is float - true only for float and cfloat
-    template <typename T>
-    struct kt_is_base_t_float
-    {
-        constexpr operator bool() const noexcept
-        {
-            return std::is_same<T, float>::value || std::is_same<T, cfloat>::value;
-        }
-    };
-
     // Checks if the base type is double - true only for double and cdouble
     template <typename T>
     struct kt_is_base_t_double
@@ -122,6 +110,16 @@ namespace kernel_templates
         constexpr operator bool() const noexcept
         {
             return std::is_same<T, double>::value || std::is_same<T, cdouble>::value;
+        }
+    };
+
+    // Checks if the base type is float - true only for float and cfloat
+    template <typename T>
+    struct kt_is_base_t_float
+    {
+        constexpr operator bool() const noexcept
+        {
+            return std::is_same<T, float>::value || std::is_same<T, cfloat>::value;
         }
     };
 
@@ -137,8 +135,8 @@ namespace kernel_templates
         using half_type               = __m128d; // Associated "half" length vector type
         static constexpr size_t value = 4; // Vector length, packet size
         static constexpr size_t half  = 4 >> 1; // Length of half vector
-        static constexpr size_t count
-            = 4; // amount of elements of type `typename` that the vector holds
+        // amount of elements of type `typename` that the vector holds
+        static constexpr size_t count = 4;
         constexpr operator size_t() const noexcept
         {
             return value;
@@ -183,7 +181,7 @@ namespace kernel_templates
             return value;
         }
     };
-#ifdef USE_AVX512
+#ifdef __AVX512F__
     template <>
     struct avxvector<bsz::b512, double>
     {
@@ -280,17 +278,80 @@ namespace kernel_templates
 
     // -----------------------------------------------------------------------
 
-    // Dense direct (un)aligned load to AVX register
-    // return an avxvector with the loaded content.
+    // Fill vector with a scalar value
+    // return an avxvector filled with the same scalar value.
     //
-    // Example: `avxvector_t<bsz::b256,double> v = kt_loadu_p<bsz::b256,double>(&a[7])` is equivalent to `v = _mm256_loadu_pd(&a[7])`
+    // Example `avxvector_t<bsz::b512, double> v = kt_set1_p<bsz::b512, double>(x)` is equivalent to `v = _mm512_set1_pd(x)`
     template <bsz SZ, typename SUF>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b256, avxvector_t<SZ, SUF>>
-                    kt_loadu_p(const SUF *a) noexcept;
+                    kt_set1_p(const SUF x) noexcept;
 
     template <bsz SZ, typename SUF>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, avxvector_t<SZ, SUF>>
-                    kt_loadu_p(const SUF *a) noexcept;
+                    kt_set1_p(const SUF x) noexcept;
+
+    // -----------------------------------------------------------------------
+
+    // Unaligned set (load) to AVX register with indirect memory access
+    //  - `SZ` size (in bits) of AVX vector, bsz::b256 or bsz::b512
+    //  - `SUF` suffix of working type, i.e., `double`, `float`, `cdouble`, or `cfloat`
+    //  - `v` dense array for loading the data
+    //  - `b` map address within range of `v`
+    // return an avxvector with the loaded data.
+    //
+    // Example: `kt_set_p<bsz::b256, double>(v, b)` expands to _mm256_set_pd(v[*(b+3)],v[*(b+2)],v[*(b+1)],v[*(b+0)])
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b256, avxvector_t<SZ, SUF>>
+                    kt_set_p(const SUF *v, const kt_int_t *b) noexcept;
+
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, avxvector_t<SZ, SUF>>
+                    kt_set_p(const SUF *v, const kt_int_t *b) noexcept;
+
+    // -----------------------------------------------------------------------
+
+    // Unaligned load to AVX register with zero mask direct memory model.
+    // Copies `L` elements from `v` and pads with zero the rest of AVX vector
+    //  - `SZ`  size (in bits) of AVX vector, i.e., bsz::b256 or bsz::b512
+    //  - `SUF` suffix of working type, i.e., `double`, `float`, `cdouble`, or `cfloat`
+    //  - `EXT` type of kt_avxext to use, i.e., AVX, AVX512F, ...
+    //  - `L` number of elements from `v` to copy
+    //  - `v` dense array for loading the data
+    //  - `b` delta address within `v`
+    // return an avxvector with the loaded data.
+    //
+    // Example: `kt_maskz_set_p<256, float, AVX, 3>(v, b)` expands to `_mm256_set_ps(0f, 0f, 0f, 0f, 0f, v[b+2], v[b+1], v[b+0])`
+    // and      `kt_maskz_set_p<256, double, AVX512VL, 3>(v, b)` expands to _mm256_maskz_loadu_pd(7, &v[b])
+    template <bsz SZ, typename SUF, kt_avxext EXT, int L>
+    KT_FORCE_INLINE
+        std::enable_if_t<(SZ == bsz::b256 && EXT == kt_avxext::AVX2), avxvector_t<SZ, SUF>>
+        kt_maskz_set_p(const SUF *v, const kt_int_t b) noexcept;
+
+    template <bsz SZ, typename SUF, kt_avxext EXT, int L>
+    KT_FORCE_INLINE
+        std::enable_if_t<EXT == kt_avxext::AVX512VL || SZ == bsz::b512, avxvector_t<SZ, SUF>>
+        kt_maskz_set_p(const SUF *v, const kt_int_t b) noexcept;
+
+    // -----------------------------------------------------------------------
+
+    // Unaligned load to AVX register with zero mask indirect memory model.
+    // Copies `L` elements from `v` and pads with zero the rest of AVX vector
+    //  - `SZ`  size (in bits) of AVX vector, i.e., bsz::b256 or bsz::b512
+    //  - `SUF` suffix of working type, i.e., `double`, `float`, `cdouble`, or `cfloat`
+    //  - `EXT` type of kt_avxext to use, i.e., AVX, AVX512F, ...
+    //  - `L` number of elements from `v` to copy
+    //  - `v` dense array for loading the data
+    //  - `b` map address within range of `v`
+    // return an avxvector with the loaded data.
+    //
+    // Example: `kt_maskz_set_p<256, double, AVX, 2>(v, b)` expands to `_mm256_set_pd(0.0, 0.0, v[*(b+1)], v[*(b+0)])`
+    template <bsz SZ, typename SUF, kt_avxext, int L>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b256, avxvector_t<SZ, SUF>>
+                    kt_maskz_set_p(const SUF *v, const kt_int_t *b) noexcept;
+
+    template <bsz SZ, typename SUF, kt_avxext, int L>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, avxvector_t<SZ, SUF>>
+                    kt_maskz_set_p(const SUF *v, const kt_int_t *b) noexcept;
 
     // -----------------------------------------------------------------------
 
@@ -306,17 +367,31 @@ namespace kernel_templates
 
     // -----------------------------------------------------------------------
 
-    // Fill vector with a scalar value
-    // return an avxvector filled with the same scalar value.
+    // Dense direct (un)aligned load to AVX register
+    // return an avxvector with the loaded content.
     //
-    // Example `avxvector_t<vec_l::b512, double> v = kt_set1_p<vec_l::b512, double>(x)` is equivalent to `v = _mm512_set1_pd(x)`
+    // Example: `avxvector_t<bsz::b256,double> v = kt_loadu_p<bsz::b256,double>(&a[7])` is equivalent to `v = _mm256_loadu_pd(&a[7])`
     template <bsz SZ, typename SUF>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b256, avxvector_t<SZ, SUF>>
-                    kt_set1_p(const SUF x) noexcept;
+                    kt_loadu_p(const SUF *a) noexcept;
 
     template <bsz SZ, typename SUF>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, avxvector_t<SZ, SUF>>
-                    kt_set1_p(const SUF x) noexcept;
+                    kt_loadu_p(const SUF *a) noexcept;
+
+    // -----------------------------------------------------------------------
+
+    // Stores the values in an AVX register to a memory location (Memory does not have to be aligned)
+    // returns void.
+    //
+    // Example:`kt_storeu_p<256,double>(&x, vec)` is equivalent to `_mm256_storeu_pd(&x, vec)`
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b256, void>
+                    kt_storeu_p(const SUF *, const avxvector_t<SZ, SUF>) noexcept;
+
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, void>
+                    kt_storeu_p(const SUF *, const avxvector_t<SZ, SUF>) noexcept;
 
     // -----------------------------------------------------------------------
 
@@ -325,7 +400,7 @@ namespace kernel_templates
     //  - `b` avxvector
     // return an avxvector with `a` + `b` elementwise.
     //
-    // Example: `avxvector_t<vec_l::b256, double> c = kt_add_p(a, b)` is equivalent to `__256d c = _mm256_add_pd(a, b)`
+    // Example: `avxvector_t<bsz::b256, double> c = kt_add_p(a, b)` is equivalent to `__256d c = _mm256_add_pd(a, b)`
     template <bsz SZ, typename SUF>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b256, avxvector_t<SZ, SUF>>
                     kt_add_p(const avxvector_t<SZ, SUF> a, const avxvector_t<SZ, SUF> b) noexcept;
@@ -340,7 +415,7 @@ namespace kernel_templates
     //  - `a` avxvector
     //  - `b` avxvector
     // return an avxvector with `a` * `b` elementwise.
-    // Example: `avxvector_t<vec_l::b256, double> c = kt_mul_p(a, b)` is equivalent to `__256d c = _mm256_mul_pd(a, b)`
+    // Example: `avxvector_t<bsz::b256, double> c = kt_mul_p(a, b)` is equivalent to `__256d c = _mm256_mul_pd(a, b)`
     template <bsz SZ, typename SUF>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b256, avxvector_t<SZ, SUF>>
                     kt_mul_p(const avxvector_t<SZ, SUF> a, const avxvector_t<SZ, SUF> b) noexcept;
@@ -385,45 +460,6 @@ namespace kernel_templates
 
     // -----------------------------------------------------------------------
 
-    // Unaligned set (load) to AVX register with indirect memory access
-    //  - `SZ` size (in bits) of AVX vector, bsz::b256 or bsz::b512
-    //  - `SUF` suffix of working type, i.e., `double`, `float`, `cdouble`, or `cfloat`
-    //  - `v` dense array for loading the data
-    //  - `b` map address within range of `v`
-    // return an avxvector with the loaded data.
-    //
-    // Example: `kt_set_p<bsz::b256, double>(v, b)` expands to _mm256_set_pd(v[*(b+3)],v[*(b+2)],v[*(b+1)],v[*(b+0)])
-    template <bsz SZ, typename SUF>
-    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b256, avxvector_t<SZ, SUF>>
-                    kt_set_p(const SUF *v, const kt_int_t *b) noexcept;
-
-    template <bsz SZ, typename SUF>
-    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, avxvector_t<SZ, SUF>>
-                    kt_set_p(const SUF *v, const kt_int_t *b) noexcept;
-
-    // -----------------------------------------------------------------------
-
-    // Unaligned load to AVX register with zero mask indirect memory model.
-    // Copies `L` elements from `v` and pads with zero the rest of AVX vector
-    //  - `SZ`  size (in bits) of AVX vector, i.e., 256 or 512
-    //  - `SUF` suffix of working type, i.e., `double`, `float`, `cdouble`, or `cfloat`
-    //  - `EXT` type of kt_avxext to use, i.e., AVX, AVX512F, ...
-    //  - `L` number of elements from `v` to copy
-    //  - `v` dense array for loading the data
-    //  - `b` map address within range of `v`
-    // return an avxvector with the loaded data.
-    //
-    // Example: `kt_maskz_set_p<256, double, AVX, 2>(v, b)` expands to `_mm256_set_pd(0.0, 0.0, v[*(b+1)], v[*(b+0)])`
-    template <bsz SZ, typename SUF, kt_avxext, int L>
-    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b256, avxvector_t<SZ, SUF>>
-                    kt_maskz_set_p(const SUF *v, const kt_int_t *b) noexcept;
-
-    template <bsz SZ, typename SUF, kt_avxext, int L>
-    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, avxvector_t<SZ, SUF>>
-                    kt_maskz_set_p(const SUF *v, const kt_int_t *b) noexcept;
-
-    // -----------------------------------------------------------------------
-
     // Templated version of the conjugate operation
     // Conjugate an AVX register
     //  - `SZ`  size (in bits) of AVX vector, i.e., bsz::b256 or bsz::b512
@@ -437,28 +473,5 @@ namespace kernel_templates
     template <bsz SZ, typename SUF>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, avxvector_t<SZ, SUF>>
                     kt_conj_p(const avxvector_t<SZ, SUF> a) noexcept;
-
-    // -----------------------------------------------------------------------
-
-    // Unaligned load to AVX register with zero mask direct memory model.
-    // Copies `L` elements from `v` and pads with zero the rest of AVX vector
-    //  - `SZ`  size (in bits) of AVX vector, i.e., 256 or 512
-    //  - `SUF` suffix of working type, i.e., `double`, `float`, `cdouble`, or `cfloat`
-    //  - `EXT` type of kt_avxext to use, i.e., AVX, AVX512F, ...
-    //  - `L` number of elements from `v` to copy
-    //  - `v` dense array for loading the data
-    //  - `b` delta address within `v`
-    // return an avxvector with the loaded data.
-    //
-    // Example: `kt_maskz_set_p<256, float, AVX, 3>(v, b)` expands to `_mm256_set_ps(0f, 0f, 0f, 0f, 0f, v[b+2], v[b+1], v[b+0])`
-    // and      `kt_maskz_set_p<256, double, AVX512VL, 3>(v, b)` expands to _mm256_maskz_loadu_pd(7, &v[b])
-    template <bsz SZ, typename SUF, kt_avxext EXT, int L>
-    KT_FORCE_INLINE
-        std::enable_if_t<(SZ == bsz::b256 && (EXT == kt_avxext::ANY || EXT == kt_avxext::AVX)),
-                         avxvector_t<SZ, SUF>>
-        kt_maskz_set_p(const SUF *v, const kt_int_t b) noexcept;
-
-    // -----------------------------------------------------------------------
-
 }
 #endif

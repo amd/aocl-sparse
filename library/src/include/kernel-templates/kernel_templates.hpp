@@ -46,15 +46,15 @@
 // L0 micro kernels AVX 2 specific
 #include "kt_l0_avx2.hpp"
 
-// L1 micro kernels: these these only depend on L0 micro kernels.
+// L1 micro kernels: these only depend on L0 micro kernels.
 #include "kt_l0_avx2.hpp"
 
 #ifdef __AVX512F__
-// L0 micro kernels AVX 512 specific
+// L0 microkernels (AVX512)
 #include "kt_l0_avx512.hpp"
 #endif
 
-// L1 micro kernels: these these only depend on L0 micro kernels.
+// L1 micro kernels: these only depend on L0 micro kernels.
 #include "kt_l1.hpp"
 
 #endif // KERNEL_TEMPLATES_T_HPP
