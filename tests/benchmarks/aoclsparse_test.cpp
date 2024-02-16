@@ -50,6 +50,7 @@
 #include "testing_csrmv.hpp"
 #include "testing_csrsv.hpp"
 #include "testing_diamv.hpp"
+#include "testing_dotmv.hpp"
 #include "testing_ellmv.hpp"
 #include "testing_optmv.hpp"
 #include "testing_sycsrmv.hpp"
@@ -148,7 +149,7 @@ int main(int argc, char *argv[])
             "\n\t"
             "--function=<function to test> \t SPARSE function to test. (default: csrmv) Options:  "
             "\n\t\tLevel-1: gthr gthrz sctr axpyi roti doti dotui dotci"
-            "\n\t\tLevel-2: csrmv optmv blkcsrmv(only precision=d) ellmv diamv bsrmv trsv"
+            "\n\t\tLevel-2: csrmv optmv blkcsrmv(only precision=d) ellmv diamv bsrmv trsv dotmv"
             "\n\t\tLevel-3: csrmm csr2m sp2md"
             "\n\t\tPreconditioners: ilu"
             "\n\t"
@@ -268,6 +269,17 @@ int main(int argc, char *argv[])
             return testing_csrmv<aoclsparse_float_complex>(arg);
         else if(precision == 'z')
             return testing_csrmv<aoclsparse_double_complex>(arg);
+    }
+    else if(strcmp(arg.function, "dotmv") == 0)
+    {
+        if(precision == 's')
+            return testing_dotmv<float>(arg);
+        else if(precision == 'd')
+            return testing_dotmv<double>(arg);
+        else if(precision == 'c')
+            return testing_dotmv<aoclsparse_float_complex>(arg);
+        else if(precision == 'z')
+            return testing_dotmv<aoclsparse_double_complex>(arg);
     }
     else if(strcmp(arg.function, "load") == 0)
     {
