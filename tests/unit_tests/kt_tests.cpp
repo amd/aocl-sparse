@@ -1538,4 +1538,112 @@ namespace TestsKT
         EXPECT_COMPLEX_DOUBLE_EQ(refz, zdot);
     }
 #endif
+    /*
+        Test "store" KT to store elements to memory
+    */
+    TEST(KT_L0, kt_storeu_p_256)
+    {
+        const size_t                    ns = tsz_v<bsz::b256, float>;
+        const size_t                    nd = tsz_v<bsz::b256, double>;
+        const size_t                    nc = tsz_v<bsz::b256, cfloat>;
+        const size_t                    nz = tsz_v<bsz::b256, cdouble>;
+        avxvector_t<bsz::b256, float>   s;
+        avxvector_t<bsz::b256, double>  d;
+        avxvector_t<bsz::b256, cfloat>  c;
+        avxvector_t<bsz::b256, cdouble> z;
+        float                           refs[ns], vs[ns];
+        double                          refd[nd], vd[nd];
+        cfloat                          refc[nc], vc[nc];
+        cdouble                         refz[nz], vz[nz];
+
+        s = kt_loadu_p<bsz::b256, float>(D.vs);
+        kt_storeu_p<bsz::b256, float>(vs, s);
+        for(size_t i = 0; i < ns; i++)
+        {
+            refs[i] = D.vs[i];
+        }
+        EXPECT_EQ_VEC(ns, vs, refs);
+
+        d = kt_loadu_p<bsz::b256, double>(D.vd);
+        kt_storeu_p<bsz::b256, double>(vd, d);
+        for(size_t i = 0; i < nd; i++)
+        {
+            refd[i] = D.vd[i];
+        }
+        EXPECT_EQ_VEC(nd, vd, refd);
+
+        c = kt_loadu_p<bsz::b256, cfloat>(D.vc);
+        kt_storeu_p<bsz::b256, cfloat>(vc, c);
+        for(size_t i = 0; i < nc; i++)
+        {
+            refc[i] = D.vc[i];
+        }
+        EXPECT_EQ_VEC(nc, vc, refc);
+
+        z = kt_loadu_p<bsz::b256, cdouble>(D.vz);
+        kt_storeu_p<bsz::b256, cdouble>(vz, z);
+        for(size_t i = 0; i < nz; i++)
+        {
+            refz[i] = D.vz[i];
+        }
+        EXPECT_EQ_VEC(nz, vz, refz);
+    }
+
+#ifdef USE_AVX512
+    TEST(KT_L0, kt_storeu_p_512)
+    {
+        constexpr size_t                ns = tsz_v<bsz::b512, float>;
+        constexpr size_t                nd = tsz_v<bsz::b512, double>;
+        constexpr size_t                nc = tsz_v<bsz::b512, cfloat>;
+        constexpr size_t                nz = tsz_v<bsz::b512, cdouble>;
+        avxvector_t<bsz::b512, float>   s;
+        avxvector_t<bsz::b512, double>  d;
+        avxvector_t<bsz::b512, cfloat>  c;
+        avxvector_t<bsz::b512, cdouble> z;
+        float                           refs[ns];
+        float                           vss[ns];
+        double                          refd[nd];
+        double                          vdd[nd];
+        cfloat                          vcc[nc];
+        cdouble                         refz[nz];
+        cdouble                         vzz[nz];
+
+        cfloat *refc = new cfloat
+            [nc]; // Used to dynamic memory allocation to suppress a potential compiler bug
+
+        s = kt_loadu_p<bsz::b512, float>(&D.vs[3]);
+        kt_storeu_p<bsz::b512, float>(vss, s);
+        for(size_t i = 0; i < ns; i++)
+        {
+            refs[i] = D.vs[i + 3];
+        }
+        EXPECT_EQ_VEC(ns, vss, refs);
+
+        d = kt_loadu_p<bsz::b512, double>(&D.vd[3]);
+        kt_storeu_p<bsz::b512, double>(vdd, d);
+        for(size_t i = 0; i < nd; i++)
+        {
+            refd[i] = D.vd[i + 3];
+        }
+        EXPECT_EQ_VEC(nd, vdd, refd);
+
+        c = kt_loadu_p<bsz::b512, cfloat>(&D.vc[3]);
+        kt_storeu_p<bsz::b512, cfloat>(vcc, c);
+        for(size_t i = 0; i < nc; i++)
+        {
+            refc[i] = D.vc[i + 3];
+        }
+        EXPECT_EQ_VEC(nc, vcc, refc);
+
+        z = kt_loadu_p<bsz::b512, cdouble>(&D.vz[3]);
+        kt_storeu_p<bsz::b512, cdouble>(vzz, z);
+        for(size_t i = 0; i < nz; i++)
+        {
+            refz[i] = D.vz[i + 3];
+        }
+        EXPECT_EQ_VEC(nz, vzz, refz);
+
+        delete[] refc;
+    }
+#endif
 }
