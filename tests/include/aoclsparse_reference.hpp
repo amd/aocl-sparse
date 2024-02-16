@@ -1,5 +1,6 @@
 /* ************************************************************************
  * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Portions of this file consist of AI-generated content.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -696,6 +697,86 @@ inline aoclsparse_status ref_givens_rot(const aoclsparse_int  nnz,
     }
     return aoclsparse_status_success;
 }
+
+/* Dot product of two dense vectors y[] and x[]. Used in DOTMV */
+template <typename T>
+aoclsparse_status ref_dense_dot(const aoclsparse_int size, const T *x, const T *y, T *d)
+{
+    if(x == nullptr || y == nullptr || d == nullptr)
+        return aoclsparse_status_invalid_pointer;
+    *d = aoclsparse_numeric::zero<T>();
+    if constexpr(std::is_same_v<T, std::complex<double>> || std::is_same_v<T, std::complex<float>>)
+    {
+        if constexpr(std::is_same_v<T, std::complex<float>>)
+        {
+            std::complex<double> result = {0.0, 0.0};
+            for(aoclsparse_int i = 0; i < size; i++)
+            {
+                result += static_cast<std::complex<double>>(std::conj(x[i]))
+                          * static_cast<std::complex<double>>(y[i]);
+            }
+            *d = static_cast<T>(result);
+        }
+        else
+        {
+
+            for(aoclsparse_int i = 0; i < size; i++)
+            {
+                *d += std::conj(x[i]) * y[i];
+            }
+        }
+    }
+    else if constexpr(std::is_same_v<T, double> || std::is_same_v<T, float>)
+    {
+        if constexpr(std::is_same_v<T, float>)
+        {
+            // to increase the precision of the reference dot, compute it in higher precision
+            double result = 0.0;
+            for(aoclsparse_int i = 0; i < size; i++)
+            {
+                result += static_cast<double>(x[i]) * static_cast<double>(y[i]);
+            }
+            *d = static_cast<T>(result);
+        }
+        else
+        {
+            for(aoclsparse_int i = 0; i < size; i++)
+            {
+                *d += x[i] * y[i];
+            }
+        }
+    }
+    else
+    {
+        return aoclsparse_status_wrong_type;
+    }
+    return aoclsparse_status_success;
+}
+
+template <>
+inline aoclsparse_status ref_dense_dot(const aoclsparse_int             size,
+                                       const aoclsparse_double_complex *x,
+                                       const aoclsparse_double_complex *y,
+                                       aoclsparse_double_complex       *d)
+{
+    const std::complex<double> *xp = reinterpret_cast<const std::complex<double> *>(x);
+    const std::complex<double> *yp = reinterpret_cast<const std::complex<double> *>(y);
+    std::complex<double>       *dp = reinterpret_cast<std::complex<double> *>(d);
+    return ref_dense_dot(size, xp, yp, dp);
+}
+
+template <>
+inline aoclsparse_status ref_dense_dot(const aoclsparse_int            size,
+                                       const aoclsparse_float_complex *x,
+                                       const aoclsparse_float_complex *y,
+                                       aoclsparse_float_complex       *d)
+{
+    const std::complex<float> *xp = reinterpret_cast<const std::complex<float> *>(x);
+    const std::complex<float> *yp = reinterpret_cast<const std::complex<float> *>(y);
+    std::complex<float>       *dp = reinterpret_cast<std::complex<float> *>(d);
+    return ref_dense_dot(size, xp, yp, dp);
+}
+
 /* Dot product of a dense vector y[] and sparse vector x[] defined by (x, nnz, indx)
  */
 template <typename T>

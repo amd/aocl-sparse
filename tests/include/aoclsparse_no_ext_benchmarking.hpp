@@ -41,6 +41,10 @@ void register_tests_csrmv([[maybe_unused]] std::vector<testsetting<T>> &testqueu
     //testqueue.push_back({"new_test_name",&testing_csrmv_new<T>});
 }
 template <typename T>
+void register_tests_dotmv([[maybe_unused]] std::vector<testsetting<T>> &testqueue)
+{
+}
+template <typename T>
 void register_tests_trsv([[maybe_unused]] std::vector<testsetting<T>> &testqueue)
 {
     //testqueue.push_back({"new_test_name",&testing_trsv_new<T>});
