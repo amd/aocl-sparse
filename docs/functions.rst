@@ -307,6 +307,17 @@ aoclsparse_syrk()
 
 .. doxygenfunction:: aoclsparse_syrk
 
+aoclsparse\_?syrkd()
+--------------------
+
+.. doxygenfunction:: aoclsparse_ssyrkd
+    :outline:
+.. doxygenfunction:: aoclsparse_dsyrkd
+    :outline:
+.. doxygenfunction:: aoclsparse_csyrkd
+    :outline:
+.. doxygenfunction:: aoclsparse_zsyrkd
+
 aoclsparse\_?sypr()
 --------------------
 

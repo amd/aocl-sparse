@@ -91,6 +91,16 @@ aoclsparse_status aoclsparse_sp2md(const aoclsparse_operation      opA,
                                    aoclsparse_order                layout,
                                    aoclsparse_int                  ldc,
                                    [[maybe_unused]] aoclsparse_int kid);
+
+template <typename T>
+aoclsparse_status aoclsparse_syrkd(aoclsparse_operation    op,
+                                   const aoclsparse_matrix A,
+                                   T                       alpha,
+                                   T                       beta,
+                                   T                      *C,
+                                   aoclsparse_order        orderC,
+                                   aoclsparse_int          ldc);
+
 template <typename T>
 aoclsparse_status aoclsparse_syprd(aoclsparse_operation    op,
                                    const aoclsparse_matrix A,
