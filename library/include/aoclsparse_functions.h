@@ -2958,6 +2958,119 @@ aoclsparse_status aoclsparse_syrk(const aoclsparse_operation opA,
                                   aoclsparse_matrix         *C);
 /**@}*/
 
+/*! \ingroup level3_module
+ *  \brief Multiplication of a sparse matrix and its transpose (or conjugate transpose) for all data types.
+ *  \details
+ *  \P{aoclsparse_syrkd} multiplies a sparse matrix with its transpose (or conjugate transpose) in CSR storage format.
+ *  The result is stored in a dense format, such that
+  \f[
+ *    C := \alpha \cdot A \cdot op(A) + \beta \cdot C
+ *  \f]
+ *  if \f$opA\f$ is \ref aoclsparse_operation_none.
+ *
+ *  Otherwise,
+ *  \f[
+ *    C := \alpha \cdot op(A) \cdot A + \beta \cdot C
+ *  \f]
+ *
+ *  \f[
+ *    op(A) = \left\{
+ *    \begin{array}{ll}
+ *         A^T, & \text{transpose of } {\bf\mathsf{A}} \text{ for real matrices}\\
+ *         A^H, & \text{conjugate transpose of } {\bf\mathsf{A}} \text{ for complex matrices}\\
+ *    \end{array}
+ *    \right.
+ *  \f]
+ *
+ *  where \f$A\f$ is a  \f$m \times n\f$ sparse matrix, \p opA is one of \ref aoclsparse_operation_none,
+ * \ref aoclsparse_operation_transpose (for real matrices) or \ref aoclsparse_operation_conjugate_transpose
+ * (for complex matrices). The output matrix \f$C\f$ is a dense symmetric (or Hermitian) matrix stored as an
+ *  upper triangular matrix.
+ *
+ *  \note \p aoclsparse_syrkd assumes that the input CSR matrix has sorted column
+ *  indices in each row. If not, call aoclsparse_order_mat() before calling
+ *  \p aoclsparse_syrkd.
+ *
+ *  \note For complex type, only the real parts of \f$\alpha\f$ and \f$\beta\f$ are taken
+ *  into account to preserve Hermitian \f$C\f$.
+ *
+ *  \note \p aoclsparse_syrkd currently does not support \ref aoclsparse_operation_transpose for complex \p A.
+ *
+ *  @param[in]
+ *  opA     Matrix \f$A\f$ operation type.
+ *  @param[in]
+ *  A        Sorted sparse CSR matrix \f$A\f$.
+ *  @param[in]
+ *  alpha       Scalar \f$\alpha\f$.
+ *  @param[in]
+ *  beta        Scalar \f$\beta\f$.
+ *  @param[in, out]
+ *  C           Output dense matrix. Only upper triangular part of the matrix is processed
+ *              during the computation, the strictly lower triangle is not modified.
+ *  @param[in]
+ *  orderC      Storage format of the output dense matrix, \f$C\f$.
+ *              It can be \ref aoclsparse_order_row or \ref aoclsparse_order_column.
+ *  @param[in]
+ *  ldc         Leading dimension of \f$C\f$.
+ *
+ *  \retval     aoclsparse_status_success The operation completed successfully.
+ *  \retval     aoclsparse_status_invalid_pointer \p A, \p C is invalid.
+ *  \retval     aoclsparse_status_wrong_type \p A and its operation type do not match.
+ *  \retval     aoclsparse_status_not_implemented The input matrix is not in the CSR format or
+ *              \p opA is aoclsparse_operation_transpose and \p A has complex values.
+ *  \retval     aoclsparse_status_invalid_value The value of \p opA, \p orderC or \p ldc is invalid.
+ *  \retval     aoclsparse_status_unsorted_input Input matrix is not sorted.
+ *  \retval     aoclsparse_status_memory_error Memory allocation failure.
+ *
+ *  @rst
+ * .. collapse:: Example (tests/examples/sample_dsyrkd.cpp)
+ *
+ *    .. only:: html
+ *
+ *       .. literalinclude:: ../tests/examples/sample_dsyrkd.cpp
+ *          :language: C++
+ *          :linenos:
+ * @endrst
+ */
+
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_ssyrkd(const aoclsparse_operation opA,
+                                    const aoclsparse_matrix    A,
+                                    const float                alpha,
+                                    const float                beta,
+                                    float                     *C,
+                                    const aoclsparse_order     orderC,
+                                    const aoclsparse_int       ldc);
+DLL_PUBLIC
+aoclsparse_status aoclsparse_dsyrkd(const aoclsparse_operation opA,
+                                    const aoclsparse_matrix    A,
+                                    const double               alpha,
+                                    const double               beta,
+                                    double                    *C,
+                                    const aoclsparse_order     orderC,
+                                    const aoclsparse_int       ldc);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_csyrkd(const aoclsparse_operation     opA,
+                                    const aoclsparse_matrix        A,
+                                    const aoclsparse_float_complex alpha,
+                                    const aoclsparse_float_complex beta,
+                                    aoclsparse_float_complex      *C,
+                                    const aoclsparse_order         orderC,
+                                    const aoclsparse_int           ldc);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_zsyrkd(const aoclsparse_operation      opA,
+                                    const aoclsparse_matrix         A,
+                                    const aoclsparse_double_complex alpha,
+                                    const aoclsparse_double_complex beta,
+                                    aoclsparse_double_complex      *C,
+                                    const aoclsparse_order          orderC,
+                                    const aoclsparse_int            ldc);
+
+/**@}*/
+
 #ifdef __cplusplus
 }
 #endif
