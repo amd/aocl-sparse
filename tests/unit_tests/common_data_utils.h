@@ -95,6 +95,20 @@
             << " values are: " << std::imag(x) << " and " << std::imag(y); \
     } while(0)
 
+// Template function to compare a single value irrespective of type =================================
+template <typename T>
+void expect_cmp(T res, T ref)
+{
+    if constexpr(std::is_same_v<T, double>)
+        EXPECT_DOUBLE_EQ(res, ref);
+    else if constexpr(std::is_same_v<T, float>)
+        EXPECT_FLOAT_EQ(res, ref);
+    else if constexpr(std::is_same_v<T, std::complex<double>>)
+        EXPECT_COMPLEX_DOUBLE_EQ(res, ref);
+    else if constexpr(std::is_same_v<T, std::complex<float>>)
+        EXPECT_COMPLEX_FLOAT_EQ(res, ref);
+}
+
 // Utilities to compare real scalars and vectors =============================================
 
 #define EXPECT_EQ_VEC(n, x, y)                                                              \
