@@ -65,7 +65,9 @@
 #include "testing_csrmm.hpp"
 #include "testing_sp2m.hpp"
 #include "testing_sp2md.hpp"
+#include "testing_sypr.hpp"
 #include "testing_trsm.hpp"
+
 //Solvers
 #include "testing_ilu.hpp"
 #include "testing_symgs.hpp"
@@ -174,7 +176,7 @@ int main(int argc, char *argv[])
             "--function=<function to test> \t SPARSE function to test. (default: csrmv) Options:  "
             "\n\t\tLevel-1: gthr gthrz sctr axpyi roti doti dotui dotci"
             "\n\t\tLevel-2: csrmv optmv blkcsrmv(only precision=d) ellmv diamv bsrmv trsv dotmv"
-            "\n\t\tLevel-3: add csrmm csr2m sp2m sp2md trsm"
+            "\n\t\tLevel-3: add csrmm csr2m sp2m sp2md trsm sypr"
             "\n\t\tPreconditioners: ilu"
             "\n\t"
             "--precision=<s/d/c/z> \t Options: s,d,c,z (default: d)"
@@ -477,13 +479,13 @@ int main(int argc, char *argv[])
     else if(strcmp(arg.function, "sp2m") == 0)
     {
         if(precision == 's')
-            testing_sp2m<float>(arg);
+            return testing_sp2m<float>(arg);
         else if(precision == 'd')
-            testing_sp2m<double>(arg);
+            return testing_sp2m<double>(arg);
         else if(precision == 'c')
-            testing_sp2m<aoclsparse_float_complex>(arg);
+            return testing_sp2m<aoclsparse_float_complex>(arg);
         else if(precision == 'z')
-            testing_sp2m<aoclsparse_double_complex>(arg);
+            return testing_sp2m<aoclsparse_double_complex>(arg);
     }
     else if(strcmp(arg.function, "sp2md") == 0)
     {
@@ -500,6 +502,17 @@ int main(int argc, char *argv[])
             return testing_add<aoclsparse_float_complex>(arg);
         else if(precision == 'z')
             return testing_add<aoclsparse_double_complex>(arg);
+    }
+    else if(strcmp(arg.function, "sypr") == 0)
+    {
+        if(precision == 's')
+            return testing_sypr<float>(arg);
+        else if(precision == 'd')
+            return testing_sypr<double>(arg);
+        else if(precision == 'c')
+            return testing_sypr<aoclsparse_float_complex>(arg);
+        else if(precision == 'z')
+            return testing_sypr<aoclsparse_double_complex>(arg);
     }
     else if(strcmp(arg.function, "ilu") == 0)
     {

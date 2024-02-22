@@ -35,7 +35,6 @@
 #include <cmath>
 #include <complex>
 #include <cstring>
-#include <iostream>
 #include <vector>
 
 /* Add alpha-multiplication of a sparse row of W matrix to a dense vector
