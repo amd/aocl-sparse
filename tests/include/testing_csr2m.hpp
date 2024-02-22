@@ -145,7 +145,8 @@ void testing_csr2m(const Arguments &arg)
                                    mat,
                                    filename.c_str(),
                                    issymm,
-                                   true);
+                                   true,
+                                   arg.sort);
 
         // random generate matrix B
         aoclsparse_init_csr_matrix(csr_row_ptr_B,
@@ -158,7 +159,8 @@ void testing_csr2m(const Arguments &arg)
                                    mat,
                                    filename.c_str(),
                                    issymm,
-                                   true);
+                                   true,
+                                   arg.sort);
     }
     else if(mat == aoclsparse_matrix_file_mtx)
     {
@@ -173,7 +175,8 @@ void testing_csr2m(const Arguments &arg)
                                    mat,
                                    filename.c_str(),
                                    issymm,
-                                   true);
+                                   true,
+                                   arg.sort);
         nnz_B = nnz_A;
         N     = M;
         if(M != K) //Not square matrix

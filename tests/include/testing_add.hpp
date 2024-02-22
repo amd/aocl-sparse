@@ -83,33 +83,8 @@ int testing_csradd_aocl(const Arguments &arg, testdata<T> &td, double timings[])
             timings[iter] = aoclsparse_clock_diff(cpu_time_start);
         }
 
-        aoclsparse_int *csr_row_ptr_C = NULL;
-        aoclsparse_int *csr_col_ind_C = NULL;
-        T              *csr_val_C     = NULL;
-
-        NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_export_csr(
-            C, &td.baseC, &td.mC, &td.nC, &td.nnzC, &csr_row_ptr_C, &csr_col_ind_C, &csr_val_C));
-
-        td.csr_row_ptrC = std::vector<aoclsparse_int>(csr_row_ptr_C, csr_row_ptr_C + td.mC + 1);
-        td.csr_col_indC = std::vector<aoclsparse_int>(td.nnzC);
-        td.csr_valC     = std::vector<T>(td.nnzC);
-
-        // getting sorted col and val in each row
-        for(int i = 0; i < td.mC; i++)
-        {
-            int start = csr_row_ptr_C[i] - td.baseC, end = csr_row_ptr_C[i + 1] - td.baseC;
-            std::vector<aoclsparse_int> idxs(end - start);
-            std::iota(idxs.begin(), idxs.end(), start);
-            std::sort(idxs.begin(), idxs.end(), [csr_col_ind_C](auto a, auto b) {
-                return csr_col_ind_C[a] < csr_col_ind_C[b];
-            });
-            for(auto idx : idxs)
-            {
-                td.csr_col_indC[start] = csr_col_ind_C[idx];
-                td.csr_valC[start]     = csr_val_C[idx];
-                start++;
-            }
-        }
+        NEW_CHECK_AOCLSPARSE_ERROR(aocl_csr_sorted_export(
+            C, td.baseC, td.mC, td.nC, td.nnzC, td.csr_row_ptrC, td.csr_col_indC, td.csr_valC));
     }
     catch(BenchmarkException &e)
     {
@@ -137,8 +112,8 @@ int testing_add(const Arguments &arg)
     aoclsparse_index_base  baseA = arg.baseA, baseB = arg.baseB;
     aoclsparse_matrix_init mat = arg.matrix, matB = arg.matrixB;
     std::string            filename = arg.filename, filenameB = arg.filenameB;
-    aoclsparse_matrix_sort sort   = arg.sort;
-    bool                   issymm = false;
+    aoclsparse_matrix_sort sort = arg.sort;
+    bool                   issymm;
 
     testdata<T> td;
 
@@ -256,24 +231,21 @@ int testing_add(const Arguments &arg)
         if(arg.unit_check)
         {
             verify = 1;
-            if(nnz_C == td.nnzC && td.mB == td.mC && td.nB == td.nC && baseA == td.baseC)
+            if(csrmat_check(td.mB,
+                            td.nB,
+                            nnz_C,
+                            baseA,
+                            row_ptr_C_ref,
+                            col_ind_C_ref,
+                            val_C_ref,
+                            td.mC,
+                            td.nC,
+                            td.nnzC,
+                            td.baseC,
+                            td.csr_row_ptrC,
+                            td.csr_col_indC,
+                            td.csr_valC))
             {
-                if(unit_check_general(td.mC + 1, 1, 0, td.csr_row_ptrC.data(), row_ptr_C_ref.data())
-                   || unit_check_general(nnz_C, 1, 0, td.csr_col_indC.data(), col_ind_C_ref.data())
-                   || near_check_general(nnz_C, 1, 0, td.csr_valC.data(), val_C_ref.data()))
-                {
-                    status++;
-                    verify = 2;
-                }
-            }
-            else // dimensions/nnz don't match
-            {
-                std::cout
-                    << "Computed matrix is not matching the reference result (m x n x nnz, base):\n"
-                    << "ref:  " << td.mB << " x " << td.nB << " x " << nnz_C << ", " << baseA
-                    << std::endl
-                    << "comp: " << td.mC << " x " << td.nC << " x " << td.nnzC << ", " << td.baseC
-                    << std::endl;
                 status++;
                 verify = 2;
             }
