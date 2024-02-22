@@ -108,4 +108,8 @@ template <typename T>
 void register_tests_sp2m([[maybe_unused]] std::vector<testsetting<T>> &testqueue)
 {
 }
+template <typename T>
+void register_tests_sypr([[maybe_unused]] std::vector<testsetting<T>> &testqueue)
+{
+}
 #endif
