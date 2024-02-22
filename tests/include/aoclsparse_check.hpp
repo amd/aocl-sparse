@@ -33,7 +33,8 @@
 #define MAX_TOL_MULTIPLIER 4
 
 template <typename T>
-int near_check_general(aoclsparse_int M, aoclsparse_int N, aoclsparse_int lda, T *refOut, T *actOut)
+int near_check_general(
+    aoclsparse_int M, aoclsparse_int N, aoclsparse_int lda, const T *refOut, const T *actOut)
 {
     int            tolm      = 1;
     tolerance_t<T> ref_rpart = 0, ref_ipart = 0, actual_rpart = 0, actual_ipart = 0;
@@ -119,11 +120,11 @@ int near_check_general(aoclsparse_int M, aoclsparse_int N, aoclsparse_int lda, T
     return 0;
 }
 
-inline int unit_check_general(aoclsparse_int  M,
-                              aoclsparse_int  N,
-                              aoclsparse_int  lda,
-                              aoclsparse_int *refOut,
-                              aoclsparse_int *actOut)
+inline int unit_check_general(aoclsparse_int        M,
+                              aoclsparse_int        N,
+                              aoclsparse_int        lda,
+                              const aoclsparse_int *refOut,
+                              const aoclsparse_int *actOut)
 {
     for(aoclsparse_int j = 0; j < N; ++j)
     {
@@ -138,6 +139,67 @@ inline int unit_check_general(aoclsparse_int  M,
             }
         }
     }
+    return 0;
+}
+
+/* Given two sparse CSR matrices (assumed sorted or in the same order),
+ * the first is R (reference), the second C (computed),
+ * compare if they are equal up to near_check_general() above.
+ * Returns 0 if no difference is found (i.e., are the same).
+ */
+template <typename T>
+int csrmat_check(aoclsparse_int                     mR,
+                 aoclsparse_int                     nR,
+                 aoclsparse_int                     nnzR,
+                 aoclsparse_index_base              baseR,
+                 const std::vector<aoclsparse_int> &row_ptrR,
+                 const std::vector<aoclsparse_int> &col_indR,
+                 const std::vector<T>              &valR,
+                 aoclsparse_int                     mC,
+                 aoclsparse_int                     nC,
+                 aoclsparse_int                     nnzC,
+                 aoclsparse_index_base              baseC,
+                 const std::vector<aoclsparse_int> &row_ptrC,
+                 const std::vector<aoclsparse_int> &col_indC,
+                 const std::vector<T>              &valC)
+{
+    // dimensions/nnz check
+    if(mR != mC || nR != nC || nnzR != nnzC || baseR != baseC)
+    {
+        std::cout << "Computed matrix is not matching the reference result (m x n x nnz, base):\n"
+                  << "ref:  " << mR << " x " << nR << " x " << nnzR << ", " << baseR << std::endl
+                  << "comp: " << mC << " x " << nC << " x " << nnzC << ", " << baseC << std::endl;
+        return 1;
+    }
+
+    // Do arrays match the expected number of elements?
+    size_t m = mR, nnz = nnzR;
+    if(row_ptrR.size() < m + 1 || col_indR.size() < nnz || valR.size() < nnz)
+    {
+        std::cout << "Sizes of arrays of R matrix don't match the expected dimension." << std::endl
+                  << "row_ptr size = " << row_ptrR.size() << " vs. expected " << m + 1 << std::endl
+                  << "col_ind size = " << col_indR.size() << " vs. expected " << nnz << std::endl
+                  << "val size = " << valR.size() << " vs. expected " << nnz << std::endl;
+        return 2;
+    }
+    if(row_ptrC.size() < m + 1 || col_indC.size() < nnz || valC.size() < nnz)
+    {
+        std::cout << "Sizes of arrays of C matrix don't match the expected dimension." << std::endl
+                  << "row_ptr size = " << row_ptrC.size() << " vs. expected " << m + 1 << std::endl
+                  << "col_ind size = " << col_indC.size() << " vs. expected " << nnz << std::endl
+                  << "val size = " << valC.size() << " vs. expected " << nnz << std::endl;
+        return 3;
+    }
+
+    // matrix content
+    if(unit_check_general(mR + 1, 1, 0, row_ptrC.data(), row_ptrR.data())
+       || unit_check_general(nnzR, 1, 0, col_indC.data(), col_indR.data())
+       || near_check_general(nnzR, 1, 0, valC.data(), valR.data()))
+    {
+        std::cout << "Array content of C and R matrices doesn't match." << std::endl;
+        return 4;
+    }
+
     return 0;
 }
 

@@ -63,6 +63,7 @@
 #include "testing_add.hpp"
 #include "testing_csr2m.hpp"
 #include "testing_csrmm.hpp"
+#include "testing_sp2m.hpp"
 #include "testing_sp2md.hpp"
 #include "testing_trsm.hpp"
 //Solvers
@@ -101,6 +102,7 @@ int main(int argc, char *argv[])
     char transA    = 'N';
     char transB    = 'N';
     char mattypeA  = 'G';
+    char mattypeB  = 'G';
     int  baseA     = 0;
     int  baseB     = 0;
     char diag      = 'N';
@@ -157,6 +159,10 @@ int main(int argc, char *argv[])
             "triangle based on uplo & symmetrize), T = triangular (use one triangle based on uplo) "
             "(default: G)"
             "\n\t"
+            "--matrixtypeB=<G/S/T> \t G = general (use whole matrix), S = symmetric (use one "
+            "triangle based on uplo & symmetrize), T = triangular (use one triangle based on uplo) "
+            "(default: G)"
+            "\n\t"
             "--indexbaseA=<0/1> \t 0 = zero-based indexing, 1 = one-based indexing (default: 0)"
             "\n\t"
             "--indexbaseB=<0/1> \t 0 = zero-based indexing, 1 = one-based indexing (default: 0)"
@@ -168,7 +174,7 @@ int main(int argc, char *argv[])
             "--function=<function to test> \t SPARSE function to test. (default: csrmv) Options:  "
             "\n\t\tLevel-1: gthr gthrz sctr axpyi roti doti dotui dotci"
             "\n\t\tLevel-2: csrmv optmv blkcsrmv(only precision=d) ellmv diamv bsrmv trsv dotmv"
-            "\n\t\tLevel-3: add csrmm csr2m sp2md trsm"
+            "\n\t\tLevel-3: add csrmm csr2m sp2m sp2md trsm"
             "\n\t\tPreconditioners: ilu"
             "\n\t"
             "--precision=<s/d/c/z> \t Options: s,d,c,z (default: d)"
@@ -218,6 +224,7 @@ int main(int argc, char *argv[])
     args.aoclsparse_get_cmdline_argument("transposeA", transA);
     args.aoclsparse_get_cmdline_argument("transposeB", transB);
     args.aoclsparse_get_cmdline_argument("matrixtypeA", mattypeA);
+    args.aoclsparse_get_cmdline_argument("matrixtypeB", mattypeB);
     args.aoclsparse_get_cmdline_argument("indexbaseA", baseA);
     args.aoclsparse_get_cmdline_argument("indexbaseB", baseB);
     args.aoclsparse_get_cmdline_argument("diag", diag);
@@ -277,6 +284,27 @@ int main(int argc, char *argv[])
     else
     {
         std::cerr << "Invalid value for --matrixtypeA" << std::endl;
+        return -1;
+    }
+    if(mattypeB == 'G')
+    {
+        arg.mattypeB = aoclsparse_matrix_type_general;
+    }
+    else if(mattypeB == 'S')
+    {
+        arg.mattypeB = aoclsparse_matrix_type_symmetric;
+    }
+    else if(mattypeB == 'T')
+    {
+        arg.mattypeB = aoclsparse_matrix_type_triangular;
+    }
+    else if(mattypeB == 'H')
+    {
+        arg.mattypeB = aoclsparse_matrix_type_hermitian;
+    }
+    else
+    {
+        std::cerr << "Invalid value for --matrixtypeB" << std::endl;
         return -1;
     }
 
@@ -445,6 +473,17 @@ int main(int argc, char *argv[])
             testing_csr2m<double>(arg);
         else if(precision == 's')
             testing_csr2m<float>(arg);
+    }
+    else if(strcmp(arg.function, "sp2m") == 0)
+    {
+        if(precision == 's')
+            testing_sp2m<float>(arg);
+        else if(precision == 'd')
+            testing_sp2m<double>(arg);
+        else if(precision == 'c')
+            testing_sp2m<aoclsparse_float_complex>(arg);
+        else if(precision == 'z')
+            testing_sp2m<aoclsparse_double_complex>(arg);
     }
     else if(strcmp(arg.function, "sp2md") == 0)
     {

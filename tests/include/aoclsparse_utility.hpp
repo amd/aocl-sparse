@@ -29,6 +29,7 @@
 #define AOCLSPARSE_UTILITY_HPP
 
 #include "aoclsparse.h"
+#include "aoclsparse.hpp"
 
 #include <cfloat>
 #include <sstream>
@@ -257,5 +258,54 @@ struct internal_t_map<aoclsparse_double_complex>
 // For any other type, it returns the same type.
 template <typename T>
 using internal_t = typename internal_t_map<T>::type;
+
+/* Export/copy out AOCL Sparse CSR matrix into 3-array format,
+ * sort elements in rows.
+ * Returns aoclsparse_status code so might be check with
+ * NEW_CHECK_AOCLSPARSE_ERROR().
+ */
+template <typename T>
+aoclsparse_status aocl_csr_sorted_export(const aoclsparse_matrix      mat,
+                                         aoclsparse_index_base       &base,
+                                         aoclsparse_int              &m,
+                                         aoclsparse_int              &n,
+                                         aoclsparse_int              &nnz,
+                                         std::vector<aoclsparse_int> &row_ptr,
+                                         std::vector<aoclsparse_int> &col_ind,
+                                         std::vector<T>              &val)
+{
+
+    aoclsparse_status status        = aoclsparse_status_success;
+    aoclsparse_int   *csr_row_ptr_C = NULL;
+    aoclsparse_int   *csr_col_ind_C = NULL;
+    T                *csr_val_C     = NULL;
+
+    status = aoclsparse_export_csr(
+        mat, &base, &m, &n, &nnz, &csr_row_ptr_C, &csr_col_ind_C, &csr_val_C);
+    if(status != aoclsparse_status_success)
+        return status;
+
+    row_ptr = std::vector<aoclsparse_int>(csr_row_ptr_C, csr_row_ptr_C + m + 1);
+    col_ind = std::vector<aoclsparse_int>(nnz);
+    val     = std::vector<T>(nnz);
+
+    // getting sorted col and val in each row
+    for(aoclsparse_int i = 0; i < m; i++)
+    {
+        aoclsparse_int start = csr_row_ptr_C[i] - base, end = csr_row_ptr_C[i + 1] - base;
+        std::vector<aoclsparse_int> idxs(end - start);
+        std::iota(idxs.begin(), idxs.end(), start);
+        std::sort(idxs.begin(), idxs.end(), [csr_col_ind_C](auto a, auto b) {
+            return csr_col_ind_C[a] < csr_col_ind_C[b];
+        });
+        for(auto idx : idxs)
+        {
+            col_ind[start] = csr_col_ind_C[idx];
+            val[start]     = csr_val_C[idx];
+            start++;
+        }
+    }
+    return status;
+}
 
 #endif // AOCLSPARSE_UTILITY_HPP

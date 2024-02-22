@@ -54,6 +54,7 @@ struct Arguments
     aoclsparse_operation   transA;
     aoclsparse_operation   transB;
     aoclsparse_matrix_type mattypeA;
+    aoclsparse_matrix_type mattypeB;
     aoclsparse_index_base  baseA;
     aoclsparse_index_base  baseB;
     aoclsparse_diag_type   diag;
