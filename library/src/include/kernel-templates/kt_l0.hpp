@@ -23,15 +23,14 @@
  */
 
 #ifndef KERNEL_TEMPLATES_T_HPP
-#error "Never use "kt_l0.hpp" directly; include "kernel_templates.hpp" instead."
+#error "Never use ``kt_l0.hpp'' directly; include ``kernel_templates.hpp'' instead."
 #endif
 
-#ifndef _KT_L0
-#define _KT_L0
+#ifndef _KT_L0_
+#define _KT_L0_
 #include "kt_common.hpp"
 
-// Add mainline L0 kernels that are architecture independent here
-
+// Add L0 micro kernels that are architecture independent here
 namespace kernel_templates
 {
     // Scatter kernel

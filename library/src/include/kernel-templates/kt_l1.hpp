@@ -22,20 +22,21 @@
  * ************************************************************************
  */
 #ifndef KERNEL_TEMPLATES_T_HPP
-#error "Never use "kt_l1.hpp" directly; include "kernel_templates.hpp" instead."
+#error "Never use ``kt_l1.hpp'' directly; include ``kernel_templates.hpp'' instead."
 #endif
 
 #ifndef _KT_L1_
 #define _KT_L1_
 #include "kt_common.hpp"
 
+// Level 1 micro kernels
+
 namespace kernel_templates
 {
     // Dot-product of two AVX registers (convenience callers)
-    //  - `a` avxvector of type FLOAT or DOUBLE only
-    //  - `b` avxvector of type FLOAT or DOUBLE only
+    //  - `a` avxvector
+    //  - `b` avxvector
     // returns a scalar containing the dot-product of a and b, <a,b>
-    // Note: these wrappers should not be used with avxvectors of type cdouble or cfloat.
     template <bsz SZ, typename SUF>
     KT_FORCE_INLINE SUF kt_dot_p(const avxvector_t<SZ, SUF> a,
                                  const avxvector_t<SZ, SUF> b) noexcept
@@ -44,13 +45,13 @@ namespace kernel_templates
         return kt_hsum_p<SZ, SUF>(c);
     };
 
-    // Templated version of the conjugate dot operation
     // Conjugate dot-product of two AVX registers
     //  - `SZ`  size (in bits) of AVX vector, i.e., bsz::b256 or bsz::b512
     //  - `SUF` suffix of working type, i.e., `double`, `float`, `cdouble`, or `cfloat`
     //  - `a` avxvector
     //  - `b` avxvector
-    // if `a` and `b` are real then returns the dot-product of both, if complex then returns the dot-product of `a` and `conjugate(b)`
+    // if `a` and `b` are real then returns the dot-product of both, if complex
+    // then returns the dot-product of `a` and `conjugate(b)`
     template <bsz SZ, typename SUF>
     SUF KT_FORCE_INLINE kt_cdot_p(const avxvector_t<SZ, SUF> a,
                                   const avxvector_t<SZ, SUF> b) noexcept

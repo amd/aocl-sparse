@@ -93,10 +93,10 @@ namespace TestsKT
         // bsz::b256 float
         EXPECT_EQ(typeid(avxvector<bsz::b256, float>::type), typeid(__m256));
         EXPECT_EQ(typeid(avxvector<bsz::b256, float>::half_type), typeid(__m128));
-        EXPECT_EQ((avxvector<bsz::b256, float>::value), 8U);
+        EXPECT_EQ((avxvector<bsz::b256, float>::p_size), 8U);
         EXPECT_EQ((avxvector<bsz::b256, float>()), 8U);
-        EXPECT_EQ((avxvector<bsz::b256, float>::half), 4U);
-        EXPECT_EQ((avxvector<bsz::b256, float>::count), 8U);
+        EXPECT_EQ((avxvector<bsz::b256, float>::hp_size), 4U);
+        EXPECT_EQ((avxvector<bsz::b256, float>::tsz), 8U);
 
         // helpers
         EXPECT_EQ(typeid(avxvector_t<bsz::b256, float>), typeid(__m256));
@@ -110,10 +110,10 @@ namespace TestsKT
         // bsz::b256 double
         EXPECT_EQ(typeid(avxvector<bsz::b256, double>::type), typeid(__m256d));
         EXPECT_EQ(typeid(avxvector<bsz::b256, double>::half_type), typeid(__m128d));
-        EXPECT_EQ((avxvector<bsz::b256, double>::value), 4U);
+        EXPECT_EQ((avxvector<bsz::b256, double>::p_size), 4U);
         EXPECT_EQ((avxvector<bsz::b256, double>()), 4U);
-        EXPECT_EQ((avxvector<bsz::b256, double>::half), 2U);
-        EXPECT_EQ((avxvector<bsz::b256, double>::count), 4U);
+        EXPECT_EQ((avxvector<bsz::b256, double>::hp_size), 2U);
+        EXPECT_EQ((avxvector<bsz::b256, double>::tsz), 4U);
 
         // helpers
         EXPECT_EQ(typeid(avxvector_t<bsz::b256, double>), typeid(__m256d));
@@ -134,10 +134,10 @@ namespace TestsKT
         // bsz::b512 float
         EXPECT_EQ(typeid(avxvector<bsz::b512, float>::type), typeid(__m512));
         EXPECT_EQ(typeid(avxvector<bsz::b512, float>::half_type), typeid(__m256));
-        EXPECT_EQ((avxvector<bsz::b512, float>::value), 16U);
+        EXPECT_EQ((avxvector<bsz::b512, float>::p_size), 16U);
         EXPECT_EQ((avxvector<bsz::b512, float>()), 16U);
-        EXPECT_EQ((avxvector<bsz::b512, float>::half), 8U);
-        EXPECT_EQ((avxvector<bsz::b512, float>::count), 16U);
+        EXPECT_EQ((avxvector<bsz::b512, float>::hp_size), 8U);
+        EXPECT_EQ((avxvector<bsz::b512, float>::tsz), 16U);
 
         // helpers
         EXPECT_EQ(typeid(avxvector_t<bsz::b512, float>), typeid(__m512));
@@ -151,10 +151,10 @@ namespace TestsKT
         // bsz::b512 double
         EXPECT_EQ(typeid(avxvector<bsz::b512, double>::type), typeid(__m512d));
         EXPECT_EQ(typeid(avxvector<bsz::b512, double>::half_type), typeid(__m256d));
-        EXPECT_EQ((avxvector<bsz::b512, double>::value), 8U);
+        EXPECT_EQ((avxvector<bsz::b512, double>::p_size), 8U);
         EXPECT_EQ((avxvector<bsz::b512, double>()), 8U);
-        EXPECT_EQ((avxvector<bsz::b512, double>::half), 4U);
-        EXPECT_EQ((avxvector<bsz::b512, double>::count), 8U);
+        EXPECT_EQ((avxvector<bsz::b512, double>::hp_size), 4U);
+        EXPECT_EQ((avxvector<bsz::b512, double>::tsz), 8U);
 
         // helpers
         EXPECT_EQ(typeid(avxvector_t<bsz::b512, double>), typeid(__m512d));
@@ -176,10 +176,10 @@ namespace TestsKT
         // bsz::b256 cfloat
         EXPECT_EQ(typeid(avxvector<bsz::b256, cfloat>::type), typeid(__m256));
         EXPECT_EQ(typeid(avxvector<bsz::b256, cfloat>::half_type), typeid(__m128));
-        EXPECT_EQ((avxvector<bsz::b256, cfloat>::value), 8U);
+        EXPECT_EQ((avxvector<bsz::b256, cfloat>::p_size), 8U);
         EXPECT_EQ((avxvector<bsz::b256, cfloat>()), 8U);
-        EXPECT_EQ((avxvector<bsz::b256, cfloat>::half), 4U);
-        EXPECT_EQ((avxvector<bsz::b256, cfloat>::count), 4U);
+        EXPECT_EQ((avxvector<bsz::b256, cfloat>::hp_size), 4U);
+        EXPECT_EQ((avxvector<bsz::b256, cfloat>::tsz), 4U);
 
         // helpers
         EXPECT_EQ(typeid(avxvector_t<bsz::b256, cfloat>), typeid(__m256));
@@ -193,10 +193,10 @@ namespace TestsKT
         // bsz::b256 cdouble
         EXPECT_EQ(typeid(avxvector<bsz::b256, cdouble>::type), typeid(__m256d));
         EXPECT_EQ(typeid(avxvector<bsz::b256, cdouble>::half_type), typeid(__m128d));
-        EXPECT_EQ((avxvector<bsz::b256, cdouble>::value), 4U);
+        EXPECT_EQ((avxvector<bsz::b256, cdouble>::p_size), 4U);
         EXPECT_EQ((avxvector<bsz::b256, cdouble>()), 4U);
-        EXPECT_EQ((avxvector<bsz::b256, cdouble>::half), 2U);
-        EXPECT_EQ((avxvector<bsz::b256, cdouble>::count), 2U);
+        EXPECT_EQ((avxvector<bsz::b256, cdouble>::hp_size), 2U);
+        EXPECT_EQ((avxvector<bsz::b256, cdouble>::tsz), 2U);
 
         // helpers
         EXPECT_EQ(typeid(avxvector_t<bsz::b256, cdouble>), typeid(__m256d));
@@ -217,10 +217,10 @@ namespace TestsKT
         // bsz::b512 cfloat
         EXPECT_EQ(typeid(avxvector<bsz::b512, cfloat>::type), typeid(__m512));
         EXPECT_EQ(typeid(avxvector<bsz::b512, cfloat>::half_type), typeid(__m256));
-        EXPECT_EQ((avxvector<bsz::b512, cfloat>::value), 16U);
+        EXPECT_EQ((avxvector<bsz::b512, cfloat>::p_size), 16U);
         EXPECT_EQ((avxvector<bsz::b512, cfloat>()), 16U);
-        EXPECT_EQ((avxvector<bsz::b512, cfloat>::half), 8U);
-        EXPECT_EQ((avxvector<bsz::b512, cfloat>::count), 8U);
+        EXPECT_EQ((avxvector<bsz::b512, cfloat>::hp_size), 8U);
+        EXPECT_EQ((avxvector<bsz::b512, cfloat>::tsz), 8U);
 
         // helpers
         EXPECT_EQ(typeid(avxvector_t<bsz::b512, cfloat>), typeid(__m512));
@@ -234,10 +234,10 @@ namespace TestsKT
         // bsz::b512 cdouble
         EXPECT_EQ(typeid(avxvector<bsz::b512, cdouble>::type), typeid(__m512d));
         EXPECT_EQ(typeid(avxvector<bsz::b512, cdouble>::half_type), typeid(__m256d));
-        EXPECT_EQ((avxvector<bsz::b512, cdouble>::value), 8U);
+        EXPECT_EQ((avxvector<bsz::b512, cdouble>::p_size), 8U);
         EXPECT_EQ((avxvector<bsz::b512, cdouble>()), 8U);
-        EXPECT_EQ((avxvector<bsz::b512, cdouble>::half), 4U);
-        EXPECT_EQ((avxvector<bsz::b512, cdouble>::count), 4U);
+        EXPECT_EQ((avxvector<bsz::b512, cdouble>::hp_size), 4U);
+        EXPECT_EQ((avxvector<bsz::b512, cdouble>::tsz), 4U);
 
         // helpers
         EXPECT_EQ(typeid(avxvector_t<bsz::b512, cdouble>), typeid(__m512d));
@@ -1885,8 +1885,8 @@ namespace TestsKT
         cdouble                         refz[nz];
         cdouble                         vzz[nz];
 
-        cfloat *refc = new cfloat
-            [nc]; // Used to dynamic memory allocation to suppress a potential compiler bug
+        // Used to dynamic memory allocation to suppress a potential compiler bug
+        cfloat *refc = new cfloat[nc];
 
         s = kt_loadu_p<bsz::b512, float>(&D.vs[3]);
         kt_storeu_p<bsz::b512, float>(vss, s);
