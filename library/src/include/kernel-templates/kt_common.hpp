@@ -21,6 +21,12 @@
  *
  * ************************************************************************
  */
+
+#ifndef KERNEL_TEMPLATES_T_HPP
+#error "Outside the scope of kernel templates sub-headers never use ``kt_common.hpp''directly;\
+    include ``kernel_templates.hpp'' instead."
+#endif
+
 #ifndef _KT_COMMON_
 #define _KT_COMMON_
 
@@ -28,6 +34,7 @@
 #include <complex>
 #include <cstdint>
 #include <immintrin.h>
+#include <tuple>
 #include <type_traits>
 
 #ifdef __OPTIMIZE__
@@ -36,13 +43,210 @@
 #define KT_FORCE_INLINE inline
 #endif
 
+/*
+ * Guide to add a new datatype
+ * ---------------------------
+ *
+ *  1. Increment the number of supported_base_t.
+ *  2. Add a new type checker struct kt_is_base_t_(x) where x is
+ *     the new datatype (Refer to 'kt_is_base_t_double')
+ *  3. In get generator::type_idx, add a unique index ID  for the
+ *     datatype (which is equal to the new supported_base_t - 1).
+ *  4. In generator::get_vec_t, add the vector types of the new types
+ *     to indices (supported_base_t - 1), (supported_base_t - 1) * 2 and
+ *     (supported_base_t - 1) * 3.
+ *  5. Add changes to generator::get_sz_v to calculate the
+ *     psize (Packet size), hpsize (half-packet size) and tsz (type size (sizeof(x)))
+ *     of the new datatype x
+ *
+ *
+ *  Example
+ *  ========
+ *  To enable "bfloat16" datatype, where one bfloat16 element is 16 bits.
+ *
+ *  Step 1
+ *  ------
+ *  Increase by 1 the supported base type:
+ *  constexpr int supported_base_t = 3;
+ *
+ *  Step 2
+ *  -------
+ *  Add type comparison operator:
+ *  template <typename T>
+ *  struct kt_is_base_t_bfloat16
+ *  {
+ *    constexpr operator bool() const noexcept
+ *    {
+ *        return std::is_same_v<T, bfloat16>;
+ *    }
+ *  };
+ *
+ *  Step 3
+ *  ------
+ *  Add oracle to get index into type database:
+ *  template <typename T>
+ *  constexpr int type_idx()
+ *   {
+ *       if constexpr(kt_is_base_t_float<T>())
+ *            return 0;
+ *       else if constexpr(kt_is_base_t_double<T>())
+ *            return 1;
+ *       else if constexpr(kt_is_base_t_bfloat16<T>())
+ *            return 2; // Equal to new supported_base_t - 1
+ *   }
+ *
+ *   Step 4
+ *   ------
+ *   Add oracle to get vector type:
+ *   template <bsz SZ, typename SUF, v_type VT>
+ *    using get_vec_t = type_switch<indx<SZ, SUF, VT>(), __m128, __m128d, __m256bh, __m256, __m256d, __m256bh
+ * #ifdef __AVX512F__
+ *                            ,__m512, __m512d __m512bh
+ * #endif
+ *
+ *   Step 5
+ *   ------
+ *   Add oracle to get vector packet sizes:
+ *
+ *   template <typename T, typename SUF, bool isTSZ = false>
+ *   constexpr int get_sz_v()
+ *   {
+ *       if constexpr(std::is_floating_point<SUF>::value || isTSZ == true || kt_is_base_t_bfloat16<T>())
+ *            return sizeof(T) / sizeof(SUF);
+ *       else
+ *            return ((sizeof(T) / sizeof(SUF)) * 2);
+ *   }
+ *
+ */
+
 namespace kernel_templates
 {
+    using cfloat  = std::complex<float>;
+    using cdouble = std::complex<double>;
+
     /*
-        This template is used to ensure that the aoclsparse_int type
-        used by the AOCL-sparse is either int32_t or int64_t or uint32_t
-        or uint64_t
-    */
+     *   Number of supported "base" types: 2
+     *
+     * 1. float (and cfloat) maps to float intrinsics
+     * 2. double (and cdouble) maps to double intrinsics
+     * Add new types here
+     * 3. ...
+     */
+    constexpr int supported_base_t = 2;
+
+    // Enum class that represents the vector lengths
+    enum class bsz
+    {
+        b256 = supported_base_t * 1,
+        b512 = supported_base_t * 2
+    };
+
+    // Checks if the base type is double - true only for double and cdouble
+    template <typename T>
+    struct kt_is_base_t_double
+    {
+        constexpr operator bool() const noexcept
+        {
+            return std::is_same<T, double>::value || std::is_same<T, cdouble>::value;
+        }
+    };
+
+    // Checks if the base type is float - true only for float and cfloat
+    template <typename T>
+    struct kt_is_base_t_float
+    {
+        constexpr operator bool() const noexcept
+        {
+            return std::is_same<T, float>::value || std::is_same<T, cfloat>::value;
+        }
+    };
+
+    // Checks if both the vector length and datatype are the same
+    template <bsz SZA, bsz SZB, typename SUFA, typename SUFB>
+    struct kt_is_same
+    {
+        constexpr operator bool() const noexcept
+        {
+            return SZA == SZB && std::is_same_v<SUFA, SUFB>;
+        }
+    };
+
+    namespace generator
+    {
+        // AVXVECTOR GENERATOR
+        // ===================
+        // Here are the elements required to automate the process
+        // of defining any of the available AVXVECTORS given SZ (intrinsic base type)
+        // and SUF will populate all the members of the AVXVECTOR struct
+
+        // Auxiliary template to build tuples (used as a function)
+        // It will be used to create a list of types.
+        // Purpose: Given an integer N, it returns the type in the Nth index
+        template <std::size_t N, typename... T>
+        using type_switch = typename std::tuple_element<N, std::tuple<T...>>::type;
+
+        // Auxiliary function to get the base index of float, double, ...
+        template <typename T>
+        constexpr int index_t()
+        {
+            if constexpr(kt_is_base_t_float<T>())
+                return 0;
+            else if constexpr(kt_is_base_t_double<T>())
+                return 1;
+            // else if constexpr(...<T>)
+            // return 2;
+        }
+
+        /*
+        *  Function that calculates the index at which the required type is in the mm intinsic database
+        *
+        *  Example:  In case of DOUBLE, FULL, bsz::v512
+        *  The function will return    (2*2) + 1 - 0 = 5. In index 5, the type '__m512d' is present.
+        */
+        template <bsz SZ, typename SUF, bool HALF>
+        constexpr int index()
+        {
+            // clang-format off
+            // (Index of the vector length) + (Index of the base type) - (Index adjustment for half/full type)
+            return static_cast<int>(SZ) + index_t<SUF>() - (static_cast<int>(HALF) * supported_base_t);
+            // clang-format on
+        }
+
+// Temporary suppression for GCC [up to at least 14.1] compiler on template parameters with attribute type
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wignored-attributes"
+        // clang-format off
+        // mm instrinsic database storing all mm types used by AVXVECTOR
+        // Note on adding new types, refer to guide at top of file!
+        template <bsz SZ, typename SUF, bool HALF>
+        // index_t                                             float   double   float   double
+        using get_vec_t = type_switch<index<SZ, SUF, HALF>(), __m128, __m128d, __m256, __m256d
+        #ifdef __AVX512F__
+        //                         float   double
+                                , __m512, __m512d
+        #endif
+        >;
+#pragma GCC diagnostic pop
+        // clang-format on
+
+        /*
+        *  Function that returns the number of elements in a vector (both type size and pack size)
+        *  based on the parameters.
+        */
+        template <typename T, typename SUF, bool isTSZ = false>
+        constexpr int get_sz_v()
+        {
+            // For non-complex types: pack and type sizes always match
+            if constexpr(std::is_floating_point<SUF>::value || isTSZ == true)
+                return sizeof(T) / sizeof(SUF);
+            else // For complex types: pack size is twice of type size (real, imag)
+                return ((sizeof(T) / sizeof(SUF)) * 2);
+        }
+    }
+
+    /*
+     *   Ensure that the custom int type used is of size 4 or 8
+     */
     template <typename T>
     using set_kt_int_type
         = std::enable_if_t<std::is_integral_v<T> && (sizeof(T) == 4 || sizeof(T) == 8), T>;
@@ -67,13 +271,6 @@ namespace kernel_templates
         AVX512VL = 2 + 4 + 8 + 16
     };
 
-    // Enum class that represents the vector lengths
-    enum class bsz
-    {
-        b256,
-        b512
-    };
-
     // Delta function (used for zero-padding)
     template <typename T, int L>
     constexpr T pz(const T &x) noexcept
@@ -91,150 +288,23 @@ namespace kernel_templates
 #define kt_sse_scl(kt_v) kt_v[0];
 #endif
 
-    using cfloat  = std::complex<float>;
-    using cdouble = std::complex<double>;
-
-    template <bsz SZA, bsz SZB, typename SUFA, typename SUFB>
-    struct kt_is_same
-    {
-        constexpr operator bool() const noexcept
-        {
-            return SZA == SZB && std::is_same_v<SUFA, SUFB>;
-        }
-    };
-
-    // Checks if the base type is double - true only for double and cdouble
-    template <typename T>
-    struct kt_is_base_t_double
-    {
-        constexpr operator bool() const noexcept
-        {
-            return std::is_same<T, double>::value || std::is_same<T, cdouble>::value;
-        }
-    };
-
-    // Checks if the base type is float - true only for float and cfloat
-    template <typename T>
-    struct kt_is_base_t_float
-    {
-        constexpr operator bool() const noexcept
-        {
-            return std::is_same<T, float>::value || std::is_same<T, cfloat>::value;
-        }
-    };
-
-    // helper template type for avx full vectors
-    template <bsz, typename>
+    /*
+     *  avxvector struct
+     */
+    template <bsz SZ, typename SUF>
     struct avxvector
     {
-    };
-    template <>
-    struct avxvector<bsz::b256, double>
-    {
-        using type                    = __m256d; // Vector type
-        using half_type               = __m128d; // Associated "half" length vector type
-        static constexpr size_t value = 4; // Vector length, packet size
-        static constexpr size_t half  = 4 >> 1; // Length of half vector
-        // amount of elements of type `typename` that the vector holds
-        static constexpr size_t count = 4;
+        using type      = generator::get_vec_t<SZ, SUF, false>; // __m type for full vector
+        using half_type = generator::get_vec_t<SZ, SUF, true>; // __m type for half vector
+        static constexpr size_t p_size  = generator::get_sz_v<type, SUF>(); // pack size
+        static constexpr size_t hp_size = generator::get_sz_v<half_type, SUF>(); // half pack size
+        static constexpr size_t tsz     = generator::get_sz_v<type, SUF, true>(); // type size
+        // Get the packet size:
         constexpr operator size_t() const noexcept
         {
-            return value;
-        }
-    }; // Convenience operator to return vector length
-    template <>
-    struct avxvector<bsz::b256, float>
-    {
-        using type                    = __m256;
-        using half_type               = __m128;
-        static constexpr size_t value = 8;
-        static constexpr size_t half  = 8 >> 1;
-        static constexpr size_t count = 8;
-        constexpr operator size_t() const noexcept
-        {
-            return value;
+            return p_size;
         }
     };
-    template <>
-    struct avxvector<bsz::b256, cdouble>
-    {
-        using type                    = __m256d;
-        using half_type               = __m128d;
-        static constexpr size_t value = 4;
-        static constexpr size_t half  = 4 >> 1;
-        static constexpr size_t count = 4 >> 1;
-        constexpr operator size_t() const noexcept
-        {
-            return value;
-        }
-    };
-    template <>
-    struct avxvector<bsz::b256, cfloat>
-    {
-        using type                    = __m256;
-        using half_type               = __m128;
-        static constexpr size_t value = 8;
-        static constexpr size_t half  = 8 >> 1;
-        static constexpr size_t count = 8 >> 1;
-        constexpr operator size_t() const noexcept
-        {
-            return value;
-        }
-    };
-#ifdef __AVX512F__
-    template <>
-    struct avxvector<bsz::b512, double>
-    {
-        using type                    = __m512d;
-        using half_type               = __m256d;
-        static constexpr size_t value = 8;
-        static constexpr size_t half  = 8 >> 1;
-        static constexpr size_t count = 8;
-        constexpr operator size_t() const noexcept
-        {
-            return value;
-        }
-    };
-    template <>
-    struct avxvector<bsz::b512, float>
-    {
-        using type                    = __m512;
-        using half_type               = __m256;
-        static constexpr size_t value = 16;
-        static constexpr size_t half  = 16 >> 1;
-        static constexpr size_t count = 16;
-        constexpr operator size_t() const noexcept
-        {
-            return value;
-        }
-    };
-    template <>
-    struct avxvector<bsz::b512, cdouble>
-    {
-        using type                    = __m512d;
-        using half_type               = __m256d;
-        static constexpr size_t value = 8;
-        static constexpr size_t half  = 8 >> 1;
-        static constexpr size_t count = 8 >> 1;
-        constexpr operator size_t() const noexcept
-        {
-            return value;
-        }
-    };
-    template <>
-    struct avxvector<bsz::b512, cfloat>
-    {
-        using type                    = __m512;
-        using half_type               = __m256;
-        static constexpr size_t value = 16;
-        static constexpr size_t half  = 16 >> 1;
-        static constexpr size_t count = 16 >> 1;
-        constexpr operator size_t() const noexcept
-        {
-            return value;
-        }
-    };
-#endif
 
     // helper template type for avx vectors
     template <bsz SZ, typename SUF>
@@ -244,21 +314,21 @@ namespace kernel_templates
     template <bsz SZ, typename SUF>
     using avxvector_half_t = typename avxvector<SZ, SUF>::half_type;
 
-    // helper template value (length) for avx vectors (pack size)
+    // helper template value for an avx vector' pack size
     template <bsz SZ, typename SUF>
-    inline constexpr size_t avxvector_v = avxvector<SZ, SUF>::value;
+    inline constexpr size_t avxvector_v = avxvector<SZ, SUF>::p_size;
 
-    // helper template value (length) for "half" avx vectors (half pack size)
+    // helper template value for "half" avx vector' half pack size
     template <bsz SZ, typename SUF>
-    inline constexpr size_t avxvector_half_v = avxvector<SZ, SUF>::half;
+    inline constexpr size_t avxvector_half_v = avxvector<SZ, SUF>::hp_size;
 
     template <bsz SZ, typename SUF>
-    inline constexpr size_t hsz_v = avxvector<SZ, SUF>::half;
+    inline constexpr size_t hsz_v = avxvector<SZ, SUF>::hp_size;
 
     // helper template type-storage size (how many elements of a type fit in a vector)
     // for real-valued types it matches with pack size, for complex it is half (real,imag)
     template <bsz SZ, typename SUF>
-    inline constexpr size_t tsz_v = avxvector<SZ, SUF>::count;
+    inline constexpr size_t tsz_v = avxvector<SZ, SUF>::tsz;
 
     //-----------------
     // Level-0 kernels
@@ -481,6 +551,10 @@ namespace kernel_templates
                                const avxvector_t<SZ, SUF> c) noexcept;
 
     // -----------------------------------------------------------------------
+
+    //-----------------
+    // Level-1 kernels
+    //-----------------
 
     // Horizontal sum (reduction) of an AVX register
     //  - `v` avxvector

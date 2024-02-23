@@ -41,16 +41,14 @@
 #ifndef KERNEL_TEMPLATES_T_HPP
 #define KERNEL_TEMPLATES_T_HPP
 
-// L0 micro kernels that are generic
+// Generic L0 micro kernels
 #include "kt_l0.hpp"
-// L0 micro kernels AVX 2 specific
-#include "kt_l0_avx2.hpp"
 
-// L1 micro kernels: these only depend on L0 micro kernels.
+// AVX2 specific L0 micro kernels
 #include "kt_l0_avx2.hpp"
 
 #ifdef __AVX512F__
-// L0 microkernels (AVX512)
+// AVX512 specific L0 micro kernels
 #include "kt_l0_avx512.hpp"
 #endif
 

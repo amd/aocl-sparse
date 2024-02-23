@@ -23,7 +23,7 @@
  */
 
 #ifndef KERNEL_TEMPLATES_T_HPP
-#error "Never use "kt_l0_256.hpp" directly; include "kernel_templates.hpp" instead."
+#error "Never use ``kt_l0_avx2.hpp'' directly; include ``kernel_templates.hpp'' instead."
 #endif
 
 // clang-format off
