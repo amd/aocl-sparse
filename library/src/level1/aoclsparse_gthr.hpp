@@ -25,9 +25,8 @@
 #define AOCLSPARSE_GTHR_HPP
 
 #include "aoclsparse.h"
+#include "aoclsparse_kernel_templates.hpp"
 #include "aoclsparse_utils.hpp"
-
-#include <type_traits>
 
 /* Gather operation types and requirements for input/output vector y.
  * gather -> y be of type const T *
@@ -61,7 +60,9 @@ inline aoclsparse_status
         {
             // treat "xi" as an indexing array
             if(xi[i] < 0)
+            {
                 return aoclsparse_status_invalid_index_value;
+            }
 
             yp = &y[xi[i]];
         }
@@ -77,17 +78,82 @@ inline aoclsparse_status
     return aoclsparse_status_success;
 }
 
+using namespace kernel_templates;
+
+template <bsz SZ, typename SUF, gather_op OP, kt_avxext EXT, Index::type I>
+inline aoclsparse_status
+    gthr_kt(aoclsparse_int nnz, y_type<SUF, OP> y, SUF *x, Index::index_t<I> xi)
+{
+    avxvector_t<SZ, SUF> yv;
+
+    y_type<SUF, OP> yp;
+
+    // Automatically determine the type of tsz
+    constexpr auto tsz = tsz_v<SZ, SUF>;
+
+    aoclsparse_int count = nnz / tsz;
+    aoclsparse_int rem   = nnz % tsz;
+
+    if constexpr(I == Index::type::strided)
+    {
+        aoclsparse_int xstride[tsz];
+
+        for(auto i = 0U; i < tsz; ++i)
+            xstride[i] = i * xi;
+
+        for(auto i = 0U; i < count; ++i)
+        {
+            yv = kt_maskz_set_p<SZ, SUF, EXT, tsz>(y + ((i * xi) * tsz), xstride);
+
+            kt_storeu_p<SZ, SUF>(x + (i * tsz), yv);
+        }
+    }
+    else if(I == Index::type::indexed)
+    {
+        for(auto i = 0U; i < count; ++i)
+        {
+            yv = kt_set_p<SZ, SUF>(y, xi + (i * tsz));
+
+            kt_storeu_p<SZ, SUF>(x + (i * tsz), yv);
+
+            if constexpr(OP == gather_op::gatherz)
+            {
+                kt_scatter_p<SZ, SUF>(kt_setzero_p<SZ, SUF>(), y, xi + (i * tsz));
+            }
+        }
+    }
+
+    for(auto i = nnz - rem; i < nnz; ++i)
+    {
+        if constexpr(I == Index::type::strided)
+        {
+            // treat "xi" as a stride distance
+            yp = &y[xi * i];
+        }
+        else if constexpr(I == Index::type::indexed)
+        {
+            yp = &y[xi[i]];
+        }
+
+        x[i] = *yp; // copy out
+
+        if constexpr(OP == gather_op::gatherz)
+        {
+            *yp = aoclsparse_numeric::zero<SUF>(); // zero out
+        }
+    }
+
+    return aoclsparse_status_success;
+}
+
 /*
  * aoclsparse_gthrs dispatcher with strided or indexed array access
  * handles both cases gather and gatherz
  * Note that y is inout for gatherz and in otherwise.
  */
 template <typename T, gather_op OP, Index::type I>
-aoclsparse_status aoclsparse_gthr(const aoclsparse_int            nnz,
-                                  y_type<T, OP>                   y,
-                                  T                              *x,
-                                  Index::index_t<I>               xi,
-                                  [[maybe_unused]] aoclsparse_int kid)
+aoclsparse_status aoclsparse_gthr_t(
+    aoclsparse_int nnz, y_type<T, OP> y, T *x, Index::index_t<I> xi, aoclsparse_int kid = -1)
 {
     // Check size
     if(nnz < 0)
@@ -122,8 +188,31 @@ aoclsparse_status aoclsparse_gthr(const aoclsparse_int            nnz,
         }
     }
 
-    // Reference implementation
-    return gthr_ref<T, OP, I>(nnz, y, x, xi);
+    // Creating pointer to the kernel
+    using K = decltype(&gthr_ref<T, OP, I>);
+
+    K kernel;
+
+    // TODO: Replace with L1 dispatcher
+    // Pick the kernel based on the KID passed
+    switch(kid)
+    {
+    case 2:
+#if defined(__AVX512F__)
+        kernel = gthr_kt<bsz::b512, T, OP, kt_avxext::AVX512F, I>;
+        break;
+#endif
+    case 1:
+#if defined(__AVX2__)
+        kernel = gthr_kt<bsz::b256, T, OP, kt_avxext::AVX2, I>;
+        break;
+#endif
+    default:
+        kernel = gthr_ref<T, OP, I>;
+    }
+
+    // Invoke the kernel
+    return kernel(nnz, y, x, xi);
 }
 
 #endif /* AOCLSPARSE_GTHR_HPP */

@@ -187,7 +187,7 @@ aoclsparse_status
     case aoclsparse_order_row:
         for(int c = 0; c < n; c++)
         {
-            status = aoclsparse_gthr<T, gather_op::gather, Index::type::strided>(
+            status = aoclsparse_gthr_t<T, gather_op::gather, Index::type::strided>(
                 m, &B[c], &wcolb[0], ldb, gkid);
             status
                 = aoclsparse_trsv<T>(transpose, alpha, A, descr, wcolb.data(), wcolx.data(), kid);
