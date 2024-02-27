@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,7 @@
 #include "aoclsparse_mat_structures.h"
 #include "common_data_utils.h"
 #include "gtest/gtest.h"
+#include "aoclsparse_gthr.hpp"
 
 #include <algorithm>
 #include <vector>
@@ -41,25 +42,36 @@ namespace
               std::vector<T>              &x_exp,
               std::vector<T>              &y_exp)
     {
-        std::vector<aoclsparse_int> tindx = {0, 3, 5};
-        indx                              = tindx;
-        nnz                               = 3;
+        std::vector<aoclsparse_int> tindx
+            = {0, 3, 5, 1, 7, 12, 2, 6, 8, 9, 10, 11, 4, 13, 15, 16, 14, 18};
+        indx = tindx;
+        nnz  = 18;
         x.resize(nnz);
         if constexpr(std::is_same_v<T, std::complex<double>>
                      || std::is_same_v<T, std::complex<float>>
                      || std::is_same_v<T, aoclsparse_double_complex>
                      || std::is_same_v<T, aoclsparse_float_complex>)
         {
-
-            y.assign({{1, 1}, {1, 2}, {2, 3}, {3, 4}, {4, 5}, {5, 6}, {6, 7}, {7, 8}, {8, 9}});
-            x_exp.assign({{1, 1}, {3, 4}, {5, 6}});
-            y_exp.assign({{0, 0}, {1, 2}, {2, 3}, {0, 0}, {4, 5}, {0, 0}, {6, 7}, {7, 8}, {8, 9}});
+            // clang-format off
+            y.assign({{1, 1},   {1, 2},   {2, 3},   {3, 4},   {4, 5},   {5, 6},
+                      {6, 7},   {7, 8},   {8, 9},   {9, 10},  {10, 11}, {11, 12},
+                      {12, 13}, {13, 14}, {14, 15}, {15, 16}, {16, 17}, {17, 18},
+                      {18, 19}, {19, 20}, {20, 21}, {21, 22}});
+            y_exp.assign({{0, 0}, {0, 0},   {0, 0},   {0, 0}, {0, 0}, {0, 0},
+                          {0, 0}, {0, 0},   {0, 0},   {0, 0}, {0, 0}, {0, 0},
+                          {0, 0}, {0, 0},   {0, 0},   {0, 0}, {0, 0}, {17, 18},
+                          {0, 0}, {19, 20}, {20, 21}, {21, 22}});
+            x_exp.assign({{1, 1},   {3, 4},  {5, 6},   {1, 2},   {7, 8}, {12, 13},   {2, 3},   {6, 7},
+                          {8, 9},   {9, 10}, {10, 11}, {11, 12}, {4, 5}, {13, 14}, {15, 16}, {16, 17},
+                          {14, 15}, {18, 19}});
+            // clang-format on
         }
         else if constexpr(std::is_same_v<T, double> || std::is_same_v<T, float>)
         {
-            y.assign({1, 2, 3, 4, 5, 6, 7, 8, 9});
-            x_exp.assign({1, 4, 6});
-            y_exp.assign({0, 2, 3, 0, 5, 0, 7, 8, 9});
+            y.assign(
+                {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22});
+            x_exp.assign({1, 4, 6, 2, 8, 13, 3, 7, 9, 10, 11, 12, 5, 14, 16, 17, 15, 19});
+            y_exp.assign({0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 18, 0, 20, 21, 22});
         }
     }
     template <typename T>
@@ -94,7 +106,7 @@ namespace
     }
 
     // Positive test case with checking output correctness
-    template <typename T>
+    template <typename T, int KID>
     void test_gthr_success()
     {
         aoclsparse_int              nnz;
@@ -106,9 +118,11 @@ namespace
 
         init(nnz, x, y, indx, x_exp, y_exp);
 
+        aoclsparse_status res = aoclsparse_gthr_t<T, gather_op::gather, Index::type::indexed>(
+            nnz, y.data(), x.data(), indx.data(), KID);
+
         // expect success
-        EXPECT_EQ(aoclsparse_gthr<T>(nnz, y.data(), x.data(), indx.data()),
-                  aoclsparse_status_success);
+        EXPECT_EQ(res, aoclsparse_status_success);
         if constexpr(std::is_same_v<T, double>)
         {
             EXPECT_DOUBLE_EQ_VEC(nnz, x.data(), x_exp.data());
@@ -128,7 +142,7 @@ namespace
     }
 
     // Positive test case with checking output correctness
-    template <typename T>
+    template <typename T, int KID>
     void test_gthrz_success()
     {
         aoclsparse_int              nnz;
@@ -140,9 +154,11 @@ namespace
 
         init(nnz, x, y, indx, x_exp, y_exp);
 
+        aoclsparse_status res = aoclsparse_gthr_t<T, gather_op::gatherz, Index::type::indexed>(
+            nnz, y.data(), x.data(), indx.data(), KID);
+
         // expect success
-        EXPECT_EQ(aoclsparse_gthrz<T>(nnz, y.data(), x.data(), indx.data()),
-                  aoclsparse_status_success);
+        EXPECT_EQ(res, aoclsparse_status_success);
         if constexpr(std::is_same_v<T, double>)
         {
             EXPECT_DOUBLE_EQ_VEC(nnz, x.data(), x_exp.data());
@@ -242,8 +258,10 @@ namespace
 
         // Pass negative value in index array
         // and expect aoclsparse_status_invalid_index_value
-        EXPECT_EQ(aoclsparse_gthr<T>(nnz, y.data(), x.data(), indx.data()),
-                  aoclsparse_status_invalid_index_value);
+        // This tests is only valid for reference kernel
+        aoclsparse_status res = aoclsparse_gthr_t<T, gather_op::gather, Index::type::indexed>(
+            nnz, y.data(), x.data(), indx.data(), 0);
+        EXPECT_EQ(res, aoclsparse_status_invalid_index_value);
     }
 
     // Several tests in one when nullptr is passed instead
@@ -322,13 +340,15 @@ namespace
 
         // Pass negative value in index array
         // and expect aoclsparse_status_invalid_index_value
-        EXPECT_EQ(aoclsparse_gthrz<T>(nnz, y.data(), x.data(), indx.data()),
-                  aoclsparse_status_invalid_index_value);
+        // This tests is only valid for reference kernel
+        aoclsparse_status res = aoclsparse_gthr_t<T, gather_op::gatherz, Index::type::indexed>(
+            nnz, y.data(), x.data(), indx.data(), 0);
+        EXPECT_EQ(res, aoclsparse_status_invalid_index_value);
     }
 
     //Gather with stride
     // Positive test case with checking output correctness
-    template <typename T>
+    template <typename T, int KID>
     void test_gthrs_success()
     {
         aoclsparse_int            m, n, nnz;
@@ -345,8 +365,12 @@ namespace
         for(aoclsparse_int col = 0; col < n; col++)
         {
             T val = col + 1;
+
+            aoclsparse_status res = aoclsparse_gthr_t<T, gather_op::gather, Index::type::strided>(
+                n, &y[col], &x[0], stride, KID);
+
             // expect success
-            EXPECT_EQ(aoclsparse_gthrs<T>(n, &y[col], &x[0], stride), aoclsparse_status_success);
+            EXPECT_EQ(res, aoclsparse_status_success);
 
             x_gold = {
                 bc((T)val), bc((T)val), bc((T)val), bc((T)val), bc((T)val), bc((T)val), bc((T)val)};
@@ -420,19 +444,27 @@ namespace
     }
     TEST(gthr, SuccessDouble)
     {
-        test_gthr_success<double>();
+        test_gthr_success<double, 0>();
+        test_gthr_success<double, 1>();
+        test_gthr_success<double, 2>();
     }
     TEST(gthr, SuccessFloat)
     {
-        test_gthr_success<float>();
+        test_gthr_success<float, 0>();
+        test_gthr_success<float, 1>();
+        test_gthr_success<float, 2>();
     }
     TEST(gthr, SuccessCDouble)
     {
-        test_gthr_success<std::complex<double>>();
+        test_gthr_success<std::complex<double>, 0>();
+        test_gthr_success<std::complex<double>, 1>();
+        test_gthr_success<std::complex<double>, 2>();
     }
     TEST(gthr, SuccessCFloat)
     {
-        test_gthr_success<std::complex<float>>();
+        test_gthr_success<std::complex<float>, 0>();
+        test_gthr_success<std::complex<float>, 1>();
+        test_gthr_success<std::complex<float>, 2>();
     }
 
     TEST(gthr, NullArgDouble)
@@ -505,19 +537,27 @@ namespace
 
     TEST(gthrz, SuccessDouble)
     {
-        test_gthrz_success<double>();
+        test_gthrz_success<double, 0>();
+        test_gthrz_success<double, 1>();
+        test_gthrz_success<double, 2>();
     }
     TEST(gthrz, SuccessFloat)
     {
-        test_gthrz_success<float>();
+        test_gthrz_success<float, 0>();
+        test_gthrz_success<float, 1>();
+        test_gthrz_success<float, 2>();
     }
     TEST(gthrz, SuccessCDouble)
     {
-        test_gthrz_success<std::complex<double>>();
+        test_gthrz_success<std::complex<double>, 0>();
+        test_gthrz_success<std::complex<double>, 1>();
+        test_gthrz_success<std::complex<double>, 2>();
     }
     TEST(gthrz, SuccessCFloat)
     {
-        test_gthrz_success<std::complex<float>>();
+        test_gthrz_success<std::complex<float>, 0>();
+        test_gthrz_success<std::complex<float>, 1>();
+        test_gthrz_success<std::complex<float>, 2>();
     }
 
     TEST(gthrz, NullArgDouble)
@@ -591,19 +631,27 @@ namespace
     //gather with stride
     TEST(gthrs, SuccessDouble)
     {
-        test_gthr_success<double>();
+        test_gthrs_success<double, 0>();
+        test_gthrs_success<double, 1>();
+        test_gthrs_success<double, 2>();
     }
     TEST(gthrs, SuccessFloat)
     {
-        test_gthrs_success<float>();
+        test_gthrs_success<float, 0>();
+        test_gthrs_success<float, 1>();
+        test_gthrs_success<float, 2>();
     }
     TEST(gthrs, SuccessCDouble)
     {
-        test_gthrs_success<std::complex<double>>();
+        test_gthrs_success<std::complex<double>, 0>();
+        test_gthrs_success<std::complex<double>, 1>();
+        test_gthrs_success<std::complex<double>, 2>();
     }
     TEST(gthrs, SuccessCFloat)
     {
-        test_gthrs_success<std::complex<float>>();
+        test_gthrs_success<std::complex<float>, 0>();
+        test_gthrs_success<std::complex<float>, 1>();
+        test_gthrs_success<std::complex<float>, 2>();
     }
 
     TEST(gthrs, NullArgDouble)
