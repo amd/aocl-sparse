@@ -1,5 +1,6 @@
 /* ************************************************************************
- * Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Portions of this file consist of AI-generated content.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -201,9 +202,11 @@ namespace
         // 1) 5*7 , nnz=0
         nnz = 0;
         row_ptr.assign({0, 0, 0, 0, 0, 0});
-        EXPECT_EQ(aoclsparse_create_csr<T>(
+        ASSERT_EQ(aoclsparse_create_csr<T>(
                       &A, base, m, n, nnz, row_ptr.data(), col_idx.data(), val.data()),
                   aoclsparse_status_success);
+        EXPECT_EQ(A->sort, aoclsparse_fully_sorted);
+        EXPECT_EQ(A->fulldiag, false);
         EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
 
         // 2) 0*7 , nnz=0
@@ -211,9 +214,11 @@ namespace
         n = 7;
         row_ptr.assign({0});
         col_idx.assign({0});
-        EXPECT_EQ(aoclsparse_create_csr<T>(
+        ASSERT_EQ(aoclsparse_create_csr<T>(
                       &A, base, m, n, nnz, row_ptr.data(), col_idx.data(), val.data()),
                   aoclsparse_status_success);
+        EXPECT_EQ(A->sort, aoclsparse_fully_sorted);
+        EXPECT_EQ(A->fulldiag, true);
         EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
 
         // 3) 2*0 , nnz=0
@@ -221,9 +226,11 @@ namespace
         n   = 0;
         nnz = 0;
         row_ptr.assign({0, 0, 0});
-        EXPECT_EQ(aoclsparse_create_csr<T>(
+        ASSERT_EQ(aoclsparse_create_csr<T>(
                       &A, base, m, n, nnz, row_ptr.data(), col_idx.data(), val.data()),
                   aoclsparse_status_success);
+        EXPECT_EQ(A->sort, aoclsparse_fully_sorted);
+        EXPECT_EQ(A->fulldiag, true);
         EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
 
         // 4) 0*0 , nnz=0
@@ -232,9 +239,11 @@ namespace
         nnz = 0;
         row_ptr.assign({0});
         col_idx.assign({0});
-        EXPECT_EQ(aoclsparse_create_csr<T>(
+        ASSERT_EQ(aoclsparse_create_csr<T>(
                       &A, base, m, n, nnz, row_ptr.data(), col_idx.data(), val.data()),
                   aoclsparse_status_success);
+        EXPECT_EQ(A->sort, aoclsparse_fully_sorted);
+        EXPECT_EQ(A->fulldiag, true);
         EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
 
         // 5) 2*0 , nnz=3
@@ -246,6 +255,116 @@ namespace
         EXPECT_EQ(aoclsparse_create_csr<T>(
                       &A, base, m, n, nnz, row_ptr.data(), col_idx.data(), val.data()),
                   aoclsparse_status_invalid_index_value);
+    }
+
+    template <typename T>
+    void test_sorted_fulldiag(aoclsparse_index_base base)
+    {
+        // test dataset
+        aoclsparse_int m, n, nnz;
+        m   = 4;
+        n   = 4;
+        nnz = 9;
+
+        std::vector<aoclsparse_int> row_ptr, col_fully_sorted, col_partially_sorted, col_unsorted;
+        std::vector<T>              val_fully_sorted, val_partially_sorted, val_un_sorted;
+
+        if(base == aoclsparse_index_base_zero)
+        {
+            row_ptr.assign({0, 3, 4, 6, 9});
+            col_fully_sorted.assign({0, 2, 3, 1, 0, 2, 0, 1, 3});
+            col_partially_sorted.assign({0, 3, 2, 1, 0, 2, 1, 0, 3});
+            col_unsorted.assign({2, 0, 3, 1, 0, 2, 3, 1, 0});
+        }
+        else
+        {
+            row_ptr.assign({1, 4, 5, 7, 10});
+            col_fully_sorted.assign({1, 3, 4, 2, 1, 3, 1, 2, 4});
+            col_partially_sorted.assign({1, 4, 3, 2, 1, 3, 2, 1, 4});
+            col_unsorted.assign({3, 1, 4, 2, 1, 3, 4, 2, 1});
+        }
+
+        val_fully_sorted.assign({1, 2, 3, 4, 5, 6, 7, 8, 9});
+        val_partially_sorted.assign({1, 3, 2, 4, 5, 6, 8, 7, 9});
+        val_un_sorted.assign({2, 1, 3, 4, 5, 6, 9, 8, 7});
+        aoclsparse_matrix A;
+
+        // fully sorted + full diag
+        ASSERT_EQ(aoclsparse_create_csr<T>(&A,
+                                           base,
+                                           m,
+                                           n,
+                                           nnz,
+                                           row_ptr.data(),
+                                           col_fully_sorted.data(),
+                                           val_fully_sorted.data()),
+                  aoclsparse_status_success);
+        EXPECT_EQ(A->sort, aoclsparse_fully_sorted);
+        EXPECT_EQ(A->fulldiag, true);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
+
+        // fully sorted + missing diag
+        col_fully_sorted[5] = 3 + base;
+        ASSERT_EQ(aoclsparse_create_csr<T>(&A,
+                                           base,
+                                           m,
+                                           n,
+                                           nnz,
+                                           row_ptr.data(),
+                                           col_fully_sorted.data(),
+                                           val_fully_sorted.data()),
+                  aoclsparse_status_success);
+        EXPECT_EQ(A->sort, aoclsparse_fully_sorted);
+        EXPECT_EQ(A->fulldiag, false);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
+
+        // partially sorted + full diag
+        ASSERT_EQ(aoclsparse_create_csr<T>(&A,
+                                           base,
+                                           m,
+                                           n,
+                                           nnz,
+                                           row_ptr.data(),
+                                           col_partially_sorted.data(),
+                                           val_partially_sorted.data()),
+                  aoclsparse_status_success);
+        EXPECT_EQ(A->sort, aoclsparse_partially_sorted);
+        EXPECT_EQ(A->fulldiag, true);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
+
+        // partially sorted + missing diag
+        col_partially_sorted[5] = 3 + base;
+        ASSERT_EQ(aoclsparse_create_csr<T>(&A,
+                                           base,
+                                           m,
+                                           n,
+                                           nnz,
+                                           row_ptr.data(),
+                                           col_partially_sorted.data(),
+                                           val_partially_sorted.data()),
+                  aoclsparse_status_success);
+        EXPECT_EQ(A->sort, aoclsparse_partially_sorted);
+        EXPECT_EQ(A->fulldiag, false);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
+
+        // unsorted + full diag
+        ASSERT_EQ(
+            aoclsparse_create_csr<T>(
+                &A, base, m, n, nnz, row_ptr.data(), col_unsorted.data(), val_un_sorted.data()),
+            aoclsparse_status_success);
+        EXPECT_EQ(A->sort, aoclsparse_unsorted);
+        EXPECT_EQ(A->fulldiag, true);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
+
+        // unsorted + missing diag
+        col_unsorted[5] = 0 + base;
+        ASSERT_EQ(
+            aoclsparse_create_csr<T>(
+                &A, base, m, n, nnz, row_ptr.data(), col_unsorted.data(), val_un_sorted.data()),
+            aoclsparse_status_success);
+        EXPECT_EQ(A->sort, aoclsparse_unsorted);
+        EXPECT_EQ(A->fulldiag, false);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
     }
 
     TEST(createcsr, NullArgAll)
@@ -276,5 +395,11 @@ namespace
         test_zero_dimension<aoclsparse_float_complex>();
         test_zero_dimension<aoclsparse_double_complex>();
     }
-
+    TEST(createcsr, CheckSortedDiag)
+    {
+        test_sorted_fulldiag<float>(aoclsparse_index_base_zero);
+        test_sorted_fulldiag<double>(aoclsparse_index_base_zero);
+        test_sorted_fulldiag<float>(aoclsparse_index_base_one);
+        test_sorted_fulldiag<double>(aoclsparse_index_base_one);
+    }
 } // namespace

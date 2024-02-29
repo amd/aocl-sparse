@@ -126,6 +126,35 @@ struct _aoclsparse_csc
 };
 
 /********************************************************************************
+ *  \brief List of sorting patterns of the (CSR/CSC) matrix indices.
+ *
+ *  \details
+ *  The sorting pattern is checked based on:
+ *  1. The indices which are grouped by lower triangular part (L), diagonal (D) and upper triangular part (U)
+ *     within each row.
+ *  2. The order of indices within the groups.
+ *
+ *  aoclsparse_unknown_sort:
+ *   - Used as a default value, when the matrix is created internally and when aoclsparse_mat_check_internal
+ *     is not run.
+ *  aoclsparse_fully_sorted:
+ *   - The indices are order nonincreasingly in all rows (duplicate elements except on the diagonal are allowed)
+ *  aoclsparse_partially_sorted:
+ *   - Strictly lower triangular elements are followed by the diagonal and then upper triangular in each row
+ *     but the indices within L or U group are not sorted.
+ *  aoclsparse_unsorted:
+ *   - No order of the indices can be assumed.
+*/
+typedef enum aoclsparse_matrix_sort_
+{
+    aoclsparse_unknown_sort     = 0, // default
+    aoclsparse_fully_sorted     = 1, // (sorted) L + D + (sorted) U
+    aoclsparse_partially_sorted = 2, // (unsorted) L + D + (unsorted) U
+    // either L or U can be unsorted
+    aoclsparse_unsorted = 3 // shuffled (L | D | U)
+} aoclsparse_matrix_sort;
+
+/********************************************************************************
  * \brief _aoclsparse_matrix is a structure holding generic aoclsparse matrices.
  * It should be used by all the sparse routines to initialize the sparse matrices.
  * It should be destroyed at the end using aoclsparse_destroy_mat_structs().
@@ -208,6 +237,12 @@ struct _aoclsparse_matrix
 
     // used to indicate if any additional memory required further performance optimization purposes
     aoclsparse_memory_usage mem_policy = aoclsparse_memory_usage_unrestricted;
+
+    // check if the matrix has full(nonzero) diagonal
+    // if the matrix is rectangular, only the square submatrix is considered
+    bool fulldiag = false;
+    // the sorting pattern of the matrix
+    aoclsparse_matrix_sort sort = aoclsparse_unknown_sort;
 };
 
 #endif // AOCLSPARSE_MAT_STRUCTS_H

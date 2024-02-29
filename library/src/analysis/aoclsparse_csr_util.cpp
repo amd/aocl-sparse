@@ -1,5 +1,6 @@
 /* ************************************************************************
- * Copyright (c) 2022-2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022-2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Portions of this file consist of AI-generated content.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -78,29 +79,32 @@ aoclsparse_status aoclsparse_add_hint(aoclsparse_optimize_data *&list,
 }
 
 /* Checks CSR or CSC matrix format for correctness
- * maj_dim : M (rows) for CSR and N (cols) for CSC
- * min_dim : N (cols) for CSC and M (rows) for CSR
- * nnz     : number of non-zeros
- * idx_ptr : csr_row_ptr[M+1] for CSR and csc_mat_col_ptr[N+1] for CSC
- * indices : csr_col_ptr[nnz] for CSR and csc_mat.row_idx[nnz] for CSC
- * val     : csr_val[nnz] for CSR and csc_mat.val[nnz] for CSC
- * shape   : used to determine if the matrix is supposed to have a particular
- *           structure to enable individual checks
- * base    : aoclsparse_index_base_zero or aoclsparse_index_base_one
+ * maj_dim      : M (rows) for CSR and N (cols) for CSC
+ * min_dim      : N (cols) for CSC and M (rows) for CSR
+ * nnz          : number of non-zeros
+ * idx_ptr      : csr_row_ptr[M+1] for CSR and csc_mat_col_ptr[N+1] for CSC
+ * indices      : csr_col_ptr[nnz] for CSR and csc_mat.row_idx[nnz] for CSC
+ * val          : csr_val[nnz] for CSR and csc_mat.val[nnz] for CSC
+ * shape        : expecting lower/upper triangular matrix or general?
+ * base         : aoclsparse_index_base_zero or aoclsparse_index_base_one
+ * mat_sort     : aoclsparse_fully_sorted or aoclsparse_partially_sorted or aoclsparse_un_sorted
+ * mat_fulldiag : matrix having full diagonal (non-zero) or missing diagonal elements
  *
  * error_handler is an optional callback for debug purposes:
  * if defined, it gets the status and a string describing the probelm on its interface
  *
  * Possible erros: invalid_pointer, invalid_size, invalid_index, invalid_value
  */
-aoclsparse_status aoclsparse_mat_check_internal(aoclsparse_int        maj_dim,
-                                                aoclsparse_int        min_dim,
-                                                aoclsparse_int        nnz,
-                                                const aoclsparse_int *idx_ptr,
-                                                const aoclsparse_int *indices,
-                                                const void           *val,
-                                                aoclsparse_shape      shape,
-                                                aoclsparse_index_base base,
+aoclsparse_status aoclsparse_mat_check_internal(aoclsparse_int          maj_dim,
+                                                aoclsparse_int          min_dim,
+                                                aoclsparse_int          nnz,
+                                                const aoclsparse_int   *idx_ptr,
+                                                const aoclsparse_int   *indices,
+                                                const void             *val,
+                                                aoclsparse_shape        shape,
+                                                aoclsparse_index_base   base,
+                                                aoclsparse_matrix_sort &mat_sort,
+                                                bool                   &mat_fulldiag,
                                                 void (*error_handler)(aoclsparse_status status,
                                                                       std::string       message))
 {
@@ -160,6 +164,10 @@ aoclsparse_status aoclsparse_mat_check_internal(aoclsparse_int        maj_dim,
         }
     }
 
+    // assume indices are fully sorted & fulldiag matrix unless proved otherwise
+    aoclsparse_matrix_sort sort     = aoclsparse_fully_sorted;
+    bool                   fulldiag = true;
+
     aoclsparse_int idxstart, idxend, j, jmin = 0, jmax = min_dim - 1;
     for(aoclsparse_int i = 0; i < maj_dim; i++)
     {
@@ -175,7 +183,10 @@ aoclsparse_status aoclsparse_mat_check_internal(aoclsparse_int        maj_dim,
             jmin = i;
             jmax = min_dim - 1;
         }
-        int diag = -1;
+        // check if visited D, U group within this row
+        bool           diagonal = false, upper = false;
+        aoclsparse_int prev = -1; // holds previous col index, initially set to -1
+
         for(aoclsparse_int idx = idxstart; idx < idxend; idx++)
         {
             j = indices[idx] - base;
@@ -190,66 +201,42 @@ aoclsparse_status aoclsparse_mat_check_internal(aoclsparse_int        maj_dim,
                 }
                 return status;
             }
-            if(shape == shape_lower_triangle)
+            // check for sorting pattern for each element in a row
+            if(sort != aoclsparse_unsorted)
             {
-                if(j == i)
-                {
-                    // diagonal element - check if it is unique and at the end of the row
-                    if(diag >= 0)
-                    {
-                        status = aoclsparse_status_invalid_value;
-                        if(error_handler)
-                        {
-                            buffer << "Wrong diag - duplicate diag for i=j=" << i;
-                            error_handler(status, buffer.str());
-                        }
-                        return status;
-                    }
-                    diag = idx;
-                    if(idx != idxend - 1)
-                    {
-                        status = aoclsparse_status_invalid_value;
-                        if(error_handler)
-                        {
-                            buffer << "Wrong diag - not at the end of row i=" << i
-                                   << " @idx=" << idx << " idxend-1=" << idxend - 1;
-                            error_handler(status, buffer.str());
-                        }
-                        return status;
-                    }
-                }
+                if(prev > j) // unsorted col idx (duplicate elements are allowed)
+                    sort = aoclsparse_partially_sorted;
+                else
+                    prev = j; // update previous col index
+
+                // check for group-order
+                if((j <= i && upper) || (j < i && diagonal))
+                    sort = aoclsparse_unsorted;
             }
-            if(shape == shape_upper_triangle)
+            if(j > i)
+                upper = true;
+            else if(j == i)
             {
-                if(j == i)
+                if(diagonal) // duplicate diagonal element (i,j)
                 {
-                    // diagonal element - check if it is unique and at the start of the row
-                    if(diag >= 0)
+                    status = aoclsparse_status_invalid_value;
+                    if(error_handler)
                     {
-                        status = aoclsparse_status_invalid_value;
-                        if(error_handler)
-                        {
-                            buffer << "Wrong diag - duplicate diag for i=j=" << i;
-                            error_handler(status, buffer.str());
-                        }
-                        return status;
+                        buffer << "Wrong diag - duplicate diag for i=j=" << i;
+                        error_handler(status, buffer.str());
                     }
-                    diag = idx;
-                    if(idx != idxstart)
-                    {
-                        status = aoclsparse_status_invalid_value;
-                        if(error_handler)
-                        {
-                            buffer << "Wrong diag - not at the start of row i=" << i
-                                   << " @idx=" << idx << " idxstart=" << idxstart;
-                            error_handler(status, buffer.str());
-                        }
-                        return status;
-                    }
+                    return status;
                 }
+                // diagonal element visited
+                diagonal = true;
             }
         }
+        if(!diagonal && i < min_dim) // missing diagonal
+            fulldiag = false;
     }
+
+    mat_sort     = sort;
+    mat_fulldiag = fulldiag;
 
     return aoclsparse_status_success;
 }
