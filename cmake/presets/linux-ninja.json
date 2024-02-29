@@ -1,0 +1,326 @@
+{
+  "version": 6,
+  "include": [
+    "base.json"
+  ],
+  "configurePresets": [
+    {
+      "name": "linux-ninja",
+      "inherits": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "condition": {
+        "type": "notEquals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "cacheVariables": {
+        "BUILD_UNIT_TESTS": "ON",
+        "BUILD_CLIENTS_BENCHMARKS": "ON",
+        "CMAKE_EXTERNAL_BUILD_DIR": "${sourceDir}/temp/linux_ninja"
+      }
+    },
+    {
+      "name": "linux-ninja-st-lp64-static",
+      "inherits": [
+        "linux-ninja", "st", "lp64", "static"
+      ],
+      "hidden": false
+    },
+    {
+      "name": "linux-ninja-st-lp64-shared",
+      "inherits": [
+        "linux-ninja", "st", "lp64", "shared"
+      ],
+      "hidden": false
+    },
+    {
+      "name": "linux-ninja-st-ilp64-static",
+      "inherits": [
+        "linux-ninja", "st","ilp64", "static"
+      ],
+      "hidden": false
+    },
+    {
+      "name": "linux-ninja-st-ilp64-shared",
+      "inherits": [
+        "linux-ninja", "st", "ilp64", "shared"
+      ],
+      "hidden": false
+    },
+    {
+      "name": "linux-ninja-mt-lp64-static",
+      "inherits": [
+        "linux-ninja", "mt", "lp64", "static"
+      ],
+      "hidden": false
+    },
+    {
+      "name": "linux-ninja-mt-lp64-shared",
+      "inherits": [
+        "linux-ninja", "mt", "lp64", "shared"
+      ],
+      "hidden": false
+    },
+    {
+      "name": "linux-ninja-mt-ilp64-static",
+      "inherits": [
+        "linux-ninja", "mt", "ilp64", "static"
+      ],
+      "hidden": false
+    },
+    {
+      "name": "linux-ninja-mt-ilp64-shared",
+      "inherits": [
+        "linux-ninja", "mt", "ilp64", "shared"
+      ],
+      "hidden": false
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "linux-ninja-st-lp64-static",
+      "configurePreset": "linux-ninja-st-lp64-static",
+      "cleanFirst": true,
+      "inherits": "base"
+    },
+    {
+      "name": "linux-ninja-st-lp64-shared",
+      "configurePreset": "linux-ninja-st-lp64-shared",
+      "cleanFirst": true,
+      "inherits": "base"
+    },
+    {
+      "name": "linux-ninja-st-ilp64-static",
+      "configurePreset": "linux-ninja-st-ilp64-static",
+      "cleanFirst": true,
+      "inherits": "base"
+    },
+    {
+      "name": "linux-ninja-st-ilp64-shared",
+      "configurePreset": "linux-ninja-st-ilp64-shared",
+      "cleanFirst": true,
+      "inherits": "base"
+    },
+    {
+      "name": "linux-ninja-mt-lp64-static",
+      "configurePreset": "linux-ninja-mt-lp64-static",
+      "cleanFirst": true,
+      "inherits": "base"
+    },
+    {
+      "name": "linux-ninja-mt-lp64-shared",
+      "configurePreset": "linux-ninja-mt-lp64-shared",
+      "cleanFirst": true,
+      "inherits": "base"
+    },
+    {
+      "name": "linux-ninja-mt-ilp64-static",
+      "configurePreset": "linux-ninja-mt-ilp64-static",
+      "cleanFirst": true,
+      "inherits": "base"
+    },
+    {
+      "name": "linux-ninja-mt-ilp64-shared",
+      "configurePreset": "linux-ninja-mt-ilp64-shared",
+      "cleanFirst": true,
+      "inherits": "base"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "linux-ninja-st-lp64-static",
+      "configurePreset": "linux-ninja-st-lp64-static",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "linux-ninja-st-lp64-shared",
+      "configurePreset": "linux-ninja-st-lp64-shared",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "linux-ninja-st-ilp64-static",
+      "configurePreset": "linux-ninja-st-ilp64-static",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "linux-ninja-st-ilp64-shared",
+      "configurePreset": "linux-ninja-st-ilp64-shared",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "linux-ninja-mt-lp64-static",
+      "configurePreset": "linux-ninja-mt-lp64-static",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "linux-ninja-mt-lp64-shared",
+      "configurePreset": "linux-ninja-mt-lp64-shared",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "linux-ninja-mt-ilp64-static",
+      "configurePreset": "linux-ninja-mt-ilp64-static",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "linux-ninja-mt-ilp64-shared",
+      "configurePreset": "linux-ninja-mt-ilp64-shared",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    }
+  ],
+  "workflowPresets": [
+    {
+      "name": "linux-ninja-st-lp64-static",
+      "description": "Build and check single-threaded lp64/static sparse on Linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "linux-ninja-st-lp64-static"
+        },
+        {
+          "type": "build",
+          "name": "linux-ninja-st-lp64-static"
+        },
+        {
+          "type": "test",
+          "name": "linux-ninja-st-lp64-static"
+        }
+      ]
+    },
+    {
+      "name": "linux-ninja-st-lp64-shared",
+      "description": "Build and check single-threaded lp64/shared sparse on Linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "linux-ninja-st-lp64-shared"
+        },
+        {
+          "type": "build",
+          "name": "linux-ninja-st-lp64-shared"
+        },
+        {
+          "type": "test",
+          "name": "linux-ninja-st-lp64-shared"
+        }
+      ]
+    },
+    {
+      "name": "linux-ninja-st-ilp64-static",
+      "description": "Build and check single-threaded ilp64/static sparse on Linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "linux-ninja-st-ilp64-static"
+        },
+        {
+          "type": "build",
+          "name": "linux-ninja-st-ilp64-static"
+        },
+        {
+          "type": "test",
+          "name": "linux-ninja-st-ilp64-static"
+        }
+      ]
+    },
+    {
+      "name": "linux-ninja-st-ilp64-shared",
+      "description": "Build and check single-threaded ilp64/shared sparse on Linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "linux-ninja-st-ilp64-shared"
+        },
+        {
+          "type": "build",
+          "name": "linux-ninja-st-ilp64-shared"
+        },
+        {
+          "type": "test",
+          "name": "linux-ninja-st-ilp64-shared"
+        }
+      ]
+    },
+    {
+    "name": "linux-ninja-mt-lp64-static",
+    "description": "Build and check multi-threaded lp64/static sparse on Linux",
+    "steps": [
+      {
+        "type": "configure",
+        "name": "linux-ninja-mt-lp64-static"
+      },
+      {
+        "type": "build",
+        "name": "linux-ninja-mt-lp64-static"
+      },
+      {
+        "type": "test",
+        "name": "linux-ninja-mt-lp64-static"
+      }
+    ]
+  },
+  {
+    "name": "linux-ninja-mt-lp64-shared",
+    "description": "Build and check multi-threaded lp64/shared sparse on Linux",
+    "steps": [
+      {
+        "type": "configure",
+        "name": "linux-ninja-mt-lp64-shared"
+      },
+      {
+        "type": "build",
+        "name": "linux-ninja-mt-lp64-shared"
+      },
+      {
+        "type": "test",
+        "name": "linux-ninja-mt-lp64-shared"
+      }
+    ]
+  },
+  {
+    "name": "linux-ninja-mt-ilp64-static",
+    "description": "Build and check multi-threaded ilp64/static sparse on Linux",
+    "steps": [
+      {
+        "type": "configure",
+        "name": "linux-ninja-mt-ilp64-static"
+      },
+      {
+        "type": "build",
+        "name": "linux-ninja-mt-ilp64-static"
+      },
+      {
+        "type": "test",
+        "name": "linux-ninja-mt-ilp64-static"
+      }
+    ]
+  },
+  {
+    "name": "linux-ninja-mt-ilp64-shared",
+    "description": "Build and check multi-threaded ilp64/shared sparse on Linux",
+    "steps": [
+      {
+        "type": "configure",
+        "name": "linux-ninja-mt-ilp64-shared"
+      },
+      {
+        "type": "build",
+        "name": "linux-ninja-mt-ilp64-shared"
+      },
+      {
+        "type": "test",
+        "name": "linux-ninja-mt-ilp64-shared"
+      }
+    ]
+  }
+  ]
+}

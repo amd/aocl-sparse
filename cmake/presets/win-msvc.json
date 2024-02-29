@@ -1,0 +1,329 @@
+{
+  "version": 6,
+  "include": [
+    "base.json"
+  ],
+  "configurePresets": [
+    {
+      "name": "win-msvc",
+      "inherits": "base",
+      "hidden": true,
+      "generator": "Visual Studio 17 2022",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "toolset": "ClangCl",
+      "cacheVariables": {
+        "BUILD_UNIT_TESTS": "ON",
+        "BUILD_CLIENTS_BENCHMARKS": "ON",
+        "CMAKE_EXTERNAL_BUILD_DIR": "${sourceDir}/temp/win_msvc",
+        "USE_EXTERNAL_OMP_LIB": "$env{Enable_External_OpenMP_lib}",
+        "EXTERNAL_OMP_LIBRARY" : "$env{External_OpenMP_lib}"
+      }
+    },
+    {
+      "name": "win-msvc-st-lp64-static",
+      "inherits": [
+        "win-msvc", "st", "lp64", "static"
+      ],
+      "hidden": false
+    },
+    {
+      "name": "win-msvc-st-lp64-shared",
+      "inherits": [
+        "win-msvc", "st", "lp64", "shared"
+      ],
+      "hidden": false
+    },
+    {
+      "name": "win-msvc-st-ilp64-static",
+      "inherits": [
+        "win-msvc", "st","ilp64", "static"
+      ],
+      "hidden": false
+    },
+    {
+      "name": "win-msvc-st-ilp64-shared",
+      "inherits": [
+        "win-msvc", "st", "ilp64", "shared"
+      ],
+      "hidden": false
+    },
+    {
+      "name": "win-msvc-mt-lp64-static",
+      "inherits": [
+        "win-msvc", "mt", "lp64", "static"
+      ],
+      "hidden": false
+    },
+    {
+      "name": "win-msvc-mt-lp64-shared",
+      "inherits": [
+        "win-msvc", "mt", "lp64", "shared"
+      ],
+      "hidden": false
+    },
+    {
+      "name": "win-msvc-mt-ilp64-static",
+      "inherits": [
+        "win-msvc", "mt", "ilp64", "static"
+      ],
+      "hidden": false
+    },
+    {
+      "name": "win-msvc-mt-ilp64-shared",
+      "inherits": [
+        "win-msvc", "mt", "ilp64", "shared"
+      ],
+      "hidden": false
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "win-msvc-st-lp64-static",
+      "configurePreset": "win-msvc-st-lp64-static",
+      "cleanFirst": true,
+      "inherits": "base"
+    },
+    {
+      "name": "win-msvc-st-lp64-shared",
+      "configurePreset": "win-msvc-st-lp64-shared",
+      "cleanFirst": true,
+      "inherits": "base"
+    },
+    {
+      "name": "win-msvc-st-ilp64-static",
+      "configurePreset": "win-msvc-st-ilp64-static",
+      "cleanFirst": true,
+      "inherits": "base"
+    },
+    {
+      "name": "win-msvc-st-ilp64-shared",
+      "configurePreset": "win-msvc-st-ilp64-shared",
+      "cleanFirst": true,
+      "inherits": "base"
+    },
+    {
+      "name": "win-msvc-mt-lp64-static",
+      "configurePreset": "win-msvc-mt-lp64-static",
+      "cleanFirst": true,
+      "inherits": "base"
+    },
+    {
+      "name": "win-msvc-mt-lp64-shared",
+      "configurePreset": "win-msvc-mt-lp64-shared",
+      "cleanFirst": true,
+      "inherits": "base"
+    },
+    {
+      "name": "win-msvc-mt-ilp64-static",
+      "configurePreset": "win-msvc-mt-ilp64-static",
+      "cleanFirst": true,
+      "inherits": "base"
+    },
+    {
+      "name": "win-msvc-mt-ilp64-shared",
+      "configurePreset": "win-msvc-mt-ilp64-shared",
+      "cleanFirst": true,
+      "inherits": "base"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "win-msvc-st-lp64-static",
+      "configurePreset": "win-msvc-st-lp64-static",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "win-msvc-st-lp64-shared",
+      "configurePreset": "win-msvc-st-lp64-shared",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "win-msvc-st-ilp64-static",
+      "configurePreset": "win-msvc-st-ilp64-static",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "win-msvc-st-ilp64-shared",
+      "configurePreset": "win-msvc-st-ilp64-shared",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "win-msvc-mt-lp64-static",
+      "configurePreset": "win-msvc-mt-lp64-static",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "win-msvc-mt-lp64-shared",
+      "configurePreset": "win-msvc-mt-lp64-shared",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "win-msvc-mt-ilp64-static",
+      "configurePreset": "win-msvc-mt-ilp64-static",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "win-msvc-mt-ilp64-shared",
+      "configurePreset": "win-msvc-mt-ilp64-shared",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    }
+  ],
+  "workflowPresets": [
+    {
+      "name": "win-msvc-st-lp64-static",
+      "description": "Build and check single-threaded lp64/static sparse on Windows",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "win-msvc-st-lp64-static"
+        },
+        {
+          "type": "build",
+          "name": "win-msvc-st-lp64-static"
+        },
+        {
+          "type": "test",
+          "name": "win-msvc-st-lp64-static"
+        }
+      ]
+    },
+    {
+      "name": "win-msvc-st-lp64-shared",
+      "description": "Build and check single-threaded lp64/shared sparse on Windows",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "win-msvc-st-lp64-shared"
+        },
+        {
+          "type": "build",
+          "name": "win-msvc-st-lp64-shared"
+        },
+        {
+          "type": "test",
+          "name": "win-msvc-st-lp64-shared"
+        }
+      ]
+    },
+    {
+      "name": "win-msvc-st-ilp64-static",
+      "description": "Build and check single-threaded ilp64/static sparse on Windows",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "win-msvc-st-ilp64-static"
+        },
+        {
+          "type": "build",
+          "name": "win-msvc-st-ilp64-static"
+        },
+        {
+          "type": "test",
+          "name": "win-msvc-st-ilp64-static"
+        }
+      ]
+    },
+    {
+      "name": "win-msvc-st-ilp64-shared",
+      "description": "Build and check single-threaded ilp64/shared sparse on Windows",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "win-msvc-st-ilp64-shared"
+        },
+        {
+          "type": "build",
+          "name": "win-msvc-st-ilp64-shared"
+        },
+        {
+          "type": "test",
+          "name": "win-msvc-st-ilp64-shared"
+        }
+      ]
+    },
+    {
+    "name": "win-msvc-mt-lp64-static",
+    "description": "Build and check multi-threaded lp64/static sparse on Windows",
+    "steps": [
+      {
+        "type": "configure",
+        "name": "win-msvc-mt-lp64-static"
+      },
+      {
+        "type": "build",
+        "name": "win-msvc-mt-lp64-static"
+      },
+      {
+        "type": "test",
+        "name": "win-msvc-mt-lp64-static"
+      }
+    ]
+  },
+  {
+    "name": "win-msvc-mt-lp64-shared",
+    "description": "Build and check multi-threaded lp64/shared sparse on Windows",
+    "steps": [
+      {
+        "type": "configure",
+        "name": "win-msvc-mt-lp64-shared"
+      },
+      {
+        "type": "build",
+        "name": "win-msvc-mt-lp64-shared"
+      },
+      {
+        "type": "test",
+        "name": "win-msvc-mt-lp64-shared"
+      }
+    ]
+  },
+  {
+    "name": "win-msvc-mt-ilp64-static",
+    "description": "Build and check multi-threaded ilp64/static sparse on Windows",
+    "steps": [
+      {
+        "type": "configure",
+        "name": "win-msvc-mt-ilp64-static"
+      },
+      {
+        "type": "build",
+        "name": "win-msvc-mt-ilp64-static"
+      },
+      {
+        "type": "test",
+        "name": "win-msvc-mt-ilp64-static"
+      }
+    ]
+  },
+  {
+    "name": "win-msvc-mt-ilp64-shared",
+    "description": "Build and check multi-threaded ilp64/shared sparse on Windows",
+    "steps": [
+      {
+        "type": "configure",
+        "name": "win-msvc-mt-ilp64-shared"
+      },
+      {
+        "type": "build",
+        "name": "win-msvc-mt-ilp64-shared"
+      },
+      {
+        "type": "test",
+        "name": "win-msvc-mt-ilp64-shared"
+      }
+    ]
+  }
+  ]
+}
