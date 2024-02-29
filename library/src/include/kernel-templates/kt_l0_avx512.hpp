@@ -260,6 +260,18 @@ namespace kernel_templates
             return _mm512_add_pd(a, b);
     }
 
+    // Vector subtraction of two AVX registers.
+    // Note that sub_ps takes care of types float and complex float, same for double variant.
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, avxvector_t<SZ, SUF>>
+                    kt_sub_p(const avxvector_t<SZ, SUF> a, const avxvector_t<SZ, SUF> b) noexcept
+    {
+        if constexpr(kt_is_base_t_float<SUF>())
+            return _mm512_sub_ps(a, b);
+        else
+            return _mm512_sub_pd(a, b);
+    }
+
     // Vector product of two AVX registers.
     template <bsz SZ, typename SUF>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, avxvector_t<SZ, SUF>>
@@ -318,6 +330,23 @@ namespace kernel_templates
             return kt_add_p<bsz::b512, cdouble>(kt_mul_p<bsz::b512, cdouble>(a, b), c);
         else if constexpr(std::is_same_v<SUF, cfloat>)
             return kt_add_p<bsz::b512, cfloat>(kt_mul_p<bsz::b512, cfloat>(a, b), c);
+    }
+
+    // Vector fused multiply-subtract of three AVX registers.
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, avxvector_t<SZ, SUF>>
+                    kt_fmsub_p(const avxvector_t<SZ, SUF> a,
+                               const avxvector_t<SZ, SUF> b,
+                               const avxvector_t<SZ, SUF> c) noexcept
+    {
+        if constexpr(std::is_same_v<SUF, double>)
+            return _mm512_fmsub_pd(a, b, c);
+        if constexpr(std::is_same_v<SUF, float>)
+            return _mm512_fmsub_ps(a, b, c);
+        else if constexpr(std::is_same_v<SUF, cdouble>)
+            return kt_sub_p<bsz::b512, cdouble>(kt_mul_p<bsz::b512, cdouble>(a, b), c);
+        else if constexpr(std::is_same_v<SUF, cfloat>)
+            return kt_sub_p<bsz::b512, cfloat>(kt_mul_p<bsz::b512, cfloat>(a, b), c);
     }
 
     // Horizontal sum (reduction) of an AVX register

@@ -411,6 +411,22 @@ namespace kernel_templates
 
     // -----------------------------------------------------------------------
 
+    // Vector subtraction of two AVX registers.
+    //  - `a` avxvector
+    //  - `b` avxvector
+    // return an avxvector with `a` - `b` elementwise.
+    //
+    // Example: `avxvector_t<bsz::b256, double> c = kt_sub_p(a, b)` is equivalent to `__256d c = _mm256_sub_pd(a, b)`
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b256, avxvector_t<SZ, SUF>>
+                    kt_sub_p(const avxvector_t<SZ, SUF> a, const avxvector_t<SZ, SUF> b) noexcept;
+
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, avxvector_t<SZ, SUF>>
+                    kt_sub_p(const avxvector_t<SZ, SUF> a, const avxvector_t<SZ, SUF> b) noexcept;
+
+    // -----------------------------------------------------------------------
+
     // Vector product of two AVX registers.
     //  - `a` avxvector
     //  - `b` avxvector
@@ -431,7 +447,7 @@ namespace kernel_templates
     //  - `b` avxvector
     //  - `c` avxvector
     // return an avxvector with `a` * `b` + `c` elementwise.
-    // Example: `avxvector_t<bsz::b256, double> d = kt_fmadd_p(a, b, c)` is equivalent to `__256d d = _mm256_mul_pd(a, b, c)`
+    // Example: `avxvector_t<bsz::b256, double> d = kt_fmadd_p(a, b, c)` is equivalent to `__256d d = _mm256_fmadd_pd(a, b, c)`
     template <bsz SZ, typename SUF>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b256, avxvector_t<SZ, SUF>>
                     kt_fmadd_p(const avxvector_t<SZ, SUF> a,
@@ -441,6 +457,26 @@ namespace kernel_templates
     template <bsz SZ, typename SUF>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, avxvector_t<SZ, SUF>>
                     kt_fmadd_p(const avxvector_t<SZ, SUF> a,
+                               const avxvector_t<SZ, SUF> b,
+                               const avxvector_t<SZ, SUF> c) noexcept;
+
+    // -----------------------------------------------------------------------
+
+    // Vector fused multiply-subtract of three AVX registers.
+    //  - `a` avxvector
+    //  - `b` avxvector
+    //  - `c` avxvector
+    // return an avxvector with `a` * `b` - `c` elementwise.
+    // Example: `avxvector_t<bsz::b256, double> d = kt_fmsub_p(a, b, c)` is equivalent to `__256d d = _mm256_fmsub_pd(a, b, c)`
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b256, avxvector_t<SZ, SUF>>
+                    kt_fmsub_p(const avxvector_t<SZ, SUF> a,
+                               const avxvector_t<SZ, SUF> b,
+                               const avxvector_t<SZ, SUF> c) noexcept;
+
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, avxvector_t<SZ, SUF>>
+                    kt_fmsub_p(const avxvector_t<SZ, SUF> a,
                                const avxvector_t<SZ, SUF> b,
                                const avxvector_t<SZ, SUF> c) noexcept;
 

@@ -511,6 +511,127 @@ namespace TestsKT
 #endif
 
     /*
+     * Test intrinsic to subtract two: 2 (cdouble), 4 (cfloat), 4 (double), 8 (floats) length vectors
+     */
+    TEST(KT_L0, kt_sub_p_256)
+    {
+        const size_t                   ns = tsz_v<bsz::b256, float>;
+        const size_t                   nd = tsz_v<bsz::b256, double>;
+        avxvector_t<bsz::b256, float>  s, as, bs;
+        avxvector_t<bsz::b256, double> d, ad, bd;
+        float                          refs[8];
+        double                         refd[4];
+
+        as = kt_loadu_p<bsz::b256, float>(&D.vs[2]);
+        bs = kt_set1_p<bsz::b256, float>(1.0);
+        s  = kt_sub_p<bsz::b256, float>(as, bs);
+        for(size_t i = 0; i < ns; i++)
+        {
+            refs[i] = D.vs[2 + i] - 1.0f;
+        }
+        EXPECT_FLOAT_EQ_VEC(ns, s, refs);
+
+        ad = kt_loadu_p<bsz::b256, double>(&D.vd[2]);
+        bd = kt_set1_p<bsz::b256, double>(1.0);
+        d  = kt_sub_p<bsz::b256, double>(ad, bd);
+        for(size_t i = 0; i < nd; i++)
+        {
+            refd[i] = D.vd[2 + i] - 1.0;
+        }
+        EXPECT_DOUBLE_EQ_VEC(nd, d, refd);
+
+        // Complex
+        const size_t                    nc = tsz_v<bsz::b256, cfloat>;
+        const size_t                    nz = tsz_v<bsz::b256, cdouble>;
+        avxvector_t<bsz::b256, cfloat>  c, ac, bc;
+        avxvector_t<bsz::b256, cdouble> z, az, bz;
+        cfloat                          refc[4];
+        cdouble                         refz[2];
+        std::complex<float>            *pc;
+        std::complex<double>           *pz;
+
+        ac = kt_loadu_p<bsz::b256, cfloat>(&D.vc[2]);
+        bc = kt_set1_p<bsz::b256, cfloat>(1.0f + 5.if);
+        c  = kt_sub_p<bsz::b256, cfloat>(ac, bc);
+        for(size_t i = 0; i < nc; i++)
+        {
+            refc[i] = D.vc[2 + i] - (1.0f + 5.if);
+        }
+        pc = reinterpret_cast<std::complex<float> *>(&c);
+        EXPECT_COMPLEX_FLOAT_EQ_VEC(nc, pc, refc);
+
+        az = kt_loadu_p<bsz::b256, cdouble>(&D.vz[2]);
+        bz = kt_set1_p<bsz::b256, cdouble>(3.0 + 5.5i);
+        z  = kt_sub_p<bsz::b256, cdouble>(az, bz);
+        for(size_t i = 0; i < nz; i++)
+        {
+            refz[i] = D.vz[2 + i] - (3.0 + 5.5i);
+        }
+        pz = reinterpret_cast<std::complex<double> *>(&z);
+        EXPECT_COMPLEX_DOUBLE_EQ_VEC(nz, pz, refz);
+    }
+
+#ifdef USE_AVX512
+    TEST(KT_L0, kt_sub_p_512)
+    {
+        const size_t                   ns = tsz_v<bsz::b512, float>;
+        const size_t                   nd = tsz_v<bsz::b512, double>;
+        avxvector_t<bsz::b512, float>  s, as, bs;
+        avxvector_t<bsz::b512, double> d, ad, bd;
+        float                          refs[16];
+        double                         refd[8];
+
+        as = kt_loadu_p<bsz::b512, float>(&D.vs[0]);
+        bs = kt_set1_p<bsz::b512, float>(1.0f);
+        s  = kt_sub_p<bsz::b512, float>(as, bs);
+        for(size_t i = 0; i < ns; i++)
+        {
+            refs[i] = D.vs[i] - 1.0f;
+        }
+        EXPECT_FLOAT_EQ_VEC(ns, s, refs);
+
+        ad = kt_loadu_p<bsz::b512, double>(&D.vd[0]);
+        bd = kt_set1_p<bsz::b512, double>(1.0);
+        d  = kt_sub_p<bsz::b512, double>(ad, bd);
+        for(size_t i = 0; i < nd; i++)
+        {
+            refd[i] = D.vd[i] - 1.0;
+        }
+        EXPECT_DOUBLE_EQ_VEC(nd, d, refd);
+
+        // Complex type testing
+        size_t                          nc = tsz_v<bsz::b512, cfloat>;
+        size_t                          nz = tsz_v<bsz::b512, cdouble>;
+        avxvector_t<bsz::b512, cfloat>  c, ac, bc;
+        avxvector_t<bsz::b512, cdouble> z, az, bz;
+        cfloat                          refc[8];
+        cdouble                         refz[4];
+        std::complex<float>            *pc;
+        std::complex<double>           *pz;
+
+        ac = kt_loadu_p<bsz::b512, cfloat>(&D.vc[2]);
+        bc = kt_set1_p<bsz::b512, cfloat>(1.0f + 5.if);
+        c  = kt_sub_p<bsz::b512, cfloat>(ac, bc);
+        for(size_t i = 0; i < nc; i++)
+        {
+            refc[i] = D.vc[2 + i] - (1.0f + 5.if);
+        }
+        pc = reinterpret_cast<std::complex<float> *>(&c);
+        EXPECT_COMPLEX_FLOAT_EQ_VEC(nc, pc, refc);
+
+        az = kt_loadu_p<bsz::b512, cdouble>(&D.vz[2]);
+        bz = kt_set1_p<bsz::b512, cdouble>(3.0 + 5.5i);
+        z  = kt_sub_p<bsz::b512, cdouble>(az, bz);
+        for(size_t i = 0; i < nz; i++)
+        {
+            refz[i] = D.vz[2 + i] - (3.0 + 5.5i);
+        }
+        pz = reinterpret_cast<std::complex<double> *>(&z);
+        EXPECT_COMPLEX_DOUBLE_EQ_VEC(nz, pz, refz);
+    }
+#endif
+
+    /*
      * Test mul intrinsic to multiply two 2 (cdouble), 4 (cfloat), 4 (double), 8 (floats) length vectors
      */
     TEST(KT_L0, kt_mul_p_256)
@@ -773,6 +894,159 @@ namespace TestsKT
         for(size_t i = 0; i < nz; i++)
         {
             refz[i] = D.vz[2 + i] * vz1[i] + vz2[i];
+        }
+
+        std::complex<double> *pz = reinterpret_cast<std::complex<double> *>(&sz);
+        EXPECT_COMPLEX_DOUBLE_EQ_VEC(nz, pz, refz);
+    }
+#endif
+
+    /*
+     * Test fmsub intrinsic to fused-multiply-subtract three
+     * 2 (cdouble), 4 (cfloat), 4 (double), 8 (floats) length vectors
+     */
+    TEST(KT_L0, kt_fmsub_p_256)
+    {
+        const size_t                   ns = tsz_v<bsz::b256, float>;
+        const size_t                   nd = tsz_v<bsz::b256, double>;
+        avxvector_t<bsz::b256, float>  s, as, bs;
+        avxvector_t<bsz::b256, double> d, ad, bd;
+        float                          refs[8];
+        double                         refd[4];
+
+        as = kt_loadu_p<bsz::b256, float>(&D.vs[2]);
+        bs = kt_set_p<bsz::b256, float>(D.vs, D.map);
+        s  = kt_set_p<bsz::b256, float>(D.vs, &D.map[4]);
+        s  = kt_fmsub_p<bsz::b256, float>(as, bs, s);
+        for(size_t i = 0; i < ns; i++)
+        {
+            refs[i] = D.vs[2 + i] * D.vs[D.map[i]] - D.vs[D.map[4 + i]];
+        }
+        EXPECT_FLOAT_EQ_VEC(ns, s, refs);
+
+        ad = kt_loadu_p<bsz::b256, double>(&D.vd[1]);
+        bd = kt_set_p<bsz::b256, double>(D.vd, D.map);
+        d  = kt_set_p<bsz::b256, double>(D.vd, &D.map[2]);
+        d  = kt_fmsub_p<bsz::b256, double>(ad, bd, d);
+        for(size_t i = 0; i < nd; i++)
+        {
+            refd[i] = D.vd[1 + i] * D.vd[D.map[i]] - D.vd[D.map[2 + i]];
+        }
+        EXPECT_DOUBLE_EQ_VEC(nd, d, refd);
+
+        // Complex<float> FMSUB
+        constexpr size_t              nc = tsz_v<bsz::b256, cfloat>;
+        avxvector_t<bsz::b256, float> sc, ac, bc, cc;
+        cfloat                        refc[nc];
+        const cfloat                  vc1[nc]{1.f + 1.if, 2.f + 3if, 0.f - 4if, 1.25f + 3.5if};
+        const cfloat                  vc2[nc]{-2.f + 3.if, -1.f - 2if, 3.f + 1if, 2.5f - 5.75if};
+
+        ac = kt_loadu_p<bsz::b256, cfloat>(&D.vc[2]);
+        bc = kt_loadu_p<bsz::b256, cfloat>(vc1);
+        cc = kt_loadu_p<bsz::b256, cfloat>(vc2);
+        sc = kt_fmsub_p<bsz::b256, cfloat>(ac, bc, cc);
+        for(size_t i = 0; i < nc; i++)
+        {
+            refc[i] = D.vc[2 + i] * vc1[i] - vc2[i];
+        }
+        std::complex<float> *pc = reinterpret_cast<std::complex<float> *>(&sc);
+        EXPECT_COMPLEX_FLOAT_EQ_VEC(nc, pc, refc);
+
+        // Complex<double> FMSUB
+        constexpr size_t               nz = tsz_v<bsz::b256, cdouble>;
+        avxvector_t<bsz::b256, double> sz, az, bz, cz;
+        cdouble                        refz[nz];
+        const cdouble                  vz1[nz]{1. + 1.i, 2. - 4i};
+        const cdouble                  vz2[nz]{-3. - 2i, 2.5 + 1.5i};
+
+        az = kt_loadu_p<bsz::b256, cdouble>(&D.vz[2]);
+        bz = kt_loadu_p<bsz::b256, cdouble>(vz1);
+        cz = kt_loadu_p<bsz::b256, cdouble>(vz2);
+        sz = kt_fmsub_p<bsz::b256, cdouble>(az, bz, cz);
+        for(size_t i = 0; i < nz; i++)
+        {
+            refz[i] = D.vz[2 + i] * vz1[i] - vz2[i];
+        }
+        std::complex<double> *pz = reinterpret_cast<std::complex<double> *>(&sz);
+        EXPECT_COMPLEX_DOUBLE_EQ_VEC(nz, pz, refz);
+    }
+
+#ifdef USE_AVX512
+    TEST(KT_L0, kt_fmsub_p_512)
+    {
+        size_t                         ns = tsz_v<bsz::b512, float>;
+        size_t                         nd = tsz_v<bsz::b512, double>;
+        avxvector_t<bsz::b512, float>  s, as, bs;
+        avxvector_t<bsz::b512, double> d, ad, bd;
+        float                          refs[ns];
+        double                         refd[nd];
+
+        as = kt_loadu_p<bsz::b512, float>(&D.vs[0]);
+        bs = kt_set_p<bsz::b512, float>(D.vs, D.map);
+        s  = kt_set_p<bsz::b512, float>(D.vs, &D.map[4]);
+        s  = kt_fmsub_p<bsz::b512, float>(as, bs, s);
+        for(size_t i = 0; i < ns; i++)
+        {
+            refs[i] = D.vs[i] * D.vs[D.map[i]] - D.vs[D.map[4 + i]];
+        }
+        EXPECT_FLOAT_EQ_VEC(ns, s, refs);
+
+        ad = kt_loadu_p<bsz::b512, double>(&D.vd[0]);
+        bd = kt_set_p<bsz::b512, double>(D.vd, D.map);
+        d  = kt_set_p<bsz::b512, double>(D.vd, &D.map[2]);
+        d  = kt_fmsub_p<bsz::b512, double>(ad, bd, d);
+        for(size_t i = 0; i < nd; i++)
+        {
+            refd[i] = D.vd[i] * D.vd[D.map[i]] - D.vd[D.map[2 + i]];
+        }
+        EXPECT_DOUBLE_EQ_VEC(nd, d, refd);
+
+        // Complex<float> FMSUB
+        constexpr size_t              nc = tsz_v<bsz::b512, cfloat>;
+        avxvector_t<bsz::b512, float> sc, ac, bc, cc;
+        cfloat                        refc[nc];
+        const cfloat                  vc1[nc]{1.f + 1.if,
+                                              2.f + 3if,
+                                              0.f - 4if,
+                                              1.2f + 0.125if,
+                                              2.f + 4.if,
+                                              4.f + 5if,
+                                              2.f - 4if,
+                                              2.75f + 4.5if};
+        const cfloat                  vc2[nc]{-1.f + 1.if,
+                                              -1.f - 2if,
+                                              3.f + 1if,
+                                              2.5f - 1.75if,
+                                              3.f + 3.if,
+                                              7.f + 8if,
+                                              1.f - 3if,
+                                              3.5f + 0.5if};
+
+        ac = kt_loadu_p<bsz::b512, cfloat>(&D.vc[2]);
+        bc = kt_loadu_p<bsz::b512, cfloat>(vc1);
+        cc = kt_loadu_p<bsz::b512, cfloat>(vc2);
+        sc = kt_fmsub_p<bsz::b512, cfloat>(ac, bc, cc);
+        for(size_t i = 0; i < nc; i++)
+        {
+            refc[i] = D.vc[2 + i] * vc1[i] - vc2[i];
+        }
+        std::complex<float> *pc = reinterpret_cast<std::complex<float> *>(&sc);
+        EXPECT_COMPLEX_FLOAT_EQ_VEC(nc, pc, refc);
+
+        // Complex<double> FMSUB
+        constexpr size_t               nz = tsz_v<bsz::b512, cdouble>;
+        avxvector_t<bsz::b512, double> sz, az, bz, cz;
+        cdouble                        refz[nz];
+        const cdouble                  vz1[nz]{1. + 1.i, 2. - 4i, 2. + 3.i, 7. - 5i};
+        const cdouble                  vz2[nz]{-3. - 2i, 2.5 + 1.5i, 1. + 7.i, 5. - 8i};
+
+        az = kt_loadu_p<bsz::b512, cdouble>(&D.vz[2]);
+        bz = kt_loadu_p<bsz::b512, cdouble>(vz1);
+        cz = kt_loadu_p<bsz::b512, cdouble>(vz2);
+        sz = kt_fmsub_p<bsz::b512, cdouble>(az, bz, cz);
+        for(size_t i = 0; i < nz; i++)
+        {
+            refz[i] = D.vz[2 + i] * vz1[i] - vz2[i];
         }
 
         std::complex<double> *pz = reinterpret_cast<std::complex<double> *>(&sz);
