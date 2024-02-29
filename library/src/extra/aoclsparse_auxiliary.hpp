@@ -87,8 +87,10 @@ aoclsparse_status aoclsparse_create_csr_t(aoclsparse_matrix    *mat,
         return aoclsparse_status_invalid_pointer;
     *mat = nullptr;
     // Validate the input parameters
+    aoclsparse_matrix_sort mat_sort;
+    bool                   mat_fulldiag;
     if((status = aoclsparse_mat_check_internal(
-            M, N, nnz, row_ptr, col_idx, val, shape_general, base, nullptr))
+            M, N, nnz, row_ptr, col_idx, val, shape_general, base, mat_sort, mat_fulldiag, nullptr))
        != aoclsparse_status_success)
     {
         return status;
@@ -108,6 +110,8 @@ aoclsparse_status aoclsparse_create_csr_t(aoclsparse_matrix    *mat,
     (*mat)->csr_mat.csr_col_ptr = col_idx;
     (*mat)->csr_mat.csr_val     = val;
     (*mat)->csr_mat_is_users    = true;
+    (*mat)->sort                = mat_sort;
+    (*mat)->fulldiag            = mat_fulldiag;
 
     return aoclsparse_status_success;
 }

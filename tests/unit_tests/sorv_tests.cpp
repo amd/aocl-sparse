@@ -343,8 +343,6 @@ namespace
         double val_2[] = {4.0, -1.0, -6.0, -5.0, -4.0, 10.0, 8.0, 9.0, -2.0, 1.0, -7.0, 5.0};
         ASSERT_EQ(aoclsparse_create_csr(
                       &A, aoclsparse_index_base_zero, M, N, NNZ, row_ptr_2, col_idx_2, val_2),
-                  aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_sorv(aoclsparse_sor_forward, descr, A, omega, alpha, x, b),
                   aoclsparse_status_invalid_value);
         aoclsparse_destroy(&A);
 
@@ -354,8 +352,6 @@ namespace
         double val_3[] = {4.0, -1.0, -6.0, -5.0, -4.0, 10.0, 0.0, 9.0, -2.0, 1.0, -7.0, 5.0};
         ASSERT_EQ(aoclsparse_create_csr(
                       &A, aoclsparse_index_base_zero, M, N, NNZ, row_ptr_3, col_idx_3, val_3),
-                  aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_sorv(aoclsparse_sor_forward, descr, A, omega, alpha, x, b),
                   aoclsparse_status_invalid_value);
         aoclsparse_destroy(&A);
 
@@ -365,8 +361,6 @@ namespace
         double         val_4[] = {4.0, -1.0, -6.0, -5.0, 0.0, 10.0, 8.0, 9.0, -2.0, 1.0, -7.0, 5.0};
         ASSERT_EQ(aoclsparse_create_csr(
                       &A, aoclsparse_index_base_zero, M, N, NNZ, row_ptr_4, col_idx_4, val_4),
-                  aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_sorv(aoclsparse_sor_forward, descr, A, omega, alpha, x, b),
                   aoclsparse_status_invalid_value);
         aoclsparse_destroy(&A);
 

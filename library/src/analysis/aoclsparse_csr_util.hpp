@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -51,14 +51,16 @@ enum aoclsparse_shape
     shape_upper_triangle,
 };
 
-aoclsparse_status aoclsparse_mat_check_internal(aoclsparse_int        maj_dim,
-                                                aoclsparse_int        min_dim,
-                                                aoclsparse_int        nnz,
-                                                const aoclsparse_int *idx_ptr,
-                                                const aoclsparse_int *indices,
-                                                const void           *val,
-                                                aoclsparse_shape      shape,
-                                                aoclsparse_index_base base,
+aoclsparse_status aoclsparse_mat_check_internal(aoclsparse_int          maj_dim,
+                                                aoclsparse_int          min_dim,
+                                                aoclsparse_int          nnz,
+                                                const aoclsparse_int   *idx_ptr,
+                                                const aoclsparse_int   *indices,
+                                                const void             *val,
+                                                aoclsparse_shape        shape,
+                                                aoclsparse_index_base   base,
+                                                aoclsparse_matrix_sort &mat_sort,
+                                                bool                   &mat_fulldiag,
                                                 void (*error_handler)(aoclsparse_status status,
                                                                       std::string       message));
 aoclsparse_status aoclsparse_csr_check_sort_diag(aoclsparse_int        m,
@@ -350,6 +352,8 @@ aoclsparse_status aoclsparse_csr_optimize(aoclsparse_matrix A)
                                            A->csr_mat.csr_val,
                                            shape_general,
                                            A->base,
+                                           A->sort,
+                                           A->fulldiag,
                                            nullptr);
     if(status != aoclsparse_status_success)
         // The matrix has invalid data, abort optimize and return error
