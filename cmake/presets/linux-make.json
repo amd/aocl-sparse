@@ -1,0 +1,326 @@
+{
+  "version": 6,
+  "include": [
+    "base.json"
+  ],
+  "configurePresets": [
+    {
+      "name": "linux-make",
+      "inherits": "base",
+      "hidden": true,
+      "generator": "Unix Makefiles",
+      "condition": {
+        "type": "notEquals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "cacheVariables": {
+        "BUILD_UNIT_TESTS": "ON",
+        "BUILD_CLIENTS_BENCHMARKS": "ON",
+        "CMAKE_EXTERNAL_BUILD_DIR": "${sourceDir}/temp/linux_make"
+      }
+    },
+    {
+      "name": "linux-make-st-lp64-static",
+      "inherits": [
+        "linux-make", "st", "lp64", "static"
+      ],
+      "hidden": false
+    },
+    {
+      "name": "linux-make-st-lp64-shared",
+      "inherits": [
+        "linux-make", "st", "lp64", "shared"
+      ],
+      "hidden": false
+    },
+    {
+      "name": "linux-make-st-ilp64-static",
+      "inherits": [
+        "linux-make", "st","ilp64", "static"
+      ],
+      "hidden": false
+    },
+    {
+      "name": "linux-make-st-ilp64-shared",
+      "inherits": [
+        "linux-make", "st", "ilp64", "shared"
+      ],
+      "hidden": false
+    },
+    {
+      "name": "linux-make-mt-lp64-static",
+      "inherits": [
+        "linux-make", "mt", "lp64", "static"
+      ],
+      "hidden": false
+    },
+    {
+      "name": "linux-make-mt-lp64-shared",
+      "inherits": [
+        "linux-make", "mt", "lp64", "shared"
+      ],
+      "hidden": false
+    },
+    {
+      "name": "linux-make-mt-ilp64-static",
+      "inherits": [
+        "linux-make", "mt", "ilp64", "static"
+      ],
+      "hidden": false
+    },
+    {
+      "name": "linux-make-mt-ilp64-shared",
+      "inherits": [
+        "linux-make", "mt", "ilp64", "shared"
+      ],
+      "hidden": false
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "linux-make-st-lp64-static",
+      "configurePreset": "linux-make-st-lp64-static",
+      "cleanFirst": true,
+      "inherits": "base"
+    },
+    {
+      "name": "linux-make-st-lp64-shared",
+      "configurePreset": "linux-make-st-lp64-shared",
+      "cleanFirst": true,
+      "inherits": "base"
+    },
+    {
+      "name": "linux-make-st-ilp64-static",
+      "configurePreset": "linux-make-st-ilp64-static",
+      "cleanFirst": true,
+      "inherits": "base"
+    },
+    {
+      "name": "linux-make-st-ilp64-shared",
+      "configurePreset": "linux-make-st-ilp64-shared",
+      "cleanFirst": true,
+      "inherits": "base"
+    },
+    {
+      "name": "linux-make-mt-lp64-static",
+      "configurePreset": "linux-make-mt-lp64-static",
+      "cleanFirst": true,
+      "inherits": "base"
+    },
+    {
+      "name": "linux-make-mt-lp64-shared",
+      "configurePreset": "linux-make-mt-lp64-shared",
+      "cleanFirst": true,
+      "inherits": "base"
+    },
+    {
+      "name": "linux-make-mt-ilp64-static",
+      "configurePreset": "linux-make-mt-ilp64-static",
+      "cleanFirst": true,
+      "inherits": "base"
+    },
+    {
+      "name": "linux-make-mt-ilp64-shared",
+      "configurePreset": "linux-make-mt-ilp64-shared",
+      "cleanFirst": true,
+      "inherits": "base"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "linux-make-st-lp64-static",
+      "configurePreset": "linux-make-st-lp64-static",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "linux-make-st-lp64-shared",
+      "configurePreset": "linux-make-st-lp64-shared",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "linux-make-st-ilp64-static",
+      "configurePreset": "linux-make-st-ilp64-static",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "linux-make-st-ilp64-shared",
+      "configurePreset": "linux-make-st-ilp64-shared",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "linux-make-mt-lp64-static",
+      "configurePreset": "linux-make-mt-lp64-static",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "linux-make-mt-lp64-shared",
+      "configurePreset": "linux-make-mt-lp64-shared",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "linux-make-mt-ilp64-static",
+      "configurePreset": "linux-make-mt-ilp64-static",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "linux-make-mt-ilp64-shared",
+      "configurePreset": "linux-make-mt-ilp64-shared",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    }
+  ],
+  "workflowPresets": [
+    {
+      "name": "linux-make-st-lp64-static",
+      "description": "Build and check single-threaded lp64/static sparse on Linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "linux-make-st-lp64-static"
+        },
+        {
+          "type": "build",
+          "name": "linux-make-st-lp64-static"
+        },
+        {
+          "type": "test",
+          "name": "linux-make-st-lp64-static"
+        }
+      ]
+    },
+    {
+      "name": "linux-make-st-lp64-shared",
+      "description": "Build and check single-threaded lp64/shared sparse on Linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "linux-make-st-lp64-shared"
+        },
+        {
+          "type": "build",
+          "name": "linux-make-st-lp64-shared"
+        },
+        {
+          "type": "test",
+          "name": "linux-make-st-lp64-shared"
+        }
+      ]
+    },
+    {
+      "name": "linux-make-st-ilp64-static",
+      "description": "Build and check single-threaded ilp64/static sparse on Linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "linux-make-st-ilp64-static"
+        },
+        {
+          "type": "build",
+          "name": "linux-make-st-ilp64-static"
+        },
+        {
+          "type": "test",
+          "name": "linux-make-st-ilp64-static"
+        }
+      ]
+    },
+    {
+      "name": "linux-make-st-ilp64-shared",
+      "description": "Build and check single-threaded ilp64/shared sparse on Linux",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "linux-make-st-ilp64-shared"
+        },
+        {
+          "type": "build",
+          "name": "linux-make-st-ilp64-shared"
+        },
+        {
+          "type": "test",
+          "name": "linux-make-st-ilp64-shared"
+        }
+      ]
+    },
+    {
+    "name": "linux-make-mt-lp64-static",
+    "description": "Build and check multi-threaded lp64/static sparse on Linux",
+    "steps": [
+      {
+        "type": "configure",
+        "name": "linux-make-mt-lp64-static"
+      },
+      {
+        "type": "build",
+        "name": "linux-make-mt-lp64-static"
+      },
+      {
+        "type": "test",
+        "name": "linux-make-mt-lp64-static"
+      }
+    ]
+  },
+  {
+    "name": "linux-make-mt-lp64-shared",
+    "description": "Build and check multi-threaded lp64/shared sparse on Linux",
+    "steps": [
+      {
+        "type": "configure",
+        "name": "linux-make-mt-lp64-shared"
+      },
+      {
+        "type": "build",
+        "name": "linux-make-mt-lp64-shared"
+      },
+      {
+        "type": "test",
+        "name": "linux-make-mt-lp64-shared"
+      }
+    ]
+  },
+  {
+    "name": "linux-make-mt-ilp64-static",
+    "description": "Build and check multi-threaded ilp64/static sparse on Linux",
+    "steps": [
+      {
+        "type": "configure",
+        "name": "linux-make-mt-ilp64-static"
+      },
+      {
+        "type": "build",
+        "name": "linux-make-mt-ilp64-static"
+      },
+      {
+        "type": "test",
+        "name": "linux-make-mt-ilp64-static"
+      }
+    ]
+  },
+  {
+    "name": "linux-make-mt-ilp64-shared",
+    "description": "Build and check multi-threaded ilp64/shared sparse on Linux",
+    "steps": [
+      {
+        "type": "configure",
+        "name": "linux-make-mt-ilp64-shared"
+      },
+      {
+        "type": "build",
+        "name": "linux-make-mt-ilp64-shared"
+      },
+      {
+        "type": "test",
+        "name": "linux-make-mt-ilp64-shared"
+      }
+    ]
+  }
+  ]
+}

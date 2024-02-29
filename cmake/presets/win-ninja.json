@@ -1,0 +1,329 @@
+{
+  "version": 6,
+  "include": [
+    "base.json"
+  ],
+  "configurePresets": [
+    {
+      "name": "win-ninja",
+      "inherits": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "cacheVariables": {
+        "BUILD_UNIT_TESTS": "ON",
+        "BUILD_CLIENTS_BENCHMARKS": "ON",
+        "CMAKE_EXTERNAL_BUILD_DIR": "${sourceDir}/temp/win_ninja",
+        "USE_EXTERNAL_OMP_LIB": "$env{Enable_External_OpenMP_lib}",
+        "CMAKE_CXX_COMPILER" : "C:/Program Files/LLVM/bin/clang++.exe",
+        "EXTERNAL_OMP_LIBRARY" : "$env{External_OpenMP_lib}"
+      }
+    },
+    {
+      "name": "win-ninja-st-lp64-static",
+      "inherits": [
+        "win-ninja", "st", "lp64", "static"
+      ],
+      "hidden": false
+    },
+    {
+      "name": "win-ninja-st-lp64-shared",
+      "inherits": [
+        "win-ninja", "st", "lp64", "shared"
+      ],
+      "hidden": false
+    },
+    {
+      "name": "win-ninja-st-ilp64-static",
+      "inherits": [
+        "win-ninja", "st","ilp64", "static"
+      ],
+      "hidden": false
+    },
+    {
+      "name": "win-ninja-st-ilp64-shared",
+      "inherits": [
+        "win-ninja", "st", "ilp64", "shared"
+      ],
+      "hidden": false
+    },
+    {
+      "name": "win-ninja-mt-lp64-static",
+      "inherits": [
+        "win-ninja", "mt", "lp64", "static"
+      ],
+      "hidden": false
+    },
+    {
+      "name": "win-ninja-mt-lp64-shared",
+      "inherits": [
+        "win-ninja", "mt", "lp64", "shared"
+      ],
+      "hidden": false
+    },
+    {
+      "name": "win-ninja-mt-ilp64-static",
+      "inherits": [
+        "win-ninja", "mt", "ilp64", "static"
+      ],
+      "hidden": false
+    },
+    {
+      "name": "win-ninja-mt-ilp64-shared",
+      "inherits": [
+        "win-ninja", "mt", "ilp64", "shared"
+      ],
+      "hidden": false
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "win-ninja-st-lp64-static",
+      "configurePreset": "win-ninja-st-lp64-static",
+      "cleanFirst": true,
+      "inherits": "base"
+    },
+    {
+      "name": "win-ninja-st-lp64-shared",
+      "configurePreset": "win-ninja-st-lp64-shared",
+      "cleanFirst": true,
+      "inherits": "base"
+    },
+    {
+      "name": "win-ninja-st-ilp64-static",
+      "configurePreset": "win-ninja-st-ilp64-static",
+      "cleanFirst": true,
+      "inherits": "base"
+    },
+    {
+      "name": "win-ninja-st-ilp64-shared",
+      "configurePreset": "win-ninja-st-ilp64-shared",
+      "cleanFirst": true,
+      "inherits": "base"
+    },
+    {
+      "name": "win-ninja-mt-lp64-static",
+      "configurePreset": "win-ninja-mt-lp64-static",
+      "cleanFirst": true,
+      "inherits": "base"
+    },
+    {
+      "name": "win-ninja-mt-lp64-shared",
+      "configurePreset": "win-ninja-mt-lp64-shared",
+      "cleanFirst": true,
+      "inherits": "base"
+    },
+    {
+      "name": "win-ninja-mt-ilp64-static",
+      "configurePreset": "win-ninja-mt-ilp64-static",
+      "cleanFirst": true,
+      "inherits": "base"
+    },
+    {
+      "name": "win-ninja-mt-ilp64-shared",
+      "configurePreset": "win-ninja-mt-ilp64-shared",
+      "cleanFirst": true,
+      "inherits": "base"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "win-ninja-st-lp64-static",
+      "configurePreset": "win-ninja-st-lp64-static",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "win-ninja-st-lp64-shared",
+      "configurePreset": "win-ninja-st-lp64-shared",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "win-ninja-st-ilp64-static",
+      "configurePreset": "win-ninja-st-ilp64-static",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "win-ninja-st-ilp64-shared",
+      "configurePreset": "win-ninja-st-ilp64-shared",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "win-ninja-mt-lp64-static",
+      "configurePreset": "win-ninja-mt-lp64-static",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "win-ninja-mt-lp64-shared",
+      "configurePreset": "win-ninja-mt-lp64-shared",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "win-ninja-mt-ilp64-static",
+      "configurePreset": "win-ninja-mt-ilp64-static",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    },
+    {
+      "name": "win-ninja-mt-ilp64-shared",
+      "configurePreset": "win-ninja-mt-ilp64-shared",
+      "output": {"outputOnFailure": true},
+      "execution": {"noTestsAction": "error", "stopOnFailure": true}
+    }
+  ],
+  "workflowPresets": [
+    {
+      "name": "win-ninja-st-lp64-static",
+      "description": "Build and check single-threaded lp64/static sparse on Windows",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "win-ninja-st-lp64-static"
+        },
+        {
+          "type": "build",
+          "name": "win-ninja-st-lp64-static"
+        },
+        {
+          "type": "test",
+          "name": "win-ninja-st-lp64-static"
+        }
+      ]
+    },
+    {
+      "name": "win-ninja-st-lp64-shared",
+      "description": "Build and check single-threaded lp64/shared sparse on Windows",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "win-ninja-st-lp64-shared"
+        },
+        {
+          "type": "build",
+          "name": "win-ninja-st-lp64-shared"
+        },
+        {
+          "type": "test",
+          "name": "win-ninja-st-lp64-shared"
+        }
+      ]
+    },
+    {
+      "name": "win-ninja-st-ilp64-static",
+      "description": "Build and check single-threaded ilp64/static sparse on Windows",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "win-ninja-st-ilp64-static"
+        },
+        {
+          "type": "build",
+          "name": "win-ninja-st-ilp64-static"
+        },
+        {
+          "type": "test",
+          "name": "win-ninja-st-ilp64-static"
+        }
+      ]
+    },
+    {
+      "name": "win-ninja-st-ilp64-shared",
+      "description": "Build and check single-threaded ilp64/shared sparse on Windows",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "win-ninja-st-ilp64-shared"
+        },
+        {
+          "type": "build",
+          "name": "win-ninja-st-ilp64-shared"
+        },
+        {
+          "type": "test",
+          "name": "win-ninja-st-ilp64-shared"
+        }
+      ]
+    },
+    {
+    "name": "win-ninja-mt-lp64-static",
+    "description": "Build and check multi-threaded lp64/static sparse on Windows",
+    "steps": [
+      {
+        "type": "configure",
+        "name": "win-ninja-mt-lp64-static"
+      },
+      {
+        "type": "build",
+        "name": "win-ninja-mt-lp64-static"
+      },
+      {
+        "type": "test",
+        "name": "win-ninja-mt-lp64-static"
+      }
+    ]
+  },
+  {
+    "name": "win-ninja-mt-lp64-shared",
+    "description": "Build and check multi-threaded lp64/shared sparse on Windows",
+    "steps": [
+      {
+        "type": "configure",
+        "name": "win-ninja-mt-lp64-shared"
+      },
+      {
+        "type": "build",
+        "name": "win-ninja-mt-lp64-shared"
+      },
+      {
+        "type": "test",
+        "name": "win-ninja-mt-lp64-shared"
+      }
+    ]
+  },
+  {
+    "name": "win-ninja-mt-ilp64-static",
+    "description": "Build and check multi-threaded ilp64/static sparse on Windows",
+    "steps": [
+      {
+        "type": "configure",
+        "name": "win-ninja-mt-ilp64-static"
+      },
+      {
+        "type": "build",
+        "name": "win-ninja-mt-ilp64-static"
+      },
+      {
+        "type": "test",
+        "name": "win-ninja-mt-ilp64-static"
+      }
+    ]
+  },
+  {
+    "name": "win-ninja-mt-ilp64-shared",
+    "description": "Build and check multi-threaded ilp64/shared sparse on Windows",
+    "steps": [
+      {
+        "type": "configure",
+        "name": "win-ninja-mt-ilp64-shared"
+      },
+      {
+        "type": "build",
+        "name": "win-ninja-mt-ilp64-shared"
+      },
+      {
+        "type": "test",
+        "name": "win-ninja-mt-ilp64-shared"
+      }
+    ]
+  }
+  ]
+}

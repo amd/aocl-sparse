@@ -1,0 +1,67 @@
+{
+  "version": 6,
+  "configurePresets": [
+      {
+        "name": "st",
+        "hidden": true,
+        "cacheVariables": {
+          "SUPPORT_OMP": "OFF"
+        }
+      },
+      {
+        "name": "mt",
+        "hidden": true,
+        "cacheVariables": {
+          "SUPPORT_OMP": "ON"
+        }
+      },
+      {
+        "name": "ilp64",
+        "hidden": true,
+        "cacheVariables": {
+          "BUILD_ILP64": "ON"
+        }
+      },
+      {
+        "name": "lp64",
+        "hidden": true,
+        "cacheVariables": {
+          "BUILD_ILP64": "OFF"
+        }
+      },
+      {
+        "name": "static",
+        "hidden": true,
+        "cacheVariables": {
+          "BUILD_SHARED_LIBS": "OFF"
+        }
+      },
+      {
+        "name": "shared",
+        "hidden": true,
+        "cacheVariables": {
+          "BUILD_SHARED_LIBS": "ON"
+        }
+      },
+      {
+        "name": "base",
+        "hidden": true,
+        "binaryDir": "${sourceDir}/build/${presetName}",
+        "installDir": "${sourceDir}/install/${presetName}",
+        "cacheVariables": {
+          "CMAKE_BUILD_TYPE": "Release"
+        }
+      }
+  ],
+  "buildPresets": [
+    {
+      "name": "base",
+      "configurePreset": "base",
+      "targets": "install",
+      "configuration": "Release",
+      "cleanFirst": true,
+      "jobs": 0,
+      "verbose": false
+    }
+  ]
+}

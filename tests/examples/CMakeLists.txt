@@ -91,7 +91,7 @@ if (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
 
     ## During out-of-source-tree build of examples, Blis, Libflame, openmp and utils dependecies need to be found explicitly.
     ## So we call Dependencies.cmake
-    include(Dependencies.cmake)
+    include(cmake/Dependencies.cmake)
 
     set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};${COMPILER_OPTIONS}")
 
@@ -175,7 +175,14 @@ if(NOT BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
     set(EXAMPLES_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/examples")
     install(FILES README.md DESTINATION ${EXAMPLES_INSTALL_DIR})
     install(FILES CMakeLists.txt DESTINATION ${EXAMPLES_INSTALL_DIR})
-    install(FILES ${CMAKE_SOURCE_DIR}/cmake/Dependencies.cmake DESTINATION ${EXAMPLES_INSTALL_DIR})
+    install(FILES ${CMAKE_SOURCE_DIR}/CMakePresets.json DESTINATION ${EXAMPLES_INSTALL_DIR})
+    install(FILES ${CMAKE_SOURCE_DIR}/cmake/Dependencies.cmake DESTINATION ${EXAMPLES_INSTALL_DIR}/cmake)
+    install(FILES ${CMAKE_SOURCE_DIR}/cmake/presets/base.json DESTINATION ${EXAMPLES_INSTALL_DIR}/cmake/presets)
+    install(FILES ${CMAKE_SOURCE_DIR}/cmake/presets/linux-make.json DESTINATION ${EXAMPLES_INSTALL_DIR}/cmake/presets)
+    install(FILES ${CMAKE_SOURCE_DIR}/cmake/presets/linux-ninja.json DESTINATION ${EXAMPLES_INSTALL_DIR}/cmake/presets)
+    install(FILES ${CMAKE_SOURCE_DIR}/cmake/presets/win-msvc.json DESTINATION ${EXAMPLES_INSTALL_DIR}/cmake/presets)
+    install(FILES ${CMAKE_SOURCE_DIR}/cmake/presets/win-ninja.json DESTINATION ${EXAMPLES_INSTALL_DIR}/cmake/presets)
+    install(FILES ${CMAKE_SOURCE_DIR}/cmake/presets/README.MD DESTINATION ${EXAMPLES_INSTALL_DIR}/cmake/presets)
 endif()
 set(EXAMPLE_EXECUTABLES
     sample_spmv_multi_instance
