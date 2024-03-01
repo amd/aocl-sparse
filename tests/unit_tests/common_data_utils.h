@@ -97,7 +97,7 @@
 
 // Template function to compare a single value irrespective of type =================================
 template <typename T>
-void expect_cmp(T res, T ref)
+void expect_eq(T res, T ref)
 {
     if constexpr(std::is_same_v<T, double>)
         EXPECT_DOUBLE_EQ(res, ref);
@@ -107,6 +107,11 @@ void expect_cmp(T res, T ref)
         EXPECT_COMPLEX_DOUBLE_EQ(res, ref);
     else if constexpr(std::is_same_v<T, std::complex<float>>)
         EXPECT_COMPLEX_FLOAT_EQ(res, ref);
+    else
+    {
+        std::string err = "expect_eq does not support type: " + std::string(typeid(T).name());
+        FAIL() << err;
+    }
 }
 
 // Utilities to compare real scalars and vectors =============================================
@@ -136,13 +141,32 @@ void expect_cmp(T res, T ref)
             << " rel err: " << abs(((x)[i] - (y)[i]) / (x)[i]) << "."; \
     }
 
-#define EXPECT_EQ_VEC_ERR(n, x, y)                                                                 \
-    for(size_t i = 0; i < (size_t)n; i++)                                                          \
-    {                                                                                              \
-        EXPECT_EQ((x)[i], ((y)[i])) << " vectors " #x " and " #y " differ at index i = " << i      \
-                                    << " by abs err: " << abs((x)[i] - ((y)[i]))                   \
-                                    << " rel err: " << abs(((x)[i] - *((y) + i)) / (x)[i]) << "."; \
+// Template function to compare a vector irrespective of type =================================
+template <typename T>
+void expect_eq_vec(aoclsparse_int n, T *res, T *ref)
+{
+    if constexpr(std::is_same_v<T, double>)
+    {
+        EXPECT_DOUBLE_EQ_VEC(n, res, ref);
     }
+    else if constexpr(std::is_same_v<T, float>)
+    {
+        EXPECT_FLOAT_EQ_VEC(n, res, ref);
+    }
+    else if constexpr(std::is_same_v<T, std::complex<double>>)
+    {
+        EXPECT_COMPLEX_DOUBLE_EQ_VEC(n, res, ref);
+    }
+    else if constexpr(std::is_same_v<T, std::complex<float>>)
+    {
+        EXPECT_COMPLEX_FLOAT_EQ_VEC(n, res, ref);
+    }
+    else
+    {
+        std::string err = "expect_eq_vec does not support type: " + std::string(typeid(T).name());
+        FAIL() << err;
+    }
+}
 
 #define EXPECT_ARR_NEAR(n, x, y, abs_error)    \
     for(size_t j = 0; j < (size_t)(n); j++)    \
@@ -161,6 +185,26 @@ void expect_cmp(T res, T ref)
             << " values are: " << std::imag(x[i]) << " and " << std::imag(y[i])  \
             << " by abs err: " << abs(std::real(x[i]) - std::real(y[i]));        \
     }
+
+// Template function to compare a matrix irrespective of type =================================
+template <typename T>
+void expect_arr_near(aoclsparse_int n, T *x, T *y, tolerance_t<T> abs_error)
+{
+    if constexpr(std::is_same_v<T, double> || std::is_same_v<T, float>)
+    {
+        EXPECT_ARR_NEAR(n, x, y, abs_error);
+    }
+    else if constexpr(std::is_same_v<T, std::complex<double>>
+                      || std::is_same_v<T, std::complex<float>>)
+    {
+        EXPECT_COMPLEX_ARR_NEAR(n, x, y, abs_error);
+    }
+    else
+    {
+        std::string err = "expect_arr_near does not support type: " + std::string(typeid(T).name());
+        FAIL() << err;
+    }
+}
 
 #define EXPECT_MAT_NEAR(m, n, ld, x, y, abs_error)                                      \
     for(size_t c = 0; c < (size_t)m; c++)                                               \
@@ -183,6 +227,27 @@ void expect_cmp(T res, T ref)
                 << "Vectors " #x " and " #y " different at index j =" << offset << "."; \
         }                                                                               \
     }
+
+// Template function to compare a matrix irrespective of type =================================
+template <typename T>
+void expect_mat_near(
+    aoclsparse_int m, aoclsparse_int n, aoclsparse_int ld, T *x, T *y, tolerance_t<T> abs_error)
+{
+    if constexpr(std::is_same_v<T, double> || std::is_same_v<T, float>)
+    {
+        EXPECT_MAT_NEAR(m, n, ld, x, y, abs_error);
+    }
+    else if constexpr(std::is_same_v<T, std::complex<double>>
+                      || std::is_same_v<T, std::complex<float>>)
+    {
+        EXPECT_COMPLEX_MAT_NEAR(m, n, ld, x, y, abs_error);
+    }
+    else
+    {
+        std::string err = "expect_mat_near does not support type: " + std::string(typeid(T).name());
+        FAIL() << err;
+    }
+}
 
 #define EXPECT_COMPLEX_MAT_NEAR(m, n, ld, x, y, abs_error)                                    \
     for(size_t c = 0; c < (size_t)m; c++)                                                     \
@@ -217,6 +282,28 @@ void expect_cmp(T res, T ref)
                 << " by abs err: " << abs(std::real(x[offset]) - std::real(y[offset]));       \
         }                                                                                     \
     }
+
+// Template function to compare a triangular-matrix irrespective of type =================================
+template <typename T>
+void expect_trimat_near(
+    aoclsparse_int m, aoclsparse_int n, aoclsparse_int ld, T *x, T *y, tolerance_t<T> abs_error)
+{
+    if constexpr(std::is_same_v<T, double> || std::is_same_v<T, float>)
+    {
+        EXPECT_TRIMAT_NEAR(m, n, ld, x, y, abs_error);
+    }
+    else if constexpr(std::is_same_v<T, std::complex<double>>
+                      || std::is_same_v<T, std::complex<float>>)
+    {
+        EXPECT_COMPLEX_TRIMAT_NEAR(m, n, ld, x, y, abs_error);
+    }
+    else
+    {
+        std::string err
+            = "expect_trimat_near does not support type: " + std::string(typeid(T).name());
+        FAIL() << err;
+    }
+}
 
 // Convenience templated interfaces ==========================================================
 

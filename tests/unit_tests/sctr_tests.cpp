@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,9 +24,9 @@
 #include "common_data_utils.h"
 #include "gtest/gtest.h"
 #include "aoclsparse.hpp"
+#include "aoclsparse_sctr.hpp"
+#include "aoclsparse_utils.hpp"
 
-#include <complex>
-#include <iostream>
 #include <vector>
 
 namespace
@@ -40,33 +40,49 @@ namespace
               std::vector<T>              &y_exp,
               bool                         len)
     {
-        indx.assign({3, 0, 6});
 
-        // to test scatter when nnz is less than or equal to the size of the vectors: indx, x
-        if(len)
-            nnz = 3;
-        else
-            nnz = 2;
         if constexpr(std::is_same_v<T, std::complex<double>>
                      || std::is_same_v<T, std::complex<float>>
                      || std::is_same_v<T, aoclsparse_double_complex>
                      || std::is_same_v<T, aoclsparse_float_complex>)
         {
-            x.assign({{1, 1}, {2, 2}, {3, 3}});
-            y.assign({{0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}, {0, 0}});
+            indx.assign({0, 3, 5, 1, 7, 12, 2, 6, 8, 9});
+
+            // to test scatter when nnz is less than or equal to the size of the vectors: indx, x
             if(len)
-                y_exp.assign({{2, 2}, {0, 0}, {0, 0}, {1, 1}, {0, 0}, {0, 0}, {3, 3}});
+                nnz = 10;
             else
-                y_exp.assign({{2, 2}, {0, 0}, {0, 0}, {1, 1}, {0, 0}, {0, 0}, {0, 0}});
+                nnz = 9;
+
+            // clang-format off
+            x.assign(
+                {{1, 1}, {1, 2}, {2, 3}, {3, 4}, {4, 5}, {5, 6}, {6, 7}, {7, 8}, {8, 9}, {9, 10}});
+            y.assign(13, aoclsparse_numeric::zero<T>());
+
+            if(len)
+                y_exp.assign({{1, 1}, {3, 4}, {6, 7},  {1, 2}, {0, 0}, {2, 3}, {7, 8},
+                              {4, 5}, {8, 9}, {9, 10}, {0, 0}, {0, 0}, {5, 6}});
+            else
+                y_exp.assign({{1, 1}, {3, 4}, {6, 7}, {1, 2}, {0, 0}, {2, 3}, {7, 8},
+                              {4, 5}, {8, 9}, {0, 0}, {0, 0}, {0, 0}, {5, 6}});
+            // clang-format on
         }
         else if constexpr(std::is_same_v<T, double> || std::is_same_v<T, float>)
         {
-            x.assign({1, 2, 3});
-            y.assign({0, 0, 0, 0, 0, 0, 0});
+            indx.assign({1, 5, 13, 14, 6, 8, 9, 3, 7, 2, 10, 0, 15, 12, 4, 11, 16});
+
+            // to test scatter when nnz is less than or equal to the size of the vectors: indx, x
             if(len)
-                y_exp.assign({2, 0, 0, 1, 0, 0, 3});
+                nnz = 17;
             else
-                y_exp.assign({2, 0, 0, 1, 0, 0, 0});
+                nnz = 10;
+
+            x.assign({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17});
+            y.assign({0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0});
+            if(len)
+                y_exp.assign({12, 1, 10, 8, 15, 2, 5, 9, 6, 7, 11, 16, 14, 3, 4, 13, 17});
+            else
+                y_exp.assign({0, 1, 10, 8, 0, 2, 5, 9, 6, 7, 0, 0, 0, 3, 4, 0, 0});
         }
     }
     template <typename T>
@@ -125,7 +141,7 @@ namespace
                   aoclsparse_status_invalid_index_value);
     }
 
-    template <typename T>
+    template <typename T, int KID>
     void test_aoclsparse_sctr_success()
     {
         aoclsparse_int              nnz;
@@ -138,37 +154,22 @@ namespace
         {
             init(nnz, indx, x, y, y_exp, len);
             aoclsparse_int sz = y_exp.size();
-            if constexpr(std::is_same_v<T, double>)
-            {
-                EXPECT_EQ((aoclsparse_sctr<T>(nnz, x.data(), indx.data(), y.data(), -1)),
-                          aoclsparse_status_success);
-                EXPECT_DOUBLE_EQ_VEC(sz, y, y_exp);
-            }
-            if constexpr(std::is_same_v<T, float>)
-            {
-                EXPECT_EQ((aoclsparse_sctr<T>(nnz, x.data(), indx.data(), y.data(), -1)),
-                          aoclsparse_status_success);
-                EXPECT_FLOAT_EQ_VEC(sz, y, y_exp);
-            }
-            if constexpr(std::is_same_v<T, std::complex<double>>)
-            {
-                EXPECT_EQ((aoclsparse_sctr<T>(nnz, x.data(), indx.data(), y.data(), -1)),
-                          aoclsparse_status_success);
-                EXPECT_COMPLEX_DOUBLE_EQ_VEC(sz, y, y_exp);
-            }
-            if constexpr(std::is_same_v<T, std::complex<float>>)
-            {
-                EXPECT_EQ((aoclsparse_sctr<T>(nnz, x.data(), indx.data(), y.data(), -1)),
-                          aoclsparse_status_success);
-                EXPECT_COMPLEX_FLOAT_EQ_VEC(sz, y, y_exp);
-            }
-            EXPECT_EQ((aoclsparse_sctr<T>(0, x.data(), indx.data(), y.data(), -1)),
+
+            EXPECT_EQ((aoclsparse_scatter<T, Index::type::indexed>(
+                          nnz, x.data(), indx.data(), y.data(), KID)),
+                      aoclsparse_status_success);
+
+            expect_eq_vec<T>(sz, y.data(), y_exp.data());
+
+            // Early return test
+            EXPECT_EQ((aoclsparse_scatter<T, Index::type::indexed>(
+                          0, x.data(), indx.data(), y.data(), KID)),
                       aoclsparse_status_success);
         }
     }
 
     // testing aoclsparse_*_complex types
-    template <typename T>
+    template <typename T, int KID>
     void test_aoclsparse_sctr_success_struct()
     {
         aoclsparse_int              nnz;
@@ -177,42 +178,30 @@ namespace
         std::vector<T>              y;
         std::vector<T>              y_exp;
 
+        /*  Determine the complex type
+         *  If T is aoclsparse_double_complex, complex_t will be std::complex<double>.
+         *  Else, complex_t will be std::complex<float>.
+        */
+        using complex_t = std::conditional_t<std::is_same_v<T, aoclsparse_double_complex>,
+                                             std::complex<double>,
+                                             std::complex<float>>;
+
         for(bool len : {true, false})
         {
             init(nnz, indx, x, y, y_exp, len);
 
             aoclsparse_int sz = y_exp.size();
-            if constexpr(std::is_same_v<T, aoclsparse_double_complex>)
-            {
-                std::vector<std::complex<double>> *ty, *ty_exp;
-                ty     = (std::vector<std::complex<double>> *)&y;
-                ty_exp = (std::vector<std::complex<double>> *)&y_exp;
-                EXPECT_EQ((aoclsparse_sctr<std::complex<double>>(nnz,
-                                                                 (std::complex<double> *)x.data(),
-                                                                 indx.data(),
-                                                                 (std::complex<double> *)y.data(),
-                                                                 -1)),
-                          aoclsparse_status_success);
-                EXPECT_COMPLEX_DOUBLE_EQ_VEC(sz, (*ty), (*ty_exp));
-            }
-            else if constexpr(std::is_same_v<T, aoclsparse_float_complex>)
-            {
-                std::vector<std::complex<float>> *ty, *ty_exp;
-                ty     = (std::vector<std::complex<float>> *)&y;
-                ty_exp = (std::vector<std::complex<float>> *)&y_exp;
-                EXPECT_EQ((aoclsparse_sctr<std::complex<float>>(nnz,
-                                                                (std::complex<float> *)x.data(),
-                                                                indx.data(),
-                                                                (std::complex<float> *)y.data(),
-                                                                -1)),
-                          aoclsparse_status_success);
-                EXPECT_COMPLEX_FLOAT_EQ_VEC(sz, (*ty), (*ty_exp));
-            }
+
+            EXPECT_EQ((aoclsparse_scatter<complex_t, Index::type::indexed>(
+                          nnz, (complex_t *)x.data(), indx.data(), (complex_t *)y.data(), KID)),
+                      aoclsparse_status_success);
+
+            expect_eq_vec<complex_t>(sz, (complex_t *)y.data(), (complex_t *)y_exp.data());
         }
     }
     //Scatter with stride
     // Positive test case with checking output correctness
-    template <typename T>
+    template <typename T, int KID>
     void test_sctrs_success()
     {
         aoclsparse_int            m, n, nnz;
@@ -232,9 +221,11 @@ namespace
             x     = {
                 bc((T)val), bc((T)val), bc((T)val), bc((T)val), bc((T)val), bc((T)val), bc((T)val)};
 
+            aoclsparse_status res
+                = aoclsparse_scatter<T, Index::type::strided>(n, &x[0], stride, &y[col], KID);
+
             // expect success
-            EXPECT_EQ(aoclsparse_sctrs<T>(n, &x[0], stride, &y[col], 0 /*REF KERNEL ID*/),
-                      aoclsparse_status_success);
+            EXPECT_EQ(res, aoclsparse_status_success);
         }
         if constexpr(std::is_same_v<T, std::complex<float>>
                      || std::is_same_v<T, std::complex<double>>)
@@ -324,45 +315,65 @@ namespace
 
     TEST(sctr, SuccessArgDouble)
     {
-        test_aoclsparse_sctr_success<double>();
+        test_aoclsparse_sctr_success<double, 0>();
+        test_aoclsparse_sctr_success<double, 1>();
+        test_aoclsparse_sctr_success<double, 2>();
     }
     TEST(sctr, SuccessArgFloat)
     {
-        test_aoclsparse_sctr_success<float>();
+        test_aoclsparse_sctr_success<float, 0>();
+        test_aoclsparse_sctr_success<float, 1>();
+        test_aoclsparse_sctr_success<float, 2>();
     }
     TEST(sctr, SuccessArgCDouble)
     {
-        test_aoclsparse_sctr_success<std::complex<double>>();
+        test_aoclsparse_sctr_success<std::complex<double>, 0>();
+        test_aoclsparse_sctr_success<std::complex<double>, 1>();
+        test_aoclsparse_sctr_success<std::complex<double>, 2>();
     }
     TEST(sctr, SuccessArgCFloat)
     {
-        test_aoclsparse_sctr_success<std::complex<float>>();
+        test_aoclsparse_sctr_success<std::complex<float>, 0>();
+        test_aoclsparse_sctr_success<std::complex<float>, 1>();
+        test_aoclsparse_sctr_success<std::complex<float>, 2>();
     }
     TEST(sctr, SuccessArgCStructDouble)
     {
-        test_aoclsparse_sctr_success_struct<aoclsparse_double_complex>();
+        test_aoclsparse_sctr_success_struct<aoclsparse_double_complex, 0>();
+        test_aoclsparse_sctr_success_struct<aoclsparse_double_complex, 1>();
+        test_aoclsparse_sctr_success_struct<aoclsparse_double_complex, 2>();
     }
     TEST(sctr, SuccessArgCStructFloat)
     {
-        test_aoclsparse_sctr_success_struct<aoclsparse_float_complex>();
+        test_aoclsparse_sctr_success_struct<aoclsparse_float_complex, 0>();
+        test_aoclsparse_sctr_success_struct<aoclsparse_float_complex, 1>();
+        test_aoclsparse_sctr_success_struct<aoclsparse_float_complex, 2>();
     }
 
     //Scatter with stride
     TEST(sctrs, SuccessArgDouble)
     {
-        test_sctrs_success<double>();
+        test_sctrs_success<double, 0>();
+        test_sctrs_success<double, 1>();
+        test_sctrs_success<double, 2>();
     }
     TEST(sctrs, SuccessArgFloat)
     {
-        test_sctrs_success<float>();
+        test_sctrs_success<float, 0>();
+        test_sctrs_success<float, 1>();
+        test_sctrs_success<float, 2>();
     }
     TEST(sctrs, SuccessArgCDouble)
     {
-        test_sctrs_success<std::complex<double>>();
+        test_sctrs_success<std::complex<double>, 0>();
+        test_sctrs_success<std::complex<double>, 1>();
+        test_sctrs_success<std::complex<double>, 2>();
     }
     TEST(sctrs, SuccessArgCFloat)
     {
-        test_sctrs_success<std::complex<float>>();
+        test_sctrs_success<std::complex<float>, 0>();
+        test_sctrs_success<std::complex<float>, 1>();
+        test_sctrs_success<std::complex<float>, 2>();
     }
     TEST(sctrs, NullArgDouble)
     {

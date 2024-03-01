@@ -27,9 +27,8 @@
 
 #include "aoclsparse.h"
 #include "aoclsparse_context.h"
+#include "aoclsparse_kernel_templates.hpp"
 #include "aoclsparse_utils.hpp"
-
-#include <complex>
 
 /*
  * Scatter reference implementation with stride or indexing
@@ -60,6 +59,69 @@ inline aoclsparse_status
     return aoclsparse_status_success;
 }
 
+using namespace kernel_templates;
+
+/*
+ * Scatter vector implementation with stride or indexing
+ * It is assumed that all pointers and data are valid.
+ * There is NO check for invalid indices
+ */
+template <bsz SZ, typename SUF, Index::type I>
+inline aoclsparse_status sctr_kt(aoclsparse_int nnz,
+                                 const SUF *__restrict__ x,
+                                 Index::index_t<I> xi,
+                                 SUF *__restrict__ y)
+{
+    avxvector_t<SZ, SUF> xv;
+
+    // Automatically determine the type of tsz
+    constexpr aoclsparse_int tsz = tsz_v<SZ, SUF>;
+
+    aoclsparse_int count = nnz / tsz;
+    aoclsparse_int rem   = nnz % tsz;
+
+    if constexpr(I == Index::type::strided)
+    {
+        aoclsparse_int xstride[tsz];
+
+        for(aoclsparse_int i = 0; i < tsz; ++i)
+            xstride[i] = i * xi;
+
+        for(aoclsparse_int i = 0; i < count; i++)
+        {
+            xv = kt_loadu_p<SZ, SUF>(x + (i * tsz));
+
+            kt_scatter_p<SZ, SUF>(xv, y + ((i * xi) * tsz), xstride);
+        }
+    }
+    else
+    {
+        for(aoclsparse_int i = 0; i < count; i++)
+        {
+            xv = kt_loadu_p<SZ, SUF>(x + (i * tsz));
+
+            // treat "xi" as an indexing array
+            kt_scatter_p<SZ, SUF>(xv, y, xi + (i * tsz));
+        }
+    }
+
+    // Remainder
+    for(aoclsparse_int i = nnz - rem; i < nnz; i++)
+    {
+        if constexpr(I == Index::type::strided)
+        {
+            // treat "xi" as a stride distance
+            y[xi * i] = x[i];
+        }
+        else
+        {
+            // treat "xi" as an indexing array
+            y[xi[i]] = x[i];
+        }
+    }
+    return aoclsparse_status_success;
+}
+
 /*
  * aoclsparse_scatter dispatcher
  */
@@ -68,7 +130,7 @@ inline aoclsparse_status aoclsparse_scatter(aoclsparse_int nnz,
                                             const T *__restrict__ x,
                                             Index::index_t<I> xi,
                                             T *__restrict__ y,
-                                            [[maybe_unused]] aoclsparse_int kid)
+                                            aoclsparse_int kid)
 {
     // Check pointer arguments
     if((nullptr == x) || (nullptr == y))
@@ -101,5 +163,29 @@ inline aoclsparse_status aoclsparse_scatter(aoclsparse_int nnz,
             return aoclsparse_status_invalid_pointer;
     }
 
-    return sctr_ref<T, I>(nnz, x, xi, y);
+    // Creating pointer to the kernel
+    using K = decltype(&sctr_ref<T, I>);
+
+    K kernel;
+
+    // TODO: Replace with L1 dispatcher
+    // Pick the kernel based on the KID passed
+    switch(kid)
+    {
+    case 2:
+#if defined(__AVX512F__)
+        kernel = sctr_kt<bsz::b512, T, I>;
+        break;
+#endif
+    case 1:
+#if defined(__AVX2__)
+        kernel = sctr_kt<bsz::b256, T, I>;
+        break;
+#endif
+    default:
+        kernel = sctr_ref<T, I>;
+    }
+
+    // Invoke the kernel
+    return kernel(nnz, x, xi, y);
 }
