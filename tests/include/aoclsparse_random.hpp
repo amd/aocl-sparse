@@ -100,9 +100,9 @@ public:
 
 /*! \brief  generate a random number in range [a,b] */
 template <typename T>
-inline T random_generator(int a = 1, int b = 10)
+inline T random_generator(aoclsparse_int a = 1, aoclsparse_int b = 10)
 {
-    return std::uniform_int_distribution<int>(a, b)(aoclsparse_rng);
+    return std::uniform_int_distribution<aoclsparse_int>(a, b)(aoclsparse_rng);
 }
 /*! \brief generate a random normally distributed number around 0 with stddev 1 */
 template <typename T>

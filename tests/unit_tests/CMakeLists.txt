@@ -102,7 +102,12 @@ set(GTEST_EXECUTABLES
     sypr_tests
     syprd_tests
     symgs_tests
+    rng_tests
 )
+
+#copy the raw data files (mtx inputs) to build directory
+add_subdirectory(data)
+
 foreach(TNAME ${GTEST_EXECUTABLES})
     add_executable(${TNAME} ${TNAME}.cpp ${utils_source})
     target_link_libraries(${TNAME} aoclsparse ${OpenMP_Library} ${LAPACK_LIBRARIES} GTest::gtest_main)

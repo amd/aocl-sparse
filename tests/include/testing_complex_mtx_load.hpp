@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -52,7 +52,7 @@ void generate_matrix(aoclsparse_matrix_type                 mat_type,
 
     if(mat_type == aoclsparse_matrix_type_general)
     {
-        aoclsparse_init_coo_matrix(rowid, colid, val, m, n, nnz, aoclsparse_index_base_one);
+        aoclsparse_generate_coo_matrix(rowid, colid, val, m, n, nnz, aoclsparse_index_base_one);
         mtxf << "%%MatrixMarket matrix coordinate complex general\n";
         mtxf << m << "   " << n << "  " << nnz << std::endl;
         mtxf_r << "%%MatrixMarket matrix coordinate real general\n";

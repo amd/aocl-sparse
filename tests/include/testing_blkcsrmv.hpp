@@ -53,6 +53,7 @@ int testing_blkcsrmv(const Arguments &arg)
     aoclsparse_index_base  base     = arg.baseA;
     aoclsparse_matrix_init mat      = arg.matrix;
     std::string            filename = arg.filename;
+    aoclsparse_matrix_sort sort     = arg.sort;
     bool                   issymm;
     T                      alpha = static_cast<T>(arg.alpha);
     T                      beta  = static_cast<T>(arg.beta);
@@ -81,13 +82,20 @@ int testing_blkcsrmv(const Arguments &arg)
     std::vector<T>              csr_val;
 
     aoclsparse_seedrand();
-#if 0
-    // Print aoclsparse version
-    std::cout << aoclsparse_get_version() << std::endl;
-#endif
+
     // Sample matrix
-    aoclsparse_init_csr_matrix(
-        csr_row_ptr, csr_col_ind, csr_val, M, N, nnz, base, mat, filename.c_str(), issymm, true);
+    aoclsparse_init_csr_matrix(csr_row_ptr,
+                               csr_col_ind,
+                               csr_val,
+                               M,
+                               N,
+                               nnz,
+                               base,
+                               mat,
+                               filename.c_str(),
+                               issymm,
+                               true,
+                               sort);
 
     aoclsparse_matrix A;
     CHECK_AOCLSPARSE_ERROR(aoclsparse_create_csr<T>(

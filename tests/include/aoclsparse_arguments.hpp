@@ -61,9 +61,10 @@ struct Arguments
 
     aoclsparse_matrix_init matrix;
 
-    aoclsparse_int unit_check;
-    aoclsparse_int timing;
-    aoclsparse_int iters;
+    aoclsparse_int         unit_check;
+    aoclsparse_int         timing;
+    aoclsparse_int         iters;
+    aoclsparse_matrix_sort sort;
 
     std::string filename;
     char        function[64];
@@ -144,6 +145,10 @@ struct testdata
     aoclsparse_int m;
     aoclsparse_int n;
     aoclsparse_int k;
+
+    //Used for trsm: leading dimensions of dense matrices 'x'/'y', provides means to access the correct elements of the matrix within the larger memory layout.
+    aoclsparse_int ldx;
+    aoclsparse_int ldy;
 
     // A matrix - Used for all APIs
     aoclsparse_int              nnzA;

@@ -89,4 +89,9 @@ template <typename T>
 void register_tests_symgs_mv([[maybe_unused]] std::vector<testsetting<T>> &testqueue)
 {
 }
+template <typename T>
+void register_tests_trsm([[maybe_unused]] std::vector<testsetting<T>> &testqueue)
+{
+    //testqueue.push_back({"new_test_name",&testing_trsm_new<T>});
+}
 #endif

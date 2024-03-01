@@ -90,7 +90,7 @@ int testing_trsv_aocl(const Arguments &arg, testdata<T> &td, double timings[])
             std::fill(td.y.begin(), td.y.end(), aoclsparse_numeric::zero<T>());
             double cpu_time_start = aoclsparse_clock();
             NEW_CHECK_AOCLSPARSE_ERROR(
-                aoclsparse_trsv(trans, td.alpha, A, descr, td.x.data(), td.y.data()));
+                aoclsparse_trsv_kid(trans, td.alpha, A, descr, td.x.data(), td.y.data(), arg.kid));
             timings[iter] = aoclsparse_clock_diff(cpu_time_start);
         }
     }
@@ -103,6 +103,10 @@ int testing_trsv_aocl(const Arguments &arg, testdata<T> &td, double timings[])
     return status;
 }
 
+/* TRSV solver testing driver
+  * Solves A * y = alpha x, for vector Y using matrix A and rhs vector x.
+  * RHS vector x is generated from vector y_gold using MV, x = (1/alpha)*A*y_gold.
+  */
 template <typename T>
 int testing_trsv(const Arguments &arg)
 {
@@ -113,6 +117,7 @@ int testing_trsv(const Arguments &arg)
     aoclsparse_index_base  base     = arg.baseA;
     aoclsparse_matrix_init mat      = arg.matrix;
     std::string            filename = arg.filename;
+    aoclsparse_matrix_sort sort     = arg.sort;
     bool                   issymm;
     T                      invalpha;
 
@@ -133,35 +138,19 @@ int testing_trsv(const Arguments &arg)
 
     // At present alpha have the same real / imaginary parts.
     // TODO: support distinct real and imaginary parts
-    if constexpr(std::is_same_v<T, aoclsparse_float_complex>
-                 || std::is_same_v<T, std::complex<float>>)
-    {
-        td.alpha = {static_cast<float>(arg.alpha), static_cast<float>(arg.alpha)};
-        // Given the special form, 1/td.alpha = (1-i)/2alpha
-        float v  = 1. / 2. / static_cast<float>(arg.alpha);
-        invalpha = {v, -v};
-    }
-    else if constexpr(std::is_same_v<T, aoclsparse_double_complex>
-                      || std::is_same_v<T, std::complex<double>>)
-    {
-        td.alpha = {static_cast<double>(arg.alpha), static_cast<double>(arg.alpha)};
-        double v = 1. / 2. / static_cast<double>(arg.alpha);
-        invalpha = {v, -v};
-    }
     if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
     {
-        td.alpha = static_cast<T>(arg.alpha);
+        td.alpha = arg.alpha;
         invalpha = 1. / td.alpha;
     }
-
-    //random matrix generation yet to be supported for TRSV
-    if(mat == aoclsparse_matrix_random)
+    else
     {
-        std::cerr
-            << "TRSV requires full rank symmetric matrix for it to work " << std::endl
-            << "Current implementation of random matrix generation does not support this property."
-            << std::endl;
-        return 2;
+        //assume complex data type
+        tolerance_t<T> v;
+        td.alpha = {(tolerance_t<T>)arg.alpha, (tolerance_t<T>)arg.alpha};
+        // Given the special form, 1/td.alpha = (1-i)/2alpha
+        v        = 1. / (2. * arg.alpha);
+        invalpha = {v, -v};
     }
 
     aoclsparse_seedrand();
@@ -176,7 +165,8 @@ int testing_trsv(const Arguments &arg)
                                mat,
                                filename.c_str(),
                                issymm,
-                               true);
+                               true,
+                               sort);
 
     // Allocate memory for vectors
     aoclsparse_int m, n, nnz;
@@ -188,6 +178,13 @@ int testing_trsv(const Arguments &arg)
     if(td.m != td.n)
     {
         std::cerr << "TRSV requires a square matrix that can be either symmetric or triangular"
+                  << std::endl;
+        return -1;
+    }
+    if(td.nnzA < td.m)
+    {
+        std::cerr << "TRSV requires a square matrix with full diagonal and therefore nnz "
+                     "entries to atleast be size m"
                   << std::endl;
         return -1;
     }

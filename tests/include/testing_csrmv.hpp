@@ -111,6 +111,7 @@ int testing_csrmv(const Arguments &arg)
     aoclsparse_index_base  base     = arg.baseA;
     aoclsparse_matrix_init mat      = arg.matrix;
     std::string            filename = arg.filename;
+    aoclsparse_matrix_sort sort     = arg.sort;
     bool                   issymm;
 
     // the queue of test functions to run, normally it would be just one API
@@ -160,7 +161,8 @@ int testing_csrmv(const Arguments &arg)
                                mat,
                                filename.c_str(),
                                issymm,
-                               true);
+                               true,
+                               sort);
 
     // Allocate memory for vectors
     aoclsparse_int xdim, ydim;

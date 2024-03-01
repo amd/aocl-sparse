@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020-2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -37,9 +37,14 @@ typedef enum aoclsparse_datatype_
 
 typedef enum aoclsparse_matrix_init_
 {
-    aoclsparse_matrix_random   = 0, /**< Random initialization */
-    aoclsparse_matrix_file_mtx = 1, /**< Read from .mtx (matrix market) file */
-    aoclsparse_matrix_file_bin = 2 /**< Read from .csr (csr binary) file */
+    /**< Random-sorted initialization */
+    aoclsparse_matrix_random = 0,
+    /**< Read from .mtx (matrix market) file */
+    aoclsparse_matrix_file_mtx = 1,
+    /**< Read from .csr (csr binary) file */
+    aoclsparse_matrix_file_bin = 2,
+    /**< random matrix with full-diagonal which is diagonally dominant */
+    aoclsparse_matrix_random_diag_dom = 3
 } aoclsparse_matrix_init;
 
 constexpr auto aoclsparse_matrix2string(aoclsparse_matrix_init matrix)
@@ -52,6 +57,8 @@ constexpr auto aoclsparse_matrix2string(aoclsparse_matrix_init matrix)
         return "mtx";
     case aoclsparse_matrix_file_bin:
         return "csr";
+    case aoclsparse_matrix_random_diag_dom:
+        return "rand_diagonal_dominant";
     default:
         return "invalid";
     }

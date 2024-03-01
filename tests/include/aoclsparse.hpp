@@ -113,6 +113,19 @@ aoclsparse_status aoclsparse_syprd(aoclsparse_operation    op,
                                    aoclsparse_order        orderC,
                                    aoclsparse_int          ldc);
 
+template <typename T>
+aoclsparse_status aoclsparse_trsm_kid(const aoclsparse_operation trans,
+                                      const T                    alpha,
+                                      aoclsparse_matrix          A,
+                                      const aoclsparse_mat_descr descr,
+                                      aoclsparse_order           order,
+                                      const T                   *B,
+                                      aoclsparse_int             n,
+                                      aoclsparse_int             ldb,
+                                      T                         *X,
+                                      aoclsparse_int             ldx,
+                                      const aoclsparse_int       kid);
+
 /*
  * ===========================================================================
  *    level 2 SPARSE
@@ -243,12 +256,13 @@ aoclsparse_status aoclsparse_csrsv(aoclsparse_operation       trans,
                                    const T                   *x,
                                    T                         *y);
 template <typename T>
-aoclsparse_status aoclsparse_trsv(const aoclsparse_operation trans,
-                                  const T                    alpha,
-                                  aoclsparse_matrix          A,
-                                  const aoclsparse_mat_descr descr,
-                                  const T                   *b,
-                                  T                         *x);
+aoclsparse_status aoclsparse_trsv_kid(const aoclsparse_operation trans,
+                                      const T                    alpha,
+                                      aoclsparse_matrix          A,
+                                      const aoclsparse_mat_descr descr,
+                                      const T                   *b,
+                                      T                         *x,
+                                      const aoclsparse_int       kid);
 template <typename T>
 aoclsparse_status aoclsparse_dotmv(const aoclsparse_operation op,
                                    T                          alpha,

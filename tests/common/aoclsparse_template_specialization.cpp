@@ -380,6 +380,127 @@ aoclsparse_status aoclsparse_syprd(aoclsparse_operation             op,
 }
 
 template <>
+aoclsparse_status aoclsparse_trsm_kid(const aoclsparse_operation trans,
+                                      const float                alpha,
+                                      aoclsparse_matrix          A,
+                                      const aoclsparse_mat_descr descr,
+                                      aoclsparse_order           order,
+                                      const float               *B,
+                                      aoclsparse_int             n,
+                                      aoclsparse_int             ldb,
+                                      float                     *X,
+                                      aoclsparse_int             ldx,
+                                      const aoclsparse_int       kid)
+{
+    if(kid >= 0)
+        return aoclsparse_strsm_kid(trans, alpha, A, descr, order, B, n, ldb, X, ldx, kid);
+    else
+        return aoclsparse_strsm(trans, alpha, A, descr, order, B, n, ldb, X, ldx);
+}
+
+template <>
+aoclsparse_status aoclsparse_trsm_kid(const aoclsparse_operation trans,
+                                      const double               alpha,
+                                      aoclsparse_matrix          A,
+                                      const aoclsparse_mat_descr descr,
+                                      aoclsparse_order           order,
+                                      const double              *B,
+                                      aoclsparse_int             n,
+                                      aoclsparse_int             ldb,
+                                      double                    *X,
+                                      aoclsparse_int             ldx,
+                                      const aoclsparse_int       kid)
+{
+    if(kid >= 0)
+        return aoclsparse_dtrsm_kid(trans, alpha, A, descr, order, B, n, ldb, X, ldx, kid);
+    else
+        return aoclsparse_dtrsm(trans, alpha, A, descr, order, B, n, ldb, X, ldx);
+}
+
+template <>
+aoclsparse_status aoclsparse_trsm_kid(const aoclsparse_operation trans,
+                                      const std::complex<float>  alpha,
+                                      aoclsparse_matrix          A,
+                                      const aoclsparse_mat_descr descr,
+                                      aoclsparse_order           order,
+                                      const std::complex<float> *B,
+                                      aoclsparse_int             n,
+                                      aoclsparse_int             ldb,
+                                      std::complex<float>       *X,
+                                      aoclsparse_int             ldx,
+                                      const aoclsparse_int       kid)
+{
+    const aoclsparse_float_complex *alphap
+        = reinterpret_cast<const aoclsparse_float_complex *>(&alpha);
+    const aoclsparse_float_complex *Bp = reinterpret_cast<const aoclsparse_float_complex *>(B);
+    aoclsparse_float_complex       *Xp = reinterpret_cast<aoclsparse_float_complex *>(X);
+    if(kid >= 0)
+        return aoclsparse_ctrsm_kid(trans, *alphap, A, descr, order, Bp, n, ldb, Xp, ldx, kid);
+    else
+        return aoclsparse_ctrsm(trans, *alphap, A, descr, order, Bp, n, ldb, Xp, ldx);
+}
+template <>
+aoclsparse_status aoclsparse_trsm_kid(const aoclsparse_operation      trans,
+                                      const aoclsparse_float_complex  alpha,
+                                      aoclsparse_matrix               A,
+                                      const aoclsparse_mat_descr      descr,
+                                      aoclsparse_order                order,
+                                      const aoclsparse_float_complex *B,
+                                      aoclsparse_int                  n,
+                                      aoclsparse_int                  ldb,
+                                      aoclsparse_float_complex       *X,
+                                      aoclsparse_int                  ldx,
+                                      const aoclsparse_int            kid)
+{
+    if(kid >= 0)
+        return aoclsparse_ctrsm_kid(trans, alpha, A, descr, order, B, n, ldb, X, ldx, kid);
+    else
+        return aoclsparse_ctrsm(trans, alpha, A, descr, order, B, n, ldb, X, ldx);
+}
+
+template <>
+aoclsparse_status aoclsparse_trsm_kid(const aoclsparse_operation  trans,
+                                      const std::complex<double>  alpha,
+                                      aoclsparse_matrix           A,
+                                      const aoclsparse_mat_descr  descr,
+                                      aoclsparse_order            order,
+                                      const std::complex<double> *B,
+                                      aoclsparse_int              n,
+                                      aoclsparse_int              ldb,
+                                      std::complex<double>       *X,
+                                      aoclsparse_int              ldx,
+                                      const aoclsparse_int        kid)
+{
+    const aoclsparse_double_complex *alphap
+        = reinterpret_cast<const aoclsparse_double_complex *>(&alpha);
+    const aoclsparse_double_complex *Bp = reinterpret_cast<const aoclsparse_double_complex *>(B);
+    aoclsparse_double_complex       *Xp = reinterpret_cast<aoclsparse_double_complex *>(X);
+    if(kid >= 0)
+        return aoclsparse_ztrsm_kid(trans, *alphap, A, descr, order, Bp, n, ldb, Xp, ldx, kid);
+    else
+        return aoclsparse_ztrsm(trans, *alphap, A, descr, order, Bp, n, ldb, Xp, ldx);
+}
+
+template <>
+aoclsparse_status aoclsparse_trsm_kid(const aoclsparse_operation       trans,
+                                      const aoclsparse_double_complex  alpha,
+                                      aoclsparse_matrix                A,
+                                      const aoclsparse_mat_descr       descr,
+                                      aoclsparse_order                 order,
+                                      const aoclsparse_double_complex *B,
+                                      aoclsparse_int                   n,
+                                      aoclsparse_int                   ldb,
+                                      aoclsparse_double_complex       *X,
+                                      aoclsparse_int                   ldx,
+                                      const aoclsparse_int             kid)
+{
+    if(kid >= 0)
+        return aoclsparse_ztrsm_kid(trans, alpha, A, descr, order, B, n, ldb, X, ldx, kid);
+    else
+        return aoclsparse_ztrsm(trans, alpha, A, descr, order, B, n, ldb, X, ldx);
+}
+
+template <>
 aoclsparse_status aoclsparse_csrmv(aoclsparse_operation       trans,
                                    const float               *alpha,
                                    aoclsparse_int             m,
@@ -795,74 +916,99 @@ aoclsparse_status
     return aoclsparse_sgthr(nnz, y, x, indx);
 }
 template <>
-aoclsparse_status aoclsparse_trsv(const aoclsparse_operation trans,
-                                  const double               alpha,
-                                  aoclsparse_matrix          A,
-                                  const aoclsparse_mat_descr descr,
-                                  const double              *b,
-                                  double                    *x)
+aoclsparse_status aoclsparse_trsv_kid(const aoclsparse_operation trans,
+                                      const double               alpha,
+                                      aoclsparse_matrix          A,
+                                      const aoclsparse_mat_descr descr,
+                                      const double              *b,
+                                      double                    *x,
+                                      const aoclsparse_int       kid)
 {
-    return aoclsparse_dtrsv(trans, alpha, A, descr, b, x);
+    if(kid >= 0)
+        return aoclsparse_dtrsv_kid(trans, alpha, A, descr, b, x, kid);
+    else
+        return aoclsparse_dtrsv(trans, alpha, A, descr, b, x);
 }
 
 template <>
-aoclsparse_status aoclsparse_trsv(const aoclsparse_operation trans,
-                                  const float                alpha,
-                                  aoclsparse_matrix          A,
-                                  const aoclsparse_mat_descr descr,
-                                  const float               *b,
-                                  float                     *x)
+aoclsparse_status aoclsparse_trsv_kid(const aoclsparse_operation trans,
+                                      const float                alpha,
+                                      aoclsparse_matrix          A,
+                                      const aoclsparse_mat_descr descr,
+                                      const float               *b,
+                                      float                     *x,
+                                      const aoclsparse_int       kid)
 {
-    return aoclsparse_strsv(trans, alpha, A, descr, b, x);
+    if(kid >= 0)
+        return aoclsparse_strsv_kid(trans, alpha, A, descr, b, x, kid);
+    else
+        return aoclsparse_strsv(trans, alpha, A, descr, b, x);
 }
 template <>
-aoclsparse_status aoclsparse_trsv(const aoclsparse_operation  trans,
-                                  const std::complex<double>  alpha,
-                                  aoclsparse_matrix           A,
-                                  const aoclsparse_mat_descr  descr,
-                                  const std::complex<double> *b,
-                                  std::complex<double>       *x)
+aoclsparse_status aoclsparse_trsv_kid(const aoclsparse_operation  trans,
+                                      const std::complex<double>  alpha,
+                                      aoclsparse_matrix           A,
+                                      const aoclsparse_mat_descr  descr,
+                                      const std::complex<double> *b,
+                                      std::complex<double>       *x,
+                                      const aoclsparse_int        kid)
 {
     const aoclsparse_double_complex *palpha
         = reinterpret_cast<const aoclsparse_double_complex *>(&alpha);
     const aoclsparse_double_complex *pb = reinterpret_cast<const aoclsparse_double_complex *>(b);
     aoclsparse_double_complex       *px = reinterpret_cast<aoclsparse_double_complex *>(x);
-    return aoclsparse_ztrsv(trans, *palpha, A, descr, pb, px);
+    if(kid >= 0)
+        return aoclsparse_ztrsv_kid(trans, *palpha, A, descr, pb, px, kid);
+    else
+        return aoclsparse_ztrsv(trans, *palpha, A, descr, pb, px);
 }
 template <>
-aoclsparse_status aoclsparse_trsv(const aoclsparse_operation       trans,
-                                  const aoclsparse_double_complex  alpha,
-                                  aoclsparse_matrix                A,
-                                  const aoclsparse_mat_descr       descr,
-                                  const aoclsparse_double_complex *b,
-                                  aoclsparse_double_complex       *x)
+aoclsparse_status aoclsparse_trsv_kid(const aoclsparse_operation       trans,
+                                      const aoclsparse_double_complex  alpha,
+                                      aoclsparse_matrix                A,
+                                      const aoclsparse_mat_descr       descr,
+                                      const aoclsparse_double_complex *b,
+                                      aoclsparse_double_complex       *x,
+                                      const aoclsparse_int             kid)
 {
-    return aoclsparse_ztrsv(trans, alpha, A, descr, b, x);
+    if(kid >= 0)
+        return aoclsparse_ztrsv_kid(trans, alpha, A, descr, b, x, kid);
+    else
+        return aoclsparse_ztrsv(trans, alpha, A, descr, b, x);
 }
 template <>
-aoclsparse_status aoclsparse_trsv(const aoclsparse_operation trans,
-                                  const std::complex<float>  alpha,
-                                  aoclsparse_matrix          A,
-                                  const aoclsparse_mat_descr descr,
-                                  const std::complex<float> *b,
-                                  std::complex<float>       *x)
+aoclsparse_status aoclsparse_trsv_kid(const aoclsparse_operation trans,
+                                      const std::complex<float>  alpha,
+                                      aoclsparse_matrix          A,
+                                      const aoclsparse_mat_descr descr,
+                                      const std::complex<float> *b,
+                                      std::complex<float>       *x,
+                                      const aoclsparse_int       kid)
 {
     const aoclsparse_float_complex *palpha
         = reinterpret_cast<const aoclsparse_float_complex *>(&alpha);
     const aoclsparse_float_complex *pb = reinterpret_cast<const aoclsparse_float_complex *>(b);
     aoclsparse_float_complex       *px = reinterpret_cast<aoclsparse_float_complex *>(x);
-    return aoclsparse_ctrsv(trans, *palpha, A, descr, pb, px);
+    if(kid >= 0)
+        return aoclsparse_ctrsv_kid(trans, *palpha, A, descr, pb, px, kid);
+    else
+        return aoclsparse_ctrsv(trans, *palpha, A, descr, pb, px);
 }
 template <>
-aoclsparse_status aoclsparse_trsv(const aoclsparse_operation      trans,
-                                  const aoclsparse_float_complex  alpha,
-                                  aoclsparse_matrix               A,
-                                  const aoclsparse_mat_descr      descr,
-                                  const aoclsparse_float_complex *b,
-                                  aoclsparse_float_complex       *x)
+aoclsparse_status aoclsparse_trsv_kid(const aoclsparse_operation      trans,
+                                      const aoclsparse_float_complex  alpha,
+                                      aoclsparse_matrix               A,
+                                      const aoclsparse_mat_descr      descr,
+                                      const aoclsparse_float_complex *b,
+                                      aoclsparse_float_complex       *x,
+                                      const aoclsparse_int            kid)
 {
-    return aoclsparse_ctrsv(trans, alpha, A, descr, b, x);
+    if(kid >= 0)
+        return aoclsparse_ctrsv_kid(trans, alpha, A, descr, b, x, kid);
+    else
+        return aoclsparse_ctrsv(trans, alpha, A, descr, b, x);
 }
+
 template <>
 aoclsparse_status aoclsparse_gthr(const aoclsparse_int        nnz,
                                   const std::complex<double> *y,
@@ -982,6 +1128,24 @@ aoclsparse_status aoclsparse_gthrs(const aoclsparse_int       nnz,
                                    const std::complex<float> *y,
                                    std::complex<float>       *x,
                                    aoclsparse_int             stride)
+{
+    return aoclsparse_cgthrs(nnz, y, x, stride);
+}
+
+template <>
+aoclsparse_status aoclsparse_gthrs(const aoclsparse_int             nnz,
+                                   const aoclsparse_double_complex *y,
+                                   aoclsparse_double_complex       *x,
+                                   aoclsparse_int                   stride)
+{
+    return aoclsparse_zgthrs(nnz, y, x, stride);
+}
+
+template <>
+aoclsparse_status aoclsparse_gthrs(const aoclsparse_int            nnz,
+                                   const aoclsparse_float_complex *y,
+                                   aoclsparse_float_complex       *x,
+                                   aoclsparse_int                  stride)
 {
     return aoclsparse_cgthrs(nnz, y, x, stride);
 }
@@ -1576,6 +1740,26 @@ aoclsparse_status aoclsparse_sctrs(const aoclsparse_int nnz,
                                    const std::complex<double> *__restrict__ x,
                                    aoclsparse_int stride,
                                    std::complex<double> *__restrict__ y,
+                                   [[maybe_unused]] const aoclsparse_int kid)
+{
+    return aoclsparse_zsctrs(nnz, x, stride, y);
+}
+
+template <>
+aoclsparse_status aoclsparse_sctrs(const aoclsparse_int nnz,
+                                   const aoclsparse_float_complex *__restrict__ x,
+                                   aoclsparse_int stride,
+                                   aoclsparse_float_complex *__restrict__ y,
+                                   [[maybe_unused]] const aoclsparse_int kid)
+{
+    return aoclsparse_csctrs(nnz, x, stride, y);
+}
+
+template <>
+aoclsparse_status aoclsparse_sctrs(const aoclsparse_int nnz,
+                                   const aoclsparse_double_complex *__restrict__ x,
+                                   aoclsparse_int stride,
+                                   aoclsparse_double_complex *__restrict__ y,
                                    [[maybe_unused]] const aoclsparse_int kid)
 {
     return aoclsparse_zsctrs(nnz, x, stride, y);
