@@ -88,7 +88,7 @@ namespace
         for(bool conj : {true, false})
         {
             dotp_ref(nnz, x.data(), indx.data(), y.data(), &dot, conj);
-            expect_cmp<T>((conj ? dotc_exp : dot_exp), dot);
+            expect_eq<T>((conj ? dotc_exp : dot_exp), dot);
         }
     }
 
@@ -189,7 +189,7 @@ namespace
         EXPECT_EQ((aoclsparse_dotp<T>(nnz, x.data(), indx.data(), y.data(), &dot, false, KID)),
                   aoclsparse_status_success);
 
-        expect_cmp<T>(dot, dot_exp);
+        expect_eq<T>(dot, dot_exp);
 
         if constexpr(std::is_same_v<T, std::complex<double>>
                      || std::is_same_v<T, std::complex<float>>)
@@ -197,7 +197,7 @@ namespace
             // In case of complex, test conjugate dot.
             EXPECT_EQ((aoclsparse_dotp<T>(nnz, x.data(), indx.data(), y.data(), &dot, true, KID)),
                       aoclsparse_status_success);
-            expect_cmp<T>(dot, dotc_exp);
+            expect_eq<T>(dot, dotc_exp);
         }
     }
 
@@ -237,7 +237,7 @@ namespace
                                               false,
                                               KID)),
                   aoclsparse_status_success);
-        expect_cmp<complex_t>(*tdot, *tdot_exp);
+        expect_eq<complex_t>(*tdot, *tdot_exp);
 
         EXPECT_EQ((aoclsparse_dotp<complex_t>(nnz,
                                               (complex_t *)x.data(),
@@ -247,7 +247,7 @@ namespace
                                               true,
                                               KID)),
                   aoclsparse_status_success);
-        expect_cmp<complex_t>(*tdot, *tdotc_exp);
+        expect_eq<complex_t>(*tdot, *tdotc_exp);
     }
 
     TEST(dot, RefImplAll)
