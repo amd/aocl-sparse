@@ -60,6 +60,7 @@
 #include "testing_csr2m.hpp"
 #include "testing_csrmm.hpp"
 #include "testing_sp2md.hpp"
+#include "testing_trsm.hpp"
 
 //Solvers
 #include "testing_ilu.hpp"
@@ -99,6 +100,8 @@ int main(int argc, char *argv[])
     char diag      = 'N';
     char uplo      = 'L';
     int  order     = 1;
+    char matrix    = 'R';
+    char sort      = 'U';
     strcpy(arg.function, "csrmv");
     // Initialize command line
     aoclsparse_command_line_args args(argc, argv);
@@ -110,7 +113,7 @@ int main(int argc, char *argv[])
             "\n\t"
             "%s "
             "\n\t"
-            " --help \t  produces this help message"
+            "--help \t  produces this help message"
             "\n\t"
             "--sizem=<Number of rows> \t  m is only  applicable to LEVEL-2 & LEVEL-3: the number "
             " of rows (default: 128)"
@@ -151,7 +154,7 @@ int main(int argc, char *argv[])
             "--function=<function to test> \t SPARSE function to test. (default: csrmv) Options:  "
             "\n\t\tLevel-1: gthr gthrz sctr axpyi roti doti dotui dotci"
             "\n\t\tLevel-2: csrmv optmv blkcsrmv(only precision=d) ellmv diamv bsrmv trsv dotmv"
-            "\n\t\tLevel-3: csrmm csr2m sp2md"
+            "\n\t\tLevel-3: csrmm csr2m sp2md trsm"
             "\n\t\tPreconditioners: ilu"
             "\n\t"
             "--precision=<s/d/c/z> \t Options: s,d,c,z (default: d)"
@@ -163,10 +166,22 @@ int main(int argc, char *argv[])
             "--order=<0/1> \t Indicates whether a dense matrix is laid out in column-major "
             "storage: 1, or row-major storage 0 (default: 1)"
             "\n\t"
-            "--stage=<0/1> \t Indicates whether csr2m routine performs in single stage: 0 "
-            "or double stage: 1 (default: 0)"
-            "--kid=<kernel ID> \t Indicates the kernel that will be dispatched (default: -1)"
+            "--stage=<0/1> \t Indicates whether csr2m routine performs in "
+            "\n\t\tsingle stage: 0 (default)"
+            "\n\t\tdouble stage: 1"
+            "\n\t"
+            "--kid=<kernel ID> \t Indicates the kernel that will be dispatched (default: -1). "
             "-1 is auto "
+            "\n\t"
+            "--matrix=<R/D> if .mtx input is not provided, then this option indicates the type of "
+            "random matrix that is generated. Options are:"
+            "\n\t\tR: generate a random matrix whose diagonal may or may not contain full-diagonal"
+            "\n\t\tD: generate a random matrix with full-diagonal that is diagonally dominant"
+            "\n\t"
+            "--sort=<U/P/F> \t Indicates whether the matrix generated is unsorted or partially "
+            "sorted or fully-sorted"
+            "\n\t\tU: Generate unsorted matrix\n\t\tP: Generate partially sorted matrix"
+            "\n\t\tF: Generate fully sorted matrix"
             "\n",
             argv[0]);
 
@@ -194,6 +209,8 @@ int main(int argc, char *argv[])
     args.aoclsparse_get_cmdline_argument("order", order);
     args.aoclsparse_get_cmdline_argument("stage", arg.stage);
     args.aoclsparse_get_cmdline_argument("kid", arg.kid);
+    args.aoclsparse_get_cmdline_argument("matrix", matrix);
+    args.aoclsparse_get_cmdline_argument("sort", sort);
 
     if(precision != 's' && precision != 'd' && precision != 'c' && precision != 'z')
     {
@@ -254,8 +271,39 @@ int main(int argc, char *argv[])
     else
     {
         arg.matrix = aoclsparse_matrix_random;
+        if(matrix == 'R')
+        {
+            arg.matrix = aoclsparse_matrix_random;
+        }
+        else if(matrix == 'D')
+        {
+            arg.matrix = aoclsparse_matrix_random_diag_dom;
+        }
+        else
+        {
+            std::cerr << "Invalid value for --matrix" << std::endl;
+            return -1;
+        }
     }
 
+    arg.sort = aoclsparse_unsorted;
+    if(sort == 'U')
+    {
+        arg.sort = aoclsparse_unsorted;
+    }
+    else if(sort == 'P')
+    {
+        arg.sort = aoclsparse_partially_sorted;
+    }
+    else if(sort == 'F')
+    {
+        arg.sort = aoclsparse_fully_sorted;
+    }
+    else
+    {
+        std::cerr << "Invalid value for --sort" << std::endl;
+        return -1;
+    }
     /* ============================================================================================
      */
     if(arg.M < 0 || arg.N < 0)
@@ -491,6 +539,17 @@ int main(int argc, char *argv[])
             return testing_symgs_mv<aoclsparse_float_complex>(arg);
         else if(precision == 'z')
             return testing_symgs_mv<aoclsparse_double_complex>(arg);
+    }
+    else if(strcmp(arg.function, "trsm") == 0)
+    {
+        if(precision == 's')
+            return testing_trsm<float>(arg);
+        else if(precision == 'd')
+            return testing_trsm<double>(arg);
+        else if(precision == 'c')
+            return testing_trsm<aoclsparse_float_complex>(arg);
+        else if(precision == 'z')
+            return testing_trsm<aoclsparse_double_complex>(arg);
     }
     else
     {

@@ -38,13 +38,14 @@
 template <typename T>
 void testing_csrsv(const Arguments &arg)
 {
-    aoclsparse_int        M     = arg.M;
-    aoclsparse_int        N     = arg.N;
-    aoclsparse_int        nnz   = arg.nnz;
-    aoclsparse_operation  trans = arg.transA;
-    aoclsparse_index_base base  = arg.baseA, baseCSC;
-    aoclsparse_diag_type  diag  = arg.diag;
-    aoclsparse_fill_mode  uplo  = arg.uplo;
+    aoclsparse_int         M     = arg.M;
+    aoclsparse_int         N     = arg.N;
+    aoclsparse_int         nnz   = arg.nnz;
+    aoclsparse_operation   trans = arg.transA;
+    aoclsparse_index_base  base  = arg.baseA, baseCSC;
+    aoclsparse_diag_type   diag  = arg.diag;
+    aoclsparse_fill_mode   uplo  = arg.uplo;
+    aoclsparse_matrix_sort sort  = arg.sort;
 
     aoclsparse_matrix_init mat      = arg.matrix;
     std::string            filename = arg.filename;
@@ -72,19 +73,21 @@ void testing_csrsv(const Arguments &arg)
     std::vector<T>              csc_val;
 
     aoclsparse_seedrand();
-#if 0
-    // Print aoclsparse version
-    std::cout << aoclsparse_get_version() << std::endl;
-#endif
+
     // Sample matrix
-    aoclsparse_init_csr_matrix(
-        csr_row_ptr, csr_col_ind, csr_val, M, N, nnz, base, mat, filename.c_str(), issymm, false);
-    if(mat == aoclsparse_matrix_random)
-    {
-        std::cerr << "WARNING : aoclsparse_csrsv should be tested only for standard sparse"
-                  << " triangular matrices in mtx format " << std::endl;
-        exit(EXIT_FAILURE);
-    }
+    aoclsparse_init_csr_matrix(csr_row_ptr,
+                               csr_col_ind,
+                               csr_val,
+                               M,
+                               N,
+                               nnz,
+                               base,
+                               mat,
+                               filename.c_str(),
+                               issymm,
+                               false,
+                               sort);
+
     // Allocate memory for vectors
     std::vector<T> hx(N);
     std::vector<T> hy(M);

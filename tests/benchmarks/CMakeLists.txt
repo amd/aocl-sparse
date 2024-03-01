@@ -163,6 +163,16 @@ foreach(FUNCTION "csrmv" "ellmv" "diamv" "optmv") # TODO add back "csrsv", so fa
         if(FUNCTION STREQUAL "csrmv" OR FUNCTION STREQUAL "optmv")
           # Add transpose tests
           add_test(FuncTest.${FUNCTION}T-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ}xBase-${BASE} ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --indexbaseA=${BASE} --transposeA=T --verify=1 --iters=1)
+
+          # check full diagonal cases in square matrices
+          IF(SIZEM STREQUAL SIZEN)
+            add_test(FuncTest.${FUNCTION}-FullDiag-Sorted-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ}xBase-${BASE} ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --indexbaseA=${BASE} --transposeA=T --matrix=D --sort=F --verify=1 --iters=1)
+            add_test(FuncTest.${FUNCTION}-FullDiag-Unsorted-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ}xBase-${BASE} ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --indexbaseA=${BASE} --transposeA=T --matrix=D --sort=U --verify=1 --iters=1)
+            add_test(FuncTest.${FUNCTION}-NonFullDiag-Unsorted-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ}xBase-${BASE} ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --indexbaseA=${BASE} --transposeA=T --matrix=R --sort=F --verify=1 --iters=1)
+
+            #Partial Sorted
+            add_test(FuncTest.${FUNCTION}-FullDiag-PartialSorted-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ}xBase-${BASE} ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --indexbaseA=${BASE} --transposeA=T --matrix=D --sort=P --verify=1 --iters=1)
+          ENDIF()
         ENDIF()
 
       endforeach(MATSIZE)
@@ -193,20 +203,20 @@ foreach(FUNCTION "blkcsrmv")
           list(GET MATSIZE_LIST 2 SIZENNZ)
           #message(STATUS "PREC=${PREC}: MATSIZE=${MATSIZE} MATSIZE_LIST=${MATSIZE_LIST} ${SIZEM}x${SIZEN}x${SIZENNZ}")
           if(SIZEN GREATER_EQUAL 8)
-            add_test(FuncTest.${FUNCTION}-${PREC}-${BLK}-${SIZEM}x${SIZEN}x${SIZENNZ}xBase-${BASE} ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizeblk=${BLK} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --indexbaseA=${BASE} --verify=1 --iters=1)
+            add_test(FuncTest.${FUNCTION}-${PREC}-${BLK}-${SIZEM}x${SIZEN}x${SIZENNZ}xBase-${BASE} ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizeblk=${BLK} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --indexbaseA=${BASE} --sort=F --verify=1 --iters=1)
           # set_property(TEST FuncTest.${FUNCTION}-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ} PROPERTY ENVIRONMENT ASAN_OPTIONS="log_path=ASANlogger.FuncTest.${FUNCTION}-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ}")
           endif()
         endforeach(MATSIZE)
 
         # Add extra tests to exercise nonstandard multipliers alpha, beta
-        add_test(FuncTest.${FUNCTION}-${PREC}-${BLK}-100x99x333-mlt-Base-${BASE} ../staging/aoclsparse-bench --function=${FUNCTION} --precision=${PREC} --sizeblk=${BLK} --indexbaseA=${BASE} --sizem=100 --sizen=99 --sizennz=333 --alpha=3 --beta=-1.5 --verify=1 --iters=1)
-        add_test(FuncTest.${FUNCTION}-${PREC}-${BLK}-21x49x333-mlt-Base-${BASE} ../staging/aoclsparse-bench --function=${FUNCTION} --precision=${PREC} --sizeblk=${BLK} --indexbaseA=${BASE} --sizem=21 --sizen=49 --sizennz=333 --alpha=3 --beta=-1.5 --verify=1 --iters=1)
+        add_test(FuncTest.${FUNCTION}-${PREC}-${BLK}-100x99x333-mlt-Base-${BASE} ../staging/aoclsparse-bench --function=${FUNCTION} --precision=${PREC} --sizeblk=${BLK} --indexbaseA=${BASE} --sizem=100 --sizen=99 --sizennz=333 --alpha=3 --beta=-1.5 --sort=F --verify=1 --iters=1)
+        add_test(FuncTest.${FUNCTION}-${PREC}-${BLK}-21x49x333-mlt-Base-${BASE} ../staging/aoclsparse-bench --function=${FUNCTION} --precision=${PREC} --sizeblk=${BLK} --indexbaseA=${BASE} --sizem=21 --sizen=49 --sizennz=333 --alpha=3 --beta=-1.5 --sort=F --verify=1 --iters=1)
 
         endforeach(BLK)
 
         #adding tests with incorrect block size
-        add_test(FuncTest.${FUNCTION}-${PREC}-${BLK}-100x99x333-mlt-Base-${BASE} ../staging/aoclsparse-bench --function=${FUNCTION} --precision=${PREC} --indexbaseA=${BASE} --sizeblk=3 --sizem=100 --sizen=99 --sizennz=333 --alpha=3 --beta=-1.5 --verify=1 --iters=1)
-        add_test(FuncTest.${FUNCTION}-${PREC}-${BLK}-21x49x333-mlt-Base-${BASE} ../staging/aoclsparse-bench --function=${FUNCTION} --precision=${PREC} --indexbaseA=${BASE} --sizeblk=7 --sizem=21 --sizen=49 --sizennz=333 --alpha=3 --beta=-1.5 --verify=1 --iters=1)
+        add_test(FuncTest.${FUNCTION}-${PREC}-${BLK}-100x99x333-mlt-Base-${BASE} ../staging/aoclsparse-bench --function=${FUNCTION} --precision=${PREC} --indexbaseA=${BASE} --sizeblk=3 --sizem=100 --sizen=99 --sizennz=333 --alpha=3 --beta=-1.5 --sort=F --verify=1 --iters=1)
+        add_test(FuncTest.${FUNCTION}-${PREC}-${BLK}-21x49x333-mlt-Base-${BASE} ../staging/aoclsparse-bench --function=${FUNCTION} --precision=${PREC} --indexbaseA=${BASE} --sizeblk=7 --sizem=21 --sizen=49 --sizennz=333 --alpha=3 --beta=-1.5 --sort=F --verify=1 --iters=1)
 
       endforeach(BASE)
   endforeach(PREC)
@@ -337,6 +347,31 @@ foreach(FUNCTION "ilu")
   endforeach(PREC)
 endforeach(FUNCTION)
 
+foreach(FUNCTION "trsv")
+  foreach(PREC "d" "s" "c" "z")
+      foreach(BASE "0" "1")   #test for base-0 and base-1
+        foreach(MATSIZE ${SQMATRIXSIZES})
+          # split MATSIZE string to individual tokens
+          string(REGEX MATCHALL "[0-9]+" MATSIZE_LIST ${MATSIZE})
+          list(GET MATSIZE_LIST 0 SIZEM)
+          list(GET MATSIZE_LIST 1 SIZEN)
+          list(GET MATSIZE_LIST 2 SIZENNZ)
+          # TRSV-L
+          add_test(FuncTest.${FUNCTION}-L-FullDiag-Sorted-${PREC}-${SIZEM}-${SIZEM}x${SIZEN}x${SIZENNZ}xBase-${BASE} ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=${SIZEM} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --indexbaseA=${BASE} --matrixtypeA=T --uplo=L --transposeA=N --matrix=D --sort=F --verify=1 --iters=1)
+          add_test(FuncTest.${FUNCTION}-L-FullDiag-Unsorted-${PREC}-${SIZEM}-${SIZEM}x${SIZEN}x${SIZENNZ}xBase-${BASE} ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=${SIZEM} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --indexbaseA=${BASE} --matrixtypeA=T --uplo=L --transposeA=N --matrix=D --sort=U --verify=1 --iters=1)
+          # TRSV-LT
+          add_test(FuncTest.${FUNCTION}-LT-FullDiag-Sorted-${PREC}-${SIZEM}-${SIZEM}x${SIZEN}x${SIZENNZ}xBase-${BASE} ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=${SIZEM} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --indexbaseA=${BASE} --matrixtypeA=T --uplo=L --transposeA=T --matrix=D --sort=F --verify=1 --iters=1)
+          add_test(FuncTest.${FUNCTION}-LT-FullDiag-Unsorted-${PREC}-${SIZEM}-${SIZEM}x${SIZEN}x${SIZENNZ}xBase-${BASE} ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=${SIZEM} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --indexbaseA=${BASE} --matrixtypeA=T --uplo=L --transposeA=T --matrix=D --sort=U --verify=1 --iters=1)
+          # TRSV-U
+          add_test(FuncTest.${FUNCTION}-U-FullDiag-Sorted-${PREC}-${SIZEM}-${SIZEM}x${SIZEN}x${SIZENNZ}xBase-${BASE} ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=${SIZEM} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --indexbaseA=${BASE} --matrixtypeA=T --uplo=U --transposeA=N --matrix=D --sort=F --verify=1 --iters=1)
+          add_test(FuncTest.${FUNCTION}-U-FullDiag-Unsorted-${PREC}-${SIZEM}-${SIZEM}x${SIZEN}x${SIZENNZ}xBase-${BASE} ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=${SIZEM} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --indexbaseA=${BASE} --matrixtypeA=T --uplo=U --transposeA=N --matrix=D --sort=U --verify=1 --iters=1)
+          # TRSV-UT
+          add_test(FuncTest.${FUNCTION}-UT-FullDiag-Sorted-${PREC}-${SIZEM}-${SIZEM}x${SIZEN}x${SIZENNZ}xBase-${BASE} ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=${SIZEM} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --indexbaseA=${BASE} --matrixtypeA=T --uplo=U --transposeA=T --matrix=D --sort=F --verify=1 --iters=1)
+          add_test(FuncTest.${FUNCTION}-UT-FullDiag-Unsorted-${PREC}-${SIZEM}-${SIZEM}x${SIZEN}x${SIZENNZ}xBase-${BASE} ../staging/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=${SIZEM} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --indexbaseA=${BASE} --matrixtypeA=T --uplo=U --transposeA=T --matrix=D --sort=U --verify=1 --iters=1)
+      endforeach(MATSIZE)
+    endforeach(BASE)
+  endforeach(PREC)
+endforeach(FUNCTION)
 # Add extra function on matrix sizes as needed
 # For example, excersice nonstandard multipliers alpha, beta
 #add_test(FuncTest.csrmv-d-100x99x333-mlt ../staging/aoclsparse-bench --function=csrmv --precision=d --sizem=100 --sizen=99 --sizennz=333 --alpha=3 --beta=-1.5 --verify=1 --iters=1)

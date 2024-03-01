@@ -613,6 +613,20 @@ inline aoclsparse_status
     }
     return aoclsparse_status_success;
 }
+/* Gather entries from dense y[] vector using strided loads and save them to a sparse vector(x, nnz, indx) based on stride applied to y[]
+ */
+template <typename T>
+inline aoclsparse_status
+    ref_gathers(const aoclsparse_int nnz, const T *y, T *x, const aoclsparse_int stride)
+{
+    if(x == nullptr || y == nullptr)
+        return aoclsparse_status_invalid_pointer;
+    for(aoclsparse_int i = 0; i < nnz; i++)
+    {
+        x[i] = y[i * stride];
+    }
+    return aoclsparse_status_success;
+}
 /* scatter entries from sparse x[] vector(x, nnz, indx) to a dense vector y[] at indices defined by indx[]
  */
 template <typename T>
@@ -626,6 +640,20 @@ inline aoclsparse_status
         if(indx[i] < 0)
             return aoclsparse_status_invalid_index_value;
         y[indx[i]] = x[i];
+    }
+    return aoclsparse_status_success;
+}
+/* scatter entries from sparse x[] vector(x, nnz, indx) to a dense vector y[] with strided stores
+ */
+template <typename T>
+inline aoclsparse_status
+    ref_scatters(const aoclsparse_int nnz, const T *x, const aoclsparse_int stride, T *y)
+{
+    if(x == nullptr || y == nullptr)
+        return aoclsparse_status_invalid_pointer;
+    for(aoclsparse_int i = 0; i < nnz; i++)
+    {
+        y[i * stride] = x[i];
     }
     return aoclsparse_status_success;
 }
