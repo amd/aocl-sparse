@@ -21,10 +21,6 @@
 #
 # ########################################################################
 
-# This option only works for make/nmake and the ninja generators, but no reason it shouldn't be on all the time
-# This tells cmake to create a compile_commands.json file that can be used with clang tooling or vim
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
 # Configure a header file to pass the aoclsparse version
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/include/aoclsparse_version.h.in"
                "${PROJECT_BINARY_DIR}/include/aoclsparse_version.h"
@@ -76,6 +72,11 @@ target_include_directories(aoclsparse
                                    $<INSTALL_INTERFACE:include>
 )
 
+# Add definitions that depend on the CMake configuration.
+target_compile_definitions(aoclsparse PRIVATE ${AOCLSPARSE_DEFS})
+# Define -Daoclsparse_ILP64 when ILP64 libraries are built. For LP64, this is an empty string.
+target_compile_definitions(aoclsparse PRIVATE ${AOCLSPARSE_ILP64})
+
 # Target link libraries and compile options
 # TODO: Remove OPENMP_FOUND since OpenMP_Library is set to null in ST mode and remove the parent scope for this variable as well
 if(SUPPORT_OMP AND OPENMP_FOUND)
@@ -88,12 +89,15 @@ endif()
 set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/src/level2/aoclsparse_blkcsrmv.cpp PROPERTIES COMPILE_OPTIONS "-mavx512f;-mavx512vl")
 
 # Target properties
-set_target_properties(aoclsparse PROPERTIES SOVERSION ${aoclsparse_SOVERSION} )
-set_target_properties(aoclsparse PROPERTIES VERSION ${aoclsparse_SOVERSION})
+set_target_properties(aoclsparse PROPERTIES SOVERSION ${AOCLSPARSE_VERSION} )
+set_target_properties(aoclsparse PROPERTIES VERSION ${AOCLSPARSE_VERSION})
 set_target_properties(aoclsparse PROPERTIES CXX_VISIBILITY_PRESET "hidden" VISIBILITY_INLINES_HIDDEN ON)
 set_target_properties(aoclsparse PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/library")
 set_target_properties(aoclsparse PROPERTIES DEBUG_POSTFIX "-d")
-
+# Sets -fPIC flag
+if(BUILD_SHARED_LIBS)
+  set_target_properties(aoclsparse PROPERTIES POSITION_INDEPENDENT_CODE ON)
+endif()
 
 install(TARGETS aoclsparse DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 install(FILES ${PUBLIC_HEADERS} DESTINATION ${CMAKE_INSTALL_PREFIX}/include)

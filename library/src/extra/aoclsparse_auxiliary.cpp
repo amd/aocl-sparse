@@ -32,12 +32,8 @@
 #include <cstring>
 #include <map>
 #include <string>
-#define STRINGIFY(x) _STRINGIFY(x)
-#define _STRINGIFY(x) #x
 
-static const char aoclsparse_version[]
-    = "AOCL-Sparse " STRINGIFY(AOCLSPARSE_VERSION_MAJOR) "." STRINGIFY(AOCLSPARSE_VERSION_MINOR) "." STRINGIFY(
-        AOCLSPARSE_VERSION_PATCH) " Build " STRINGIFY(AOCL_SPARSE_BUILD_DATE);
+static const char *aoclsparse_version = AOCLSPARSE_VERSION_STRING;
 
 /*
    Get the size of the data type based on the matrix data type
