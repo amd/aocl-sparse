@@ -87,6 +87,10 @@ target_include_directories(aoclsparse-bench
     ${UTILS_INCLUDE_DIRS}
     ${Boost_INCLUDE_DIRS}
 )
+# Add definitions that depend on the CMake configuration.
+target_compile_definitions(aoclsparse-bench PRIVATE ${AOCLSPARSE_DEFS})
+# Define -Daoclsparse_ILP64 when ILP64 libraries are built. For LP64, this is an empty string.
+target_compile_definitions(aoclsparse-bench PRIVATE ${AOCLSPARSE_ILP64})
 
 # Add aoclsparse target
 if(NOT TARGET aoclsparse)
@@ -101,7 +105,8 @@ target_link_libraries(aoclsparse-bench PUBLIC ${LAPACK_LIBRARIES})
 
 # fetch external benchmarking libraries, etc. if enabled
 if(EXTERNAL_BENCHMARKING)
-  add_definitions(-DEXT_BENCHMARKING ${EXT_BENCH_DEF})
+  # Define -DEXT_BENCHMARKING and if any external deinitions
+  target_compile_definitions(aoclsparse-bench PRIVATE -DEXT_BENCHMARKING ${EXT_BENCH_DEF})
   target_link_libraries(aoclsparse-bench PRIVATE ${EXT_BENCH_LIB})
   target_include_directories(aoclsparse-bench PRIVATE ${EXT_BENCH_INC})
 endif()

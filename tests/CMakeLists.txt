@@ -42,10 +42,6 @@ project(aoclsparse-clients LANGUAGES CXX)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
-# This option only works for make/nmake and the ninja generators, but no reason it shouldn't be on all the time
-# This tells cmake to create a compile_commands.json file that can be used with clang tooling or vim
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
 if(NOT TARGET aoclsparse)
   find_package(aoclsparse REQUIRED CONFIG PATHS /opt/aocl/aoclsparse)
 endif()

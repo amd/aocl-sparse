@@ -126,6 +126,10 @@ foreach(TNAME ${GTEST_EXECUTABLES})
         COMMAND_EXPAND_LISTS)
     endif()
     target_include_directories(${TNAME} PUBLIC ${LAPACK_INCLUDE_DIRS} ${BLIS_INCLUDE_DIRS} ${UTILS_INCLUDE_DIRS})
+    # Add definitions that depend on the CMake configuration.
+    target_compile_definitions(${TNAME} PUBLIC ${AOCLSPARSE_DEFS})
+    # Define -Daoclsparse_ILP64 when ILP64 libraries are built. For LP64, this is an empty string.
+    target_compile_definitions(${TNAME} PUBLIC ${AOCLSPARSE_ILP64})
 endforeach()
 
 include(GoogleTest)

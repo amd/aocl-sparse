@@ -45,20 +45,25 @@ if (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
 
     OPTION(BUILD_SHARED_LIBS "Build aocl-sparse as a shared library" ON)
     OPTION(BUILD_ILP64 "ILP64 Support" OFF)
-    if(WIN32)
-        OPTION(SUPPORT_OMP "Compile without OpenMP support." OFF)
-    else(WIN32)
-        OPTION(SUPPORT_OMP "Compile with OpenMP support." ON)
-    endif(WIN32)
+    OPTION(SUPPORT_OMP "Compile with OpenMP support." ON)
     OPTION(USE_OMP_LIB "Use libomp by default" ON)
     set(EXTERNAL_OMP_LIBRARY "" CACHE STRING "Provide external OMP library path")
+    # Set paths to AOCLUTILS, BLAS and LAPACK installations.
+    set(CMAKE_AOCL_ROOT
+        $ENV{AOCL_ROOT}
+        CACHE
+        STRING
+        "AOCL_ROOT directory to be used to find BLAS/LAPACK/AOCLUTILS libraries")
+    if(CMAKE_AOCL_ROOT STREQUAL "")
+        message(FATAL_ERROR "CMAKE_AOCL_ROOT is empty. Either set environment variable AOCL_ROOT or set -DCMAKE_AOCL_ROOT=<path_to_AOCL_libs>.")
+    endif()
 
-    IF(DEFINED ENV{SPARSE_ROOT})
-        set(CMAKE_SPARSE_ROOT $ENV{SPARSE_ROOT})
-    ELSE()
-	#Inherit AOCL_ROOT since we assume Sparse artifacts would be present as part of AOCL installation
-        set(CMAKE_SPARSE_ROOT $ENV{AOCL_ROOT})
-    ENDIF()
+    set(CMAKE_SPARSE_ROOT $ENV{SPARSE_ROOT} CACHE STRING "SPARSE_ROOT directory to be used to find Sparse artifacts")
+    if(CMAKE_SPARSE_ROOT STREQUAL "")
+        message(WARNING "SPARSE_ROOT was not set. Will search for it in main CMAKE_AOCL_ROOT directory.")
+        #Inherit AOCL_ROOT since we assume Sparse artifacts would be present as part of AOCL installation
+        set(CMAKE_SPARSE_ROOT ${CMAKE_AOCL_ROOT})
+    endif()
 
     ## Change default installation path
     if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -77,8 +82,8 @@ ENDIF(WIN32)
 
 if (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
     IF(BUILD_ILP64)
-        list(APPEND COMPILER_OPTIONS "-Daoclsparse_ILP64")
         SET(ILP_DIR "ILP64")
+        SET(AOCLSPARSE_ILP64 -Daoclsparse_ILP64)
     ELSE(BUILD_ILP64)
         SET(ILP_DIR "LP64")
     ENDIF(BUILD_ILP64)
@@ -102,10 +107,10 @@ if (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
     DOC "AOCL Sparse headers")
 
     if(NOT SPARSE_LIBRARY)
-        message (FATAL_ERROR "Error: could not find a suitable installation of AOCL-Sparse in \$AOCL_ROOT=${AOCL_ROOT}")
+        message (FATAL_ERROR "Error: could not find a suitable installation of AOCL-Sparse in \$CMAKE_SPARSE_ROOT=${CMAKE_SPARSE_ROOT}")
     endif()
     if(NOT SPARSE_INCLUDE_DIR)
-        message (FATAL_ERROR "Error: could not find AOCL-Sparse header files in \$AOCL_ROOT=${AOCL_ROOT}/include")
+        message (FATAL_ERROR "Error: could not find AOCL-Sparse header files in \$CMAKE_SPARSE_ROOT=${CMAKE_SPARSE_ROOT}/include")
     endif()
     message(STATUS "AOCL-Sparse header and library locations")
     message(STATUS "Headers: ${SPARSE_INCLUDE_DIR}")
@@ -122,6 +127,9 @@ foreach( sample_example_source ${SPARSE_SAMPLES})
     get_filename_component(sample_target ${new_name} NAME)
     add_executable( ${sample_target} ${sample_example_source})
     target_include_directories(${sample_target} PUBLIC ${SPARSE_INCLUDE_DIR} ${LAPACK_INCLUDE_DIRS} ${BLIS_INCLUDE_DIRS} ${UTILS_INCLUDE_DIRS})
+    # Define -Daoclsparse_ILP64 when ILP64 libraries are built. For LP64, this is an empty string.
+    target_compile_definitions(${sample_target} PUBLIC ${AOCLSPARSE_ILP64})
+
     target_link_libraries(${sample_target} ${SPARSE_LIBRARY} ${LAPACK_LIBRARIES} ${OpenMP_Library})
     #define compile time options explicitly to handle out-of-source tree scenario where options would not be defined by a top-level CMakeLists file
     target_compile_options(${sample_target} PUBLIC "$<$<CONFIG:Release>:${COMPILER_FLAGS_COMMON};${COMPILER_FLAGS_RELEASE}>")
@@ -139,10 +147,14 @@ add_executable(sample_spmv_c sample_spmv_c.c)
 add_executable(sample_spmv_multi_instance sample_spmv_multi_instance.c)
 
 set_target_properties(sample_spmv_multi_instance sample_spmv_c PROPERTIES LINKER_LANGUAGE CXX)
-
+# Define -Daoclsparse_ILP64 when ILP64 libraries are built. For LP64, this is an empty string.
+target_compile_definitions(sample_spmv_multi_instance PUBLIC ${AOCLSPARSE_ILP64})
 target_include_directories(sample_spmv_multi_instance PUBLIC ${SPARSE_INCLUDE_DIR} ${LAPACK_INCLUDE_DIRS} ${BLIS_INCLUDE_DIRS} ${UTILS_INCLUDE_DIRS})
 target_link_libraries(sample_spmv_multi_instance ${SPARSE_LIBRARY} ${LAPACK_LIBRARIES} ${OpenMP_Library})
 
+set_target_properties(sample_spmv_c PROPERTIES LINKER_LANGUAGE CXX)
+# Define -Daoclsparse_ILP64 when ILP64 libraries are built. For LP64, this is an empty string.
+target_compile_definitions(sample_spmv_c PUBLIC ${AOCLSPARSE_ILP64})
 target_include_directories(sample_spmv_c PUBLIC ${SPARSE_INCLUDE_DIR} ${LAPACK_INCLUDE_DIRS} ${BLIS_INCLUDE_DIRS} ${UTILS_INCLUDE_DIRS})
 target_link_libraries(sample_spmv_c ${SPARSE_LIBRARY} ${LAPACK_LIBRARIES} ${OpenMP_Library})
 

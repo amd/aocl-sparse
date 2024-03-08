@@ -24,12 +24,6 @@
 # ============= aocl function ================
 function(aocl_libs)
 
-  if(BUILD_ILP64)
-    set(ILP_DIR "ILP64")
-  else(BUILD_ILP64)
-    set(ILP_DIR "LP64")
-  endif(BUILD_ILP64)
-
   if(WIN32)
     set(CMAKE_FIND_LIBRARY_PREFIXES "")
     set(CMAKE_FIND_LIBRARY_SUFFIXES ".lib")
@@ -80,28 +74,28 @@ function(aocl_libs)
   find_library(
     AOCL_UTILS_LIB
     NAMES ${_utils_dyn_library} ${_utils_static_library} NAMES_PER_DIR
-    HINTS ${AOCL_ROOT}/utils ${AOCL_ROOT}/amd-utils ${AOCL_ROOT}
+    HINTS ${CMAKE_AOCL_ROOT}/utils ${CMAKE_AOCL_ROOT}/amd-utils ${CMAKE_AOCL_ROOT}
     PATH_SUFFIXES "lib/${ILP_DIR}" "lib_${ILP_DIR}" "lib"
     DOC "AOCL Utils library")
 
   find_library(
     AOCL_BLIS_LIB
     NAMES ${_blas_dyn_library} ${_blas_static_library}
-    HINTS ${AOCL_ROOT}/blis ${AOCL_ROOT}/amd-blis ${AOCL_ROOT}
+    HINTS ${CMAKE_AOCL_ROOT}/blis ${CMAKE_AOCL_ROOT}/amd-blis ${CMAKE_AOCL_ROOT}
     PATH_SUFFIXES "lib/${ILP_DIR}" "lib_${ILP_DIR}" "lib"
     DOC "AOCL Blis library")
 
   find_library(
     AOCL_LIBFLAME
     NAMES ${_flame_dyn_library} ${_flame_static_library} NAMES_PER_DIR
-    HINTS ${AOCL_ROOT}/libflame ${AOCL_ROOT}/amd-libflame ${AOCL_ROOT}
+    HINTS ${CMAKE_AOCL_ROOT}/libflame ${CMAKE_AOCL_ROOT}/amd-libflame ${CMAKE_AOCL_ROOT}
     PATH_SUFFIXES "lib/${ILP_DIR}" "lib_${ILP_DIR}" "lib"
     DOC "AOCL LIBFLAME library")
   # ====Headers
   find_path(
     AOCL_UTILS_INCLUDE_DIR
     NAMES alci_c.h alci.h arch.h cache.h enum.h macros.h
-    HINTS ${AOCL_ROOT}/amd-utils ${AOCL_ROOT}/utils ${AOCL_ROOT}
+    HINTS ${CMAKE_AOCL_ROOT}/amd-utils ${CMAKE_AOCL_ROOT}/utils ${CMAKE_AOCL_ROOT}
     PATH_SUFFIXES "include/${ILP_DIR}/alci" "include_${ILP_DIR}/alci"
                   "include/alci"
     DOC "AOCL Utils headers")
@@ -109,7 +103,7 @@ function(aocl_libs)
   find_path(
     AOCL_BLIS_INCLUDE_DIR
     NAMES blis.h cblas.h blis.hh cblas.hh
-    HINTS ${AOCL_ROOT}/amd-blis ${AOCL_ROOT}/blis ${AOCL_ROOT}
+    HINTS ${CMAKE_AOCL_ROOT}/amd-blis ${CMAKE_AOCL_ROOT}/blis ${CMAKE_AOCL_ROOT}
     PATH_SUFFIXES "include/${ILP_DIR}" "include_${ILP_DIR}" "include"
                   "include/blis"
     DOC "AOCL Blis headers")
@@ -117,7 +111,7 @@ function(aocl_libs)
     AOCL_LIBFLAME_INCLUDE_DIR
     NAMES FLAME.h lapacke.h lapacke_mangling.h lapack.h libflame.hh
           libflame_interface.hh
-    HINTS ${AOCL_ROOT}/libflame ${AOCL_ROOT}/amd-libflame ${AOCL_ROOT}
+    HINTS ${CMAKE_AOCL_ROOT}/libflame ${CMAKE_AOCL_ROOT}/amd-libflame ${CMAKE_AOCL_ROOT}
     PATH_SUFFIXES "include/${ILP_DIR}" "include_${ILP_DIR}" "include"
     DOC "AOCL Libflame headers")
 
@@ -135,7 +129,7 @@ function(aocl_libs)
   else()
     message(
       FATAL_ERROR
-        "Error: could not find a suitable installation of Blas/Lapack/Utils Libraries in \$AOCL_ROOT=${AOCL_ROOT}"
+        "Error: could not find a suitable installation of Blas/Lapack/Utils Libraries in \$CMAKE_AOCL_ROOT=${CMAKE_AOCL_ROOT}"
     )
   endif()
 
@@ -175,7 +169,11 @@ function(openmp_libs)
     endif()
 
     if(WIN32)
-      set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};/openmp")
+      if(CMAKE_GENERATOR  STREQUAL "Ninja")
+        set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};-fopenmp")
+      else()
+        set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};/openmp")
+      endif()
     else()
       set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};${OpenMP_CXX_FLAGS}")
     endif()
@@ -216,12 +214,6 @@ endif()
 set(LAPACK_LIBRARY)
 set(BLAS_LIBRARY)
 unset(LAPACK_INCLUDE_DIR)
-
-if(DEFINED ENV{AOCL_ROOT})
-  set(AOCL_ROOT $ENV{AOCL_ROOT})
-else()
-  set(AOCL_ROOT ${CMAKE_INSTALL_PREFIX})
-endif()
 
 # find AOCL dependencies such as Blis, Libflame
 aocl_libs()
