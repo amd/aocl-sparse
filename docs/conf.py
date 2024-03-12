@@ -28,7 +28,7 @@ project = 'AOCL-Sparse'
 copyright = '2020-2024, Advanced Micro Devices, Inc'
 author = 'Advanced Micro Devices, Inc'
 version = ''
-release ='4.2.0.0'
+release ='4.2.1.0'
 
 # -- General configuration ---------------------------------------------------
 extensions = ['sphinxcontrib.bibtex', 'breathe', 'sphinx_collapse']
