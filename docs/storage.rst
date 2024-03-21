@@ -28,12 +28,17 @@ This section describes the storage schemes supported by the library... etc.
 
 .. _storage_csr:
 
-Compressed Storage Row (CSR) Format
+Compressed Sparse Row (CSR) Format
 ===================================
+
+.. _storage_tcsr:
+
+Triangular Compressed Sparse Row (TCSR) Format
+===============================================
 
 .. _storage_csc:
 
-Compressed Storage Column (CSC) Format
+Compressed Sparse Column (CSC) Format
 ======================================
 
 .. _storage_coo:

@@ -387,6 +387,210 @@ namespace
         ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
     };
+    TEST(TrsvSuite, TcsrBaseZeroDouble)
+    {
+        double               alpha = 1.0;
+        aoclsparse_matrix    A     = nullptr;
+        aoclsparse_mat_descr descr = nullptr;
+        aoclsparse_int       kid   = 0;
+        aoclsparse_operation trans = aoclsparse_operation_none;
+
+        // Input parameters
+        aoclsparse_int              m, n, nnz;
+        std::vector<aoclsparse_int> row_ptr_L, row_ptr_U;
+        std::vector<aoclsparse_int> col_idx_L, col_idx_U;
+        std::vector<double>         val_L, val_U;
+        init_tcsr_matrix<double>(m,
+                                 n,
+                                 nnz,
+                                 row_ptr_L,
+                                 row_ptr_U,
+                                 col_idx_L,
+                                 col_idx_U,
+                                 val_L,
+                                 val_U,
+                                 aoclsparse_fully_sorted,
+                                 aoclsparse_index_base_zero);
+
+        std::vector<double> b, x_gold_L, x_gold_U, x;
+        b.assign({1, 1, 1, 1});
+        x_gold_L.assign({-1.00, 0.25, -1.00, 0.66666666666666663});
+        x_gold_U.assign({-1.0, 0.25, -0.16666666666666666, 0.1111111111111111});
+        x.assign({0, 0, 0, 0});
+
+        // Create mat descr
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_zero),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_triangular),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_fill_mode(descr, aoclsparse_fill_mode_lower),
+                  aoclsparse_status_success);
+
+        // Create TCSR Matrix
+        ASSERT_EQ(aoclsparse_create_dtcsr(&A,
+                                          aoclsparse_index_base_zero,
+                                          m,
+                                          n,
+                                          nnz,
+                                          row_ptr_L.data(),
+                                          row_ptr_U.data(),
+                                          col_idx_L.data(),
+                                          col_idx_U.data(),
+                                          val_L.data(),
+                                          val_U.data()),
+                  aoclsparse_status_success);
+
+        // Solve for (L+D)x=b
+        ASSERT_EQ(aoclsparse_dtrsv_kid(trans, alpha, A, descr, b.data(), x.data(), kid),
+                  aoclsparse_status_success);
+        EXPECT_ARR_NEAR(n, x, x_gold_L, expected_precision<double>(10.0));
+
+        // Solve for (D+U)x = b
+        aoclsparse_set_mat_fill_mode(descr, aoclsparse_fill_mode_upper);
+        ASSERT_EQ(aoclsparse_dtrsv_kid(trans, alpha, A, descr, b.data(), x.data(), kid),
+                  aoclsparse_status_success);
+        EXPECT_ARR_NEAR(n, x, x_gold_U, expected_precision<double>(10.0));
+
+        ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
+    };
+    TEST(TrsvSuite, TcsrBaseOneDouble)
+    {
+        double               alpha = 1.0;
+        aoclsparse_matrix    A     = nullptr;
+        aoclsparse_mat_descr descr = nullptr;
+        aoclsparse_int       kid   = 0;
+        aoclsparse_operation trans = aoclsparse_operation_none;
+
+        // Input parameters
+        aoclsparse_int              m = 4, n = 4, nnz = 9;
+        std::vector<aoclsparse_int> row_ptr_L, row_ptr_U;
+        std::vector<aoclsparse_int> col_idx_L, col_idx_U;
+        std::vector<double>         val_L, val_U;
+        init_tcsr_matrix<double>(m,
+                                 n,
+                                 nnz,
+                                 row_ptr_L,
+                                 row_ptr_U,
+                                 col_idx_L,
+                                 col_idx_U,
+                                 val_L,
+                                 val_U,
+                                 aoclsparse_fully_sorted,
+                                 aoclsparse_index_base_one);
+
+        std::vector<double> b, x_gold_L, x_gold_U, x;
+        b.assign({1.0, 2.0, 3.0, 4.0});
+        x_gold_L.assign({-1.00, 0.5, -1.3333333333333333, 0.77777777777777779});
+        x_gold_U.assign({-0.66666666666666674, 0.5, -0.5, 0.44444444444444442});
+        x.assign({0, 0, 0, 0});
+
+        // Create mat descr
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_one),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_triangular),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_fill_mode(descr, aoclsparse_fill_mode_lower),
+                  aoclsparse_status_success);
+
+        // Create TCSR Matrix
+        ASSERT_EQ(aoclsparse_create_dtcsr(&A,
+                                          aoclsparse_index_base_one,
+                                          m,
+                                          n,
+                                          nnz,
+                                          row_ptr_L.data(),
+                                          row_ptr_U.data(),
+                                          col_idx_L.data(),
+                                          col_idx_U.data(),
+                                          val_L.data(),
+                                          val_U.data()),
+                  aoclsparse_status_success);
+
+        // Solve for (L+D)x=b
+        ASSERT_EQ(aoclsparse_dtrsv_kid(trans, alpha, A, descr, b.data(), x.data(), kid),
+                  aoclsparse_status_success);
+        EXPECT_ARR_NEAR(n, x, x_gold_L, expected_precision<double>(10.0));
+
+        // Solve for (D+U)x = b
+        aoclsparse_set_mat_fill_mode(descr, aoclsparse_fill_mode_upper);
+        ASSERT_EQ(aoclsparse_dtrsv_kid(trans, alpha, A, descr, b.data(), x.data(), kid),
+                  aoclsparse_status_success);
+        EXPECT_ARR_NEAR(n, x, x_gold_U, expected_precision<double>(10.0));
+
+        ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
+    };
+    TEST(TrsvSuite, TcsrBaseOnefloat)
+    {
+        float                alpha = 1.0;
+        aoclsparse_matrix    A     = nullptr;
+        aoclsparse_mat_descr descr = nullptr;
+        aoclsparse_int       kid   = 0;
+        aoclsparse_operation trans = aoclsparse_operation_none;
+
+        // Input parameters
+        aoclsparse_int              m = 4, n = 4, nnz = 9;
+        std::vector<aoclsparse_int> row_ptr_L, row_ptr_U;
+        std::vector<aoclsparse_int> col_idx_L, col_idx_U;
+        std::vector<float>          val_L, val_U;
+        init_tcsr_matrix<float>(m,
+                                n,
+                                nnz,
+                                row_ptr_L,
+                                row_ptr_U,
+                                col_idx_L,
+                                col_idx_U,
+                                val_L,
+                                val_U,
+                                aoclsparse_fully_sorted,
+                                aoclsparse_index_base_one);
+
+        std::vector<float> b, x_gold_L, x_gold_U, x;
+        b.assign({1.0, 2.0, 3.0, 4.0});
+        x_gold_L.assign({-1.00, 0.5, -1.3333333333333333, 0.77777777777777779});
+        x_gold_U.assign({-0.66666666666666674, 0.5, -0.5, 0.44444444444444442});
+        x.assign({0, 0, 0, 0});
+
+        // Create mat descr
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_one),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_triangular),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_fill_mode(descr, aoclsparse_fill_mode_lower),
+                  aoclsparse_status_success);
+
+        // Create TCSR Matrix
+        ASSERT_EQ(aoclsparse_create_stcsr(&A,
+                                          aoclsparse_index_base_one,
+                                          m,
+                                          n,
+                                          nnz,
+                                          row_ptr_L.data(),
+                                          row_ptr_U.data(),
+                                          col_idx_L.data(),
+                                          col_idx_U.data(),
+                                          val_L.data(),
+                                          val_U.data()),
+                  aoclsparse_status_success);
+
+        // Solve for (L+D)x=b
+        ASSERT_EQ(aoclsparse_strsv_kid(trans, alpha, A, descr, b.data(), x.data(), kid),
+                  aoclsparse_status_success);
+        EXPECT_ARR_NEAR(n, x, x_gold_L, expected_precision<float>(10.0));
+
+        // Solve for (D+U)x = b
+        aoclsparse_set_mat_fill_mode(descr, aoclsparse_fill_mode_upper);
+        ASSERT_EQ(aoclsparse_strsv_kid(trans, alpha, A, descr, b.data(), x.data(), kid),
+                  aoclsparse_status_success);
+        EXPECT_ARR_NEAR(n, x, x_gold_U, expected_precision<float>(10.0));
+
+        ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
+    };
     TEST(TrsvSuite, WrongTypeDouble)
     {
         float                       alpha = 0.0;

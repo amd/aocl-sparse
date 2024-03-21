@@ -36,6 +36,19 @@
 
 // Kernels
 // -----------------------------------
+
+aoclsparse_status aoclsparse_dtcsrmv_avx2(const aoclsparse_index_base base,
+                                          const double                alpha,
+                                          aoclsparse_int              m,
+                                          const double *__restrict__ val_L,
+                                          const double *__restrict__ val_U,
+                                          const aoclsparse_int *__restrict__ col_idx_L,
+                                          const aoclsparse_int *__restrict__ col_idx_U,
+                                          const aoclsparse_int *__restrict__ row_ptr_L,
+                                          const aoclsparse_int *__restrict__ row_ptr_U,
+                                          const double *__restrict__ x,
+                                          const double beta,
+                                          double *__restrict__ y);
 template <typename T>
 std::enable_if_t<std::is_same_v<T, double>, aoclsparse_status>
     aoclsparse_dcsr_mat_br4([[maybe_unused]] aoclsparse_operation       op,
@@ -550,8 +563,8 @@ std::enable_if_t<std::is_same_v<T, float> || std::is_same_v<T, double>, aoclspar
     // now A->mat_type should match T
     if(A == nullptr)
         return aoclsparse_status_invalid_pointer;
-
-    if(A->input_format != aoclsparse_csr_mat)
+    // Only CSR and TCSR input format supported
+    if(A->input_format != aoclsparse_csr_mat && A->input_format != aoclsparse_tcsr_mat)
     {
         return aoclsparse_status_not_implemented;
     }
@@ -632,13 +645,18 @@ std::enable_if_t<std::is_same_v<T, float> || std::is_same_v<T, double>, aoclspar
 
     aoclsparse_copy_mat_descr(&descr_cpy, descr);
 
-    // In UK/HPCG branch this would be triggered every time
-    // Let's do it only for triangular/symmetric matrices
     if((descr->type == aoclsparse_matrix_type_triangular
         || descr->type == aoclsparse_matrix_type_symmetric)
        && !A->opt_csr_ready)
     {
-        status = aoclsparse_csr_optimize<T>(A);
+        if(A->input_format == aoclsparse_tcsr_mat)
+        {
+            status = aoclsparse_tcsr_optimize<T>(A);
+        }
+        else
+        {
+            status = aoclsparse_csr_optimize<T>(A);
+        }
         if(status)
             return status;
         descr_cpy.base = A->internal_base_index;
@@ -715,6 +733,26 @@ std::enable_if_t<std::is_same_v<T, float> || std::is_same_v<T, double>, aoclspar
             {
                 return aoclsparse_status_not_implemented;
             }
+        case aoclsparse_tcsr_mat:
+            if constexpr(std::is_same_v<T, double>)
+            {
+                if(op == aoclsparse_operation_none)
+                {
+                    return (aoclsparse_dtcsrmv_avx2(descr->base,
+                                                    *alpha,
+                                                    A->m,
+                                                    (double *)A->tcsr_mat.val_L,
+                                                    (double *)A->tcsr_mat.val_U,
+                                                    A->tcsr_mat.col_idx_L,
+                                                    A->tcsr_mat.col_idx_U,
+                                                    A->tcsr_mat.row_ptr_L,
+                                                    A->tcsr_mat.row_ptr_U,
+                                                    x,
+                                                    *beta,
+                                                    y));
+                }
+            }
+            return aoclsparse_status_not_implemented;
         case aoclsparse_ell_csr_hyb_mat:
         case aoclsparse_dia_mat:
         case aoclsparse_ell_mat:
@@ -744,35 +782,88 @@ std::enable_if_t<std::is_same_v<T, float> || std::is_same_v<T, double>, aoclspar
         // can dispatch our data directly
         // transposed and non-transposed operation
         // y = alpha A * x + beta y
+
+        T              *csr_val = nullptr;
+        aoclsparse_int *csr_col = nullptr, *csr_crow = nullptr, *csr_diag = nullptr,
+                       *csr_urow = nullptr;
+        if(A->mat_type != aoclsparse_tcsr_mat) // CSR Matrix
+        {
+            csr_val  = (T *)A->opt_csr_mat.csr_val;
+            csr_col  = A->opt_csr_mat.csr_col_ptr;
+            csr_crow = A->opt_csr_mat.csr_row_ptr;
+            csr_diag = A->idiag;
+            csr_urow = A->iurow;
+        }
+        else // TCSR Matrix
+        {
+            if(descr->fill_mode == aoclsparse_fill_mode_lower)
+            {
+                csr_val  = (T *)A->tcsr_mat.val_L;
+                csr_col  = A->tcsr_mat.col_idx_L;
+                csr_crow = A->tcsr_mat.row_ptr_L;
+                csr_diag = A->idiag;
+                csr_urow = A->tcsr_mat.row_ptr_L + 1;
+            }
+            // fill mode: upper
+            else
+            {
+                csr_val  = (T *)A->tcsr_mat.val_U;
+                csr_col  = A->tcsr_mat.col_idx_U;
+                csr_crow = A->tcsr_mat.row_ptr_U;
+                csr_diag = A->tcsr_mat.row_ptr_U;
+                csr_urow = A->iurow;
+            }
+        }
         return aoclsparse_csrmv_symm_internal(descr_cpy.base,
                                               *alpha,
                                               A->m,
                                               descr_cpy.diag_type,
                                               descr_cpy.fill_mode,
-                                              (T *)A->opt_csr_mat.csr_val,
-                                              A->opt_csr_mat.csr_col_ptr,
-                                              A->opt_csr_mat.csr_row_ptr,
-                                              A->idiag,
-                                              A->iurow,
+                                              csr_val,
+                                              csr_col,
+                                              csr_crow,
+                                              csr_diag,
+                                              csr_urow,
                                               x,
                                               *beta,
                                               y);
     }
     else if(descr->type == aoclsparse_matrix_type_triangular)
     {
-        aoclsparse_int *csr_start = nullptr, *csr_end = nullptr;
-        //Triangular SPMV
-        if(descr->fill_mode == aoclsparse_fill_mode_lower)
+        T              *csr_val     = nullptr;
+        aoclsparse_int *csr_col_ind = nullptr, *csr_start = nullptr, *csr_end = nullptr;
+
+        if(A->mat_type != aoclsparse_tcsr_mat) // CSR matrix
         {
-            // y = alpha L * x + beta y
-            csr_start = A->opt_csr_mat.csr_row_ptr;
-            csr_end   = A->iurow;
+            csr_val     = (T *)A->opt_csr_mat.csr_val;
+            csr_col_ind = A->opt_csr_mat.csr_col_ptr;
+            if(descr->fill_mode == aoclsparse_fill_mode_lower)
+            {
+                csr_start = A->opt_csr_mat.csr_row_ptr;
+                csr_end   = A->iurow;
+            }
+            else
+            {
+                csr_start = A->idiag;
+                csr_end   = &A->opt_csr_mat.csr_row_ptr[1];
+            }
         }
-        else if(descr->fill_mode == aoclsparse_fill_mode_upper)
+        else // TCSR matrix
         {
-            // y = alpha U * x + beta y
-            csr_start = A->idiag;
-            csr_end   = &A->opt_csr_mat.csr_row_ptr[1];
+            if(descr->fill_mode == aoclsparse_fill_mode_lower)
+            {
+                csr_val     = (T *)A->tcsr_mat.val_L;
+                csr_col_ind = A->tcsr_mat.col_idx_L;
+                csr_start   = A->tcsr_mat.row_ptr_L;
+                csr_end     = A->tcsr_mat.row_ptr_L + 1;
+            }
+            else
+            {
+                csr_val     = (T *)A->tcsr_mat.val_U;
+                csr_col_ind = A->tcsr_mat.col_idx_U;
+                csr_start   = A->tcsr_mat.row_ptr_U;
+                csr_end     = A->tcsr_mat.row_ptr_U + 1;
+            }
         }
 
         //kernels as per transpose operation
@@ -786,8 +877,8 @@ std::enable_if_t<std::is_same_v<T, float> || std::is_same_v<T, double>, aoclspar
                                                            A->m,
                                                            A->n,
                                                            A->nnz,
-                                                           (T *)A->opt_csr_mat.csr_val,
-                                                           A->opt_csr_mat.csr_col_ptr,
+                                                           csr_val,
+                                                           csr_col_ind,
                                                            csr_start,
                                                            csr_end,
                                                            x,
@@ -800,8 +891,8 @@ std::enable_if_t<std::is_same_v<T, float> || std::is_same_v<T, double>, aoclspar
                                             *alpha,
                                             A->m,
                                             A->n,
-                                            (T *)A->opt_csr_mat.csr_val,
-                                            A->opt_csr_mat.csr_col_ptr,
+                                            csr_val,
+                                            csr_col_ind,
                                             csr_start,
                                             csr_end,
                                             x,
@@ -815,8 +906,8 @@ std::enable_if_t<std::is_same_v<T, float> || std::is_same_v<T, double>, aoclspar
                                          *alpha,
                                          A->m,
                                          A->n,
-                                         (T *)A->opt_csr_mat.csr_val,
-                                         A->opt_csr_mat.csr_col_ptr,
+                                         csr_val,
+                                         csr_col_ind,
                                          csr_start,
                                          csr_end,
                                          x,

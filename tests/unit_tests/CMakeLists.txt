@@ -105,6 +105,8 @@ set(GTEST_EXECUTABLES
     rng_tests
     context_tests
     extreme_value_tests
+    createtcsr_tests
+    tcsrmv_tests
 )
 
 #copy the raw data files (mtx inputs) to build directory

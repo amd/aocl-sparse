@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -411,6 +411,73 @@ aoclsparse_status aoclsparse_create_zcsr(aoclsparse_matrix         *mat,
 }
 
 /********************************************************************************
+ * \brief aoclsparse_create_tcsr sets the sparse matrix in the TCSR format for
+ * the appropriate data type (float, double, float complex, double complex).
+ ********************************************************************************/
+aoclsparse_status aoclsparse_create_stcsr(aoclsparse_matrix          *mat,
+                                          const aoclsparse_index_base base,
+                                          const aoclsparse_int        M,
+                                          const aoclsparse_int        N,
+                                          const aoclsparse_int        nnz,
+                                          aoclsparse_int             *row_ptr_L,
+                                          aoclsparse_int             *row_ptr_U,
+                                          aoclsparse_int             *col_idx_L,
+                                          aoclsparse_int             *col_idx_U,
+                                          float                      *val_L,
+                                          float                      *val_U)
+{
+    return aoclsparse_create_tcsr_t(
+        mat, base, M, N, nnz, row_ptr_L, row_ptr_U, col_idx_L, col_idx_U, val_L, val_U);
+}
+
+aoclsparse_status aoclsparse_create_dtcsr(aoclsparse_matrix          *mat,
+                                          const aoclsparse_index_base base,
+                                          const aoclsparse_int        M,
+                                          const aoclsparse_int        N,
+                                          const aoclsparse_int        nnz,
+                                          aoclsparse_int             *row_ptr_L,
+                                          aoclsparse_int             *row_ptr_U,
+                                          aoclsparse_int             *col_idx_L,
+                                          aoclsparse_int             *col_idx_U,
+                                          double                     *val_L,
+                                          double                     *val_U)
+{
+    return aoclsparse_create_tcsr_t(
+        mat, base, M, N, nnz, row_ptr_L, row_ptr_U, col_idx_L, col_idx_U, val_L, val_U);
+}
+
+aoclsparse_status aoclsparse_create_ctcsr(aoclsparse_matrix          *mat,
+                                          const aoclsparse_index_base base,
+                                          const aoclsparse_int        M,
+                                          const aoclsparse_int        N,
+                                          const aoclsparse_int        nnz,
+                                          aoclsparse_int             *row_ptr_L,
+                                          aoclsparse_int             *row_ptr_U,
+                                          aoclsparse_int             *col_idx_L,
+                                          aoclsparse_int             *col_idx_U,
+                                          aoclsparse_float_complex   *val_L,
+                                          aoclsparse_float_complex   *val_U)
+{
+    return aoclsparse_create_tcsr_t(
+        mat, base, M, N, nnz, row_ptr_L, row_ptr_U, col_idx_L, col_idx_U, val_L, val_U);
+}
+
+aoclsparse_status aoclsparse_create_ztcsr(aoclsparse_matrix          *mat,
+                                          const aoclsparse_index_base base,
+                                          const aoclsparse_int        M,
+                                          const aoclsparse_int        N,
+                                          const aoclsparse_int        nnz,
+                                          aoclsparse_int             *row_ptr_L,
+                                          aoclsparse_int             *row_ptr_U,
+                                          aoclsparse_int             *col_idx_L,
+                                          aoclsparse_int             *col_idx_U,
+                                          aoclsparse_double_complex  *val_L,
+                                          aoclsparse_double_complex  *val_U)
+{
+    return aoclsparse_create_tcsr_t(
+        mat, base, M, N, nnz, row_ptr_L, row_ptr_U, col_idx_L, col_idx_U, val_L, val_U);
+}
+/********************************************************************************
  * \brief aoclsparse_create_ell sets the sparse matrix in the ell format.
  * This function can be called after the matrix "mat" is initialized.
  ********************************************************************************/
@@ -641,6 +708,7 @@ aoclsparse_status aoclsparse_destroy(aoclsparse_matrix *A)
         aoclsparse_destroy_ilu(&((*A)->ilu_info));
         aoclsparse_destroy_csc(*A);
         aoclsparse_destroy_coo(*A);
+        aoclsparse_destroy_tcsr(*A);
         aoclsparse_destroy_symgs(&((*A)->symgs_info));
         delete *A;
         *A = NULL;
@@ -1165,6 +1233,44 @@ aoclsparse_status aoclsparse_destroy_coo(aoclsparse_matrix A)
         {
             ::operator delete(A->coo_mat.val);
             A->coo_mat.val = NULL;
+        }
+    }
+    return aoclsparse_status_success;
+}
+
+aoclsparse_status aoclsparse_destroy_tcsr(aoclsparse_matrix A)
+{
+    if(!A->tcsr_mat_is_users)
+    {
+        if(A->tcsr_mat.row_ptr_L)
+        {
+            delete[] A->tcsr_mat.row_ptr_L;
+            A->tcsr_mat.row_ptr_L = NULL;
+        }
+        if(A->tcsr_mat.row_ptr_U)
+        {
+            delete[] A->tcsr_mat.row_ptr_U;
+            A->tcsr_mat.row_ptr_U = NULL;
+        }
+        if(A->tcsr_mat.col_idx_L)
+        {
+            delete[] A->tcsr_mat.col_idx_L;
+            A->tcsr_mat.col_idx_L = NULL;
+        }
+        if(A->tcsr_mat.col_idx_U)
+        {
+            delete[] A->tcsr_mat.col_idx_U;
+            A->tcsr_mat.col_idx_U = NULL;
+        }
+        if(A->tcsr_mat.val_L)
+        {
+            ::operator delete(A->tcsr_mat.val_L);
+            A->tcsr_mat.val_L = NULL;
+        }
+        if(A->tcsr_mat.val_U)
+        {
+            ::operator delete(A->tcsr_mat.val_U);
+            A->tcsr_mat.val_U = NULL;
         }
     }
     return aoclsparse_status_success;
