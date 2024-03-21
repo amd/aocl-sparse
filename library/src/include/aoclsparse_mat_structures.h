@@ -49,6 +49,49 @@ struct _aoclsparse_csr
 };
 
 /********************************************************************************
+ * \brief aoclsparse_tcsr is a structure holding a sparse matrix in TCSR
+ * (Triangular Storage) format.
+ * Both triangles (L+D and D+U) are stored in two separate arrays, they are stored like
+ * CSR with partial sorting (L+D and D+U order is followed, but the indices within L or U
+ * group may not be sorted)
+ *  - One array with L elements potentially unsorted, followed by D elements in the L+D part
+ *    of the matrix.
+ *  - Another array with D elements, followed by U elements potentially unsorted in the D+U part
+ *    of the matrix.
+ *  - Currently TCSR storage matrix supports only the matrices with full(non-zero) diagonals.
+ *
+ * Both the lower and upper triangular parts are stored and work as a normal CSR:
+ * The lower triangular part:
+ *   - row pointers: row_ptr_L[0] ... row_ptr_L[m],
+ *   - column indices: col_idx_L[0] ... col_idx_L[row_ptr_L[m]-1-A->base]
+ *   - values: with same indices for val_L as for col_idx_L
+ * The upper triangular part:
+ *   - row pointers: row_ptr_U[0] ... row_ptr_U[m],
+ *   - column indices: col_idx_U[0], ... col_idx_U[row_ptr_U[m]-1-A->base]
+ *   - values: with same indices for val_U as for col_idx_U
+ *
+ * It must be initialized using aoclsparse_create_(s/d/c/z)tcsr()
+ * and the retured handle must be passed to all subsequent library function
+ * calls that involve the matrix.
+ * It should be destroyed at the end using aoclsparse_destroy().
+ *******************************************************************************/
+struct _aoclsparse_tcsr
+{
+    // size(row_ptr_L) = m (number of rows of the aoclsparse_matrix) + 1
+    aoclsparse_int *row_ptr_L = nullptr; // points to every row of the lower part of the matrix
+    // size(row_ptr_U) = m + 1
+    aoclsparse_int *row_ptr_U = nullptr; // points to every row of the upper part of the matrix
+    // size(col_idx_L) = no.of strictly lower triangular elements + m
+    aoclsparse_int *col_idx_L = nullptr; // contains col idx of the lower part of the tcsr matrix
+    // size(col_idx_U) = no.of strictly upper triangular elements + m
+    aoclsparse_int *col_idx_U = nullptr; // contains col idx of the upper part of the tcsr matrix
+    //size(val_L) = no.of strictly lower triangular elements + m
+    void *val_L = nullptr; // contains values of the lower part of the tcsr matrix
+    //size(val_U) = no.of strictly upper triangular elements + m
+    void *val_U = nullptr; // contains values of the upper part of the tcsr matrix
+};
+
+/********************************************************************************
  * \brief aoclsparse_ell is a structure holding the aoclsparse matrix
  * in ELL format. It is used internally during the optimization process.
  * It should be destroyed at the end using aoclsparse_destroy_mat_structs().
@@ -183,6 +226,10 @@ struct _aoclsparse_matrix
     // csr matrix for avx2
     struct _aoclsparse_csr csr_mat_br4;
 
+    //tcsr matrix
+    bool                    tcsr_mat_is_users = false;
+    struct _aoclsparse_tcsr tcsr_mat;
+
     // ellt matrix
     struct _aoclsparse_ell ell_mat;
 
@@ -214,8 +261,10 @@ struct _aoclsparse_matrix
     // store if the matrix has already been optimized for this blocked SpMV
     bool blk_optimized = false;
     // position where the diagonal is located in every row
+    // For TCSR matrix, idiag points to the position of diagonals in the lower triangular part of the matrix.
     aoclsparse_int *idiag = nullptr;
     // position where the first strictly upper triangle element is/would be located in every row
+    // For TCSR matrix, iurow points to the position of upper triangle element in the upper triangular part of the matrix.
     aoclsparse_int *iurow = nullptr;
 
     // csc matrix

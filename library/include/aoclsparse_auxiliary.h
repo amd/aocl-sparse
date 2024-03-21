@@ -414,6 +414,106 @@ aoclsparse_status aoclsparse_create_zcsr(aoclsparse_matrix         *mat,
 /**@}*/
 
 /*! \ingroup aux_module
+ *  \brief Creates a new \ref aoclsparse_matrix based on TCSR (Triangular Compressed Sparse Row) format.
+ *
+ *  \details
+ *  \P{aoclsparse_create_?tcsr} creates \ref aoclsparse_matrix and initializes it with input
+ *  parameters passed. Array data must not be modified by the user while matrix is being used
+ *  as the pointers are copied, not the data. The input arrays are not modified by the library and
+ *  the matrix should be destroyed at the end using aoclsparse_destroy().
+ *
+ *  TCSR matrix structure holds lower triangular (L) and upper triangular (U) part of the matrix
+ *  separately with diagonal (D) elements stored in both the parts. Both triangles (L+D and D+U)
+ *  are stored like CSR and assumes partial sorting (L+D and D+U order is followed, but the indices
+ *  within L or U group may not be sorted)
+ *   - One array with L elements potentially unsorted, followed by D elements in the L+D part for
+ *     each row of the matrix.
+ *   - Another array with D elements, followed by U elements potentially unsorted in the D+U part
+ *     for each row of the matrix.
+ *   - Currently TCSR storage format supports only square matrices with full(non-zero) diagonals.
+ *
+ *  @param[out]   mat         The pointer to the TCSR sparse matrix.
+ *  @param[in]    base        \ref aoclsparse_index_base_zero or \ref aoclsparse_index_base_one.
+ *  @param[in]    M           Total number of rows in the \p mat.
+ *  @param[in]    N           Total number of columns in the \p mat.
+ *  @param[in]    nnz         Number of non-zero entries in the \p mat.
+ *  @param[in]    row_ptr_L   Array of lower triangular elements that point to the start of every row of
+ *                            the \p mat in \p col_idx_L and \p val_L.
+ *  @param[in]    row_ptr_U   Array of upper triangular elements that point to the start of every row of
+ *                            the \p mat in \p col_idx_U and \p val_U.
+ *  @param[in]    col_idx_L   Array of lower triangular elements containing column indices of the \p mat.
+ *  @param[in]    col_idx_U   Array of upper triangular elements containing column indices of the \p mat.
+ *  @param[in]    val_L       Array of lower triangular elements of the \p mat.
+ *  @param[in]    val_U       Array of upper triangular elements of the \p mat.
+ *
+ *  \retval aoclsparse_status_success               The operation completed successfully.
+ *  \retval aoclsparse_status_invalid_pointer       Pointer given to API is invalid or nullptr.
+ *  \retval aoclsparse_status_invalid_size          M, N, nnz is invalid.
+ *  \retval aoclsparse_status_invalid_index_value   Index given for \p mat is out of matrix bounds depending on base given.
+ *  \retval aoclsparse_status_invalid_value         The cooridante \p row_ptr or \p col_idx is out of matrix bound or \p mat
+ *                                                  has duplicate diagonals or \p mat does not have full diagonals.
+ *  \retval aoclsparse_status_unsorted_input        The \p mat is unsorted. It supports only fully sorted and partially sorted
+ *                                                  matrix as input. The lower triangular part must not contain U elements, the
+ *                                                  upper triangular part must not contain L elements, and the position of the
+ *                                                  diagonal element must not be altered.
+ *  \retval aoclsparse_status_memory_error          Memory allocation for matrix failed.
+ */
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_create_stcsr(aoclsparse_matrix          *mat,
+                                          const aoclsparse_index_base base,
+                                          const aoclsparse_int        M,
+                                          const aoclsparse_int        N,
+                                          const aoclsparse_int        nnz,
+                                          aoclsparse_int             *row_ptr_L,
+                                          aoclsparse_int             *row_ptr_U,
+                                          aoclsparse_int             *col_idx_L,
+                                          aoclsparse_int             *col_idx_U,
+                                          float                      *val_L,
+                                          float                      *val_U);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_create_dtcsr(aoclsparse_matrix          *mat,
+                                          const aoclsparse_index_base base,
+                                          const aoclsparse_int        M,
+                                          const aoclsparse_int        N,
+                                          const aoclsparse_int        nnz,
+                                          aoclsparse_int             *row_ptr_L,
+                                          aoclsparse_int             *row_ptr_U,
+                                          aoclsparse_int             *col_idx_L,
+                                          aoclsparse_int             *col_idx_U,
+                                          double                     *val_L,
+                                          double                     *val_U);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_create_ctcsr(aoclsparse_matrix          *mat,
+                                          const aoclsparse_index_base base,
+                                          const aoclsparse_int        M,
+                                          const aoclsparse_int        N,
+                                          const aoclsparse_int        nnz,
+                                          aoclsparse_int             *row_ptr_L,
+                                          aoclsparse_int             *row_ptr_U,
+                                          aoclsparse_int             *col_idx_L,
+                                          aoclsparse_int             *col_idx_U,
+                                          aoclsparse_float_complex   *val_L,
+                                          aoclsparse_float_complex   *val_U);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_create_ztcsr(aoclsparse_matrix          *mat,
+                                          const aoclsparse_index_base base,
+                                          const aoclsparse_int        M,
+                                          const aoclsparse_int        N,
+                                          const aoclsparse_int        nnz,
+                                          aoclsparse_int             *row_ptr_L,
+                                          aoclsparse_int             *row_ptr_U,
+                                          aoclsparse_int             *col_idx_L,
+                                          aoclsparse_int             *col_idx_U,
+                                          aoclsparse_double_complex  *val_L,
+                                          aoclsparse_double_complex  *val_U);
+
+/**@}*/
+
+/*! \ingroup aux_module
  *  \brief Creates a new \ref aoclsparse_matrix based on COO (Co-ordinate format).
  *
  *  \details

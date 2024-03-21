@@ -54,6 +54,7 @@ aoclsparse_status aoclsparse_destroy_symgs(_aoclsparse_symgs *sgs_info);
 aoclsparse_status aoclsparse_destroy_opt_csr(aoclsparse_matrix A);
 aoclsparse_status aoclsparse_destroy_csc(aoclsparse_matrix A);
 aoclsparse_status aoclsparse_destroy_coo(aoclsparse_matrix A);
+aoclsparse_status aoclsparse_destroy_tcsr(aoclsparse_matrix A);
 void              set_symgs_matrix_properties(aoclsparse_mat_descr  descr_dest,
                                               aoclsparse_operation *trans_dest,
                                               aoclsparse_fill_mode &fmode,
@@ -112,6 +113,127 @@ aoclsparse_status aoclsparse_create_csr_t(aoclsparse_matrix    *mat,
     (*mat)->sort                = mat_sort;
     (*mat)->fulldiag            = mat_fulldiag;
 
+    return aoclsparse_status_success;
+}
+
+/********************************************************************************
+ * \brief aoclsparse_create_tcsr_t sets the sparse matrix in the TCSR format
+ * \brief aoclsparse_create_tcsr sets the sparse matrix in the TCSR format
+ * for any data type
+ ********************************************************************************/
+template <typename T>
+aoclsparse_status aoclsparse_create_tcsr_t(aoclsparse_matrix          *mat,
+                                           const aoclsparse_index_base base,
+                                           const aoclsparse_int        M,
+                                           const aoclsparse_int        N,
+                                           const aoclsparse_int        nnz,
+                                           aoclsparse_int             *row_ptr_L,
+                                           aoclsparse_int             *row_ptr_U,
+                                           aoclsparse_int             *col_idx_L,
+                                           aoclsparse_int             *col_idx_U,
+                                           T                          *val_L,
+                                           T                          *val_U)
+{
+    aoclsparse_status status;
+    // null pointer
+    if(!mat)
+        return aoclsparse_status_invalid_pointer;
+    *mat = nullptr;
+    if(row_ptr_L == nullptr || row_ptr_U == nullptr)
+        return aoclsparse_status_invalid_pointer;
+    if(col_idx_L == nullptr || col_idx_U == nullptr)
+        return aoclsparse_status_invalid_pointer;
+    if(val_L == nullptr || val_U == nullptr)
+        return aoclsparse_status_invalid_pointer;
+
+    // index base check
+    if(base != aoclsparse_index_base_one && base != aoclsparse_index_base_zero)
+        return aoclsparse_status_invalid_value;
+
+    // invalid sizes
+    if((M < 0) || (N < 0) || (nnz < 0))
+        return aoclsparse_status_invalid_size;
+
+    // supports only a square matrix with full diagonals
+    // TODO: If zero diagonals are supported, remove this check
+    if(M != N)
+        return aoclsparse_status_invalid_size;
+
+    aoclsparse_int lnnz = row_ptr_L[M] - base; // nnz elements in the lower part
+    aoclsparse_int unnz = row_ptr_U[M] - base; // nnz elements in the upper part
+
+    // check nnz
+    if(nnz != (lnnz + unnz - M))
+        return aoclsparse_status_invalid_size;
+
+    aoclsparse_matrix_sort sort_L, sort_U;
+    bool                   fulldiag_L, fulldiag_U;
+
+    // Support for full diagonals - to be implemented
+    // TCSR Matrix expects full diagonals and fully/partially sorted matrix
+    // check lower triangular part
+    if((status = aoclsparse_mat_check_internal(M,
+                                               N,
+                                               lnnz,
+                                               row_ptr_L,
+                                               col_idx_L,
+                                               val_L,
+                                               shape_lower_triangle,
+                                               base,
+                                               sort_L,
+                                               fulldiag_L,
+                                               nullptr))
+       != aoclsparse_status_success)
+        return status;
+    if(sort_L == aoclsparse_unsorted)
+        return aoclsparse_status_unsorted_input;
+    if(!fulldiag_L)
+        return aoclsparse_status_invalid_value;
+
+    // check upper triangular part
+    if((status = aoclsparse_mat_check_internal(M,
+                                               N,
+                                               unnz,
+                                               row_ptr_U,
+                                               col_idx_U,
+                                               val_U,
+                                               shape_upper_triangle,
+                                               base,
+                                               sort_U,
+                                               fulldiag_U,
+                                               nullptr))
+       != aoclsparse_status_success)
+        return status;
+    if(sort_U == aoclsparse_unsorted)
+        return aoclsparse_status_unsorted_input;
+    if(!fulldiag_U)
+        return aoclsparse_status_invalid_value;
+
+    // create matrix
+    try
+    {
+        *mat = new _aoclsparse_matrix;
+    }
+    catch(std::bad_alloc &)
+    {
+        return aoclsparse_status_memory_error;
+    }
+
+    aoclsparse_init_mat(*mat, base, M, N, nnz, aoclsparse_tcsr_mat);
+    (*mat)->val_type           = get_data_type<T>();
+    (*mat)->tcsr_mat.col_idx_L = col_idx_L;
+    (*mat)->tcsr_mat.col_idx_U = col_idx_U;
+    (*mat)->tcsr_mat.row_ptr_L = row_ptr_L;
+    (*mat)->tcsr_mat.row_ptr_U = row_ptr_U;
+    (*mat)->tcsr_mat.val_L     = val_L;
+    (*mat)->tcsr_mat.val_U     = val_U;
+    (*mat)->tcsr_mat_is_users  = true;
+    (*mat)->fulldiag           = true;
+    (*mat)->mat_type = aoclsparse_tcsr_mat; // Used to identify the matrix type in the mv dispatcher
+    if((sort_L == aoclsparse_partially_sorted || sort_U == aoclsparse_partially_sorted))
+        (*mat)->sort = aoclsparse_partially_sorted;
+    else
+        (*mat)->sort = aoclsparse_fully_sorted;
     return aoclsparse_status_success;
 }
 

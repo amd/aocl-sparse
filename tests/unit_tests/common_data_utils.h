@@ -4152,3 +4152,74 @@ public:
 
 // Returns 'true' if blkcsrmv tests can be executed in the given build
 bool can_exec_blkcsrmv();
+
+// Initialize TCSR matrix
+template <typename T>
+void init_tcsr_matrix(aoclsparse_int              &m,
+                      aoclsparse_int              &n,
+                      aoclsparse_int              &nnz,
+                      std::vector<aoclsparse_int> &row_ptr_L,
+                      std::vector<aoclsparse_int> &row_ptr_U,
+                      std::vector<aoclsparse_int> &col_idx_L,
+                      std::vector<aoclsparse_int> &col_idx_U,
+                      std::vector<T>              &val_L,
+                      std::vector<T>              &val_U,
+                      aoclsparse_matrix_sort       sort,
+                      aoclsparse_index_base        b)
+{
+    //Initialize matrix
+    // 1 0 2 3
+    // 0 4 0 0
+    // 5 0 6 0
+    // 7 8 0 9
+    m = 4, n = 4, nnz = 9;
+    // row ptr
+    row_ptr_L.assign({b, 1 + b, 2 + b, 4 + b, 7 + b});
+    row_ptr_U.assign({b, 3 + b, 4 + b, 5 + b, 6 + b});
+    // col idx
+    if(sort == aoclsparse_fully_sorted || sort == aoclsparse_unknown_sort)
+    {
+        col_idx_L.assign({b, 1 + b, b, 2 + b, b, 1 + b, 3 + b});
+        col_idx_U.assign({b, 2 + b, 3 + b, 1 + b, 2 + b, 3 + b});
+    }
+    else if(sort == aoclsparse_partially_sorted)
+    {
+        col_idx_L.assign({b, 1 + b, b, 2 + b, 1 + b, b, 3 + b});
+        col_idx_U.assign({b, 3 + b, 2 + b, 1 + b, 2 + b, 3 + b});
+    }
+    else if(sort == aoclsparse_unsorted)
+    {
+        col_idx_L.assign({b, 1 + b, b, 2 + b, 3 + b, 1 + b, b});
+        col_idx_U.assign({2 + b, b, 3 + b, 1 + b, 2 + b, 3 + b});
+    }
+    // val idx
+    if constexpr(std::is_same_v<T, double> || std::is_same_v<T, float>)
+    {
+        if(sort == aoclsparse_partially_sorted)
+        {
+            val_L.assign({-1.0, 4.0, 5.0, -6.0, 8.0, 7.0, 9.0});
+            val_U.assign({-1.0, 3.0, 2.0, 4.0, -6.0, 9.0});
+        }
+        else
+        {
+            val_L.assign({-1.0, 4.0, 5.0, -6.0, 7.0, 8.0, 9.0});
+            val_U.assign({-1.0, 2.0, 3.0, 4.0, -6.0, 9.0});
+        }
+    }
+    else if constexpr(std::is_same_v<T, std::complex<double>>
+                      || std::is_same_v<T, std::complex<float>>
+                      || std::is_same_v<T, aoclsparse_double_complex>
+                      || std::is_same_v<T, aoclsparse_float_complex>)
+    {
+        if(sort == aoclsparse_partially_sorted)
+        {
+            val_L.assign({{-1, 3}, {4, 2}, {5, 6}, {-6, 3}, {8, -8}, {7, 1}, {9, 0}});
+            val_U.assign({{-1, 3}, {3, 3}, {2, -1}, {4, 2}, {-6, 3}, {9, 0}});
+        }
+        else
+        {
+            val_L.assign({{-1, 3}, {4, 2}, {5, 6}, {-6, 3}, {7, 1}, {8, -8}, {9, 0}});
+            val_U.assign({{-1, 3}, {2, -1}, {3, 3}, {4, 2}, {-6, 3}, {9, 0}});
+        }
+    }
+}

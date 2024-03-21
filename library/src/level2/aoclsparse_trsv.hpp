@@ -754,8 +754,8 @@ aoclsparse_status
     if(!A || !x || !b || !descr)
         return aoclsparse_status_invalid_pointer;
 
-    // Only CSR input format supported
-    if(A->input_format != aoclsparse_csr_mat)
+    // Only CSR and TCSR input format supported
+    if(A->input_format != aoclsparse_csr_mat && A->input_format != aoclsparse_tcsr_mat)
     {
         return aoclsparse_status_not_implemented;
     }
@@ -807,7 +807,13 @@ aoclsparse_status
     if(!A->opt_csr_ready)
     {
         // user did not check the matrix, call optimize
-        aoclsparse_status status = aoclsparse_csr_optimize<T>(A);
+        aoclsparse_status status;
+        // Optimize TCSR matrix
+        if(A->input_format == aoclsparse_tcsr_mat)
+            status = aoclsparse_tcsr_optimize<T>(A);
+        // Optimize CSR matrix
+        else
+            status = aoclsparse_csr_optimize<T>(A);
         if(status != aoclsparse_status_success)
             return status; // LCOV_EXCL_LINE
     }
@@ -820,22 +826,47 @@ aoclsparse_status
          || (A->val_type == aoclsparse_cmat && std::is_same_v<T, std::complex<float>>)
          || (A->val_type == aoclsparse_zmat && std::is_same_v<T, std::complex<double>>)))
         return aoclsparse_status_wrong_type;
-    const T *a = (T *)((A->opt_csr_mat).csr_val);
 
     const bool unit = descr->diag_type == aoclsparse_diag_type_unit;
-
     if(!A->opt_csr_full_diag && !unit) // not of full rank, linear system cannot be solved
     {
         return aoclsparse_status_invalid_value;
     }
 
-    const aoclsparse_int *icol = (A->opt_csr_mat).csr_col_ptr;
-    // beggining of the row
-    const aoclsparse_int *ilrow = (A->opt_csr_mat).csr_row_ptr;
-    // position of the diagonal element (includes zeros) always has min(m,n) elements
-    const aoclsparse_int *idiag = A->idiag;
-    // ending of the row
-    const aoclsparse_int *iurow = A->iurow;
+    T              *a;
+    aoclsparse_int *icol, *ilrow, *idiag, *iurow;
+
+    if(A->input_format == aoclsparse_tcsr_mat)
+    {
+        if(descr->fill_mode == aoclsparse_fill_mode_lower)
+        {
+            a     = (T *)((A->tcsr_mat).val_L);
+            icol  = (A->tcsr_mat).col_idx_L;
+            ilrow = (A->tcsr_mat).row_ptr_L;
+            idiag = A->idiag;
+            iurow = (A->tcsr_mat).row_ptr_L + 1;
+        }
+        else
+        {
+            a     = (T *)((A->tcsr_mat).val_U);
+            icol  = (A->tcsr_mat).col_idx_U;
+            ilrow = (A->tcsr_mat).row_ptr_U;
+            idiag = (A->tcsr_mat).row_ptr_U;
+            iurow = A->iurow;
+        }
+    }
+    else
+    {
+        a    = (T *)((A->opt_csr_mat).csr_val);
+        icol = (A->opt_csr_mat).csr_col_ptr;
+        // beginning of the row
+        ilrow = (A->opt_csr_mat).csr_row_ptr;
+        // position of the diagonal element (includes zeros) always has min(m,n) elements
+        idiag = A->idiag;
+        // ending of the row
+        iurow = A->iurow;
+    }
+
     const bool            lower = descr->fill_mode == aoclsparse_fill_mode_lower;
     aoclsparse_index_base base  = A->internal_base_index;
 

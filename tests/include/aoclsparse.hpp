@@ -456,6 +456,19 @@ aoclsparse_status aoclsparse_create_csr(aoclsparse_matrix    *mat,
                                         T                    *csr_val);
 
 template <typename T>
+aoclsparse_status aoclsparse_create_tcsr(aoclsparse_matrix    *mat,
+                                         aoclsparse_index_base base,
+                                         aoclsparse_int        M,
+                                         aoclsparse_int        N,
+                                         aoclsparse_int        nnz,
+                                         aoclsparse_int       *row_ptr_L,
+                                         aoclsparse_int       *row_ptr_U,
+                                         aoclsparse_int       *col_idx_L,
+                                         aoclsparse_int       *col_idx_U,
+                                         T                    *val_L,
+                                         T                    *val_U);
+
+template <typename T>
 aoclsparse_status aoclsparse_create_csc(aoclsparse_matrix    *mat,
                                         aoclsparse_index_base base,
                                         aoclsparse_int        M,

@@ -495,6 +495,33 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
     {
         return aoclsparse_status_invalid_size;
     }
+    // Optimize TCSR matrix
+    // Check if the matrix is valid
+    // Creates idiag ptr for lower and iurow ptr for upper triangualr matrix
+    if(A->input_format == aoclsparse_tcsr_mat)
+    {
+        if(A->opt_csr_ready) // check if already optimized
+            return aoclsparse_status_success;
+        else
+        {
+            switch(A->val_type)
+            {
+            case aoclsparse_dmat:
+                ret = aoclsparse_tcsr_optimize<double>(A);
+                break;
+            case aoclsparse_smat:
+                ret = aoclsparse_tcsr_optimize<float>(A);
+                break;
+            case aoclsparse_cmat:
+                ret = aoclsparse_tcsr_optimize<aoclsparse_float_complex>(A);
+                break;
+            case aoclsparse_zmat:
+                ret = aoclsparse_tcsr_optimize<aoclsparse_double_complex>(A);
+                break;
+            }
+        }
+        return ret;
+    }
     // Check CSR matrix is populated, it not return an error. ToDo: need to handle CSC / COO cases later
     if((A->csr_mat.csr_row_ptr == nullptr) || (A->csr_mat.csr_col_ptr == nullptr)
        || (A->csr_mat.csr_val == nullptr))

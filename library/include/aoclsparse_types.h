@@ -134,9 +134,10 @@ typedef struct _aoclsparse_ell_csr_hyb *aoclsparse_ell_csr_hyb;
  *     :align: left
  *     :widths: auto
  *
- *      :ref:`Compressed Storage Rows (CSR)<storage_csr>`,    s!, d!, c!, z, :code:`aoclsparse_create_Pcsr`
- *      :ref:`Compressed Storage Columns (CSC)<storage_csc>`, s!, d!, c!, z, :code:`aoclsparse_create_Pcsc`
+ *      :ref:`Compressed Sparse Rows (CSR)<storage_csr>`,    s!, d!, c!, z, :code:`aoclsparse_create_Pcsr`
+ *      :ref:`Compressed Sparse Columns (CSC)<storage_csc>`, s!, d!, c!, z, :code:`aoclsparse_create_Pcsc`
  *      :ref:`Coordinate storage (COO)<storage_coo>`,         s!, d!, c!, z, :code:`aoclsparse_create_Pcoo`
+ *      :ref:`Triangular Compressed Sparse Rows (TCSR)<storage_tcsr>`,         s!, d!, c!, z, :code:`aoclsparse_create_Ptcsr`
  *  @endrst
  */
 typedef struct _aoclsparse_matrix *aoclsparse_matrix;
@@ -241,7 +242,8 @@ typedef enum aoclsparse_matrix_format_type_
     aoclsparse_csr_mat_br4 = 6, ///< @rst :ref:`Optimized CSR<storage_csr_mat_br4>` format for
                                 ///< AVX2 double precision data type. @endrst
     aoclsparse_csc_mat = 7, ///< @rst :ref:`CSC<storage_csc>` format. @endrst
-    aoclsparse_coo_mat = 8 ///< @rst :ref:`COO<storage_coo>` format. @endrst
+    aoclsparse_coo_mat = 8, ///< @rst :ref:`COO<storage_coo>` format. @endrst
+    aoclsparse_tcsr_mat = 9 ///< @rst :ref:`TCSR<storage_tcsr>` format. @endrst
     // clang-format on
 } aoclsparse_matrix_format_type;
 

@@ -50,6 +50,17 @@ aoclsparse_create\_?csr()
     :outline:
 .. doxygenfunction:: aoclsparse_create_zcsr
 
+aoclsparse_create\_?tcsr()
+--------------------------
+
+.. doxygenfunction:: aoclsparse_create_stcsr
+    :outline:
+.. doxygenfunction:: aoclsparse_create_dtcsr
+    :outline:
+.. doxygenfunction:: aoclsparse_create_ctcsr
+    :outline:
+.. doxygenfunction:: aoclsparse_create_ztcsr
+
 aoclsparse_create\_?coo()
 -------------------------
 

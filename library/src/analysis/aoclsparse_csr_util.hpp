@@ -431,4 +431,44 @@ aoclsparse_status aoclsparse_csr_optimize(aoclsparse_matrix A)
     return aoclsparse_status_success;
 }
 
+// Check TCSR matrix inputs and create idiag for the lower and iurow for
+// the upper triangular matrix
+template <typename T>
+aoclsparse_status aoclsparse_tcsr_optimize(aoclsparse_matrix A)
+{
+    if(!A)
+        return aoclsparse_status_invalid_pointer;
+
+    // Make sure we have the right type before proceeding
+    if(A->val_type != get_data_type<T>())
+        return aoclsparse_status_wrong_type;
+
+    // Create idiag and iurow
+    try
+    {
+        A->idiag = new aoclsparse_int[A->m];
+        A->iurow = new aoclsparse_int[A->m];
+    }
+    catch(std::bad_alloc &)
+    {
+        delete[] A->idiag;
+        A->idiag = nullptr;
+        delete[] A->iurow;
+        A->iurow = nullptr;
+        return aoclsparse_status_memory_error;
+    }
+
+    for(aoclsparse_int i = 0; i < A->m; i++)
+    {
+        // Diagonal is at the end of the each row in the lower triangular part
+        A->idiag[i] = A->tcsr_mat.row_ptr_L[i + 1] - 1;
+        // Diagonal is at the beginning of each row in the upper triangular part
+        // Increment row_ptr_U to get the position of upper triangle element
+        A->iurow[i] = A->tcsr_mat.row_ptr_U[i] + 1;
+    }
+    A->opt_csr_ready     = true;
+    A->opt_csr_full_diag = A->fulldiag;
+    return aoclsparse_status_success;
+}
+
 #endif // AOCLSPARSE_INPUT_CHECK_HPP
