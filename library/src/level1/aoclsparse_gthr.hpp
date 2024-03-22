@@ -101,7 +101,7 @@ inline aoclsparse_status
         for(auto i = 0U; i < tsz; ++i)
             xstride[i] = i * xi;
 
-        for(auto i = 0U; i < count; ++i)
+        for(aoclsparse_int i = 0U; i < count; ++i)
         {
             yv = kt_maskz_set_p<SZ, SUF, EXT, tsz>(y + ((i * xi) * tsz), xstride);
 
@@ -110,7 +110,7 @@ inline aoclsparse_status
     }
     else if(I == Index::type::indexed)
     {
-        for(auto i = 0U; i < count; ++i)
+        for(aoclsparse_int i = 0; i < count; ++i)
         {
             yv = kt_set_p<SZ, SUF>(y, xi + (i * tsz));
 
