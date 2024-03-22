@@ -93,7 +93,7 @@ inline aoclsparse_status dotp_kt(aoclsparse_int nnz,
     {
         if(conj)
         {
-            for(auto i = 0U; i < count; ++i)
+            for(aoclsparse_int i = 0; i < count; ++i)
             {
                 auto itsz = i * tsz;
 
@@ -123,7 +123,7 @@ inline aoclsparse_status dotp_kt(aoclsparse_int nnz,
         }
     }
 
-    for(auto i = 0U; i < count; ++i)
+    for(aoclsparse_int i = 0; i < count; ++i)
     {
         // Load the 'x' vector
         xv = kt_loadu_p<SZ, SUF>(x + (i * tsz));
