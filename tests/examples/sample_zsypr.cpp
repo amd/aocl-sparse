@@ -74,16 +74,16 @@ int main(void)
     // Matrix A
     aoclsparse_int            row_ptr_A[] = {0, 1, 2, 5, 9, 10};
     aoclsparse_int            col_ind_A[] = {0, 0, 1, 2, 4, 0, 1, 2, 3, 4};
-    aoclsparse_double_complex val_A[]     = {{-0.86238, 0.454626},
-                                             {-2.62138, -0.442597},
-                                             {-0.875679, 0.137933},
-                                             {-0.661939, -1.09106},
-                                             {0.0501717, -2.37527},
-                                             {-1.48812, -0.420546},
-                                             {-0.588085, -0.708977},
-                                             {0.310933, -0.96569},
-                                             {-0.88964, -2.37881},
-                                             {-1.23201, 0.213152}};
+    aoclsparse_double_complex val_A[]     = {{-0.86, 0.45},
+                                             {-2.62, -0.44},
+                                             {-0.87, 0.13},
+                                             {-0.66, -1.09},
+                                             {0.05, -2.37},
+                                             {-1.48, -0.42},
+                                             {-0.58, -0.70},
+                                             {0.31, -0.96},
+                                             {-0.88, -2.37},
+                                             {-1.23, 0.21}};
     status = aoclsparse_create_zcsr(&csrA, base, m_a, n_a, nnz_A, row_ptr_A, col_ind_A, val_A);
     if(status != aoclsparse_status_success)
     {
@@ -95,15 +95,15 @@ int main(void)
     // Hermitian Matrix B
     aoclsparse_int            row_ptr_B[] = {0, 1, 2, 4, 6, 9};
     aoclsparse_int            col_ind_B[] = {0, 1, 0, 2, 1, 3, 1, 2, 4};
-    aoclsparse_double_complex val_B[]     = {{-1.59204, 0},
-                                             {0.467532, 0},
-                                             {0.078412, -0.513591},
-                                             {-1.52364, 0},
-                                             {0.211966, -1.33485},
-                                             {-1.37901, 0},
-                                             {1.42472, -2.08662},
-                                             {-2.26549, -1.0073},
-                                             {-1.8152, 0}};
+    aoclsparse_double_complex val_B[]     = {{-1.59, 0},
+                                             {0.46, 0},
+                                             {0.07, -0.51},
+                                             {-1.52, 0},
+                                             {0.21, -1.33},
+                                             {-1.37, 0},
+                                             {1.42, -2.08},
+                                             {-2.26, -1.00},
+                                             {-1.81, 0}};
 
     status = aoclsparse_create_zcsr(&csrB, base, m_b, n_b, nnz_B, row_ptr_B, col_ind_B, val_B);
     if(status != aoclsparse_status_success)
@@ -123,20 +123,20 @@ int main(void)
     aoclsparse_int            C_M_exp = 5, C_N_exp = 5, nnz_C_exp = 14;
     aoclsparse_int            csr_row_ptr_C_exp[] = {0, 5, 9, 12, 13, 14};
     aoclsparse_int            csr_col_ind_C_exp[] = {0, 1, 2, 3, 4, 1, 2, 3, 4, 2, 4, 3, 3, 4};
-    aoclsparse_double_complex csr_val_C_exp[]     = {{-1.0, 0.0},
-                                                     {-3.4, 2.1},
-                                                     {-4.2, -2.0},
-                                                     {-10.3, 1.4},
-                                                     {5.6, 4.6},
-                                                     {-2.4, 0.0},
-                                                     {-1.3, -2.7},
-                                                     {-3.0, -1.1},
-                                                     {-1.9, -2.0},
-                                                     {-3.9, -0.0},
-                                                     {-3.7, 1.5},
-                                                     {-2.8, 2.2},
-                                                     {-8.9, -0.0},
-                                                     {-3.0, 0.0}};
+    aoclsparse_double_complex csr_val_C_exp[]     = {{-0.982439, 0.000000},
+                                                     {-3.380974, 2.107664},
+                                                     {-4.156461, -1.960739},
+                                                     {-10.188348, 1.376974},
+                                                     {5.609324, 4.536282},
+                                                     {-2.308344, 0.000000},
+                                                     {-1.331714, -2.631938},
+                                                     {-2.972078, -1.039282},
+                                                     {-1.922892, -1.975280},
+                                                     {-3.862273, 0.000000},
+                                                     {-3.714510, 1.465694},
+                                                     {-2.743288, 2.163915},
+                                                     {-8.756081, -0.000000},
+                                                     {-3.022874, 0.000000}};
 
 #ifdef TWO_STAGE_COMPUTATION
     std::cout << "Invoking aoclsparse_sypr with aoclsparse_stage_nnz_count...\n";
@@ -207,7 +207,7 @@ int main(void)
               << "csr_col_ind_C" << std::setw(14) << "expected" << std::setw(14) << "csr_row_ptr_C"
               << std::setw(14) << "expected" << std::endl;
     // Initializing precision tolerance range for double
-    const double tol = 1e-01;
+    const double tol = 1e-06;
     for(aoclsparse_int i = 0; i < nnz_C; i++)
     {
         oki = ((std::abs(csr_val_C[i].real - csr_val_C_exp[i].real) <= tol)
