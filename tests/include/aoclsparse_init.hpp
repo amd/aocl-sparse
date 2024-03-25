@@ -35,6 +35,7 @@
 #include <cstdio>
 #include <fstream>
 #include <iostream>
+#include <numeric>
 #include <vector>
 
 /* ==================================================================================== */

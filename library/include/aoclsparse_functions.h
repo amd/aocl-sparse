@@ -2169,7 +2169,7 @@ aoclsparse_status aoclsparse_spmm(aoclsparse_operation    opA,
  *
  *  \retval     aoclsparse_status_success the operation completed successfully.
  *  \retval     aoclsparse_status_invalid_pointer \p descrB, \p A, \p B or \p C is invalid.
- *  \retval     aoclsparse_status_invalid_size Matrix dimensions do not match \p opA or \p B is not square.
+ *  \retval     aoclsparse_status_invalid_size Matrix dimensions do not match \p A or \p B is not square.
  *  \retval     aoclsparse_status_invalid_value Input parameters are invalid,
  *              for example, \p descrB does not match \p B indexing or \p B is not
  *              symmetric/Hermitian, \p C has been modified between stages
