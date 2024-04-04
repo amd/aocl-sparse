@@ -27,6 +27,7 @@
 
 #include "aoclsparse.hpp"
 #include "aoclsparse_arguments.hpp"
+#include "aoclsparse_axpyi.hpp"
 #include "aoclsparse_check.hpp"
 #include "aoclsparse_flops.hpp"
 #include "aoclsparse_gbyte.hpp"
@@ -42,12 +43,11 @@
 #include "aoclsparse_no_ext_benchmarking.hpp"
 #endif
 
-template <typename T>
+template <typename T, bool CALL_INTERNAL>
 int testing_axpyi_aocl(const Arguments &arg, testdata<T> &td, double timings[])
 {
     int            status = 0;
     aoclsparse_int nnz    = td.nnzA; //no of non-zero values in the output vector, n = nnz
-    aoclsparse_int kid    = -1;
 
     int number_hot_calls = arg.iters;
     try
@@ -57,8 +57,31 @@ int testing_axpyi_aocl(const Arguments &arg, testdata<T> &td, double timings[])
         {
             td.y                  = td.y_in;
             double cpu_time_start = aoclsparse_clock();
-            NEW_CHECK_AOCLSPARSE_ERROR(
-                aoclsparse_axpyi(nnz, td.alpha, td.x.data(), td.indx.data(), td.y.data(), kid));
+            if constexpr(CALL_INTERNAL)
+            {
+                /*
+                 * In case of all L1 APIs, the bench invokes the dispatcher directly since
+                 * the public APIs don't support KID parameter.
+                 *
+                 * To invoke the dispatcher, the aoclsparse_*_complex needs to be maps to
+                 * the corresponding std::complex<*>. That mapping is done here.
+                 */
+                using U = internal_t<T>;
+
+                NEW_CHECK_AOCLSPARSE_ERROR(
+                    (aoclsparse_axpyi_t<U>(nnz,
+                                           *(reinterpret_cast<U *>(&td.alpha)),
+                                           reinterpret_cast<U *>(td.x.data()),
+                                           td.indx.data(),
+                                           reinterpret_cast<U *>(td.y.data()),
+                                           arg.kid)));
+            }
+            else
+            {
+                NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_axpyi(
+                    nnz, td.alpha, td.x.data(), td.indx.data(), td.y.data(), arg.kid));
+            }
+
             timings[iter] = aoclsparse_clock_diff(cpu_time_start);
         }
     }
@@ -77,7 +100,13 @@ int testing_axpyi(const Arguments &arg)
     // the queue of test functions to run, normally it would be just one API
     // unless more tests are registered via EXT_BENCHMARKING
     std::vector<testsetting<T>> testqueue;
-    testqueue.push_back({"aocl_axpyi", &testing_axpyi_aocl<T>});
+
+    // When kernel ID is -1 invoke the public interface. Else invoke the dispatcher.
+    if(arg.kid == -1)
+        testqueue.push_back({"aocl_axpyi", &testing_axpyi_aocl<T, false>});
+    else
+        testqueue.push_back({"aocl_axpyi", &testing_axpyi_aocl<T, true>});
+
     register_tests_axpyi(testqueue);
 
     // create relevant test data for this API

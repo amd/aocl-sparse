@@ -33,6 +33,7 @@
 #include "aoclsparse_init.hpp"
 #include "aoclsparse_random.hpp"
 #include "aoclsparse_reference.hpp"
+#include "aoclsparse_roti.hpp"
 #include "aoclsparse_test.hpp"
 #include "aoclsparse_utility.hpp"
 
@@ -42,12 +43,11 @@
 #include "aoclsparse_no_ext_benchmarking.hpp"
 #endif
 
-template <typename T>
+template <typename T, bool CALL_INTERNAL>
 int testing_roti_aocl(const Arguments &arg, testdata<T> &td, double timings[])
 {
     int            status = 0;
     aoclsparse_int nnz    = td.nnzA; //no of non-zero values in the output vector, n = nnz
-    aoclsparse_int kid    = -1;
 
     int number_hot_calls = arg.iters;
     try
@@ -58,8 +58,16 @@ int testing_roti_aocl(const Arguments &arg, testdata<T> &td, double timings[])
             td.y                  = td.y_in;
             td.x                  = td.x_in;
             double cpu_time_start = aoclsparse_clock();
-            NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_roti(
-                nnz, td.x.data(), td.indx.data(), td.y.data(), td.alpha, td.beta, kid));
+            if constexpr(CALL_INTERNAL)
+            {
+                NEW_CHECK_AOCLSPARSE_ERROR((aoclsparse_rot<T>(
+                    nnz, td.x.data(), td.indx.data(), td.y.data(), td.alpha, td.beta, arg.kid)));
+            }
+            else
+            {
+                NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_roti(
+                    nnz, td.x.data(), td.indx.data(), td.y.data(), td.alpha, td.beta, arg.kid))
+            }
             timings[iter] = aoclsparse_clock_diff(cpu_time_start);
         }
     }
@@ -78,7 +86,13 @@ int testing_roti(const Arguments &arg)
     // the queue of test functions to run, normally it would be just one API
     // unless more tests are registered via EXT_BENCHMARKING
     std::vector<testsetting<T>> testqueue;
-    testqueue.push_back({"aocl_roti", &testing_roti_aocl<T>});
+
+    // When kernel ID is -1 invoke the public interface. Else invoke the dispatcher.
+    if(arg.kid == -1)
+        testqueue.push_back({"aocl_roti", &testing_roti_aocl<T, false>});
+    else
+        testqueue.push_back({"aocl_roti", &testing_roti_aocl<T, true>});
+
     register_tests_roti(testqueue);
 
     // create relevant test data for this API

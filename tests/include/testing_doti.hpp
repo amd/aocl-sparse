@@ -28,6 +28,7 @@
 #include "aoclsparse.hpp"
 #include "aoclsparse_arguments.hpp"
 #include "aoclsparse_check.hpp"
+#include "aoclsparse_dot.hpp"
 #include "aoclsparse_flops.hpp"
 #include "aoclsparse_gbyte.hpp"
 #include "aoclsparse_init.hpp"
@@ -42,7 +43,7 @@
 #include "aoclsparse_no_ext_benchmarking.hpp"
 #endif
 
-template <typename T>
+template <typename T, bool CALL_INTERNAL>
 int testing_doti_aocl(const Arguments &arg, testdata<T> &td, double timings[])
 {
     aoclsparse_int nnz              = td.nnzA; //no of non-zero values in the output vector, n = nnz
@@ -52,8 +53,17 @@ int testing_doti_aocl(const Arguments &arg, testdata<T> &td, double timings[])
     {
         td.s                  = aoclsparse_numeric::zero<T>();
         double cpu_time_start = aoclsparse_clock();
-        td.s                  = aoclsparse_dot<T, T>(
-            nnz, td.x.data(), td.indx.data(), td.y.data(), &(td.s), false, -1);
+        if constexpr(CALL_INTERNAL)
+        {
+            NEW_CHECK_AOCLSPARSE_ERROR((aoclsparse_dotp<T>(
+                nnz, td.x.data(), td.indx.data(), td.y.data(), &(td.s), false, arg.kid)));
+        }
+        else
+        {
+            td.s = aoclsparse_dot<T, T>(
+                nnz, td.x.data(), td.indx.data(), td.y.data(), &(td.s), false, -1);
+        }
+
         timings[iter] = aoclsparse_clock_diff(cpu_time_start);
     }
 
@@ -68,7 +78,13 @@ int testing_doti(const Arguments &arg)
     // the queue of test functions to run, normally it would be just one API
     // unless more tests are registered via EXT_BENCHMARKING
     std::vector<testsetting<T>> testqueue;
-    testqueue.push_back({"aocl_doti", &testing_doti_aocl<T>});
+
+    // When kernel ID is -1 invoke the public interface. Else invoke the dispatcher.
+    if(arg.kid == -1)
+        testqueue.push_back({"aocl_doti", &testing_doti_aocl<T, false>});
+    else
+        testqueue.push_back({"aocl_doti", &testing_doti_aocl<T, false>});
+
     register_tests_doti(testqueue);
 
     // create relevant test data for this API
