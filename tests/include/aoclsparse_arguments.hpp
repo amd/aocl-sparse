@@ -68,6 +68,8 @@ struct Arguments
     std::string filename;
     char        function[64];
 
+    aoclsparse_int kid;
+
 private:
     // Function to read Structures data from stream
     friend std::istream &operator>>(std::istream &str, Arguments &arg)

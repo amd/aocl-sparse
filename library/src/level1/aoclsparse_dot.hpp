@@ -23,7 +23,6 @@
  */
 #ifndef AOCLSPARSE_DOT_HPP
 #define AOCLSPARSE_DOT_HPP
-#endif
 #include "aoclsparse.h"
 #include "aoclsparse_context.h"
 #include "aoclsparse_kernel_templates.hpp"
@@ -197,3 +196,4 @@ inline aoclsparse_status aoclsparse_dotp(aoclsparse_int nnz,
     // Invoke the kernel
     return kernel(nnz, x, indx, y, dot, conj);
 }
+#endif

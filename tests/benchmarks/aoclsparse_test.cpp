@@ -84,12 +84,13 @@ int main(int argc, char *argv[])
     arg.M          = 128;
     arg.N          = 128;
     arg.K          = 128;
-    arg.nnz        = 0;
+    arg.nnz        = 1;
     arg.blk        = 4;
     arg.block_dim  = 2;
     arg.alpha      = 1.0;
     arg.beta       = 0.0;
     arg.stage      = 0;
+    arg.kid        = -1;
     char precision = 'd';
     char transA    = 'N';
     char transB    = 'N';
@@ -164,6 +165,8 @@ int main(int argc, char *argv[])
             "\n\t"
             "--stage=<0/1> \t Indicates whether csr2m routine performs in single stage: 0 "
             "or double stage: 1 (default: 0)"
+            "--kid=<kernel ID> \t Indicates the kernel that will be dispatched (default: -1)"
+            "-1 is auto "
             "\n",
             argv[0]);
 
@@ -190,6 +193,7 @@ int main(int argc, char *argv[])
     args.aoclsparse_get_cmdline_argument("iters", arg.iters);
     args.aoclsparse_get_cmdline_argument("order", order);
     args.aoclsparse_get_cmdline_argument("stage", arg.stage);
+    args.aoclsparse_get_cmdline_argument("kid", arg.kid);
 
     if(precision != 's' && precision != 'd' && precision != 'c' && precision != 'z')
     {

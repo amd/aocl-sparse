@@ -235,4 +235,27 @@ struct aoclsparse_command_line_args
     }
 };
 
+template <typename T>
+struct internal_t_map
+{
+    using type = T;
+};
+
+template <>
+struct internal_t_map<aoclsparse_float_complex>
+{
+    using type = std::complex<float>;
+};
+
+template <>
+struct internal_t_map<aoclsparse_double_complex>
+{
+    using type = std::complex<double>;
+};
+
+// aoclsparse_*_complex to std::complex<*> map
+// For any other type, it returns the same type.
+template <typename T>
+using internal_t = typename internal_t_map<T>::type;
+
 #endif // AOCLSPARSE_UTILITY_HPP
