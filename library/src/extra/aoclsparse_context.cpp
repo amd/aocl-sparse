@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2021-2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2021-2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -125,7 +125,8 @@ void aoclsparse_pthread_once(aoclsparse_pthread_once_t *once, void (*init)(void)
 aoclsparse_context sparse_global_context;
 
 // A mutex to allow synchronous access to global_thread.
-aoclsparse_pthread_mutex_t global_thread_mutex = AOCLSPARSE_PTHREAD_MUTEX_INITIALIZER;
+static aoclsparse_pthread_mutex_t aoclsparse_global_thread_mutex
+    = AOCLSPARSE_PTHREAD_MUTEX_INITIALIZER;
 
 /********************************************************************************
  * \brief aoclsparse_env_get_var is a function used to query the environment
@@ -230,10 +231,10 @@ void aoclsparse_thread_set_num_threads(aoclsparse_int n_threads)
     aoclsparse_init_once();
 
     // Acquire the mutex protecting global_thread.
-    aoclsparse_pthread_mutex_lock(&global_thread_mutex);
+    aoclsparse_pthread_mutex_lock(&aoclsparse_global_thread_mutex);
 
     sparse_global_context.num_threads = n_threads;
 
     // Release the mutex protecting global_thread.
-    aoclsparse_pthread_mutex_unlock(&global_thread_mutex);
+    aoclsparse_pthread_mutex_unlock(&aoclsparse_global_thread_mutex);
 }
