@@ -125,11 +125,185 @@ namespace aoclsparse_numeric
         }
     };
     template <>
+    struct quiet_NaN<std::complex<float>>
+    {
+        static constexpr std::complex<float> value{std::numeric_limits<float>::quiet_NaN(),
+                                                   std::numeric_limits<float>::quiet_NaN()};
+        constexpr operator std::complex<float>() const noexcept
+        {
+            return value;
+        }
+    };
+    template <>
     struct quiet_NaN<aoclsparse_double_complex>
     {
         static constexpr aoclsparse_double_complex value{std::numeric_limits<double>::quiet_NaN(),
                                                          std::numeric_limits<double>::quiet_NaN()};
         constexpr operator aoclsparse_double_complex() const noexcept
+        {
+            return value;
+        }
+    };
+    template <>
+    struct quiet_NaN<std::complex<double>>
+    {
+        static constexpr std::complex<double> value{std::numeric_limits<double>::quiet_NaN(),
+                                                    std::numeric_limits<double>::quiet_NaN()};
+        constexpr operator std::complex<double>() const noexcept
+        {
+            return value;
+        }
+    };
+    /* Provide a infinity for all floating point data types */
+    /* Default definition handles real/std types */
+    template <typename T>
+    struct infinity
+    {
+        static constexpr T value{std::numeric_limits<T>::infinity()};
+        constexpr operator T() const noexcept
+        {
+            return value;
+        }
+    };
+    template <>
+    struct infinity<aoclsparse_float_complex>
+    {
+        static constexpr aoclsparse_float_complex value{std::numeric_limits<float>::infinity(),
+                                                        std::numeric_limits<float>::infinity()};
+        constexpr operator aoclsparse_float_complex() const noexcept
+        {
+            return value;
+        }
+    };
+    template <>
+    struct infinity<std::complex<float>>
+    {
+        static constexpr std::complex<float> value{std::numeric_limits<float>::infinity(),
+                                                   std::numeric_limits<float>::infinity()};
+        constexpr operator std::complex<float>() const noexcept
+        {
+            return value;
+        }
+    };
+    template <>
+    struct infinity<aoclsparse_double_complex>
+    {
+        static constexpr aoclsparse_double_complex value{std::numeric_limits<double>::infinity(),
+                                                         std::numeric_limits<double>::infinity()};
+        constexpr operator aoclsparse_double_complex() const noexcept
+        {
+            return value;
+        }
+    };
+    template <>
+    struct infinity<std::complex<double>>
+    {
+        static constexpr std::complex<double> value{std::numeric_limits<double>::infinity(),
+                                                    std::numeric_limits<double>::infinity()};
+        constexpr operator std::complex<double>() const noexcept
+        {
+            return value;
+        }
+    };
+
+    /* Provide a minimum for all floating point data types */
+    /* Default definition handles real/std types */
+    template <typename T>
+    struct minimum
+    {
+        static constexpr T value{(std::numeric_limits<T>::min)()};
+        constexpr operator T() const noexcept
+        {
+            return value;
+        }
+    };
+    template <>
+    struct minimum<aoclsparse_float_complex>
+    {
+        static constexpr aoclsparse_float_complex value{(std::numeric_limits<float>::min)(),
+                                                        (std::numeric_limits<float>::min)()};
+        constexpr operator aoclsparse_float_complex() const noexcept
+        {
+            return value;
+        }
+    };
+    template <>
+    struct minimum<std::complex<float>>
+    {
+        static constexpr std::complex<float> value{(std::numeric_limits<float>::min)(),
+                                                   (std::numeric_limits<float>::min)()};
+        constexpr operator std::complex<float>() const noexcept
+        {
+            return value;
+        }
+    };
+    template <>
+    struct minimum<aoclsparse_double_complex>
+    {
+        static constexpr aoclsparse_double_complex value{(std::numeric_limits<double>::min)(),
+                                                         (std::numeric_limits<double>::min)()};
+        constexpr operator aoclsparse_double_complex() const noexcept
+        {
+            return value;
+        }
+    };
+    template <>
+    struct minimum<std::complex<double>>
+    {
+        static constexpr std::complex<double> value{(std::numeric_limits<double>::min)(),
+                                                    (std::numeric_limits<double>::min)()};
+        constexpr operator std::complex<double>() const noexcept
+        {
+            return value;
+        }
+    };
+    /* Provide a Maximum for all floating point data types */
+    /* Default definition handles real/std types */
+    template <typename T>
+    struct maximum
+    {
+        static constexpr T value{(std::numeric_limits<T>::max)()};
+        constexpr operator T() const noexcept
+        {
+            return value;
+        }
+    };
+    template <>
+    struct maximum<aoclsparse_float_complex>
+    {
+        static constexpr aoclsparse_float_complex value{(std::numeric_limits<float>::max)(),
+                                                        (std::numeric_limits<float>::max)()};
+        constexpr operator aoclsparse_float_complex() const noexcept
+        {
+            return value;
+        }
+    };
+    template <>
+    struct maximum<std::complex<float>>
+    {
+        static constexpr std::complex<float> value{(std::numeric_limits<float>::max)(),
+                                                   (std::numeric_limits<float>::max)()};
+        constexpr operator std::complex<float>() const noexcept
+        {
+            return value;
+        }
+    };
+    template <>
+    struct maximum<aoclsparse_double_complex>
+    {
+        static constexpr aoclsparse_double_complex value{(std::numeric_limits<double>::max)(),
+                                                         (std::numeric_limits<double>::max)()};
+        constexpr operator aoclsparse_double_complex() const noexcept
+        {
+            return value;
+        }
+    };
+    template <>
+    struct maximum<std::complex<double>>
+    {
+        static constexpr std::complex<double> value{(std::numeric_limits<double>::max)(),
+                                                    (std::numeric_limits<double>::max)()};
+        constexpr operator std::complex<double>() const noexcept
         {
             return value;
         }
