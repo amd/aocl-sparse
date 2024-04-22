@@ -286,6 +286,15 @@ void expect_mat_near(
         }                                                                                     \
     }
 
+/*
+    Relative error tolerance for comparing floating point numbers.
+    The first argument 'x' is the reference value.
+    The minimum error tolerance is chosen between the absolute error tolerance
+    and relative tolerance.
+*/
+#define EXPECT_REL(x, y, rel_error, abs_error) \
+    EXPECT_NEAR((x), (y), std::min(rel_error *std::abs(x), abs_error))
+
 // Template function to compare a triangular-matrix irrespective of type =================================
 template <typename T>
 void expect_trimat_near(
@@ -307,6 +316,64 @@ void expect_trimat_near(
         FAIL() << err;
     }
 }
+enum special_value
+{
+    ET_ZERO = 0, //zero
+    ET_NAN, //Nan
+    ET_INF, //Infinity
+    ET_NUM, //number
+    ET_POVRFLOW, //positive overflow
+    ET_NOVRFLOW, //negative overflow
+    ET_PUNDRFLOW, //positive underflow
+    ET_NUNDRFLOW, //negative overflow
+    ET_CPLX_NAN_INF //for complex cases when result is of the form (NaN + Inf . i)
+};
+
+/*
+    check whether inputs are extreme(NaN, Inf) or non-extreme and this applies only for real data
+    The minimum error tolerance for comparing floating point numbers is
+    chosen between the absolute error tolerance and relative tolerance.
+
+    enable_if_t<> resolves to either double or float at compile time, based on the provided template parameter
+*/
+template <typename T>
+std::enable_if_t<(std::is_same_v<T, double> || std::is_same_v<T, float>), bool>
+    is_matching(T ref, T computed, T rel_error, T abs_error)
+{
+    tolerance_t<T> tol = (std::min)(rel_error * std::abs(ref), abs_error);
+    if(std::isnan(ref))
+    {
+        return (std::isnan(ref) && std::isnan(computed));
+    }
+    else if(std::isinf(ref))
+    {
+        return (std::isinf(ref) && std::isinf(computed));
+    }
+    else
+        return (std::abs(ref - computed) <= tol);
+}
+
+/*
+    overloaded function, addresses complex data
+    enable_if_t<> resolves to either complex-double or complex-float at compile time,
+    based on the provided template parameter
+*/
+template <typename T>
+std::enable_if_t<
+    ((std::is_same_v<T, std::complex<double>>) || (std::is_same_v<T, std::complex<float>>)),
+    bool>
+    is_matching(T ref, T computed, tolerance_t<T> rel_error, tolerance_t<T> abs_error)
+{
+    return (is_matching(std::real(ref), std::real(computed), rel_error, abs_error))
+           && (is_matching(std::imag(ref), std::imag(computed), rel_error, abs_error));
+}
+
+#define EXPECT_MATCH(T, ref, computed, rel_error, abs_error) \
+    EXPECT_PRED4(is_matching<T>, ref, computed, rel_error, abs_error)
+#define EXPECT_ARR_MATCH(T, n, x, y, rel_error, abs_error)    \
+    for(size_t j = 0; j < (size_t)(n); j++)                   \
+    EXPECT_MATCH(T, ((x)[j]), ((y)[j]), rel_error, abs_error) \
+        << "Vectors " #x " and " #y " different at index j=" << j << "."
 
 // Convenience templated interfaces ==========================================================
 
@@ -443,7 +510,15 @@ enum linear_system_id
     GS_TRIANGLE_S5,
     GS_MV_TRIANGLE_S5,
     GS_SYMM_ALPHA2_S9,
-    GS_MV_SYMM_ALPHA2_S9
+    GS_MV_SYMM_ALPHA2_S9,
+    // Extreme Value Cases
+    EXT_G5,
+    EXT_G5_B0,
+    EXT_S5,
+    EXT_S5_B0,
+    EXT_NSYMM_5,
+    EXT_H5,
+    EXT_H5_B0
 };
 template <typename T>
 aoclsparse_status create_matrix(matrix_id                    mid,
@@ -742,7 +817,248 @@ inline T bcd(T v, T w)
     else
         return v;
 };
+/*
+    compute right exponents to calculate operand values for extreme value testing.
+    This is used in overflow and underflow testing
+*/
+template <typename T>
+void compute_exponents(aoclsparse_int &op1_exp,
+                       aoclsparse_int &op2_exp,
+                       bool            is_underflow = false,
+                       bool            is_negative  = false,
+                       aoclsparse_int  ou_range     = 0)
+{
+    /*
+        FLT_MAX (maximum 32 bit value for double data type) = 3.402823e+38
+            exponent = 38
+        DBL_MAX (maximum 64 bit value for double data type) = 1.797693e+308
+            exponent = 308
+    */
+    const aoclsparse_int exponents[2] = {38, 308};
+    aoclsparse_int       distance, exp, ouf_sn_rng_id = 0, expected_exp_range = 0;
 
+    //minimum distance from MIN for underflow to trigger
+    distance = 1 + 8 * sizeof(tolerance_t<T>) / sizeof(float);
+
+    if constexpr(std::is_same_v<T, std::complex<float>> || std::is_same_v<T, float>)
+    {
+        //use exponents[0] = 38
+        exp = exponents[0];
+    }
+    else if constexpr(std::is_same_v<T, std::complex<double>> || std::is_same_v<T, double>)
+    {
+        //use exponents[1] = 308
+        exp = exponents[1];
+    }
+    /*
+        [overflow=0/underflow=1][sign=0/1][within-bound=0/out-of-range=1]
+    */
+    ouf_sn_rng_id = (((aoclsparse_int)is_underflow & 0x1) << 3)
+                    | (((aoclsparse_int)is_negative & 0x1) << 2) | (ou_range & 0x1);
+    /*
+        EG:
+        FLT_MAX = 3.402823e+38
+        op1 * op2 = 10 ^ (19 + 20) = 10 ^ 39
+            where 39 > 38 and thus product should cross FLT_MAX boundary and enter Inf
+    */
+    switch(ouf_sn_rng_id)
+    {
+    //0 0 0
+    case 0:
+        //positive, overflow, edge-within-bound
+        expected_exp_range = exp + 2;
+        op1_exp            = expected_exp_range / 2;
+        op2_exp            = expected_exp_range - op1_exp;
+        break;
+    //0 0 1
+    case 2:
+        //positive, overflow, outof-bound
+        expected_exp_range = exp - 11;
+        op1_exp            = expected_exp_range / 2;
+        op2_exp            = expected_exp_range - op1_exp;
+        break;
+    //0 1 0
+    case 4:
+        //negative, overflow, edge-within-bound
+        expected_exp_range = exp + 2;
+        op1_exp            = expected_exp_range / 2;
+        op2_exp            = expected_exp_range - op1_exp;
+        break;
+    //0 1 1
+    case 6:
+        //negative, overflow, outof-bound
+        expected_exp_range = exp - 11;
+        op1_exp            = expected_exp_range / 2;
+        op2_exp            = expected_exp_range - op1_exp;
+        break;
+    //1 0 0
+    case 8:
+        //positive, underflow, edge-within-bound
+        expected_exp_range = exp + 1;
+        op1_exp            = expected_exp_range / 2;
+        op2_exp            = expected_exp_range - op1_exp;
+        break;
+    //1 0 1
+    case 10:
+        //positive, underflow, outof-bound
+        expected_exp_range = exp - distance - 11;
+        op1_exp            = expected_exp_range / 2;
+        op2_exp            = expected_exp_range - op1_exp;
+        break;
+    //1 1 0
+    case 12:
+        //negative, underflow, edge-within-bound
+        expected_exp_range = exp + 1;
+        op1_exp            = expected_exp_range / 2;
+        op2_exp            = expected_exp_range - op1_exp;
+        break;
+    //1 1 1
+    case 14:
+        //negative, underflow, outof-bound
+        expected_exp_range = exp - distance - 11;
+        op1_exp            = expected_exp_range / 2;
+        op2_exp            = expected_exp_range - op1_exp;
+        break;
+    default:
+        break;
+    }
+}
+/*
+    Based on whether csrv_val(operand 1) or x[](operand 2), the value and
+    enums are decided for the test
+    In case of overflo/underflow tests, operand values are computed using the
+    exponents to come up with a test that is
+        1. within boundary and thus the product is valid floating point
+        2. well outside boundary. product is either infinity or zero
+*/
+template <typename T>
+void lookup_special_value(T              &operand,
+                          aoclsparse_int &id,
+                          aoclsparse_int  which_operand = 0,
+                          aoclsparse_int  ou_range      = 0)
+{
+    tolerance_t<T> temp;
+    aoclsparse_int op1_exponent, op2_exponent;
+    switch(id)
+    {
+    case ET_ZERO:
+        operand = aoclsparse_numeric::zero<T>();
+        break;
+    case ET_NAN:
+        operand = aoclsparse_numeric::quiet_NaN<T>();
+        break;
+    case ET_INF:
+        operand = aoclsparse_numeric::infinity<T>();
+        break;
+    case ET_POVRFLOW:
+        temp = aoclsparse_numeric::maximum<tolerance_t<T>>();
+        compute_exponents<T>(op1_exponent, op2_exponent, false, false, ou_range);
+        if(which_operand == 1)
+        {
+            temp = temp / pow(10, op1_exponent);
+        }
+        else if(which_operand == 2)
+        {
+            temp = temp / pow(10, op2_exponent);
+        }
+        if constexpr(std::is_same_v<T, std::complex<double>>
+                     || std::is_same_v<T, std::complex<float>>)
+        {
+            operand = {static_cast<tolerance_t<T>>(temp), static_cast<tolerance_t<T>>(temp)};
+        }
+        else
+        {
+            operand = temp;
+        }
+        break;
+    case ET_NOVRFLOW:
+        temp = -aoclsparse_numeric::maximum<tolerance_t<T>>();
+        compute_exponents<T>(op1_exponent, op2_exponent, false, true, ou_range);
+        if(which_operand == 1)
+        {
+            temp = temp / pow(10, op1_exponent);
+        }
+        else if(which_operand == 2)
+        {
+            temp = temp / pow(10, op2_exponent);
+        }
+        if constexpr(std::is_same_v<T, std::complex<double>>
+                     || std::is_same_v<T, std::complex<float>>)
+        {
+            operand = {static_cast<tolerance_t<T>>(temp), static_cast<tolerance_t<T>>(temp)};
+        }
+        else
+        {
+            operand = temp;
+        }
+        break;
+    case ET_PUNDRFLOW:
+        temp = aoclsparse_numeric::minimum<tolerance_t<T>>();
+        compute_exponents<T>(op1_exponent, op2_exponent, true, false, ou_range);
+        if(which_operand == 1)
+        {
+            temp = temp * pow(10, op1_exponent);
+        }
+        else if(which_operand == 2)
+        {
+            temp = temp * pow(10, op2_exponent);
+        }
+        if constexpr(std::is_same_v<T, std::complex<double>>
+                     || std::is_same_v<T, std::complex<float>>)
+        {
+            operand = {static_cast<tolerance_t<T>>(temp), static_cast<tolerance_t<T>>(temp)};
+        }
+        else
+        {
+            operand = temp;
+        }
+        break;
+    case ET_NUNDRFLOW:
+        temp = -aoclsparse_numeric::minimum<tolerance_t<T>>();
+        compute_exponents<T>(op1_exponent, op2_exponent, true, true, ou_range);
+        if(which_operand == 1)
+        {
+            temp = temp * pow(10, op1_exponent);
+        }
+        else if(which_operand == 2)
+        {
+            temp = -temp * pow(10, op2_exponent);
+        }
+        if constexpr(std::is_same_v<T, std::complex<double>>
+                     || std::is_same_v<T, std::complex<float>>)
+        {
+            operand = {static_cast<tolerance_t<T>>(temp), static_cast<tolerance_t<T>>(temp)};
+        }
+        else
+        {
+            operand = temp;
+        }
+        break;
+    default:
+        break;
+    }
+}
+/*
+    based on input value enums, the operands are assigned to csr_val[] and x[]buffers
+    overflow and underflow (both positive and negative cases) are assigned with
+    appropriate operands for multiplication
+*/
+template <typename T>
+void assign_special_values(T              &op1_csr_val,
+                           T              &op2_x_vec,
+                           aoclsparse_int &spl_op_csrval, //input
+                           aoclsparse_int &spl_op_x, //input
+                           aoclsparse_int &ou_range) //range
+{
+    if((spl_op_csrval == ET_POVRFLOW && spl_op_x == ET_POVRFLOW)
+       || (spl_op_csrval == ET_NOVRFLOW && spl_op_x == ET_NOVRFLOW)
+       || (spl_op_csrval == ET_PUNDRFLOW && spl_op_x == ET_PUNDRFLOW)
+       || (spl_op_csrval == ET_NUNDRFLOW && spl_op_x == ET_NUNDRFLOW))
+    {
+        lookup_special_value(op1_csr_val, spl_op_csrval, 1, ou_range);
+        lookup_special_value(op2_x_vec, spl_op_x, 2, ou_range);
+    }
+}
 /*
  * Database to create linear systems
  * Inputs:
@@ -765,6 +1081,14 @@ inline T bcd(T v, T w)
  * iparm[6] = matrix type
  * iparm[7] = fill mode
  * iparm[8] = transpose mode;
+ * Custom Extreme Value Testing options (SPMV)
+ * INPUT: iparm[4] = type of special value in operand 1 in csr_val
+ * INPUT: iparm[5] = type of special value in x[]
+ * INPUT: iparm[6] = matrix type
+ * INPUT: iparm[7] = fill mode
+ * INPUT: iparm[8] = transpose mode;
+ * INPUT: iparm[9] = overflow/underflow range
+ * OUTPUT: dparm[0] = beta
  */
 template <typename T>
 aoclsparse_status
@@ -794,8 +1118,11 @@ aoclsparse_status
     aoclsparse_order       order;
     T                      beta;
     std::vector<T>         wcolxref, wcolb;
+    aoclsparse_int         csr_value_offset, x_offset;
     const bool             cplx
         = std::is_same_v<T, std::complex<float>> || std::is_same_v<T, std::complex<double>>;
+
+    std::string msg;
     // Set defaults.
     title = "N/A";
     trans = aoclsparse_operation_none;
@@ -3338,6 +3665,452 @@ aoclsparse_status
             return aoclsparse_status_internal_error;
             break;
         }
+        break;
+    case EXT_G5:
+    case EXT_G5_B0:
+    case EXT_S5:
+    case EXT_S5_B0:
+        /*
+            Symmetric Matrix
+            A = [
+                    211     0       2.5     1       0.5;
+                    0       271     0       0       2;
+                    2.5     0       311     1.2     3;
+                    1       0       1.2     287     0;
+                    0.5     2       3       0       251;
+                ]
+        */
+        title   = "small symmetric m with extreme values, compute A.x = b";
+        mattype = (aoclsparse_matrix_type)iparm[6]; // matrix type
+        // fill mode
+        if(iparm[7] == 0 || iparm[7] == 2)
+        {
+            fill_mode = aoclsparse_fill_mode_lower;
+        }
+        else if(iparm[7] == 1 || iparm[7] == 3)
+        {
+            fill_mode = aoclsparse_fill_mode_upper;
+        }
+        trans = (aoclsparse_operation)iparm[8]; //transpose mode
+        //iparm[4]; //A_operand
+        //iparm[5]; //x_operand
+
+        if(iparm[7] == 2 || iparm[7] == 3)
+        {
+            //strictly lower or upper triangle
+            diag = aoclsparse_diag_type_zero;
+        }
+        else
+        {
+            diag = aoclsparse_diag_type_non_unit;
+        }
+
+        alpha    = bc((T)2.0);
+        dparm[0] = bc((T)2.0);
+        n        = 5;
+        nnz      = 17;
+
+        icrowa.resize(n + 1);
+        icrowa = {0, 4, 6, 10, 13, 17};
+        icola.resize(nnz);
+        icola = {0, 2, 3, 4, 1, 4, 0, 2, 3, 4, 0, 2, 3, 0, 1, 2, 4};
+
+        // update row pointer and column index arrays to reflect values as per base-index
+        // icrowa = icrowa + base;
+        transform(icrowa.begin(), icrowa.end(), icrowa.begin(), [base](aoclsparse_int &d) {
+            return d + base;
+        });
+        // icola = icola + base;
+        transform(icola.begin(), icola.end(), icola.begin(), [base](aoclsparse_int &d) {
+            return d + base;
+        });
+        aval.resize(nnz);
+        aval = {bc((T)211),
+                bc((T)2.5),
+                bc((T)1),
+                bc((T)0.5),
+                bc((T)271),
+                bc((T)2),
+                bc((T)2.5),
+                bc((T)311),
+                bc((T)1.2),
+                bc((T)3),
+                bc((T)1),
+                bc((T)1.2),
+                bc((T)287),
+                bc((T)0.5),
+                bc((T)2),
+                bc((T)3),
+                bc((T)251)};
+        if(aoclsparse_create_mat_descr(&descr) != aoclsparse_status_success)
+            return aoclsparse_status_internal_error;
+
+        descr->type      = mattype;
+        descr->fill_mode = fill_mode;
+        descr->diag_type = diag;
+        aoclsparse_set_mat_index_base(descr, base);
+
+        b.resize(n); //reference solution vector in matrix-vector multiplication
+        xref.resize(n); //allocate solution vector for aocl-spmv operation
+        //assign intial values
+        xref = {bc((T)10.0), bc((T)10.0), bc((T)10.0), bc((T)10.0), bc((T)10.0)};
+        b    = xref; //get the initial values into reference rhs vector
+        x.resize(n); //input dense vector in aocl matrix-vector multiplication
+        x = {bc((T)1.0), bc((T)2.0), bc((T)3.0), bc((T)4.0), bc((T)5.0)};
+
+        /*          _                                       _
+            x-->   |_  	1	    2	    3	    4	    5   _|	    b
+
+                    _                                       _
+                   |   211	    0	    2.5	    1	    0.5  |	    225
+                   |   0	    271	    0	    0	    2	 |	    552
+            A-->   |   2.5	    0	    311	    1.2	    3	 |	    955.3
+                   |   1	    0	    1.2	    287	    0	 |	    1152.6
+                   |_  0.5	    2	    3	    0	    251 _|	    1268.5
+
+        */
+        switch(id)
+        {
+        case EXT_G5_B0:
+            //test beta=zero case for general matrices
+            dparm[0] = aoclsparse_numeric::zero<T>();
+            [[fallthrough]];
+        case EXT_G5:
+            //matrix type = General
+            if(trans == aoclsparse_operation_none)
+            {
+                csr_value_offset = 9; //access nnz element from row #3 in csr matrix A(2,4) = 3
+                x_offset         = 4; //access 5th element from x[]   x[4] = 5
+            }
+            else if(trans == aoclsparse_operation_transpose)
+            {
+                csr_value_offset = 15; //access nnz element from row #5 in csr matrix A(4,2) = 3
+                x_offset         = 4;
+            }
+            break;
+        case EXT_S5_B0:
+            //test beta=zero case for symmetric matrices
+            dparm[0] = aoclsparse_numeric::zero<T>();
+            [[fallthrough]];
+        case EXT_S5:
+            //nnz offset for the element from corresponding traingle(lower/upper)
+            if((fill_mode == aoclsparse_fill_mode_lower && trans == aoclsparse_operation_transpose)
+               || (fill_mode == aoclsparse_fill_mode_lower && trans == aoclsparse_operation_none))
+            {
+                csr_value_offset = 15;
+                x_offset         = 4;
+            }
+            else if((fill_mode == aoclsparse_fill_mode_upper
+                     && trans == aoclsparse_operation_transpose)
+                    || (fill_mode == aoclsparse_fill_mode_upper
+                        && trans == aoclsparse_operation_none))
+            {
+                csr_value_offset = 9;
+                x_offset         = 4;
+            }
+            break;
+        default:
+            return aoclsparse_status_internal_error;
+            break;
+        }
+        assign_special_values(aval[csr_value_offset] /*nnz in 3rd row*/,
+                              x[x_offset] /*5th entry in input vector x*/,
+                              iparm[4], //op1 csr_val[]
+                              iparm[5], //op1 x[]
+                              iparm[9]); // range of overflow/underflow input
+
+        if((id == EXT_S5 || id == EXT_S5_B0) && (mattype == aoclsparse_matrix_type_symmetric)
+           && (iparm[5] == ET_ZERO))
+        {
+            x[2] = x[x_offset];
+        }
+        //Generate 'b' for known xref[]
+        ref_csrmv(trans,
+                  alpha,
+                  n,
+                  n,
+                  &aval[0],
+                  &icola[0],
+                  &icrowa[0],
+                  mattype,
+                  fill_mode,
+                  diag,
+                  base,
+                  &x[0],
+                  dparm[0], //beta
+                  &b[0]);
+        if(aoclsparse_create_csr(&A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
+           != aoclsparse_status_success)
+            return aoclsparse_status_internal_error;
+        break;
+    case EXT_H5:
+    case EXT_H5_B0:
+        /*
+            Symmetric Matrix
+            A = [
+                    99      2i      0       0       0;
+                    -2i     -178    3-i     0       0;
+                    0       3+i     561     1-5i    9+i;
+                    0       0       1+5i    711     4;
+                    0       0       9-i       4     363;
+                ]
+            nnz_matrix =
+            [
+                    0	1
+                    2	3	4
+                        5	6	7	8
+                            9	10	11
+                            12	13	14
+            ]
+        */
+        title   = "small hermitian m with extreme values, compute A.x = b";
+        mattype = (aoclsparse_matrix_type)iparm[6]; // matrix type
+        // fill mode
+        if(iparm[7] == 0 || iparm[7] == 2)
+        {
+            fill_mode = aoclsparse_fill_mode_lower;
+        }
+        else if(iparm[7] == 1 || iparm[7] == 3)
+        {
+            fill_mode = aoclsparse_fill_mode_upper;
+        }
+        trans = (aoclsparse_operation)iparm[8]; //transpose mode
+        //iparm[4]; //A_operand
+        //iparm[5]; //x_operand
+
+        if(iparm[7] == 2 || iparm[7] == 3)
+        {
+            //strictly lower or upper triangle
+            diag = aoclsparse_diag_type_zero;
+        }
+        else
+        {
+            diag = aoclsparse_diag_type_non_unit;
+        }
+
+        alpha    = bc((T)2.0);
+        dparm[0] = bc((T)2.0);
+        n        = 5;
+        nnz      = 15;
+
+        icrowa.resize(n + 1);
+        icrowa = {0, 2, 5, 9, 12, 15};
+        icola.resize(nnz);
+        icola = {0, 1, 0, 1, 2, 1, 2, 3, 4, 2, 3, 4, 2, 3, 4};
+
+        // update row pointer and column index arrays to reflect values as per base-index
+        // icrowa = icrowa + base;
+        transform(icrowa.begin(), icrowa.end(), icrowa.begin(), [base](aoclsparse_int &d) {
+            return d + base;
+        });
+        // icola = icola + base;
+        transform(icola.begin(), icola.end(), icola.begin(), [base](aoclsparse_int &d) {
+            return d + base;
+        });
+        aval.resize(nnz);
+        aval = {bcd((T)99, (T)0),
+                bcd((T)0, (T)2),
+                bcd((T)0, (T)-2),
+                bcd((T)-178, (T)0),
+                bcd((T)3, (T)-1),
+                bcd((T)3, (T)1),
+                bcd((T)561, (T)0),
+                bcd((T)1, (T)-5),
+                bcd((T)9, (T)1),
+                bcd((T)1, (T)5),
+                bcd((T)711, (T)0),
+                bcd((T)4, (T)0),
+                bcd((T)9, (T)-1),
+                bcd((T)4, (T)0),
+                bcd((T)363, (T)0)};
+        if(aoclsparse_create_mat_descr(&descr) != aoclsparse_status_success)
+            return aoclsparse_status_internal_error;
+
+        descr->type      = mattype;
+        descr->fill_mode = fill_mode;
+        descr->diag_type = diag;
+        aoclsparse_set_mat_index_base(descr, base);
+
+        b.resize(n); //reference solution vector in matrix-vector multiplication
+        xref.resize(n); //allocate solution vector for aocl-spmv operation
+        //assign intial values
+        xref = {bc((T)10.0), bc((T)10.0), bc((T)10.0), bc((T)10.0), bc((T)10.0)};
+        b    = xref; //get the initial values into reference rhs vector
+        x.resize(n); //input dense vector in aocl matrix-vector multiplication
+        x = {bc((T)1.0), bc((T)2.0), bc((T)3.0), bc((T)4.0), bc((T)5.0)};
+
+        switch(id)
+        {
+        case EXT_H5_B0:
+            //test beta=zero case for symmetric matrices
+            dparm[0] = aoclsparse_numeric::zero<T>();
+            [[fallthrough]];
+        case EXT_H5:
+            //nnz offset for the element from corresponding triangle(lower/upper)
+            if((fill_mode == aoclsparse_fill_mode_lower
+                && trans == aoclsparse_operation_conjugate_transpose)
+               || (fill_mode == aoclsparse_fill_mode_lower && trans == aoclsparse_operation_none)
+               || (fill_mode == aoclsparse_fill_mode_lower
+                   && trans == aoclsparse_operation_transpose))
+            {
+                csr_value_offset = 12;
+                x_offset         = 4;
+            }
+            else if((fill_mode == aoclsparse_fill_mode_upper
+                     && trans == aoclsparse_operation_conjugate_transpose)
+                    || (fill_mode == aoclsparse_fill_mode_upper
+                        && trans == aoclsparse_operation_none)
+                    || (fill_mode == aoclsparse_fill_mode_upper
+                        && trans == aoclsparse_operation_transpose))
+            {
+                csr_value_offset = 8;
+                x_offset         = 4;
+            }
+            break;
+        default:
+            return aoclsparse_status_internal_error;
+            break;
+        }
+        assign_special_values(aval[csr_value_offset] /*nnz in 3rd row*/,
+                              x[x_offset] /*5th entry in input vector x*/,
+                              iparm[4], //op1 csr_val[]
+                              iparm[5], //op1 x[]
+                              iparm[9]); // range of overflow/underflow input
+
+        if((id == EXT_H5 || id == EXT_H5_B0) && (mattype == aoclsparse_matrix_type_symmetric)
+           && (iparm[5] == ET_ZERO))
+        {
+            x[2] = x[x_offset];
+        }
+        //Generate 'b' for known xref[]
+        ref_csrmv(trans,
+                  alpha,
+                  n,
+                  n,
+                  &aval[0],
+                  &icola[0],
+                  &icrowa[0],
+                  mattype,
+                  fill_mode,
+                  diag,
+                  base,
+                  &x[0],
+                  dparm[0], //beta
+                  &b[0]);
+        if(aoclsparse_create_csr(&A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
+           != aoclsparse_status_success)
+            return aoclsparse_status_internal_error;
+        break;
+    case EXT_NSYMM_5:
+        /*
+            Non-Symmetric General Matrix
+            A = [
+                    211     0       2.5     1       0.5;
+                    0       271     0       0       2;
+                    0       0       0       0     3;
+                    1       0       1.2     287     0;
+                    0.5     2       3       0       251;
+                ]
+        */
+        title     = "small non-symmetric of size 5 to test underflow, compute A.x = b";
+        mattype   = (aoclsparse_matrix_type)iparm[6]; // matrix type
+        fill_mode = (aoclsparse_fill_mode)iparm[7]; // fill mode
+        trans     = (aoclsparse_operation)iparm[8]; //transpose mode
+        //iparm[4]; //A_operand
+        //iparm[5]; //x_operand
+        diag = aoclsparse_diag_type_non_unit;
+
+        alpha    = (T)1.0;
+        dparm[0] = (T)1.0;
+        n        = 5;
+        nnz      = 14;
+
+        icrowa.resize(n + 1);
+        icrowa = {0, 4, 6, 7, 10, 14};
+        icola.resize(nnz);
+        icola = {0, 2, 3, 4, 1, 4, 4, 0, 2, 3, 0, 1, 2, 4};
+
+        // update row pointer and column index arrays to reflect values as per base-index
+        // icrowa = icrowa + base;
+        transform(icrowa.begin(), icrowa.end(), icrowa.begin(), [base](aoclsparse_int &d) {
+            return d + base;
+        });
+        // icola = icola + base;
+        transform(icola.begin(), icola.end(), icola.begin(), [base](aoclsparse_int &d) {
+            return d + base;
+        });
+        aval.resize(nnz);
+        aval = {bc((T)211),
+                bc((T)2.5),
+                bc((T)1),
+                bc((T)0.5),
+                bc((T)271),
+                bc((T)2),
+                bc((T)3),
+                bc((T)1),
+                bc((T)1.2),
+                bc((T)287),
+                bc((T)0.5),
+                bc((T)2),
+                bc((T)3),
+                bc((T)251)};
+        if(aoclsparse_create_mat_descr(&descr) != aoclsparse_status_success)
+            return aoclsparse_status_internal_error;
+
+        descr->type      = mattype;
+        descr->fill_mode = fill_mode;
+        descr->diag_type = diag;
+        aoclsparse_set_mat_index_base(descr, base);
+
+        b.resize(n); //reference solution vector in matrix-vector multiplication
+        xref.resize(n); //allocate solution vector for aocl-spmv operation
+        //assign intial values
+        std::fill(xref.begin(), xref.end(), bc((T)0.0));
+        b = xref; //get the initial values into reference rhs vector
+        x.resize(n); //input dense vector in aocl matrix-vector multiplication
+        x = {bc((T)1.0), bc((T)2.0), bc((T)3.0), bc((T)4.0), bc((T)5.0)};
+
+        /*          _                                       _
+            x-->   |_  	1	    2	    3	    4	    5   _|	    b
+
+                    _                                       _
+                   |   211	    0	    2.5	    1	    0.5  |	    225
+                   |   0	    271	    0	    0	    2	 |	    552
+            A-->   |   0	    0	    0	    0	    3	 |	    15 (expect special result here)
+                   |   1	    0	    1.2	    287	    0	 |	    1152.6
+                   |_  0.5	    2	    3	    0	    251 _|	    1268.5
+
+        */
+        //matrix type = General
+        if(trans == aoclsparse_operation_none)
+        {
+            csr_value_offset = 6; //access nnz element from row #3 in csr matrix A(2,4) = 3
+            x_offset         = 4; //access 5th element from x[]   x[4] = 5
+        }
+        //initialize to default
+        assign_special_values(aval[csr_value_offset] /*nnz in 3rd row*/,
+                              x[x_offset] /*5th entry in input vector x*/,
+                              iparm[4], //op1 csr_val[]
+                              iparm[5], //op1 x[]
+                              iparm[9]); // range of overflow/underflow input
+        //Generate 'b' for known xref[]
+        ref_csrmv(trans,
+                  alpha,
+                  n,
+                  n,
+                  &aval[0],
+                  &icola[0],
+                  &icrowa[0],
+                  mattype,
+                  fill_mode,
+                  diag,
+                  base,
+                  &x[0],
+                  dparm[0], //beta
+                  &b[0]);
+        if(aoclsparse_create_csr(&A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
+           != aoclsparse_status_success)
+            return aoclsparse_status_internal_error;
         break;
     default:
         // no data with id found

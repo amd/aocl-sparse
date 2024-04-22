@@ -1506,12 +1506,441 @@ namespace
         test_mvtrg_success<double>(11, 8, 35, op, mat_type, fill, diag, b_a);
     }
     */
-
     // testing optimize functionality (in the context of SpMV) when
     // some of the matrix rows are empty
     TEST(mv, OptEmptyRows)
     {
         test_optmv_empty_rows<double>();
     }
+    /*---------------------------------------------------------------------------------*/
+    //                          Extreme value testing for spmv
+    /*---------------------------------------------------------------------------------*/
+    template <typename T>
+    void mv_extreme_test_driver(linear_system_id  id,
+                                aoclsparse_int    mtype,
+                                aoclsparse_int    fmode,
+                                aoclsparse_int    transp,
+                                aoclsparse_int    op1,
+                                aoclsparse_int    op2,
+                                aoclsparse_int    ou_range,
+                                aoclsparse_status spmv_ext_status = aoclsparse_status_success)
+    {
+        aoclsparse_status    status;
+        std::string          title;
+        T                    alpha;
+        aoclsparse_matrix    A     = nullptr;
+        aoclsparse_mat_descr descr = nullptr;
+        std::vector<T>       b, y;
+        std::vector<T>       x;
+        std::vector<T>       xref;
+        T                    xtol, beta;
+        aoclsparse_operation trans;
+        // permanent storage of matrix data
+        std::vector<T>                 aval;
+        std::vector<aoclsparse_int>    icola;
+        std::vector<aoclsparse_int>    icrowa;
+        std::array<aoclsparse_int, 10> iparm{0};
+        std::array<T, 10>              dparm;
+        aoclsparse_status              exp_status;
+        aoclsparse_index_base          base = aoclsparse_index_base_zero;
+        decltype(std::real(xtol))      tol;
+        /*
+         * Below parameters are inputs to create_linear_system(), which are needed to populate correct reference vectors
+         * OUTPUT: iparm[3] should contain the type of result value
+         * OUTPUT: dparm[0] = beta
+         * INPUT: iparm[4] = type of special value in operand 1 in csr_val
+         * INPUT: iparm[5] = type of special value in x[]
+         * INPUT: iparm[6] = matrix type
+         * INPUT: iparm[7] = fill mode
+         * INPUT: iparm[8] = tranpose mode
+         * INPUT: iparm[9] = overflow/underflow range
+         */
+        //output param: iparm[3] should contain the type of result value
+        iparm[4] = op1;
+        iparm[5] = op2;
 
+        iparm[6] = mtype;
+        iparm[7] = fmode;
+        iparm[8] = transp;
+        iparm[9] = ou_range;
+        status   = create_linear_system<T>(id,
+                                         title,
+                                         trans,
+                                         A,
+                                         descr,
+                                         base,
+                                         alpha,
+                                         b,
+                                         x,
+                                         xref,
+                                         xtol,
+                                         icrowa,
+                                         icola,
+                                         aval,
+                                         iparm,
+                                         dparm,
+                                         exp_status);
+        ASSERT_EQ(status, aoclsparse_status_success)
+            << "Error: could not find linear system id " << id << "!";
+        beta                   = dparm[0];
+        const aoclsparse_int n = A->n;
+
+#if(VERBOSE > 0)
+        std::string oplabel{""};
+        switch(trans)
+        {
+        case aoclsparse_operation_none:
+            oplabel = "None";
+            break;
+        case aoclsparse_operation_transpose:
+            oplabel = "Transpose";
+            break;
+        case aoclsparse_operation_conjugate_transpose:
+            oplabel = "Hermitian Transpose";
+            break;
+        }
+        std::string dtype = "unknown";
+        if(typeid(T) == typeid(double))
+        {
+            dtype = "double";
+        }
+        else if(typeid(T) == typeid(float))
+        {
+            dtype = "float";
+        }
+        if(typeid(T) == typeid(std::complex<double>))
+        {
+            dtype = "cdouble";
+        }
+        else if(typeid(T) == typeid(std::complex<float>))
+        {
+            dtype = "cfloat";
+        }
+        const bool unit = descr->diag_type == aoclsparse_diag_type_unit;
+        std::cout << "Problem id: " << id << " \"" << title << "\"" << std::endl;
+        std::cout << "Configuration: <" << dtype << "> unit=" << (unit ? "Unit" : "Non-unit")
+                  << " op=" << oplabel << ">" << std::endl;
+#endif
+        //validate symgs output
+        y   = std::move(xref);
+        tol = std::real(xtol); // get the tolerance.
+        if(tol <= 0)
+            tol = 10;
+        tolerance_t<T> abs_error = expected_precision<decltype(tol)>(tol);
+        status                   = aoclsparse_mv<T>(trans, &alpha, A, descr, &x[0], &beta, &y[0]);
+        ASSERT_EQ(status, spmv_ext_status)
+            << "Test failed with unexpected return from aoclsparse_mv";
+
+        if(status == aoclsparse_status_success)
+        {
+            EXPECT_ARR_MATCH(T, n, &b[0], &y[0], abs_error, abs_error);
+        }
+        ASSERT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+    }
+#define LT 0
+#define UT 1
+#define SLT 2 //Strictly Lower Triangle
+#define SUT 3 //Strictly Upper Triangle
+
+#define GEN 0
+#define SYM 1
+#define HERMIT 2
+#define TRIANG 3
+
+#define NT 0
+#define TRANS 1
+
+#define NAN_INF_TEST -1
+#define FLOW_EDGE_WITHIN 0
+#define FLOW_OUTOF 1
+
+    typedef struct
+    {
+        linear_system_id id;
+        std::string      testname;
+        aoclsparse_int   matrix_type;
+        aoclsparse_int   fill_mode;
+        aoclsparse_int   transp;
+        aoclsparse_int   op1;
+        aoclsparse_int   op2;
+        aoclsparse_int   ou_range;
+    } extreme_value_list_t;
+#undef ADD_TEST
+#define ADD_TEST(ID, MTYPE, FMODE, TRANSP, OPERAND1, OPERAND2, FLOW_RANGE)                        \
+    ID, #ID "/" #MTYPE "/" #FMODE "/" #TRANSP "/" #OPERAND1 "/" #OPERAND2 "/" #FLOW_RANGE, MTYPE, \
+        FMODE, TRANSP, OPERAND1, OPERAND2, FLOW_RANGE
+
+    extreme_value_list_t extreme_value_list[] = {
+        //General matrices with variations in transpose/Non-transpose and 3 cases of extreme values
+        //  1. NaN * any_number = NaN
+        ADD_TEST(EXT_G5, TRIANG, SUT, NT, ET_NAN, ET_NUM, NAN_INF_TEST),
+        ADD_TEST(EXT_G5, TRIANG, SLT, TRANS, ET_NAN, ET_NUM, NAN_INF_TEST),
+        ADD_TEST(EXT_G5, GEN, LT, TRANS, ET_NAN, ET_NUM, NAN_INF_TEST),
+        ADD_TEST(
+            EXT_G5_B0, GEN, LT, TRANS, ET_NAN, ET_NUM, NAN_INF_TEST), //BETA ZERO CASE for Transpose
+
+        ADD_TEST(EXT_H5, HERMIT, LT, NT, ET_NAN, ET_NUM, NAN_INF_TEST),
+        ADD_TEST(EXT_H5, HERMIT, UT, NT, ET_NAN, ET_NUM, NAN_INF_TEST),
+        ADD_TEST(EXT_H5, TRIANG, SUT, NT, ET_NAN, ET_NUM, NAN_INF_TEST),
+        ADD_TEST(EXT_H5, TRIANG, SLT, TRANS, ET_NAN, ET_NUM, NAN_INF_TEST),
+        ADD_TEST(EXT_H5_B0, HERMIT, LT, NT, ET_NAN, ET_NUM, NAN_INF_TEST),
+        ADD_TEST(EXT_H5_B0, HERMIT, UT, NT, ET_NAN, ET_NUM, NAN_INF_TEST),
+        //  2. Inf * any_number = Inf
+        ADD_TEST(EXT_G5, TRIANG, SUT, NT, ET_INF, ET_NUM, NAN_INF_TEST),
+
+        ADD_TEST(EXT_H5, HERMIT, LT, NT, ET_INF, ET_NUM, NAN_INF_TEST),
+        ADD_TEST(EXT_H5, HERMIT, UT, NT, ET_INF, ET_NUM, NAN_INF_TEST),
+        ADD_TEST(EXT_H5, TRIANG, SUT, NT, ET_INF, ET_NUM, NAN_INF_TEST),
+        ADD_TEST(EXT_H5_B0, HERMIT, LT, NT, ET_INF, ET_NUM, NAN_INF_TEST),
+        ADD_TEST(EXT_H5_B0, HERMIT, UT, NT, ET_INF, ET_NUM, NAN_INF_TEST),
+        //  3. Inf * zero = NaN
+        ADD_TEST(EXT_G5, TRIANG, SUT, NT, ET_INF, ET_ZERO, NAN_INF_TEST),
+        ADD_TEST(EXT_G5, TRIANG, SLT, TRANS, ET_INF, ET_ZERO, NAN_INF_TEST),
+        ADD_TEST(EXT_G5, GEN, LT, TRANS, ET_INF, ET_ZERO, NAN_INF_TEST),
+        ADD_TEST(EXT_G5_B0, GEN, LT, TRANS, ET_INF, ET_ZERO, NAN_INF_TEST),
+        ADD_TEST(EXT_H5, HERMIT, LT, NT, ET_INF, ET_ZERO, NAN_INF_TEST),
+        ADD_TEST(EXT_H5, HERMIT, UT, NT, ET_INF, ET_ZERO, NAN_INF_TEST),
+        ADD_TEST(EXT_H5, TRIANG, SLT, TRANS, ET_INF, ET_ZERO, NAN_INF_TEST),
+        ADD_TEST(EXT_H5_B0, HERMIT, LT, NT, ET_INF, ET_ZERO, NAN_INF_TEST),
+        ADD_TEST(EXT_H5_B0, HERMIT, UT, NT, ET_INF, ET_ZERO, NAN_INF_TEST),
+        //Symmetric matrices with variations in transpose/Non-transpose, lower/upper
+        // and 3 cases of extreme values
+        //  1. NaN * any_number = NaN
+        ADD_TEST(EXT_S5, SYM, LT, NT, ET_NAN, ET_NUM, NAN_INF_TEST),
+        ADD_TEST(EXT_S5_B0, SYM, LT, NT, ET_NAN, ET_NUM, NAN_INF_TEST),
+        ADD_TEST(EXT_S5, SYM, UT, NT, ET_NAN, ET_NUM, NAN_INF_TEST),
+        ADD_TEST(EXT_S5_B0, SYM, UT, NT, ET_NAN, ET_NUM, NAN_INF_TEST),
+        ADD_TEST(EXT_S5, SYM, LT, TRANS, ET_NAN, ET_NUM, NAN_INF_TEST),
+        ADD_TEST(EXT_S5_B0, SYM, LT, TRANS, ET_NAN, ET_NUM, NAN_INF_TEST),
+        ADD_TEST(EXT_S5, SYM, UT, TRANS, ET_NAN, ET_NUM, NAN_INF_TEST),
+        ADD_TEST(EXT_S5_B0, SYM, UT, TRANS, ET_NAN, ET_NUM, NAN_INF_TEST),
+        //  2. Inf * any_number = Inf
+        ADD_TEST(EXT_S5, SYM, LT, NT, ET_INF, ET_NUM, NAN_INF_TEST),
+        ADD_TEST(EXT_S5_B0, SYM, LT, NT, ET_INF, ET_NUM, NAN_INF_TEST),
+        ADD_TEST(EXT_S5, SYM, UT, NT, ET_INF, ET_NUM, NAN_INF_TEST),
+        ADD_TEST(EXT_S5_B0, SYM, UT, NT, ET_INF, ET_NUM, NAN_INF_TEST),
+        ADD_TEST(EXT_S5, SYM, LT, TRANS, ET_INF, ET_NUM, NAN_INF_TEST),
+        ADD_TEST(EXT_S5_B0, SYM, LT, TRANS, ET_INF, ET_NUM, NAN_INF_TEST),
+        ADD_TEST(EXT_S5, SYM, UT, TRANS, ET_INF, ET_NUM, NAN_INF_TEST),
+        ADD_TEST(EXT_S5_B0, SYM, UT, TRANS, ET_INF, ET_NUM, NAN_INF_TEST),
+        //  3. Inf * zero = NaN
+        ADD_TEST(EXT_S5, SYM, LT, NT, ET_INF, ET_ZERO, NAN_INF_TEST),
+        ADD_TEST(EXT_S5_B0, SYM, LT, NT, ET_INF, ET_ZERO, NAN_INF_TEST),
+        ADD_TEST(EXT_S5, SYM, UT, NT, ET_INF, ET_ZERO, NAN_INF_TEST),
+        ADD_TEST(EXT_S5_B0, SYM, UT, NT, ET_INF, ET_ZERO, NAN_INF_TEST),
+        ADD_TEST(EXT_S5, SYM, LT, TRANS, ET_INF, ET_ZERO, NAN_INF_TEST),
+        ADD_TEST(EXT_S5_B0, SYM, LT, TRANS, ET_INF, ET_ZERO, NAN_INF_TEST),
+        ADD_TEST(EXT_S5, SYM, UT, TRANS, ET_INF, ET_ZERO, NAN_INF_TEST),
+        ADD_TEST(EXT_S5_B0, SYM, UT, TRANS, ET_INF, ET_ZERO, NAN_INF_TEST),
+        //Positive Overflow for 2 cases:
+        // edge of DBL_MAX/FLT_MAX but within bounds and well outside DBL_MAX/FLT_MAX bound
+        ADD_TEST(EXT_G5, GEN, LT, NT, ET_POVRFLOW, ET_POVRFLOW, FLOW_EDGE_WITHIN),
+        ADD_TEST(EXT_G5, GEN, LT, NT, ET_POVRFLOW, ET_POVRFLOW, FLOW_OUTOF),
+        //Negative Overflow for 2 cases:
+        // edge of DBL_MAX/FLT_MAX but within bounds and well outside DBL_MAX/FLT_MAX bound
+        ADD_TEST(EXT_G5, GEN, LT, NT, ET_NOVRFLOW, ET_NOVRFLOW, FLOW_EDGE_WITHIN),
+        ADD_TEST(EXT_G5, GEN, LT, NT, ET_NOVRFLOW, ET_NOVRFLOW, FLOW_OUTOF),
+        //Positive Underflow for 2 cases:
+        // edge of DBL_MAX/FLT_MAX but within bounds and well outside DBL_MAX/FLT_MAX bound
+        ADD_TEST(EXT_NSYMM_5, GEN, LT, NT, ET_PUNDRFLOW, ET_PUNDRFLOW, FLOW_EDGE_WITHIN),
+        ADD_TEST(EXT_NSYMM_5, GEN, LT, NT, ET_PUNDRFLOW, ET_PUNDRFLOW, FLOW_OUTOF),
+        //Positive Underflow for 2 cases:
+        // edge of DBL_MAX/FLT_MAX but within bounds and well outside DBL_MAX/FLT_MAX bound
+        ADD_TEST(EXT_NSYMM_5, GEN, LT, NT, ET_NUNDRFLOW, ET_NUNDRFLOW, FLOW_EDGE_WITHIN),
+        ADD_TEST(EXT_NSYMM_5, GEN, LT, NT, ET_NUNDRFLOW, ET_NUNDRFLOW, FLOW_OUTOF),
+    };
+
+    void PrintTo(const extreme_value_list_t &param, ::std::ostream *os)
+    {
+        *os << param.testname;
+    }
+    class PosDouble : public testing::TestWithParam<extreme_value_list_t>
+    {
+    };
+    TEST_P(PosDouble, spmv)
+    {
+        const linear_system_id id     = GetParam().id;
+        aoclsparse_int         mtype  = GetParam().matrix_type;
+        const aoclsparse_int   fmode  = GetParam().fill_mode;
+        aoclsparse_int         transp = GetParam().transp;
+
+        aoclsparse_int op1      = GetParam().op1;
+        aoclsparse_int op2      = GetParam().op2;
+        aoclsparse_int ou_range = GetParam().ou_range;
+
+        const aoclsparse_status spmv_ext_status = aoclsparse_status_success;
+        //database populates real only data when ldouble or float variants are called, so
+        //force matrix type to symmetric since the data that is fed is symmetric
+        if(mtype == aoclsparse_matrix_type_hermitian)
+        {
+            mtype = SYM;
+        }
+        if(transp == NT)
+        {
+            transp = (aoclsparse_int)aoclsparse_operation_none;
+        }
+        else if(transp == TRANS)
+        {
+            transp = (aoclsparse_int)aoclsparse_operation_transpose;
+        }
+#if(VERBOSE > 0)
+        std::cout << "Pos/Double/ExtremeValues test name: \"" << GetParam().testname << "\""
+                  << std::endl;
+#endif
+
+        mv_extreme_test_driver<double>(
+            id, mtype, fmode, transp, op1, op2, ou_range, spmv_ext_status);
+    }
+    INSTANTIATE_TEST_SUITE_P(ExtSuite, PosDouble, ::testing::ValuesIn(extreme_value_list));
+
+    class PosFloat : public testing::TestWithParam<extreme_value_list_t>
+    {
+    };
+    TEST_P(PosFloat, spmv)
+    {
+        const linear_system_id id       = GetParam().id;
+        aoclsparse_int         mtype    = GetParam().matrix_type;
+        const aoclsparse_int   fmode    = GetParam().fill_mode;
+        aoclsparse_int         transp   = GetParam().transp;
+        aoclsparse_int         op1      = GetParam().op1;
+        aoclsparse_int         op2      = GetParam().op2;
+        aoclsparse_int         ou_range = GetParam().ou_range;
+
+        const aoclsparse_status spmv_ext_status = aoclsparse_status_success;
+
+        //database populates real only data when Double or Float variants are called, so
+        //force matrix type to symmetric since the data thatis fed is symmetric
+        if(mtype == aoclsparse_matrix_type_hermitian)
+        {
+            mtype = SYM;
+        }
+
+        if(transp == NT)
+        {
+            transp = (aoclsparse_int)aoclsparse_operation_none;
+        }
+        else if(transp == TRANS)
+        {
+            transp = (aoclsparse_int)aoclsparse_operation_transpose;
+        }
+#if(VERBOSE > 0)
+        std::cout << "Pos/Float/ExtremeValues test name: \"" << GetParam().testname << "\""
+                  << std::endl;
+#endif
+        mv_extreme_test_driver<float>(
+            id, mtype, fmode, transp, op1, op2, ou_range, spmv_ext_status);
+    }
+    INSTANTIATE_TEST_SUITE_P(ExtSuite, PosFloat, ::testing::ValuesIn(extreme_value_list));
+
+    class PosCplxDouble : public testing::TestWithParam<extreme_value_list_t>
+    {
+    };
+    TEST_P(PosCplxDouble, spmv)
+    {
+        const linear_system_id id     = GetParam().id;
+        aoclsparse_int         mtype  = GetParam().matrix_type;
+        const aoclsparse_int   fmode  = GetParam().fill_mode;
+        aoclsparse_int         transp = GetParam().transp;
+
+        aoclsparse_int op1      = GetParam().op1;
+        aoclsparse_int op2      = GetParam().op2;
+        aoclsparse_int ou_range = GetParam().ou_range;
+
+        const aoclsparse_status spmv_ext_status = aoclsparse_status_success;
+
+        if(transp == NT)
+        {
+            transp = (aoclsparse_int)aoclsparse_operation_none;
+        }
+        else if(transp == TRANS)
+        {
+            //check for complex-conjugate tranpose, if matrix type is hermitian, else simple transpose
+            if(mtype == aoclsparse_matrix_type_hermitian)
+            {
+                transp = (aoclsparse_int)aoclsparse_operation_conjugate_transpose;
+            }
+            else
+            {
+                transp = (aoclsparse_int)aoclsparse_operation_transpose;
+            }
+        }
+#if(VERBOSE > 0)
+        std::cout << "Pos/CplxDouble/ExtremeValues test name: \"" << GetParam().testname << "\""
+                  << std::endl;
+#endif
+        /*
+            exclude complex-double cases of overflow and underflow
+            Reason: The order of multiplication of spmv between reference and library kernel matters to decide
+            whether the result is (inf + i . NaN) or (inf + i . inf)
+        */
+        if((op1 != ET_POVRFLOW && op1 != ET_PUNDRFLOW)
+           && (op1 != ET_NOVRFLOW && op1 != ET_NUNDRFLOW))
+        {
+            mv_extreme_test_driver<std::complex<double>>(
+                id, mtype, fmode, transp, op1, op2, ou_range, spmv_ext_status);
+        }
+        else
+        {
+            std::cout << "complex cases of overflow and underflow are disabled due to varying spmv "
+                         "result involving infinity and a complex number.\n";
+        }
+    }
+    INSTANTIATE_TEST_SUITE_P(ExtSuite, PosCplxDouble, ::testing::ValuesIn(extreme_value_list));
+
+    class PosCplxFloat : public testing::TestWithParam<extreme_value_list_t>
+    {
+    };
+    TEST_P(PosCplxFloat, spmv)
+    {
+        const linear_system_id id       = GetParam().id;
+        aoclsparse_int         mtype    = GetParam().matrix_type;
+        const aoclsparse_int   fmode    = GetParam().fill_mode;
+        aoclsparse_int         transp   = GetParam().transp;
+        aoclsparse_int         op1      = GetParam().op1;
+        aoclsparse_int         op2      = GetParam().op2;
+        aoclsparse_int         ou_range = GetParam().ou_range;
+
+        const aoclsparse_status spmv_ext_status = aoclsparse_status_success;
+
+        if(transp == NT)
+        {
+            transp = (aoclsparse_int)aoclsparse_operation_none;
+        }
+        else if(transp == TRANS)
+        {
+            //check for complex-conjugate tranpose, if matrix type is hermitian, else simple transpose
+            if(mtype == aoclsparse_matrix_type_hermitian)
+            {
+                transp = (aoclsparse_int)aoclsparse_operation_conjugate_transpose;
+            }
+            else
+            {
+                transp = (aoclsparse_int)aoclsparse_operation_transpose;
+            }
+        }
+#if(VERBOSE > 0)
+        std::cout << "Pos/CplxFloat/ExtremeValues test name: \"" << GetParam().testname << "\""
+                  << std::endl;
+#endif
+        /*
+            exclude complex-float cases of overflow and underflow
+            Reason: The order of multiplication of spmv between reference and library kernel matters to decide
+            whether the result is (inf + i . NaN) or (inf + i . inf)
+        */
+        if((op1 != ET_POVRFLOW && op1 != ET_PUNDRFLOW)
+           && (op1 != ET_NOVRFLOW && op1 != ET_NUNDRFLOW))
+        {
+            mv_extreme_test_driver<std::complex<float>>(
+                id, mtype, fmode, transp, op1, op2, ou_range, spmv_ext_status);
+        }
+        else
+        {
+            std::cout << "complex cases of overflow and underflow are disabled due to varying spmv "
+                         "result involving infinity and a complex number.\n";
+        }
+    }
+    INSTANTIATE_TEST_SUITE_P(ExtSuite, PosCplxFloat, ::testing::ValuesIn(extreme_value_list));
+    /*---------------------------------------------------------------------------------*/
+    /*---------------------------------------------------------------------------------*/
 } // namespace
