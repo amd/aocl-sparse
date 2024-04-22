@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,6 +24,7 @@
 #include "common_data_utils.h"
 #include "gtest/gtest.h"
 #include "aoclsparse.hpp"
+#include "aoclsparse_roti.hpp"
 
 #include <complex>
 #include <iostream>
@@ -98,6 +99,19 @@ namespace
                 x_exp.assign({-3, 16, -38, 184, 5});
                 y_exp.assign({0, 0, 0, 0, 0, 0, 0, 0, 0, 0});
                 break;
+            case 5:
+                nnz = 19;
+                c   = 2;
+                s   = 3;
+                indx.assign({0, 1, 3, 4, 5, 6, 8, 9, 10, 11, 14, 15, 16, 18, 19, 20, 21, 23, 24});
+                x.assign({16, 2, 18, 1, 8, 24, 6, 25, 9, 13, 28, 3, 2, 6, 13, 22, 3, 2, 3});
+                y.assign({6, 0, 0, 15, 7, 3,  13, 0, 3, 22, 0,  0, 21,
+                          4, 0, 0, 0,  0, 30, 24, 0, 0, 0,  10, 0});
+                x_exp.assign(
+                    {50, 4, 81, 23, 25, 87, 21, 116, 18, 26, 56, 6, 4, 102, 98, 44, 6, 34, 6});
+                y_exp.assign({-36, -6,  0,  -24, 11, -18, -46, 0,   -12, -31, -27, -39, 21,
+                              4,   -84, -9, -6,  0,  42,  9,   -66, -9,  0,   14,  -9});
+                break;
             }
         }
     }
@@ -130,7 +144,7 @@ namespace
                   aoclsparse_status_invalid_index_value);
     }
 
-    template <typename T>
+    template <typename T, int KID>
     void test_roti_success()
     {
         aoclsparse_int              nnz;
@@ -152,19 +166,11 @@ namespace
             aoclsparse_int y_sz = y_exp.size();
             aoclsparse_int x_sz = x_exp.size();
 
-            EXPECT_EQ((aoclsparse_roti<T>(nnz, x.data(), indx.data(), y.data(), c, s, -1)),
+            EXPECT_EQ((aoclsparse_rot<T>(nnz, x.data(), indx.data(), y.data(), c, s, KID)),
                       aoclsparse_status_success);
 
-            if constexpr(std::is_same_v<T, float>)
-            {
-                EXPECT_FLOAT_EQ_VEC(y_sz, y, y_exp);
-                EXPECT_FLOAT_EQ_VEC(x_sz, x, x_exp);
-            }
-            if constexpr(std::is_same_v<T, double>)
-            {
-                EXPECT_DOUBLE_EQ_VEC(y_sz, y, y_exp);
-                EXPECT_DOUBLE_EQ_VEC(x_sz, x, x_exp);
-            }
+            expect_eq_vec<T>(y_sz, y.data(), y_exp.data());
+            expect_eq_vec<T>(x_sz, x.data(), x_exp.data());
         }
     }
 
@@ -179,11 +185,15 @@ namespace
 
     TEST(roti, SuccessArgDouble)
     {
-        test_roti_success<double>();
+        test_roti_success<double, 0>();
+        test_roti_success<double, 1>();
+        test_roti_success<double, 2>();
     }
     TEST(roti, SuccessArgFloat)
     {
-        test_roti_success<float>();
+        test_roti_success<float, 0>();
+        test_roti_success<float, 1>();
+        test_roti_success<float, 2>();
     }
 
 } // namespace
