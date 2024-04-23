@@ -1,0 +1,902 @@
+
+
+<!DOCTYPE html>
+
+
+<html lang="en" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>AOCL-Sparse Conversion Subprogram &#8212; AOCL-Sparse 4.2.0.0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=ac02cc09edc035673794" rel="stylesheet" />
+<link href="_static/styles/bootstrap.css?digest=ac02cc09edc035673794" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=ac02cc09edc035673794" rel="stylesheet" />
+
+  
+  <link href="_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=ac02cc09edc035673794" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/sphinx-book-theme.css" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css" />
+    <link rel="stylesheet" type="text/css" href="_static/rocm_header.css" />
+    <link rel="stylesheet" type="text/css" href="_static/rocm_footer.css" />
+    <link rel="stylesheet" type="text/css" href="_static/fonts.css" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=ac02cc09edc035673794" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=ac02cc09edc035673794" />
+  <script src="_static/vendor/fontawesome/6.1.2/js/all.min.js?digest=ac02cc09edc035673794"></script>
+
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/sphinx_highlight.js"></script>
+    <script async="async" src="https://download.amd.com/js/analytics/analyticsinit.js"></script>
+    <script async="async" src="_static/code_word_breaks.js"></script>
+    <script async="async" src="_static/renameVersionLinks.js"></script>
+    <script async="async" src="_static/rdcMisc.js"></script>
+    <script async="async" src="_static/theme_mode_captions.js"></script>
+    <script src="_static/scripts/sphinx-book-theme.js?digest=5a5c038af52cf7bc1a1ec88eea08e6366ee68824"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'convert';</script>
+    <link rel="shortcut icon" href="https://www.amd.com/themes/custom/amd/favicon.ico"/>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="AOCL-Sparse Level 1,2,3 Functions" href="functions.html" />
+    <link rel="prev" title="AOCL-Sparse Auxiliary Functions" href="auxiliary.html" />
+    <meta name="google-site-verification" content="ZOn0RZC0Pwzlmf2SaE0bRttWk1YzOhuslbpxUDchQ90" />
+
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>
+    Back to top
+  </button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+
+<header class="common-header" >
+    <nav class="navbar navbar-expand-xl">
+        <div class="container-fluid main-nav rocm-header">
+            
+            <div class="header-logo">
+                <a class="navbar-brand" href="https://www.amd.com/">
+                    <img src="_static/images/amd-header-logo.svg" alt="AMD Logo" title="AMD Logo" width="90" class="d-inline-block align-text-top hover-opacity"/>
+                </a>
+                <div class="vr vr mx-40 my-25"></div>
+                <a class="klavika-font hover-opacity" href="/">AOCL</a>
+            </div>
+            <div class="icon-nav text-center d-flex ms-auto">
+                <!-- TODO: Search icon up here maybe? -->
+            </div>
+        </div>
+    </nav>
+    
+</header>
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+    <p class="title logo__title">AOCL-Sparse 4.2.0.0 documentation</p>
+  
+</a></div>
+        <div class="sidebar-primary-item"><nav class="bd-links" id="bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">AOCL APIs</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="analysis.html">AOCL-Sparse Analysis Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="auxiliary.html">AOCL-Sparse Auxiliary Functions</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">AOCL-Sparse Conversion Subprogram</a></li>
+<li class="toctree-l1"><a class="reference internal" href="functions.html">AOCL-Sparse Level 1,2,3 Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="solvers.html">AOCL-Sparse Iterative Linear System Solvers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="types.html">AOCL-Sparse Types</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><label class="sidebar-toggle primary-toggle btn btn-sm" for="__primary" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-angle-right"></span>
+  </label></div>
+      
+        <div class="header-article-item">
+
+
+
+<nav aria-label="Breadcrumb">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page">AOCL-Sparse...</li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script>
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>AOCL-Sparse Conversion Subprogram</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article" role="main">
+                  
+  <section id="aocl-sparse-conversion-subprogram">
+<h1>AOCL-Sparse Conversion Subprogram<a class="headerlink" href="#aocl-sparse-conversion-subprogram" title="Permalink to this heading">#</a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">aoclsparse_convert.h</span></code> provides sparse format conversion functions.</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv424aoclsparse_csr2ell_width14aoclsparse_int14aoclsparse_intPK14aoclsparse_intP14aoclsparse_int">
+<span id="_CPPv324aoclsparse_csr2ell_width14aoclsparse_int14aoclsparse_intPK14aoclsparse_intP14aoclsparse_int"></span><span id="_CPPv224aoclsparse_csr2ell_width14aoclsparse_int14aoclsparse_intPK14aoclsparse_intP14aoclsparse_int"></span><span id="aoclsparse_csr2ell_width__aoclsparse_int.aoclsparse_int.aoclsparse_intCP.aoclsparse_intP"></span><span class="target" id="aoclsparse__convert_8h_1a6768b0410b1ab0cf43319827206b42d3"></span><a class="reference internal" href="types.html#_CPPv417aoclsparse_status" title="aoclsparse_status"><span class="n"><span class="pre">aoclsparse_status</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aoclsparse_csr2ell_width</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">m</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">nnz</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_row_ptr</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">ell_width</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv424aoclsparse_csr2ell_width14aoclsparse_int14aoclsparse_intPK14aoclsparse_intP14aoclsparse_int" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Convert a sparse CSR matrix into a sparse ELL matrix. </p>
+<p><code class="docutils literal notranslate"><span class="pre">aoclsparse_csr2ell_width</span></code> computes the maximum of the per row non-zero elements over all rows, the ELL <code class="docutils literal notranslate"><span class="pre">width</span></code>, for a given CSR matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>m</strong> – <strong>[in]</strong> number of rows of the sparse CSR matrix. </p></li>
+<li><p><strong>nnz</strong> – <strong>[in]</strong> number of non-zero entries of the sparse CSR matrix. </p></li>
+<li><p><strong>csr_row_ptr</strong> – <strong>[in]</strong> array of <code class="docutils literal notranslate"><span class="pre">m+1</span></code> elements that point to the start of every row of the sparse CSR matrix. </p></li>
+<li><p><strong>ell_width</strong> – <strong>[out]</strong> pointer to the number of non-zero elements per row in ELL storage format.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return values</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>aoclsparse_status_success</strong> – the operation completed successfully. </p></li>
+<li><p><strong>aoclsparse_status_invalid_size</strong> – <code class="docutils literal notranslate"><span class="pre">m</span></code> is invalid. </p></li>
+<li><p><strong>aoclsparse_status_invalid_pointer</strong> – <code class="docutils literal notranslate"><span class="pre">csr\_row</span></code> \_ptr, or <code class="docutils literal notranslate"><span class="pre">ell\_width</span></code>  pointer is invalid. </p></li>
+<li><p><strong>aoclsparse_status_internal_error</strong> – an internal error occurred. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv419aoclsparse_scsr2ell14aoclsparse_intK20aoclsparse_mat_descrPK14aoclsparse_intPK14aoclsparse_intPKfP14aoclsparse_intPf14aoclsparse_int">
+<span id="_CPPv319aoclsparse_scsr2ell14aoclsparse_intK20aoclsparse_mat_descrPK14aoclsparse_intPK14aoclsparse_intPKfP14aoclsparse_intPf14aoclsparse_int"></span><span id="_CPPv219aoclsparse_scsr2ell14aoclsparse_intK20aoclsparse_mat_descrPK14aoclsparse_intPK14aoclsparse_intPKfP14aoclsparse_intPf14aoclsparse_int"></span><span id="aoclsparse_scsr2ell__aoclsparse_int.aoclsparse_mat_descrC.aoclsparse_intCP.aoclsparse_intCP.floatCP.aoclsparse_intP.floatP.aoclsparse_int"></span><span class="target" id="aoclsparse__convert_8h_1a06069136954bb2e5b7d78e057e1eb705"></span><a class="reference internal" href="types.html#_CPPv417aoclsparse_status" title="aoclsparse_status"><span class="n"><span class="pre">aoclsparse_status</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aoclsparse_scsr2ell</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">m</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv420aoclsparse_mat_descr" title="aoclsparse_mat_descr"><span class="n"><span class="pre">aoclsparse_mat_descr</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">descr</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_row_ptr</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_col_ind</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_val</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">ell_col_ind</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">ell_val</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">ell_width</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv419aoclsparse_scsr2ell14aoclsparse_intK20aoclsparse_mat_descrPK14aoclsparse_intPK14aoclsparse_intPKfP14aoclsparse_intPf14aoclsparse_int" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Convert a sparse CSR matrix into a sparse ELLPACK matrix. </p>
+<p><code class="docutils literal notranslate"><span class="pre">aoclsparse_csr2ell</span></code> converts a CSR matrix into an ELL matrix. It is assumed, that <code class="docutils literal notranslate"><span class="pre">ell_val</span></code> and <code class="docutils literal notranslate"><span class="pre">ell_col_ind</span></code> are allocated. Allocation size is computed by the number of rows times the number of ELL non-zero elements per row, such that <span class="math notranslate nohighlight">\(\text{nnz}_{\text{ELL}} = m \cdot \text{ell\_width}\)</span>. The number of ELL non-zero elements per row is obtained by <a class="reference internal" href="#aoclsparse__convert_8h_1a6768b0410b1ab0cf43319827206b42d3"><span class="std std-ref">aoclsparse_csr2ell_width()</span></a>. The index base is preserved during the conversion.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>m</strong> – <strong>[in]</strong> number of rows of the sparse CSR matrix. </p></li>
+<li><p><strong>descr</strong> – <strong>[in]</strong> descriptor of the input sparse CSR matrix. Only the base index is used in the conversion process, the remaining descriptor elements are ignored. </p></li>
+<li><p><strong>csr_val</strong> – <strong>[in]</strong> array containing the values of the sparse CSR matrix. </p></li>
+<li><p><strong>csr_row_ptr</strong> – <strong>[in]</strong> array of <code class="docutils literal notranslate"><span class="pre">m+1</span></code> elements that point to the start of every row of the sparse CSR matrix. </p></li>
+<li><p><strong>csr_col_ind</strong> – <strong>[in]</strong> array containing the column indices of the sparse CSR matrix. </p></li>
+<li><p><strong>ell_width</strong> – <strong>[in]</strong> number of non-zero elements per row in ELL storage format. </p></li>
+<li><p><strong>ell_val</strong> – <strong>[out]</strong> array of <code class="docutils literal notranslate"><span class="pre">m</span></code> times <code class="docutils literal notranslate"><span class="pre">ell_width</span></code> elements of the sparse ELL matrix. </p></li>
+<li><p><strong>ell_col_ind</strong> – <strong>[out]</strong> array of <code class="docutils literal notranslate"><span class="pre">m</span></code> times <code class="docutils literal notranslate"><span class="pre">ell_width</span></code> elements containing the column indices of the sparse ELL matrix.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return values</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>aoclsparse_status_success</strong> – the operation completed successfully. </p></li>
+<li><p><strong>aoclsparse_status_invalid_handle</strong> – the library context was not initialized. </p></li>
+<li><p><strong>aoclsparse_status_invalid_size</strong> – <code class="docutils literal notranslate"><span class="pre">m</span></code> or <code class="docutils literal notranslate"><span class="pre">ell\_width</span></code>  is invalid. </p></li>
+<li><p><strong>aoclsparse_status_invalid_pointer</strong> – <code class="docutils literal notranslate"><span class="pre">csr\_val</span></code> , <code class="docutils literal notranslate"><span class="pre">csr_row_ptr</span></code>, <code class="docutils literal notranslate"><span class="pre">csr\_col</span></code> \_ind, <code class="docutils literal notranslate"><span class="pre">ell\_val</span></code>  or <code class="docutils literal notranslate"><span class="pre">ell\_col</span></code> \_ind pointer is invalid. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv419aoclsparse_dcsr2ell14aoclsparse_intK20aoclsparse_mat_descrPK14aoclsparse_intPK14aoclsparse_intPKdP14aoclsparse_intPd14aoclsparse_int">
+<span id="_CPPv319aoclsparse_dcsr2ell14aoclsparse_intK20aoclsparse_mat_descrPK14aoclsparse_intPK14aoclsparse_intPKdP14aoclsparse_intPd14aoclsparse_int"></span><span id="_CPPv219aoclsparse_dcsr2ell14aoclsparse_intK20aoclsparse_mat_descrPK14aoclsparse_intPK14aoclsparse_intPKdP14aoclsparse_intPd14aoclsparse_int"></span><span id="aoclsparse_dcsr2ell__aoclsparse_int.aoclsparse_mat_descrC.aoclsparse_intCP.aoclsparse_intCP.doubleCP.aoclsparse_intP.doubleP.aoclsparse_int"></span><span class="target" id="aoclsparse__convert_8h_1a587d1b8a117fb2e84eb2c715e53de941"></span><a class="reference internal" href="types.html#_CPPv417aoclsparse_status" title="aoclsparse_status"><span class="n"><span class="pre">aoclsparse_status</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aoclsparse_dcsr2ell</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">m</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv420aoclsparse_mat_descr" title="aoclsparse_mat_descr"><span class="n"><span class="pre">aoclsparse_mat_descr</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">descr</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_row_ptr</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_col_ind</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_val</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">ell_col_ind</span></span>, <span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">ell_val</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">ell_width</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv419aoclsparse_dcsr2ell14aoclsparse_intK20aoclsparse_mat_descrPK14aoclsparse_intPK14aoclsparse_intPKdP14aoclsparse_intPd14aoclsparse_int" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Convert a sparse CSR matrix into a sparse ELLPACK matrix. </p>
+<p><code class="docutils literal notranslate"><span class="pre">aoclsparse_csr2ell</span></code> converts a CSR matrix into an ELL matrix. It is assumed, that <code class="docutils literal notranslate"><span class="pre">ell_val</span></code> and <code class="docutils literal notranslate"><span class="pre">ell_col_ind</span></code> are allocated. Allocation size is computed by the number of rows times the number of ELL non-zero elements per row, such that <span class="math notranslate nohighlight">\(\text{nnz}_{\text{ELL}} = m \cdot \text{ell\_width}\)</span>. The number of ELL non-zero elements per row is obtained by <a class="reference internal" href="#aoclsparse__convert_8h_1a6768b0410b1ab0cf43319827206b42d3"><span class="std std-ref">aoclsparse_csr2ell_width()</span></a>. The index base is preserved during the conversion.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>m</strong> – <strong>[in]</strong> number of rows of the sparse CSR matrix. </p></li>
+<li><p><strong>descr</strong> – <strong>[in]</strong> descriptor of the input sparse CSR matrix. Only the base index is used in the conversion process, the remaining descriptor elements are ignored. </p></li>
+<li><p><strong>csr_val</strong> – <strong>[in]</strong> array containing the values of the sparse CSR matrix. </p></li>
+<li><p><strong>csr_row_ptr</strong> – <strong>[in]</strong> array of <code class="docutils literal notranslate"><span class="pre">m+1</span></code> elements that point to the start of every row of the sparse CSR matrix. </p></li>
+<li><p><strong>csr_col_ind</strong> – <strong>[in]</strong> array containing the column indices of the sparse CSR matrix. </p></li>
+<li><p><strong>ell_width</strong> – <strong>[in]</strong> number of non-zero elements per row in ELL storage format. </p></li>
+<li><p><strong>ell_val</strong> – <strong>[out]</strong> array of <code class="docutils literal notranslate"><span class="pre">m</span></code> times <code class="docutils literal notranslate"><span class="pre">ell_width</span></code> elements of the sparse ELL matrix. </p></li>
+<li><p><strong>ell_col_ind</strong> – <strong>[out]</strong> array of <code class="docutils literal notranslate"><span class="pre">m</span></code> times <code class="docutils literal notranslate"><span class="pre">ell_width</span></code> elements containing the column indices of the sparse ELL matrix.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return values</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>aoclsparse_status_success</strong> – the operation completed successfully. </p></li>
+<li><p><strong>aoclsparse_status_invalid_handle</strong> – the library context was not initialized. </p></li>
+<li><p><strong>aoclsparse_status_invalid_size</strong> – <code class="docutils literal notranslate"><span class="pre">m</span></code> or <code class="docutils literal notranslate"><span class="pre">ell\_width</span></code>  is invalid. </p></li>
+<li><p><strong>aoclsparse_status_invalid_pointer</strong> – <code class="docutils literal notranslate"><span class="pre">csr\_val</span></code> , <code class="docutils literal notranslate"><span class="pre">csr_row_ptr</span></code>, <code class="docutils literal notranslate"><span class="pre">csr\_col</span></code> \_ind, <code class="docutils literal notranslate"><span class="pre">ell\_val</span></code>  or <code class="docutils literal notranslate"><span class="pre">ell\_col</span></code> \_ind pointer is invalid. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv424aoclsparse_csr2dia_ndiag14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descr14aoclsparse_intPK14aoclsparse_intPK14aoclsparse_intP14aoclsparse_int">
+<span id="_CPPv324aoclsparse_csr2dia_ndiag14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descr14aoclsparse_intPK14aoclsparse_intPK14aoclsparse_intP14aoclsparse_int"></span><span id="_CPPv224aoclsparse_csr2dia_ndiag14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descr14aoclsparse_intPK14aoclsparse_intPK14aoclsparse_intP14aoclsparse_int"></span><span id="aoclsparse_csr2dia_ndiag__aoclsparse_int.aoclsparse_int.aoclsparse_mat_descrC.aoclsparse_int.aoclsparse_intCP.aoclsparse_intCP.aoclsparse_intP"></span><span class="target" id="aoclsparse__convert_8h_1aa190e96d3eeee3fcd5999636fed3ba64"></span><a class="reference internal" href="types.html#_CPPv417aoclsparse_status" title="aoclsparse_status"><span class="n"><span class="pre">aoclsparse_status</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aoclsparse_csr2dia_ndiag</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">m</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">n</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv420aoclsparse_mat_descr" title="aoclsparse_mat_descr"><span class="n"><span class="pre">aoclsparse_mat_descr</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">descr</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">nnz</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_row_ptr</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_col_ind</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">dia_num_diag</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv424aoclsparse_csr2dia_ndiag14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descr14aoclsparse_intPK14aoclsparse_intPK14aoclsparse_intP14aoclsparse_int" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Convert a sparse CSR matrix into a sparse DIA matrix. </p>
+<p><code class="docutils literal notranslate"><span class="pre">aoclsparse_csr2dia_ndiag</span></code> computes the number of the diagonals for a given CSR matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>m</strong> – <strong>[in]</strong> number of rows of the sparse CSR matrix. </p></li>
+<li><p><strong>n</strong> – <strong>[in]</strong> number of cols of the sparse CSR matrix. </p></li>
+<li><p><strong>descr</strong> – <strong>[in]</strong> descriptor of the input sparse CSR matrix. Only the base index is used in computing the diagonals, the remaining descriptor elements are ignored. </p></li>
+<li><p><strong>nnz</strong> – <strong>[in]</strong> number of non-zero entries of the sparse CSR matrix. </p></li>
+<li><p><strong>csr_row_ptr</strong> – <strong>[in]</strong> array of <code class="docutils literal notranslate"><span class="pre">m+1</span></code> elements that point to the start of every row of the sparse CSR matrix. </p></li>
+<li><p><strong>csr_col_ind</strong> – <strong>[in]</strong> array containing the column indices of the sparse CSR matrix. </p></li>
+<li><p><strong>dia_num_diag</strong> – <strong>[out]</strong> pointer to the number of diagonals with non-zeroes in DIA storage format.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return values</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>aoclsparse_status_success</strong> – the operation completed successfully. </p></li>
+<li><p><strong>aoclsparse_status_invalid_size</strong> – <code class="docutils literal notranslate"><span class="pre">m</span></code> is invalid. </p></li>
+<li><p><strong>aoclsparse_status_invalid_pointer</strong> – <code class="docutils literal notranslate"><span class="pre">csr\_row</span></code> \_ptr, or <code class="docutils literal notranslate"><span class="pre">ell\_width</span></code>  pointer is invalid. </p></li>
+<li><p><strong>aoclsparse_status_internal_error</strong> – an internal error occurred. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv419aoclsparse_scsr2dia14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descrPK14aoclsparse_intPK14aoclsparse_intPKf14aoclsparse_intP14aoclsparse_intPf">
+<span id="_CPPv319aoclsparse_scsr2dia14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descrPK14aoclsparse_intPK14aoclsparse_intPKf14aoclsparse_intP14aoclsparse_intPf"></span><span id="_CPPv219aoclsparse_scsr2dia14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descrPK14aoclsparse_intPK14aoclsparse_intPKf14aoclsparse_intP14aoclsparse_intPf"></span><span id="aoclsparse_scsr2dia__aoclsparse_int.aoclsparse_int.aoclsparse_mat_descrC.aoclsparse_intCP.aoclsparse_intCP.floatCP.aoclsparse_int.aoclsparse_intP.floatP"></span><span class="target" id="aoclsparse__convert_8h_1a2683bfdf438d89cbf818dde90c8895c5"></span><a class="reference internal" href="types.html#_CPPv417aoclsparse_status" title="aoclsparse_status"><span class="n"><span class="pre">aoclsparse_status</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aoclsparse_scsr2dia</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">m</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">n</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv420aoclsparse_mat_descr" title="aoclsparse_mat_descr"><span class="n"><span class="pre">aoclsparse_mat_descr</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">descr</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_row_ptr</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_col_ind</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_val</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">dia_num_diag</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">dia_offset</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">dia_val</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv419aoclsparse_scsr2dia14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descrPK14aoclsparse_intPK14aoclsparse_intPKf14aoclsparse_intP14aoclsparse_intPf" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Convert a sparse CSR matrix into a sparse DIA matrix. </p>
+<p><code class="docutils literal notranslate"><span class="pre">aoclsparse_csr2dia</span></code> converts a CSR matrix into an DIA matrix. It is assumed, that <code class="docutils literal notranslate"><span class="pre">dia_val</span></code> and <code class="docutils literal notranslate"><span class="pre">dia_offset</span></code> are allocated. Allocation size is computed by the number of rows times the number of diagonals. The number of DIA diagonals is obtained by <a class="reference internal" href="#aoclsparse__convert_8h_1aa190e96d3eeee3fcd5999636fed3ba64"><span class="std std-ref">aoclsparse_csr2dia_ndiag()</span></a>.The index base is preserved during the conversion.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>m</strong> – <strong>[in]</strong> number of rows of the sparse CSR matrix. </p></li>
+<li><p><strong>n</strong> – <strong>[in]</strong> number of cols of the sparse CSR matrix. </p></li>
+<li><p><strong>descr</strong> – <strong>[in]</strong> descriptor of the input sparse CSR matrix. Only the base index is used in the conversion process, the remaining descriptor elements are ignored. </p></li>
+<li><p><strong>csr_row_ptr</strong> – <strong>[in]</strong> array of <code class="docutils literal notranslate"><span class="pre">m+1</span></code> elements that point to the start of every row of the sparse CSR matrix. </p></li>
+<li><p><strong>csr_col_ind</strong> – <strong>[in]</strong> array containing the column indices of the sparse CSR matrix. </p></li>
+<li><p><strong>csr_val</strong> – <strong>[in]</strong> array containing the values of the sparse CSR matrix. </p></li>
+<li><p><strong>dia_num_diag</strong> – <strong>[in]</strong> number of diagoanls in ELL storage format. </p></li>
+<li><p><strong>dia_offset</strong> – <strong>[out]</strong> array of <code class="docutils literal notranslate"><span class="pre">dia_num_diag</span></code> elements containing the diagonal offsets from main diagonal. </p></li>
+<li><p><strong>dia_val</strong> – <strong>[out]</strong> array of <code class="docutils literal notranslate"><span class="pre">m</span></code> times <code class="docutils literal notranslate"><span class="pre">dia_num_diag</span></code> elements of the sparse DIA matrix.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return values</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>aoclsparse_status_success</strong> – the operation completed successfully. </p></li>
+<li><p><strong>aoclsparse_status_invalid_handle</strong> – the library context was not initialized. </p></li>
+<li><p><strong>aoclsparse_status_invalid_size</strong> – <code class="docutils literal notranslate"><span class="pre">m</span></code> or <code class="docutils literal notranslate"><span class="pre">ell\_width</span></code>  is invalid. </p></li>
+<li><p><strong>aoclsparse_status_invalid_pointer</strong> – <code class="docutils literal notranslate"><span class="pre">csr\_val</span></code> , <code class="docutils literal notranslate"><span class="pre">csr\_row</span></code> \_ptr, <code class="docutils literal notranslate"><span class="pre">csr\_col</span></code> \_ind, <code class="docutils literal notranslate"><span class="pre">ell\_val</span></code>  or <code class="docutils literal notranslate"><span class="pre">ell\_col</span></code> \_ind pointer is invalid. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv419aoclsparse_dcsr2dia14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descrPK14aoclsparse_intPK14aoclsparse_intPKd14aoclsparse_intP14aoclsparse_intPd">
+<span id="_CPPv319aoclsparse_dcsr2dia14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descrPK14aoclsparse_intPK14aoclsparse_intPKd14aoclsparse_intP14aoclsparse_intPd"></span><span id="_CPPv219aoclsparse_dcsr2dia14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descrPK14aoclsparse_intPK14aoclsparse_intPKd14aoclsparse_intP14aoclsparse_intPd"></span><span id="aoclsparse_dcsr2dia__aoclsparse_int.aoclsparse_int.aoclsparse_mat_descrC.aoclsparse_intCP.aoclsparse_intCP.doubleCP.aoclsparse_int.aoclsparse_intP.doubleP"></span><span class="target" id="aoclsparse__convert_8h_1ac466ac0c40ecbedc4859ef899f440044"></span><a class="reference internal" href="types.html#_CPPv417aoclsparse_status" title="aoclsparse_status"><span class="n"><span class="pre">aoclsparse_status</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aoclsparse_dcsr2dia</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">m</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">n</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv420aoclsparse_mat_descr" title="aoclsparse_mat_descr"><span class="n"><span class="pre">aoclsparse_mat_descr</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">descr</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_row_ptr</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_col_ind</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_val</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">dia_num_diag</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">dia_offset</span></span>, <span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">dia_val</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv419aoclsparse_dcsr2dia14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descrPK14aoclsparse_intPK14aoclsparse_intPKd14aoclsparse_intP14aoclsparse_intPd" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Convert a sparse CSR matrix into a sparse DIA matrix. </p>
+<p><code class="docutils literal notranslate"><span class="pre">aoclsparse_csr2dia</span></code> converts a CSR matrix into an DIA matrix. It is assumed, that <code class="docutils literal notranslate"><span class="pre">dia_val</span></code> and <code class="docutils literal notranslate"><span class="pre">dia_offset</span></code> are allocated. Allocation size is computed by the number of rows times the number of diagonals. The number of DIA diagonals is obtained by <a class="reference internal" href="#aoclsparse__convert_8h_1aa190e96d3eeee3fcd5999636fed3ba64"><span class="std std-ref">aoclsparse_csr2dia_ndiag()</span></a>.The index base is preserved during the conversion.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>m</strong> – <strong>[in]</strong> number of rows of the sparse CSR matrix. </p></li>
+<li><p><strong>n</strong> – <strong>[in]</strong> number of cols of the sparse CSR matrix. </p></li>
+<li><p><strong>descr</strong> – <strong>[in]</strong> descriptor of the input sparse CSR matrix. Only the base index is used in the conversion process, the remaining descriptor elements are ignored. </p></li>
+<li><p><strong>csr_row_ptr</strong> – <strong>[in]</strong> array of <code class="docutils literal notranslate"><span class="pre">m+1</span></code> elements that point to the start of every row of the sparse CSR matrix. </p></li>
+<li><p><strong>csr_col_ind</strong> – <strong>[in]</strong> array containing the column indices of the sparse CSR matrix. </p></li>
+<li><p><strong>csr_val</strong> – <strong>[in]</strong> array containing the values of the sparse CSR matrix. </p></li>
+<li><p><strong>dia_num_diag</strong> – <strong>[in]</strong> number of diagoanls in ELL storage format. </p></li>
+<li><p><strong>dia_offset</strong> – <strong>[out]</strong> array of <code class="docutils literal notranslate"><span class="pre">dia_num_diag</span></code> elements containing the diagonal offsets from main diagonal. </p></li>
+<li><p><strong>dia_val</strong> – <strong>[out]</strong> array of <code class="docutils literal notranslate"><span class="pre">m</span></code> times <code class="docutils literal notranslate"><span class="pre">dia_num_diag</span></code> elements of the sparse DIA matrix.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return values</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>aoclsparse_status_success</strong> – the operation completed successfully. </p></li>
+<li><p><strong>aoclsparse_status_invalid_handle</strong> – the library context was not initialized. </p></li>
+<li><p><strong>aoclsparse_status_invalid_size</strong> – <code class="docutils literal notranslate"><span class="pre">m</span></code> or <code class="docutils literal notranslate"><span class="pre">ell\_width</span></code>  is invalid. </p></li>
+<li><p><strong>aoclsparse_status_invalid_pointer</strong> – <code class="docutils literal notranslate"><span class="pre">csr\_val</span></code> , <code class="docutils literal notranslate"><span class="pre">csr\_row</span></code> \_ptr, <code class="docutils literal notranslate"><span class="pre">csr\_col</span></code> \_ind, <code class="docutils literal notranslate"><span class="pre">ell\_val</span></code>  or <code class="docutils literal notranslate"><span class="pre">ell\_col</span></code> \_ind pointer is invalid. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv422aoclsparse_csr2bsr_nnz14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descrPK14aoclsparse_intPK14aoclsparse_int14aoclsparse_intP14aoclsparse_intP14aoclsparse_int">
+<span id="_CPPv322aoclsparse_csr2bsr_nnz14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descrPK14aoclsparse_intPK14aoclsparse_int14aoclsparse_intP14aoclsparse_intP14aoclsparse_int"></span><span id="_CPPv222aoclsparse_csr2bsr_nnz14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descrPK14aoclsparse_intPK14aoclsparse_int14aoclsparse_intP14aoclsparse_intP14aoclsparse_int"></span><span id="aoclsparse_csr2bsr_nnz__aoclsparse_int.aoclsparse_int.aoclsparse_mat_descrC.aoclsparse_intCP.aoclsparse_intCP.aoclsparse_int.aoclsparse_intP.aoclsparse_intP"></span><span class="target" id="aoclsparse__convert_8h_1a9fbb782eb50f8f81224afa6299d4213d"></span><a class="reference internal" href="types.html#_CPPv417aoclsparse_status" title="aoclsparse_status"><span class="n"><span class="pre">aoclsparse_status</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aoclsparse_csr2bsr_nnz</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">m</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">n</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv420aoclsparse_mat_descr" title="aoclsparse_mat_descr"><span class="n"><span class="pre">aoclsparse_mat_descr</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">descr</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_row_ptr</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_col_ind</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">block_dim</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">bsr_row_ptr</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">bsr_nnz</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv422aoclsparse_csr2bsr_nnz14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descrPK14aoclsparse_intPK14aoclsparse_int14aoclsparse_intP14aoclsparse_intP14aoclsparse_int" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>aoclsparse_csr2bsr_nnz computes the number of nonzero block columns per row and the total number of nonzero blocks in a sparse BSR matrix given a sparse CSR matrix as input. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>m</strong> – <strong>[in]</strong> number of rows of the sparse CSR matrix.</p></li>
+<li><p><strong>n</strong> – <strong>[in]</strong> number of columns of the sparse CSR matrix.</p></li>
+<li><p><strong>descr</strong> – <strong>[in]</strong> descriptor of the input sparse CSR matrix. Only the base index is used in computing the nnz blocks, the remaining descriptor elements are ignored. </p></li>
+<li><p><strong>csr_row_ptr</strong> – <strong>[in]</strong> integer array containing <code class="docutils literal notranslate"><span class="pre">m+1</span></code> elements that point to the start of each row of the CSR matrix</p></li>
+<li><p><strong>csr_col_ind</strong> – <strong>[in]</strong> integer array of the column indices for each non-zero element in the CSR matrix</p></li>
+<li><p><strong>block_dim</strong> – <strong>[in]</strong> the block dimension of the BSR matrix. Between 1 and min(m, n)</p></li>
+<li><p><strong>bsr_row_ptr</strong> – <strong>[out]</strong> integer array containing <code class="docutils literal notranslate"><span class="pre">mb+1</span></code> elements that point to the start of each block row of the BSR matrix</p></li>
+<li><p><strong>bsr_nnz</strong> – <strong>[out]</strong> total number of nonzero elements in device or host memory.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return values</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>aoclsparse_status_success</strong> – the operation completed successfully. </p></li>
+<li><p><strong>aoclsparse_status_invalid_size</strong> – <code class="docutils literal notranslate"><span class="pre">m</span></code> or <code class="docutils literal notranslate"><span class="pre">n</span></code> or <code class="docutils literal notranslate"><span class="pre">block\_dim</span></code>  is invalid. </p></li>
+<li><p><strong>aoclsparse_status_invalid_pointer</strong> – <code class="docutils literal notranslate"><span class="pre">csr\_row</span></code> \_ptr or <code class="docutils literal notranslate"><span class="pre">csr\_col</span></code> \_ind or <code class="docutils literal notranslate"><span class="pre">bsr\_row</span></code> \_ptr or <code class="docutils literal notranslate"><span class="pre">bsr\_nnz</span></code>  pointer is invalid. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv419aoclsparse_scsr2bsr14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descrPKfPK14aoclsparse_intPK14aoclsparse_int14aoclsparse_intPfP14aoclsparse_intP14aoclsparse_int">
+<span id="_CPPv319aoclsparse_scsr2bsr14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descrPKfPK14aoclsparse_intPK14aoclsparse_int14aoclsparse_intPfP14aoclsparse_intP14aoclsparse_int"></span><span id="_CPPv219aoclsparse_scsr2bsr14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descrPKfPK14aoclsparse_intPK14aoclsparse_int14aoclsparse_intPfP14aoclsparse_intP14aoclsparse_int"></span><span id="aoclsparse_scsr2bsr__aoclsparse_int.aoclsparse_int.aoclsparse_mat_descrC.floatCP.aoclsparse_intCP.aoclsparse_intCP.aoclsparse_int.floatP.aoclsparse_intP.aoclsparse_intP"></span><span class="target" id="aoclsparse__convert_8h_1a3d7a77a4cb4d2acf821bd170e38697e3"></span><a class="reference internal" href="types.html#_CPPv417aoclsparse_status" title="aoclsparse_status"><span class="n"><span class="pre">aoclsparse_status</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aoclsparse_scsr2bsr</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">m</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">n</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv420aoclsparse_mat_descr" title="aoclsparse_mat_descr"><span class="n"><span class="pre">aoclsparse_mat_descr</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">descr</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_val</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_row_ptr</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_col_ind</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">block_dim</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">bsr_val</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">bsr_row_ptr</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">bsr_col_ind</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv419aoclsparse_scsr2bsr14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descrPKfPK14aoclsparse_intPK14aoclsparse_int14aoclsparse_intPfP14aoclsparse_intP14aoclsparse_int" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Convert a sparse CSR matrix into a sparse BSR matrix. </p>
+<p><code class="docutils literal notranslate"><span class="pre">aoclsparse_csr2bsr</span></code> converts a CSR matrix into a BSR matrix. It is assumed, that <code class="docutils literal notranslate"><span class="pre">bsr_val</span></code>, <code class="docutils literal notranslate"><span class="pre">bsr_col_ind</span></code> and <code class="docutils literal notranslate"><span class="pre">bsr_row_ptr</span></code> are allocated. Allocation size for <code class="docutils literal notranslate"><span class="pre">bsr_row_ptr</span></code> is computed as <code class="docutils literal notranslate"><span class="pre">mb+1</span></code> where <code class="docutils literal notranslate"><span class="pre">mb</span></code> is the number of block rows in the BSR matrix. Allocation size for <code class="docutils literal notranslate"><span class="pre">bsr_val</span></code> and <code class="docutils literal notranslate"><span class="pre">bsr_col_ind</span></code> is computed using <code class="docutils literal notranslate"><span class="pre">csr2bsr_nnz()</span></code> which also fills in <code class="docutils literal notranslate"><span class="pre">bsr_row_ptr</span></code>. The index base is preserved during the conversion.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>m</strong> – <strong>[in]</strong> number of rows in the sparse CSR matrix. </p></li>
+<li><p><strong>n</strong> – <strong>[in]</strong> number of columns in the sparse CSR matrix. </p></li>
+<li><p><strong>descr</strong> – <strong>[in]</strong> descriptor of the input sparse CSR matrix. Only the base index is used in the conversion process, the remaining descriptor elements are ignored. </p></li>
+<li><p><strong>csr_val</strong> – <strong>[in]</strong> array of <code class="docutils literal notranslate"><span class="pre">nnz</span></code> elements containing the values of the sparse CSR matrix. </p></li>
+<li><p><strong>csr_row_ptr</strong> – <strong>[in]</strong> array of <code class="docutils literal notranslate"><span class="pre">m+1</span></code> elements that point to the start of every row of the sparse CSR matrix. </p></li>
+<li><p><strong>csr_col_ind</strong> – <strong>[in]</strong> array of <code class="docutils literal notranslate"><span class="pre">nnz</span></code> elements containing the column indices of the sparse CSR matrix. </p></li>
+<li><p><strong>block_dim</strong> – <strong>[in]</strong> size of the blocks in the sparse BSR matrix. </p></li>
+<li><p><strong>bsr_val</strong> – <strong>[out]</strong> array of <code class="docutils literal notranslate"><span class="pre">nnzb*block_dim*block_dim</span></code> containing the values of the sparse BSR matrix. </p></li>
+<li><p><strong>bsr_row_ptr</strong> – <strong>[out]</strong> array of <code class="docutils literal notranslate"><span class="pre">mb+1</span></code> elements that point to the start of every block row of the sparse BSR matrix. </p></li>
+<li><p><strong>bsr_col_ind</strong> – <strong>[out]</strong> array of <code class="docutils literal notranslate"><span class="pre">nnzb</span></code> elements containing the block column indices of the sparse BSR matrix.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return values</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>aoclsparse_status_success</strong> – the operation completed successfully. </p></li>
+<li><p><strong>aoclsparse_status_invalid_size</strong> – <code class="docutils literal notranslate"><span class="pre">m</span></code> or <code class="docutils literal notranslate"><span class="pre">n</span></code> or <code class="docutils literal notranslate"><span class="pre">block\_dim</span></code>  is invalid. </p></li>
+<li><p><strong>aoclsparse_status_invalid_pointer</strong> – <code class="docutils literal notranslate"><span class="pre">bsr\_val</span></code> , <code class="docutils literal notranslate"><span class="pre">bsr\_row</span></code> \_ptr, <code class="docutils literal notranslate"><span class="pre">bsr\_col_ind</span></code> , <code class="docutils literal notranslate"><span class="pre">csr\_val</span></code> , <code class="docutils literal notranslate"><span class="pre">csr\_row</span></code> \_ptr or <code class="docutils literal notranslate"><span class="pre">csr\_col</span></code> \_ind pointer is invalid. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv419aoclsparse_dcsr2bsr14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descrPKdPK14aoclsparse_intPK14aoclsparse_int14aoclsparse_intPdP14aoclsparse_intP14aoclsparse_int">
+<span id="_CPPv319aoclsparse_dcsr2bsr14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descrPKdPK14aoclsparse_intPK14aoclsparse_int14aoclsparse_intPdP14aoclsparse_intP14aoclsparse_int"></span><span id="_CPPv219aoclsparse_dcsr2bsr14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descrPKdPK14aoclsparse_intPK14aoclsparse_int14aoclsparse_intPdP14aoclsparse_intP14aoclsparse_int"></span><span id="aoclsparse_dcsr2bsr__aoclsparse_int.aoclsparse_int.aoclsparse_mat_descrC.doubleCP.aoclsparse_intCP.aoclsparse_intCP.aoclsparse_int.doubleP.aoclsparse_intP.aoclsparse_intP"></span><span class="target" id="aoclsparse__convert_8h_1a5be051e1e428863b394e49d48ad14a7d"></span><a class="reference internal" href="types.html#_CPPv417aoclsparse_status" title="aoclsparse_status"><span class="n"><span class="pre">aoclsparse_status</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aoclsparse_dcsr2bsr</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">m</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">n</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv420aoclsparse_mat_descr" title="aoclsparse_mat_descr"><span class="n"><span class="pre">aoclsparse_mat_descr</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">descr</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_val</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_row_ptr</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_col_ind</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">block_dim</span></span>, <span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">bsr_val</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">bsr_row_ptr</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">bsr_col_ind</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv419aoclsparse_dcsr2bsr14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descrPKdPK14aoclsparse_intPK14aoclsparse_int14aoclsparse_intPdP14aoclsparse_intP14aoclsparse_int" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Convert a sparse CSR matrix into a sparse BSR matrix. </p>
+<p><code class="docutils literal notranslate"><span class="pre">aoclsparse_csr2bsr</span></code> converts a CSR matrix into a BSR matrix. It is assumed, that <code class="docutils literal notranslate"><span class="pre">bsr_val</span></code>, <code class="docutils literal notranslate"><span class="pre">bsr_col_ind</span></code> and <code class="docutils literal notranslate"><span class="pre">bsr_row_ptr</span></code> are allocated. Allocation size for <code class="docutils literal notranslate"><span class="pre">bsr_row_ptr</span></code> is computed as <code class="docutils literal notranslate"><span class="pre">mb+1</span></code> where <code class="docutils literal notranslate"><span class="pre">mb</span></code> is the number of block rows in the BSR matrix. Allocation size for <code class="docutils literal notranslate"><span class="pre">bsr_val</span></code> and <code class="docutils literal notranslate"><span class="pre">bsr_col_ind</span></code> is computed using <code class="docutils literal notranslate"><span class="pre">csr2bsr_nnz()</span></code> which also fills in <code class="docutils literal notranslate"><span class="pre">bsr_row_ptr</span></code>. The index base is preserved during the conversion.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>m</strong> – <strong>[in]</strong> number of rows in the sparse CSR matrix. </p></li>
+<li><p><strong>n</strong> – <strong>[in]</strong> number of columns in the sparse CSR matrix. </p></li>
+<li><p><strong>descr</strong> – <strong>[in]</strong> descriptor of the input sparse CSR matrix. Only the base index is used in the conversion process, the remaining descriptor elements are ignored. </p></li>
+<li><p><strong>csr_val</strong> – <strong>[in]</strong> array of <code class="docutils literal notranslate"><span class="pre">nnz</span></code> elements containing the values of the sparse CSR matrix. </p></li>
+<li><p><strong>csr_row_ptr</strong> – <strong>[in]</strong> array of <code class="docutils literal notranslate"><span class="pre">m+1</span></code> elements that point to the start of every row of the sparse CSR matrix. </p></li>
+<li><p><strong>csr_col_ind</strong> – <strong>[in]</strong> array of <code class="docutils literal notranslate"><span class="pre">nnz</span></code> elements containing the column indices of the sparse CSR matrix. </p></li>
+<li><p><strong>block_dim</strong> – <strong>[in]</strong> size of the blocks in the sparse BSR matrix. </p></li>
+<li><p><strong>bsr_val</strong> – <strong>[out]</strong> array of <code class="docutils literal notranslate"><span class="pre">nnzb*block_dim*block_dim</span></code> containing the values of the sparse BSR matrix. </p></li>
+<li><p><strong>bsr_row_ptr</strong> – <strong>[out]</strong> array of <code class="docutils literal notranslate"><span class="pre">mb+1</span></code> elements that point to the start of every block row of the sparse BSR matrix. </p></li>
+<li><p><strong>bsr_col_ind</strong> – <strong>[out]</strong> array of <code class="docutils literal notranslate"><span class="pre">nnzb</span></code> elements containing the block column indices of the sparse BSR matrix.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return values</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>aoclsparse_status_success</strong> – the operation completed successfully. </p></li>
+<li><p><strong>aoclsparse_status_invalid_size</strong> – <code class="docutils literal notranslate"><span class="pre">m</span></code> or <code class="docutils literal notranslate"><span class="pre">n</span></code> or <code class="docutils literal notranslate"><span class="pre">block\_dim</span></code>  is invalid. </p></li>
+<li><p><strong>aoclsparse_status_invalid_pointer</strong> – <code class="docutils literal notranslate"><span class="pre">bsr\_val</span></code> , <code class="docutils literal notranslate"><span class="pre">bsr\_row</span></code> \_ptr, <code class="docutils literal notranslate"><span class="pre">bsr\_col_ind</span></code> , <code class="docutils literal notranslate"><span class="pre">csr\_val</span></code> , <code class="docutils literal notranslate"><span class="pre">csr\_row</span></code> \_ptr or <code class="docutils literal notranslate"><span class="pre">csr\_col</span></code> \_ind pointer is invalid. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv419aoclsparse_scsr2csc14aoclsparse_int14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descr21aoclsparse_index_basePK14aoclsparse_intPK14aoclsparse_intPKfP14aoclsparse_intP14aoclsparse_intPf">
+<span id="_CPPv319aoclsparse_scsr2csc14aoclsparse_int14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descr21aoclsparse_index_basePK14aoclsparse_intPK14aoclsparse_intPKfP14aoclsparse_intP14aoclsparse_intPf"></span><span id="_CPPv219aoclsparse_scsr2csc14aoclsparse_int14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descr21aoclsparse_index_basePK14aoclsparse_intPK14aoclsparse_intPKfP14aoclsparse_intP14aoclsparse_intPf"></span><span id="aoclsparse_scsr2csc__aoclsparse_int.aoclsparse_int.aoclsparse_int.aoclsparse_mat_descrC.aoclsparse_index_base.aoclsparse_intCP.aoclsparse_intCP.floatCP.aoclsparse_intP.aoclsparse_intP.floatP"></span><span class="target" id="aoclsparse__convert_8h_1a6dc8eb93fda82ce99fbe9496358d873e"></span><a class="reference internal" href="types.html#_CPPv417aoclsparse_status" title="aoclsparse_status"><span class="n"><span class="pre">aoclsparse_status</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aoclsparse_scsr2csc</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">m</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">n</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">nnz</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv420aoclsparse_mat_descr" title="aoclsparse_mat_descr"><span class="n"><span class="pre">aoclsparse_mat_descr</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">descr</span></span>, <a class="reference internal" href="types.html#_CPPv421aoclsparse_index_base" title="aoclsparse_index_base"><span class="n"><span class="pre">aoclsparse_index_base</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">baseCSC</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_row_ptr</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_col_ind</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_val</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csc_row_ind</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csc_col_ptr</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csc_val</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv419aoclsparse_scsr2csc14aoclsparse_int14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descr21aoclsparse_index_basePK14aoclsparse_intPK14aoclsparse_intPKfP14aoclsparse_intP14aoclsparse_intPf" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Convert a sparse CSR matrix into a sparse CSC matrix. </p>
+<p><code class="docutils literal notranslate"><span class="pre">aoclsparse_csr2csc</span></code> converts a CSR matrix into a CSC matrix. <code class="docutils literal notranslate"><span class="pre">aoclsparse_csr2csc</span></code> can also be used to convert a CSC matrix into a CSR matrix. The index base can be modified during the conversion.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The resulting matrix can also be seen as the transpose of the input matrix.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>m</strong> – <strong>[in]</strong> number of rows of the sparse CSR matrix. </p></li>
+<li><p><strong>n</strong> – <strong>[in]</strong> number of columns of the sparse CSR matrix. </p></li>
+<li><p><strong>nnz</strong> – <strong>[in]</strong> number of non-zero entries of the sparse CSR matrix. </p></li>
+<li><p><strong>descr</strong> – <strong>[in]</strong> descriptor of the input sparse CSR matrix.Only the base index is used in the conversion process, the remaining descriptor elements are ignored. </p></li>
+<li><p><strong>baseCSC</strong> – <strong>[in]</strong> the desired index base (zero or one) for the converted matrix. </p></li>
+<li><p><strong>csr_val</strong> – <strong>[in]</strong> array of <code class="docutils literal notranslate"><span class="pre">nnz</span></code> elements of the sparse CSR matrix. </p></li>
+<li><p><strong>csr_row_ptr</strong> – <strong>[in]</strong> array of <code class="docutils literal notranslate"><span class="pre">m+1</span></code> elements that point to the start of every row of the sparse CSR matrix. </p></li>
+<li><p><strong>csr_col_ind</strong> – <strong>[in]</strong> array of <code class="docutils literal notranslate"><span class="pre">nnz</span></code> elements containing the column indices of the sparse CSR matrix. </p></li>
+<li><p><strong>csc_val</strong> – <strong>[out]</strong> array of <code class="docutils literal notranslate"><span class="pre">nnz</span></code> elements of the sparse CSC matrix. </p></li>
+<li><p><strong>csc_row_ind</strong> – <strong>[out]</strong> array of <code class="docutils literal notranslate"><span class="pre">nnz</span></code> elements containing the row indices of the sparse CSC matrix. </p></li>
+<li><p><strong>csc_col_ptr</strong> – <strong>[out]</strong> array of <code class="docutils literal notranslate"><span class="pre">n+1</span></code> elements that point to the start of every column of the sparse CSC matrix. aoclsparse_csr2csc_buffer_size().</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return values</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>aoclsparse_status_success</strong> – the operation completed successfully. </p></li>
+<li><p><strong>aoclsparse_status_invalid_size</strong> – <code class="docutils literal notranslate"><span class="pre">m</span></code>, <code class="docutils literal notranslate"><span class="pre">n</span></code> or <code class="docutils literal notranslate"><span class="pre">nnz</span></code> is invalid. </p></li>
+<li><p><strong>aoclsparse_status_invalid_pointer</strong> – <code class="docutils literal notranslate"><span class="pre">csr\_val</span></code> , <code class="docutils literal notranslate"><span class="pre">csr\_row</span></code> \_ptr, <code class="docutils literal notranslate"><span class="pre">csr\_col</span></code> \_ind, <code class="docutils literal notranslate"><span class="pre">csc\_val</span></code> , <code class="docutils literal notranslate"><span class="pre">csc\_row</span></code> \_ind, <code class="docutils literal notranslate"><span class="pre">csc\_col</span></code> \_ptr is invalid. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv419aoclsparse_dcsr2csc14aoclsparse_int14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descr21aoclsparse_index_basePK14aoclsparse_intPK14aoclsparse_intPKdP14aoclsparse_intP14aoclsparse_intPd">
+<span id="_CPPv319aoclsparse_dcsr2csc14aoclsparse_int14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descr21aoclsparse_index_basePK14aoclsparse_intPK14aoclsparse_intPKdP14aoclsparse_intP14aoclsparse_intPd"></span><span id="_CPPv219aoclsparse_dcsr2csc14aoclsparse_int14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descr21aoclsparse_index_basePK14aoclsparse_intPK14aoclsparse_intPKdP14aoclsparse_intP14aoclsparse_intPd"></span><span id="aoclsparse_dcsr2csc__aoclsparse_int.aoclsparse_int.aoclsparse_int.aoclsparse_mat_descrC.aoclsparse_index_base.aoclsparse_intCP.aoclsparse_intCP.doubleCP.aoclsparse_intP.aoclsparse_intP.doubleP"></span><span class="target" id="aoclsparse__convert_8h_1af51cbe3d1f4d9c3f31f30c658a8e07f9"></span><a class="reference internal" href="types.html#_CPPv417aoclsparse_status" title="aoclsparse_status"><span class="n"><span class="pre">aoclsparse_status</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aoclsparse_dcsr2csc</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">m</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">n</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">nnz</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv420aoclsparse_mat_descr" title="aoclsparse_mat_descr"><span class="n"><span class="pre">aoclsparse_mat_descr</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">descr</span></span>, <a class="reference internal" href="types.html#_CPPv421aoclsparse_index_base" title="aoclsparse_index_base"><span class="n"><span class="pre">aoclsparse_index_base</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">baseCSC</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_row_ptr</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_col_ind</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_val</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csc_row_ind</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csc_col_ptr</span></span>, <span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csc_val</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv419aoclsparse_dcsr2csc14aoclsparse_int14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descr21aoclsparse_index_basePK14aoclsparse_intPK14aoclsparse_intPKdP14aoclsparse_intP14aoclsparse_intPd" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Convert a sparse CSR matrix into a sparse CSC matrix. </p>
+<p><code class="docutils literal notranslate"><span class="pre">aoclsparse_csr2csc</span></code> converts a CSR matrix into a CSC matrix. <code class="docutils literal notranslate"><span class="pre">aoclsparse_csr2csc</span></code> can also be used to convert a CSC matrix into a CSR matrix. The index base can be modified during the conversion.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The resulting matrix can also be seen as the transpose of the input matrix.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>m</strong> – <strong>[in]</strong> number of rows of the sparse CSR matrix. </p></li>
+<li><p><strong>n</strong> – <strong>[in]</strong> number of columns of the sparse CSR matrix. </p></li>
+<li><p><strong>nnz</strong> – <strong>[in]</strong> number of non-zero entries of the sparse CSR matrix. </p></li>
+<li><p><strong>descr</strong> – <strong>[in]</strong> descriptor of the input sparse CSR matrix.Only the base index is used in the conversion process, the remaining descriptor elements are ignored. </p></li>
+<li><p><strong>baseCSC</strong> – <strong>[in]</strong> the desired index base (zero or one) for the converted matrix. </p></li>
+<li><p><strong>csr_val</strong> – <strong>[in]</strong> array of <code class="docutils literal notranslate"><span class="pre">nnz</span></code> elements of the sparse CSR matrix. </p></li>
+<li><p><strong>csr_row_ptr</strong> – <strong>[in]</strong> array of <code class="docutils literal notranslate"><span class="pre">m+1</span></code> elements that point to the start of every row of the sparse CSR matrix. </p></li>
+<li><p><strong>csr_col_ind</strong> – <strong>[in]</strong> array of <code class="docutils literal notranslate"><span class="pre">nnz</span></code> elements containing the column indices of the sparse CSR matrix. </p></li>
+<li><p><strong>csc_val</strong> – <strong>[out]</strong> array of <code class="docutils literal notranslate"><span class="pre">nnz</span></code> elements of the sparse CSC matrix. </p></li>
+<li><p><strong>csc_row_ind</strong> – <strong>[out]</strong> array of <code class="docutils literal notranslate"><span class="pre">nnz</span></code> elements containing the row indices of the sparse CSC matrix. </p></li>
+<li><p><strong>csc_col_ptr</strong> – <strong>[out]</strong> array of <code class="docutils literal notranslate"><span class="pre">n+1</span></code> elements that point to the start of every column of the sparse CSC matrix. aoclsparse_csr2csc_buffer_size().</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return values</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>aoclsparse_status_success</strong> – the operation completed successfully. </p></li>
+<li><p><strong>aoclsparse_status_invalid_size</strong> – <code class="docutils literal notranslate"><span class="pre">m</span></code>, <code class="docutils literal notranslate"><span class="pre">n</span></code> or <code class="docutils literal notranslate"><span class="pre">nnz</span></code> is invalid. </p></li>
+<li><p><strong>aoclsparse_status_invalid_pointer</strong> – <code class="docutils literal notranslate"><span class="pre">csr\_val</span></code> , <code class="docutils literal notranslate"><span class="pre">csr\_row</span></code> \_ptr, <code class="docutils literal notranslate"><span class="pre">csr\_col</span></code> \_ind, <code class="docutils literal notranslate"><span class="pre">csc\_val</span></code> , <code class="docutils literal notranslate"><span class="pre">csc\_row</span></code> \_ind, <code class="docutils literal notranslate"><span class="pre">csc\_col</span></code> \_ptr is invalid. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv419aoclsparse_ccsr2csc14aoclsparse_int14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descr21aoclsparse_index_basePK14aoclsparse_intPK14aoclsparse_intPK24aoclsparse_float_complexP14aoclsparse_intP14aoclsparse_intP24aoclsparse_float_complex">
+<span id="_CPPv319aoclsparse_ccsr2csc14aoclsparse_int14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descr21aoclsparse_index_basePK14aoclsparse_intPK14aoclsparse_intPK24aoclsparse_float_complexP14aoclsparse_intP14aoclsparse_intP24aoclsparse_float_complex"></span><span id="_CPPv219aoclsparse_ccsr2csc14aoclsparse_int14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descr21aoclsparse_index_basePK14aoclsparse_intPK14aoclsparse_intPK24aoclsparse_float_complexP14aoclsparse_intP14aoclsparse_intP24aoclsparse_float_complex"></span><span id="aoclsparse_ccsr2csc__aoclsparse_int.aoclsparse_int.aoclsparse_int.aoclsparse_mat_descrC.aoclsparse_index_base.aoclsparse_intCP.aoclsparse_intCP.aoclsparse_float_complexCP.aoclsparse_intP.aoclsparse_intP.aoclsparse_float_complexP"></span><span class="target" id="aoclsparse__convert_8h_1a7f31dc8d6d64e70a89342e645a38db94"></span><a class="reference internal" href="types.html#_CPPv417aoclsparse_status" title="aoclsparse_status"><span class="n"><span class="pre">aoclsparse_status</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aoclsparse_ccsr2csc</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">m</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">n</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">nnz</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv420aoclsparse_mat_descr" title="aoclsparse_mat_descr"><span class="n"><span class="pre">aoclsparse_mat_descr</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">descr</span></span>, <a class="reference internal" href="types.html#_CPPv421aoclsparse_index_base" title="aoclsparse_index_base"><span class="n"><span class="pre">aoclsparse_index_base</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">baseCSC</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_row_ptr</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_col_ind</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">aoclsparse_float_complex</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_val</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csc_row_ind</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csc_col_ptr</span></span>, <span class="n"><span class="pre">aoclsparse_float_complex</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csc_val</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv419aoclsparse_ccsr2csc14aoclsparse_int14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descr21aoclsparse_index_basePK14aoclsparse_intPK14aoclsparse_intPK24aoclsparse_float_complexP14aoclsparse_intP14aoclsparse_intP24aoclsparse_float_complex" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Convert a sparse CSR matrix into a sparse CSC matrix. </p>
+<p><code class="docutils literal notranslate"><span class="pre">aoclsparse_csr2csc</span></code> converts a CSR matrix into a CSC matrix. <code class="docutils literal notranslate"><span class="pre">aoclsparse_csr2csc</span></code> can also be used to convert a CSC matrix into a CSR matrix. The index base can be modified during the conversion.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The resulting matrix can also be seen as the transpose of the input matrix.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>m</strong> – <strong>[in]</strong> number of rows of the sparse CSR matrix. </p></li>
+<li><p><strong>n</strong> – <strong>[in]</strong> number of columns of the sparse CSR matrix. </p></li>
+<li><p><strong>nnz</strong> – <strong>[in]</strong> number of non-zero entries of the sparse CSR matrix. </p></li>
+<li><p><strong>descr</strong> – <strong>[in]</strong> descriptor of the input sparse CSR matrix.Only the base index is used in the conversion process, the remaining descriptor elements are ignored. </p></li>
+<li><p><strong>baseCSC</strong> – <strong>[in]</strong> the desired index base (zero or one) for the converted matrix. </p></li>
+<li><p><strong>csr_val</strong> – <strong>[in]</strong> array of <code class="docutils literal notranslate"><span class="pre">nnz</span></code> elements of the sparse CSR matrix. </p></li>
+<li><p><strong>csr_row_ptr</strong> – <strong>[in]</strong> array of <code class="docutils literal notranslate"><span class="pre">m+1</span></code> elements that point to the start of every row of the sparse CSR matrix. </p></li>
+<li><p><strong>csr_col_ind</strong> – <strong>[in]</strong> array of <code class="docutils literal notranslate"><span class="pre">nnz</span></code> elements containing the column indices of the sparse CSR matrix. </p></li>
+<li><p><strong>csc_val</strong> – <strong>[out]</strong> array of <code class="docutils literal notranslate"><span class="pre">nnz</span></code> elements of the sparse CSC matrix. </p></li>
+<li><p><strong>csc_row_ind</strong> – <strong>[out]</strong> array of <code class="docutils literal notranslate"><span class="pre">nnz</span></code> elements containing the row indices of the sparse CSC matrix. </p></li>
+<li><p><strong>csc_col_ptr</strong> – <strong>[out]</strong> array of <code class="docutils literal notranslate"><span class="pre">n+1</span></code> elements that point to the start of every column of the sparse CSC matrix. aoclsparse_csr2csc_buffer_size().</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return values</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>aoclsparse_status_success</strong> – the operation completed successfully. </p></li>
+<li><p><strong>aoclsparse_status_invalid_size</strong> – <code class="docutils literal notranslate"><span class="pre">m</span></code>, <code class="docutils literal notranslate"><span class="pre">n</span></code> or <code class="docutils literal notranslate"><span class="pre">nnz</span></code> is invalid. </p></li>
+<li><p><strong>aoclsparse_status_invalid_pointer</strong> – <code class="docutils literal notranslate"><span class="pre">csr\_val</span></code> , <code class="docutils literal notranslate"><span class="pre">csr\_row</span></code> \_ptr, <code class="docutils literal notranslate"><span class="pre">csr\_col</span></code> \_ind, <code class="docutils literal notranslate"><span class="pre">csc\_val</span></code> , <code class="docutils literal notranslate"><span class="pre">csc\_row</span></code> \_ind, <code class="docutils literal notranslate"><span class="pre">csc\_col</span></code> \_ptr is invalid. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv419aoclsparse_zcsr2csc14aoclsparse_int14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descr21aoclsparse_index_basePK14aoclsparse_intPK14aoclsparse_intPK25aoclsparse_double_complexP14aoclsparse_intP14aoclsparse_intP25aoclsparse_double_complex">
+<span id="_CPPv319aoclsparse_zcsr2csc14aoclsparse_int14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descr21aoclsparse_index_basePK14aoclsparse_intPK14aoclsparse_intPK25aoclsparse_double_complexP14aoclsparse_intP14aoclsparse_intP25aoclsparse_double_complex"></span><span id="_CPPv219aoclsparse_zcsr2csc14aoclsparse_int14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descr21aoclsparse_index_basePK14aoclsparse_intPK14aoclsparse_intPK25aoclsparse_double_complexP14aoclsparse_intP14aoclsparse_intP25aoclsparse_double_complex"></span><span id="aoclsparse_zcsr2csc__aoclsparse_int.aoclsparse_int.aoclsparse_int.aoclsparse_mat_descrC.aoclsparse_index_base.aoclsparse_intCP.aoclsparse_intCP.aoclsparse_double_complexCP.aoclsparse_intP.aoclsparse_intP.aoclsparse_double_complexP"></span><span class="target" id="aoclsparse__convert_8h_1a8b2cea9d40a98aea323147c2eb0dfe67"></span><a class="reference internal" href="types.html#_CPPv417aoclsparse_status" title="aoclsparse_status"><span class="n"><span class="pre">aoclsparse_status</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aoclsparse_zcsr2csc</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">m</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">n</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">nnz</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv420aoclsparse_mat_descr" title="aoclsparse_mat_descr"><span class="n"><span class="pre">aoclsparse_mat_descr</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">descr</span></span>, <a class="reference internal" href="types.html#_CPPv421aoclsparse_index_base" title="aoclsparse_index_base"><span class="n"><span class="pre">aoclsparse_index_base</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">baseCSC</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_row_ptr</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_col_ind</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">aoclsparse_double_complex</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_val</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csc_row_ind</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csc_col_ptr</span></span>, <span class="n"><span class="pre">aoclsparse_double_complex</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csc_val</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv419aoclsparse_zcsr2csc14aoclsparse_int14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descr21aoclsparse_index_basePK14aoclsparse_intPK14aoclsparse_intPK25aoclsparse_double_complexP14aoclsparse_intP14aoclsparse_intP25aoclsparse_double_complex" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Convert a sparse CSR matrix into a sparse CSC matrix. </p>
+<p><code class="docutils literal notranslate"><span class="pre">aoclsparse_csr2csc</span></code> converts a CSR matrix into a CSC matrix. <code class="docutils literal notranslate"><span class="pre">aoclsparse_csr2csc</span></code> can also be used to convert a CSC matrix into a CSR matrix. The index base can be modified during the conversion.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The resulting matrix can also be seen as the transpose of the input matrix.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>m</strong> – <strong>[in]</strong> number of rows of the sparse CSR matrix. </p></li>
+<li><p><strong>n</strong> – <strong>[in]</strong> number of columns of the sparse CSR matrix. </p></li>
+<li><p><strong>nnz</strong> – <strong>[in]</strong> number of non-zero entries of the sparse CSR matrix. </p></li>
+<li><p><strong>descr</strong> – <strong>[in]</strong> descriptor of the input sparse CSR matrix.Only the base index is used in the conversion process, the remaining descriptor elements are ignored. </p></li>
+<li><p><strong>baseCSC</strong> – <strong>[in]</strong> the desired index base (zero or one) for the converted matrix. </p></li>
+<li><p><strong>csr_val</strong> – <strong>[in]</strong> array of <code class="docutils literal notranslate"><span class="pre">nnz</span></code> elements of the sparse CSR matrix. </p></li>
+<li><p><strong>csr_row_ptr</strong> – <strong>[in]</strong> array of <code class="docutils literal notranslate"><span class="pre">m+1</span></code> elements that point to the start of every row of the sparse CSR matrix. </p></li>
+<li><p><strong>csr_col_ind</strong> – <strong>[in]</strong> array of <code class="docutils literal notranslate"><span class="pre">nnz</span></code> elements containing the column indices of the sparse CSR matrix. </p></li>
+<li><p><strong>csc_val</strong> – <strong>[out]</strong> array of <code class="docutils literal notranslate"><span class="pre">nnz</span></code> elements of the sparse CSC matrix. </p></li>
+<li><p><strong>csc_row_ind</strong> – <strong>[out]</strong> array of <code class="docutils literal notranslate"><span class="pre">nnz</span></code> elements containing the row indices of the sparse CSC matrix. </p></li>
+<li><p><strong>csc_col_ptr</strong> – <strong>[out]</strong> array of <code class="docutils literal notranslate"><span class="pre">n+1</span></code> elements that point to the start of every column of the sparse CSC matrix. aoclsparse_csr2csc_buffer_size().</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return values</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>aoclsparse_status_success</strong> – the operation completed successfully. </p></li>
+<li><p><strong>aoclsparse_status_invalid_size</strong> – <code class="docutils literal notranslate"><span class="pre">m</span></code>, <code class="docutils literal notranslate"><span class="pre">n</span></code> or <code class="docutils literal notranslate"><span class="pre">nnz</span></code> is invalid. </p></li>
+<li><p><strong>aoclsparse_status_invalid_pointer</strong> – <code class="docutils literal notranslate"><span class="pre">csr\_val</span></code> , <code class="docutils literal notranslate"><span class="pre">csr\_row</span></code> \_ptr, <code class="docutils literal notranslate"><span class="pre">csr\_col</span></code> \_ind, <code class="docutils literal notranslate"><span class="pre">csc\_val</span></code> , <code class="docutils literal notranslate"><span class="pre">csc\_row</span></code> \_ind, <code class="docutils literal notranslate"><span class="pre">csc\_col</span></code> \_ptr is invalid. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv421aoclsparse_scsr2dense14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descrPKfPK14aoclsparse_intPK14aoclsparse_intPf14aoclsparse_int16aoclsparse_order">
+<span id="_CPPv321aoclsparse_scsr2dense14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descrPKfPK14aoclsparse_intPK14aoclsparse_intPf14aoclsparse_int16aoclsparse_order"></span><span id="_CPPv221aoclsparse_scsr2dense14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descrPKfPK14aoclsparse_intPK14aoclsparse_intPf14aoclsparse_int16aoclsparse_order"></span><span id="aoclsparse_scsr2dense__aoclsparse_int.aoclsparse_int.aoclsparse_mat_descrC.floatCP.aoclsparse_intCP.aoclsparse_intCP.floatP.aoclsparse_int.aoclsparse_order"></span><span class="target" id="aoclsparse__convert_8h_1ad606e0530e2a57515be2cae168050b9b"></span><a class="reference internal" href="types.html#_CPPv417aoclsparse_status" title="aoclsparse_status"><span class="n"><span class="pre">aoclsparse_status</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aoclsparse_scsr2dense</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">m</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">n</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv420aoclsparse_mat_descr" title="aoclsparse_mat_descr"><span class="n"><span class="pre">aoclsparse_mat_descr</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">descr</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_val</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_row_ptr</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_col_ind</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">A</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">ld</span></span>, <a class="reference internal" href="types.html#_CPPv416aoclsparse_order" title="aoclsparse_order"><span class="n"><span class="pre">aoclsparse_order</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">order</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv421aoclsparse_scsr2dense14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descrPKfPK14aoclsparse_intPK14aoclsparse_intPf14aoclsparse_int16aoclsparse_order" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>This function converts the sparse matrix in CSR format into a dense matrix. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>m</strong> – <strong>[in]</strong> number of rows of the dense matrix <code class="docutils literal notranslate"><span class="pre">A</span></code>.</p></li>
+<li><p><strong>n</strong> – <strong>[in]</strong> number of columns of the dense matrix <code class="docutils literal notranslate"><span class="pre">A</span></code>.</p></li>
+<li><p><strong>descr</strong> – <strong>[in]</strong> the descriptor of the dense matrix <code class="docutils literal notranslate"><span class="pre">A</span></code>, the supported matrix type is <a class="reference internal" href="types.html#aoclsparse__types_8h_1a5c171673227ff31121c2e27605f9735ea3e9540e704f07c06ac06f679b6c64d2b"><span class="std std-ref">aoclsparse_matrix_type_general</span></a>. Base index from the descriptor is used in the conversion process.</p></li>
+<li><p><strong>csr_val</strong> – <strong>[in]</strong> array of nnz ( = <code class="docutils literal notranslate"><span class="pre">csr_row_ptr</span></code>[m] - <code class="docutils literal notranslate"><span class="pre">csr_row_ptr</span></code>[0] ) nonzero elements of matrix <code class="docutils literal notranslate"><span class="pre">A</span></code>. </p></li>
+<li><p><strong>csr_row_ptr</strong> – <strong>[in]</strong> integer array of m+1 elements that contains the start of every row and the end of the last row plus one. </p></li>
+<li><p><strong>csr_col_ind</strong> – <strong>[in]</strong> integer array of nnz ( = <code class="docutils literal notranslate"><span class="pre">csr_row_ptr</span></code>[m] - csr_row_ptr[0] ) column indices of the non-zero elements of matrix <code class="docutils literal notranslate"><span class="pre">A</span></code>.</p></li>
+<li><p><strong>A</strong> – <strong>[out]</strong> array of dimensions (<code class="docutils literal notranslate"><span class="pre">ld</span></code>, <code class="docutils literal notranslate"><span class="pre">n</span></code>)</p></li>
+<li><p><strong>ld</strong> – <strong>[in]</strong> leading dimension of dense array <code class="docutils literal notranslate"><span class="pre">A</span></code>. </p></li>
+<li><p><strong>order</strong> – <strong>[in]</strong> memory layout of a dense matrix <code class="docutils literal notranslate"><span class="pre">A</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return values</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>aoclsparse_status_success</strong> – the operation completed successfully. </p></li>
+<li><p><strong>aoclsparse_status_invalid_size</strong> – <code class="docutils literal notranslate"><span class="pre">m</span></code> or <code class="docutils literal notranslate"><span class="pre">n</span></code> or <code class="docutils literal notranslate"><span class="pre">ld</span></code> is invalid. </p></li>
+<li><p><strong>aoclsparse_status_invalid_pointer</strong> – <code class="docutils literal notranslate"><span class="pre">A</span></code> or <code class="docutils literal notranslate"><span class="pre">csr\_val</span></code><code class="docutils literal notranslate"><span class="pre">csr_row_ptr</span></code> or <code class="docutils literal notranslate"><span class="pre">csr_col_ind</span></code> pointer is invalid. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv421aoclsparse_dcsr2dense14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descrPKdPK14aoclsparse_intPK14aoclsparse_intPd14aoclsparse_int16aoclsparse_order">
+<span id="_CPPv321aoclsparse_dcsr2dense14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descrPKdPK14aoclsparse_intPK14aoclsparse_intPd14aoclsparse_int16aoclsparse_order"></span><span id="_CPPv221aoclsparse_dcsr2dense14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descrPKdPK14aoclsparse_intPK14aoclsparse_intPd14aoclsparse_int16aoclsparse_order"></span><span id="aoclsparse_dcsr2dense__aoclsparse_int.aoclsparse_int.aoclsparse_mat_descrC.doubleCP.aoclsparse_intCP.aoclsparse_intCP.doubleP.aoclsparse_int.aoclsparse_order"></span><span class="target" id="aoclsparse__convert_8h_1a92b0bf4756aa095aa63f49d248052845"></span><a class="reference internal" href="types.html#_CPPv417aoclsparse_status" title="aoclsparse_status"><span class="n"><span class="pre">aoclsparse_status</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aoclsparse_dcsr2dense</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">m</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">n</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv420aoclsparse_mat_descr" title="aoclsparse_mat_descr"><span class="n"><span class="pre">aoclsparse_mat_descr</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">descr</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_val</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_row_ptr</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_col_ind</span></span>, <span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">A</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">ld</span></span>, <a class="reference internal" href="types.html#_CPPv416aoclsparse_order" title="aoclsparse_order"><span class="n"><span class="pre">aoclsparse_order</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">order</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv421aoclsparse_dcsr2dense14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descrPKdPK14aoclsparse_intPK14aoclsparse_intPd14aoclsparse_int16aoclsparse_order" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>This function converts the sparse matrix in CSR format into a dense matrix. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>m</strong> – <strong>[in]</strong> number of rows of the dense matrix <code class="docutils literal notranslate"><span class="pre">A</span></code>.</p></li>
+<li><p><strong>n</strong> – <strong>[in]</strong> number of columns of the dense matrix <code class="docutils literal notranslate"><span class="pre">A</span></code>.</p></li>
+<li><p><strong>descr</strong> – <strong>[in]</strong> the descriptor of the dense matrix <code class="docutils literal notranslate"><span class="pre">A</span></code>, the supported matrix type is <a class="reference internal" href="types.html#aoclsparse__types_8h_1a5c171673227ff31121c2e27605f9735ea3e9540e704f07c06ac06f679b6c64d2b"><span class="std std-ref">aoclsparse_matrix_type_general</span></a>. Base index from the descriptor is used in the conversion process.</p></li>
+<li><p><strong>csr_val</strong> – <strong>[in]</strong> array of nnz ( = <code class="docutils literal notranslate"><span class="pre">csr_row_ptr</span></code>[m] - <code class="docutils literal notranslate"><span class="pre">csr_row_ptr</span></code>[0] ) nonzero elements of matrix <code class="docutils literal notranslate"><span class="pre">A</span></code>. </p></li>
+<li><p><strong>csr_row_ptr</strong> – <strong>[in]</strong> integer array of m+1 elements that contains the start of every row and the end of the last row plus one. </p></li>
+<li><p><strong>csr_col_ind</strong> – <strong>[in]</strong> integer array of nnz ( = <code class="docutils literal notranslate"><span class="pre">csr_row_ptr</span></code>[m] - csr_row_ptr[0] ) column indices of the non-zero elements of matrix <code class="docutils literal notranslate"><span class="pre">A</span></code>.</p></li>
+<li><p><strong>A</strong> – <strong>[out]</strong> array of dimensions (<code class="docutils literal notranslate"><span class="pre">ld</span></code>, <code class="docutils literal notranslate"><span class="pre">n</span></code>)</p></li>
+<li><p><strong>ld</strong> – <strong>[in]</strong> leading dimension of dense array <code class="docutils literal notranslate"><span class="pre">A</span></code>. </p></li>
+<li><p><strong>order</strong> – <strong>[in]</strong> memory layout of a dense matrix <code class="docutils literal notranslate"><span class="pre">A</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return values</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>aoclsparse_status_success</strong> – the operation completed successfully. </p></li>
+<li><p><strong>aoclsparse_status_invalid_size</strong> – <code class="docutils literal notranslate"><span class="pre">m</span></code> or <code class="docutils literal notranslate"><span class="pre">n</span></code> or <code class="docutils literal notranslate"><span class="pre">ld</span></code> is invalid. </p></li>
+<li><p><strong>aoclsparse_status_invalid_pointer</strong> – <code class="docutils literal notranslate"><span class="pre">A</span></code> or <code class="docutils literal notranslate"><span class="pre">csr\_val</span></code><code class="docutils literal notranslate"><span class="pre">csr_row_ptr</span></code> or <code class="docutils literal notranslate"><span class="pre">csr_col_ind</span></code> pointer is invalid. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv421aoclsparse_ccsr2dense14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descrPK24aoclsparse_float_complexPK14aoclsparse_intPK14aoclsparse_intP24aoclsparse_float_complex14aoclsparse_int16aoclsparse_order">
+<span id="_CPPv321aoclsparse_ccsr2dense14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descrPK24aoclsparse_float_complexPK14aoclsparse_intPK14aoclsparse_intP24aoclsparse_float_complex14aoclsparse_int16aoclsparse_order"></span><span id="_CPPv221aoclsparse_ccsr2dense14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descrPK24aoclsparse_float_complexPK14aoclsparse_intPK14aoclsparse_intP24aoclsparse_float_complex14aoclsparse_int16aoclsparse_order"></span><span id="aoclsparse_ccsr2dense__aoclsparse_int.aoclsparse_int.aoclsparse_mat_descrC.aoclsparse_float_complexCP.aoclsparse_intCP.aoclsparse_intCP.aoclsparse_float_complexP.aoclsparse_int.aoclsparse_order"></span><span class="target" id="aoclsparse__convert_8h_1a5d6eeaa2d0af949aabbf09cda72b57ab"></span><a class="reference internal" href="types.html#_CPPv417aoclsparse_status" title="aoclsparse_status"><span class="n"><span class="pre">aoclsparse_status</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aoclsparse_ccsr2dense</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">m</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">n</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv420aoclsparse_mat_descr" title="aoclsparse_mat_descr"><span class="n"><span class="pre">aoclsparse_mat_descr</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">descr</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">aoclsparse_float_complex</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_val</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_row_ptr</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_col_ind</span></span>, <span class="n"><span class="pre">aoclsparse_float_complex</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">A</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">ld</span></span>, <a class="reference internal" href="types.html#_CPPv416aoclsparse_order" title="aoclsparse_order"><span class="n"><span class="pre">aoclsparse_order</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">order</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv421aoclsparse_ccsr2dense14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descrPK24aoclsparse_float_complexPK14aoclsparse_intPK14aoclsparse_intP24aoclsparse_float_complex14aoclsparse_int16aoclsparse_order" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>This function converts the sparse matrix in CSR format into a dense matrix. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>m</strong> – <strong>[in]</strong> number of rows of the dense matrix <code class="docutils literal notranslate"><span class="pre">A</span></code>.</p></li>
+<li><p><strong>n</strong> – <strong>[in]</strong> number of columns of the dense matrix <code class="docutils literal notranslate"><span class="pre">A</span></code>.</p></li>
+<li><p><strong>descr</strong> – <strong>[in]</strong> the descriptor of the dense matrix <code class="docutils literal notranslate"><span class="pre">A</span></code>, the supported matrix type is <a class="reference internal" href="types.html#aoclsparse__types_8h_1a5c171673227ff31121c2e27605f9735ea3e9540e704f07c06ac06f679b6c64d2b"><span class="std std-ref">aoclsparse_matrix_type_general</span></a>. Base index from the descriptor is used in the conversion process.</p></li>
+<li><p><strong>csr_val</strong> – <strong>[in]</strong> array of nnz ( = <code class="docutils literal notranslate"><span class="pre">csr_row_ptr</span></code>[m] - <code class="docutils literal notranslate"><span class="pre">csr_row_ptr</span></code>[0] ) nonzero elements of matrix <code class="docutils literal notranslate"><span class="pre">A</span></code>. </p></li>
+<li><p><strong>csr_row_ptr</strong> – <strong>[in]</strong> integer array of m+1 elements that contains the start of every row and the end of the last row plus one. </p></li>
+<li><p><strong>csr_col_ind</strong> – <strong>[in]</strong> integer array of nnz ( = <code class="docutils literal notranslate"><span class="pre">csr_row_ptr</span></code>[m] - csr_row_ptr[0] ) column indices of the non-zero elements of matrix <code class="docutils literal notranslate"><span class="pre">A</span></code>.</p></li>
+<li><p><strong>A</strong> – <strong>[out]</strong> array of dimensions (<code class="docutils literal notranslate"><span class="pre">ld</span></code>, <code class="docutils literal notranslate"><span class="pre">n</span></code>)</p></li>
+<li><p><strong>ld</strong> – <strong>[in]</strong> leading dimension of dense array <code class="docutils literal notranslate"><span class="pre">A</span></code>. </p></li>
+<li><p><strong>order</strong> – <strong>[in]</strong> memory layout of a dense matrix <code class="docutils literal notranslate"><span class="pre">A</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return values</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>aoclsparse_status_success</strong> – the operation completed successfully. </p></li>
+<li><p><strong>aoclsparse_status_invalid_size</strong> – <code class="docutils literal notranslate"><span class="pre">m</span></code> or <code class="docutils literal notranslate"><span class="pre">n</span></code> or <code class="docutils literal notranslate"><span class="pre">ld</span></code> is invalid. </p></li>
+<li><p><strong>aoclsparse_status_invalid_pointer</strong> – <code class="docutils literal notranslate"><span class="pre">A</span></code> or <code class="docutils literal notranslate"><span class="pre">csr\_val</span></code><code class="docutils literal notranslate"><span class="pre">csr_row_ptr</span></code> or <code class="docutils literal notranslate"><span class="pre">csr_col_ind</span></code> pointer is invalid. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv421aoclsparse_zcsr2dense14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descrPK25aoclsparse_double_complexPK14aoclsparse_intPK14aoclsparse_intP25aoclsparse_double_complex14aoclsparse_int16aoclsparse_order">
+<span id="_CPPv321aoclsparse_zcsr2dense14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descrPK25aoclsparse_double_complexPK14aoclsparse_intPK14aoclsparse_intP25aoclsparse_double_complex14aoclsparse_int16aoclsparse_order"></span><span id="_CPPv221aoclsparse_zcsr2dense14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descrPK25aoclsparse_double_complexPK14aoclsparse_intPK14aoclsparse_intP25aoclsparse_double_complex14aoclsparse_int16aoclsparse_order"></span><span id="aoclsparse_zcsr2dense__aoclsparse_int.aoclsparse_int.aoclsparse_mat_descrC.aoclsparse_double_complexCP.aoclsparse_intCP.aoclsparse_intCP.aoclsparse_double_complexP.aoclsparse_int.aoclsparse_order"></span><span class="target" id="aoclsparse__convert_8h_1a51040ac19bba2aab6ed3ed36a08cd4d4"></span><a class="reference internal" href="types.html#_CPPv417aoclsparse_status" title="aoclsparse_status"><span class="n"><span class="pre">aoclsparse_status</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aoclsparse_zcsr2dense</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">m</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">n</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv420aoclsparse_mat_descr" title="aoclsparse_mat_descr"><span class="n"><span class="pre">aoclsparse_mat_descr</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">descr</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">aoclsparse_double_complex</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_val</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_row_ptr</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">csr_col_ind</span></span>, <span class="n"><span class="pre">aoclsparse_double_complex</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">A</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">ld</span></span>, <a class="reference internal" href="types.html#_CPPv416aoclsparse_order" title="aoclsparse_order"><span class="n"><span class="pre">aoclsparse_order</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">order</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv421aoclsparse_zcsr2dense14aoclsparse_int14aoclsparse_intK20aoclsparse_mat_descrPK25aoclsparse_double_complexPK14aoclsparse_intPK14aoclsparse_intP25aoclsparse_double_complex14aoclsparse_int16aoclsparse_order" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>This function converts the sparse matrix in CSR format into a dense matrix. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>m</strong> – <strong>[in]</strong> number of rows of the dense matrix <code class="docutils literal notranslate"><span class="pre">A</span></code>.</p></li>
+<li><p><strong>n</strong> – <strong>[in]</strong> number of columns of the dense matrix <code class="docutils literal notranslate"><span class="pre">A</span></code>.</p></li>
+<li><p><strong>descr</strong> – <strong>[in]</strong> the descriptor of the dense matrix <code class="docutils literal notranslate"><span class="pre">A</span></code>, the supported matrix type is <a class="reference internal" href="types.html#aoclsparse__types_8h_1a5c171673227ff31121c2e27605f9735ea3e9540e704f07c06ac06f679b6c64d2b"><span class="std std-ref">aoclsparse_matrix_type_general</span></a>. Base index from the descriptor is used in the conversion process.</p></li>
+<li><p><strong>csr_val</strong> – <strong>[in]</strong> array of nnz ( = <code class="docutils literal notranslate"><span class="pre">csr_row_ptr</span></code>[m] - <code class="docutils literal notranslate"><span class="pre">csr_row_ptr</span></code>[0] ) nonzero elements of matrix <code class="docutils literal notranslate"><span class="pre">A</span></code>. </p></li>
+<li><p><strong>csr_row_ptr</strong> – <strong>[in]</strong> integer array of m+1 elements that contains the start of every row and the end of the last row plus one. </p></li>
+<li><p><strong>csr_col_ind</strong> – <strong>[in]</strong> integer array of nnz ( = <code class="docutils literal notranslate"><span class="pre">csr_row_ptr</span></code>[m] - csr_row_ptr[0] ) column indices of the non-zero elements of matrix <code class="docutils literal notranslate"><span class="pre">A</span></code>.</p></li>
+<li><p><strong>A</strong> – <strong>[out]</strong> array of dimensions (<code class="docutils literal notranslate"><span class="pre">ld</span></code>, <code class="docutils literal notranslate"><span class="pre">n</span></code>)</p></li>
+<li><p><strong>ld</strong> – <strong>[in]</strong> leading dimension of dense array <code class="docutils literal notranslate"><span class="pre">A</span></code>. </p></li>
+<li><p><strong>order</strong> – <strong>[in]</strong> memory layout of a dense matrix <code class="docutils literal notranslate"><span class="pre">A</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return values</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>aoclsparse_status_success</strong> – the operation completed successfully. </p></li>
+<li><p><strong>aoclsparse_status_invalid_size</strong> – <code class="docutils literal notranslate"><span class="pre">m</span></code> or <code class="docutils literal notranslate"><span class="pre">n</span></code> or <code class="docutils literal notranslate"><span class="pre">ld</span></code> is invalid. </p></li>
+<li><p><strong>aoclsparse_status_invalid_pointer</strong> – <code class="docutils literal notranslate"><span class="pre">A</span></code> or <code class="docutils literal notranslate"><span class="pre">csr\_val</span></code><code class="docutils literal notranslate"><span class="pre">csr_row_ptr</span></code> or <code class="docutils literal notranslate"><span class="pre">csr_col_ind</span></code> pointer is invalid. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv422aoclsparse_convert_csrK17aoclsparse_matrixK20aoclsparse_operationP17aoclsparse_matrix">
+<span id="_CPPv322aoclsparse_convert_csrK17aoclsparse_matrixK20aoclsparse_operationP17aoclsparse_matrix"></span><span id="_CPPv222aoclsparse_convert_csrK17aoclsparse_matrixK20aoclsparse_operationP17aoclsparse_matrix"></span><span id="aoclsparse_convert_csr__aoclsparse_matrixC.aoclsparse_operationC.aoclsparse_matrixP"></span><span class="target" id="aoclsparse__convert_8h_1a01bdc4ae3496e411282fb5c0f83dd460"></span><a class="reference internal" href="types.html#_CPPv417aoclsparse_status" title="aoclsparse_status"><span class="n"><span class="pre">aoclsparse_status</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aoclsparse_convert_csr</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv417aoclsparse_matrix" title="aoclsparse_matrix"><span class="n"><span class="pre">aoclsparse_matrix</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">src_mat</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv420aoclsparse_operation" title="aoclsparse_operation"><span class="n"><span class="pre">aoclsparse_operation</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">op</span></span>, <a class="reference internal" href="types.html#_CPPv417aoclsparse_matrix" title="aoclsparse_matrix"><span class="n"><span class="pre">aoclsparse_matrix</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">dest_mat</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv422aoclsparse_convert_csrK17aoclsparse_matrixK20aoclsparse_operationP17aoclsparse_matrix" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Convert internal representation of matrix into a sparse CSR matrix. </p>
+<p><code class="docutils literal notranslate"><span class="pre">aoclsparse_convert_csr</span></code> converts any supported matrix format into a CSR format matrix and returns it as a new <code class="docutils literal notranslate"><span class="pre">aoclsparse_matrix</span></code>. The new matrix can also be transposed or conjugate transposed during the conversion. It should be freed by calling <code class="docutils literal notranslate"><span class="pre">aoclsparse_destroy</span></code>. The source matrix needs to be initalized using <code class="docutils literal notranslate"><span class="pre">aoclsparse_create_(d/s/c/z)(coo/csc/csr)</span></code> and it is not modified here.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>src_mat</strong> – <strong>[in]</strong> source matrix used for conversion. </p></li>
+<li><p><strong>op</strong> – <strong>[in]</strong> operation to be performed on destination matrix </p></li>
+<li><p><strong>dest_mat</strong> – <strong>[out]</strong> destination matrix output in CSR Format of the src_mat.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return values</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>aoclsparse_status_success</strong> – the operation completed successfully </p></li>
+<li><p><strong>aoclsparse_status_invalid_size</strong> – matrix dimension are invalid </p></li>
+<li><p><strong>aoclsparse_status_invalid_pointer</strong> – pointers in <code class="docutils literal notranslate"><span class="pre">src_mat</span></code> or <code class="docutils literal notranslate"><span class="pre">dest_mat</span></code> are invalid </p></li>
+<li><p><strong>aoclsparse_status_not_implemented</strong> – conversion of the src_mat format given is not implemented </p></li>
+<li><p><strong>aoclsparse_status_memory_error</strong> – memory allocation for destination matrix failed </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer">
+                  <!-- Previous / next buttons -->
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="auxiliary.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">AOCL-Sparse Auxiliary Functions</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="functions.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">AOCL-Sparse Level 1,2,3 Functions</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            <p>
+  </p>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="_static/scripts/bootstrap.js?digest=ac02cc09edc035673794"></script>
+<script src="_static/scripts/pydata-sphinx-theme.js?digest=ac02cc09edc035673794"></script>
+
+<footer class="rocm-footer">
+    <div class="container-lg">
+        <section class="bottom-menu menu py-45">
+            <div class="row d-flex align-items-center">
+                <div class="col-12 text-center">
+                    <ul>
+                        <li><a href="https://www.amd.com/en/corporate/copyright" target="_blank">Terms and Conditions</a></li>
+                        
+                        <li><a href="">2020-2024, Advanced Micro Devices, Inc</a></li>
+                        <li><a href="https://www.amd.com/en/corporate/privacy" target="_blank">Privacy</a></li>
+                        <li><a href="https://www.amd.com/en/corporate/trademarks" target="_blank">Trademarks</a></li>
+                        <li><a href="https://www.amd.com/system/files/documents/statement-human-trafficking-forced-labor.pdf" target="_blank">Statement on Forced Labor</a></li>
+                        <li><a href="https://www.amd.com/en/corporate/competition" target="_blank">Fair and Open Competition</a></li>
+                        <li><a href="https://www.amd.com/system/files/documents/amd-uk-tax-strategy.pdf" target="_blank">UK Tax Strategy</a></li>
+                        <li><a href="https://www.amd.com/en/corporate/cookies" target="_blank">Cookie Policy</a></li>
+                        <!-- OneTrust Cookies Settings button start -->
+                        <li><a href="#cookie-settings" id="ot-sdk-btn" class="ot-sdk-show-settings">Cookie Settings</a></li>
+                        <!-- OneTrust Cookies Settings button end -->
+                    </ul>
+                </div>
+            </div>
+            <div class="row d-flex align-items-center">
+                <div class="col-12 text-center">
+                    <div>
+                        <span class="copyright">© 2023 Advanced Micro Devices, Inc</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</footer>
+
+<!-- <div id="rdc-watermark-container">
+    <img id="rdc-watermark" src="_static/images/alpha-watermark.svg" alt="DRAFT watermark"/>
+</div> -->
+  </body>
+</html>
