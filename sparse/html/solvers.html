@@ -1,0 +1,990 @@
+
+
+<!DOCTYPE html>
+
+
+<html lang="en" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>AOCL-Sparse Iterative Linear System Solvers &#8212; AOCL-Sparse 4.2.0.0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=ac02cc09edc035673794" rel="stylesheet" />
+<link href="_static/styles/bootstrap.css?digest=ac02cc09edc035673794" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=ac02cc09edc035673794" rel="stylesheet" />
+
+  
+  <link href="_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=ac02cc09edc035673794" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/sphinx-book-theme.css" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css" />
+    <link rel="stylesheet" type="text/css" href="_static/rocm_header.css" />
+    <link rel="stylesheet" type="text/css" href="_static/rocm_footer.css" />
+    <link rel="stylesheet" type="text/css" href="_static/fonts.css" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=ac02cc09edc035673794" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=ac02cc09edc035673794" />
+  <script src="_static/vendor/fontawesome/6.1.2/js/all.min.js?digest=ac02cc09edc035673794"></script>
+
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/sphinx_highlight.js"></script>
+    <script async="async" src="https://download.amd.com/js/analytics/analyticsinit.js"></script>
+    <script async="async" src="_static/code_word_breaks.js"></script>
+    <script async="async" src="_static/renameVersionLinks.js"></script>
+    <script async="async" src="_static/rdcMisc.js"></script>
+    <script async="async" src="_static/theme_mode_captions.js"></script>
+    <script src="_static/scripts/sphinx-book-theme.js?digest=5a5c038af52cf7bc1a1ec88eea08e6366ee68824"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'solvers';</script>
+    <link rel="shortcut icon" href="https://www.amd.com/themes/custom/amd/favicon.ico"/>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="AOCL-Sparse Types" href="types.html" />
+    <link rel="prev" title="AOCL-Sparse Level 1,2,3 Functions" href="functions.html" />
+    <meta name="google-site-verification" content="ZOn0RZC0Pwzlmf2SaE0bRttWk1YzOhuslbpxUDchQ90" />
+
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>
+    Back to top
+  </button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+
+<header class="common-header" >
+    <nav class="navbar navbar-expand-xl">
+        <div class="container-fluid main-nav rocm-header">
+            
+            <div class="header-logo">
+                <a class="navbar-brand" href="https://www.amd.com/">
+                    <img src="_static/images/amd-header-logo.svg" alt="AMD Logo" title="AMD Logo" width="90" class="d-inline-block align-text-top hover-opacity"/>
+                </a>
+                <div class="vr vr mx-40 my-25"></div>
+                <a class="klavika-font hover-opacity" href="/">AOCL</a>
+            </div>
+            <div class="icon-nav text-center d-flex ms-auto">
+                <!-- TODO: Search icon up here maybe? -->
+            </div>
+        </div>
+    </nav>
+    
+</header>
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+    <p class="title logo__title">AOCL-Sparse 4.2.0.0 documentation</p>
+  
+</a></div>
+        <div class="sidebar-primary-item"><nav class="bd-links" id="bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">AOCL APIs</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="analysis.html">AOCL-Sparse Analysis Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="auxiliary.html">AOCL-Sparse Auxiliary Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="convert.html">AOCL-Sparse Conversion Subprogram</a></li>
+<li class="toctree-l1"><a class="reference internal" href="functions.html">AOCL-Sparse Level 1,2,3 Functions</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">AOCL-Sparse Iterative Linear System Solvers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="types.html">AOCL-Sparse Types</a></li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><label class="sidebar-toggle primary-toggle btn btn-sm" for="__primary" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-angle-right"></span>
+  </label></div>
+      
+        <div class="header-article-item">
+
+
+
+<nav aria-label="Breadcrumb">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page">AOCL-Sparse...</li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script>
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<label class="sidebar-toggle secondary-toggle btn btn-sm" for="__secondary"title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</label>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>AOCL-Sparse Iterative Linear System Solvers</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#introduction-of-iterative-solver-suite-itsol">Introduction of Iterative Solver Suite (itsol)</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#forward-and-reverse-communication-interfaces">Forward and Reverse Communication Interfaces</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#recommended-workflow">Recommended Workflow</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#information-array">Information Array</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#examples">Examples</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#references">References</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#api-documentation">API documentation</a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article" role="main">
+                  
+  <section id="aocl-sparse-iterative-linear-system-solvers">
+<h1>AOCL-Sparse Iterative Linear System Solvers<a class="headerlink" href="#aocl-sparse-iterative-linear-system-solvers" title="Permalink to this heading">#</a></h1>
+<section id="introduction-of-iterative-solver-suite-itsol">
+<span id="itsol-intro"></span><h2>Introduction of Iterative Solver Suite (itsol)<a class="headerlink" href="#introduction-of-iterative-solver-suite-itsol" title="Permalink to this heading">#</a></h2>
+<p>AOCL-Sparse Iterative Solver Suite (itsol) is an iterative framework for solving large-scale sparse linear systems of equations of the form</p>
+<div class="math notranslate nohighlight">
+\[Ax=b,\]</div>
+<p>where <span class="math notranslate nohighlight">\(A\)</span> is a sparse full-rank square matrix of size <span class="math notranslate nohighlight">\(n\)</span> by <span class="math notranslate nohighlight">\(n\)</span>, <span class="math notranslate nohighlight">\(b\)</span> is a dense <span class="math notranslate nohighlight">\(n\)</span>-vector, and <span class="math notranslate nohighlight">\(x\)</span> is the vector of unknowns also of size <span class="math notranslate nohighlight">\(n\)</span>.
+The framework solves the previous problem using either the Conjugate Gradient method or GMRES. It supports a variety of preconditioners (<em>accelerators</em>) such as
+Symmetric Gauss-Seidel or Incomplete LU factorization, ILU(0).</p>
+<p>Iterative solvers at each step (iteration) find a better approximation to the solution of the linear system of equations in the sense that it reduces an error metric.
+In contrast, direct solvers only provide a solution once the full algorithm as been executed. A great advantage of iterative solvers is that they can be
+interrupted once an approximate solution is deemed acceptable.</p>
+<section id="forward-and-reverse-communication-interfaces">
+<h3>Forward and Reverse Communication Interfaces<a class="headerlink" href="#forward-and-reverse-communication-interfaces" title="Permalink to this heading">#</a></h3>
+<p>The suite presents two separate interfaces to all the iterative solvers, a direct one, <a class="reference internal" href="#_CPPv428aoclsparse_itsol_d_rci_solve23aoclsparse_itsol_handleP24aoclsparse_itsol_rci_jobPPdPPdPdAL100E_d" title="aoclsparse_itsol_d_rci_solve"><code class="xref cpp cpp-func docutils literal notranslate"><span class="pre">aoclsparse_itsol_d_rci_solve()</span></code></a> (<a class="reference internal" href="#_CPPv428aoclsparse_itsol_s_rci_solve23aoclsparse_itsol_handleP24aoclsparse_itsol_rci_jobPPfPPfPfAL100E_f" title="aoclsparse_itsol_s_rci_solve"><code class="xref cpp cpp-func docutils literal notranslate"><span class="pre">aoclsparse_itsol_s_rci_solve()</span></code></a>),
+and a reverse communication (RCI) one <a class="reference internal" href="#_CPPv428aoclsparse_itsol_d_rci_solve23aoclsparse_itsol_handleP24aoclsparse_itsol_rci_jobPPdPPdPdAL100E_d" title="aoclsparse_itsol_d_rci_solve"><code class="xref cpp cpp-func docutils literal notranslate"><span class="pre">aoclsparse_itsol_d_rci_solve()</span></code></a> (<a class="reference internal" href="#_CPPv428aoclsparse_itsol_s_rci_solve23aoclsparse_itsol_handleP24aoclsparse_itsol_rci_jobPPfPPfPfAL100E_f" title="aoclsparse_itsol_s_rci_solve"><code class="xref cpp cpp-func docutils literal notranslate"><span class="pre">aoclsparse_itsol_s_rci_solve()</span></code></a>). While the underlying algorithms are exactly the same,
+the difference lies in how data is communicated to the solvers.</p>
+<p>The direct communication interface expects to have explicit access to the coefficient matrix <span class="math notranslate nohighlight">\(A\)</span>. On the other hand, the reverse communication interface makes
+no assumption on the matrix storage. Thus when the solver requires some matrix operation such as a
+matrix-vector product, it returns control to the user and asks the user perform the operation and provide the results by calling again the RCI solver.</p>
+</section>
+<section id="recommended-workflow">
+<h3>Recommended Workflow<a class="headerlink" href="#recommended-workflow" title="Permalink to this heading">#</a></h3>
+<p>For solving a linear system of equations, the following workflow is recommended:</p>
+<ul class="simple">
+<li><p>Call <a class="reference internal" href="#_CPPv423aoclsparse_itsol_s_initP23aoclsparse_itsol_handle" title="aoclsparse_itsol_s_init"><code class="xref cpp cpp-func docutils literal notranslate"><span class="pre">aoclsparse_itsol_s_init()</span></code></a> or <a class="reference internal" href="#_CPPv423aoclsparse_itsol_d_initP23aoclsparse_itsol_handle" title="aoclsparse_itsol_d_init"><code class="xref cpp cpp-func docutils literal notranslate"><span class="pre">aoclsparse_itsol_d_init()</span></code></a> to initialize aoclsparse_itsol_handle.</p></li>
+<li><p>Choose the solver and adjust its behaviour by setting optional parameters with <a class="reference internal" href="#_CPPv427aoclsparse_itsol_option_set23aoclsparse_itsol_handlePKcPKc" title="aoclsparse_itsol_option_set"><code class="xref cpp cpp-func docutils literal notranslate"><span class="pre">aoclsparse_itsol_option_set()</span></code></a>, see there all options available.</p></li>
+<li><p>If the reverse communication interface is desired, define the system’s input with <a class="reference internal" href="#_CPPv428aoclsparse_itsol_d_rci_input23aoclsparse_itsol_handle14aoclsparse_intPKd" title="aoclsparse_itsol_d_rci_input"><code class="xref cpp cpp-func docutils literal notranslate"><span class="pre">aoclsparse_itsol_d_rci_input()</span></code></a>.</p></li>
+<li><p>Solve the system with either using direct interface <a class="reference internal" href="#_CPPv424aoclsparse_itsol_s_solve23aoclsparse_itsol_handle14aoclsparse_int17aoclsparse_matrixK20aoclsparse_mat_descrPKfPfAL100E_fF14aoclsparse_int14aoclsparse_int14aoclsparse_intPKfPfPvEF14aoclsparse_int14aoclsparse_intPKfPKfAL100E_fPvEPv" title="aoclsparse_itsol_s_solve"><code class="xref cpp cpp-func docutils literal notranslate"><span class="pre">aoclsparse_itsol_s_solve()</span></code></a> (or <a class="reference internal" href="#_CPPv424aoclsparse_itsol_d_solve23aoclsparse_itsol_handle14aoclsparse_int17aoclsparse_matrixK20aoclsparse_mat_descrPKdPdAL100E_dF14aoclsparse_int14aoclsparse_int14aoclsparse_intPKdPdPvEF14aoclsparse_int14aoclsparse_intPKdPKdAL100E_dPvEPv" title="aoclsparse_itsol_d_solve"><code class="xref cpp cpp-func docutils literal notranslate"><span class="pre">aoclsparse_itsol_d_solve()</span></code></a>) or
+reverse communication interface <a class="reference internal" href="#_CPPv428aoclsparse_itsol_s_rci_solve23aoclsparse_itsol_handleP24aoclsparse_itsol_rci_jobPPfPPfPfAL100E_f" title="aoclsparse_itsol_s_rci_solve"><code class="xref cpp cpp-func docutils literal notranslate"><span class="pre">aoclsparse_itsol_s_rci_solve()</span></code></a> (or <a class="reference internal" href="#_CPPv428aoclsparse_itsol_d_rci_solve23aoclsparse_itsol_handleP24aoclsparse_itsol_rci_jobPPdPPdPdAL100E_d" title="aoclsparse_itsol_d_rci_solve"><code class="xref cpp cpp-func docutils literal notranslate"><span class="pre">aoclsparse_itsol_d_rci_solve()</span></code></a>)</p></li>
+<li><p>Free the memory with <a class="reference internal" href="#_CPPv424aoclsparse_itsol_destroyP23aoclsparse_itsol_handle" title="aoclsparse_itsol_destroy"><code class="xref cpp cpp-func docutils literal notranslate"><span class="pre">aoclsparse_itsol_destroy()</span></code></a>.</p></li>
+</ul>
+</section>
+<section id="information-array">
+<h3>Information Array<a class="headerlink" href="#information-array" title="Permalink to this heading">#</a></h3>
+<p>The array <code class="docutils literal notranslate"><span class="pre">rinfo[100]</span></code> is used by the solvers (e.g. <a class="reference internal" href="#_CPPv424aoclsparse_itsol_d_solve23aoclsparse_itsol_handle14aoclsparse_int17aoclsparse_matrixK20aoclsparse_mat_descrPKdPdAL100E_dF14aoclsparse_int14aoclsparse_int14aoclsparse_intPKdPdPvEF14aoclsparse_int14aoclsparse_intPKdPKdAL100E_dPvEPv" title="aoclsparse_itsol_d_solve"><code class="xref cpp cpp-func docutils literal notranslate"><span class="pre">aoclsparse_itsol_d_solve()</span></code></a> or <a class="reference internal" href="#_CPPv428aoclsparse_itsol_s_rci_solve23aoclsparse_itsol_handleP24aoclsparse_itsol_rci_jobPPfPPfPfAL100E_f" title="aoclsparse_itsol_s_rci_solve"><code class="xref cpp cpp-func docutils literal notranslate"><span class="pre">aoclsparse_itsol_s_rci_solve()</span></code></a>) to report
+back useful convergence metrics and other solver statistics.
+The user callback <code class="docutils literal notranslate"><span class="pre">monit</span></code> is also equipped with this array and can be used
+to view or monitor the state of the solver.
+The solver will populate the following entries with the most recent iteration data</p>
+<table class="colwidths-given table">
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 80%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Index</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>0</p></td>
+<td><p>Absolute residual norm, <span class="math notranslate nohighlight">\(r_{\mbox{abs}} = \| Ax-b\|_2\)</span>.</p></td>
+</tr>
+<tr class="row-odd"><td><p>1</p></td>
+<td><p>Norm of the right-hand side vector <span class="math notranslate nohighlight">\(b\)</span>, <span class="math notranslate nohighlight">\(\|b\|_2\)</span>.</p></td>
+</tr>
+<tr class="row-even"><td><p>2-29</p></td>
+<td><p>Reserved for future use.</p></td>
+</tr>
+<tr class="row-odd"><td><p>30</p></td>
+<td><p>Iteration counter.</p></td>
+</tr>
+<tr class="row-even"><td><p>31-99</p></td>
+<td><p>Reserved for future use.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="examples">
+<h3>Examples<a class="headerlink" href="#examples" title="Permalink to this heading">#</a></h3>
+<p>Each iterative solver in the itsol suite is provided with an illustrative example on its usage. The source file for the examples can be found under the
+<code class="docutils literal notranslate"><span class="pre">tests/examples/</span></code> folder.</p>
+<table class="colwidths-given table">
+<colgroup>
+<col style="width: 27%" />
+<col style="width: 9%" />
+<col style="width: 27%" />
+<col style="width: 36%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Solver</p></th>
+<th class="head"><p>Precision</p></th>
+<th class="head"><p>Filename</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>itsol forward communication interface</p></td>
+<td><p>double</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">sample_itsol_d_cg.cpp</span></code></p></td>
+<td><p>Solves a linear system of equations using the Conjugate Gradient method.</p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td><p>single</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">sample_itsol_s_cg.cpp</span></code></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>itsol reverse communication interface</p></td>
+<td><p>double</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">sample_itsol_d_cg_rci.cpp</span></code></p></td>
+<td><p>Solves a linear system of equations using the Conjugate Gradient method.</p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td><p>single</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">sample_itsol_s_cg_rci.cpp</span></code></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="references">
+<h3>References<a class="headerlink" href="#references" title="Permalink to this heading">#</a></h3>
+<div class="docutils container" id="id1">
+<ul class="simple">
+<li id="id4"><p>Collaborative. Acceleration methods. <em>Encyclopedia of Mathematics</em>, 2023 (retrieved in). <a class="reference external" href="https://encyclopediaofmath.org/index.php?title=Acceleration_methods&amp;oldid=52131">https://encyclopediaofmath.org/index.php?title=Acceleration_methods&amp;oldid=52131</a>.</p></li>
+<li id="id3"><p>Collaborative. Conjugate gradients, method of. <em>Encyclopedia of Mathematics</em>, 2023 (retrieved in). <a class="reference external" href="https://encyclopediaofmath.org/index.php?title=Conjugate_gradients,_method_of&amp;oldid=46470">https://encyclopediaofmath.org/index.php?title=Conjugate_gradients,_method_of&amp;oldid=46470</a>.</p></li>
+<li id="id2"><p>Yousef Saad. <em>Iterative Methods for Sparse Linear Systems</em>. 2nd edition, 2003.</p></li>
+</ul>
+</div>
+</section>
+</section>
+<section id="api-documentation">
+<h2>API documentation<a class="headerlink" href="#api-documentation" title="Permalink to this heading">#</a></h2>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv424aoclsparse_itsol_rci_job">
+<span id="_CPPv324aoclsparse_itsol_rci_job"></span><span id="_CPPv224aoclsparse_itsol_rci_job"></span><span id="aoclsparse_itsol_rci_job"></span><span class="target" id="aoclsparse__solvers_8h_1a7860ef5a281991305c3835582cfd78e2"></span><span class="k"><span class="pre">typedef</span></span><span class="w"> </span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv425aoclsparse_itsol_rci_job_" title="aoclsparse_itsol_rci_job_"><span class="n"><span class="pre">aoclsparse_itsol_rci_job_</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aoclsparse_itsol_rci_job</span></span></span><a class="headerlink" href="#_CPPv424aoclsparse_itsol_rci_job" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Values of <code class="docutils literal notranslate"><span class="pre">ircomm</span></code> used by the iterative solver reverse communication interface (RCI) <a class="reference internal" href="#aoclsparse__solvers_8h_1ac969580db8ef6c817f4c85d971f85dcd"><span class="std std-ref">aoclsparse_itsol_d_rci_solve</span></a> and <a class="reference internal" href="#aoclsparse__solvers_8h_1a23a177d7308672019604e8c78a435fca"><span class="std std-ref">aoclsparse_itsol_s_rci_solve</span></a> to communicate back to the user which operation is required. </p>
+</dd></dl>
+
+<dl class="cpp enum">
+<dt class="sig sig-object cpp" id="_CPPv425aoclsparse_itsol_rci_job_">
+<span id="_CPPv325aoclsparse_itsol_rci_job_"></span><span id="_CPPv225aoclsparse_itsol_rci_job_"></span><span class="target" id="aoclsparse__solvers_8h_1a4f709373de46dd80ea3fb5cc944f522e"></span><span class="k"><span class="pre">enum</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aoclsparse_itsol_rci_job_</span></span></span><a class="headerlink" href="#_CPPv425aoclsparse_itsol_rci_job_" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Values of <code class="docutils literal notranslate"><span class="pre">ircomm</span></code> used by the iterative solver reverse communication interface (RCI) <a class="reference internal" href="#aoclsparse__solvers_8h_1ac969580db8ef6c817f4c85d971f85dcd"><span class="std std-ref">aoclsparse_itsol_d_rci_solve</span></a> and <a class="reference internal" href="#aoclsparse__solvers_8h_1a23a177d7308672019604e8c78a435fca"><span class="std std-ref">aoclsparse_itsol_s_rci_solve</span></a> to communicate back to the user which operation is required. </p>
+<p><em>Values:</em></p>
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N25aoclsparse_itsol_rci_job_24aoclsparse_rci_interruptE">
+<span id="_CPPv3N25aoclsparse_itsol_rci_job_24aoclsparse_rci_interruptE"></span><span id="_CPPv2N25aoclsparse_itsol_rci_job_24aoclsparse_rci_interruptE"></span><span class="target" id="aoclsparse__solvers_8h_1a4f709373de46dd80ea3fb5cc944f522ead7d5c045f036a27ab07bfa55837f9909"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aoclsparse_rci_interrupt</span></span></span><a class="headerlink" href="#_CPPv4N25aoclsparse_itsol_rci_job_24aoclsparse_rci_interruptE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>if set by the user, signals the solver to terminate. This is never set by the solver. Terminate. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N25aoclsparse_itsol_rci_job_19aoclsparse_rci_stopE">
+<span id="_CPPv3N25aoclsparse_itsol_rci_job_19aoclsparse_rci_stopE"></span><span id="_CPPv2N25aoclsparse_itsol_rci_job_19aoclsparse_rci_stopE"></span><span class="target" id="aoclsparse__solvers_8h_1a4f709373de46dd80ea3fb5cc944f522ea462b907378214de23d71dc6cc79af9b1"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aoclsparse_rci_stop</span></span></span><a class="headerlink" href="#_CPPv4N25aoclsparse_itsol_rci_job_19aoclsparse_rci_stopE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>found a solution within specified tolerance (see options “cg rel tolerance”, “cg abs tolerance”, “gmres rel tolerance”, and “gmres abs tolerance” in <a class="reference internal" href="#aoclsparse__solvers_8h_1anchor_itsol_options"><span class="std std-ref">Options</span></a>). Terminate, vector <code class="docutils literal notranslate"><span class="pre">x</span></code> contains the solution. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N25aoclsparse_itsol_rci_job_20aoclsparse_rci_startE">
+<span id="_CPPv3N25aoclsparse_itsol_rci_job_20aoclsparse_rci_startE"></span><span id="_CPPv2N25aoclsparse_itsol_rci_job_20aoclsparse_rci_startE"></span><span class="target" id="aoclsparse__solvers_8h_1a4f709373de46dd80ea3fb5cc944f522eac9de71a51ae6e3452b43db37fd90d42d"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aoclsparse_rci_start</span></span></span><a class="headerlink" href="#_CPPv4N25aoclsparse_itsol_rci_job_20aoclsparse_rci_startE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>initial value of the <code class="docutils literal notranslate"><span class="pre">ircomm</span></code> flag, no action required. Call solver. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N25aoclsparse_itsol_rci_job_17aoclsparse_rci_mvE">
+<span id="_CPPv3N25aoclsparse_itsol_rci_job_17aoclsparse_rci_mvE"></span><span id="_CPPv2N25aoclsparse_itsol_rci_job_17aoclsparse_rci_mvE"></span><span class="target" id="aoclsparse__solvers_8h_1a4f709373de46dd80ea3fb5cc944f522eaa7f5080f54fddfe23d46ccf0f40884da"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aoclsparse_rci_mv</span></span></span><a class="headerlink" href="#_CPPv4N25aoclsparse_itsol_rci_job_17aoclsparse_rci_mvE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>perform the matrix-vector product <span class="math notranslate nohighlight">\( v = Au\)</span>. Return control to solver. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N25aoclsparse_itsol_rci_job_22aoclsparse_rci_precondE">
+<span id="_CPPv3N25aoclsparse_itsol_rci_job_22aoclsparse_rci_precondE"></span><span id="_CPPv2N25aoclsparse_itsol_rci_job_22aoclsparse_rci_precondE"></span><span class="target" id="aoclsparse__solvers_8h_1a4f709373de46dd80ea3fb5cc944f522ea6f2d5ea7e4deeb44c38256a024a1ebfe"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aoclsparse_rci_precond</span></span></span><a class="headerlink" href="#_CPPv4N25aoclsparse_itsol_rci_job_22aoclsparse_rci_precondE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>perform a preconditioning step on the vector <span class="math notranslate nohighlight">\(u\)</span> and store in <span class="math notranslate nohighlight">\(v\)</span>. If the preconditioner <span class="math notranslate nohighlight">\(M\)</span> has explicit matrix form, then applying the preconditioner would result in the operations <span class="math notranslate nohighlight">\( v=Mu \)</span> or <span class="math notranslate nohighlight">\(v=M^{-1}u\)</span>. The latter would be performed by solving the linear system of equations <span class="math notranslate nohighlight">\(Mv=u\)</span>. Return control to solver. </p>
+</dd></dl>
+
+<dl class="cpp enumerator">
+<dt class="sig sig-object cpp" id="_CPPv4N25aoclsparse_itsol_rci_job_33aoclsparse_rci_stopping_criterionE">
+<span id="_CPPv3N25aoclsparse_itsol_rci_job_33aoclsparse_rci_stopping_criterionE"></span><span id="_CPPv2N25aoclsparse_itsol_rci_job_33aoclsparse_rci_stopping_criterionE"></span><span class="target" id="aoclsparse__solvers_8h_1a4f709373de46dd80ea3fb5cc944f522ea7d82cdfbd6b220e7cb7ddf9a39f7b39a"></span><span class="k"><span class="pre">enumerator</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aoclsparse_rci_stopping_criterion</span></span></span><a class="headerlink" href="#_CPPv4N25aoclsparse_itsol_rci_job_33aoclsparse_rci_stopping_criterionE" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>perform a monitoring step and check for custom stopping criteria. If using a positive tolerance value for the convergence options (see <a class="reference internal" href="#aoclsparse__solvers_8h_1a4f709373de46dd80ea3fb5cc944f522ea462b907378214de23d71dc6cc79af9b1"><span class="std std-ref">aoclsparse_rci_stop</span></a>), then this step can be ignored and control can be returned to solver. </p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv435aoclsparse_itsol_handle_prn_options23aoclsparse_itsol_handle">
+<span id="_CPPv335aoclsparse_itsol_handle_prn_options23aoclsparse_itsol_handle"></span><span id="_CPPv235aoclsparse_itsol_handle_prn_options23aoclsparse_itsol_handle"></span><span id="aoclsparse_itsol_handle_prn_options__aoclsparse_itsol_handle"></span><span class="target" id="aoclsparse__solvers_8h_1a75ff90b76eebf48ec14541760ad99bdb"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aoclsparse_itsol_handle_prn_options</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">aoclsparse_itsol_handle</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv435aoclsparse_itsol_handle_prn_options23aoclsparse_itsol_handle" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Print options stored in a problem handle. </p>
+<p>This function prints to the standard output a list of available options stored in a problem handle and their current value. For available options, see Options in <a class="reference internal" href="#aoclsparse__solvers_8h_1a42e3030cae557223707dfe6015a5592f"><span class="std std-ref">aoclsparse_itsol_option_set</span></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>handle</strong> – <strong>[in]</strong> pointer to the iterative solvers’ data structure. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv427aoclsparse_itsol_option_set23aoclsparse_itsol_handlePKcPKc">
+<span id="_CPPv327aoclsparse_itsol_option_set23aoclsparse_itsol_handlePKcPKc"></span><span id="_CPPv227aoclsparse_itsol_option_set23aoclsparse_itsol_handlePKcPKc"></span><span id="aoclsparse_itsol_option_set__aoclsparse_itsol_handle.cCP.cCP"></span><span class="target" id="aoclsparse__solvers_8h_1a42e3030cae557223707dfe6015a5592f"></span><a class="reference internal" href="types.html#_CPPv417aoclsparse_status" title="aoclsparse_status"><span class="n"><span class="pre">aoclsparse_status</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aoclsparse_itsol_option_set</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">aoclsparse_itsol_handle</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">option</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">char</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv427aoclsparse_itsol_option_set23aoclsparse_itsol_handlePKcPKc" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Option Setter. </p>
+<p>This function sets the value to a given option inside the provided problem handle. Handle options can be printed using <a class="reference internal" href="#aoclsparse__solvers_8h_1a75ff90b76eebf48ec14541760ad99bdb"><span class="std std-ref">aoclsparse_itsol_handle_prn_options</span></a>. Available options are listed in <a class="reference internal" href="#aoclsparse__solvers_8h_1anchor_itsol_options"><span class="std std-ref">Options</span></a>. </p>
+<section id="aoclsparse__solvers_8h_1anchor_itsol_options">
+<h3>Options<a class="headerlink" href="#aoclsparse__solvers_8h_1anchor_itsol_options" title="Permalink to this heading">#</a></h3>
+<p id="aoclsparse__solvers_8h_1anchor_itsol_options">The iterative solver framework has the following options.</p>
+<p><table class="table">
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Option name</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Constraints</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>cg iteration limit</strong></p></td>
+<td><p>integer</p></td>
+<td><p><span class="math notranslate nohighlight">\(i = 500\)</span></p></td>
+<td><p>Set CG iteration limit</p></td>
+<td><p><span class="math notranslate nohighlight">\(1 \le i\)</span>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>gmres iteration limit</strong></p></td>
+<td><p>integer</p></td>
+<td><p><span class="math notranslate nohighlight">\(i = 150\)</span></p></td>
+<td><p>Set GMRES iteration limit</p></td>
+<td><p><span class="math notranslate nohighlight">\(1 \le i\)</span>.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>gmres restart iterations</strong></p></td>
+<td><p>integer</p></td>
+<td><p><span class="math notranslate nohighlight">\(i = 20\)</span></p></td>
+<td><p>Set GMRES restart iterations</p></td>
+<td><p><span class="math notranslate nohighlight">\(1 \le i\)</span>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>cg rel tolerance</strong></p></td>
+<td><p>real</p></td>
+<td><p><span class="math notranslate nohighlight">\(r = 1.08735e-06\)</span></p></td>
+<td><p>Set relative convergence tolerance for cg method</p></td>
+<td><p><span class="math notranslate nohighlight">\(0 \le r\)</span>.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>cg abs tolerance</strong></p></td>
+<td><p>real</p></td>
+<td><p><span class="math notranslate nohighlight">\(r = 0\)</span></p></td>
+<td><p>Set absolute convergence tolerance for cg method</p></td>
+<td><p><span class="math notranslate nohighlight">\(0 \le r\)</span>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>gmres rel tolerance</strong></p></td>
+<td><p>real</p></td>
+<td><p><span class="math notranslate nohighlight">\(r = 1.08735e-06\)</span></p></td>
+<td><p>Set relative convergence tolerance for gmres method</p></td>
+<td><p><span class="math notranslate nohighlight">\(0 \le r\)</span>.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>gmres abs tolerance</strong></p></td>
+<td><p>real</p></td>
+<td><p><span class="math notranslate nohighlight">\(r = 1e-06\)</span></p></td>
+<td><p>Set absolute convergence tolerance for gmres method</p></td>
+<td><p><span class="math notranslate nohighlight">\(0 \le r\)</span>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>iterative method</strong></p></td>
+<td><p>string</p></td>
+<td><p><span class="math notranslate nohighlight">\(s = cg\)</span></p></td>
+<td><p>Choose solver to use</p></td>
+<td><p><span class="math notranslate nohighlight">\(s =\)</span> <cite>cg</cite>, <cite>gm res</cite>, <cite>gmres</cite>, or <cite>pcg</cite>.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>cg preconditioner</strong></p></td>
+<td><p>string</p></td>
+<td><p><span class="math notranslate nohighlight">\(s = none\)</span></p></td>
+<td><p>Choose preconditioner to use with cg method</p></td>
+<td><p><span class="math notranslate nohighlight">\(s =\)</span> <cite>gs</cite>, <cite>none</cite>, <cite>sgs</cite>, <cite>symgs</cite>, or <cite>user</cite>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>gmres preconditioner</strong></p></td>
+<td><p>string</p></td>
+<td><p><span class="math notranslate nohighlight">\(s = none\)</span></p></td>
+<td><p>Choose preconditioner to use with gmres method</p></td>
+<td><p><span class="math notranslate nohighlight">\(s =\)</span> <cite>ilu0</cite>, <cite>none</cite>, or <cite>user</cite>.</p></td>
+</tr>
+</tbody>
+</table>
+</p>
+<p></p>
+</section>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>It is worth noting that only some options apply to each specific solver, e.g. name of options that begin with “cg” affect the behaviour of the CG solver.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>handle</strong> – <strong>[inout]</strong> pointer to the iterative solvers’ data structure. </p></li>
+<li><p><strong>option</strong> – <strong>[in]</strong> string specifying the name of the option to set. </p></li>
+<li><p><strong>value</strong> – <strong>[in]</strong> string providing the value to set the option to.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return values</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>aoclsparse_status_success</strong> – the operation completed successfully. </p></li>
+<li><p><strong>aoclsparse_status_invalid_value</strong> – either the option name was not found or the provided option value is out of the valid range. </p></li>
+<li><p><strong>aoclsparse_status_invalid_pointer</strong> – the pointer to the problem handle is invalid. </p></li>
+<li><p><strong>aoclsparse_status_internal_error</strong> – an unexpected error occurred. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv423aoclsparse_itsol_d_initP23aoclsparse_itsol_handle">
+<span id="_CPPv323aoclsparse_itsol_d_initP23aoclsparse_itsol_handle"></span><span id="_CPPv223aoclsparse_itsol_d_initP23aoclsparse_itsol_handle"></span><span id="aoclsparse_itsol_d_init__aoclsparse_itsol_handleP"></span><span class="target" id="aoclsparse__solvers_8h_1a5c4252ad53e937922de183b7aa03301b"></span><a class="reference internal" href="types.html#_CPPv417aoclsparse_status" title="aoclsparse_status"><span class="n"><span class="pre">aoclsparse_status</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aoclsparse_itsol_d_init</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">aoclsparse_itsol_handle</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">handle</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv423aoclsparse_itsol_d_initP23aoclsparse_itsol_handle" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Initialize a problem <code class="docutils literal notranslate"><span class="pre">handle</span></code> ( <code class="docutils literal notranslate"><span class="pre">aoclsparse_itsol_handle</span></code>) for the iterative solvers suite of the library. </p>
+<p><a class="reference internal" href="#aoclsparse__solvers_8h_1a99e00606666a9efa355f0ed1a9543624"><span class="std std-ref">aoclsparse_itsol_s_init</span></a> and aoclsparse_itsol_d_init initialize a data structure referred to as problem <code class="docutils literal notranslate"><span class="pre">handle</span></code>. This <code class="docutils literal notranslate"><span class="pre">handle</span></code> is used by iterative solvers (itsol) suite to setup options, define which solver to use, etc.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Once the <code class="docutils literal notranslate"><span class="pre">handle</span></code> is no longer needed, it can be destroyed and the memory released by calling <a class="reference internal" href="#aoclsparse__solvers_8h_1a3e47c085a053688d223cc8ab017e2a55"><span class="std std-ref">aoclsparse_itsol_destroy</span></a>. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>handle</strong> – <strong>[inout]</strong> the pointer to the problem handle data structure.</p>
+</dd>
+<dt class="field-even">Return values</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>aoclsparse_status_success</strong> – the operation completed successfully. </p></li>
+<li><p><strong>aoclsparse_status_memory_error</strong> – internal memory allocation error. </p></li>
+<li><p><strong>aoclsparse_status_invalid_pointer</strong> – the pointer to the problem handle is invalid. </p></li>
+<li><p><strong>aoclsparse_status_internal_error</strong> – an unexpected error occurred.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv423aoclsparse_itsol_s_initP23aoclsparse_itsol_handle">
+<span id="_CPPv323aoclsparse_itsol_s_initP23aoclsparse_itsol_handle"></span><span id="_CPPv223aoclsparse_itsol_s_initP23aoclsparse_itsol_handle"></span><span id="aoclsparse_itsol_s_init__aoclsparse_itsol_handleP"></span><span class="target" id="aoclsparse__solvers_8h_1a99e00606666a9efa355f0ed1a9543624"></span><a class="reference internal" href="types.html#_CPPv417aoclsparse_status" title="aoclsparse_status"><span class="n"><span class="pre">aoclsparse_status</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aoclsparse_itsol_s_init</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">aoclsparse_itsol_handle</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">handle</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv423aoclsparse_itsol_s_initP23aoclsparse_itsol_handle" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Initialize a problem <code class="docutils literal notranslate"><span class="pre">handle</span></code> ( <code class="docutils literal notranslate"><span class="pre">aoclsparse_itsol_handle</span></code>) for the iterative solvers suite of the library. </p>
+<p><a class="reference internal" href="#aoclsparse__solvers_8h_1a99e00606666a9efa355f0ed1a9543624"><span class="std std-ref">aoclsparse_itsol_s_init</span></a> and aoclsparse_itsol_d_init initialize a data structure referred to as problem <code class="docutils literal notranslate"><span class="pre">handle</span></code>. This <code class="docutils literal notranslate"><span class="pre">handle</span></code> is used by iterative solvers (itsol) suite to setup options, define which solver to use, etc.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Once the <code class="docutils literal notranslate"><span class="pre">handle</span></code> is no longer needed, it can be destroyed and the memory released by calling <a class="reference internal" href="#aoclsparse__solvers_8h_1a3e47c085a053688d223cc8ab017e2a55"><span class="std std-ref">aoclsparse_itsol_destroy</span></a>. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>handle</strong> – <strong>[inout]</strong> the pointer to the problem handle data structure.</p>
+</dd>
+<dt class="field-even">Return values</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>aoclsparse_status_success</strong> – the operation completed successfully. </p></li>
+<li><p><strong>aoclsparse_status_memory_error</strong> – internal memory allocation error. </p></li>
+<li><p><strong>aoclsparse_status_invalid_pointer</strong> – the pointer to the problem handle is invalid. </p></li>
+<li><p><strong>aoclsparse_status_internal_error</strong> – an unexpected error occurred.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv424aoclsparse_itsol_destroyP23aoclsparse_itsol_handle">
+<span id="_CPPv324aoclsparse_itsol_destroyP23aoclsparse_itsol_handle"></span><span id="_CPPv224aoclsparse_itsol_destroyP23aoclsparse_itsol_handle"></span><span id="aoclsparse_itsol_destroy__aoclsparse_itsol_handleP"></span><span class="target" id="aoclsparse__solvers_8h_1a3e47c085a053688d223cc8ab017e2a55"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aoclsparse_itsol_destroy</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">aoclsparse_itsol_handle</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">handle</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv424aoclsparse_itsol_destroyP23aoclsparse_itsol_handle" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Free the memory reserved in a problem <code class="docutils literal notranslate"><span class="pre">handle</span></code> previously initialized by <a class="reference internal" href="#aoclsparse__solvers_8h_1a99e00606666a9efa355f0ed1a9543624"><span class="std std-ref">aoclsparse_itsol_s_init</span></a> or <a class="reference internal" href="#aoclsparse__solvers_8h_1a5c4252ad53e937922de183b7aa03301b"><span class="std std-ref">aoclsparse_itsol_d_init</span></a>. </p>
+<p>Once the problem handle is no longer needed, calling this function to deallocate the memory is advisable to avoid memory leaks.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Passing a <code class="docutils literal notranslate"><span class="pre">handle</span></code> that has not been initialized by <a class="reference internal" href="#aoclsparse__solvers_8h_1a99e00606666a9efa355f0ed1a9543624"><span class="std std-ref">aoclsparse_itsol_s_init</span></a> or <a class="reference internal" href="#aoclsparse__solvers_8h_1a5c4252ad53e937922de183b7aa03301b"><span class="std std-ref">aoclsparse_itsol_d_init</span></a> may have unpredictable results.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>handle</strong> – <strong>[inout]</strong> pointer to a problem handle. </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv428aoclsparse_itsol_d_rci_input23aoclsparse_itsol_handle14aoclsparse_intPKd">
+<span id="_CPPv328aoclsparse_itsol_d_rci_input23aoclsparse_itsol_handle14aoclsparse_intPKd"></span><span id="_CPPv228aoclsparse_itsol_d_rci_input23aoclsparse_itsol_handle14aoclsparse_intPKd"></span><span id="aoclsparse_itsol_d_rci_input__aoclsparse_itsol_handle.aoclsparse_int.doubleCP"></span><span class="target" id="aoclsparse__solvers_8h_1acb7a8f6980d5e17a1180c985ee10cb5f"></span><a class="reference internal" href="types.html#_CPPv417aoclsparse_status" title="aoclsparse_status"><span class="n"><span class="pre">aoclsparse_status</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aoclsparse_itsol_d_rci_input</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">aoclsparse_itsol_handle</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">n</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">b</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv428aoclsparse_itsol_d_rci_input23aoclsparse_itsol_handle14aoclsparse_intPKd" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Store partial data of the linear system of equations into the problem <code class="docutils literal notranslate"><span class="pre">handle</span></code>. </p>
+<p>This function needs to be called before the reverse communication interface iterative solver is called. It registers the linear system’s dimension <code class="docutils literal notranslate"><span class="pre">n</span></code>, and stores the right-hand side vector <code class="docutils literal notranslate"><span class="pre">b</span></code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function does not need to be called if the forward communication interface is used.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>handle</strong> – <strong>[inout]</strong> problem <code class="docutils literal notranslate"><span class="pre">handle</span></code>. Needs to be initialized by calling <a class="reference internal" href="#aoclsparse__solvers_8h_1a99e00606666a9efa355f0ed1a9543624"><span class="std std-ref">aoclsparse_itsol_s_init</span></a> or <a class="reference internal" href="#aoclsparse__solvers_8h_1a5c4252ad53e937922de183b7aa03301b"><span class="std std-ref">aoclsparse_itsol_d_init</span></a>. </p></li>
+<li><p><strong>n</strong> – <strong>[in]</strong> the number of columns of the (square) linear system matrix. </p></li>
+<li><p><strong>b</strong> – <strong>[in]</strong> the right hand side of the linear system. Must be a vector of size <code class="docutils literal notranslate"><span class="pre">n</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return values</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>aoclsparse_status_success</strong> – initialization completed successfully. </p></li>
+<li><p><strong>aoclsparse_status_invalid_pointer</strong> – one or more of the pointers <code class="docutils literal notranslate"><span class="pre">handle</span></code>, and <code class="docutils literal notranslate"><span class="pre">b</span></code> are invalid. </p></li>
+<li><p><strong>aoclsparse_status_wrong_type</strong> – <code class="docutils literal notranslate"><span class="pre">handle</span></code> was initialized with a different floating point precision than requested here, e.g. <a class="reference internal" href="#aoclsparse__solvers_8h_1a5c4252ad53e937922de183b7aa03301b"><span class="std std-ref">aoclsparse_itsol_d_init</span></a> (double precision) was used to initialize <code class="docutils literal notranslate"><span class="pre">handle</span></code> but <a class="reference internal" href="#aoclsparse__solvers_8h_1afb64debd6dbb478619ed183ed6631715"><span class="std std-ref">aoclsparse_itsol_s_rci_input</span></a> (single precision) is being called instead of the correct double precision one, <a class="reference internal" href="#aoclsparse__solvers_8h_1acb7a8f6980d5e17a1180c985ee10cb5f"><span class="std std-ref">aoclsparse_itsol_d_rci_input</span></a>. </p></li>
+<li><p><strong>aoclsparse_status_invalid_value</strong> – <code class="docutils literal notranslate"><span class="pre">n</span></code> was set to a negative value. </p></li>
+<li><p><strong>aoclsparse_status_memory_error</strong> – internal memory allocation error. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv428aoclsparse_itsol_s_rci_input23aoclsparse_itsol_handle14aoclsparse_intPKf">
+<span id="_CPPv328aoclsparse_itsol_s_rci_input23aoclsparse_itsol_handle14aoclsparse_intPKf"></span><span id="_CPPv228aoclsparse_itsol_s_rci_input23aoclsparse_itsol_handle14aoclsparse_intPKf"></span><span id="aoclsparse_itsol_s_rci_input__aoclsparse_itsol_handle.aoclsparse_int.floatCP"></span><span class="target" id="aoclsparse__solvers_8h_1afb64debd6dbb478619ed183ed6631715"></span><a class="reference internal" href="types.html#_CPPv417aoclsparse_status" title="aoclsparse_status"><span class="n"><span class="pre">aoclsparse_status</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aoclsparse_itsol_s_rci_input</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">aoclsparse_itsol_handle</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">n</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">b</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv428aoclsparse_itsol_s_rci_input23aoclsparse_itsol_handle14aoclsparse_intPKf" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Store partial data of the linear system of equations into the problem <code class="docutils literal notranslate"><span class="pre">handle</span></code>. </p>
+<p>This function needs to be called before the reverse communication interface iterative solver is called. It registers the linear system’s dimension <code class="docutils literal notranslate"><span class="pre">n</span></code>, and stores the right-hand side vector <code class="docutils literal notranslate"><span class="pre">b</span></code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function does not need to be called if the forward communication interface is used.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>handle</strong> – <strong>[inout]</strong> problem <code class="docutils literal notranslate"><span class="pre">handle</span></code>. Needs to be initialized by calling <a class="reference internal" href="#aoclsparse__solvers_8h_1a99e00606666a9efa355f0ed1a9543624"><span class="std std-ref">aoclsparse_itsol_s_init</span></a> or <a class="reference internal" href="#aoclsparse__solvers_8h_1a5c4252ad53e937922de183b7aa03301b"><span class="std std-ref">aoclsparse_itsol_d_init</span></a>. </p></li>
+<li><p><strong>n</strong> – <strong>[in]</strong> the number of columns of the (square) linear system matrix. </p></li>
+<li><p><strong>b</strong> – <strong>[in]</strong> the right hand side of the linear system. Must be a vector of size <code class="docutils literal notranslate"><span class="pre">n</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return values</dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>aoclsparse_status_success</strong> – initialization completed successfully. </p></li>
+<li><p><strong>aoclsparse_status_invalid_pointer</strong> – one or more of the pointers <code class="docutils literal notranslate"><span class="pre">handle</span></code>, and <code class="docutils literal notranslate"><span class="pre">b</span></code> are invalid. </p></li>
+<li><p><strong>aoclsparse_status_wrong_type</strong> – <code class="docutils literal notranslate"><span class="pre">handle</span></code> was initialized with a different floating point precision than requested here, e.g. <a class="reference internal" href="#aoclsparse__solvers_8h_1a5c4252ad53e937922de183b7aa03301b"><span class="std std-ref">aoclsparse_itsol_d_init</span></a> (double precision) was used to initialize <code class="docutils literal notranslate"><span class="pre">handle</span></code> but <a class="reference internal" href="#aoclsparse__solvers_8h_1afb64debd6dbb478619ed183ed6631715"><span class="std std-ref">aoclsparse_itsol_s_rci_input</span></a> (single precision) is being called instead of the correct double precision one, <a class="reference internal" href="#aoclsparse__solvers_8h_1acb7a8f6980d5e17a1180c985ee10cb5f"><span class="std std-ref">aoclsparse_itsol_d_rci_input</span></a>. </p></li>
+<li><p><strong>aoclsparse_status_invalid_value</strong> – <code class="docutils literal notranslate"><span class="pre">n</span></code> was set to a negative value. </p></li>
+<li><p><strong>aoclsparse_status_memory_error</strong> – internal memory allocation error. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv428aoclsparse_itsol_d_rci_solve23aoclsparse_itsol_handleP24aoclsparse_itsol_rci_jobPPdPPdPdAL100E_d">
+<span id="_CPPv328aoclsparse_itsol_d_rci_solve23aoclsparse_itsol_handleP24aoclsparse_itsol_rci_jobPPdPPdPdAL100E_d"></span><span id="_CPPv228aoclsparse_itsol_d_rci_solve23aoclsparse_itsol_handleP24aoclsparse_itsol_rci_jobPPdPPdPdA100_d"></span><span id="aoclsparse_itsol_d_rci_solve__aoclsparse_itsol_handle.aoclsparse_itsol_rci_jobP.doublePP.doublePP.doubleP.doubleA"></span><span class="target" id="aoclsparse__solvers_8h_1ac969580db8ef6c817f4c85d971f85dcd"></span><a class="reference internal" href="types.html#_CPPv417aoclsparse_status" title="aoclsparse_status"><span class="n"><span class="pre">aoclsparse_status</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aoclsparse_itsol_d_rci_solve</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">aoclsparse_itsol_handle</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle</span></span>, <a class="reference internal" href="#_CPPv424aoclsparse_itsol_rci_job" title="aoclsparse_itsol_rci_job"><span class="n"><span class="pre">aoclsparse_itsol_rci_job</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">ircomm</span></span>, <span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">u</span></span>, <span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">v</span></span>, <span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rinfo</span></span><span class="p"><span class="pre">[</span></span><span class="m"><span class="pre">100</span></span><span class="p"><span class="pre">]</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv428aoclsparse_itsol_d_rci_solve23aoclsparse_itsol_handleP24aoclsparse_itsol_rci_jobPPdPPdPdAL100E_d" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Reverse Communication Interface (RCI) to the iterative solvers (itsol) suite. </p>
+<p>This function solves the linear system of equations <div class="math notranslate nohighlight">
+\[ Ax=b, \]</div>
+ where the matrix of coefficients <span class="math notranslate nohighlight">\(A\)</span> is not required to be provided explicitly. The right hand-side is the dense vector <code class="docutils literal notranslate"><span class="pre">b</span></code> and the vector of unknowns is <code class="docutils literal notranslate"><span class="pre">x</span></code>. If <span class="math notranslate nohighlight">\(A\)</span> is symmetric and positive definite then set the option “iterative method” to “cg” to solve the problem using the <a class="reference external" href="https://encyclopediaofmath.org/index.php?title=Conjugate_gradients,_method_of&amp;oldid=46470">Conjugate Gradient method</a>, alternatively set the option to “gmres” to solve using <a class="reference external" href="https://mathworld.wolfram.com/GeneralizedMinimalResidualMethod.html">GMRes</a>. See the <a class="reference internal" href="#aoclsparse__solvers_8h_1anchor_itsol_options"><span class="std std-ref">Options</span></a> for a list of available options to modify the behaviour of each solver.</p>
+<p>The reverse communication interface (RCI), also know as _matrix-free_ interface does not require the user to explicitly provide the matrix <span class="math notranslate nohighlight">\(A\)</span>. During the solve process whenever the algorithm requires a matrix operation (matrix-vector or transposed matrix-vector products), it returns control to the user with a flag <code class="docutils literal notranslate"><span class="pre">ircomm</span></code> indicating what operation is requested. Once the user performs the requested task it must call this function again to resume the solve.</p>
+<p>The expected workflow is as follows:<ol class="loweralpha simple">
+<li><p>Call <a class="reference internal" href="#aoclsparse__solvers_8h_1a99e00606666a9efa355f0ed1a9543624"><span class="std std-ref">aoclsparse_itsol_s_init</span></a> or <a class="reference internal" href="#aoclsparse__solvers_8h_1a5c4252ad53e937922de183b7aa03301b"><span class="std std-ref">aoclsparse_itsol_d_init</span></a> to initialize the problem <code class="docutils literal notranslate"><span class="pre">handle</span></code> ( aoclsparse_itsol_handle)</p></li>
+<li><p>Choose the solver and adjust its behaviour by setting optional parameters with <a class="reference internal" href="#aoclsparse__solvers_8h_1a42e3030cae557223707dfe6015a5592f"><span class="std std-ref">aoclsparse_itsol_option_set</span></a>, see also <a class="reference internal" href="#aoclsparse__solvers_8h_1anchor_itsol_options"><span class="std std-ref">Options</span></a>.</p></li>
+<li><p>Define the problem size and right-hand side vector <span class="math notranslate nohighlight">\(b\)</span> with <a class="reference internal" href="#aoclsparse__solvers_8h_1acb7a8f6980d5e17a1180c985ee10cb5f"><span class="std std-ref">aoclsparse_itsol_d_rci_input</span></a>.</p></li>
+<li><p>Solve the system with either <a class="reference internal" href="#aoclsparse__solvers_8h_1a23a177d7308672019604e8c78a435fca"><span class="std std-ref">aoclsparse_itsol_s_rci_solve</span></a> or <a class="reference internal" href="#aoclsparse__solvers_8h_1ac969580db8ef6c817f4c85d971f85dcd"><span class="std std-ref">aoclsparse_itsol_d_rci_solve</span></a>.</p></li>
+<li><p>If there is another linear system of equations to solve with the same matrix but a different right-hand side <span class="math notranslate nohighlight">\(b\)</span>, then repeat from step 3.</p></li>
+<li><p>If solver terminated successfully then vector <code class="docutils literal notranslate"><span class="pre">x</span></code> contains the solution.</p></li>
+<li><p>Free the memory with <a class="reference internal" href="#aoclsparse__solvers_8h_1a3e47c085a053688d223cc8ab017e2a55"><span class="std std-ref">aoclsparse_itsol_destroy</span></a>.</p></li>
+</ol>
+</p>
+<p>These reverse communication interfaces complement the _forward communication_ interfaces <a class="reference internal" href="#aoclsparse__solvers_8h_1ac969580db8ef6c817f4c85d971f85dcd"><span class="std std-ref">aoclsparse_itsol_d_rci_solve</span></a> and <a class="reference internal" href="#aoclsparse__solvers_8h_1a23a177d7308672019604e8c78a435fca"><span class="std std-ref">aoclsparse_itsol_s_rci_solve</span></a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function returns control back to the user under certain circumstances. The table in <a class="reference internal" href="#aoclsparse__solvers_8h_1a4f709373de46dd80ea3fb5cc944f522e"><span class="std std-ref">aoclsparse_itsol_rci_job_</span></a> indicates what actions are required to be performed by the user.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>For an illustrative example see Examples. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>handle</strong> – <strong>[inout]</strong> problem <code class="docutils literal notranslate"><span class="pre">handle</span></code>. Needs to be previously initialized by <a class="reference internal" href="#aoclsparse__solvers_8h_1a99e00606666a9efa355f0ed1a9543624"><span class="std std-ref">aoclsparse_itsol_s_init</span></a> or <a class="reference internal" href="#aoclsparse__solvers_8h_1a5c4252ad53e937922de183b7aa03301b"><span class="std std-ref">aoclsparse_itsol_d_init</span></a> and then populated using either <a class="reference internal" href="#aoclsparse__solvers_8h_1afb64debd6dbb478619ed183ed6631715"><span class="std std-ref">aoclsparse_itsol_s_rci_input</span></a> or <a class="reference internal" href="#aoclsparse__solvers_8h_1acb7a8f6980d5e17a1180c985ee10cb5f"><span class="std std-ref">aoclsparse_itsol_d_rci_input</span></a>, as appropriate. </p></li>
+<li><p><strong>ircomm</strong> – <strong>[inout]</strong> pointer to the reverse communication instruction flag and defined in <a class="reference internal" href="#aoclsparse__solvers_8h_1a4f709373de46dd80ea3fb5cc944f522e"><span class="std std-ref">aoclsparse_itsol_rci_job_</span></a>. </p></li>
+<li><p><strong>u</strong> – <strong>[inout]</strong> pointer to a generic vector of data. The solver will point to the data on which the operation defined by <code class="docutils literal notranslate"><span class="pre">ircomm</span></code> needs to be applied. </p></li>
+<li><p><strong>v</strong> – <strong>[inout]</strong> pointer to a generic vector of data. The solver will ask that the result of the operation defined by <code class="docutils literal notranslate"><span class="pre">ircomm</span></code> be stored in <code class="docutils literal notranslate"><span class="pre">v</span></code>. </p></li>
+<li><p><strong>x</strong> – <strong>[inout]</strong> dense vector of unknowns. On input, it should contain the initial guess from which to start the iterative process. If there is no good initial estimate guess then any arbitrary but finite values can be used. On output, it contains an estimate to the solution of the linear system of equations up to the requested tolerance, e.g. see “cg rel tolerance” or “cg abs tolerance” in <a class="reference internal" href="#aoclsparse__solvers_8h_1anchor_itsol_options"><span class="std std-ref">Options</span></a>. </p></li>
+<li><p><strong>rinfo</strong> – <strong>[out]</strong> vector containing information and stats related to the iterative solve, see Information Array. This parameter can be used to monitor progress and define a custom stopping criterion when the solver returns control to user with <code class="docutils literal notranslate"><span class="pre">ircomm</span></code> = <a class="reference internal" href="#aoclsparse__solvers_8h_1a4f709373de46dd80ea3fb5cc944f522ea7d82cdfbd6b220e7cb7ddf9a39f7b39a"><span class="std std-ref">aoclsparse_rci_stopping_criterion</span></a>.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv428aoclsparse_itsol_s_rci_solve23aoclsparse_itsol_handleP24aoclsparse_itsol_rci_jobPPfPPfPfAL100E_f">
+<span id="_CPPv328aoclsparse_itsol_s_rci_solve23aoclsparse_itsol_handleP24aoclsparse_itsol_rci_jobPPfPPfPfAL100E_f"></span><span id="_CPPv228aoclsparse_itsol_s_rci_solve23aoclsparse_itsol_handleP24aoclsparse_itsol_rci_jobPPfPPfPfA100_f"></span><span id="aoclsparse_itsol_s_rci_solve__aoclsparse_itsol_handle.aoclsparse_itsol_rci_jobP.floatPP.floatPP.floatP.floatA"></span><span class="target" id="aoclsparse__solvers_8h_1a23a177d7308672019604e8c78a435fca"></span><a class="reference internal" href="types.html#_CPPv417aoclsparse_status" title="aoclsparse_status"><span class="n"><span class="pre">aoclsparse_status</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aoclsparse_itsol_s_rci_solve</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">aoclsparse_itsol_handle</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle</span></span>, <a class="reference internal" href="#_CPPv424aoclsparse_itsol_rci_job" title="aoclsparse_itsol_rci_job"><span class="n"><span class="pre">aoclsparse_itsol_rci_job</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">ircomm</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">u</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">v</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rinfo</span></span><span class="p"><span class="pre">[</span></span><span class="m"><span class="pre">100</span></span><span class="p"><span class="pre">]</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv428aoclsparse_itsol_s_rci_solve23aoclsparse_itsol_handleP24aoclsparse_itsol_rci_jobPPfPPfPfAL100E_f" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Reverse Communication Interface (RCI) to the iterative solvers (itsol) suite. </p>
+<p>This function solves the linear system of equations <div class="math notranslate nohighlight">
+\[ Ax=b, \]</div>
+ where the matrix of coefficients <span class="math notranslate nohighlight">\(A\)</span> is not required to be provided explicitly. The right hand-side is the dense vector <code class="docutils literal notranslate"><span class="pre">b</span></code> and the vector of unknowns is <code class="docutils literal notranslate"><span class="pre">x</span></code>. If <span class="math notranslate nohighlight">\(A\)</span> is symmetric and positive definite then set the option “iterative method” to “cg” to solve the problem using the <a class="reference external" href="https://encyclopediaofmath.org/index.php?title=Conjugate_gradients,_method_of&amp;oldid=46470">Conjugate Gradient method</a>, alternatively set the option to “gmres” to solve using <a class="reference external" href="https://mathworld.wolfram.com/GeneralizedMinimalResidualMethod.html">GMRes</a>. See the <a class="reference internal" href="#aoclsparse__solvers_8h_1anchor_itsol_options"><span class="std std-ref">Options</span></a> for a list of available options to modify the behaviour of each solver.</p>
+<p>The reverse communication interface (RCI), also know as _matrix-free_ interface does not require the user to explicitly provide the matrix <span class="math notranslate nohighlight">\(A\)</span>. During the solve process whenever the algorithm requires a matrix operation (matrix-vector or transposed matrix-vector products), it returns control to the user with a flag <code class="docutils literal notranslate"><span class="pre">ircomm</span></code> indicating what operation is requested. Once the user performs the requested task it must call this function again to resume the solve.</p>
+<p>The expected workflow is as follows:<ol class="loweralpha simple">
+<li><p>Call <a class="reference internal" href="#aoclsparse__solvers_8h_1a99e00606666a9efa355f0ed1a9543624"><span class="std std-ref">aoclsparse_itsol_s_init</span></a> or <a class="reference internal" href="#aoclsparse__solvers_8h_1a5c4252ad53e937922de183b7aa03301b"><span class="std std-ref">aoclsparse_itsol_d_init</span></a> to initialize the problem <code class="docutils literal notranslate"><span class="pre">handle</span></code> ( aoclsparse_itsol_handle)</p></li>
+<li><p>Choose the solver and adjust its behaviour by setting optional parameters with <a class="reference internal" href="#aoclsparse__solvers_8h_1a42e3030cae557223707dfe6015a5592f"><span class="std std-ref">aoclsparse_itsol_option_set</span></a>, see also <a class="reference internal" href="#aoclsparse__solvers_8h_1anchor_itsol_options"><span class="std std-ref">Options</span></a>.</p></li>
+<li><p>Define the problem size and right-hand side vector <span class="math notranslate nohighlight">\(b\)</span> with <a class="reference internal" href="#aoclsparse__solvers_8h_1acb7a8f6980d5e17a1180c985ee10cb5f"><span class="std std-ref">aoclsparse_itsol_d_rci_input</span></a>.</p></li>
+<li><p>Solve the system with either <a class="reference internal" href="#aoclsparse__solvers_8h_1a23a177d7308672019604e8c78a435fca"><span class="std std-ref">aoclsparse_itsol_s_rci_solve</span></a> or <a class="reference internal" href="#aoclsparse__solvers_8h_1ac969580db8ef6c817f4c85d971f85dcd"><span class="std std-ref">aoclsparse_itsol_d_rci_solve</span></a>.</p></li>
+<li><p>If there is another linear system of equations to solve with the same matrix but a different right-hand side <span class="math notranslate nohighlight">\(b\)</span>, then repeat from step 3.</p></li>
+<li><p>If solver terminated successfully then vector <code class="docutils literal notranslate"><span class="pre">x</span></code> contains the solution.</p></li>
+<li><p>Free the memory with <a class="reference internal" href="#aoclsparse__solvers_8h_1a3e47c085a053688d223cc8ab017e2a55"><span class="std std-ref">aoclsparse_itsol_destroy</span></a>.</p></li>
+</ol>
+</p>
+<p>These reverse communication interfaces complement the _forward communication_ interfaces <a class="reference internal" href="#aoclsparse__solvers_8h_1ac969580db8ef6c817f4c85d971f85dcd"><span class="std std-ref">aoclsparse_itsol_d_rci_solve</span></a> and <a class="reference internal" href="#aoclsparse__solvers_8h_1a23a177d7308672019604e8c78a435fca"><span class="std std-ref">aoclsparse_itsol_s_rci_solve</span></a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This function returns control back to the user under certain circumstances. The table in <a class="reference internal" href="#aoclsparse__solvers_8h_1a4f709373de46dd80ea3fb5cc944f522e"><span class="std std-ref">aoclsparse_itsol_rci_job_</span></a> indicates what actions are required to be performed by the user.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>For an illustrative example see Examples. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>handle</strong> – <strong>[inout]</strong> problem <code class="docutils literal notranslate"><span class="pre">handle</span></code>. Needs to be previously initialized by <a class="reference internal" href="#aoclsparse__solvers_8h_1a99e00606666a9efa355f0ed1a9543624"><span class="std std-ref">aoclsparse_itsol_s_init</span></a> or <a class="reference internal" href="#aoclsparse__solvers_8h_1a5c4252ad53e937922de183b7aa03301b"><span class="std std-ref">aoclsparse_itsol_d_init</span></a> and then populated using either <a class="reference internal" href="#aoclsparse__solvers_8h_1afb64debd6dbb478619ed183ed6631715"><span class="std std-ref">aoclsparse_itsol_s_rci_input</span></a> or <a class="reference internal" href="#aoclsparse__solvers_8h_1acb7a8f6980d5e17a1180c985ee10cb5f"><span class="std std-ref">aoclsparse_itsol_d_rci_input</span></a>, as appropriate. </p></li>
+<li><p><strong>ircomm</strong> – <strong>[inout]</strong> pointer to the reverse communication instruction flag and defined in <a class="reference internal" href="#aoclsparse__solvers_8h_1a4f709373de46dd80ea3fb5cc944f522e"><span class="std std-ref">aoclsparse_itsol_rci_job_</span></a>. </p></li>
+<li><p><strong>u</strong> – <strong>[inout]</strong> pointer to a generic vector of data. The solver will point to the data on which the operation defined by <code class="docutils literal notranslate"><span class="pre">ircomm</span></code> needs to be applied. </p></li>
+<li><p><strong>v</strong> – <strong>[inout]</strong> pointer to a generic vector of data. The solver will ask that the result of the operation defined by <code class="docutils literal notranslate"><span class="pre">ircomm</span></code> be stored in <code class="docutils literal notranslate"><span class="pre">v</span></code>. </p></li>
+<li><p><strong>x</strong> – <strong>[inout]</strong> dense vector of unknowns. On input, it should contain the initial guess from which to start the iterative process. If there is no good initial estimate guess then any arbitrary but finite values can be used. On output, it contains an estimate to the solution of the linear system of equations up to the requested tolerance, e.g. see “cg rel tolerance” or “cg abs tolerance” in <a class="reference internal" href="#aoclsparse__solvers_8h_1anchor_itsol_options"><span class="std std-ref">Options</span></a>. </p></li>
+<li><p><strong>rinfo</strong> – <strong>[out]</strong> vector containing information and stats related to the iterative solve, see Information Array. This parameter can be used to monitor progress and define a custom stopping criterion when the solver returns control to user with <code class="docutils literal notranslate"><span class="pre">ircomm</span></code> = <a class="reference internal" href="#aoclsparse__solvers_8h_1a4f709373de46dd80ea3fb5cc944f522ea7d82cdfbd6b220e7cb7ddf9a39f7b39a"><span class="std std-ref">aoclsparse_rci_stopping_criterion</span></a>.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv424aoclsparse_itsol_d_solve23aoclsparse_itsol_handle14aoclsparse_int17aoclsparse_matrixK20aoclsparse_mat_descrPKdPdAL100E_dF14aoclsparse_int14aoclsparse_int14aoclsparse_intPKdPdPvEF14aoclsparse_int14aoclsparse_intPKdPKdAL100E_dPvEPv">
+<span id="_CPPv324aoclsparse_itsol_d_solve23aoclsparse_itsol_handle14aoclsparse_int17aoclsparse_matrixK20aoclsparse_mat_descrPKdPdAL100E_dF14aoclsparse_int14aoclsparse_int14aoclsparse_intPKdPdPvEF14aoclsparse_int14aoclsparse_intPKdPKdAL100E_dPvEPv"></span><span id="_CPPv224aoclsparse_itsol_d_solve23aoclsparse_itsol_handle14aoclsparse_int17aoclsparse_matrixK20aoclsparse_mat_descrPKdPdA100_dF14aoclsparse_int14aoclsparse_int14aoclsparse_intPKdPdPvEF14aoclsparse_int14aoclsparse_intPKdPKdA100_dPvEPv"></span><span class="target" id="aoclsparse__solvers_8h_1acedee48ae431e515ff342ed02f6fd4d5"></span><a class="reference internal" href="types.html#_CPPv417aoclsparse_status" title="aoclsparse_status"><span class="n"><span class="pre">aoclsparse_status</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aoclsparse_itsol_d_solve</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">aoclsparse_itsol_handle</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">n</span></span>, <a class="reference internal" href="types.html#_CPPv417aoclsparse_matrix" title="aoclsparse_matrix"><span class="n"><span class="pre">aoclsparse_matrix</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">mat</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv420aoclsparse_mat_descr" title="aoclsparse_mat_descr"><span class="n"><span class="pre">aoclsparse_mat_descr</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">descr</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">b</span></span>, <span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rinfo</span></span><span class="p"><span class="pre">[</span></span><span class="m"><span class="pre">100</span></span><span class="p"><span class="pre">]</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">precond</span></span><span class="p"><span class="pre">(</span></span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n"><span class="pre">flag</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">u</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">v</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">udata</span></span><span class="p"><span class="pre">)</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">monit</span></span><span class="p"><span class="pre">(</span></span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">r</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n"><span class="pre">rinfo</span></span><span class="p"><span class="pre">[</span></span><span class="m"><span class="pre">100</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">udata</span></span><span class="p"><span class="pre">)</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">udata</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv424aoclsparse_itsol_d_solve23aoclsparse_itsol_handle14aoclsparse_int17aoclsparse_matrixK20aoclsparse_mat_descrPKdPdAL100E_dF14aoclsparse_int14aoclsparse_int14aoclsparse_intPKdPdPvEF14aoclsparse_int14aoclsparse_intPKdPKdAL100E_dPvEPv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Forward communication interface to the iterative solvers suite of the library. </p>
+<p>This function solves the linear system of equations <div class="math notranslate nohighlight">
+\[ Ax=b, \]</div>
+ where the matrix of coefficients <span class="math notranslate nohighlight">\(A\)</span> is defined by <code class="docutils literal notranslate"><span class="pre">mat</span></code>. The right hand-side is the dense vector <code class="docutils literal notranslate"><span class="pre">b</span></code> and the vector of unknowns is <code class="docutils literal notranslate"><span class="pre">x</span></code>. If <span class="math notranslate nohighlight">\(A\)</span> is symmetric and positive definite then set the option “iterative method” to “cg” to solve the problem using the <a class="reference external" href="https://encyclopediaofmath.org/index.php?title=Conjugate_gradients,_method_of&amp;oldid=46470">Conjugate Gradient method</a>, alternatively set the option to “gmres” to solve using <a class="reference external" href="https://mathworld.wolfram.com/GeneralizedMinimalResidualMethod.html">GMRes</a>. See the <a class="reference internal" href="#aoclsparse__solvers_8h_1anchor_itsol_options"><span class="std std-ref">Options</span></a> for a list of available options to modify the behaviour of each solver.</p>
+<p>The expected workflow is as follows:<ol class="loweralpha simple">
+<li><p>Call <a class="reference internal" href="#aoclsparse__solvers_8h_1a99e00606666a9efa355f0ed1a9543624"><span class="std std-ref">aoclsparse_itsol_s_init</span></a> or <a class="reference internal" href="#aoclsparse__solvers_8h_1a5c4252ad53e937922de183b7aa03301b"><span class="std std-ref">aoclsparse_itsol_d_init</span></a> to initialize the problem <code class="docutils literal notranslate"><span class="pre">handle</span></code> ( aoclsparse_itsol_handle).</p></li>
+<li><p>Choose the solver and adjust its behaviour by setting optional parameters with <a class="reference internal" href="#aoclsparse__solvers_8h_1a42e3030cae557223707dfe6015a5592f"><span class="std std-ref">aoclsparse_itsol_option_set</span></a>, see also <a class="reference internal" href="#aoclsparse__solvers_8h_1anchor_itsol_options"><span class="std std-ref">Options</span></a>.</p></li>
+<li><p>Solve the system by calling <a class="reference internal" href="#aoclsparse__solvers_8h_1a044b3e0fb6480d8e9a1360e2a0b0fe61"><span class="std std-ref">aoclsparse_itsol_s_solve</span></a> or <a class="reference internal" href="#aoclsparse__solvers_8h_1acedee48ae431e515ff342ed02f6fd4d5"><span class="std std-ref">aoclsparse_itsol_d_solve</span></a>.</p></li>
+<li><p>If there is another linear system of equations to solve with the same matrix but a different right-hand side <span class="math notranslate nohighlight">\(b\)</span>, then repeat from step 3.</p></li>
+<li><p>If solver terminated successfully then vector <code class="docutils literal notranslate"><span class="pre">x</span></code> contains the solution.</p></li>
+<li><p>Free the memory with <a class="reference internal" href="#aoclsparse__solvers_8h_1a3e47c085a053688d223cc8ab017e2a55"><span class="std std-ref">aoclsparse_itsol_destroy</span></a>.</p></li>
+</ol>
+</p>
+<p>This interface requires to explicitly provide the matrix <span class="math notranslate nohighlight">\(A\)</span> and its descriptor <code class="docutils literal notranslate"><span class="pre">descr</span></code>, this kind of interface is also known as _forward communication_ which contrasts with *reverse communication* in which case the matrix <span class="math notranslate nohighlight">\(A\)</span> and its descriptor <code class="docutils literal notranslate"><span class="pre">descr</span></code> need not be explicitly available. For more details on the latter, see <a class="reference internal" href="#aoclsparse__solvers_8h_1ac969580db8ef6c817f4c85d971f85dcd"><span class="std std-ref">aoclsparse_itsol_d_rci_solve</span></a> or <a class="reference internal" href="#aoclsparse__solvers_8h_1a23a177d7308672019604e8c78a435fca"><span class="std std-ref">aoclsparse_itsol_s_rci_solve</span></a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>For an illustrative example see Examples. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>handle</strong> – <strong>[inout]</strong> a valid problem handle, previously initialized by calling <a class="reference internal" href="#aoclsparse__solvers_8h_1a99e00606666a9efa355f0ed1a9543624"><span class="std std-ref">aoclsparse_itsol_s_init</span></a> or <a class="reference internal" href="#aoclsparse__solvers_8h_1a5c4252ad53e937922de183b7aa03301b"><span class="std std-ref">aoclsparse_itsol_d_init</span></a>. </p></li>
+<li><p><strong>n</strong> – <strong>[in]</strong> the size of the square matrix <code class="docutils literal notranslate"><span class="pre">mat</span></code>. </p></li>
+<li><p><strong>mat</strong> – <strong>[inout]</strong> coefficient matrix <span class="math notranslate nohighlight">\(A\)</span>. </p></li>
+<li><p><strong>descr</strong> – <strong>[inout]</strong> matrix descriptor for <code class="docutils literal notranslate"><span class="pre">mat</span></code>. </p></li>
+<li><p><strong>b</strong> – <strong>[in]</strong> right-hand side dense vector <span class="math notranslate nohighlight">\(b\)</span>. </p></li>
+<li><p><strong>x</strong> – <strong>[inout]</strong> dense vector of unknowns. On input, it should contain the initial guess from which to start the iterative process. If there is no good initial estimate guess then any arbitrary but finite values can be used. On output, it contains an estimate to the solution of the linear system of equations up to the requested tolerance, e.g. see “cg rel tolerance” or “cg abs tolerance” in <a class="reference internal" href="#aoclsparse__solvers_8h_1anchor_itsol_options"><span class="std std-ref">Options</span></a>. </p></li>
+<li><p><strong>rinfo</strong> – <strong>[out]</strong> vector containing information and stats related to the iterative solve, see Information Array. </p></li>
+<li><p><strong>precond</strong> – <strong>[in]</strong> (optional, can be nullptr) function pointer to a user routine that applies the preconditioning step <div class="math notranslate nohighlight">
+\[ v = Mu \text{or } v = M^{-1}u,\]</div>
+ where <span class="math notranslate nohighlight">\(v\)</span> is the resulting vector of applying a preconditioning step on the vector <span class="math notranslate nohighlight">\(u\)</span> and <span class="math notranslate nohighlight">\(M\)</span> refers to the user specified preconditioner in matrix form and need not be explicitly available. The void pointer udata, is a convenience pointer that can be used by the user to point to user data and is not used by the itsol framework. If the user requests to use a predefined preconditioner already available in the suite (refer to e.g. “cg preconditioner” or “gmres preconditioner” in <a class="reference internal" href="#aoclsparse__solvers_8h_1anchor_itsol_options"><span class="std std-ref">Options</span></a>), then this parameter need not be provided. </p></li>
+<li><p><strong>monit</strong> – <strong>[in]</strong> (optional, can be nullptr) function pointer to a user monitoring routine. If provided, then at each iteration, the routine is called and can be used to define a custom stopping criteria or to oversee the convergence process. In general, this function need not be provided. If provided then the solver provides <code class="docutils literal notranslate"><span class="pre">n</span></code> the problem size, <code class="docutils literal notranslate"><span class="pre">x</span></code> the current iterate, <code class="docutils literal notranslate"><span class="pre">r</span></code> the current residual vector ( <span class="math notranslate nohighlight">\(r = Ax-b\)</span>), <code class="docutils literal notranslate"><span class="pre">rinfo</span></code> the current solver’s stats, see Information Array, and <code class="docutils literal notranslate"><span class="pre">udata</span></code> a convenience pointer that can be used by the user to point to arbitrary user data and is not used by the itsol framework. </p></li>
+<li><p><strong>udata</strong> – <strong>[inout]</strong> (optional, can be nullptr) user convenience pointer, it can be used by the user to pass a pointer to user data. It is not modified by the solver.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv424aoclsparse_itsol_s_solve23aoclsparse_itsol_handle14aoclsparse_int17aoclsparse_matrixK20aoclsparse_mat_descrPKfPfAL100E_fF14aoclsparse_int14aoclsparse_int14aoclsparse_intPKfPfPvEF14aoclsparse_int14aoclsparse_intPKfPKfAL100E_fPvEPv">
+<span id="_CPPv324aoclsparse_itsol_s_solve23aoclsparse_itsol_handle14aoclsparse_int17aoclsparse_matrixK20aoclsparse_mat_descrPKfPfAL100E_fF14aoclsparse_int14aoclsparse_int14aoclsparse_intPKfPfPvEF14aoclsparse_int14aoclsparse_intPKfPKfAL100E_fPvEPv"></span><span id="_CPPv224aoclsparse_itsol_s_solve23aoclsparse_itsol_handle14aoclsparse_int17aoclsparse_matrixK20aoclsparse_mat_descrPKfPfA100_fF14aoclsparse_int14aoclsparse_int14aoclsparse_intPKfPfPvEF14aoclsparse_int14aoclsparse_intPKfPKfA100_fPvEPv"></span><span class="target" id="aoclsparse__solvers_8h_1a044b3e0fb6480d8e9a1360e2a0b0fe61"></span><a class="reference internal" href="types.html#_CPPv417aoclsparse_status" title="aoclsparse_status"><span class="n"><span class="pre">aoclsparse_status</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">aoclsparse_itsol_s_solve</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">aoclsparse_itsol_handle</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">handle</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">n</span></span>, <a class="reference internal" href="types.html#_CPPv417aoclsparse_matrix" title="aoclsparse_matrix"><span class="n"><span class="pre">aoclsparse_matrix</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">mat</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv420aoclsparse_mat_descr" title="aoclsparse_mat_descr"><span class="n"><span class="pre">aoclsparse_mat_descr</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">descr</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">b</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">x</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">rinfo</span></span><span class="p"><span class="pre">[</span></span><span class="m"><span class="pre">100</span></span><span class="p"><span class="pre">]</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">precond</span></span><span class="p"><span class="pre">(</span></span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n"><span class="pre">flag</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">u</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">v</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">udata</span></span><span class="p"><span class="pre">)</span></span>, <a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">monit</span></span><span class="p"><span class="pre">(</span></span><a class="reference internal" href="types.html#_CPPv414aoclsparse_int" title="aoclsparse_int"><span class="n"><span class="pre">aoclsparse_int</span></span></a><span class="w"> </span><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">r</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n"><span class="pre">rinfo</span></span><span class="p"><span class="pre">[</span></span><span class="m"><span class="pre">100</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n"><span class="pre">udata</span></span><span class="p"><span class="pre">)</span></span>, <span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">udata</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv424aoclsparse_itsol_s_solve23aoclsparse_itsol_handle14aoclsparse_int17aoclsparse_matrixK20aoclsparse_mat_descrPKfPfAL100E_fF14aoclsparse_int14aoclsparse_int14aoclsparse_intPKfPfPvEF14aoclsparse_int14aoclsparse_intPKfPKfAL100E_fPvEPv" title="Permalink to this definition">#</a><br /></dt>
+<dd><p>Forward communication interface to the iterative solvers suite of the library. </p>
+<p>This function solves the linear system of equations <div class="math notranslate nohighlight">
+\[ Ax=b, \]</div>
+ where the matrix of coefficients <span class="math notranslate nohighlight">\(A\)</span> is defined by <code class="docutils literal notranslate"><span class="pre">mat</span></code>. The right hand-side is the dense vector <code class="docutils literal notranslate"><span class="pre">b</span></code> and the vector of unknowns is <code class="docutils literal notranslate"><span class="pre">x</span></code>. If <span class="math notranslate nohighlight">\(A\)</span> is symmetric and positive definite then set the option “iterative method” to “cg” to solve the problem using the <a class="reference external" href="https://encyclopediaofmath.org/index.php?title=Conjugate_gradients,_method_of&amp;oldid=46470">Conjugate Gradient method</a>, alternatively set the option to “gmres” to solve using <a class="reference external" href="https://mathworld.wolfram.com/GeneralizedMinimalResidualMethod.html">GMRes</a>. See the <a class="reference internal" href="#aoclsparse__solvers_8h_1anchor_itsol_options"><span class="std std-ref">Options</span></a> for a list of available options to modify the behaviour of each solver.</p>
+<p>The expected workflow is as follows:<ol class="loweralpha simple">
+<li><p>Call <a class="reference internal" href="#aoclsparse__solvers_8h_1a99e00606666a9efa355f0ed1a9543624"><span class="std std-ref">aoclsparse_itsol_s_init</span></a> or <a class="reference internal" href="#aoclsparse__solvers_8h_1a5c4252ad53e937922de183b7aa03301b"><span class="std std-ref">aoclsparse_itsol_d_init</span></a> to initialize the problem <code class="docutils literal notranslate"><span class="pre">handle</span></code> ( aoclsparse_itsol_handle).</p></li>
+<li><p>Choose the solver and adjust its behaviour by setting optional parameters with <a class="reference internal" href="#aoclsparse__solvers_8h_1a42e3030cae557223707dfe6015a5592f"><span class="std std-ref">aoclsparse_itsol_option_set</span></a>, see also <a class="reference internal" href="#aoclsparse__solvers_8h_1anchor_itsol_options"><span class="std std-ref">Options</span></a>.</p></li>
+<li><p>Solve the system by calling <a class="reference internal" href="#aoclsparse__solvers_8h_1a044b3e0fb6480d8e9a1360e2a0b0fe61"><span class="std std-ref">aoclsparse_itsol_s_solve</span></a> or <a class="reference internal" href="#aoclsparse__solvers_8h_1acedee48ae431e515ff342ed02f6fd4d5"><span class="std std-ref">aoclsparse_itsol_d_solve</span></a>.</p></li>
+<li><p>If there is another linear system of equations to solve with the same matrix but a different right-hand side <span class="math notranslate nohighlight">\(b\)</span>, then repeat from step 3.</p></li>
+<li><p>If solver terminated successfully then vector <code class="docutils literal notranslate"><span class="pre">x</span></code> contains the solution.</p></li>
+<li><p>Free the memory with <a class="reference internal" href="#aoclsparse__solvers_8h_1a3e47c085a053688d223cc8ab017e2a55"><span class="std std-ref">aoclsparse_itsol_destroy</span></a>.</p></li>
+</ol>
+</p>
+<p>This interface requires to explicitly provide the matrix <span class="math notranslate nohighlight">\(A\)</span> and its descriptor <code class="docutils literal notranslate"><span class="pre">descr</span></code>, this kind of interface is also known as _forward communication_ which contrasts with *reverse communication* in which case the matrix <span class="math notranslate nohighlight">\(A\)</span> and its descriptor <code class="docutils literal notranslate"><span class="pre">descr</span></code> need not be explicitly available. For more details on the latter, see <a class="reference internal" href="#aoclsparse__solvers_8h_1ac969580db8ef6c817f4c85d971f85dcd"><span class="std std-ref">aoclsparse_itsol_d_rci_solve</span></a> or <a class="reference internal" href="#aoclsparse__solvers_8h_1a23a177d7308672019604e8c78a435fca"><span class="std std-ref">aoclsparse_itsol_s_rci_solve</span></a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>For an illustrative example see Examples. </p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>handle</strong> – <strong>[inout]</strong> a valid problem handle, previously initialized by calling <a class="reference internal" href="#aoclsparse__solvers_8h_1a99e00606666a9efa355f0ed1a9543624"><span class="std std-ref">aoclsparse_itsol_s_init</span></a> or <a class="reference internal" href="#aoclsparse__solvers_8h_1a5c4252ad53e937922de183b7aa03301b"><span class="std std-ref">aoclsparse_itsol_d_init</span></a>. </p></li>
+<li><p><strong>n</strong> – <strong>[in]</strong> the size of the square matrix <code class="docutils literal notranslate"><span class="pre">mat</span></code>. </p></li>
+<li><p><strong>mat</strong> – <strong>[inout]</strong> coefficient matrix <span class="math notranslate nohighlight">\(A\)</span>. </p></li>
+<li><p><strong>descr</strong> – <strong>[inout]</strong> matrix descriptor for <code class="docutils literal notranslate"><span class="pre">mat</span></code>. </p></li>
+<li><p><strong>b</strong> – <strong>[in]</strong> right-hand side dense vector <span class="math notranslate nohighlight">\(b\)</span>. </p></li>
+<li><p><strong>x</strong> – <strong>[inout]</strong> dense vector of unknowns. On input, it should contain the initial guess from which to start the iterative process. If there is no good initial estimate guess then any arbitrary but finite values can be used. On output, it contains an estimate to the solution of the linear system of equations up to the requested tolerance, e.g. see “cg rel tolerance” or “cg abs tolerance” in <a class="reference internal" href="#aoclsparse__solvers_8h_1anchor_itsol_options"><span class="std std-ref">Options</span></a>. </p></li>
+<li><p><strong>rinfo</strong> – <strong>[out]</strong> vector containing information and stats related to the iterative solve, see Information Array. </p></li>
+<li><p><strong>precond</strong> – <strong>[in]</strong> (optional, can be nullptr) function pointer to a user routine that applies the preconditioning step <div class="math notranslate nohighlight">
+\[ v = Mu \text{or } v = M^{-1}u,\]</div>
+ where <span class="math notranslate nohighlight">\(v\)</span> is the resulting vector of applying a preconditioning step on the vector <span class="math notranslate nohighlight">\(u\)</span> and <span class="math notranslate nohighlight">\(M\)</span> refers to the user specified preconditioner in matrix form and need not be explicitly available. The void pointer udata, is a convenience pointer that can be used by the user to point to user data and is not used by the itsol framework. If the user requests to use a predefined preconditioner already available in the suite (refer to e.g. “cg preconditioner” or “gmres preconditioner” in <a class="reference internal" href="#aoclsparse__solvers_8h_1anchor_itsol_options"><span class="std std-ref">Options</span></a>), then this parameter need not be provided. </p></li>
+<li><p><strong>monit</strong> – <strong>[in]</strong> (optional, can be nullptr) function pointer to a user monitoring routine. If provided, then at each iteration, the routine is called and can be used to define a custom stopping criteria or to oversee the convergence process. In general, this function need not be provided. If provided then the solver provides <code class="docutils literal notranslate"><span class="pre">n</span></code> the problem size, <code class="docutils literal notranslate"><span class="pre">x</span></code> the current iterate, <code class="docutils literal notranslate"><span class="pre">r</span></code> the current residual vector ( <span class="math notranslate nohighlight">\(r = Ax-b\)</span>), <code class="docutils literal notranslate"><span class="pre">rinfo</span></code> the current solver’s stats, see Information Array, and <code class="docutils literal notranslate"><span class="pre">udata</span></code> a convenience pointer that can be used by the user to point to arbitrary user data and is not used by the itsol framework. </p></li>
+<li><p><strong>udata</strong> – <strong>[inout]</strong> (optional, can be nullptr) user convenience pointer, it can be used by the user to pass a pointer to user data. It is not modified by the solver.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer">
+                  <!-- Previous / next buttons -->
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="functions.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">AOCL-Sparse Level 1,2,3 Functions</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="types.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">AOCL-Sparse Types</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#introduction-of-iterative-solver-suite-itsol">Introduction of Iterative Solver Suite (itsol)</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#forward-and-reverse-communication-interfaces">Forward and Reverse Communication Interfaces</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#recommended-workflow">Recommended Workflow</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#information-array">Information Array</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#examples">Examples</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#references">References</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#api-documentation">API documentation</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            <p>
+  </p>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="_static/scripts/bootstrap.js?digest=ac02cc09edc035673794"></script>
+<script src="_static/scripts/pydata-sphinx-theme.js?digest=ac02cc09edc035673794"></script>
+
+<footer class="rocm-footer">
+    <div class="container-lg">
+        <section class="bottom-menu menu py-45">
+            <div class="row d-flex align-items-center">
+                <div class="col-12 text-center">
+                    <ul>
+                        <li><a href="https://www.amd.com/en/corporate/copyright" target="_blank">Terms and Conditions</a></li>
+                        
+                        <li><a href="">2020-2024, Advanced Micro Devices, Inc</a></li>
+                        <li><a href="https://www.amd.com/en/corporate/privacy" target="_blank">Privacy</a></li>
+                        <li><a href="https://www.amd.com/en/corporate/trademarks" target="_blank">Trademarks</a></li>
+                        <li><a href="https://www.amd.com/system/files/documents/statement-human-trafficking-forced-labor.pdf" target="_blank">Statement on Forced Labor</a></li>
+                        <li><a href="https://www.amd.com/en/corporate/competition" target="_blank">Fair and Open Competition</a></li>
+                        <li><a href="https://www.amd.com/system/files/documents/amd-uk-tax-strategy.pdf" target="_blank">UK Tax Strategy</a></li>
+                        <li><a href="https://www.amd.com/en/corporate/cookies" target="_blank">Cookie Policy</a></li>
+                        <!-- OneTrust Cookies Settings button start -->
+                        <li><a href="#cookie-settings" id="ot-sdk-btn" class="ot-sdk-show-settings">Cookie Settings</a></li>
+                        <!-- OneTrust Cookies Settings button end -->
+                    </ul>
+                </div>
+            </div>
+            <div class="row d-flex align-items-center">
+                <div class="col-12 text-center">
+                    <div>
+                        <span class="copyright">© 2023 Advanced Micro Devices, Inc</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</footer>
+
+<!-- <div id="rdc-watermark-container">
+    <img id="rdc-watermark" src="_static/images/alpha-watermark.svg" alt="DRAFT watermark"/>
+</div> -->
+  </body>
+</html>
