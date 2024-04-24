@@ -30,6 +30,54 @@
 #include "aoclsparse_arguments.hpp"
 #include "aoclsparse_utils.hpp"
 
+#include <map>
+
+template <typename T>
+inline aoclsparse_status ref_csr2csc(aoclsparse_index_base base,
+                                     aoclsparse_int        M,
+                                     aoclsparse_int        N,
+                                     aoclsparse_int       *row_ptr_in,
+                                     aoclsparse_int       *col_ind_in,
+                                     T                    *val_in,
+                                     aoclsparse_int       *row_out,
+                                     aoclsparse_int       *col_out,
+                                     T                    *val_out)
+{
+    std::map<aoclsparse_int, std::map<aoclsparse_int, T>> out_map;
+
+    for(aoclsparse_int i = 0; i < M; ++i)
+    {
+        aoclsparse_int row = i + base;
+        for(aoclsparse_int j = row_ptr_in[i] - base; j < row_ptr_in[i + 1] - base; ++j)
+        {
+            aoclsparse_int col = col_ind_in[j];
+            T              val = val_in[j];
+            out_map[col][row]  = val;
+        }
+    }
+
+    int idx = 0;
+
+    for(auto [col, row_val_map] : out_map)
+    {
+        col_out[col - base + 1] = row_val_map.size();
+        for(auto [row, val] : row_val_map)
+        {
+            row_out[idx] = row;
+            val_out[idx] = val;
+            idx++;
+        }
+    }
+
+    col_out[0] = base;
+    for(int i = 0; i < N; i++)
+    {
+        col_out[i + 1] += col_out[i];
+    }
+
+    return aoclsparse_status_success;
+}
+
 /* This file contains reference implementations of matrix operations
  * which are used for comparisons of the results while testing
  * in aoclsparse-bench and in gtests.

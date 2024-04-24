@@ -119,11 +119,11 @@ int near_check_general(aoclsparse_int M, aoclsparse_int N, aoclsparse_int lda, T
     return 0;
 }
 
-inline void unit_check_general(aoclsparse_int  M,
-                               aoclsparse_int  N,
-                               aoclsparse_int  lda,
-                               aoclsparse_int *refOut,
-                               aoclsparse_int *actOut)
+inline int unit_check_general(aoclsparse_int  M,
+                              aoclsparse_int  N,
+                              aoclsparse_int  lda,
+                              aoclsparse_int *refOut,
+                              aoclsparse_int *actOut)
 {
     for(aoclsparse_int j = 0; j < N; ++j)
     {
@@ -134,10 +134,11 @@ inline void unit_check_general(aoclsparse_int  M,
                 std::cerr.precision(12);
                 std::cerr << "ASSERT_EQ(" << refOut[i + j * lda] << ", " << actOut[i + j * lda]
                           << ") failed. " << std::endl;
-                exit(EXIT_FAILURE);
+                return 1;
             }
         }
     }
+    return 0;
 }
 
 #endif // AOCLSPARSE_CHECK_HPP

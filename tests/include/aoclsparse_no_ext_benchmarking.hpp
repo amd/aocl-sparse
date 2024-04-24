@@ -50,6 +50,10 @@ void register_tests_trsv([[maybe_unused]] std::vector<testsetting<T>> &testqueue
     //testqueue.push_back({"new_test_name",&testing_trsv_new<T>});
 }
 template <typename T>
+void register_tests_csr2csc([[maybe_unused]] std::vector<testsetting<T>> &testqueue)
+{
+}
+template <typename T>
 void register_tests_gthr([[maybe_unused]] std::vector<testsetting<T>> &testqueue)
 {
 }

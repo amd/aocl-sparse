@@ -1389,6 +1389,58 @@ aoclsparse_status aoclsparse_csr2csc(aoclsparse_int             m,
 }
 
 template <>
+aoclsparse_status aoclsparse_csr2csc(aoclsparse_int                  m,
+                                     aoclsparse_int                  n,
+                                     aoclsparse_int                  nnz,
+                                     const aoclsparse_mat_descr      descr,
+                                     aoclsparse_index_base           baseCSC,
+                                     const aoclsparse_int           *csr_row_ptr,
+                                     const aoclsparse_int           *csr_col_ind,
+                                     const aoclsparse_float_complex *csr_val,
+                                     aoclsparse_int                 *csc_row_ind,
+                                     aoclsparse_int                 *csc_col_ptr,
+                                     aoclsparse_float_complex       *csc_val)
+{
+    return aoclsparse_ccsr2csc(m,
+                               n,
+                               nnz,
+                               descr,
+                               baseCSC,
+                               csr_row_ptr,
+                               csr_col_ind,
+                               csr_val,
+                               csc_row_ind,
+                               csc_col_ptr,
+                               csc_val);
+}
+
+template <>
+aoclsparse_status aoclsparse_csr2csc(aoclsparse_int                   m,
+                                     aoclsparse_int                   n,
+                                     aoclsparse_int                   nnz,
+                                     const aoclsparse_mat_descr       descr,
+                                     aoclsparse_index_base            baseCSC,
+                                     const aoclsparse_int            *csr_row_ptr,
+                                     const aoclsparse_int            *csr_col_ind,
+                                     const aoclsparse_double_complex *csr_val,
+                                     aoclsparse_int                  *csc_row_ind,
+                                     aoclsparse_int                  *csc_col_ptr,
+                                     aoclsparse_double_complex       *csc_val)
+{
+    return aoclsparse_zcsr2csc(m,
+                               n,
+                               nnz,
+                               descr,
+                               baseCSC,
+                               csr_row_ptr,
+                               csr_col_ind,
+                               csr_val,
+                               csc_row_ind,
+                               csc_col_ptr,
+                               csc_val);
+}
+
+template <>
 aoclsparse_status aoclsparse_csr2dense(aoclsparse_int             m,
                                        aoclsparse_int             n,
                                        const aoclsparse_mat_descr descr,
