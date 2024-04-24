@@ -35,6 +35,10 @@
 #include "aoclsparse.h"
 
 #include <complex>
+
+//conversion
+#include "testing_csr2csc.hpp"
+
 // Level1
 #include "testing_axpyi.hpp"
 #include "testing_dotci.hpp"
@@ -520,6 +524,17 @@ int main(int argc, char *argv[])
                       << std::endl;
             return -1;
         }
+    }
+    else if(strcmp(arg.function, "csr2csc") == 0)
+    {
+        if(precision == 's')
+            return testing_csr2csc<float>(arg);
+        else if(precision == 'd')
+            return testing_csr2csc<double>(arg);
+        else if(precision == 'c')
+            return testing_csr2csc<aoclsparse_float_complex>(arg);
+        else if(precision == 'z')
+            return testing_csr2csc<aoclsparse_double_complex>(arg);
     }
     else if(strcmp(arg.function, "symgs") == 0)
     {
