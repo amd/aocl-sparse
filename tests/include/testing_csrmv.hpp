@@ -33,6 +33,7 @@
 #include "aoclsparse_init.hpp"
 #include "aoclsparse_random.hpp"
 #include "aoclsparse_reference.hpp"
+#include "aoclsparse_stats.hpp"
 #include "aoclsparse_test.hpp"
 #include "aoclsparse_utility.hpp"
 
@@ -117,7 +118,7 @@ int testing_csrmv(const Arguments &arg)
     // the queue of test functions to run, normally it would be just one API
     // unless more tests are registered via EXT_BENCHMARKING
     std::vector<testsetting<T>> testqueue;
-    testqueue.push_back({"aocl_csrmv", &testing_csrmv_aocl<T>});
+    testqueue.push_back({"aocl", &testing_csrmv_aocl<T>});
     register_tests_csrmv(testqueue);
 
     // create relevant test data for this API
@@ -128,6 +129,8 @@ int testing_csrmv(const Arguments &arg)
 
     // space for results
     std::vector<double> timings(arg.iters);
+    // and their statistics
+    std::vector<data_stats> tstats(testqueue.size());
 
     //At present alpha and beta have the same real / imaginary parts.
     //TODO: support distinct real and imaginary parts
@@ -205,7 +208,8 @@ int testing_csrmv(const Arguments &arg)
                                          y_gold.data()));
     }
 
-    int    number_hot_calls = arg.iters;
+    std::string prob_name        = gen_problem_name(arg, td);
+    int         number_hot_calls = arg.iters;
     double gflop = spmv_gflop_count<T>(td.m, td.nnzA, td.beta != aoclsparse_numeric::zero<T>());
     double gbyte
         = csrmv_gbyte_count<T>(td.m, td.n, td.nnzA, td.beta != aoclsparse_numeric::zero<T>());
@@ -216,38 +220,34 @@ int testing_csrmv(const Arguments &arg)
 
     for(unsigned itest = 0; itest < testqueue.size(); ++itest)
     {
-        std::cout << "-----" << testqueue[itest].name << "-----" << std::endl;
-
         // Run the test loop
         status += testqueue[itest].tf(arg, td, timings.data());
 
         // Check the results against the reference result
+        int verify = 0; // assume not tested
         if(arg.unit_check)
         {
+            verify = 1; // assume pass
             if(near_check_general<T>(1, ydim, 1, y_gold.data(), td.y.data()))
-                return 2;
+            {
+                status++;
+                verify = 2;
+            }
         }
 
-        // analyze the results - at the moment just take the minimum
-        double cpu_time_used = DBL_MAX;
-        for(int iter = 0; iter < number_hot_calls; ++iter)
-            cpu_time_used = (std::min)(cpu_time_used, timings[iter]);
+        compute_stats(timings.data(), timings.size(), tstats[itest]);
+        twosample_test_result cmp, *pcmp = NULL;
 
-        // count flops
-        double cpu_gflops = gflop / cpu_time_used;
-        double cpu_gbyte  = gbyte / cpu_time_used;
-
-        // store/print results
-        std::cout << std::setw(12) << "M" << std::setw(12) << "N" << std::setw(12) << "nnz"
-                  << std::setw(12) << "alpha" << std::setw(12) << "beta" << std::setw(12)
-                  << "GFlop/s" << std::setw(12) << "GB/s" << std::setw(12) << "msec"
-                  << std::setw(12) << "iter" << std::setw(12) << "verified" << std::endl;
-
-        std::cout << std::setw(12) << td.m << std::setw(12) << td.n << std::setw(12) << td.nnzA
-                  << std::setw(12) << arg.alpha << std::setw(12) << arg.beta << std::setw(12)
-                  << cpu_gflops << std::setw(12) << cpu_gbyte << std::setw(12) << std::scientific
-                  << cpu_time_used * 1e3 << std::setw(12) << number_hot_calls << std::setw(12)
-                  << (arg.unit_check ? "yes" : "no") << std::endl;
+        // compare the run against the first run (AOCL)
+        if(itest > 0)
+        {
+            cmp  = twosample_test(tstats[itest], tstats[0]);
+            pcmp = &cmp;
+            // twosample_print(cmp, testqueue[itest].name, tstats[itest],
+            // testqueue[0].name, tstats[0]); //, bool debug=false, bool onehdr=true)
+        }
+        print_results(
+            testqueue[itest].name, prob_name.c_str(), verify, tstats[itest], pcmp, itest == 0);
     }
     return status;
 }

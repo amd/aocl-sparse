@@ -62,6 +62,7 @@ set(AOCLSPARSE_BENCHMARK_SOURCES
 set(AOCLSPARSE_CLIENTS_COMMON
   ../common/aoclsparse_utility.cpp
   ../common/aoclsparse_template_specialization.cpp
+  ../common/aoclsparse_stats.cpp
 )
 
 include_directories(${CMAKE_SOURCE_DIR}/library/include
