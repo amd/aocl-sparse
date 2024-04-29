@@ -70,7 +70,10 @@ include_directories(${CMAKE_SOURCE_DIR}/library/include
                     ${CMAKE_SOURCE_DIR}/library/src/analysis
                     ${CMAKE_SOURCE_DIR}/library/src/level1
                     ${CMAKE_SOURCE_DIR}/library/src/level2
+                    ${CMAKE_SOURCE_DIR}/library/src/conversion
                     ${CMAKE_SOURCE_DIR}/library/src/extra
+                    ${CMAKE_SOURCE_DIR}/library/src/level1
+                    ${CMAKE_SOURCE_DIR}/library/src/level2
                     ${CMAKE_SOURCE_DIR}/tests/include)
 
 add_executable(aoclsparse-bench ${AOCLSPARSE_BENCHMARK_SOURCES} ${AOCLSPARSE_CLIENTS_COMMON})

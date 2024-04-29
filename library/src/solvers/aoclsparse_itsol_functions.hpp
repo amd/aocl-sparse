@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022-2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -417,7 +417,7 @@ aoclsparse_status
         aoclsparse_set_mat_fill_mode(&descr_cpy, aoclsparse_fill_mode_upper);
         trans = aoclsparse_operation_transpose;
     }
-    status = aoclsparse_trsv(trans, alpha, A, &descr_cpy, r, y, avxversion);
+    status = aoclsparse_trsv(trans, alpha, A, &descr_cpy, r, 1, y, 1, avxversion);
     if(status != aoclsparse_status_success)
         return status;
 
@@ -442,7 +442,7 @@ aoclsparse_status
         aoclsparse_set_mat_fill_mode(&descr_cpy, aoclsparse_fill_mode_lower);
         trans = aoclsparse_operation_transpose;
     }
-    status = aoclsparse_trsv(trans, alpha, A, &descr_cpy, y, z, avxversion);
+    status = aoclsparse_trsv(trans, alpha, A, &descr_cpy, y, 1, z, 1, avxversion);
     if(status != aoclsparse_status_success)
         return status;
 
