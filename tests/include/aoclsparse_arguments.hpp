@@ -71,6 +71,7 @@ struct Arguments
 
     aoclsparse_int kid;
     aoclsparse_int x_stride, y_stride;
+    char output;
 
 private:
     // Function to read Structures data from stream

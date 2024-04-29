@@ -55,13 +55,11 @@
 #include "testing_optmv.hpp"
 #include "testing_sycsrmv.hpp"
 #include "testing_trsv.hpp"
-
 // Level3
 #include "testing_csr2m.hpp"
 #include "testing_csrmm.hpp"
 #include "testing_sp2md.hpp"
 #include "testing_trsm.hpp"
-
 //Solvers
 #include "testing_ilu.hpp"
 #include "testing_symgs.hpp"
@@ -92,6 +90,7 @@ int main(int argc, char *argv[])
     arg.beta       = 0.0;
     arg.stage      = 0;
     arg.kid        = -1;
+    arg.output     = 'S';
     char precision = 'd';
     char transA    = 'N';
     char transB    = 'N';
@@ -163,6 +162,9 @@ int main(int argc, char *argv[])
             "\n\t"
             "--iters=<num of iterations> \t Iterations to run inside timing loop (default: 10)"
             "\n\t"
+            "--output=<S/B> \t Results are reported either in Standard form (default) or for "
+            "Benchmarking"
+            "\n\t"
             "--order=<0/1> \t Indicates whether a dense matrix is laid out in column-major "
             "storage: 1, or row-major storage 0 (default: 1)"
             "\n\t"
@@ -206,6 +208,7 @@ int main(int argc, char *argv[])
     args.aoclsparse_get_cmdline_argument("precision", precision);
     args.aoclsparse_get_cmdline_argument("verify", arg.unit_check);
     args.aoclsparse_get_cmdline_argument("iters", arg.iters);
+    args.aoclsparse_get_cmdline_argument("output", arg.output);
     args.aoclsparse_get_cmdline_argument("order", order);
     args.aoclsparse_get_cmdline_argument("stage", arg.stage);
     args.aoclsparse_get_cmdline_argument("kid", arg.kid);
