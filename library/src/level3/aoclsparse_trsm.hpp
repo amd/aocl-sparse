@@ -41,26 +41,6 @@
 #include "aoclsparse_kernel_templates.hpp"
 #undef KT_ADDRESS_TYPE
 
-/* TRiangular Solver for Multiple RHS
- *  ==================================
- * Solves A*x = alpha*B or A^T*x = alpha*B or A^H*x = alpha*B with
- * A lower (L) or upper (U) triangular, B and X dense matrices.
- * Optimized version, requires A to have been previously "optimized". If A is not
- * optimized explicitly, it is optimized on the fly.
- * Calls multiple times TRSV over each column of B.
- * Note: for some dense layouts, temporary vectors for the columns of X and B are
- * allocated.
- */
-template <typename T>
-aoclsparse_status
-    aoclsparse_trsv(const aoclsparse_operation transpose, /* matrix operation */
-                    const T                    alpha, /* scalar for rescaling RHS */
-                    aoclsparse_matrix          A, /* matrix data */
-                    const aoclsparse_mat_descr descr, /* matrix type, fill_mode, diag type, base */
-                    const T                   *b, /* RHS */
-                    T                         *x, /* solution */
-                    const aoclsparse_int       kid /* Kernel ID request */);
-
 template <typename T>
 aoclsparse_status
     aoclsparse_trsm(const aoclsparse_operation transpose, /* matrix operation */
@@ -165,38 +145,17 @@ aoclsparse_status
         if(status != aoclsparse_status_success)
             return status;
     }
-    // FIXME: remove these work arrays once strided-trsv is done
-    std::vector<T> wcolb;
-    std::vector<T> wcolx;
 
-    try
-    {
-        wcolb.resize(m);
-        wcolx.resize(m);
-    }
-    catch(std::bad_alloc &)
-    {
-        return aoclsparse_status_memory_error;
-    }
-    //default reference implementation of gather with stride
-    aoclsparse_int gkid = 0;
-    //default reference implementation of scatter with stride
-    aoclsparse_int skid = 0;
     switch(order)
     {
     case aoclsparse_order_row:
-        for(int c = 0; c < n; c++)
+#ifdef _OPENMP
+        chunk = (n / context.num_threads) ? (n / context.num_threads) : 1;
+#pragma omp parallel for num_threads(context.num_threads) schedule(dynamic, chunk)
+#endif
+        for(aoclsparse_int r = 0; r < n; ++r)
         {
-            status = aoclsparse_gthr_t<T, gather_op::gather, Index::type::strided>(
-                m, &B[c], &wcolb[0], ldb, gkid);
-            status
-                = aoclsparse_trsv<T>(transpose, alpha, A, descr, wcolb.data(), wcolx.data(), kid);
-            //early exit in case there is error
-            if(status != aoclsparse_status_success)
-            {
-                break;
-            }
-            status = aoclsparse_scatter<T, Index::type::strided>(m, &wcolx[0], ldx, &X[c], skid);
+            status = aoclsparse_trsv<T>(transpose, alpha, A, descr, &B[r], ldb, &X[r], ldx, kid);
         }
         break;
     case aoclsparse_order_column:
@@ -204,9 +163,10 @@ aoclsparse_status
         chunk = (n / context.num_threads) ? (n / context.num_threads) : 1;
 #pragma omp parallel for num_threads(context.num_threads) schedule(dynamic, chunk)
 #endif
-        for(int c = 0; c < n; c++)
+        for(aoclsparse_int c = 0; c < n; ++c)
         {
-            status = aoclsparse_trsv<T>(transpose, alpha, A, descr, &B[c * ldb], &X[c * ldx], kid);
+            status = aoclsparse_trsv<T>(
+                transpose, alpha, A, descr, &B[c * ldb], 1, &X[c * ldx], 1, kid);
         }
         break;
     default:

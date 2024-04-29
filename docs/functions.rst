@@ -157,6 +157,14 @@ aoclsparse\_?trsv()
     :outline:
 .. doxygenfunction:: aoclsparse_ztrsv
 
+.. doxygenfunction:: aoclsparse_strsv_strided
+    :outline:
+.. doxygenfunction:: aoclsparse_dtrsv_strided
+    :outline:
+.. doxygenfunction:: aoclsparse_ctrsv_strided
+    :outline:
+.. doxygenfunction:: aoclsparse_ztrsv_strided
+
 .. doxygenfunction:: aoclsparse_strsv_kid
     :outline:
 .. doxygenfunction:: aoclsparse_dtrsv_kid
@@ -175,7 +183,6 @@ aoclsparse\_?dotmv()
 .. doxygenfunction:: aoclsparse_cdotmv
     :outline:
 .. doxygenfunction:: aoclsparse_zdotmv
-
 
 aoclsparse\_?ellmv()
 --------------------

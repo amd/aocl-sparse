@@ -208,7 +208,7 @@ namespace
         const bool        unit    = descr->diag_type == aoclsparse_diag_type_unit;
         aoclsparse_int    kidlabs = std::max<aoclsparse_int>(std::min<aoclsparse_int>(kid, 4), 0);
         const std::string avxlabs[5] = {"NONE (reference)",
-                                        "AVX2 (reference 256b)",
+                                        "AVX2 alias (KT 256b)",
                                         "AVX2 (KT 256b)",
                                         "AVX-512 (KT 512b)",
                                         "unknown"};
@@ -220,7 +220,7 @@ namespace
         const aoclsparse_int n = A->n;
         status                 = aoclsparse_trsv_kid<T>(trans, alpha, A, descr, &b[0], &x[0], kid);
         ASSERT_EQ(status, trsv_status)
-            << "Test failed with unexpected return from aoclsparse_dtrsv";
+            << "Test failed with unexpected return from aoclsparse_trsv for type " << dtype;
         if(status == aoclsparse_status_success)
         {
             if(tol <= 0.0)
@@ -255,65 +255,35 @@ namespace
 #define TRAN 1
 #define HERM 2
 
-#define ADD_TEST(ID, KID, BASE, OP) \
-    {                               \
-        ID,                         \
-            #ID "/kid[" #KID "]"    \
-                "/" #BASE,          \
-            KID, BASE, OP           \
-    }
-
-    // Kernel kid=3 fallbacks to kid=2 on non-Zen4 and should not fail
     // clang-format off
+#define ADD_TEST(ID, KID, BASE, OP) { ID, #ID "/kid[" #KID "]" "/" #BASE, KID, BASE, OP }
+    // Kernel kid=3 fallbacks to kid=2 on non-Zen4 and should not fail
+    // Kernel kid=1 is an alias to kid=2, so they both are interparsed
 #define ADD_TEST_BATCH(PRE)                                                                  \
-        ADD_TEST(PRE##_Lx_aB,    0,BASEZERO,NONE), ADD_TEST(PRE##_Lx_aB,    1,BASEZERO,NONE),\
-        ADD_TEST(PRE##_Lx_aB,    2,BASEZERO,NONE), ADD_TEST(PRE##_Lx_aB,    3,BASEZERO,NONE),\
-        ADD_TEST(PRE##_Lx_aB,    0,BASEONE, NONE), ADD_TEST(PRE##_Lx_aB,    1,BASEONE, NONE),\
-        ADD_TEST(PRE##_Lx_aB,    2,BASEONE, NONE), ADD_TEST(PRE##_Lx_aB,    3,BASEONE, NONE),\
-        ADD_TEST(PRE##_LL_Ix_aB, 0,BASEZERO,NONE), ADD_TEST(PRE##_LL_Ix_aB, 1,BASEZERO,NONE),\
-        ADD_TEST(PRE##_LL_Ix_aB, 2,BASEZERO,NONE), ADD_TEST(PRE##_LL_Ix_aB, 3,BASEZERO,NONE),\
-        ADD_TEST(PRE##_LL_Ix_aB, 0,BASEONE, NONE), ADD_TEST(PRE##_LL_Ix_aB, 1,BASEONE, NONE),\
-        ADD_TEST(PRE##_LL_Ix_aB, 2,BASEONE, NONE), ADD_TEST(PRE##_LL_Ix_aB, 3,BASEONE, NONE),\
-        ADD_TEST(PRE##_LTx_aB,   0,BASEZERO,TRAN), ADD_TEST(PRE##_LTx_aB,   1,BASEZERO,TRAN),\
-        ADD_TEST(PRE##_LTx_aB,   2,BASEZERO,TRAN), ADD_TEST(PRE##_LTx_aB,   3,BASEZERO,TRAN),\
-        ADD_TEST(PRE##_LTx_aB,   0,BASEONE, TRAN), ADD_TEST(PRE##_LTx_aB,   1,BASEONE, TRAN),\
-        ADD_TEST(PRE##_LTx_aB,   2,BASEONE, TRAN), ADD_TEST(PRE##_LTx_aB,   3,BASEONE, TRAN),\
-        ADD_TEST(PRE##_LL_ITx_aB,0,BASEZERO,TRAN), ADD_TEST(PRE##_LL_ITx_aB,1,BASEZERO,TRAN),\
-        ADD_TEST(PRE##_LL_ITx_aB,2,BASEZERO,TRAN), ADD_TEST(PRE##_LL_ITx_aB,3,BASEZERO,TRAN),\
-        ADD_TEST(PRE##_LL_ITx_aB,0,BASEONE, TRAN), ADD_TEST(PRE##_LL_ITx_aB,1,BASEONE, TRAN),\
-        ADD_TEST(PRE##_LL_ITx_aB,2,BASEONE, TRAN), ADD_TEST(PRE##_LL_ITx_aB,3,BASEONE, TRAN),\
-        ADD_TEST(PRE##_LHx_aB,   0,BASEZERO,HERM), ADD_TEST(PRE##_LHx_aB,   1,BASEZERO,HERM),\
-        ADD_TEST(PRE##_LHx_aB,   2,BASEZERO,HERM), ADD_TEST(PRE##_LHx_aB,   3,BASEZERO,HERM),\
-        ADD_TEST(PRE##_LHx_aB,   0,BASEONE, HERM), ADD_TEST(PRE##_LHx_aB,   1,BASEONE, HERM),\
-        ADD_TEST(PRE##_LHx_aB,   2,BASEONE, HERM), ADD_TEST(PRE##_LHx_aB,   3,BASEONE, HERM),\
-        ADD_TEST(PRE##_LL_IHx_aB,0,BASEZERO,HERM), ADD_TEST(PRE##_LL_IHx_aB,1,BASEZERO,HERM),\
-        ADD_TEST(PRE##_LL_IHx_aB,2,BASEZERO,HERM), ADD_TEST(PRE##_LL_IHx_aB,3,BASEZERO,HERM),\
-        ADD_TEST(PRE##_LL_IHx_aB,0,BASEONE, HERM), ADD_TEST(PRE##_LL_IHx_aB,1,BASEONE, HERM),\
-        ADD_TEST(PRE##_LL_IHx_aB,2,BASEONE, HERM), ADD_TEST(PRE##_LL_IHx_aB,3,BASEONE, HERM),\
-        ADD_TEST(PRE##_Ux_aB,    0,BASEZERO,NONE), ADD_TEST(PRE##_Ux_aB,    1,BASEZERO,NONE),\
-        ADD_TEST(PRE##_Ux_aB,    2,BASEZERO,NONE), ADD_TEST(PRE##_Ux_aB,    3,BASEZERO,NONE),\
-        ADD_TEST(PRE##_Ux_aB,    0,BASEONE, NONE), ADD_TEST(PRE##_Ux_aB,    1,BASEONE, NONE),\
-        ADD_TEST(PRE##_Ux_aB,    2,BASEONE, NONE), ADD_TEST(PRE##_Ux_aB,    3,BASEONE, NONE),\
-        ADD_TEST(PRE##_UU_Ix_aB, 0,BASEZERO,NONE), ADD_TEST(PRE##_UU_Ix_aB, 1,BASEZERO,NONE),\
-        ADD_TEST(PRE##_UU_Ix_aB, 2,BASEZERO,NONE), ADD_TEST(PRE##_UU_Ix_aB, 3,BASEZERO,NONE),\
-        ADD_TEST(PRE##_UU_Ix_aB, 0,BASEONE, NONE), ADD_TEST(PRE##_UU_Ix_aB, 1,BASEONE, NONE),\
-        ADD_TEST(PRE##_UU_Ix_aB, 2,BASEONE, NONE), ADD_TEST(PRE##_UU_Ix_aB, 3,BASEONE, NONE),\
-        ADD_TEST(PRE##_UTx_aB,   0,BASEZERO,TRAN), ADD_TEST(PRE##_UTx_aB,   1,BASEZERO,TRAN),\
-        ADD_TEST(PRE##_UTx_aB,   2,BASEZERO,TRAN), ADD_TEST(PRE##_UTx_aB,   3,BASEZERO,TRAN),\
-        ADD_TEST(PRE##_UTx_aB,   0,BASEONE, TRAN), ADD_TEST(PRE##_UTx_aB,   1,BASEONE, TRAN),\
-        ADD_TEST(PRE##_UTx_aB,   2,BASEONE, TRAN), ADD_TEST(PRE##_UTx_aB,   3,BASEONE, TRAN),\
-        ADD_TEST(PRE##_UU_ITx_aB,0,BASEZERO,TRAN), ADD_TEST(PRE##_UU_ITx_aB,1,BASEZERO,TRAN),\
-        ADD_TEST(PRE##_UU_ITx_aB,2,BASEZERO,TRAN), ADD_TEST(PRE##_UU_ITx_aB,3,BASEZERO,TRAN),\
-        ADD_TEST(PRE##_UU_ITx_aB,0,BASEONE, TRAN), ADD_TEST(PRE##_UU_ITx_aB,1,BASEONE, TRAN),\
-        ADD_TEST(PRE##_UU_ITx_aB,2,BASEONE, TRAN), ADD_TEST(PRE##_UU_ITx_aB,3,BASEONE, TRAN),\
-        ADD_TEST(PRE##_UHx_aB,   0,BASEZERO,HERM), ADD_TEST(PRE##_UHx_aB,   1,BASEZERO,HERM),\
-        ADD_TEST(PRE##_UHx_aB,   2,BASEZERO,HERM), ADD_TEST(PRE##_UHx_aB,   3,BASEZERO,HERM),\
-        ADD_TEST(PRE##_UHx_aB,   0,BASEONE, HERM), ADD_TEST(PRE##_UHx_aB,   1,BASEONE, HERM),\
-        ADD_TEST(PRE##_UHx_aB,   2,BASEONE, HERM), ADD_TEST(PRE##_UHx_aB,   3,BASEONE, HERM),\
-        ADD_TEST(PRE##_UU_IHx_aB,0,BASEZERO,HERM), ADD_TEST(PRE##_UU_IHx_aB,1,BASEZERO,HERM),\
-        ADD_TEST(PRE##_UU_IHx_aB,2,BASEZERO,HERM), ADD_TEST(PRE##_UU_IHx_aB,3,BASEZERO,HERM),\
-        ADD_TEST(PRE##_UU_IHx_aB,0,BASEONE, HERM), ADD_TEST(PRE##_UU_IHx_aB,1,BASEONE, HERM),\
-        ADD_TEST(PRE##_UU_IHx_aB,2,BASEONE, HERM), ADD_TEST(PRE##_UU_IHx_aB,3,BASEONE, HERM)
+    ADD_TEST(PRE##_Lx_aB,    0,BASEZERO,NONE), ADD_TEST(PRE##_Lx_aB,    1,BASEZERO,NONE), ADD_TEST(PRE##_Lx_aB,    3,BASEZERO,NONE),\
+    ADD_TEST(PRE##_Lx_aB,    0,BASEONE, NONE), ADD_TEST(PRE##_Lx_aB,    2,BASEONE, NONE), ADD_TEST(PRE##_Lx_aB,    3,BASEONE, NONE),\
+    ADD_TEST(PRE##_LL_Ix_aB, 0,BASEZERO,NONE), ADD_TEST(PRE##_LL_Ix_aB, 2,BASEZERO,NONE), ADD_TEST(PRE##_LL_Ix_aB, 3,BASEZERO,NONE),\
+    ADD_TEST(PRE##_LL_Ix_aB, 0,BASEONE, NONE), ADD_TEST(PRE##_LL_Ix_aB, 1,BASEONE, NONE), ADD_TEST(PRE##_LL_Ix_aB, 3,BASEONE, NONE),\
+    ADD_TEST(PRE##_LTx_aB,   0,BASEZERO,TRAN), ADD_TEST(PRE##_LTx_aB,   1,BASEZERO,TRAN), ADD_TEST(PRE##_LTx_aB,   3,BASEZERO,TRAN),\
+    ADD_TEST(PRE##_LTx_aB,   0,BASEONE, TRAN), ADD_TEST(PRE##_LTx_aB,   2,BASEONE, TRAN), ADD_TEST(PRE##_LTx_aB,   3,BASEONE, TRAN),\
+    ADD_TEST(PRE##_LL_ITx_aB,0,BASEZERO,TRAN), ADD_TEST(PRE##_LL_ITx_aB,1,BASEZERO,TRAN), ADD_TEST(PRE##_LL_ITx_aB,3,BASEZERO,TRAN),\
+    ADD_TEST(PRE##_LL_ITx_aB,0,BASEONE, TRAN), ADD_TEST(PRE##_LL_ITx_aB,2,BASEONE, TRAN), ADD_TEST(PRE##_LL_ITx_aB,3,BASEONE, TRAN),\
+    ADD_TEST(PRE##_LHx_aB,   0,BASEZERO,HERM), ADD_TEST(PRE##_LHx_aB,   1,BASEZERO,HERM), ADD_TEST(PRE##_LHx_aB,   3,BASEZERO,HERM),\
+    ADD_TEST(PRE##_LHx_aB,   0,BASEONE, HERM), ADD_TEST(PRE##_LHx_aB,   2,BASEONE, HERM), ADD_TEST(PRE##_LHx_aB,   3,BASEONE, HERM),\
+    ADD_TEST(PRE##_LL_IHx_aB,0,BASEZERO,HERM), ADD_TEST(PRE##_LL_IHx_aB,2,BASEZERO,HERM), ADD_TEST(PRE##_LL_IHx_aB,3,BASEZERO,HERM),\
+    ADD_TEST(PRE##_LL_IHx_aB,0,BASEONE, HERM), ADD_TEST(PRE##_LL_IHx_aB,1,BASEONE, HERM), ADD_TEST(PRE##_LL_IHx_aB,3,BASEONE, HERM),\
+    ADD_TEST(PRE##_Ux_aB,    0,BASEZERO,NONE), ADD_TEST(PRE##_Ux_aB,    2,BASEZERO,NONE), ADD_TEST(PRE##_Ux_aB,    3,BASEZERO,NONE),\
+    ADD_TEST(PRE##_Ux_aB,    0,BASEONE, NONE), ADD_TEST(PRE##_Ux_aB,    1,BASEONE, NONE), ADD_TEST(PRE##_Ux_aB,    3,BASEONE, NONE),\
+    ADD_TEST(PRE##_UU_Ix_aB, 0,BASEZERO,NONE), ADD_TEST(PRE##_UU_Ix_aB, 1,BASEZERO,NONE), ADD_TEST(PRE##_UU_Ix_aB, 3,BASEZERO,NONE),\
+    ADD_TEST(PRE##_UU_Ix_aB, 0,BASEONE, NONE), ADD_TEST(PRE##_UU_Ix_aB, 2,BASEONE, NONE), ADD_TEST(PRE##_UU_Ix_aB, 3,BASEONE, NONE),\
+    ADD_TEST(PRE##_UTx_aB,   0,BASEZERO,TRAN), ADD_TEST(PRE##_UTx_aB,   2,BASEZERO,TRAN), ADD_TEST(PRE##_UTx_aB,   3,BASEZERO,TRAN),\
+    ADD_TEST(PRE##_UTx_aB,   0,BASEONE, TRAN), ADD_TEST(PRE##_UTx_aB,   1,BASEONE, TRAN), ADD_TEST(PRE##_UTx_aB,   3,BASEONE, TRAN),\
+    ADD_TEST(PRE##_UU_ITx_aB,0,BASEZERO,TRAN), ADD_TEST(PRE##_UU_ITx_aB,2,BASEZERO,TRAN), ADD_TEST(PRE##_UU_ITx_aB,3,BASEZERO,TRAN),\
+    ADD_TEST(PRE##_UU_ITx_aB,0,BASEONE, TRAN), ADD_TEST(PRE##_UU_ITx_aB,1,BASEONE, TRAN), ADD_TEST(PRE##_UU_ITx_aB,3,BASEONE, TRAN),\
+    ADD_TEST(PRE##_UHx_aB,   0,BASEZERO,HERM), ADD_TEST(PRE##_UHx_aB,   2,BASEZERO,HERM), ADD_TEST(PRE##_UHx_aB,   3,BASEZERO,HERM),\
+    ADD_TEST(PRE##_UHx_aB,   0,BASEONE, HERM), ADD_TEST(PRE##_UHx_aB,   1,BASEONE, HERM), ADD_TEST(PRE##_UHx_aB,   3,BASEONE, HERM),\
+    ADD_TEST(PRE##_UU_IHx_aB,0,BASEZERO,HERM), ADD_TEST(PRE##_UU_IHx_aB,2,BASEZERO,HERM), ADD_TEST(PRE##_UU_IHx_aB,3,BASEZERO,HERM),\
+    ADD_TEST(PRE##_UU_IHx_aB,0,BASEONE, HERM), ADD_TEST(PRE##_UU_IHx_aB,1,BASEONE, HERM), ADD_TEST(PRE##_UU_IHx_aB,3,BASEONE, HERM)
     // clang-format on
 
     trsv_list_t trsv_list[] = {ADD_TEST_BATCH(D7),
@@ -347,11 +317,10 @@ namespace
     };
     TEST_P(PosFloat, Solver)
     {
-        const linear_system_id  id   = GetParam().id;
-        const aoclsparse_int    kid  = GetParam().kid;
-        const aoclsparse_int    base = GetParam().base;
-        const aoclsparse_status trsv_status
-            = kid == 1 ? aoclsparse_status_not_implemented : aoclsparse_status_success;
+        const linear_system_id  id          = GetParam().id;
+        const aoclsparse_int    kid         = GetParam().kid;
+        const aoclsparse_int    base        = GetParam().base;
+        const aoclsparse_status trsv_status = aoclsparse_status_success;
 #if(VERBOSE > 0)
         std::cout << "Pos/Float/Solver test name: \"" << GetParam().testname << "\"" << std::endl;
 #endif
@@ -364,11 +333,10 @@ namespace
     };
     TEST_P(PosCplxDouble, Solver)
     {
-        const linear_system_id  id   = GetParam().id;
-        const aoclsparse_int    kid  = GetParam().kid;
-        const aoclsparse_int    base = GetParam().base;
-        const aoclsparse_status trsv_status
-            = kid == 1 ? aoclsparse_status_not_implemented : aoclsparse_status_success;
+        const linear_system_id  id          = GetParam().id;
+        const aoclsparse_int    kid         = GetParam().kid;
+        const aoclsparse_int    base        = GetParam().base;
+        const aoclsparse_status trsv_status = aoclsparse_status_success;
 #if(VERBOSE > 0)
         std::cout << "Pos/CplxDouble/Solver test name: \"" << GetParam().testname << "\""
                   << std::endl;
@@ -382,11 +350,10 @@ namespace
     };
     TEST_P(PosCplxFloat, Solver)
     {
-        const linear_system_id  id   = GetParam().id;
-        const aoclsparse_int    kid  = GetParam().kid;
-        const aoclsparse_int    base = GetParam().base;
-        const aoclsparse_status trsv_status
-            = kid == 1 ? aoclsparse_status_not_implemented : aoclsparse_status_success;
+        const linear_system_id  id          = GetParam().id;
+        const aoclsparse_int    kid         = GetParam().kid;
+        const aoclsparse_int    base        = GetParam().base;
+        const aoclsparse_status trsv_status = aoclsparse_status_success;
 #if(VERBOSE > 0)
         std::cout << "Pos/CplxFloat/Solver test name: \"" << GetParam().testname << "\""
                   << std::endl;
@@ -689,31 +656,6 @@ namespace
         ASSERT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
     };
 
-    TEST(TrsvSuite, NoKernel)
-    {
-        float                       alpha = 0.0;
-        aoclsparse_matrix           A     = nullptr;
-        aoclsparse_mat_descr        descr = nullptr;
-        float                       b[1], x[1];
-        aoclsparse_int              kid = 1, m, n, nnz;
-        std::vector<float>          aval;
-        std::vector<aoclsparse_int> acol, acrow;
-        aoclsparse_operation        trans = aoclsparse_operation_conjugate_transpose;
-        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_zero),
-                  aoclsparse_status_success);
-        ASSERT_EQ(create_matrix(N5_full_sorted, m, n, nnz, acrow, acol, aval, A, descr, 0),
-                  aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_set_mat_fill_mode(descr, aoclsparse_fill_mode_lower),
-                  aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_triangular),
-                  aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_strsv_kid(trans, alpha, A, descr, b, x, kid),
-                  aoclsparse_status_not_implemented);
-        ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
-    };
-
     TEST(TrsvSuite, GeneralMatrix)
     {
         double                      alpha = 0.0;
@@ -872,5 +814,55 @@ namespace
         trsv_hint_driver<float>(id, base);
     }
     INSTANTIATE_TEST_SUITE_P(TrsvSuite, PosHFloat, ::testing::ValuesIn(trsv_hint_list));
+
+    // Test for stride of x or stride of b are invalid
+    TEST(TrsvSuite, wrongStride)
+    {
+        float                       sa{1.0f};
+        double                      da{1.0};
+        aoclsparse_float_complex    ca{1.0f, 1.0f};
+        aoclsparse_double_complex   za{1.0, 1.0};
+        aoclsparse_matrix           A     = nullptr;
+        aoclsparse_mat_descr        descr = nullptr;
+        float                       sb[1], sx[1];
+        double                      db[1], dx[1];
+        aoclsparse_float_complex    cb[1], cx[1];
+        aoclsparse_double_complex   zb[1], zx[1];
+        aoclsparse_int              m, n, nnz;
+        std::vector<double>         aval;
+        std::vector<aoclsparse_int> acol, acrow;
+        aoclsparse_operation        trans = aoclsparse_operation_none;
+
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_triangular),
+                  aoclsparse_status_success);
+        // Force it to lower triangular
+        ASSERT_EQ(aoclsparse_set_mat_fill_mode(descr, aoclsparse_fill_mode_lower),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_zero),
+                  aoclsparse_status_success);
+
+        // Create matrix data for type double
+        ASSERT_EQ(create_matrix<double>(N5_full_sorted, m, n, nnz, acrow, acol, aval, A, descr, 0),
+                  aoclsparse_status_success);
+
+        ASSERT_EQ(aoclsparse_set_sv_hint(A, aoclsparse_operation_none, descr, 1),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_optimize(A), aoclsparse_status_success);
+
+        // Tests are Ok since incx and incb are check BEFORE data type in A checked
+        ASSERT_EQ(aoclsparse_strsv_strided(trans, sa, A, descr, sb, 1, sx, -1),
+                  aoclsparse_status_invalid_value);
+        ASSERT_EQ(aoclsparse_dtrsv_strided(trans, da, A, descr, db, -1, dx, 0),
+                  aoclsparse_status_invalid_value);
+        ASSERT_EQ(aoclsparse_ctrsv_strided(trans, ca, A, descr, cb, -1, cx, 1),
+                  aoclsparse_status_invalid_value);
+        // Coverage of public interface
+        ASSERT_EQ(aoclsparse_ztrsv_strided(trans, za, A, descr, zb, -1, zx, -1),
+                  aoclsparse_status_invalid_value);
+
+        ASSERT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+    }
 }
 // namespace

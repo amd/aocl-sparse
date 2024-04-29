@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -187,12 +187,11 @@ namespace
     *
     */
     template <typename T>
-    void trsm_driver(linear_system_id  id,
-                     aoclsparse_int    kid,
-                     aoclsparse_int    base_index,
-                     aoclsparse_int    layout,
-                     aoclsparse_int    k,
-                     aoclsparse_status trsm_status = aoclsparse_status_success)
+    void trsm_driver(linear_system_id id,
+                     aoclsparse_int   kid,
+                     aoclsparse_int   base_index,
+                     aoclsparse_int   layout,
+                     aoclsparse_int   k)
     {
         aoclsparse_status    status;
         std::string          title;
@@ -277,7 +276,7 @@ namespace
         const bool        unit    = descr->diag_type == aoclsparse_diag_type_unit;
         aoclsparse_int    kidlabs = std::max<aoclsparse_int>(std::min<aoclsparse_int>(kid, 4), 0);
         const std::string avxlabs[5] = {"NONE (reference)",
-                                        "AVX2 (reference 256b)",
+                                        "AVX2 (alias KT 256b)",
                                         "AVX2 (KT 256b)",
                                         "AVX-512 (KT 512b)",
                                         "unknown"};
@@ -399,7 +398,7 @@ namespace
                                         &X[starting_offset_x + 0],
                                         ldx,
                                         kid);
-        ASSERT_EQ(status, trsm_status)
+        ASSERT_EQ(status, aoclsparse_status_success)
             << "Test failed with unexpected return from aoclsparse_trsm_kid";
         if(status == aoclsparse_status_success)
         {
@@ -507,16 +506,15 @@ namespace
     };
     TEST_P(PosDouble, Solver)
     {
-        const linear_system_id  id          = GetParam().id;
-        const aoclsparse_int    kid         = GetParam().kid;
-        const aoclsparse_int    base        = GetParam().base;
-        const aoclsparse_int    order       = GetParam().order;
-        const aoclsparse_int    k           = GetParam().k;
-        const aoclsparse_status trsm_status = aoclsparse_status_success;
+        const linear_system_id id    = GetParam().id;
+        const aoclsparse_int   kid   = GetParam().kid;
+        const aoclsparse_int   base  = GetParam().base;
+        const aoclsparse_int   order = GetParam().order;
+        const aoclsparse_int   k     = GetParam().k;
 #if(VERBOSE > 0)
         std::cout << "Pos/Double/Solver test name: \"" << GetParam().testname << "\"" << std::endl;
 #endif
-        trsm_driver<double>(id, kid, base, order, k, trsm_status);
+        trsm_driver<double>(id, kid, base, order, k);
     }
     INSTANTIATE_TEST_SUITE_P(TrsmSuite, PosDouble, ::testing::ValuesIn(trsm_list));
 
@@ -530,13 +528,10 @@ namespace
         const aoclsparse_int   base  = GetParam().base;
         const aoclsparse_int   order = GetParam().order;
         const aoclsparse_int   k     = GetParam().k;
-
-        const aoclsparse_status trsm_status
-            = kid == 1 ? aoclsparse_status_not_implemented : aoclsparse_status_success;
 #if(VERBOSE > 0)
         std::cout << "Pos/Float/Solver test name: \"" << GetParam().testname << "\"" << std::endl;
 #endif
-        trsm_driver<float>(id, kid, base, order, k, trsm_status);
+        trsm_driver<float>(id, kid, base, order, k);
     }
     INSTANTIATE_TEST_SUITE_P(TrsmSuite, PosFloat, ::testing::ValuesIn(trsm_list));
 
@@ -550,14 +545,11 @@ namespace
         const aoclsparse_int   base  = GetParam().base;
         const aoclsparse_int   order = GetParam().order;
         const aoclsparse_int   k     = GetParam().k;
-
-        const aoclsparse_status trsm_status
-            = kid == 1 ? aoclsparse_status_not_implemented : aoclsparse_status_success;
 #if(VERBOSE > 0)
         std::cout << "Pos/CplxDouble/Solver test name: \"" << GetParam().testname << "\""
                   << std::endl;
 #endif
-        trsm_driver<std::complex<double>>(id, kid, base, order, k, trsm_status);
+        trsm_driver<std::complex<double>>(id, kid, base, order, k);
     }
     INSTANTIATE_TEST_SUITE_P(TrsmSuite, PosCplxDouble, ::testing::ValuesIn(trsm_list));
 
@@ -566,18 +558,16 @@ namespace
     };
     TEST_P(PosCplxFloat, Solver)
     {
-        const linear_system_id  id    = GetParam().id;
-        const aoclsparse_int    kid   = GetParam().kid;
-        const aoclsparse_int    base  = GetParam().base;
-        const aoclsparse_int    order = GetParam().order;
-        const aoclsparse_int    k     = GetParam().k;
-        const aoclsparse_status trsm_status
-            = kid == 1 ? aoclsparse_status_not_implemented : aoclsparse_status_success;
+        const linear_system_id id    = GetParam().id;
+        const aoclsparse_int   kid   = GetParam().kid;
+        const aoclsparse_int   base  = GetParam().base;
+        const aoclsparse_int   order = GetParam().order;
+        const aoclsparse_int   k     = GetParam().k;
 #if(VERBOSE > 0)
         std::cout << "Pos/CplxFloat/Solver test name: \"" << GetParam().testname << "\""
                   << std::endl;
 #endif
-        trsm_driver<std::complex<float>>(id, kid, base, order, k, trsm_status);
+        trsm_driver<std::complex<float>>(id, kid, base, order, k);
     }
     INSTANTIATE_TEST_SUITE_P(TrsmSuite, PosCplxFloat, ::testing::ValuesIn(trsm_list));
 
@@ -620,9 +610,7 @@ namespace
         ASSERT_EQ(aoclsparse_create_csr<T>(&A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val),
                   aoclsparse_status_success);
 
-        aoclsparse_int     ldb, ldx;
-        std::vector<float> wcolb(N, 0);
-        std::vector<float> wcolx(N, 0);
+        aoclsparse_int ldb, ldx;
         ldb = M;
         ldx = M;
 

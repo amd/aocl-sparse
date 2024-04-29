@@ -1372,9 +1372,9 @@ aoclsparse_status aoclsparse_scsrsv(aoclsparse_operation       trans,
  *  trans       matrix operation type, either \ref aoclsparse_operation_none, \ref aoclsparse_operation_transpose,
  *              or \ref aoclsparse_operation_conjugate_transpose.
  *  @param[in]
- *  alpha       scalar \f$\alpha\f$, used to premultiply right-hand side vector \f$b\f$.
+ *  alpha       scalar \f$\alpha\f$, used to multiply right-hand side vector \f$b\f$.
  *  @param[inout]
- *  A           matrix data. \p A is modified only if solver requires to optimize matrix data.
+ *  A           matrix containing data used to represent the \f$m \times m\f$ triangular linear system to solve.
  *  @param[in]
  *  descr       matrix descriptor. Supported matrix types are \ref aoclsparse_matrix_type_symmetric and
  *              \ref aoclsparse_matrix_type_triangular.
@@ -1426,24 +1426,23 @@ aoclsparse_status aoclsparse_strsv(aoclsparse_operation       trans,
                                    float                     *x);
 /**\}*/
 
-/*! \ingroup level2_module
+/** \ingroup level2_module
  *  \brief Sparse triangular solver for real/complex single and double data precisions (kernel flag variation).
  *
  *  \details
  * @rst For full details refer to :cpp:func:`aoclsparse_?trsv()<aoclsparse_strsv>`.
  *
- * This variation of TRSV, namely with a suffix of `_kid`, allows to choose which
+ * This variation of TRSV, namely with a suffix of :code:`_kid`, allows to choose which
  * TRSV kernel to use (if possible). Currently the possible choices are:
  *
  * :code:`kid=0`
  *     Reference implementation (No explicit AVX instructions).
  *
  * :code:`kid=1`
- *     Reference AVX 256-bit implementation only for double data precision and for
- *     operations \ref aoclsparse_operation_none and \ref aoclsparse_operation_transpose.
+ *     Alias to :code:`kid=2` (Kernel Template AVX 256-bit implementation)
  *
  * :code:`kid=2`
- *     Kernel Template version using :code:`AVX`/:code:`AVX2` extensions.
+ *     Kernel Template version using :code:`AVX2` extensions.
  *
  * :code:`kid=3`
  *     Kernel Template version using :code:`AVX512F+` CPU extensions.
@@ -1455,9 +1454,9 @@ aoclsparse_status aoclsparse_strsv(aoclsparse_operation       trans,
  *  trans       matrix operation type, either \ref aoclsparse_operation_none, \ref aoclsparse_operation_transpose,
  *              or \ref aoclsparse_operation_conjugate_transpose.
  *  @param[in]
- *  alpha       scalar \f$\alpha\f$, used to premultiply right-hand side vector \f$b\f$.
+ *  alpha       scalar \f$\alpha\f$, used to multiply right-hand side vector \f$b\f$.
  *  @param[inout]
- *  A           matrix data. \p A is modified only if solver requires to optimize matrix data.
+ *  A           matrix containing data used to represent the \f$m \times m\f$ triangular linear system to solve.
  *  @param[in]
  *  descr       matrix descriptor. Supported matrix types are \ref aoclsparse_matrix_type_symmetric and
  *              \ref aoclsparse_matrix_type_triangular.
@@ -1476,7 +1475,7 @@ aoclsparse_status aoclsparse_ztrsv_kid(aoclsparse_operation             trans,
                                        const aoclsparse_mat_descr       descr,
                                        const aoclsparse_double_complex *b,
                                        aoclsparse_double_complex       *x,
-                                       const aoclsparse_int             kid);
+                                       aoclsparse_int                   kid);
 
 DLL_PUBLIC
 aoclsparse_status aoclsparse_ctrsv_kid(aoclsparse_operation            trans,
@@ -1485,7 +1484,7 @@ aoclsparse_status aoclsparse_ctrsv_kid(aoclsparse_operation            trans,
                                        const aoclsparse_mat_descr      descr,
                                        const aoclsparse_float_complex *b,
                                        aoclsparse_float_complex       *x,
-                                       const aoclsparse_int            kid);
+                                       aoclsparse_int                  kid);
 
 DLL_PUBLIC
 aoclsparse_status aoclsparse_dtrsv_kid(aoclsparse_operation       trans,
@@ -1494,7 +1493,7 @@ aoclsparse_status aoclsparse_dtrsv_kid(aoclsparse_operation       trans,
                                        const aoclsparse_mat_descr descr,
                                        const double              *b,
                                        double                    *x,
-                                       const aoclsparse_int       kid);
+                                       aoclsparse_int             kid);
 
 DLL_PUBLIC
 aoclsparse_status aoclsparse_strsv_kid(aoclsparse_operation       trans,
@@ -1503,7 +1502,74 @@ aoclsparse_status aoclsparse_strsv_kid(aoclsparse_operation       trans,
                                        const aoclsparse_mat_descr descr,
                                        const float               *b,
                                        float                     *x,
-                                       const aoclsparse_int       kid);
+                                       aoclsparse_int             kid);
+/**\}*/
+
+/** \ingroup level2_module
+ * \brief This is a variation of TRSV, namely with a suffix of \p _strided, allows to set
+ * the stride for the dense vectors \p b and \p x.
+ * \details
+ * @rst For full details refer to :cpp:func:`aoclsparse_?trsv()<aoclsparse_strsv>`.@endrst
+ *
+ *  @param[in]
+ *  trans       matrix operation type, either \ref aoclsparse_operation_none, \ref aoclsparse_operation_transpose,
+ *              or \ref aoclsparse_operation_conjugate_transpose.
+ *  @param[in]
+ *  alpha       scalar \f$\alpha\f$, used to multiply right-hand side vector \f$b\f$.
+ *  @param[inout]
+ *  A           matrix containing data used to represent the \f$m \times m\f$ triangular linear system to solve.
+ *  @param[in]
+ *  descr       matrix descriptor. Supported matrix types are \ref aoclsparse_matrix_type_symmetric and
+ *              \ref aoclsparse_matrix_type_triangular.
+ *  @param[in]
+ *  b           array of \p m elements, storing the right-hand side.
+ *  @param[in]
+ *  incb      a positive integer holding the stride value for \f$b\f$ vector.
+ *  @param[out]
+ *  x           array of \p m elements, storing the solution if solver returns \ref aoclsparse_status_success.
+ *  @param[in]
+ *  incx      a positive integer holding the stride value for \f$x\f$ vector.
+ * \{
+ */
+DLL_PUBLIC
+aoclsparse_status aoclsparse_strsv_strided(aoclsparse_operation       trans,
+                                           const float                alpha,
+                                           aoclsparse_matrix          A,
+                                           const aoclsparse_mat_descr descr,
+                                           const float               *b,
+                                           const aoclsparse_int       incb,
+                                           float                     *x,
+                                           const aoclsparse_int       incx);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_dtrsv_strided(aoclsparse_operation       trans,
+                                           const double               alpha,
+                                           aoclsparse_matrix          A,
+                                           const aoclsparse_mat_descr descr,
+                                           const double              *b,
+                                           const aoclsparse_int       incb,
+                                           double                    *x,
+                                           const aoclsparse_int       incx);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_ctrsv_strided(aoclsparse_operation            trans,
+                                           const aoclsparse_float_complex  alpha,
+                                           aoclsparse_matrix               A,
+                                           const aoclsparse_mat_descr      descr,
+                                           const aoclsparse_float_complex *b,
+                                           const aoclsparse_int            incb,
+                                           aoclsparse_float_complex       *x,
+                                           const aoclsparse_int            incx);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_ztrsv_strided(aoclsparse_operation             trans,
+                                           const aoclsparse_double_complex  alpha,
+                                           aoclsparse_matrix                A,
+                                           const aoclsparse_mat_descr       descr,
+                                           const aoclsparse_double_complex *b,
+                                           const aoclsparse_int             incb,
+                                           aoclsparse_double_complex       *x,
+                                           const aoclsparse_int             incx);
 /**@}*/
 
 /*! \ingroup level2_module
