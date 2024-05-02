@@ -29,31 +29,7 @@
 #include "aoclsparse_descr.h"
 #include "aoclsparse_auxiliary.hpp"
 #include "aoclsparse_csr_util.hpp"
-#include "aoclsparse_gthr.hpp"
-#include "aoclsparse_sctr.hpp"
 #include "aoclsparse_trsv.hpp"
-#include "aoclsparse_utils.hpp"
-
-#include <immintrin.h>
-#include <type_traits>
-
-#define KT_ADDRESS_TYPE aoclsparse_int
-#include "aoclsparse_kernel_templates.hpp"
-#undef KT_ADDRESS_TYPE
-
-template <typename T>
-aoclsparse_status
-    aoclsparse_trsm(const aoclsparse_operation transpose, /* matrix operation */
-                    const T                    alpha, /* scalar for rescaling RHS */
-                    aoclsparse_matrix          A, /* matrix data */
-                    const aoclsparse_mat_descr descr, /* matrix type, fill_mode, diag type, base */
-                    aoclsparse_order     order, /*Layout of the right-hand-side dense-matrix B*/
-                    const T             *B, /* RHS dense matrix mxn*/
-                    aoclsparse_int       n, /*number of columns of the dense matrix B*/
-                    aoclsparse_int       ldb, /*leading dimension of dense matrix B*/
-                    T                   *X, /*solution matrix*/
-                    aoclsparse_int       ldx, /*leading dimension of dense matrix X*/
-                    const aoclsparse_int kid /* Kernel ID request */);
 
 /*
  * TRSM dispatcher
@@ -146,33 +122,37 @@ aoclsparse_status
             return status;
     }
 
-    switch(order)
+    aoclsparse_int incb, incx, b_offset, x_offset;
+
+    if(order == aoclsparse_order_row)
     {
-    case aoclsparse_order_row:
-#ifdef _OPENMP
-        chunk = (n / context.num_threads) ? (n / context.num_threads) : 1;
-#pragma omp parallel for num_threads(context.num_threads) schedule(dynamic, chunk)
-#endif
-        for(aoclsparse_int r = 0; r < n; ++r)
-        {
-            status = aoclsparse_trsv<T>(transpose, alpha, A, descr, &B[r], ldb, &X[r], ldx, kid);
-        }
-        break;
-    case aoclsparse_order_column:
-#ifdef _OPENMP
-        chunk = (n / context.num_threads) ? (n / context.num_threads) : 1;
-#pragma omp parallel for num_threads(context.num_threads) schedule(dynamic, chunk)
-#endif
-        for(aoclsparse_int c = 0; c < n; ++c)
-        {
-            status = aoclsparse_trsv<T>(
-                transpose, alpha, A, descr, &B[c * ldb], 1, &X[c * ldx], 1, kid);
-        }
-        break;
-    default:
-        status = aoclsparse_status_invalid_value;
-        break;
+        incb     = ldb;
+        incx     = ldx;
+        b_offset = 1;
+        x_offset = 1;
     }
+    else if(order == aoclsparse_order_column)
+    {
+        incb     = 1;
+        incx     = 1;
+        b_offset = ldb;
+        x_offset = ldx;
+    }
+    else // Early return for invalid order
+    {
+        return aoclsparse_status_invalid_value;
+    }
+
+#ifdef _OPENMP
+    chunk = (n / context.num_threads) ? (n / context.num_threads) : 1;
+#pragma omp parallel for num_threads(context.num_threads) schedule(dynamic, chunk)
+#endif
+    for(aoclsparse_int ld = 0; ld < n; ++ld)
+    {
+        status = aoclsparse_trsv<T>(
+            transpose, alpha, A, descr, &B[ld * b_offset], incb, &X[ld * x_offset], incx, kid);
+    }
+
     return status;
 }
 #endif // AOCLSPARSE_SM_HPP
