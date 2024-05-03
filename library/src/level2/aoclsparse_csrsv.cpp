@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2021 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -40,65 +40,9 @@ extern "C" aoclsparse_status aoclsparse_scsrsv(aoclsparse_operation       trans,
                                                const float               *x,
                                                float                     *y)
 {
-    if(descr == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
 
-    // Check index base
-    if(descr->base != aoclsparse_index_base_zero)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-
-    if((descr->type != aoclsparse_matrix_type_general)
-       && (descr->type != aoclsparse_matrix_type_symmetric))
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-
-    if(trans != aoclsparse_operation_none)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-
-    // Check sizes
-    if(m < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-
-    // Quick return if possible
-    if(m == 0)
-    {
-        return aoclsparse_status_success;
-    }
-
-    // Check pointer arguments
-    if(csr_val == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(csr_row_ptr == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(csr_col_ind == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(x == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(y == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    return aoclsparse_csrsv_template(*alpha, m, csr_val, csr_col_ind, csr_row_ptr, descr, x, y);
+    return aoclsparse_csrsv_t<float>(
+        trans, alpha, m, csr_val, csr_col_ind, csr_row_ptr, descr, x, y);
 }
 
 extern "C" aoclsparse_status aoclsparse_dcsrsv(aoclsparse_operation       trans,
@@ -111,63 +55,6 @@ extern "C" aoclsparse_status aoclsparse_dcsrsv(aoclsparse_operation       trans,
                                                const double              *x,
                                                double                    *y)
 {
-    if(descr == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-
-    // Check index base
-    if(descr->base != aoclsparse_index_base_zero)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-
-    if((descr->type != aoclsparse_matrix_type_general)
-       && (descr->type != aoclsparse_matrix_type_symmetric))
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-
-    if(trans != aoclsparse_operation_none)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-
-    // Check sizes
-    if(m < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-
-    // Quick return if possible
-    if(m == 0)
-    {
-        return aoclsparse_status_success;
-    }
-
-    // Check pointer arguments
-    if(csr_val == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(csr_row_ptr == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(csr_col_ind == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(x == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(y == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    return aoclsparse_csrsv_template(*alpha, m, csr_val, csr_col_ind, csr_row_ptr, descr, x, y);
+    return aoclsparse_csrsv_t<double>(
+        trans, alpha, m, csr_val, csr_col_ind, csr_row_ptr, descr, x, y);
 }
