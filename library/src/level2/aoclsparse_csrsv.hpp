@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,33 +26,71 @@
 #include "aoclsparse.h"
 #include "aoclsparse_descr.h"
 
-#include "iostream"
-
 template <typename T>
-aoclsparse_status aoclsparse_csrsv_template(const T                    alpha,
-                                            aoclsparse_int             m,
-                                            const T                   *csr_val,
-                                            const aoclsparse_int      *csr_col_ind,
-                                            const aoclsparse_int      *csr_row_ptr,
-                                            const aoclsparse_mat_descr descr,
-                                            const T                   *x,
-                                            T                         *y)
+aoclsparse_status aoclsparse_csrsv_t(aoclsparse_operation       trans,
+                                     const T                   *alpha,
+                                     aoclsparse_int             m,
+                                     const T                   *csr_val,
+                                     const aoclsparse_int      *csr_col_ind,
+                                     const aoclsparse_int      *csr_row_ptr,
+                                     const aoclsparse_mat_descr descr,
+                                     const T                   *x,
+                                     T                         *y)
 {
+    // Check pointer arguments
+    if(csr_val == nullptr || csr_row_ptr == nullptr || csr_col_ind == nullptr || x == nullptr
+       || y == nullptr || descr == nullptr || alpha == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+
+    // Check index base
+    if(descr->base != aoclsparse_index_base_zero)
+    {
+        // TODO
+        return aoclsparse_status_not_implemented;
+    }
+
+    if((descr->type != aoclsparse_matrix_type_general)
+       && (descr->type != aoclsparse_matrix_type_symmetric))
+    {
+        // TODO
+        return aoclsparse_status_not_implemented;
+    }
+
+    if(trans != aoclsparse_operation_none)
+    {
+        // TODO
+        return aoclsparse_status_not_implemented;
+    }
+
+    // Check sizes
+    if(m < 0)
+    {
+        return aoclsparse_status_invalid_size;
+    }
+
+    // Quick return if possible
+    if(m == 0)
+    {
+        return aoclsparse_status_success;
+    }
+
     if(descr->fill_mode == aoclsparse_fill_mode_lower)
     {
         aoclsparse_csr_lsolve(
-            alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, y, descr->diag_type, descr->base);
+            *alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, y, descr->diag_type, descr->base);
     }
     else
     {
         aoclsparse_csr_usolve(
-            alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, y, descr->diag_type, descr->base);
+            *alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, y, descr->diag_type, descr->base);
     }
     return aoclsparse_status_success;
 }
 
 template <typename T>
-static inline void aoclsparse_csr_lsolve(const T               alpha,
+static inline void aoclsparse_csr_lsolve(T                     alpha,
                                          aoclsparse_int        m,
                                          const T              *csr_val,
                                          const aoclsparse_int *csr_col_ind,
@@ -97,7 +135,7 @@ static inline void aoclsparse_csr_lsolve(const T               alpha,
 }
 
 template <typename T>
-static inline void aoclsparse_csr_usolve(const T               alpha,
+static inline void aoclsparse_csr_usolve(T                     alpha,
                                          aoclsparse_int        m,
                                          const T              *csr_val,
                                          const aoclsparse_int *csr_col_ind,

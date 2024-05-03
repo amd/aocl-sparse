@@ -23,6 +23,7 @@
 
 #include "aoclsparse.h"
 #include "aoclsparse_context.h"
+#include "aoclsparse_blkcsrmv.hpp"
 #include "aoclsparse_mv.hpp"
 
 /* Template specializations */
@@ -216,20 +217,20 @@ aoclsparse_status aoclsparse_mv_general(aoclsparse_operation       op,
     {
         //Invoke SPMV API for CSR storage format(double precision)
         if(A->blk_optimized)
-            return aoclsparse_dblkcsrmv(op,
-                                        &alpha,
-                                        A->m,
-                                        A->n,
-                                        A->nnz,
-                                        A->csr_mat.masks,
-                                        (double *)A->csr_mat.blk_val,
-                                        A->csr_mat.blk_col_ptr,
-                                        A->csr_mat.blk_row_ptr,
-                                        descr,
-                                        x,
-                                        &beta,
-                                        y,
-                                        A->csr_mat.nRowsblk);
+            return aoclsparse_blkcsrmv_t<double>(op,
+                                                 &alpha,
+                                                 A->m,
+                                                 A->n,
+                                                 A->nnz,
+                                                 A->csr_mat.masks,
+                                                 (double *)A->csr_mat.blk_val,
+                                                 A->csr_mat.blk_col_ptr,
+                                                 A->csr_mat.blk_row_ptr,
+                                                 descr,
+                                                 x,
+                                                 &beta,
+                                                 y,
+                                                 A->csr_mat.nRowsblk);
         else
         {
             aoclsparse_copy_mat_descr(&descr_cpy, descr);

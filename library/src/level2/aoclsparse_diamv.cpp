@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2023 Advanced Micro Devices, Inc.All rights reserved.
+ * Copyright (c) 2020-2024 Advanced Micro Devices, Inc.All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,164 +29,36 @@
  *   C wrapper
  * ===========================================================================
  */
-extern "C" aoclsparse_status aoclsparse_sdiamv(aoclsparse_operation            trans,
-                                               const float                    *alpha,
-                                               aoclsparse_int                  m,
-                                               aoclsparse_int                  n,
-                                               [[maybe_unused]] aoclsparse_int nnz,
-                                               const float                    *dia_val,
-                                               const aoclsparse_int           *dia_offset,
-                                               aoclsparse_int                  dia_num_diag,
-                                               const aoclsparse_mat_descr      descr,
-                                               const float                    *x,
-                                               const float                    *beta,
-                                               float                          *y)
+extern "C" aoclsparse_status aoclsparse_sdiamv(aoclsparse_operation       trans,
+                                               const float               *alpha,
+                                               aoclsparse_int             m,
+                                               aoclsparse_int             n,
+                                               aoclsparse_int             nnz,
+                                               const float               *dia_val,
+                                               const aoclsparse_int      *dia_offset,
+                                               aoclsparse_int             dia_num_diag,
+                                               const aoclsparse_mat_descr descr,
+                                               const float               *x,
+                                               const float               *beta,
+                                               float                     *y)
 {
-    if(descr == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-
-    if((alpha == nullptr) || (beta == nullptr))
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-
-    // Check index base
-    if(descr->base != aoclsparse_index_base_zero && descr->base != aoclsparse_index_base_one)
-    {
-        return aoclsparse_status_invalid_value;
-    }
-    if(descr->type != aoclsparse_matrix_type_general)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-
-    if(trans != aoclsparse_operation_none)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-
-    // Check sizes
-    if(m < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    else if(n < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    else if(dia_num_diag < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-
-    // Quick return if possible
-    if(m == 0 || n == 0 || dia_num_diag == 0)
-    {
-        return aoclsparse_status_success;
-    }
-
-    // Check pointer arguments
-    if(dia_val == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(dia_offset == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(x == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(y == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-
-    return aoclsparse_diamv_template(*alpha, m, n, dia_val, dia_offset, dia_num_diag, x, *beta, y);
+    return aoclsparse_diamv_t<float>(
+        trans, alpha, m, n, nnz, dia_val, dia_offset, dia_num_diag, descr, x, beta, y);
 }
 
-extern "C" aoclsparse_status aoclsparse_ddiamv(aoclsparse_operation            trans,
-                                               const double                   *alpha,
-                                               aoclsparse_int                  m,
-                                               aoclsparse_int                  n,
-                                               [[maybe_unused]] aoclsparse_int nnz,
-                                               const double                   *dia_val,
-                                               const aoclsparse_int           *dia_offset,
-                                               aoclsparse_int                  dia_num_diag,
-                                               const aoclsparse_mat_descr      descr,
-                                               const double                   *x,
-                                               const double                   *beta,
-                                               double                         *y)
+extern "C" aoclsparse_status aoclsparse_ddiamv(aoclsparse_operation       trans,
+                                               const double              *alpha,
+                                               aoclsparse_int             m,
+                                               aoclsparse_int             n,
+                                               aoclsparse_int             nnz,
+                                               const double              *dia_val,
+                                               const aoclsparse_int      *dia_offset,
+                                               aoclsparse_int             dia_num_diag,
+                                               const aoclsparse_mat_descr descr,
+                                               const double              *x,
+                                               const double              *beta,
+                                               double                    *y)
 {
-    if(descr == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-
-    if((alpha == nullptr) || (beta == nullptr))
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-
-    // Check index base
-    if(descr->base != aoclsparse_index_base_zero && descr->base != aoclsparse_index_base_one)
-    {
-        return aoclsparse_status_invalid_value;
-    }
-    if(descr->type != aoclsparse_matrix_type_general)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-
-    if(trans != aoclsparse_operation_none)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-
-    // Check sizes
-    if(m < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    else if(n < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    else if(dia_num_diag < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-
-    // Quick return if possible
-    if(m == 0 || n == 0 || dia_num_diag == 0)
-    {
-        return aoclsparse_status_success;
-    }
-
-    // Check pointer arguments
-    if(dia_val == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(dia_offset == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(x == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(y == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-
-    return aoclsparse_diamv_template(*alpha, m, n, dia_val, dia_offset, dia_num_diag, x, *beta, y);
+    return aoclsparse_diamv_t<double>(
+        trans, alpha, m, n, nnz, dia_val, dia_offset, dia_num_diag, descr, x, beta, y);
 }
