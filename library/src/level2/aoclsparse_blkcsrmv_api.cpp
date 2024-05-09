@@ -22,6 +22,7 @@
  * ************************************************************************ */
 
 #include "aoclsparse.h"
+#include "aoclsparse_context.h"
 #include "aoclsparse_blkcsrmv.hpp"
 
 /*
@@ -47,29 +48,27 @@ extern "C" aoclsparse_status aoclsparse_dblkcsrmv(aoclsparse_operation       tra
                                                   double                    *y,
                                                   aoclsparse_int             nRowsblk)
 {
-    aoclsparse_status status = aoclsparse_status_success;
-    aoclsparse_init_once();
+    using namespace aoclsparse;
 
-    if(sparse_global_context.is_avx512)
+    if(context::get_context()->supports<context_isa_t::AVX512F, context_isa_t::AVX512VL>())
     {
-        status = aoclsparse_dblkcsrmv_avx512(trans,
-                                             alpha,
-                                             m,
-                                             n,
-                                             nnz,
-                                             masks,
-                                             blk_csr_val,
-                                             blk_col_ind,
-                                             blk_row_ptr,
-                                             descr,
-                                             x,
-                                             beta,
-                                             y,
-                                             nRowsblk);
+        return aoclsparse_dblkcsrmv_avx512(trans,
+                                           alpha,
+                                           m,
+                                           n,
+                                           nnz,
+                                           masks,
+                                           blk_csr_val,
+                                           blk_col_ind,
+                                           blk_row_ptr,
+                                           descr,
+                                           x,
+                                           beta,
+                                           y,
+                                           nRowsblk);
     }
     else
     {
-        status = aoclsparse_status_not_implemented;
+        return aoclsparse_status_not_implemented;
     }
-    return status;
 }

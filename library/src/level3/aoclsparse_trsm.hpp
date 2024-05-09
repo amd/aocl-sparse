@@ -50,11 +50,6 @@ aoclsparse_status
                     const aoclsparse_int kid /* Kernel ID request */)
 {
     aoclsparse_status status = aoclsparse_status_success;
-    // Read the environment variables to update global variable
-    // This function updates the num_threads only once.
-    aoclsparse_init_once();
-    aoclsparse_context context;
-    context.num_threads = sparse_global_context.num_threads;
 #ifdef _OPENMP
     aoclsparse_int chunk;
 #endif
@@ -143,9 +138,14 @@ aoclsparse_status
         return aoclsparse_status_invalid_value;
     }
 
+    using namespace aoclsparse;
+
 #ifdef _OPENMP
-    chunk = (n / context.num_threads) ? (n / context.num_threads) : 1;
-#pragma omp parallel for num_threads(context.num_threads) schedule(dynamic, chunk)
+    chunk = (n / context::get_context()->get_num_threads())
+                ? (n / context::get_context()->get_num_threads())
+                : 1;
+#pragma omp parallel for num_threads(context::get_context()->get_num_threads()) \
+    schedule(dynamic, chunk)
 #endif
     for(aoclsparse_int ld = 0; ld < n; ++ld)
     {

@@ -25,7 +25,6 @@
 #define AOCLSPARSE_ROTI_HPP
 
 #include "aoclsparse.h"
-#include "aoclsparse_context.h"
 #include "aoclsparse_kernel_templates.hpp"
 #include "aoclsparse_utils.hpp"
 

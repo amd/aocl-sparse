@@ -23,7 +23,6 @@
 #ifndef AOCLSPARSE_BLKCSRMV_HPP
 #define AOCLSPARSE_BLKCSRMV_HPP
 #include "aoclsparse.h"
-#include "aoclsparse_context.h"
 #include "aoclsparse_descr.h"
 
 #if defined(_WIN32) || defined(_WIN64)

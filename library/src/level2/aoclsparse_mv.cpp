@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022-2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,6 +22,7 @@
  * ************************************************************************ */
 
 #include "aoclsparse.h"
+#include "aoclsparse_context.h"
 #include "aoclsparse_mv.hpp"
 
 /* Template specializations */
@@ -34,12 +35,7 @@ aoclsparse_status aoclsparse_dcsr_mat_br4([[maybe_unused]] aoclsparse_operation 
                                           const double                                beta,
                                           double                                     *y)
 {
-    // Read the environment variables to update global variable
-    // This function updates the num_threads only once.
-    aoclsparse_init_once();
-
-    aoclsparse_context context;
-    context.num_threads = sparse_global_context.num_threads;
+    using namespace aoclsparse;
 
     __m256d               res, vvals, vx, vy, va, vb;
     aoclsparse_index_base base = A->base;
@@ -53,12 +49,13 @@ aoclsparse_status aoclsparse_dcsr_mat_br4([[maybe_unused]] aoclsparse_operation 
     aoclsparse_int                 *cptr;
     double                         *tvptr = (double *)A->csr_mat_br4.csr_val;
     const double                   *vptr;
-    aoclsparse_int                  blk        = 4;
-    [[maybe_unused]] aoclsparse_int chunk_size = (A->m) / (blk * context.num_threads);
+    aoclsparse_int                  blk = 4;
+    [[maybe_unused]] aoclsparse_int chunk_size
+        = (A->m) / (blk * context::get_context()->get_num_threads());
 
 #ifdef _OPENMP
     chunk_size = chunk_size ? chunk_size : 1;
-#pragma omp parallel for num_threads(context.num_threads) \
+#pragma omp parallel for num_threads(context::get_context()->get_num_threads()) \
     schedule(dynamic, chunk_size) private(res, vvals, vx, vy, vptr, cptr)
 #endif
     for(aoclsparse_int i = 0; i < (A->m) / blk; i++)
@@ -103,7 +100,7 @@ aoclsparse_status aoclsparse_dcsr_mat_br4([[maybe_unused]] aoclsparse_operation 
     }
 
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(context.num_threads)
+#pragma omp parallel for num_threads(aoclsparse::context::get_context()->get_num_threads())
 #endif
     for(aoclsparse_int k = ((A->m) / blk) * blk; k < A->m; ++k)
     {

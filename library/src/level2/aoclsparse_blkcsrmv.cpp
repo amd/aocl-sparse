@@ -22,6 +22,7 @@
  * ************************************************************************ */
 
 #include "aoclsparse.h"
+#include "aoclsparse_context.h"
 #include "aoclsparse_blkcsrmv.hpp"
 
 #include <immintrin.h>
@@ -372,6 +373,7 @@ aoclsparse_status
 
     return aoclsparse_status_success;
 }
+#endif
 
 //This routine performs sparse-matrix multiplication on matrices stored in blocked CSR format.
 //Supports blocking factors of size 1x8, 2x8 and 4x8. Blocking size is chosen depending on the matrix characteristics.
@@ -391,12 +393,6 @@ aoclsparse_status aoclsparse_dblkcsrmv_avx512(aoclsparse_operation       trans,
                                               double                    *y,
                                               aoclsparse_int             nRowsblk)
 {
-    // Read the environment variables to update global variable
-    // This function updates the num_threads only once.
-    aoclsparse_init_once();
-    aoclsparse_context context;
-    context.num_threads = sparse_global_context.num_threads;
-    context.is_avx512   = sparse_global_context.is_avx512;
     if(descr == nullptr)
     {
         return aoclsparse_status_invalid_pointer;
@@ -480,7 +476,17 @@ aoclsparse_status aoclsparse_dblkcsrmv_avx512(aoclsparse_operation       trans,
         return aoclsparse_status_invalid_size;
     }
 
-    if(context.is_avx512)
+    using namespace aoclsparse;
+
+    /*
+        Check if the requested operation can execute
+        This check needs to be done only once in a run
+    */
+    static bool can_exec
+        = context::get_context()->supports<context_isa_t::AVX512F, context_isa_t::AVX512VL>();
+
+#if defined __AVX512F__ && defined __AVX512VL__
+    if(can_exec)
     {
         if(nRowsblk == 1)
             return aoclsparse_blkcsrmv_1x8_vectorized_avx512(
@@ -495,6 +501,6 @@ aoclsparse_status aoclsparse_dblkcsrmv_avx512(aoclsparse_operation       trans,
             return aoclsparse_status_invalid_size;
     }
     else
+#endif
         return aoclsparse_status_not_implemented;
 }
-#endif // AVX512F & AVX512VL
