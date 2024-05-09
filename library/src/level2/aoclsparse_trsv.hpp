@@ -839,6 +839,14 @@ aoclsparse_status
     const bool            lower = descr->fill_mode == aoclsparse_fill_mode_lower;
     aoclsparse_index_base base  = A->internal_base_index;
 
+    using namespace aoclsparse;
+
+    /*
+        Check if the AVX512 kernels can execute
+        This check needs to be done only once in a run
+    */
+    static bool can_exec_avx512 = context::get_context()->supports<context_isa_t::AVX512F>();
+
     // CPU ID dispatcher sets recommended Kernel ID to use, this can be influenced by
     // the user-requested "kid" hint
     // TODO update when libcpuid is merged into aoclsparse
@@ -855,7 +863,7 @@ aoclsparse_status
             usekid = kid;
             break;
         case 3: // AVX-512F 512b
-            if(sparse_global_context.is_avx512)
+            if(can_exec_avx512)
                 usekid = kid;
             // Requested kid not available on host,
             // stay with kid suggested by CPU ID...

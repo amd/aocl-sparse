@@ -26,7 +26,6 @@
 #endif
 
 #include "aoclsparse.h"
-#include "aoclsparse_context.h"
 #include "aoclsparse_descr.h"
 #include "aoclsparse_mat_structures.h"
 #include "aoclsparse_auxiliary.hpp"

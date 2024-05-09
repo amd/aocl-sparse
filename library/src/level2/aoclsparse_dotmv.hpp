@@ -24,7 +24,6 @@
 #define AOCLSPARSE_DOTMV_HPP
 
 #include "aoclsparse.h"
-#include "aoclsparse_context.h"
 #include "aoclsparse_descr.h"
 #include "aoclsparse_mat_structures.h"
 #include "aoclsparse_kernel_templates.hpp"
@@ -57,7 +56,7 @@ inline aoclsparse_status aoclsparse_dot_kt(const aoclsparse_int size,
                                            SUF *__restrict__ d)
 {
     // Number of elements to fit in vector
-    const auto           tsz = tsz_v<SZ, SUF>;
+    const aoclsparse_int tsz = tsz_v<SZ, SUF>;
     avxvector_t<SZ, SUF> xv, yv, tmp;
 
     // Initialize the accumulation vector to zero
@@ -66,7 +65,7 @@ inline aoclsparse_status aoclsparse_dot_kt(const aoclsparse_int size,
     aoclsparse_int vc  = size / tsz;
     aoclsparse_int rem = size % tsz;
 
-    for(auto i = 0U; i < vc; ++i)
+    for(aoclsparse_int i = 0; i < vc; ++i)
     {
         // Load the 'x' vector
         xv = kt_loadu_p<SZ, SUF>(x + (i * tsz));
@@ -146,7 +145,7 @@ aoclsparse_status aoclsparse_dotmv_t(const aoclsparse_operation op,
      * op = transpose, size of y=n, x=m
      * hence, taking minimum of m and n
      */
-    return dot_kernel(std::min(A->m, A->n), x, y, d);
+    return dot_kernel((std::min)(A->m, A->n), x, y, d);
 }
 
 #endif // AOCLSPARSE_DOTMV_HPP

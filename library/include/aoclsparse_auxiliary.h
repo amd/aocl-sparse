@@ -43,6 +43,49 @@ DLL_PUBLIC
 const char *aoclsparse_get_version();
 
 /*! \ingroup aux_module
+ *  \brief Set ISA code-path preference
+ *  \details
+ *  This auxiliary function sets the ISA code-path preference to run
+ *  kernels that have more than a single path implementation.
+ *  ISA code-path preference set using this API will influence the kernel
+ *  selection logic.
+ *
+ *  @param[in] isa_preference pointer to a const char array specifying the ISA
+ *  preference, valid values are: "AVX2", "AVX512", "GENERIC", "ENV". The first
+ *  three values are also valid for the \p AOCL_ENABLE_INSTRUCTIONS environmental
+ *  variable. While "ENV" is a special value to request to read again the environmental
+ *  variable and set the ISA path preference accordingly.
+ *
+ *  \returns \ref aoclsparse_status.
+ *  \retval aoclsparse_status_success ISA preference set successfully.
+ *  \retval aoclsparse_status_invalid_input signals that either the \p isa_preference
+ *  contains an invalid string or that "ENV" was passed and the environmental
+ *  variable \p AOCL_ENABLE_INSTRUCTIONS contained an invalid string.
+ */
+DLL_PUBLIC
+aoclsparse_status aoclsparse_enable_instructions(const char isa_preference[]);
+
+/*! \ingroup aux_module
+ *  \brief Auxiliary debug utility
+ *  \details
+ *  This auxiliary function is intended for debug purposes, it reports the global and thread-level
+ *  ISA code-path preference and the number of threads to use.
+ *
+ *  @param[inout] isa_preference pointer to a char array specifying the global ISA
+ *  preference, valid values are: "AVX2", "AVX512", "GENERIC".
+ *  @param[inout] num_threads pointer to an integer specifying the number of threads.
+ *  @param[inout] tl_isa_preference pointer to a char array specifying the thread local
+ *  ISA preference, valid values are: "AVX2", "AVX512", "GENERIC".
+ *
+ *  \returns \ref aoclsparse_status.
+ *  \retval aoclsparse_status_success ISA preference retrieved successfully.
+ */
+DLL_PUBLIC
+aoclsparse_status aoclsparse_debug_get(char            isa_preference[],
+                                       aoclsparse_int *num_threads,
+                                       char            tl_isa_preference[]);
+
+/*! \ingroup aux_module
  *  \brief Create a matrix descriptor
  *  \details
  *  \P{aoclsparse_create_mat_descr} creates a matrix descriptor. It initializes

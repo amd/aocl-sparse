@@ -112,10 +112,15 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
         fill_ratio = ((double)(tnnz - ell_nnz) / tnnz) * 100;
     }
 
-    aoclsparse_init_once();
-    aoclsparse_context context;
-    context.is_avx512 = sparse_global_context.is_avx512;
-    if(context.is_avx512)
+    using namespace aoclsparse;
+
+    /*
+        Check if the requested operation can execute
+        This check needs to be done only once in a run
+    */
+    static bool can_exec = context::get_context()->supports<context_isa_t::AVX512F>();
+
+    if(can_exec)
     {
         if(nnza >= 10)
         {

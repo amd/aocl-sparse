@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,22 +30,23 @@
 #include <immintrin.h>
 #include <iostream>
 
-aoclsparse_status aoclsparse_ellmv_template(const float                          alpha,
-                                            aoclsparse_int                       m,
-                                            const float                         *ell_val,
-                                            const aoclsparse_int                *ell_col_ind,
-                                            aoclsparse_int                       ell_width,
-                                            const aoclsparse_mat_descr           descr,
-                                            const float                         *x,
-                                            const float                          beta,
-                                            float                               *y,
-                                            [[maybe_unused]] aoclsparse_context *context)
+aoclsparse_status aoclsparse_ellmv_template(const float                alpha,
+                                            aoclsparse_int             m,
+                                            const float               *ell_val,
+                                            const aoclsparse_int      *ell_col_ind,
+                                            aoclsparse_int             ell_width,
+                                            const aoclsparse_mat_descr descr,
+                                            const float               *x,
+                                            const float                beta,
+                                            float                     *y)
 
 {
+    using namespace aoclsparse;
+
     //TODO: Optimisation for float to be done
     aoclsparse_index_base base = descr->base;
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(context->num_threads)
+#pragma omp parallel for num_threads(context::get_context()->get_num_threads())
 #endif
     for(aoclsparse_int i = 0; i < m; ++i)
     {
@@ -94,10 +95,8 @@ aoclsparse_status aoclsparse_ellmv_template_avx512(const double                 
                                                    const aoclsparse_mat_descr      descr,
                                                    const double                   *x,
                                                    const double                    beta,
-                                                   double                         *y,
-                                                   aoclsparse_context             *context)
+                                                   double                         *y)
 {
-
     __m256d vec_y;
     __m512d vec_vals_512, vec_x_512, vec_y_512;
 
@@ -208,24 +207,24 @@ aoclsparse_status aoclsparse_ellmv_template_avx512(const double                 
 }
 #endif
 
-aoclsparse_status aoclsparse_ellmv_template_avx2(const double                         alpha,
-                                                 aoclsparse_int                       m,
-                                                 [[maybe_unused]] aoclsparse_int      n,
-                                                 [[maybe_unused]] aoclsparse_int      nnz,
-                                                 const double                        *ell_val,
-                                                 const aoclsparse_int                *ell_col_ind,
-                                                 aoclsparse_int                       ell_width,
-                                                 const aoclsparse_mat_descr           descr,
-                                                 const double                        *x,
-                                                 const double                         beta,
-                                                 double                              *y,
-                                                 [[maybe_unused]] aoclsparse_context *context)
+aoclsparse_status aoclsparse_ellmv_template_avx2(const double                    alpha,
+                                                 aoclsparse_int                  m,
+                                                 [[maybe_unused]] aoclsparse_int n,
+                                                 [[maybe_unused]] aoclsparse_int nnz,
+                                                 const double                   *ell_val,
+                                                 const aoclsparse_int           *ell_col_ind,
+                                                 aoclsparse_int                  ell_width,
+                                                 const aoclsparse_mat_descr      descr,
+                                                 const double                   *x,
+                                                 const double                    beta,
+                                                 double                         *y)
 {
-
+    using namespace aoclsparse;
     __m256d               vec_vals, vec_x, vec_y;
     aoclsparse_index_base base = descr->base;
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(context->num_threads) private(vec_vals, vec_x, vec_y)
+#pragma omp parallel for num_threads(context::get_context()->get_num_threads()) private( \
+        vec_vals, vec_x, vec_y)
 #endif
     for(aoclsparse_int i = 0; i < m; ++i)
     {
@@ -329,25 +328,28 @@ aoclsparse_status aoclsparse_ellmv_template_avx2(const double                   
 }
 
 // ToDo: just an outline for now
-aoclsparse_status aoclsparse_elltmv_template(const float                          alpha,
-                                             aoclsparse_int                       m,
-                                             [[maybe_unused]] aoclsparse_int      n,
-                                             [[maybe_unused]] aoclsparse_int      nnz,
-                                             const float                         *ell_val,
-                                             const aoclsparse_int                *ell_col_ind,
-                                             aoclsparse_int                       ell_width,
-                                             const aoclsparse_mat_descr           descr,
-                                             const float                         *x,
-                                             const float                          beta,
-                                             float                               *y,
-                                             [[maybe_unused]] aoclsparse_context *context)
+aoclsparse_status aoclsparse_elltmv_template(const float                     alpha,
+                                             aoclsparse_int                  m,
+                                             [[maybe_unused]] aoclsparse_int n,
+                                             [[maybe_unused]] aoclsparse_int nnz,
+                                             const float                    *ell_val,
+                                             const aoclsparse_int           *ell_col_ind,
+                                             aoclsparse_int                  ell_width,
+                                             const aoclsparse_mat_descr      descr,
+                                             const float                    *x,
+                                             const float                     beta,
+                                             float                          *y)
 {
+    using namespace aoclsparse;
     aoclsparse_int        k = ell_width;
     double                rd;
     aoclsparse_index_base base = descr->base;
 #ifdef _OPENMP
-    aoclsparse_int chunk = (m / context->num_threads) ? (m / context->num_threads) : 1;
-#pragma omp parallel for num_threads(context->num_threads) schedule(dynamic, chunk) private(rd)
+    aoclsparse_int chunk = (m / context::get_context()->get_num_threads())
+                               ? (m / context::get_context()->get_num_threads())
+                               : 1;
+#pragma omp parallel for num_threads(context::get_context()->get_num_threads()) \
+    schedule(dynamic, chunk) private(rd)
 #endif
     for(aoclsparse_int j = 0; j < m; j++)
     {
@@ -383,8 +385,7 @@ aoclsparse_status aoclsparse_elltmv_template_avx512(const double                
                                                     const aoclsparse_mat_descr      descr,
                                                     const double                   *x,
                                                     const double                    beta,
-                                                    double                         *y,
-                                                    [[maybe_unused]] aoclsparse_context *context)
+                                                    double                         *y)
 {
 
     __m512d res, vvals, vx, vy, va, vb, vvals1, vx1, vy1;
@@ -453,31 +454,33 @@ aoclsparse_status aoclsparse_elltmv_template_avx512(const double                
 }
 #endif
 
-aoclsparse_status aoclsparse_elltmv_template_avx2(const double                         alpha,
-                                                  aoclsparse_int                       m,
-                                                  [[maybe_unused]] aoclsparse_int      n,
-                                                  [[maybe_unused]] aoclsparse_int      nnz,
-                                                  const double                        *ell_val,
-                                                  const aoclsparse_int                *ell_col_ind,
-                                                  aoclsparse_int                       ell_width,
-                                                  const aoclsparse_mat_descr           descr,
-                                                  const double                        *x,
-                                                  const double                         beta,
-                                                  double                              *y,
-                                                  [[maybe_unused]] aoclsparse_context *context)
+aoclsparse_status aoclsparse_elltmv_template_avx2(const double                    alpha,
+                                                  aoclsparse_int                  m,
+                                                  [[maybe_unused]] aoclsparse_int n,
+                                                  [[maybe_unused]] aoclsparse_int nnz,
+                                                  const double                   *ell_val,
+                                                  const aoclsparse_int           *ell_col_ind,
+                                                  aoclsparse_int                  ell_width,
+                                                  const aoclsparse_mat_descr      descr,
+                                                  const double                   *x,
+                                                  const double                    beta,
+                                                  double                         *y)
 {
+    using namespace aoclsparse;
+
     __m256d res, vvals, vx, vy, va, vb;
 
-    va                                         = _mm256_set1_pd(alpha);
-    vb                                         = _mm256_set1_pd(beta);
-    res                                        = _mm256_setzero_pd();
-    aoclsparse_int                  k          = ell_width;
-    aoclsparse_int                  blk        = 4;
-    aoclsparse_index_base           base       = descr->base;
-    [[maybe_unused]] aoclsparse_int chunk_size = m / (blk * context->num_threads);
+    va                                   = _mm256_set1_pd(alpha);
+    vb                                   = _mm256_set1_pd(beta);
+    res                                  = _mm256_setzero_pd();
+    aoclsparse_int                  k    = ell_width;
+    aoclsparse_int                  blk  = 4;
+    aoclsparse_index_base           base = descr->base;
+    [[maybe_unused]] aoclsparse_int chunk_size
+        = m / (blk * context::get_context()->get_num_threads());
 #ifdef _OPENMP
     chunk_size = chunk_size ? chunk_size : 1;
-#pragma omp parallel for num_threads(context->num_threads) \
+#pragma omp parallel for num_threads(context::get_context()->get_num_threads()) \
     schedule(dynamic, chunk_size) private(res, vvals, vx, vy)
 #endif
     for(aoclsparse_int j = 0; j < m / blk; j++)
@@ -511,7 +514,7 @@ aoclsparse_status aoclsparse_elltmv_template_avx2(const double                  
     }
     double rd;
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(context->num_threads) private(rd)
+#pragma omp parallel for num_threads(context::get_context()->get_num_threads()) private(rd)
 #endif
     for(aoclsparse_int j = (m / blk) * blk; j < m; j++)
     {
@@ -555,8 +558,7 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx512(const double             
                                                        const aoclsparse_mat_descr descr,
                                                        const double              *x,
                                                        const double               beta,
-                                                       double                    *y,
-                                                       [[maybe_unused]] aoclsparse_context *context)
+                                                       double                    *y)
 {
 
     __m512d res, vvals, vx, vy, va, vb;
@@ -567,7 +569,7 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx512(const double             
     if(ell_m == m)
     {
         return aoclsparse_elltmv_template_avx512(
-            alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, beta, y, context);
+            alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, beta, y);
     }
 
     // Create a temporary copy of the "y" elements corresponding to csr_row_idx_map.
@@ -761,9 +763,10 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx2(const double               
                                                      const aoclsparse_mat_descr descr,
                                                      const double              *x,
                                                      const double               beta,
-                                                     double                    *y,
-                                                     [[maybe_unused]] aoclsparse_context *context)
+                                                     double                    *y)
 {
+    using namespace aoclsparse;
+
     __m256d res, vvals, vx, vy, va, vb;
     va  = _mm256_set1_pd(alpha);
     vb  = _mm256_set1_pd(beta);
@@ -772,7 +775,7 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx2(const double               
     if(ell_m == m)
     {
         return aoclsparse_elltmv_template_avx2(
-            alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, beta, y, context);
+            alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, beta, y);
     }
 
     // Create a temporary copy of the "y" elements corresponding to csr_row_idx_map.
@@ -794,13 +797,14 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx2(const double               
         }
     }
 
-    int                             blk        = 4;
-    [[maybe_unused]] aoclsparse_int chunk_size = m / (blk * context->num_threads);
-    aoclsparse_index_base           base       = descr->base;
+    int                             blk = 4;
+    [[maybe_unused]] aoclsparse_int chunk_size
+        = m / (blk * context::get_context()->get_num_threads());
+    aoclsparse_index_base base = descr->base;
 #ifdef _OPENMP
     chunk_size = chunk_size ? chunk_size : 1;
-#pragma omp parallel for num_threads(context->num_threads) schedule(dynamic, chunk_size) \
-    firstprivate(res, vvals, vx, vy)
+#pragma omp parallel for num_threads(context::get_context()->get_num_threads()) \
+    schedule(dynamic, chunk_size) firstprivate(res, vvals, vx, vy)
 #endif
     for(aoclsparse_int j = 0; j < m / blk; j++)
     {
@@ -830,9 +834,11 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx2(const double               
         _mm256_storeu_pd(&y[joff], res);
     }
 
+    using namespace aoclsparse;
+
     double rd;
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(context->num_threads) private(rd)
+#pragma omp parallel for num_threads(context::get_context()->get_num_threads()) private(rd)
 #endif
     for(aoclsparse_int j = (m / blk) * blk; j < m; j++)
     {
@@ -872,7 +878,7 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx2(const double               
 
     base = descr->base;
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(context->num_threads) \
+#pragma omp parallel for num_threads(context::get_context()->get_num_threads()) \
     schedule(dynamic, chunk_size) private(vec_vals, vec_x, vec_y, colIndPtr, matValPtr)
 #endif
     for(aoclsparse_int i = 0; i < m - ell_m; ++i)
@@ -968,13 +974,10 @@ aoclsparse_status aoclsparse_ellthybmv_template([[maybe_unused]] const float    
                                                 [[maybe_unused]] const aoclsparse_mat_descr descr,
                                                 [[maybe_unused]] const float               *x,
                                                 [[maybe_unused]] const float                beta,
-                                                [[maybe_unused]] float                     *y,
-                                                [[maybe_unused]] aoclsparse_context        *context)
+                                                [[maybe_unused]] float                     *y)
 
 {
-
     // ToDo: Need to implement this functionality
-    //
     return aoclsparse_status_not_implemented;
 }
 

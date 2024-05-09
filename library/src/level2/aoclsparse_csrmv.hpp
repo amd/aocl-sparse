@@ -44,8 +44,7 @@ aoclsparse_status aoclsparse_csrmv_vectorized(aoclsparse_index_base base,
                                               const aoclsparse_int *__restrict__ csr_row_ptr,
                                               const T *__restrict__ x,
                                               const T beta,
-                                              T *__restrict__ y,
-                                              aoclsparse_context *context);
+                                              T *__restrict__ y);
 
 template <typename T>
 aoclsparse_status aoclsparse_csrmv_vectorized_avx2(aoclsparse_index_base base,
@@ -56,8 +55,7 @@ aoclsparse_status aoclsparse_csrmv_vectorized_avx2(aoclsparse_index_base base,
                                                    const aoclsparse_int *__restrict__ csr_row_ptr,
                                                    const T *__restrict__ x,
                                                    const T beta,
-                                                   T *__restrict__ y,
-                                                   aoclsparse_context *context);
+                                                   T *__restrict__ y);
 
 template <typename T>
 aoclsparse_status aoclsparse_csrmv_vectorized_avx2ptr(const aoclsparse_mat_descr descr,
@@ -71,8 +69,7 @@ aoclsparse_status aoclsparse_csrmv_vectorized_avx2ptr(const aoclsparse_mat_descr
                                                       const aoclsparse_int *__restrict__ crend,
                                                       const T *__restrict__ x,
                                                       const T beta,
-                                                      T *__restrict__ y,
-                                                      aoclsparse_context *context);
+                                                      T *__restrict__ y);
 
 template <typename T>
 aoclsparse_status aoclsparse_csrmv_vectorized_avx512(aoclsparse_index_base base,
@@ -94,9 +91,10 @@ aoclsparse_status aoclsparse_csrmv_general(aoclsparse_index_base base,
                                            const aoclsparse_int *__restrict__ csr_row_ptr,
                                            const T *__restrict__ x,
                                            const T beta,
-                                           T *__restrict__ y,
-                                           [[maybe_unused]] aoclsparse_context *context)
+                                           T *__restrict__ y)
 {
+    using namespace aoclsparse;
+
     const aoclsparse_int *csr_col_ind_fix = csr_col_ind - base;
     const T              *csr_val_fix     = csr_val - base;
     const T              *x_fix           = x - base;
@@ -120,8 +118,11 @@ aoclsparse_status aoclsparse_csrmv_general(aoclsparse_index_base base,
         csr_col_ind_fix[j] (assuming, csr_col_ind_fix = csr_col_ind - base and j >=1 if base = 1)
     */
 #ifdef _OPENMP
-    aoclsparse_int chunk = (m / context->num_threads) ? (m / context->num_threads) : 1;
-#pragma omp parallel for num_threads(context->num_threads) schedule(dynamic, chunk)
+    aoclsparse_int chunk = (m / context::get_context()->get_num_threads())
+                               ? (m / context::get_context()->get_num_threads())
+                               : 1;
+#pragma omp parallel for num_threads(context::get_context()->get_num_threads()) \
+    schedule(dynamic, chunk)
 #endif
     // Iterate over each row of the input matrix and
     // Perform matrix-vector product for each non-zero of the ith row
@@ -834,8 +835,7 @@ aoclsparse_status aoclsparse_csrmv_ptr(aoclsparse_mat_descr            descr,
                                        const aoclsparse_int *__restrict__ crend,
                                        const T *__restrict__ x,
                                        const T beta,
-                                       T *__restrict__ y,
-                                       [[maybe_unused]] aoclsparse_context *context)
+                                       T *__restrict__ y)
 {
     aoclsparse_index_base base            = descr->base;
     const aoclsparse_int *csr_col_ind_fix = csr_col_ind - base;

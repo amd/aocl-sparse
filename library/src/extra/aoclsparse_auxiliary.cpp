@@ -51,6 +51,95 @@ extern "C" {
 #endif
 
 /********************************************************************************
+ * \brief Set into the thread local hint the ISA path preference from
+ * the environmental variable AOCL_ENABLE_INSTRUCTIONS
+ *******************************************************************************/
+aoclsparse_status aoclsparse_enable_instructions(const char isa_preference[])
+{
+    using namespace std::string_literals;
+    using namespace aoclsparse;
+
+    std::string isa{isa_preference};
+
+    if(isa != "")
+    {
+        transform(isa.begin(), isa.end(), isa.begin(), ::toupper);
+
+        if(isa == "ENV"s)
+        {
+            // Special case to re-read the enviromental variable and set
+            // the ISA path preference via AOCL_ENABLE_INSTRUCTIONS
+            isa = env_get_var("AOCL_ENABLE_INSTRUCTIONS", "");
+            if(isa != "")
+                transform(isa.begin(), isa.end(), isa.begin(), ::toupper);
+        }
+
+        if(isa == ""s)
+        {
+            // inform no ISA preference has been set
+            tl_isa_hint.set_isa_hint(context_isa_t::UNSET);
+            return aoclsparse_status_success;
+        }
+        else if(isa == "AVX2"s)
+        {
+            tl_isa_hint.set_isa_hint(context_isa_t::AVX2);
+            return aoclsparse_status_success;
+        }
+        else if(isa == "AVX512"s)
+        {
+            tl_isa_hint.set_isa_hint(context_isa_t::AVX512F);
+            return aoclsparse_status_success;
+        }
+        else if(isa == "GENERIC"s)
+        {
+            tl_isa_hint.set_isa_hint(context_isa_t::GENERIC);
+            return aoclsparse_status_success;
+        }
+        else
+        {
+            // ISA not not recognized
+            return aoclsparse_status_invalid_value;
+        }
+    }
+    tl_isa_hint.set_isa_hint(context_isa_t::UNSET);
+    return aoclsparse_status_success;
+}
+
+/********************************************************************************
+ * \brief Gets the ISA path preference from the global context and thread local
+ * ISA hint. Gets the number of threads from the global context.
+ *******************************************************************************/
+aoclsparse_status aoclsparse_debug_get(char            isa_preference[],
+                                       aoclsparse_int *num_threads,
+                                       char            tl_isa_preference[])
+{
+    using namespace aoclsparse;
+
+    std::map<context_isa_t, std::string> context_map;
+
+    context_map[context_isa_t::AVX2]    = "AVX2";
+    context_map[context_isa_t::AVX512F] = "AVX512";
+    context_map[context_isa_t::GENERIC] = "GENERIC";
+
+    context_isa_t global_isa, tl_isa;
+
+    global_isa = context::get_context()->get_isa_hint();
+    tl_isa     = tl_isa_hint.get_isa_hint();
+
+    std::string val = context_map[global_isa];
+
+    strcpy(isa_preference, val.c_str());
+
+    val = context_map[tl_isa];
+
+    strcpy(tl_isa_preference, val.c_str());
+
+    *num_threads = context::get_context()->get_num_threads();
+
+    return aoclsparse_status_success;
+}
+
+/********************************************************************************
  * \brief Get aoclsparse version
  *******************************************************************************/
 const char *aoclsparse_get_version()

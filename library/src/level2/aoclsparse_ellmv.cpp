@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020-2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,6 +22,7 @@
  * ************************************************************************ */
 
 #include "aoclsparse.h"
+#include "aoclsparse_context.h"
 #include "aoclsparse_ellmv.hpp"
 
 /*
@@ -42,13 +43,6 @@ extern "C" aoclsparse_status aoclsparse_sellmv(aoclsparse_operation            t
                                                const float                    *beta,
                                                float                          *y)
 {
-    // Read the environment variables to update global variable
-    // This function updates the num_threads only once.
-    aoclsparse_init_once();
-
-    aoclsparse_context context;
-    context.num_threads = sparse_global_context.num_threads;
-
     if(descr == nullptr)
     {
         return aoclsparse_status_invalid_pointer;
@@ -117,7 +111,7 @@ extern "C" aoclsparse_status aoclsparse_sellmv(aoclsparse_operation            t
     }
 
     return aoclsparse_ellmv_template(
-        *alpha, m, ell_val, ell_col_ind, ell_width, descr, x, *beta, y, &context);
+        *alpha, m, ell_val, ell_col_ind, ell_width, descr, x, *beta, y);
 }
 
 extern "C" aoclsparse_status aoclsparse_dellmv(aoclsparse_operation       trans,
@@ -133,14 +127,6 @@ extern "C" aoclsparse_status aoclsparse_dellmv(aoclsparse_operation       trans,
                                                const double              *beta,
                                                double                    *y)
 {
-    // Read the environment variables to update global variable
-    // This function updates the num_threads only once.
-    aoclsparse_init_once();
-
-    aoclsparse_context context;
-    context.num_threads = sparse_global_context.num_threads;
-    context.is_avx512   = sparse_global_context.is_avx512;
-
     if(descr == nullptr)
     {
         return aoclsparse_status_invalid_pointer;
@@ -208,16 +194,18 @@ extern "C" aoclsparse_status aoclsparse_dellmv(aoclsparse_operation       trans,
         return aoclsparse_status_invalid_pointer;
     }
 
+    using namespace aoclsparse;
+
 #if USE_AVX512
-    if(context.is_avx512)
+    if(context::get_context()->supports<context_isa_t::AVX512F>())
         return aoclsparse_ellmv_template_avx512(
-            *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, *beta, y, &context);
+            *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, *beta, y);
     else
         return aoclsparse_ellmv_template_avx2(
-            *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, *beta, y, &context);
+            *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, *beta, y);
 #else
     return aoclsparse_ellmv_template_avx2(
-        *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, *beta, y, &context);
+        *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, *beta, y);
 #endif
 }
 
@@ -234,13 +222,6 @@ extern "C" aoclsparse_status aoclsparse_selltmv(aoclsparse_operation       trans
                                                 const float               *beta,
                                                 float                     *y)
 {
-    // Read the environment variables to update global variable
-    // This function updates the num_threads only once.
-    aoclsparse_init_once();
-
-    aoclsparse_context context;
-    context.num_threads = sparse_global_context.num_threads;
-
     if(descr == nullptr)
     {
         return aoclsparse_status_invalid_pointer;
@@ -309,7 +290,7 @@ extern "C" aoclsparse_status aoclsparse_selltmv(aoclsparse_operation       trans
     }
 
     return aoclsparse_elltmv_template(
-        *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, *beta, y, &context);
+        *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, *beta, y);
 }
 
 extern "C" aoclsparse_status aoclsparse_delltmv(aoclsparse_operation       trans,
@@ -325,14 +306,6 @@ extern "C" aoclsparse_status aoclsparse_delltmv(aoclsparse_operation       trans
                                                 const double              *beta,
                                                 double                    *y)
 {
-    // Read the environment variables to update global variable
-    // This function updates the num_threads only once.
-    aoclsparse_init_once();
-
-    aoclsparse_context context;
-    context.num_threads = sparse_global_context.num_threads;
-    context.is_avx512   = sparse_global_context.is_avx512;
-
     if(descr == nullptr)
     {
         return aoclsparse_status_invalid_pointer;
@@ -400,16 +373,18 @@ extern "C" aoclsparse_status aoclsparse_delltmv(aoclsparse_operation       trans
         return aoclsparse_status_invalid_pointer;
     }
 
+    using namespace aoclsparse;
+
 #if USE_AVX512
-    if(context.is_avx512)
+    if(context::get_context()->supports<context_isa_t::AVX512F>())
         return aoclsparse_elltmv_template_avx512(
-            *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, *beta, y, &context);
+            *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, *beta, y);
     else
         return aoclsparse_elltmv_template_avx2(
-            *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, *beta, y, &context);
+            *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, *beta, y);
 #else
     return aoclsparse_elltmv_template_avx2(
-        *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, *beta, y, &context);
+        *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, *beta, y);
 #endif
 }
 
@@ -432,13 +407,6 @@ extern "C" aoclsparse_status aoclsparse_sellthybmv([[maybe_unused]] aoclsparse_o
                                                    const float               *beta,
                                                    float                     *y)
 {
-    // Read the environment variables to update global variable
-    // This function updates the num_threads only once.
-    aoclsparse_init_once();
-
-    aoclsparse_context context;
-    context.num_threads = sparse_global_context.num_threads;
-
     return aoclsparse_ellthybmv_template(*alpha,
                                          m,
                                          n,
@@ -455,8 +423,7 @@ extern "C" aoclsparse_status aoclsparse_sellthybmv([[maybe_unused]] aoclsparse_o
                                          descr,
                                          x,
                                          *beta,
-                                         y,
-                                         &context);
+                                         y);
 }
 
 extern "C" aoclsparse_status aoclsparse_dellthybmv([[maybe_unused]] aoclsparse_operation trans,
@@ -478,16 +445,9 @@ extern "C" aoclsparse_status aoclsparse_dellthybmv([[maybe_unused]] aoclsparse_o
                                                    const double              *beta,
                                                    double                    *y)
 {
-    // Read the environment variables to update global variable
-    // This function updates the num_threads only once.
-    aoclsparse_init_once();
-
-    aoclsparse_context context;
-    context.num_threads = sparse_global_context.num_threads;
-    context.is_avx512   = sparse_global_context.is_avx512;
-
+    using namespace aoclsparse;
 #if USE_AVX512
-    if(context.is_avx512)
+    if(context::get_context()->supports<context_isa_t::AVX512F>())
         return aoclsparse_ellthybmv_template_avx512(*alpha,
                                                     m,
                                                     n,
@@ -504,8 +464,7 @@ extern "C" aoclsparse_status aoclsparse_dellthybmv([[maybe_unused]] aoclsparse_o
                                                     descr,
                                                     x,
                                                     *beta,
-                                                    y,
-                                                    &context);
+                                                    y);
     else
         return aoclsparse_ellthybmv_template_avx2(*alpha,
                                                   m,
@@ -523,8 +482,7 @@ extern "C" aoclsparse_status aoclsparse_dellthybmv([[maybe_unused]] aoclsparse_o
                                                   descr,
                                                   x,
                                                   *beta,
-                                                  y,
-                                                  &context);
+                                                  y);
 #else
     return aoclsparse_ellthybmv_template_avx2(*alpha,
                                               m,
@@ -542,7 +500,6 @@ extern "C" aoclsparse_status aoclsparse_dellthybmv([[maybe_unused]] aoclsparse_o
                                               descr,
                                               x,
                                               *beta,
-                                              y,
-                                              &context);
+                                              y);
 #endif
 }

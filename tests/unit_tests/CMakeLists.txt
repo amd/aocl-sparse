@@ -103,6 +103,7 @@ set(GTEST_EXECUTABLES
     syprd_tests
     symgs_tests
     rng_tests
+    context_tests
 )
 
 #copy the raw data files (mtx inputs) to build directory

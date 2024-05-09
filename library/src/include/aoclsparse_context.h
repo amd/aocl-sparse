@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2021-2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2021-2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,91 +26,257 @@
 #define AOCLSPARSE_PTHREAD_H
 
 #include "aoclsparse.h"
-// -- Type and macro definitions -----------------------------------------------
 
-#if defined(AOCLSPARSE_DISABLE_SYSTEM)
+#include <algorithm>
+#include <memory>
+#include <mutex>
 
-// This branch defines a pthread-like API, aoclsparse_pthread_*(), and implements it
-// in terms of "dummy" code that doesn't depend on POSIX threads or any other
-// threading mechanism.
-// NOTE: THIS CODE DOES NOT IMPLEMENT THREADING AND IS NOT THREAD-SAFE!
-
-// -- pthread types --
-
-typedef aoclsparse_int aoclsparse_pthread_mutex_t;
-typedef aoclsparse_int aoclsparse_pthread_once_t;
-
-// -- pthreads macros --
-
-#define AOCLSPARSE_PTHREAD_MUTEX_INITIALIZER 0
-#define AOCLSPARSE_PTHREAD_ONCE_INIT 0
-
-#elif defined(_MSC_VER) // !defined(AOCLSPARSE_DISABLE_SYSTEM)
-//Below #define is requried to avoid conflict with min()/max() defined in windows.h
-//Defining NOMINMAX before <windows.h> will ensure min()/max() get resolved with std::min()/std::max()
-#define NOMINMAX
-#include <windows.h>
-// This branch defines a pthread-like API, aoclsparse_pthread_*(), and implements it
-// in terms of Windows API calls.
-
-// -- pthread types --
-typedef SRWLOCK   aoclsparse_pthread_mutex_t;
-typedef INIT_ONCE aoclsparse_pthread_once_t;
-
-// -- pthreads macros --
-
-#define AOCLSPARSE_PTHREAD_MUTEX_INITIALIZER SRWLOCK_INIT
-#define AOCLSPARSE_PTHREAD_ONCE_INIT INIT_ONCE_STATIC_INIT
-
-#else // !defined(AOCLSPARSE_DISABLE_SYSTEM) && !defined(_MSC_VER)
-
-#include <pthread.h>
-
-// This branch defines a pthreads-like API, aoclsparse_pthreads_*(), and implements it
-// in terms of the corresponding pthreads_*() types, macros, and function calls.
-
-// -- pthread types --
-
-typedef pthread_mutex_t aoclsparse_pthread_mutex_t;
-typedef pthread_once_t  aoclsparse_pthread_once_t;
-
-// -- pthreads macros --
-
-#define AOCLSPARSE_PTHREAD_MUTEX_INITIALIZER PTHREAD_MUTEX_INITIALIZER
-#define AOCLSPARSE_PTHREAD_ONCE_INIT PTHREAD_ONCE_INIT
-
+#ifdef _OPENMP
+#include <omp.h>
 #endif
 
-// -- Function definitions -----------------------------------------------------
+#include "alci/cxx/cpu.hh"
 
-// -- pthread_mutex_*() --
+namespace aoclsparse
+{
+    // ISA context preference
+    enum class context_isa_t
+    {
+        UNSET            = 0, // Not set (default)
+        GENERIC          = 1,
+        AVX2             = 2,
+        AVX512F          = 3,
+        AVX512DQ         = 4,
+        AVX512VL         = 5,
+        AVX512IFMA       = 6,
+        AVX512CD         = 7,
+        AVX512BW         = 8,
+        AVX512_BF16      = 9,
+        AVX512_VBMI      = 10,
+        AVX512_VNNI      = 11,
+        AVX512_VPOPCNTDQ = 12,
+        LENGTH           = 13
+    };
 
-aoclsparse_int aoclsparse_pthread_mutex_lock(aoclsparse_pthread_mutex_t *mutex);
+    /********************************************************************************
+ * \brief aoclsparse_env_get_var<T> is a function used to query the environment
+ * variable and return the same. In case of int, it converts the string into
+ * an integer and return the same. This function can only be used for int and string
+ * type inputs.
+ ********************************************************************************/
+    template <typename T>
+    T env_get_var(const char *env, const T fallback)
+    {
+        T     r_val;
+        char *str;
 
-aoclsparse_int aoclsparse_pthread_mutex_unlock(aoclsparse_pthread_mutex_t *mutex);
+        // Query the environment variable and store the result in str.
+        str = getenv(env);
+        // Set the return value based on the string obtained from getenv().
+        if(str != NULL)
+        {
+            if constexpr(std::is_same_v<T, aoclsparse_int>)
+            {
+                // If there was no error, convert the char[] to an integer and
+                // return that integer.
+                r_val = (aoclsparse_int)strtol(str, NULL, 10);
+                return r_val;
+            }
+            else if constexpr(std::is_same_v<T, std::string>)
+            {
+                // If there was no error, convert the char[] to an std::string
+                return std::string(str);
+            }
+        }
 
-// -- pthread_once() --
+        // If there was an error, use the "fallback" as the return value.
+        return fallback;
+    }
 
-void aoclsparse_pthread_once(aoclsparse_pthread_once_t *once, void (*init)(void));
-
-/******************************************************************************************
- * \brief aoclsparse_context is a structure holding the number of threads, ISA information
+    /******************************************************************************************
+ * \brief aoclsparse_context is a class holding the number of threads, ISA information
  * It gets initialised by aoclsparse_init_once().
  *****************************************************************************************/
-typedef struct _aoclsparse_context
-{
-    // num of threads
-    aoclsparse_int num_threads = 0;
-    bool           is_avx512   = false;
-} aoclsparse_context;
+    class context
+    {
+    private:
+        static context   *global_obj;
+        static std::mutex global_lock;
 
-extern aoclsparse_context sparse_global_context;
+        // num of threads
+        aoclsparse_int num_threads = 1;
+        // ALCI CPU object
+        std::unique_ptr<alci::Cpu> Cpu = nullptr;
+        // Architecture reported by ALCI
+        alci::Uarch Uarch;
 
-/*! \ingroup aux_module
- *  \brief Initialise number of threads from environment variables
- *
- *  \retval none.
- */
-void aoclsparse_init_once();
+        bool cpuflags[static_cast<int>(context_isa_t::LENGTH)];
+
+        // ISA path preference, set by AOCL_ENABLE_INSTRUCTIONS
+        context_isa_t global_isa_hint = context_isa_t::UNSET;
+
+        // Ensure direct calls to constructor is not possible
+        context()
+        {
+            /*
+            * Read from OpenMP params and sparse ENVs for threading, only if OMP is enabled.
+            * Since the library relies on OpenMP for multithreading OpenMP variables get the
+            * maximum priority.
+            */
+#ifdef _OPENMP
+            /*
+            * Read the sparse specific thread-count environment
+            * variable to initialize the global object.
+            */
+            aoclsparse_int env_num_threads = this->get_thread_from_env();
+
+            // Set the num threads value set in aoclsparse_num_threads
+            this->num_threads = env_num_threads;
+
+            // TODO - add code sections to handle nested parallelism scenarios and OMP ICVs
+#endif
+
+            // Check for the enviromental variable "AOCL_ENABLE_INSTRUCTIONS"
+            // global_context.isa is already initialized to UNSET (default)
+            context_isa_t global_isa_hint = context_isa_t::UNSET;
+            std::string   isa_env         = env_get_var("AOCL_ENABLE_INSTRUCTIONS", "");
+            if(isa_env != "")
+            {
+                transform(isa_env.begin(), isa_env.end(), isa_env.begin(), ::toupper);
+                if(isa_env == "AVX2")
+                {
+                    global_isa_hint = context_isa_t::AVX2;
+                }
+                else if(isa_env == "AVX512")
+                {
+                    global_isa_hint = context_isa_t::AVX512F;
+                }
+                else if(isa_env == "GENERIC")
+                {
+                    global_isa_hint = context_isa_t::GENERIC;
+                }
+            }
+            this->Cpu   = std::make_unique<alci::Cpu>();
+            this->Uarch = this->Cpu->getUarch();
+
+            // Check for the list of flags supported
+            // Note: Utils does not support BF16 flag lookup
+            this->cpuflags[static_cast<int>(context_isa_t::AVX512F)]
+                = this->Cpu->isAvailable(alci::ALC_E_FLAG_AVX512F);
+
+            this->cpuflags[static_cast<int>(context_isa_t::AVX512DQ)]
+                = this->Cpu->isAvailable(alci::ALC_E_FLAG_AVX512DQ);
+
+            this->cpuflags[static_cast<int>(context_isa_t::AVX512VL)]
+                = this->Cpu->isAvailable(alci::ALC_E_FLAG_AVX512VL);
+
+            this->cpuflags[static_cast<int>(context_isa_t::AVX512IFMA)]
+                = this->Cpu->isAvailable(alci::ALC_E_FLAG_AVX512_IFMA);
+
+            this->cpuflags[static_cast<int>(context_isa_t::AVX512CD)]
+                = this->Cpu->isAvailable(alci::ALC_E_FLAG_AVX512CD);
+
+            this->cpuflags[static_cast<int>(context_isa_t::AVX512BW)]
+                = this->Cpu->isAvailable(alci::ALC_E_FLAG_AVX512BW);
+
+            this->cpuflags[static_cast<int>(context_isa_t::AVX512_VBMI)]
+                = this->Cpu->isAvailable(alci::ALC_E_FLAG_AVX512_VBMI);
+
+            this->cpuflags[static_cast<int>(context_isa_t::AVX512_VNNI)]
+                = this->Cpu->isAvailable(alci::ALC_E_FLAG_AVX512_VNNI);
+
+            this->cpuflags[static_cast<int>(context_isa_t::AVX512_VPOPCNTDQ)]
+                = this->Cpu->isAvailable(alci::ALC_E_FLAG_AVX512_VPOPCNTDQ);
+
+            this->global_isa_hint = global_isa_hint;
+        }
+
+        aoclsparse_int get_thread_from_env()
+        {
+            aoclsparse_int nt = 1;
+#ifdef _OPENMP
+            // Try to read AOCLSPARSE_NUM_THREADS with fallback value as number of processors.
+            nt = env_get_var("AOCLSPARSE_NUM_THREADS", (aoclsparse_int)1);
+#endif
+            // If AOCLSPARSE_NUM_THREADS was not set, return number of processors.
+            return nt;
+        }
+
+    protected:
+        // Ensure direct calls to destructor is avoided with delete
+        ~context() {}
+
+    public:
+        // Delete the copy constructor of the context class
+        context(context &t) = delete;
+
+        // Delete the assignment operator of the context class
+        void operator=(const context &) = delete;
+
+        // Function to check if an ISA is supported
+        // ----------------------------------------
+        //
+        // Usage   - Pass the isa as part of the template parameter
+        // Example - bool check = supports<context_isa_t::AVX512F>();
+        template <context_isa_t... isa>
+        bool supports()
+        {
+            return (... && this->cpuflags[static_cast<int>(isa)]);
+        }
+
+        // Returns the number of threads set
+        aoclsparse_int get_num_threads(void)
+        {
+            return this->num_threads;
+        }
+
+        // Returns the ISA hint set
+        context_isa_t get_isa_hint()
+        {
+            return this->global_isa_hint;
+        }
+
+        // Returns a reference to the global context
+        static context *get_context();
+    };
+
+    /******************************************************************************************
+    * \brief aoclsparse_isa_hint keep record of the ISA path preference set be the user
+    * either by using the environmental variable AOCL_ENABLE_INSTRUCTIONS or by using the
+    * API aoclsparse_enable_instructions()
+    *****************************************************************************************/
+    class isa_hint
+    {
+        aoclsparse::context_isa_t hint;
+
+    public:
+        // Constructor for the class
+        isa_hint()
+        {
+            // Initialize isa hint with the global isa hint from the context
+            hint = context::get_context()->get_isa_hint();
+        };
+
+        // Get the hint
+        context_isa_t get_isa_hint()
+        {
+            return this->hint;
+        };
+
+        // Set the hint
+        void set_isa_hint(context_isa_t isa)
+        {
+            this->hint = isa;
+        };
+
+        // Delete the copy constructor of the context class
+        isa_hint(isa_hint &t) = delete;
+
+        // Delete the assignment operator of the context class
+        void operator=(const isa_hint &) = delete;
+    };
+}
+
+extern thread_local aoclsparse::isa_hint tl_isa_hint;
 
 #endif // AOCLSPARSE_THREAD_H

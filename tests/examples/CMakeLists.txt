@@ -133,13 +133,23 @@ foreach( sample_example_source ${SPARSE_SAMPLES})
 endforeach( sample_example_source ${SPARSE_SAMPLES} )
 
 # C compatibility test - compile with C compiler and link with C++ compiler
-set_source_files_properties(sample_spmv_c.c PROPERTIES LANGUAGE C)
+set_source_files_properties(sample_spmv_c.c sample_spmv_multi_instance.c PROPERTIES LANGUAGE C)
+
 add_executable(sample_spmv_c sample_spmv_c.c)
-set_target_properties(sample_spmv_c PROPERTIES LINKER_LANGUAGE CXX)
+add_executable(sample_spmv_multi_instance sample_spmv_multi_instance.c)
+
+set_target_properties(sample_spmv_multi_instance sample_spmv_c PROPERTIES LINKER_LANGUAGE CXX)
+
+target_include_directories(sample_spmv_multi_instance PUBLIC ${SPARSE_INCLUDE_DIR} ${LAPACK_INCLUDE_DIRS} ${BLIS_INCLUDE_DIRS} ${UTILS_INCLUDE_DIRS})
+target_link_libraries(sample_spmv_multi_instance ${SPARSE_LIBRARY} ${LAPACK_LIBRARIES} ${OpenMP_Library})
+
 target_include_directories(sample_spmv_c PUBLIC ${SPARSE_INCLUDE_DIR} ${LAPACK_INCLUDE_DIRS} ${BLIS_INCLUDE_DIRS} ${UTILS_INCLUDE_DIRS})
 target_link_libraries(sample_spmv_c ${SPARSE_LIBRARY} ${LAPACK_LIBRARIES} ${OpenMP_Library})
+
 #define compile time options explicitly to handle out-of-source tree scenario where options would not be defined by a top-level CMakeLists file
 target_compile_options(sample_spmv_c PUBLIC "${COMPILER_FLAGS_COMMON}")
+target_compile_options(sample_spmv_multi_instance PUBLIC "${COMPILER_FLAGS_COMMON}")
+
 #target_compile_options(sample_spmv_c PUBLIC "$<$<CONFIG:Release>:${COMPILER_FLAGS_COMMON};${COMPILER_FLAGS_RELEASE}>")
 #target_compile_options(sample_spmv_c PUBLIC "$<$<CONFIG:Debug>:${COMPILER_FLAGS_COMMON};${COMPILER_FLAGS_DEBUG}>")
 if(NOT BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
@@ -153,6 +163,7 @@ if(NOT BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
     install(FILES ${CMAKE_SOURCE_DIR}/cmake/Dependencies.cmake DESTINATION ${EXAMPLES_INSTALL_DIR})
 endif()
 set(EXAMPLE_EXECUTABLES
+    sample_spmv_multi_instance
     sample_zgthr
     sample_spmv
     sample_zsp2m

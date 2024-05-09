@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,6 @@
 #define AOCLSPARSE_OPTMV_HPP
 
 #include "aoclsparse.h"
-#include "aoclsparse_context.h"
 #include "aoclsparse_descr.h"
 #include "aoclsparse_mat_structures.h"
 #include "aoclsparse_csr_util.hpp"
@@ -147,14 +146,8 @@ aoclsparse_status aoclsparse_mv_t(aoclsparse_operation op,
         descr_cpy.base = A->internal_base_index;
     }
 
-    // Read the environment variables to update global variable
-    // This function updates the num_threads only once.
-    aoclsparse_init_once();
-
-    aoclsparse_int    *crstart = nullptr;
-    aoclsparse_int    *crend   = nullptr;
-    aoclsparse_context context;
-    context.num_threads = sparse_global_context.num_threads;
+    aoclsparse_int *crstart = nullptr;
+    aoclsparse_int *crend   = nullptr;
 
     aoclsparse_int m = A->m, n = A->n;
 
@@ -188,8 +181,7 @@ aoclsparse_status aoclsparse_mv_t(aoclsparse_operation op,
                                             A->csr_mat.csr_row_ptr,
                                             x,
                                             beta,
-                                            y,
-                                            &context);
+                                            y);
         }
         else if(descr->type == aoclsparse_matrix_type_triangular)
         {
@@ -215,8 +207,7 @@ aoclsparse_status aoclsparse_mv_t(aoclsparse_operation op,
                                         crend,
                                         x,
                                         beta,
-                                        y,
-                                        &context);
+                                        y);
         }
         else if(descr->type == aoclsparse_matrix_type_hermitian)
         {
@@ -502,14 +493,8 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
         descr_cpy.base = A->internal_base_index;
     }
 
-    // Read the environment variables to update global variable
-    // This function updates the num_threads only once.
-    aoclsparse_init_once();
-
-    aoclsparse_int    *crstart = nullptr;
-    aoclsparse_int    *crend   = nullptr;
-    aoclsparse_context context;
-    context.num_threads = sparse_global_context.num_threads;
+    aoclsparse_int *crstart = nullptr;
+    aoclsparse_int *crend   = nullptr;
 
     // Dispatcher
     if(descr->type == aoclsparse_matrix_type_general)
@@ -529,8 +514,7 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
                                                    &A->opt_csr_mat.csr_row_ptr[1],
                                                    x,
                                                    beta,
-                                                   y,
-                                                   &context);*/
+                                                   y);*/
     }
     else if(descr->type == aoclsparse_matrix_type_symmetric)
     {
@@ -583,8 +567,7 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
                                                        crend,
                                                        x,
                                                        beta,
-                                                       y,
-                                                       &context);
+                                                       y);
         }
         else if(op == aoclsparse_operation_transpose)
         {
