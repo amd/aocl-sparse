@@ -30,7 +30,9 @@
 #include <iostream>
 
 #include "alci/cxx/alci.hh"
+#if 0
 #include "alci/cxx/cache.hh"
+#endif
 #include "alci/cxx/cpu.hh"
 
 // Taken from AOCL-Utils ISA example
@@ -41,6 +43,12 @@ namespace
     using namespace std;
     using namespace alci;
 
+/*
+    Support for new APIs of Cache in aocl-utils is still in development.
+    Also enable the below unit tests based on their respective usage in sparse
+    library, once aocl-utils supports them.
+*/
+#if 0
     TEST(Utils, IsaCache)
     {
         alci::CacheInfo cachedata{};
@@ -68,7 +76,7 @@ namespace
             cout << "  Line size (Bytes)  : " << cachedata.getLane(q.level, q.type) << "\n";
         }
     }
-
+#endif
     TEST(Utils, IsaCPU)
     {
         alci::Cpu core{0};
