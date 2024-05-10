@@ -30,6 +30,8 @@
 #include <thread>
 #include <type_traits>
 
+#include "alci/cxx/cpu.hh"
+
 namespace contextTest
 {
     class debug_info
@@ -93,9 +95,11 @@ namespace contextTest
             = aoclsparse_debug_get(info.global_isa, info.sparse_nt, info.tl_isa);
 
         // Test if the expected value is set
+        // ToDo: This test can fail if the target hardware doesn't support "tl_isa_hint" - need to revisit
         EXPECT_TRUE(!strcmp(tl_isa_hint, info.tl_isa));
 
         // Check if the global isa hint is different from that of the child thread
+        // ToDo: This test can still fail if the target hardware doesn't support AVX2 and AVX512 - need to revisit
         EXPECT_FALSE(!strcmp(info.global_isa, info.tl_isa));
     }
 
@@ -113,7 +117,8 @@ namespace contextTest
     // Test if the isa hint change is thread local
     TEST(context, tl_isa_change)
     {
-        char isa[5] = "AVX2";
+        char      isa[8] = "GENERIC";
+        alci::Cpu core;
 
         // Enable a different instruction for the calling thread
         [[maybe_unused]] auto s = aoclsparse_enable_instructions("AVX512");
@@ -125,7 +130,13 @@ namespace contextTest
 
         aoclsparse_debug_get(info.global_isa, info.sparse_nt, info.tl_isa);
 
-        EXPECT_TRUE(!strcmp("AVX512", info.tl_isa));
+        // If AVX512 is supported by the core, then the tl isa will be AVX512
+        if(core.isAvailable(alci::ALC_E_FLAG_AVX512F))
+            EXPECT_TRUE(!strcmp("AVX512", info.tl_isa));
+        else if(core.isAvailable(alci::ALC_E_FLAG_AVX2))
+            EXPECT_TRUE(!strcmp("AVX2", info.tl_isa));
+        else
+            EXPECT_TRUE(!strcmp("GENERIC", info.tl_isa));
     }
 
     /*
@@ -148,6 +159,7 @@ namespace contextTest
     void cpp_thread_instance()
     {
         constexpr size_t thread_count = 3;
+        alci::Cpu        core;
 
         char init_v_1[10] = "AVX2";
         char init_v_2[10] = "AVX512";
@@ -165,8 +177,18 @@ namespace contextTest
         for(size_t i = 0; i < 2; ++i)
             t[i].join();
 
-        EXPECT_TRUE(!strcmp(init_v_1, ledger_1));
-        EXPECT_TRUE(!strcmp(init_v_2, ledger_2));
+        if(core.isAvailable(alci::ALC_E_FLAG_AVX2))
+            EXPECT_TRUE(!strcmp(init_v_1, ledger_1));
+        else
+            EXPECT_TRUE(!strcmp("GENERIC", ledger_1));
+
+        // If AVX512 is supported by the core, then the tl isa will be AVX512
+        if(core.isAvailable(alci::ALC_E_FLAG_AVX512F))
+            EXPECT_TRUE(!strcmp(init_v_2, ledger_2));
+        else if(core.isAvailable(alci::ALC_E_FLAG_AVX2))
+            EXPECT_TRUE(!strcmp("AVX2", ledger_2));
+        else
+            EXPECT_TRUE(!strcmp("GENERIC", ledger_2));
 
         t[2].join();
 
@@ -182,6 +204,7 @@ namespace contextTest
     void omp_thread_instance_test()
     {
 #ifdef _OPENMP
+        alci::Cpu core;
 
         char init_ledger[3][10] = {"AVX2", "AVX512", "GENERIC"};
         char res_ledger[3][10];
@@ -192,8 +215,19 @@ namespace contextTest
             modify_isa(init_ledger[i], res_ledger[i]);
         }
 
-        EXPECT_TRUE(!strcmp(init_ledger[0], res_ledger[0]));
-        EXPECT_TRUE(!strcmp(init_ledger[1], res_ledger[1]));
+        if(core.isAvailable(alci::ALC_E_FLAG_AVX2))
+            EXPECT_TRUE(!strcmp(init_ledger[0], res_ledger[0]));
+        else
+            EXPECT_TRUE(!strcmp("GENERIC", res_ledger[0]));
+
+        // If AVX512 is supported by the core, then the tl isa will be AVX512
+        if(core.isAvailable(alci::ALC_E_FLAG_AVX512F))
+            EXPECT_TRUE(!strcmp(init_ledger[1], res_ledger[1]));
+        else if(core.isAvailable(alci::ALC_E_FLAG_AVX2))
+            EXPECT_TRUE(!strcmp("AVX2", res_ledger[1]));
+        else
+            EXPECT_TRUE(!strcmp("GENERIC", res_ledger[1]));
+
         EXPECT_TRUE(!strcmp(init_ledger[2], res_ledger[2]));
 #endif
     }
@@ -232,6 +266,7 @@ namespace contextTest
     void cpp_thread_invalid()
     {
         constexpr size_t thread_count = 3;
+        alci::Cpu        core;
 
         char init_v_1[10] = "AVX2";
         char init_v_2[10] = "AVX512";
@@ -259,8 +294,18 @@ namespace contextTest
         for(size_t i = 0; i < 2; ++i)
             t[i].join();
 
-        EXPECT_TRUE(!strcmp(init_v_1, ledger_1));
-        EXPECT_TRUE(!strcmp(init_v_2, ledger_2));
+        if(core.isAvailable(alci::ALC_E_FLAG_AVX2))
+            EXPECT_TRUE(!strcmp(init_v_1, ledger_1));
+        else
+            EXPECT_TRUE(!strcmp("GENERIC", ledger_1));
+
+        // If AVX512 is supported by the core, then the tl isa will be AVX512
+        if(core.isAvailable(alci::ALC_E_FLAG_AVX512F))
+            EXPECT_TRUE(!strcmp(init_v_2, ledger_2));
+        else if(core.isAvailable(alci::ALC_E_FLAG_AVX2))
+            EXPECT_TRUE(!strcmp("AVX2", ledger_2));
+        else
+            EXPECT_TRUE(!strcmp("GENERIC", ledger_2));
 
         t[2].join();
 
