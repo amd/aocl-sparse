@@ -154,6 +154,7 @@ target_compile_options(sample_spmv_multi_instance PUBLIC "${COMPILER_FLAGS_COMMO
 #target_compile_options(sample_spmv_c PUBLIC "$<$<CONFIG:Debug>:${COMPILER_FLAGS_COMMON};${COMPILER_FLAGS_DEBUG}>")
 if(NOT BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
     install(FILES sample_spmv_c.c DESTINATION ${CMAKE_INSTALL_PREFIX}/examples)
+    install(FILES sample_spmv_multi_instance.c DESTINATION ${CMAKE_INSTALL_PREFIX}/examples)
 endif()
 
 if(NOT BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
