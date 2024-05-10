@@ -1,6 +1,11 @@
 # AOCL-Sparse Samples
 This directory contains sample source files showing usage of AOCL-Sparse library functions. Use the provided cmake script file "CMakeLists.txt" to compile and run the programs. Same cmake script may be used for both Linux and Windows platforms.
 
+## Requirements
+* Git
+* CMake versions 3.21 through 3.29
+* Boost library versions 1.80 through 1.85
+
 ## Build steps on Linux
 
 1. Move to installed examples directory

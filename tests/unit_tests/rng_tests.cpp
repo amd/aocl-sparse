@@ -118,13 +118,14 @@ namespace
         return psort;
     }
 
-    // check if the given csr structure is with full diagonal
+    // check if the given csr structure is with full non-zero diagonals
     template <typename T>
-    bool check_csr_for_fulldiag(aoclsparse_int       *csr_row_ptr,
-                                aoclsparse_int       *csr_col_ind,
-                                T                    *csr_val,
-                                aoclsparse_int       &m,
-                                aoclsparse_index_base base)
+    bool check_csr_for_fulldiag(aoclsparse_int        *csr_row_ptr,
+                                aoclsparse_int        *csr_col_ind,
+                                T                     *csr_val,
+                                aoclsparse_int        &m,
+                                aoclsparse_index_base  base,
+                                aoclsparse_matrix_init matrix)
     {
         bool fulldiag = true; //assume full diagonal
 
@@ -139,11 +140,41 @@ namespace
             {
                 aoclsparse_int col_idx = csr_col_ind[j] - base;
                 //check if there exists a non-zero diagonal element
-                if((i == col_idx) && (csr_val[j] != aoclsparse_numeric::zero<T>()))
+                if(i == col_idx)
                 {
-                    //detected diagonal in row #i
-                    diagonal = true;
-                    break;
+                    if(matrix != aoclsparse_matrix_herm_random_diag_dom)
+                    {
+                        if(csr_val[j] != aoclsparse_numeric::zero<T>())
+                        {
+                            //detected diagonal in row #i
+                            diagonal = true;
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        if constexpr(std::is_same_v<T, aoclsparse_float_complex>
+                                     || std::is_same_v<T, aoclsparse_double_complex>)
+                        {
+                            //Full diagonal with non-zero imaginary value
+                            //doesn't satisfy hermitian requirement
+                            if((csr_val[j].real != 0.0) && (csr_val[j].imag == 0.0))
+                            {
+                                //detected non-zero real and zero imaginary diag in row #i
+                                diagonal = true;
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            if(csr_val[j] != aoclsparse_numeric::zero<T>())
+                            {
+                                //detected diagonal in row #i
+                                diagonal = true;
+                                break;
+                            }
+                        }
+                    }
                 }
             }
             //quick exit since a matrix is considered not of full-rank if
@@ -157,7 +188,6 @@ namespace
         }
         return fulldiag;
     }
-
     /* RNG matrix test driver
 
     * Checks randomly generated matrix (in CSR, COO)
@@ -240,7 +270,7 @@ namespace
             {
                 //csr arrays validation
                 fulldiag = check_csr_for_fulldiag(
-                    &csr_row_ptr[0], &csr_col_ind[0], &csr_val[0], m, base);
+                    &csr_row_ptr[0], &csr_col_ind[0], &csr_val[0], m, base, matrix);
                 EXPECT_EQ(fulldiag, fulldiag_exp_status)
                     << "Test failed to validate full diagonal functionality in initialization "
                        "of csr matrix";
@@ -294,7 +324,7 @@ namespace
                 EXPECT_EQ(coo2csr_base, base);
                 EXPECT_EQ(coo2csr_nnz, nnz);
                 fulldiag = check_csr_for_fulldiag(
-                    coo2csr_row_ptr, coo2csr_col_ind, coo2csr_val, coo2csr_m, coo2csr_base);
+                    coo2csr_row_ptr, coo2csr_col_ind, coo2csr_val, coo2csr_m, coo2csr_base, matrix);
                 EXPECT_EQ(fulldiag, fulldiag_exp_status)
                     << "Test failed to validate full diagonal functionality in initialization "
                        "of coo matrix";
@@ -318,6 +348,7 @@ namespace
 #define RANDOM 0
 #define MTX 1
 #define DIAG_DOM 3
+#define HERM_DIAG_DOM 4
 
     typedef struct
     {
@@ -329,7 +360,7 @@ namespace
         aoclsparse_int n;
         aoclsparse_int nnz;
         aoclsparse_int
-            matrix; //0 - random-default, 1-mtx file as input, 3-random-diagonally dominant
+            matrix; //0 - random-default, 1-mtx file as input, 3-random-diagonally dominant, 4 - random hermitian diagonally dominant
         aoclsparse_int sort; //0 - unsorted, 1 - partially sorted, 2 - full sorted
         bool           fulldiag_exp_status;
         bool           sort_exp_status;
@@ -350,6 +381,10 @@ namespace
         ADD_TEST(BS1, TRUE, COO, 27, 27, 279, DIAG_DOM, FULL_SORT, TRUE, TRUE),
         ADD_TEST(BS1, TRUE, COO, 27, 27, 279, DIAG_DOM, UNSORTED, TRUE, FALSE),
         ADD_TEST(BS0, TRUE, COO, 10, 10, 35, RANDOM, UNSORTED, FALSE, FALSE),
+        //RANDOM HERMITIAN MATRIX GENERATION WITH ONLY REAL DIAGONALS
+        ADD_TEST(BS0, TRUE, CSR, 17, 17, 100, HERM_DIAG_DOM, UNSORTED, TRUE, FALSE),
+        ADD_TEST(BS0, TRUE, CSR, 17, 17, 100, HERM_DIAG_DOM, PARTIAL_SORT, TRUE, FALSE),
+        ADD_TEST(BS1, TRUE, COO, 17, 17, 100, HERM_DIAG_DOM, FULL_SORT, TRUE, TRUE),
         //MTX INPUTS: matrix is of full diagonal(LFAT5.mtx)
         ADD_TEST(BS0, FALSE, CSR, 14, 14, 30, MTX, UNSORTED, TRUE, FALSE),
         ADD_TEST(BS0, FALSE, COO, 14, 14, 30, MTX, UNSORTED, TRUE, FALSE),
@@ -470,7 +505,7 @@ namespace
                                             n,
                                             nnz,
                                             base,
-                                            (aoclsparse_matrix_init)4,
+                                            (aoclsparse_matrix_init)5,
                                             nullptr,
                                             is_symm,
                                             true,
@@ -484,7 +519,7 @@ namespace
                                             n,
                                             nnz,
                                             base,
-                                            (aoclsparse_matrix_init)4,
+                                            (aoclsparse_matrix_init)5,
                                             nullptr,
                                             is_symm,
                                             true,

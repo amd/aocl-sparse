@@ -135,6 +135,8 @@ int testing_trsv(const Arguments &arg)
 
     // space for the API time measurements
     std::vector<double> timings(arg.iters);
+    // and their statistics
+    std::vector<data_stats> tstats(testqueue.size());
 
     // At present alpha have the same real / imaginary parts.
     // TODO: support distinct real and imaginary parts
@@ -169,10 +171,9 @@ int testing_trsv(const Arguments &arg)
                                sort);
 
     // Allocate memory for vectors
-    aoclsparse_int m, n, nnz;
-    m   = td.m;
-    n   = td.n;
-    nnz = td.nnzA;
+    aoclsparse_int m, n;
+    m = td.m;
+    n = td.n;
 
     //exit since TRSV expects a square matrix
     if(td.m != td.n)
@@ -225,9 +226,7 @@ int testing_trsv(const Arguments &arg)
         }
     }
 
-    int    number_hot_calls = arg.iters;
-    double gflop            = csrsv_gflop_count<T>(m, nnz, diag);
-    double gbyte            = csrsv_gbyte_count<T>(m, nnz);
+    std::string prob_name = gen_problem_name(arg, td);
 
     std::cout.precision(2);
     std::cout.setf(std::ios::fixed);
@@ -241,35 +240,27 @@ int testing_trsv(const Arguments &arg)
         status += testqueue[itest].tf(arg, td, timings.data());
 
         // Check the results against the reference result
+        int verify = 0; // assume not tested
         if(arg.unit_check)
         {
+            verify = 1; // assume pass
             if(near_check_general<T>(1, n, 1, y_gold.data(), td.y.data()))
             {
                 std::cerr << "Near check failed" << std::endl;
                 status += 1;
+                verify = 2;
             }
         }
-
-        // analyze the results - at the moment just take the minimum
-        double cpu_time_used = DBL_MAX;
-        for(int iter = 0; iter < number_hot_calls; ++iter)
-            cpu_time_used = (std::min)(cpu_time_used, timings[iter]);
-
-        // count flops
-        double cpu_gflops = gflop / cpu_time_used;
-        double cpu_gbyte  = gbyte / cpu_time_used;
-
-        // store/print results
-        std::cout << std::setw(12) << "M" << std::setw(12) << "N" << std::setw(12) << "nnz"
-                  << std::setw(12) << "alpha" << std::setw(12) << std::setw(12) << "GFlop/s"
-                  << std::setw(12) << "GB/s" << std::setw(12) << "msec" << std::setw(12) << "iter"
-                  << std::setw(12) << "verified" << std::endl;
-
-        std::cout << std::setw(12) << td.m << std::setw(12) << td.n << std::setw(12) << td.nnzA
-                  << std::setw(12) << arg.alpha << std::setw(12) << std::setw(12) << cpu_gflops
-                  << std::setw(12) << cpu_gbyte << std::setw(12) << std::scientific
-                  << cpu_time_used * 1e3 << std::setw(12) << number_hot_calls << std::setw(12)
-                  << (arg.unit_check ? "yes" : "no") << std::endl;
+        compute_stats(timings.data(), timings.size(), tstats[itest]);
+        twosample_test_result cmp, *pcmp = NULL;
+        // compare the run against the first run (AOCL)
+        if(itest > 0)
+        {
+            cmp  = twosample_test(tstats[itest], tstats[0]);
+            pcmp = &cmp;
+        }
+        print_results(
+            testqueue[itest].name, prob_name.c_str(), verify, tstats[itest], pcmp, itest == 0);
     }
     return status;
 }

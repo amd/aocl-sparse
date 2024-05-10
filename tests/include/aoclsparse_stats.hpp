@@ -86,6 +86,16 @@ std::string gen_problem_name(const Arguments &arg, const testdata<T> &td)
         size_t len   = stop == std::string::npos ? std::string::npos : stop - start;
         ret          = ret + arg.filename.substr(start, len);
     }
+    else if(arg.matrix == aoclsparse_matrix_random_diag_dom)
+    {
+        ret += "rnd_diag_dom" + std::to_string(td.m) + "x" + std::to_string(td.n) + "x"
+               + std::to_string(td.nnzA);
+    }
+    else if(arg.matrix == aoclsparse_matrix_herm_random_diag_dom)
+    {
+        ret += "rnd_herm_diag_dom" + std::to_string(td.m) + "x" + std::to_string(td.n) + "x"
+               + std::to_string(td.nnzA);
+    }
     else
         ret += "ERR-unknown_source";
 

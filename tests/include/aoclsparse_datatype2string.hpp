@@ -44,7 +44,9 @@ typedef enum aoclsparse_matrix_init_
     /**< Read from .csr (csr binary) file */
     aoclsparse_matrix_file_bin = 2,
     /**< random matrix with full-diagonal which is diagonally dominant */
-    aoclsparse_matrix_random_diag_dom = 3
+    aoclsparse_matrix_random_diag_dom = 3,
+    /**< random hermitian matrix with full-diagonal which is diagonally dominant */
+    aoclsparse_matrix_herm_random_diag_dom = 4
 } aoclsparse_matrix_init;
 
 constexpr auto aoclsparse_matrix2string(aoclsparse_matrix_init matrix)
