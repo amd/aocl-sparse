@@ -3,8 +3,8 @@ AOCL-Sparse exposes a common interface that provides Basic Linear Algebra Subrou
 
 ## Requirements
 * Git
-* CMake versions 3.11 through 3.25
-* Boost library versions 1.65 through 1.77
+* CMake versions 3.21 through 3.29
+* Boost library versions 1.80 through 1.85
 
 ## Build and Installation
 

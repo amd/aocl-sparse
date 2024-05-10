@@ -387,7 +387,21 @@ namespace
         std::vector<T>              val_a;
         std::vector<aoclsparse_int> col_ind_a;
         std::vector<aoclsparse_int> row_ptr_a;
-        aoclsparse_init_csr_random(row_ptr_a, col_ind_a, val_a, m_a, n_a, nnz_a, b_a);
+        bool                        issymm = true;
+        ASSERT_EQ(aoclsparse_init_csr_matrix(
+                      row_ptr_a,
+                      col_ind_a,
+                      val_a,
+                      m_a,
+                      n_a,
+                      nnz_a,
+                      b_a,
+                      aoclsparse_matrix_random, /*random matrix, diagonal dominance not guaranteed*/
+                      nullptr, /*no file to be read*/
+                      issymm, /*unused for random matrix generation*/
+                      true, /*unused for random matrix generation*/
+                      aoclsparse_fully_sorted), /*fully sorted value and col index buffers*/
+                  aoclsparse_status_success);
         aoclsparse_matrix A;
         ASSERT_EQ(aoclsparse_create_csr(
                       &A, b_a, m_a, n_a, nnz_a, row_ptr_a.data(), col_ind_a.data(), val_a.data()),
@@ -397,7 +411,20 @@ namespace
         std::vector<T>              val_b;
         std::vector<aoclsparse_int> col_ind_b;
         std::vector<aoclsparse_int> row_ptr_b;
-        aoclsparse_init_csr_random(row_ptr_b, col_ind_b, val_b, m_b, n_b, nnz_b, b_b);
+        ASSERT_EQ(aoclsparse_init_csr_matrix(
+                      row_ptr_b,
+                      col_ind_b,
+                      val_b,
+                      m_b,
+                      n_b,
+                      nnz_b,
+                      b_b,
+                      aoclsparse_matrix_random, /*random matrix, diagonal dominance not guaranteed*/
+                      nullptr, /*no file to be read*/
+                      issymm, /*unused for random matrix generation*/
+                      true, /*unused for random matrix generation*/
+                      aoclsparse_fully_sorted), /*fully sorted value and col index buffers*/
+                  aoclsparse_status_success);
         aoclsparse_matrix B;
         ASSERT_EQ(aoclsparse_create_csc(
                       &B, b_b, m_b, n_b, nnz_b, row_ptr_b.data(), col_ind_b.data(), val_b.data()),
