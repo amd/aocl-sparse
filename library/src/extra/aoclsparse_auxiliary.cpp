@@ -30,6 +30,7 @@
 #include "aoclsparse_optimize_data.hpp"
 
 #include <cstring>
+#include <map>
 #include <string>
 #define STRINGIFY(x) _STRINGIFY(x)
 #define _STRINGIFY(x) #x
@@ -59,7 +60,7 @@ aoclsparse_status aoclsparse_enable_instructions(const char isa_preference[])
     using namespace std::string_literals;
     using namespace aoclsparse;
 
-    std::string isa{isa_preference};
+    std::string isa{isa_preference}, next_isa;
 
     if(isa != "")
     {
@@ -80,27 +81,35 @@ aoclsparse_status aoclsparse_enable_instructions(const char isa_preference[])
             tl_isa_hint.set_isa_hint(context_isa_t::UNSET);
             return aoclsparse_status_success;
         }
-        else if(isa == "AVX2"s)
+        if(isa == "AVX512"s)
         {
-            tl_isa_hint.set_isa_hint(context_isa_t::AVX2);
-            return aoclsparse_status_success;
+            if(context::get_context()->supports<context_isa_t::AVX512F>())
+            {
+                tl_isa_hint.set_isa_hint(context_isa_t::AVX512F);
+                return aoclsparse_status_success;
+            }
+            next_isa = "AVX2";
         }
-        else if(isa == "AVX512"s)
+        if(isa == "AVX2"s || next_isa == "AVX2"s)
         {
-            tl_isa_hint.set_isa_hint(context_isa_t::AVX512F);
-            return aoclsparse_status_success;
+            if(context::get_context()->supports<context_isa_t::AVX2>())
+            {
+                tl_isa_hint.set_isa_hint(context_isa_t::AVX2);
+                return aoclsparse_status_success;
+            }
+            next_isa = "GENERIC";
         }
-        else if(isa == "GENERIC"s)
+        if(isa == "GENERIC"s || next_isa == "GENERIC")
         {
             tl_isa_hint.set_isa_hint(context_isa_t::GENERIC);
             return aoclsparse_status_success;
         }
         else
         {
-            // ISA not not recognized
             return aoclsparse_status_invalid_value;
         }
     }
+
     tl_isa_hint.set_isa_hint(context_isa_t::UNSET);
     return aoclsparse_status_success;
 }

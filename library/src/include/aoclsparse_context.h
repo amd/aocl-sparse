@@ -59,11 +59,11 @@ namespace aoclsparse
     };
 
     /********************************************************************************
- * \brief aoclsparse_env_get_var<T> is a function used to query the environment
- * variable and return the same. In case of int, it converts the string into
- * an integer and return the same. This function can only be used for int and string
- * type inputs.
- ********************************************************************************/
+    * \brief aoclsparse_env_get_var<T> is a function used to query the environment
+    * variable and return the same. In case of int, it converts the string into
+    * an integer and return the same. This function can only be used for int and string
+    * type inputs.
+    ********************************************************************************/
     template <typename T>
     T env_get_var(const char *env, const T fallback)
     {
@@ -94,9 +94,9 @@ namespace aoclsparse
     }
 
     /******************************************************************************************
- * \brief aoclsparse_context is a class holding the number of threads, ISA information
- * It gets initialised by aoclsparse_init_once().
- *****************************************************************************************/
+    * \brief aoclsparse_context is a class holding the number of threads, ISA information
+    * It gets initialised by aoclsparse_init_once().
+    *****************************************************************************************/
     class context
     {
     private:
@@ -135,32 +135,14 @@ namespace aoclsparse
 
             // TODO - add code sections to handle nested parallelism scenarios and OMP ICVs
 #endif
-
-            // Check for the enviromental variable "AOCL_ENABLE_INSTRUCTIONS"
-            // global_context.isa is already initialized to UNSET (default)
-            context_isa_t global_isa_hint = context_isa_t::UNSET;
-            std::string   isa_env         = env_get_var("AOCL_ENABLE_INSTRUCTIONS", "");
-            if(isa_env != "")
-            {
-                transform(isa_env.begin(), isa_env.end(), isa_env.begin(), ::toupper);
-                if(isa_env == "AVX2")
-                {
-                    global_isa_hint = context_isa_t::AVX2;
-                }
-                else if(isa_env == "AVX512")
-                {
-                    global_isa_hint = context_isa_t::AVX512F;
-                }
-                else if(isa_env == "GENERIC")
-                {
-                    global_isa_hint = context_isa_t::GENERIC;
-                }
-            }
             this->Cpu   = std::make_unique<alci::Cpu>();
             this->Uarch = this->Cpu->getUarch();
 
             // Check for the list of flags supported
             // Note: Utils does not support BF16 flag lookup
+            this->cpuflags[static_cast<int>(context_isa_t::AVX2)]
+                = this->Cpu->isAvailable(alci::ALC_E_FLAG_AVX2);
+
             this->cpuflags[static_cast<int>(context_isa_t::AVX512F)]
                 = this->Cpu->isAvailable(alci::ALC_E_FLAG_AVX512F);
 
@@ -188,7 +170,38 @@ namespace aoclsparse
             this->cpuflags[static_cast<int>(context_isa_t::AVX512_VPOPCNTDQ)]
                 = this->Cpu->isAvailable(alci::ALC_E_FLAG_AVX512_VPOPCNTDQ);
 
-            this->global_isa_hint = global_isa_hint;
+            // Check for the enviromental variable "AOCL_ENABLE_INSTRUCTIONS"
+            // global_context.isa is already initialized to UNSET (default)
+            this->global_isa_hint = context_isa_t::UNSET;
+
+            std::string str;
+            std::string isa_env = env_get_var("AOCL_ENABLE_INSTRUCTIONS", str);
+
+            if(isa_env != "")
+            {
+                using namespace std::string_literals;
+                std::string next_isa;
+                transform(isa_env.begin(), isa_env.end(), isa_env.begin(), ::toupper);
+
+                if(isa_env == "AVX512"s)
+                {
+                    if(this->cpuflags[static_cast<int>(context_isa_t::AVX512F)])
+                        this->global_isa_hint = context_isa_t::AVX512F;
+                    else
+                        next_isa = "AVX2";
+                }
+                if(isa_env == "AVX2"s || next_isa == "AVX2"s)
+                {
+                    if(this->cpuflags[static_cast<int>(context_isa_t::AVX2)])
+                        this->global_isa_hint = context_isa_t::AVX2;
+                    else
+                        next_isa = "GENERIC";
+                }
+                if(isa_env == "GENERIC"s || next_isa == "GENERIC"s)
+                {
+                    this->global_isa_hint = context_isa_t::GENERIC;
+                }
+            }
         }
 
         aoclsparse_int get_thread_from_env()
