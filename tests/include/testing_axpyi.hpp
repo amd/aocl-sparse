@@ -34,6 +34,7 @@
 #include "aoclsparse_init.hpp"
 #include "aoclsparse_random.hpp"
 #include "aoclsparse_reference.hpp"
+#include "aoclsparse_stats.hpp"
 #include "aoclsparse_test.hpp"
 #include "aoclsparse_utility.hpp"
 
@@ -103,9 +104,9 @@ int testing_axpyi(const Arguments &arg)
 
     // When kernel ID is -1 invoke the public interface. Else invoke the dispatcher.
     if(arg.kid == -1)
-        testqueue.push_back({"aocl_axpyi", &testing_axpyi_aocl<T, false>});
+        testqueue.push_back({"aocl", &testing_axpyi_aocl<T, false>});
     else
-        testqueue.push_back({"aocl_axpyi", &testing_axpyi_aocl<T, true>});
+        testqueue.push_back({"aocl", &testing_axpyi_aocl<T, true>});
 
     register_tests_axpyi(testqueue);
 
@@ -131,6 +132,8 @@ int testing_axpyi(const Arguments &arg)
 
     // space for the API time measurements
     std::vector<double> timings(arg.iters);
+    // and their statistics
+    std::vector<data_stats> tstats(testqueue.size());
 
     aoclsparse_seedrand();
 
@@ -166,39 +169,40 @@ int testing_axpyi(const Arguments &arg)
         }
     }
 
-    int number_hot_calls = arg.iters;
+    int         number_hot_calls = arg.iters;
+    std::string prob_name        = gen_problem_name(arg, td);
 
     std::cout.precision(2);
     std::cout.setf(std::ios::fixed);
     std::cout.setf(std::ios::left);
     for(unsigned itest = 0; itest < testqueue.size(); ++itest)
     {
-        std::cout << "-----" << testqueue[itest].name << "-----" << std::endl;
-
         // Run the test loop
         status += testqueue[itest].tf(arg, td, timings.data());
 
+        int verify = 0; // assume not tested
         // Check the results against the reference result
         if(arg.unit_check)
         {
+            verify = 1;
             if(near_check_general<T>(1, ydim, 1, y_gold.data(), td.y.data()))
             {
-                return 2;
+                status++;
+                verify = 2;
             }
         }
 
-        // analyze the results - at the moment just take the minimum
-        double cpu_time_used = DBL_MAX;
-        for(int iter = 0; iter < number_hot_calls; ++iter)
-            cpu_time_used = (std::min)(cpu_time_used, timings[iter]);
+        compute_stats(timings.data(), timings.size(), tstats[itest]);
+        twosample_test_result cmp, *pcmp = NULL;
 
-        // store/print results
-        std::cout << std::setw(12) << "N" << std::setw(12) << "nnz" << std::setw(12) << "msec"
-                  << std::setw(12) << "iter" << std::setw(12) << "verified" << std::endl;
-
-        std::cout << std::setw(12) << td.n << std::setw(12) << td.nnzA << std::setw(12)
-                  << std::scientific << cpu_time_used * 1e3 << std::setw(12) << number_hot_calls
-                  << std::setw(12) << (arg.unit_check ? "yes" : "no") << std::endl;
+        // compare the run against the first run (AOCL)
+        if(itest > 0)
+        {
+            cmp  = twosample_test(tstats[itest], tstats[0]);
+            pcmp = &cmp;
+        }
+        print_results(
+            testqueue[itest].name, prob_name.c_str(), verify, tstats[itest], pcmp, itest == 0);
     }
     return status;
 }
