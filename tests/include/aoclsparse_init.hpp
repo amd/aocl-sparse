@@ -284,7 +284,7 @@ inline void aoclsparse_generate_coo_matrix(std::vector<aoclsparse_int> &row_ind,
         //reset check[] array that indicates all the column index entries for a row
         std::fill(check.begin(), check.end(), false);
         // Partially sort column indices
-        std::sort(&col_ind[ri_row_start_idx], &col_ind[ri_row_end_idx]);
+        std::sort((&col_ind[0] + ri_row_start_idx), (&col_ind[0] + ri_row_end_idx));
     }
     // Correct index base accordingly
     if(base == aoclsparse_index_base_one)
@@ -690,8 +690,14 @@ inline void aoclsparse_init_csr_random(std::vector<aoclsparse_int> &row_ptr,
     // Compute non-zero entries of the matrix
     if(!nnz)
     {
-        double sparsity = (M > 1000 || N > 1000) ? 2.0 / (std::max)(M, N) : 0.02;
-        nnz             = sparsity * M * N;
+        double sparsity = (M > 1000 && N > 1000) ? 2.0 / (std::max)(M, N) : 0.02;
+        //for a full-diagonal case in square matrix, assign 30% sparsity
+        //since nnz entries should atleast be 'M' to account for all diagonals
+        if((M == N) && full_diag)
+        {
+            sparsity = 0.3;
+        }
+        nnz = sparsity * M * N;
     }
 
     // Sample random matrix
@@ -722,7 +728,13 @@ inline void aoclsparse_init_coo_random(std::vector<aoclsparse_int> &row_ind,
     if(!nnz)
     {
         double sparsity = (N > 1000 && M > 1000) ? 2.0 / std::max(N, M) : 0.02;
-        nnz             = sparsity * M * N;
+        //for a full-diagonal case in square matrix, assign 30% sparsity
+        //since nnz entries should atleast be 'M' to account for all diagonals
+        if((M == N) && full_diag)
+        {
+            sparsity = 0.3;
+        }
+        nnz = sparsity * M * N;
     }
 
     //turn off full-diagonal and fall back to default random generation, if either
@@ -793,7 +805,10 @@ inline void aoclsparse_full_shuffle(aoclsparse_matrix_format_type mtype,
             rowstart   = row_ptr[i] - base;
             rowend     = row_ptr[i + 1] - base;
             nnz_in_row = rowend - rowstart;
-            aoclsparse_shuffle_core(0, nnz_in_row, &col_ind[rowstart], &val[rowstart]);
+            if(nnz_in_row)
+            {
+                aoclsparse_shuffle_core(0, nnz_in_row, &col_ind[rowstart], &val[rowstart]);
+            }
         }
     }
     else if(mtype == aoclsparse_coo_mat)
