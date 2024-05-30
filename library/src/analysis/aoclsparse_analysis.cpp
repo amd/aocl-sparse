@@ -96,9 +96,9 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
         aoclsparse_int m1, m2;
         if((m - i) < 4)
             break;
-        m1      = std::max((row_ptr[i + 1] - row_ptr[i]), (row_ptr[i + 2] - row_ptr[i + 1]));
-        m2      = std::max((row_ptr[i + 3] - row_ptr[i + 2]), (row_ptr[i + 4] - row_ptr[i + 3]));
-        row_nnz = std::max(m1, m2);
+        m1      = (std::max)((row_ptr[i + 1] - row_ptr[i]), (row_ptr[i + 2] - row_ptr[i + 1]));
+        m2      = (std::max)((row_ptr[i + 3] - row_ptr[i + 2]), (row_ptr[i + 4] - row_ptr[i + 3]));
+        row_nnz = (std::max)(m1, m2);
         tnnz += 4 * row_nnz;
     }
     for(j = i; j < m; ++j)
@@ -275,11 +275,11 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
                 aoclsparse_int m1, m2;
                 if((A->m - i) < 4)
                     break;
-                m1      = std::max((A->csr_mat.csr_row_ptr[i + 1] - A->csr_mat.csr_row_ptr[i]),
-                              (A->csr_mat.csr_row_ptr[i + 2] - A->csr_mat.csr_row_ptr[i + 1]));
-                m2      = std::max((A->csr_mat.csr_row_ptr[i + 3] - A->csr_mat.csr_row_ptr[i + 2]),
-                              (A->csr_mat.csr_row_ptr[i + 4] - A->csr_mat.csr_row_ptr[i + 3]));
-                row_nnz = std::max(m1, m2);
+                m1 = (std::max)((A->csr_mat.csr_row_ptr[i + 1] - A->csr_mat.csr_row_ptr[i]),
+                                (A->csr_mat.csr_row_ptr[i + 2] - A->csr_mat.csr_row_ptr[i + 1]));
+                m2 = (std::max)((A->csr_mat.csr_row_ptr[i + 3] - A->csr_mat.csr_row_ptr[i + 2]),
+                                (A->csr_mat.csr_row_ptr[i + 4] - A->csr_mat.csr_row_ptr[i + 3]));
+                row_nnz    = (std::max)(m1, m2);
                 row_ptr[i] = row_ptr[i + 1] = row_ptr[i + 2] = row_ptr[i + 3] = row_nnz;
                 csr_mat_br4->csr_row_ptr[i + 1] = csr_mat_br4->csr_row_ptr[i] + row_nnz;
                 csr_mat_br4->csr_row_ptr[i + 2] = csr_mat_br4->csr_row_ptr[i + 1] + row_nnz;

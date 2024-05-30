@@ -211,7 +211,7 @@ int testing_dotmv(const Arguments &arg)
                                                  td.beta,
                                                  y_gold.data()));
             NEW_CHECK_AOCLSPARSE_ERROR(
-                ref_dense_dot(std::min(td.m, td.n), td.x.data(), y_gold.data(), &dotp_gold));
+                ref_dense_dot((std::min)(td.m, td.n), td.x.data(), y_gold.data(), &dotp_gold));
         }
         catch(BenchmarkException &e)
         {
