@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,8 +29,8 @@
 #include <cstdlib>
 #include <iostream>
 
-#include "alci/cxx/alci.hh"
 #if 0
+#include "alci/cxx/alci.hh"
 #include "alci/cxx/cache.hh"
 #endif
 #include "alci/cxx/cpu.hh"
@@ -84,9 +84,16 @@ namespace
         cout << "----- Platform details -----\n";
         cout << "Core info:\n----------\n";
 
-        cout << "Is AMD           : " << (core.isAmd() ? "YES" : "NO") << "\n";
-        cout << "Vendor           : " << core.getVendor() << "\n";
+/*
+    Function signature has changed for 3 APIs which are used to get CPU information.
+    Also enable the below unit tests once the new Utils binaries are distributed as release
+    packages.
+*/
+#if 0
+        cout << "Is AMD           : " << (core.isAMD() ? "YES" : "NO") << "\n";
+        cout << "Vendor           : " << core.getVendorInfo() << "\n";
         cout << "Architecture     : " << core.getUarch() << "\n";
+#endif
 
         cout << "isUarchZen       : " << (core.isUarch(Uarch::eZen) ? "YES" : "NO") << "\n";
         cout << "isUarchZen2      : " << (core.isUarch(Uarch::eZen2) ? "YES" : "NO") << "\n";
