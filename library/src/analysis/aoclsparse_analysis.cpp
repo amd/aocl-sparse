@@ -307,6 +307,8 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
                 return aoclsparse_status_memory_error;
             }
             aoclsparse_int tc = 0; // count of nonzeros
+            // keeps track of the last column index accessed during the conversion
+            aoclsparse_int last_col_idx = 0;
             for(i = 0; i < A->m; ++i)
             {
                 aoclsparse_int nz   = A->csr_mat.csr_row_ptr[i + 1] - A->csr_mat.csr_row_ptr[i];
@@ -316,14 +318,14 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
                     ((double *)csr_mat_br4->csr_val)[tc]
                         = ((double *)A->csr_mat.csr_val)[ridx - A->base + j];
                     csr_mat_br4->csr_col_ptr[tc] = A->csr_mat.csr_col_ptr[ridx - A->base + j];
+                    last_col_idx                 = csr_mat_br4->csr_col_ptr[tc];
                     tc++;
                 }
                 if(nz < row_ptr[i])
                 { // ToDo -- can remove the if condition
                     for(j = nz; j < row_ptr[i]; ++j)
                     {
-                        csr_mat_br4->csr_col_ptr[tc]
-                            = A->csr_mat.csr_col_ptr[ridx - A->base + nz - 1];
+                        csr_mat_br4->csr_col_ptr[tc]         = last_col_idx;
                         ((double *)csr_mat_br4->csr_val)[tc] = static_cast<double>(0);
                         tc++;
                     }
