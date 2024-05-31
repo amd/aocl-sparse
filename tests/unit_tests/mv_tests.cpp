@@ -1067,6 +1067,45 @@ namespace
         aoclsparse_destroy(&A);
     }
 
+    template <typename T>
+    void test_optmv_empty_rows()
+    {
+        aoclsparse_operation trans = aoclsparse_operation_transpose;
+        aoclsparse_int       M = 5, N = 5, NNZ = 1;
+        T                    alpha = 1.0;
+        T                    beta  = 0.0;
+        // Initialise vectors
+        T                     x[5] = {1.0, 2.0, 3.0, 4.0, 5.0};
+        T                     y[5] = {0.0};
+        aoclsparse_mat_descr  descr;
+        aoclsparse_index_base base = aoclsparse_index_base_zero;
+        aoclsparse_matrix     A;
+
+        /*      Matrix A
+            0	0	0	0	0
+            0	0	0	0	0
+            0	0	1	0	0
+            0	0	0	0	0
+            0	0	0	0	0
+        */
+        aoclsparse_int csr_row_ptr[] = {0, 0, 0, 1, 1, 1};
+        aoclsparse_int csr_col_ind[] = {2};
+        T              csr_val[]     = {1};
+        T              y_exp[]       = {0, 0, 3, 0, 0};
+
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_create_csr<T>(&A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mv_hint(A, aoclsparse_operation_none, descr, 1),
+                  aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_optimize(A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A, descr, x, &beta, y),
+                  aoclsparse_status_success);
+        EXPECT_ARR_NEAR(M, y, y_exp, expected_precision<T>());
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+    }
+
     TEST(mv, NullArgDouble)
     {
         test_mv_nullptr<double>();
@@ -1419,5 +1458,12 @@ namespace
         test_mvtrg_success<double>(11, 8, 35, op, mat_type, fill, diag, b_a);
     }
     */
+
+    // testing optimize functionality (in the context of SpMV) when
+    // some of the matrix rows are empty
+    TEST(mv, OptEmptyRows)
+    {
+        test_optmv_empty_rows<double>();
+    }
 
 } // namespace
