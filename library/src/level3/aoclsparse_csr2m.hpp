@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2021-2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2021-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,6 +25,7 @@
 #define AOCLSPARSE_CSR2M_HPP
 
 #include "aoclsparse.h"
+#include "aoclsparse_context.h"
 #include "aoclsparse_descr.h"
 #include "aoclsparse_mat_structures.h"
 #include "aoclsparse_auxiliary.hpp"
@@ -54,6 +55,8 @@ aoclsparse_status aoclsparse_csr2m_nnz_count(aoclsparse_int             m,
                                              aoclsparse_int             opflag)
 
 {
+    using namespace aoclsparse;
+    aoclsparse_int status = aoclsparse_status_success;
     // Check for valid matrix descriptors
     if((descrA == nullptr) || (descrB == nullptr))
     {
@@ -64,22 +67,14 @@ aoclsparse_status aoclsparse_csr2m_nnz_count(aoclsparse_int             m,
     {
         return aoclsparse_status_invalid_pointer;
     }
-    aoclsparse_index_base       baseA = descrA->base;
-    aoclsparse_index_base       baseB = descrB->base;
-    std::vector<aoclsparse_int> nnz;
-    try
-    {
-        nnz.resize(n, -1);
-    }
-    catch(std::bad_alloc &)
-    {
-        return aoclsparse_status_memory_error;
-    }
+    aoclsparse_index_base baseA = descrA->base;
+    aoclsparse_index_base baseB = descrB->base;
+
     aoclsparse_int  nnz_C         = 0;
     aoclsparse_int *csr_row_ptr_C = nullptr;
     try
     {
-        csr_row_ptr_C = new aoclsparse_int[m + 1];
+        csr_row_ptr_C = new aoclsparse_int[m + 1]();
     }
     catch(std::bad_alloc &)
     {
@@ -88,142 +83,181 @@ aoclsparse_status aoclsparse_csr2m_nnz_count(aoclsparse_int             m,
     }
 
     csr_row_ptr_C[0] = 0;
-
-    aoclsparse_int num_nonzeros = 0;
-    // Loop over rows of A
-    for(aoclsparse_int i = 0; i < m; i++)
+#ifdef _OPENMP
+#pragma omp parallel num_threads(context::get_context()->get_num_threads()) reduction(max : status)
+#endif
     {
-
-        // Loop over columns of A
-        for(aoclsparse_int j = (csr_row_ptr_A[i] - baseA); j < (csr_row_ptr_A[i + 1] - baseA); j++)
-        {
-            // Current column of A
-            aoclsparse_int col_A   = csr_col_ind_A[j] - baseA;
-            aoclsparse_int nnz_row = csr_row_ptr_B[col_A + 1] - csr_row_ptr_B[col_A];
-            aoclsparse_int k_iter  = nnz_row / 4;
-            aoclsparse_int k_rem   = nnz_row % 4;
-            aoclsparse_int row_B   = csr_row_ptr_B[col_A] - baseB;
-
-            // Loop over columns of B in row j in groups of 4
-            for(aoclsparse_int k = 0; k < k_iter * 4; k += 4)
-            {
-                // Current column of B
-                aoclsparse_int col_B = csr_col_ind_B[row_B + k] - baseB;
-
-                // Check if a new nnz is generated
-                if(nnz[col_B] != i)
-                {
-                    nnz[col_B] = i;
-                    num_nonzeros++;
-                }
-
-                // Current column of B
-                col_B = csr_col_ind_B[row_B + k + 1] - baseB;
-
-                // Check if a new nnz is generated
-                if(nnz[col_B] != i)
-                {
-                    nnz[col_B] = i;
-                    num_nonzeros++;
-                }
-
-                // Current column of B
-                col_B = csr_col_ind_B[row_B + k + 2] - baseB;
-
-                // Check if a new nnz is generated
-                if(nnz[col_B] != i)
-                {
-                    nnz[col_B] = i;
-                    num_nonzeros++;
-                }
-
-                // Current column of B
-                col_B = csr_col_ind_B[row_B + k + 3] - baseB;
-
-                // Check if a new nnz is generated
-                if(nnz[col_B] != i)
-                {
-                    nnz[col_B] = i;
-                    num_nonzeros++;
-                }
-            }
-            // Loop over remaining columns of B in row j
-            for(aoclsparse_int k = 0; k < k_rem; k++)
-            {
-                // Current column of B
-                aoclsparse_int col_B = csr_col_ind_B[row_B + (k_iter * 4) + k] - baseB;
-
-                // Check if a new nnz is generated
-                if(nnz[col_B] != i)
-                {
-                    nnz[col_B] = i;
-                    num_nonzeros++;
-                }
-            }
-        }
-        csr_row_ptr_C[i + 1] = num_nonzeros;
-    }
-
-    // Number of non-zeroes of resultant matrix C
-    nnz_C = csr_row_ptr_C[m];
-
-    // Creates a new resultant matrix C
-    // And allocates memory for column index and value
-    // arrays of resultant matrix C
-    aoclsparse_int *csr_col_ind_C = nullptr;
-    void           *csr_val_C     = nullptr;
-    try
-    {
-        *C            = new _aoclsparse_matrix;
-        csr_col_ind_C = new aoclsparse_int[nnz_C];
-        csr_val_C     = ::operator new(nnz_C * sizeof(T));
-    }
-    catch(std::bad_alloc &)
-    {
-        // Insufficient memory for output allocation
-        delete *C;
-        delete[] csr_col_ind_C;
-        delete[] csr_row_ptr_C;
-        ::operator delete(csr_val_C);
-        *C = nullptr;
-        return aoclsparse_status_memory_error;
-    }
-
-    // For At * Bt = (B * A)t, Resultant matrix will be represented internally as CSC,
-    // It should be transposed back to CSR representation after finalize stage.
-    if(opflag == 3)
-    {
-        aoclsparse_init_mat(*C, aoclsparse_index_base_zero, n, m, nnz_C, aoclsparse_csc_mat);
-        (*C)->val_type = get_data_type<T>();
-        // Assign the resultant C matrix arrays to CSC format
-        (*C)->csc_mat.col_ptr = csr_row_ptr_C;
-        (*C)->csc_mat.row_idx = csr_col_ind_C;
-        (*C)->csc_mat.val     = csr_val_C;
-        // Allocate memory for CSR arrays here
+#ifdef _OPENMP
+        aoclsparse_int num_threads = omp_get_num_threads();
+        aoclsparse_int thread_num  = omp_get_thread_num();
+        aoclsparse_int start       = m * thread_num / num_threads;
+        aoclsparse_int end         = m * (thread_num + 1) / num_threads;
+        status                     = aoclsparse_status_success;
+#else
+        aoclsparse_int start = 0;
+        aoclsparse_int end   = m;
+#endif
+        std::vector<aoclsparse_int> nnz;
+        aoclsparse_int              num_nonzeros = 0;
         try
         {
-            (*C)->csr_mat.csr_row_ptr = new aoclsparse_int[n + 1];
-            (*C)->csr_mat.csr_col_ptr = new aoclsparse_int[nnz_C];
-            (*C)->csr_mat.csr_val     = ::operator new(nnz_C * sizeof(T));
+            nnz.resize(n, -1);
         }
         catch(std::bad_alloc &)
         {
-            aoclsparse_destroy(C);
-            return aoclsparse_status_memory_error;
+            status = aoclsparse_status_memory_error;
+        }
+        if(status == aoclsparse_status_success)
+        {
+            // Loop over rows of A
+            for(aoclsparse_int i = start; i < end; i++)
+            {
+                num_nonzeros = 0;
+
+                // Loop over columns of A
+                for(aoclsparse_int j = (csr_row_ptr_A[i] - baseA);
+                    j < (csr_row_ptr_A[i + 1] - baseA);
+                    j++)
+                {
+                    // Current column of A
+                    aoclsparse_int col_A   = csr_col_ind_A[j] - baseA;
+                    aoclsparse_int nnz_row = csr_row_ptr_B[col_A + 1] - csr_row_ptr_B[col_A];
+                    aoclsparse_int k_iter  = nnz_row / 4;
+                    aoclsparse_int k_rem   = nnz_row % 4;
+                    aoclsparse_int row_B   = csr_row_ptr_B[col_A] - baseB;
+
+                    // Loop over columns of B in row j in groups of 4
+                    for(aoclsparse_int k = 0; k < k_iter * 4; k += 4)
+                    {
+                        // Current column of B
+                        aoclsparse_int col_B = csr_col_ind_B[row_B + k] - baseB;
+
+                        // Check if a new nnz is generated
+                        if(nnz[col_B] != i)
+                        {
+                            nnz[col_B] = i;
+                            num_nonzeros++;
+                        }
+
+                        // Current column of B
+                        col_B = csr_col_ind_B[row_B + k + 1] - baseB;
+
+                        // Check if a new nnz is generated
+                        if(nnz[col_B] != i)
+                        {
+                            nnz[col_B] = i;
+                            num_nonzeros++;
+                        }
+
+                        // Current column of B
+                        col_B = csr_col_ind_B[row_B + k + 2] - baseB;
+
+                        // Check if a new nnz is generated
+                        if(nnz[col_B] != i)
+                        {
+                            nnz[col_B] = i;
+                            num_nonzeros++;
+                        }
+
+                        // Current column of B
+                        col_B = csr_col_ind_B[row_B + k + 3] - baseB;
+
+                        // Check if a new nnz is generated
+                        if(nnz[col_B] != i)
+                        {
+                            nnz[col_B] = i;
+                            num_nonzeros++;
+                        }
+                    }
+                    // Loop over remaining columns of B in row j
+                    for(aoclsparse_int k = 0; k < k_rem; k++)
+                    {
+                        // Current column of B
+                        aoclsparse_int col_B = csr_col_ind_B[row_B + (k_iter * 4) + k] - baseB;
+                        // Check if a new nnz is generated
+                        if(nnz[col_B] != i)
+                        {
+                            nnz[col_B] = i;
+                            num_nonzeros++;
+                        }
+                    }
+                }
+                csr_row_ptr_C[i + 1] = num_nonzeros;
+            }
         }
     }
-    // For A*B, At*B and A*Bt, Resultant matrix is represented as CSR,
-    // Assign the resultant C matrix arrays to CSR format
+    if(status == aoclsparse_status_success)
+    {
+        for(aoclsparse_int i = 1; i < m + 1; i++)
+        {
+            csr_row_ptr_C[i] += csr_row_ptr_C[i - 1];
+        }
+
+        // Number of non-zeroes of resultant matrix C
+        nnz_C = csr_row_ptr_C[m];
+
+        // Creates a new resultant matrix C
+        // And allocates memory for column index and value
+        // arrays of resultant matrix C
+        aoclsparse_int *csr_col_ind_C = nullptr;
+        void           *csr_val_C     = nullptr;
+        try
+        {
+            *C            = new _aoclsparse_matrix;
+            csr_col_ind_C = new aoclsparse_int[nnz_C];
+            csr_val_C     = ::operator new(nnz_C * sizeof(T));
+        }
+        catch(std::bad_alloc &)
+        {
+            // Insufficient memory for output allocation
+            delete *C;
+            delete[] csr_col_ind_C;
+            delete[] csr_row_ptr_C;
+            ::operator delete(csr_val_C);
+            *C = nullptr;
+            return aoclsparse_status_memory_error;
+        }
+
+        // For At * Bt = (B * A)t, Resultant matrix will be represented internally as CSC,
+        // It should be transposed back to CSR representation after finalize stage.
+        if(opflag == 3)
+        {
+            aoclsparse_init_mat(*C, aoclsparse_index_base_zero, n, m, nnz_C, aoclsparse_csc_mat);
+            (*C)->val_type = get_data_type<T>();
+            // Assign the resultant C matrix arrays to CSC format
+            (*C)->csc_mat.col_ptr = csr_row_ptr_C;
+            (*C)->csc_mat.row_idx = csr_col_ind_C;
+            (*C)->csc_mat.val     = csr_val_C;
+            // Allocate memory for CSR arrays here
+            try
+            {
+                (*C)->csr_mat.csr_row_ptr = new aoclsparse_int[n + 1];
+                (*C)->csr_mat.csr_col_ptr = new aoclsparse_int[nnz_C];
+                (*C)->csr_mat.csr_val     = ::operator new(nnz_C * sizeof(T));
+            }
+            catch(std::bad_alloc &)
+            {
+                aoclsparse_destroy(C);
+                return aoclsparse_status_memory_error;
+            }
+        }
+        // For A*B, At*B and A*Bt, Resultant matrix is represented as CSR,
+        // Assign the resultant C matrix arrays to CSR format
+        else
+        {
+            aoclsparse_init_mat(*C, aoclsparse_index_base_zero, m, n, nnz_C, aoclsparse_csr_mat);
+            (*C)->input_format        = aoclsparse_csr_mat;
+            (*C)->val_type            = get_data_type<T>();
+            (*C)->csr_mat.csr_row_ptr = csr_row_ptr_C;
+            (*C)->csr_mat.csr_col_ptr = csr_col_ind_C;
+            (*C)->csr_mat.csr_val     = csr_val_C;
+        }
+    }
     else
     {
-        aoclsparse_init_mat(*C, aoclsparse_index_base_zero, m, n, nnz_C, aoclsparse_csr_mat);
-        (*C)->input_format        = aoclsparse_csr_mat;
-        (*C)->val_type            = get_data_type<T>();
-        (*C)->csr_mat.csr_row_ptr = csr_row_ptr_C;
-        (*C)->csr_mat.csr_col_ptr = csr_col_ind_C;
-        (*C)->csr_mat.csr_val     = csr_val_C;
+        delete[] csr_row_ptr_C;
     }
-    return aoclsparse_status_success;
+    return (aoclsparse_status)status;
 }
 
 // This function finalize computation. Can also be used when the matrix
@@ -245,6 +279,9 @@ aoclsparse_status aoclsparse_csr2m_finalize(aoclsparse_int             m_a,
                                             aoclsparse_matrix         *C,
                                             aoclsparse_int             opflag)
 {
+    using namespace aoclsparse;
+    aoclsparse_int status = aoclsparse_status_success;
+
     // Check for valid pointers
     if((descrA == nullptr) || (descrB == nullptr) || (*C == nullptr))
     {
@@ -303,92 +340,120 @@ aoclsparse_status aoclsparse_csr2m_finalize(aoclsparse_int             m_a,
     {
         return aoclsparse_status_invalid_pointer;
     }
-    aoclsparse_index_base       baseA = descrA->base;
-    aoclsparse_index_base       baseB = descrB->base;
-    std::vector<aoclsparse_int> nnz;
-    std::vector<T>              sum;
-    try
+    aoclsparse_index_base baseA = descrA->base;
+    aoclsparse_index_base baseB = descrB->base;
+#ifdef _OPENMP
+#pragma omp parallel num_threads(context::get_context()->get_num_threads()) reduction(max : status)
+#endif
     {
-        nnz.resize(n, -1);
-        sum.resize(n, 0.0);
-    }
-    catch(std::bad_alloc &)
-    {
-        return aoclsparse_status_memory_error;
-    }
-    // Loop over rows of A
-    for(aoclsparse_int i = 0; i < m; i++)
-    {
-        aoclsparse_int row_begin_A = csr_row_ptr_A[i] - baseA;
-        aoclsparse_int row_end_A   = csr_row_ptr_A[i + 1] - baseA;
-
-        aoclsparse_int idxC = csr_row_ptr_C[i]; // where to write first element in this row in C
-        // Loop over columns of A
-        for(aoclsparse_int j = row_begin_A; j < row_end_A; j++)
+#ifdef _OPENMP
+        aoclsparse_int num_threads = omp_get_num_threads();
+        aoclsparse_int thread_num  = omp_get_thread_num();
+        aoclsparse_int start       = m * thread_num / num_threads;
+        aoclsparse_int end         = m * (thread_num + 1) / num_threads;
+        status                     = aoclsparse_status_success;
+#else
+        aoclsparse_int start = 0;
+        aoclsparse_int end   = m;
+#endif
+        std::vector<aoclsparse_int> nnz;
+        std::vector<T>              sum;
+        try
         {
-            // Current column of A
-            aoclsparse_int col_A = csr_col_ind_A[j] - baseA;
-            // Current value of A
-            T val_A;
-            if(opA == aoclsparse_operation_conjugate_transpose)
-                val_A = aoclsparse::conj(csr_val_A[j]);
-            else
-                val_A = csr_val_A[j];
-
-            aoclsparse_int row_begin_B = csr_row_ptr_B[col_A] - baseB;
-            aoclsparse_int row_end_B   = csr_row_ptr_B[col_A + 1] - baseB;
-
-            // Loop over columns of B in row col_A
-            for(aoclsparse_int k = row_begin_B; k < row_end_B; k++)
+            nnz.resize(n, -1);
+            sum.resize(n, 0.0);
+        }
+        catch(std::bad_alloc &)
+        {
+            status = aoclsparse_status_memory_error;
+        }
+        if(status == aoclsparse_status_success)
+        {
+            // Loop over rows of A
+            for(aoclsparse_int i = start; i < end; i++)
             {
-                // Current column of B
-                aoclsparse_int col_B = csr_col_ind_B[k] - baseB;
-                // Current value of B
-                T val_B;
-                if(opB == aoclsparse_operation_conjugate_transpose)
-                    val_B = aoclsparse::conj(csr_val_B[k]);
-                else
-                    val_B = csr_val_B[k];
-                if(nnz[col_B] != i)
+                aoclsparse_int row_begin_A = csr_row_ptr_A[i] - baseA;
+                aoclsparse_int row_end_A   = csr_row_ptr_A[i + 1] - baseA;
+
+                aoclsparse_int idxC
+                    = csr_row_ptr_C[i]; // where to write first element in this row in C
+                // Loop over columns of A
+                for(aoclsparse_int j = row_begin_A; j < row_end_A; j++)
                 {
-                    // create new element in C of index col_B
-                    nnz[col_B]            = i;
-                    csr_col_ind_C[idxC++] = col_B;
-                    sum[col_B]            = val_A * val_B;
+                    // Current column of A
+                    aoclsparse_int col_A = csr_col_ind_A[j] - baseA;
+                    // Current value of A
+                    T val_A;
+                    if(opA == aoclsparse_operation_conjugate_transpose)
+                        val_A = aoclsparse::conj(csr_val_A[j]);
+                    else
+                        val_A = csr_val_A[j];
+
+                    aoclsparse_int row_begin_B = csr_row_ptr_B[col_A] - baseB;
+                    aoclsparse_int row_end_B   = csr_row_ptr_B[col_A + 1] - baseB;
+
+                    // Loop over columns of B in row col_A
+                    for(aoclsparse_int k = row_begin_B; k < row_end_B; k++)
+                    {
+                        // Current column of B
+                        aoclsparse_int col_B = csr_col_ind_B[k] - baseB;
+                        // Current value of B
+                        T val_B;
+                        if(opB == aoclsparse_operation_conjugate_transpose)
+                            val_B = aoclsparse::conj(csr_val_B[k]);
+                        else
+                            val_B = csr_val_B[k];
+                        if(nnz[col_B] != i)
+                        {
+                            // create new element in C of index col_B
+                            nnz[col_B]            = i;
+                            csr_col_ind_C[idxC++] = col_B;
+                            sum[col_B]            = val_A * val_B;
+                        }
+                        else // the element already exist, just added in sum
+                            sum[col_B] = sum[col_B] + val_A * val_B;
+                    }
                 }
-                else // the element already exist, just added in sum
-                    sum[col_B] = sum[col_B] + val_A * val_B;
+
+                //  Check if the computed nonzeroes matches what we expect in the row
+                if(idxC != csr_row_ptr_C[i + 1])
+                    status = aoclsparse_status_internal_error;
+                else
+                {
+                    // copy values from sum to csr_val_C based on csr_col_ind_C
+                    for(idxC = csr_row_ptr_C[i]; idxC < csr_row_ptr_C[i + 1]; idxC++)
+                        csr_val_C[idxC] = sum[csr_col_ind_C[idxC]];
+                }
+
+                // copy values from sum to csr_val_C based on csr_col_ind_C
+                for(idxC = csr_row_ptr_C[i]; idxC < csr_row_ptr_C[i + 1]; idxC++)
+                    csr_val_C[idxC] = sum[csr_col_ind_C[idxC]];
             }
         }
-
-        //  Check if the computed nonzeroes matches what we expect in the row
-        if(idxC != csr_row_ptr_C[i + 1])
-            return aoclsparse_status_internal_error;
-
-        // copy values from sum to csr_val_C based on csr_col_ind_C
-        for(idxC = csr_row_ptr_C[i]; idxC < csr_row_ptr_C[i + 1]; idxC++)
-            csr_val_C[idxC] = sum[csr_col_ind_C[idxC]];
     }
-    if(opflag == 3)
+    if(status == aoclsparse_status_success)
     {
-        /* Transpose the results A^T*B^T = (B*A)^T */
-        aoclsparse_status status = aoclsparse_csr2csc_template(m,
-                                                               n,
-                                                               nnz_C,
-                                                               (*C)->base,
-                                                               (*C)->base,
-                                                               csr_row_ptr_C,
-                                                               csr_col_ind_C,
-                                                               csr_val_C,
-                                                               (*C)->csr_mat.csr_col_ptr,
-                                                               (*C)->csr_mat.csr_row_ptr,
-                                                               (T *)(*C)->csr_mat.csr_val);
-        if(status != aoclsparse_status_success)
-            return aoclsparse_status_internal_error;
-
-        (*C)->input_format = aoclsparse_csr_mat;
+        if(opflag == 3)
+        {
+            /* Transpose the results A^T*B^T = (B*A)^T */
+            status = aoclsparse_csr2csc_template(m,
+                                                 n,
+                                                 nnz_C,
+                                                 (*C)->base,
+                                                 (*C)->base,
+                                                 csr_row_ptr_C,
+                                                 csr_col_ind_C,
+                                                 csr_val_C,
+                                                 (*C)->csr_mat.csr_col_ptr,
+                                                 (*C)->csr_mat.csr_row_ptr,
+                                                 (T *)(*C)->csr_mat.csr_val);
+            if(status != aoclsparse_status_success)
+                status = aoclsparse_status_internal_error;
+            else
+                (*C)->input_format = aoclsparse_csr_mat;
+        }
     }
-    return aoclsparse_status_success;
+    return (aoclsparse_status)status;
 }
 
 template <typename T>
