@@ -113,13 +113,8 @@ set(CMAKE_AOCL_ROOT
       STRING
       "AOCL_ROOT directory to be used to find BLAS/LAPACK/AOCLUTILS libraries")
 option(SUPPORT_OMP "Compile with OpenMP support." ON)
-# by default use the OpenMP targets detected by the standard find_package(OpenMP)
-option(USE_OMP_LIB "Use OpenMP targets by default" ON)
-# Windows options only
-if(WIN32)
-    # Setting path to OpenMP runtime for windows
-    set(EXTERNAL_OMP_LIBRARY "C:/Program Files/LLVM/lib/libomp.lib" CACHE STRING "Provide external OMP library")
-endif(WIN32)
+set(USE_EXTERNAL_OMP_LIB "Use OpenMP target generated from find_package(OpenMP) by default" OFF)
+set(EXTERNAL_OMP_LIBRARY "" CACHE STRING "Provide external OMP library")
 
 if (NOT (${ASAN} AND ${CMAKE_SYSTEM_NAME} MATCHES "Linux" AND CMAKE_BUILD_TYPE MATCHES "Debug"))
   # Switch off ASAN: target not supported
@@ -256,7 +251,7 @@ if(CMAKE_BUILD_TYPE MATCHES "Debug")
   message (STATUS "  Valgrind checks (only Debug)......... <VALGRIND>.${VALGRIND}")
 endif()
 message (STATUS "  Verbose flag <CMAKE_VERBOSE_MAKEFILE>............${CMAKE_VERBOSE_MAKEFILE}")
-message (STATUS "  AOCL-Sparse Version .............................${AOCLSPARSE_VERSION_MAJOR}.${AOCLSPARSE_VERSION_MINOR}.${AOCLSPARSE_VERSION_PATCH}.${AOCLSPARSE_VERSION_TWEAK}")
+message (STATUS "  AOCL-Sparse Version .............................${AOCLSPARSE_VERSION_MAJOR}.${AOCLSPARSE_VERSION_MINOR}.${AOCLSPARSE_VERSION_PATCH}")
 message (STATUS "  Static/Dynamic Build <BUILD_SHARED_LIBS>.........${BUILD_SHARED_LIBS}")
 message (STATUS "  ILP64 Build Type <BUILD_ILP64>...................${BUILD_ILP64}")
 message (STATUS "  Multi-Threading using OpenMP <SUPPORT_OMP>.......${SUPPORT_OMP}")
