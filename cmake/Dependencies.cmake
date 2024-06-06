@@ -152,8 +152,13 @@ function(openmp_libs)
     message(FATAL_ERROR
             "Error: could not find a suitable installation of OpenMP for the requested multi-threaded build")
   else()
-    if(WIN32 AND (NOT USE_OMP_LIB))
-      set(OpenMP_Library ${EXTERNAL_OMP_LIBRARY})
+    if(WIN32 AND USE_EXTERNAL_OMP_LIB)
+      if(EXISTS ${EXTERNAL_OMP_LIBRARY})
+        set(OpenMP_Library ${EXTERNAL_OMP_LIBRARY})
+      else()
+        message(FATAL_ERROR
+              "Error: could not find the path to the external OpenMP library, \$EXTERNAL_OMP_LIBRARY=${EXTERNAL_OMP_LIBRARY}")
+      endif()
     endif()
     # OpenMP cmake fix for cmake <= 3.9 and cases where OpenMP targets are not populated correctly
     # setup the interface OpenMP library with all the necessary flags and libraries

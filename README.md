@@ -27,7 +27,7 @@ cmake -S . -B <build_directory> -T clangcl -G "Visual Studio 17 2022" -DCMAKE_CX
 # Build options:
 #   BUILD_SHARED_LIBS        - build AOCL-Sparse as a shared library (Default: ON)
 #   BUILD_ILP64              - ILP64 Support (Default: OFF)
-#   SUPPORT_OMP              - OpenMP Support (Default: OFF)
+#   SUPPORT_OMP              - OpenMP Support (Default: ON)
 #   BUILD_CLIENTS_SAMPLES    - build examples (Default: ON)
 #   BUILD_UNIT_TESTS      	 - build unit tests (Default: OFF)
 #   BUILD_CLIENTS_BENCHMARKS - build benchmarks (Default: OFF)
@@ -52,7 +52,12 @@ set PATH=<aoclsparse_install_path>\lib;%PATH%
 ```
 build_directory\tests\examples\sample_spmv.exe
 ```
-**Note** Currently multi-threading is not supported on Windows.
+**Note** By default USE_EXTERNAL_OMP_LIB is disabled, indicating that the OpenMP targets are fetched from find_package(OpenMP) when multi-threading is turned on.
+**Note** If external OpenMP library is to be configured (for Windows only builds at present), enable USE_EXTERNAL_OMP_LIB and define the environment variable EXTERNAL_OMP_LIBRARY to point to external OpenMP library.
+```
+set "USE_EXTERNAL_OMP_LIB=ON"
+set "EXTERNAL_OMP_LIBRARY=C:\Path-to\default-external-openMP\library\libomp.lib"
+```
 #### Building on Linux
 1. Install AOCL-BLAS, AOCL-LAPACK and AOCL-UTILS
 2. Define the environment variable AOCL_ROOT to point to AOCL libs installation
