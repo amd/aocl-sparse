@@ -25,7 +25,8 @@ cmake_minimum_required(VERSION 3.21 FATAL_ERROR)
 project(aoclsparse-lcov-coverage)
 
 find_program(LCOV NAMES lcov HINTS "/usr" PATH_SUFFIXES "bin" DOC "lcov - a graphical GCOV front-end" REQUIRED)
-find_program(GCOV NAMES $ENV{GCOV_NAME} gcov HINTS "/usr" PATH_SUFFIXES "bin" DOC "GNU gcov binary" REQUIRED)
+# Not providing Hints/path suffixes, will allow searching in default locations ($PATH)
+find_program(GCOV NAMES $ENV{GCOV_NAME} gcov DOC "GNU gcov binary" REQUIRED)
 find_program(GENHTML NAMES genhtml HINTS "/usr" PATH_SUFFIXES "bin" DOC "genhtml - Generate HTML view from LCOV coverage data files" REQUIRED)
 
 set(LCOV_FILTERS "'/usr/*';'/*/_deps/*';'/*/boost/*';'/*/spack/*';'/*/external/*';'*/gcc/include_*';'*/aocc/include_*'")
@@ -40,6 +41,18 @@ add_custom_target( coverage-clean
   WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
   COMMENT "Cleaning coverage related files" VERBATIM
 )
+
+# extract version of GCOV that is configured
+execute_process(COMMAND bash "-c" "${GCOV} --version | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -1;" OUTPUT_VARIABLE GCOV_VERSION)
+# remove trailing whitespaces
+string(STRIP "${GCOV_VERSION}" GCOV_VERSION)
+# if compiler and gcov versions do not match, coverage will not work
+if(NOT ${GCOV_VERSION} STREQUAL ${CMAKE_CXX_COMPILER_VERSION})
+    message(
+      FATAL_ERROR
+        "Error: GCOV and GCC/G++ versions do not match. Expect same versions for coverage functionality. GCOV Version=${GCOV_VERSION}, Compiler(CXX) version=${CMAKE_CXX_COMPILER_VERSION}"
+    )
+endif()
 
 add_custom_target( coverage-run
   COMMAND ${CMAKE_MAKE_PROGRAM} all
