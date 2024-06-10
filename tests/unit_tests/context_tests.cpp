@@ -40,12 +40,14 @@ namespace contextTest
         char           *global_isa;
         char           *tl_isa;
         aoclsparse_int *sparse_nt;
+        bool           *is_isa_updated;
 
         debug_info()
         {
-            global_isa = new char[20];
-            tl_isa     = new char[20];
-            sparse_nt  = new aoclsparse_int;
+            global_isa     = new char[20];
+            tl_isa         = new char[20];
+            sparse_nt      = new aoclsparse_int;
+            is_isa_updated = new bool;
         }
 
         ~debug_info()
@@ -53,6 +55,7 @@ namespace contextTest
             delete[] global_isa;
             delete[] tl_isa;
             delete sparse_nt;
+            delete is_isa_updated;
         }
     };
 
@@ -65,7 +68,7 @@ namespace contextTest
         // Get the number of threads from the sparse global object
         debug_info info;
 
-        aoclsparse_debug_get(info.global_isa, info.sparse_nt, info.tl_isa);
+        aoclsparse_debug_get(info.global_isa, info.sparse_nt, info.tl_isa, info.is_isa_updated);
 
 #pragma omp parallel num_threads(*(info.sparse_nt))
         for(size_t i = 0; i < n; ++i)
@@ -83,16 +86,20 @@ namespace contextTest
     {
         debug_info info;
 
-        aoclsparse_debug_get(info.global_isa, info.sparse_nt, info.tl_isa);
+        [[maybe_unused]] auto st = aoclsparse_debug_get(
+            info.global_isa, info.sparse_nt, info.tl_isa, info.is_isa_updated);
 
         // Check if the global isa hint is same as that of the tl isa during init
         EXPECT_TRUE(!strcmp(info.global_isa, info.tl_isa));
 
+        // Check if the new and old ISA preference are the same at init
+        EXPECT_TRUE(*(info.is_isa_updated));
+
         // Enable a different instruction
         [[maybe_unused]] auto s = aoclsparse_enable_instructions(tl_isa_hint);
 
-        [[maybe_unused]] auto st
-            = aoclsparse_debug_get(info.global_isa, info.sparse_nt, info.tl_isa);
+        st = aoclsparse_debug_get(
+            info.global_isa, info.sparse_nt, info.tl_isa, info.is_isa_updated);
 
         // Test if the expected value is set
         // ToDo: This test can fail if the target hardware doesn't support "tl_isa_hint" - need to revisit
@@ -101,6 +108,9 @@ namespace contextTest
         // Check if the global isa hint is different from that of the child thread
         // ToDo: This test can still fail if the target hardware doesn't support AVX2 and AVX512 - need to revisit
         EXPECT_FALSE(!strcmp(info.global_isa, info.tl_isa));
+
+        // Check if the new and old ISA preference are NOT the same at init
+        EXPECT_FALSE(*(info.is_isa_updated));
     }
 
     // Test if the isa hint is initialized to the global context' isa
@@ -108,10 +118,13 @@ namespace contextTest
     {
         debug_info info;
 
-        [[maybe_unused]] auto s
-            = aoclsparse_debug_get(info.global_isa, info.sparse_nt, info.tl_isa);
+        [[maybe_unused]] auto s = aoclsparse_debug_get(
+            info.global_isa, info.sparse_nt, info.tl_isa, info.is_isa_updated);
 
         EXPECT_TRUE(!strcmp(info.global_isa, info.tl_isa));
+
+        // Check if the new and old ISA preference are the same at init
+        EXPECT_TRUE(info.is_isa_updated);
     }
 
     // Test if the isa hint change is thread local
@@ -128,7 +141,7 @@ namespace contextTest
 
         debug_info info;
 
-        aoclsparse_debug_get(info.global_isa, info.sparse_nt, info.tl_isa);
+        aoclsparse_debug_get(info.global_isa, info.sparse_nt, info.tl_isa, info.is_isa_updated);
 
         // If AVX512 is supported by the core, then the tl isa will be AVX512
         if(core.isAvailable(alci::ALC_E_FLAG_AVX512F))
@@ -149,8 +162,8 @@ namespace contextTest
 
         debug_info info;
 
-        [[maybe_unused]] auto st
-            = aoclsparse_debug_get(info.global_isa, info.sparse_nt, info.tl_isa);
+        [[maybe_unused]] auto st = aoclsparse_debug_get(
+            info.global_isa, info.sparse_nt, info.tl_isa, info.is_isa_updated);
 
         strcpy(ledger, info.tl_isa);
     }
@@ -279,8 +292,8 @@ namespace contextTest
         debug_info info;
 
         // Get the debug information
-        [[maybe_unused]] auto st
-            = aoclsparse_debug_get(info.global_isa, info.sparse_nt, info.tl_isa);
+        [[maybe_unused]] auto st = aoclsparse_debug_get(
+            info.global_isa, info.sparse_nt, info.tl_isa, info.is_isa_updated);
 
         // Copy the global isa
         strcpy(ledger_base, info.global_isa);
