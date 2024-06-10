@@ -120,7 +120,8 @@ aoclsparse_status aoclsparse_enable_instructions(const char isa_preference[])
  *******************************************************************************/
 aoclsparse_status aoclsparse_debug_get(char            isa_preference[],
                                        aoclsparse_int *num_threads,
-                                       char            tl_isa_preference[])
+                                       char            tl_isa_preference[],
+                                       bool           *is_isa_updated)
 {
     using namespace aoclsparse;
 
@@ -144,6 +145,8 @@ aoclsparse_status aoclsparse_debug_get(char            isa_preference[],
     strcpy(tl_isa_preference, val.c_str());
 
     *num_threads = context::get_context()->get_num_threads();
+
+    *is_isa_updated = tl_isa_hint.is_isa_updated();
 
     return aoclsparse_status_success;
 }

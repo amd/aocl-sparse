@@ -58,6 +58,33 @@ namespace aoclsparse
         LENGTH           = 13
     };
 
+    // Dispatch::archs (Zen architecture and group)
+    // unsigned int -> __builtin_popcount(unsigned int)
+    enum class archs : unsigned int
+    {
+        ALL     = ~0U,
+        UNKNOWN = 0U,
+        ZEN     = 1U << 0U,
+        ZEN2    = 1U << 1U,
+        ZEN3    = 1U << 2U,
+        ZEN4    = 1U << 3U,
+        ZEN123  = ZEN | ZEN2 | ZEN3,
+        ZENS    = ZEN | ZEN2 | ZEN3 | ZEN4
+    };
+
+    inline constexpr unsigned int operator|(archs a, archs b)
+    {
+        return static_cast<unsigned int>(a) | static_cast<unsigned int>(b);
+    }
+    inline constexpr unsigned int operator|(unsigned int a, archs b)
+    {
+        return a | static_cast<unsigned int>(b);
+    }
+    inline constexpr unsigned int operator&(archs a, unsigned int b)
+    {
+        return static_cast<unsigned int>(a) & b;
+    }
+
     /********************************************************************************
     * \brief aoclsparse_env_get_var<T> is a function used to query the environment
     * variable and return the same. In case of int, it converts the string into
@@ -105,10 +132,15 @@ namespace aoclsparse
 
         // num of threads
         aoclsparse_int num_threads = 1;
+
         // ALCI CPU object
         std::unique_ptr<alci::Cpu> Cpu = nullptr;
+
         // Architecture reported by ALCI
         alci::Uarch Uarch;
+
+        //AOCLSPARSE local arch info container
+        archs lib_local_arch;
 
         bool cpuflags[static_cast<int>(context_isa_t::LENGTH)];
 
@@ -202,6 +234,21 @@ namespace aoclsparse
                     this->global_isa_hint = context_isa_t::GENERIC;
                 }
             }
+
+            switch(this->Uarch)
+            {
+            case alci::Uarch::eZen:
+                lib_local_arch = archs::ZEN;
+            case alci::Uarch::eZen2:
+                lib_local_arch = archs::ZEN2;
+            case alci::Uarch::eZen3:
+                lib_local_arch = archs::ZEN3;
+            case alci::Uarch::eZen4:
+                lib_local_arch = archs::ZEN4;
+            // Todo: Add support for newer and older AMD architectures
+            default:
+                lib_local_arch = archs::UNKNOWN;
+            }
         }
 
         aoclsparse_int get_thread_from_env()
@@ -249,6 +296,12 @@ namespace aoclsparse
             return this->global_isa_hint;
         }
 
+        // Returns the architecture of the system
+        archs get_archs(void)
+        {
+            return this->lib_local_arch;
+        }
+
         // Returns a reference to the global context
         static context *get_context();
     };
@@ -260,27 +313,37 @@ namespace aoclsparse
     *****************************************************************************************/
     class isa_hint
     {
-        aoclsparse::context_isa_t hint;
+        aoclsparse::context_isa_t old_hint;
+        aoclsparse::context_isa_t current_hint;
 
     public:
         // Constructor for the class
         isa_hint()
         {
             // Initialize isa hint with the global isa hint from the context
-            hint = context::get_context()->get_isa_hint();
+            current_hint = old_hint = context::get_context()->get_isa_hint();
         };
 
         // Get the hint
         context_isa_t get_isa_hint()
         {
-            return this->hint;
+            return this->current_hint;
         };
 
         // Set the hint
         void set_isa_hint(context_isa_t isa)
         {
-            this->hint = isa;
+            // Save the current hint
+            this->old_hint = this->current_hint;
+
+            // Rewrite the current hint
+            this->current_hint = isa;
         };
+
+        bool is_isa_updated()
+        {
+            return (this->current_hint == this->old_hint);
+        }
 
         // Delete the copy constructor of the context class
         isa_hint(isa_hint &t) = delete;
