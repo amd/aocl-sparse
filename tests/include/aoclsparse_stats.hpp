@@ -85,6 +85,8 @@ std::string gen_problem_name(const Arguments &arg, const testdata<T> &td)
         size_t stop  = arg.filename.rfind(".mtx");
         size_t len   = stop == std::string::npos ? std::string::npos : stop - start;
         ret          = ret + arg.filename.substr(start, len);
+        ret += "x" + std::to_string(td.m) + "x" + std::to_string(td.n) + "x"
+               + std::to_string(td.nnzA);
     }
     else if(arg.matrix == aoclsparse_matrix_random_diag_dom)
     {
