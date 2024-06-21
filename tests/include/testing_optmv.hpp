@@ -170,7 +170,8 @@ int testing_optmv(const Arguments &arg)
                                mat,
                                filename.c_str(),
                                issymm,
-                               true);
+                               true,
+                               sort);
 
     // Allocate memory for vectors
     aoclsparse_int xdim, ydim;
