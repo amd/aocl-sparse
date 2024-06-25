@@ -197,7 +197,7 @@ aoclsparse_status aoclsparse_mv_t(aoclsparse_operation op,
                 crstart = A->idiag;
                 crend   = &A->opt_csr_mat.csr_row_ptr[1];
             }
-            return aoclsparse_csrmv_ptr(&descr_cpy,
+            return aoclsparse_csrmv_ref(&descr_cpy,
                                         alpha,
                                         A->m,
                                         A->n,
@@ -556,18 +556,36 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
         //kernels as per transpose operation
         if(op == aoclsparse_operation_none)
         {
-            return aoclsparse_csrmv_vectorized_avx2ptr(&descr_cpy,
-                                                       alpha,
-                                                       A->m,
-                                                       A->n,
-                                                       A->nnz,
-                                                       (T *)A->opt_csr_mat.csr_val,
-                                                       A->opt_csr_mat.csr_col_ptr,
-                                                       crstart,
-                                                       crend,
-                                                       x,
-                                                       beta,
-                                                       y);
+            // Only double kernel is vectorized for this path
+            if constexpr(std::is_same_v<T, double>)
+            {
+                return aoclsparse_csrmv_vectorized_avx2ptr(&descr_cpy,
+                                                           alpha,
+                                                           A->m,
+                                                           A->n,
+                                                           A->nnz,
+                                                           (T *)A->opt_csr_mat.csr_val,
+                                                           A->opt_csr_mat.csr_col_ptr,
+                                                           crstart,
+                                                           crend,
+                                                           x,
+                                                           beta,
+                                                           y);
+            }
+            else
+            {
+                return aoclsparse_csrmv_ref(&descr_cpy,
+                                            alpha,
+                                            A->m,
+                                            A->n,
+                                            (T *)A->opt_csr_mat.csr_val,
+                                            A->opt_csr_mat.csr_col_ptr,
+                                            crstart,
+                                            crend,
+                                            x,
+                                            beta,
+                                            y);
+            }
         }
         else if(op == aoclsparse_operation_transpose)
         {
