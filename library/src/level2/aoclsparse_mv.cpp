@@ -181,18 +181,18 @@ aoclsparse_status aoclsparse_mv_general(aoclsparse_operation       op,
             csr_col_ind = A->csr_mat.csr_col_ptr;
             csr_row_ptr = A->csr_mat.csr_row_ptr;
         }
-        return aoclsparse_scsrmv(op,
-                                 &alpha,
-                                 A->m,
-                                 A->n,
-                                 A->nnz,
-                                 csr_val,
-                                 csr_col_ind,
-                                 csr_row_ptr,
-                                 &descr_cpy,
-                                 x,
-                                 &beta,
-                                 y);
+        return aoclsparse_csrmv_t<float>(op,
+                                         &alpha,
+                                         A->m,
+                                         A->n,
+                                         A->nnz,
+                                         csr_val,
+                                         csr_col_ind,
+                                         csr_row_ptr,
+                                         &descr_cpy,
+                                         x,
+                                         &beta,
+                                         y);
     }
     else
     {
@@ -250,18 +250,18 @@ aoclsparse_status aoclsparse_mv_general(aoclsparse_operation       op,
                 csr_col_ind = A->csr_mat.csr_col_ptr;
                 csr_row_ptr = A->csr_mat.csr_row_ptr;
             }
-            return aoclsparse_dcsrmv(op,
-                                     &alpha,
-                                     A->m,
-                                     A->n,
-                                     A->nnz,
-                                     csr_val,
-                                     csr_col_ind,
-                                     csr_row_ptr,
-                                     &descr_cpy,
-                                     x,
-                                     &beta,
-                                     y);
+            return aoclsparse_csrmv_t<double>(op,
+                                              &alpha,
+                                              A->m,
+                                              A->n,
+                                              A->nnz,
+                                              csr_val,
+                                              csr_col_ind,
+                                              csr_row_ptr,
+                                              &descr_cpy,
+                                              x,
+                                              &beta,
+                                              y);
         }
     }
     else if(A->mat_type == aoclsparse_ellt_csr_hyb_mat)
