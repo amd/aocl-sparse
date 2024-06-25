@@ -109,6 +109,14 @@ twosample_test_result
     result.alpha = alph;
     result.diff  = diff;
     result.dof   = dof;
+    // potential speed-up
+    result.speedup = b.mean / a.mean;
+    result.result  = false;
+
+    // Not enough samples (iters) to compute the statistics,
+    // use result.speedup with caution
+    if(dof <= 0)
+        return result;
 
     const double avar         = a.stdev * a.stdev;
     const double bvar         = b.stdev * b.stdev;
@@ -163,9 +171,6 @@ twosample_test_result
     double ci_width = t * sqrt(Sp) * sqrt(SE);
     result.ci[0]    = diff - ci_width; // lower
     result.ci[1]    = diff + ci_width; // upper
-
-    // potential speed-up
-    result.speedup = b.mean / a.mean;
 
     return result;
 }
@@ -286,13 +291,13 @@ void print_results(const char                  *test_name,
         << std::setw(10) << "max" << sep;
         if (true || cmp) {
           std::cout
-          << std::setw(8)   << "(A-B)" <<sep
+          << std::setw(8)   << "(Ri-R1)" <<sep
           << std::setw(8)   << "ci(low" <<sep
           << std::setw(8)   << "upper)" << sep
           << std::setw(5)   << "sgnc" <<sep
           << std::setw(7)   << "p-val" << sep
-          << std::setw(1+5) << "A==B" << sep
-          << std::setw(7) << "A/B" << sep;
+          << std::setw(1+5) << "R1==Ri" << sep
+          << std::setw(7) << "R1/Ri" << sep;
         }
         std::cout << std::endl;
         // clang-format on
@@ -315,14 +320,24 @@ void print_results(const char                  *test_name,
     << std::setw(10) << tstats.max << sep;
     if (cmp) {
       std::cout << std::scientific << std::setprecision(1)
-      << std::setw(8)   << cmp->diff <<sep
-      << std::setw(8)   << cmp->ci[0] <<sep
-      << std::setw(8)   << cmp->ci[1] << sep
-      <<std::fixed << std::setprecision(2)
-      << std::setw(5)   << 1. - cmp->alpha <<sep
-      << std::setw(7)   << cmp->pvalue << sep
-      << std::setw(1+5) << (cmp->result ? "same" : "DIFF") << sep
-      << std::setw(7) <<std::fixed << std::setprecision(1)
+      << std::setw(8)   << cmp->diff <<sep;
+      if (cmp->dof<=0) {
+        // No statistics provided if not enough samples (degrees of freedom)
+        std::cout << std::setw(8)   << "NA" <<sep
+        << std::setw(8)   << "NA" << sep
+        << std::setw(5)   << "NA" <<sep
+        << std::setw(7)   << "NA" <<sep
+        << std::setw(1+5) << "??" << sep;
+      }
+      else {
+        std::cout << std::setw(8)   << cmp->ci[0] <<sep
+        << std::setw(8)   << cmp->ci[1] << sep
+        <<std::fixed << std::setprecision(2)
+        << std::setw(5)   << 1. - cmp->alpha <<sep
+        << std::setw(7)   << cmp->pvalue << sep
+        << std::setw(1+5) << (cmp->result ? "same" : "DIFF") << sep;
+      }
+      std::cout << std::setw(7) <<std::fixed << std::setprecision(1)
       << ((false && cmp->result) ? 1. : cmp->speedup) << sep;
     }
     std::cout << std::endl;
