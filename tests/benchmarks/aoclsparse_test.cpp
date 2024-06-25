@@ -166,9 +166,9 @@ int main(int argc, char *argv[])
             "\n\t"
             "--iters=<num of iterations> \t Iterations to run inside timing loop (default: 10)"
             "\n\t"
-            "--output=<S/B> \t Results are reported either in Standard form (default) or for "
+            /*"--output=<S/B> \t Results are reported either in Standard form (default) or for "
             "Benchmarking"
-            "\n\t"
+            "\n\t"*/
             "--order=<0/1> \t Indicates whether a dense matrix is laid out in column-major "
             "storage: 1, or row-major storage 0 (default: 1)"
             "\n\t"
