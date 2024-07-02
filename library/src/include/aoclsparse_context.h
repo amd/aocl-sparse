@@ -106,7 +106,8 @@ namespace aoclsparse
             {
                 // If there was no error, convert the char[] to an integer and
                 // return that integer.
-                r_val = (aoclsparse_int)strtol(str, NULL, 10);
+                r_val = static_cast<aoclsparse_int>(strtol(str, NULL, 10));
+
                 return r_val;
             }
             else if constexpr(std::is_same_v<T, std::string>)
@@ -130,9 +131,6 @@ namespace aoclsparse
         static context   *global_obj;
         static std::mutex global_lock;
 
-        // num of threads
-        aoclsparse_int num_threads = 1;
-
         // ALCI CPU object
         std::unique_ptr<alci::Cpu> Cpu = nullptr;
 
@@ -150,23 +148,6 @@ namespace aoclsparse
         // Ensure direct calls to constructor is not possible
         context()
         {
-            /*
-            * Read from OpenMP params and sparse ENVs for threading, only if OMP is enabled.
-            * Since the library relies on OpenMP for multithreading OpenMP variables get the
-            * maximum priority.
-            */
-#ifdef _OPENMP
-            /*
-            * Read the sparse specific thread-count environment
-            * variable to initialize the global object.
-            */
-            aoclsparse_int env_num_threads = this->get_thread_from_env();
-
-            // Set the num threads value set in aoclsparse_num_threads
-            this->num_threads = env_num_threads;
-
-            // TODO - add code sections to handle nested parallelism scenarios and OMP ICVs
-#endif
             this->Cpu   = std::make_unique<alci::Cpu>();
             this->Uarch = this->Cpu->getUarch();
 
@@ -254,11 +235,25 @@ namespace aoclsparse
         aoclsparse_int get_thread_from_env()
         {
             aoclsparse_int nt = 1;
+
+            /*
+            * Read from OpenMP params and sparse ENVs for threading, only if OMP is enabled.
+            * Since the library relies on OpenMP for multithreading OpenMP variables get the
+            * maximum priority.
+            */
 #ifdef _OPENMP
-            // Try to read AOCLSPARSE_NUM_THREADS with fallback value as number of processors.
-            nt = env_get_var("AOCLSPARSE_NUM_THREADS", (aoclsparse_int)1);
+            // Try to read AOCLSPARSE_NUM_THREADS with fallback value
+            // to indicate if it has been set or not.
+            nt = env_get_var("AOCLSPARSE_NUM_THREADS", (aoclsparse_int)-1);
+
+            // If AOCLSPARSE_NUM_THREADS was not set, try to read OMP_NUM_THREADS.
+            if(nt == -1 || nt == 0)
+                nt = env_get_var("OMP_NUM_THREADS", (aoclsparse_int)-1);
+
+            // If AOCLSPARSE_NUM_THREADS and OMP_NUM_THREADS was not set, set it to number of procs.
+            if(nt == -1 || nt == 0)
+                nt = static_cast<aoclsparse_int>(omp_get_num_procs());
 #endif
-            // If AOCLSPARSE_NUM_THREADS was not set, return number of processors.
             return nt;
         }
 
@@ -287,7 +282,7 @@ namespace aoclsparse
         // Returns the number of threads set
         aoclsparse_int get_num_threads(void)
         {
-            return this->num_threads;
+            return get_thread_from_env();
         }
 
         // Returns the ISA hint set
