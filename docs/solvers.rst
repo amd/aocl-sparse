@@ -44,8 +44,10 @@ interrupted once an approximate solution is deemed acceptable.
 Forward and Reverse Communication Interfaces
 --------------------------------------------
 
-The suite presents two separate interfaces to all the iterative solvers, a direct one, :cpp:func:`aoclsparse_itsol_d_solve` (:cpp:func:`aoclsparse_itsol_s_solve`),
-and a reverse communication (RCI) one :cpp:func:`aoclsparse_itsol_d_rci_solve` (:cpp:func:`aoclsparse_itsol_s_rci_solve`). While the underlying algorithms are exactly the same,
+The suite presents two separate interfaces to all the iterative solvers, a direct one, :cpp:func:`aoclsparse_itsol_d_solve`,
+(:cpp:func:`aoclsparse_itsol_s_solve`, :cpp:func:`aoclsparse_itsol_c_solve`, :cpp:func:`aoclsparse_itsol_z_solve`)
+and a reverse communication (RCI) one :cpp:func:`aoclsparse_itsol_d_rci_solve` (:cpp:func:`aoclsparse_itsol_s_rci_solve`
+:cpp:func:`aoclsparse_itsol_c_rci_solve`, :cpp:func:`aoclsparse_itsol_z_rci_solve`) While the underlying algorithms are exactly the same,
 the difference lies in how data is communicated to the solvers.
 
 The direct communication interface expects to have explicit access to the coefficient matrix :math:`A`. On the other hand, the reverse communication interface makes
@@ -57,18 +59,18 @@ Recommended Workflow
 
 For solving a linear system of equations, the following workflow is recommended:
 
-- Call :cpp:func:`aoclsparse_itsol_s_init` or :cpp:func:`aoclsparse_itsol_d_init` to initialize aoclsparse_itsol_handle.
+- Call :cpp:func:`aoclsparse_itsol_s_init` or :cpp:func:`aoclsparse_itsol_d_init` or :cpp:func:`aoclsparse_itsol_c_init` or :cpp:func:`aoclsparse_itsol_z_init` to initialize aoclsparse_itsol_handle.
 - Choose the solver and adjust its behaviour by setting optional parameters with :cpp:func:`aoclsparse_itsol_option_set`, see there all options available.
 - If the reverse communication interface is desired, define the system's input with
-  :cpp:func:`aoclsparse_itsol_s_rci_input` (or :cpp:func:`aoclsparse_itsol_d_rci_input`).
-- Solve the system with either using direct interface :cpp:func:`aoclsparse_itsol_s_solve` (or :cpp:func:`aoclsparse_itsol_d_solve`) or
-  reverse communication interface :cpp:func:`aoclsparse_itsol_s_rci_solve` (or :cpp:func:`aoclsparse_itsol_d_rci_solve`)
+  :cpp:func:`aoclsparse_itsol_s_rci_input` (or :cpp:func:`aoclsparse_itsol_d_rci_input` or :cpp:func:`aoclsparse_itsol_c_rci_input` or :cpp:func:`aoclsparse_itsol_z_rci_input`).
+- Solve the system with either using direct interface :cpp:func:`aoclsparse_itsol_s_solve` (or :cpp:func:`aoclsparse_itsol_d_solve` or :cpp:func:`aoclsparse_itsol_c_solve` or :cpp:func:`aoclsparse_itsol_z_solve`) or
+  reverse communication interface :cpp:func:`aoclsparse_itsol_s_rci_solve` (or :cpp:func:`aoclsparse_itsol_d_rci_solve` or :cpp:func:`aoclsparse_itsol_c_rci_solve` or :cpp:func:`aoclsparse_itsol_z_rci_solve`)
 - Free the memory with :cpp:func:`aoclsparse_itsol_destroy`.
 
 Information Array
 -----------------
 
-The array ``rinfo[100]`` is used by the solvers (e.g. :cpp:func:`aoclsparse_itsol_s_solve` or :cpp:func:`aoclsparse_itsol_d_rci_solve`) to report
+The array ``rinfo[100]`` is used by the solvers (e.g. :cpp:func:`aoclsparse_itsol_s_solve` or :cpp:func:`aoclsparse_itsol_d_rci_solve` or :cpp:func:`aoclsparse_itsol_c_rci_solve`  or :cpp:func:`aoclsparse_itsol_z_rci_solve`) to report
 back useful convergence metrics and other solver statistics.
 The user callback ``monit`` is also equipped with this array and can be used
 to view or monitor the state of the solver.
@@ -110,6 +112,10 @@ aoclsparse_itsol\_?_init()
 .. doxygenfunction:: aoclsparse_itsol_s_init
     :outline:
 .. doxygenfunction:: aoclsparse_itsol_d_init
+    :outline:
+.. doxygenfunction:: aoclsparse_itsol_c_init
+    :outline:
+.. doxygenfunction:: aoclsparse_itsol_z_init
 
 aoclsparse_itsol_destroy()
 --------------------------
@@ -122,6 +128,10 @@ aoclsparse_itsol\_?_solve()
 .. doxygenfunction:: aoclsparse_itsol_s_solve
     :outline:
 .. doxygenfunction:: aoclsparse_itsol_d_solve
+    :outline:
+.. doxygenfunction:: aoclsparse_itsol_c_solve
+    :outline:
+.. doxygenfunction:: aoclsparse_itsol_z_solve
 
 aoclsparse_itsol_option_set()
 -----------------------------
@@ -140,6 +150,10 @@ aoclsparse_itsol\_?_rci_input()
 .. doxygenfunction:: aoclsparse_itsol_s_rci_input
     :outline:
 .. doxygenfunction:: aoclsparse_itsol_d_rci_input
+    :outline:
+.. doxygenfunction:: aoclsparse_itsol_c_rci_input
+    :outline:
+.. doxygenfunction:: aoclsparse_itsol_z_rci_input
 
 aoclsparse_itsol\_?_rci_solve()
 --------------------------------
@@ -147,6 +161,10 @@ aoclsparse_itsol\_?_rci_solve()
 .. doxygenfunction:: aoclsparse_itsol_s_rci_solve
     :outline:
 .. doxygenfunction:: aoclsparse_itsol_d_rci_solve
+    :outline:
+.. doxygenfunction:: aoclsparse_itsol_c_rci_solve
+    :outline:
+.. doxygenfunction:: aoclsparse_itsol_z_rci_solve
 
 aoclsparse\_?symgs()
 --------------------------------

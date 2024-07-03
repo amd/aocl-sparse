@@ -197,4 +197,14 @@ namespace
         test_gmres<float>(param.mid, param.opts, param.precondf, param.monitf, param.status_exp);
     }
     INSTANTIATE_TEST_SUITE_P(GmresSuite, GmresDDTest, testing::ValuesIn(GMRESTestValues));
+
+    TEST(GmresComplex, DblComplex)
+    {
+        test_dcomplex_gmres<aoclsparse_double_complex>(100);
+    }
+    TEST(GmresComplex, FltComplex)
+    {
+        test_dcomplex_gmres<aoclsparse_float_complex>(1);
+    }
+
 } // namespace

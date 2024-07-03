@@ -1391,7 +1391,6 @@ inline aoclsparse_status ref_add(aoclsparse_operation       op,
                    col_ind_C_ref,
                    reinterpret_cast<std::complex<double> *>(val_C_ref));
 }
-
 /*
     compute ILU factorization using ILU0 preconditioner
 */
@@ -1465,6 +1464,10 @@ inline aoclsparse_status ref_csrilu0(aoclsparse_int                     M,
             else if(csr_col_ind[j] - base == ai)
             {
                 has_diag = true;
+                break;
+            }
+            else
+            {
                 break;
             }
         }

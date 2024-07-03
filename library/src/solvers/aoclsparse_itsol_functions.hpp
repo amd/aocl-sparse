@@ -108,7 +108,8 @@ aoclsparse_status aoclsparse_gmres_data_init(const aoclsparse_int               
     opts.GetOption("gmres restart iterations", m);
     (*gmres)->restart_iters = m;
 
-    (*gmres)->v = (*gmres)->z = (*gmres)->h = (*gmres)->g = (*gmres)->c = (*gmres)->s = nullptr;
+    (*gmres)->v = (*gmres)->z = (*gmres)->h = (*gmres)->g = (*gmres)->s = nullptr;
+    (*gmres)->c                                                         = nullptr;
     try
     {
         // Allocate and initialise arrays to 0
@@ -116,7 +117,7 @@ aoclsparse_status aoclsparse_gmres_data_init(const aoclsparse_int               
         (*gmres)->z = new T[(m + 1) * n]();
         (*gmres)->h = new T[m * m]();
         (*gmres)->g = new T[m + 1]();
-        (*gmres)->c = new T[m]();
+        (*gmres)->c = new tolerance_t<T>[m]();
         (*gmres)->s = new T[m]();
     }
     catch(std::bad_alloc &)
@@ -456,7 +457,7 @@ aoclsparse_status aoclsparse_itsol_rci_solve(aoclsparse_itsol_data<T> *itsol,
                                              T                       **u,
                                              T                       **v,
                                              T                        *x,
-                                             T                         rinfo[100])
+                                             tolerance_t<T>            rinfo[100])
 {
     /* Generic iterative solver interface, call the correct solver based on user defined option
      * Possible exits:
@@ -479,7 +480,6 @@ aoclsparse_status aoclsparse_itsol_rci_solve(aoclsparse_itsol_data<T> *itsol,
         *ircomm = aoclsparse_rci_stop;
         return aoclsparse_status_invalid_pointer;
     }
-
     // Not solving yet ==> initialize solver's data structure
     // and read in the options
     if(!itsol->solving)
@@ -491,7 +491,6 @@ aoclsparse_status aoclsparse_itsol_rci_solve(aoclsparse_itsol_data<T> *itsol,
             *ircomm = aoclsparse_rci_stop;
             return status;
         }
-
         // skip solver's initialization on next RCI calls till we are finish (rci_stop)
         itsol->solving = true;
         // lock options so that they are unchangable while we are solving
@@ -535,10 +534,11 @@ aoclsparse_status aoclsparse_itsol_solve(
     const aoclsparse_mat_descr descr,
     const T                   *b,
     T                         *x,
-    T                          rinfo[100],
+    tolerance_t<T>             rinfo[100],
     aoclsparse_int precond(aoclsparse_int flag, aoclsparse_int n, const T *u, T *v, void *udata),
-    aoclsparse_int monit(aoclsparse_int n, const T *x, const T *r, T rinfo[100], void *udata),
-    void          *udata)
+    aoclsparse_int monit(
+        aoclsparse_int n, const T *x, const T *r, tolerance_t<T> rinfo[100], void *udata),
+    void *udata)
 {
     aoclsparse_status status;
     if(itsol == nullptr)
@@ -607,7 +607,7 @@ aoclsparse_status aoclsparse_cg_rci_solve(aoclsparse_itsol_data<T> *itsol,
                                           T                       **u,
                                           T                       **v,
                                           T                        *x,
-                                          T                         rinfo[100])
+                                          tolerance_t<T>            rinfo[100])
 {
     // all pointers were already checked by the caller --> safe to use them
     aoclsparse_status exit_status = aoclsparse_status_success;
@@ -615,9 +615,9 @@ aoclsparse_status aoclsparse_cg_rci_solve(aoclsparse_itsol_data<T> *itsol,
     cg_data<T>       *cg;
     T                 pq, rz_new;
     bool              loop;
-
-    cg = itsol->cg;
-    n  = itsol->n;
+    tolerance_t<T>    v1 = 1.0;
+    cg                   = itsol->cg;
+    n                    = itsol->n;
 
     // Check for user's request to stop (but ignore on the first input)
     if(cg->task != task_start && *ircomm == aoclsparse_rci_interrupt)
@@ -643,14 +643,12 @@ aoclsparse_status aoclsparse_cg_rci_solve(aoclsparse_itsol_data<T> *itsol,
             // Set r = -b; p = x
             // Request q = A*p
             // store the norm of b
-            cg->bnorm2 = 0.0;
             for(i = 0; i < n; i++)
             {
                 cg->r[i] = -itsol->b[i];
-                cg->bnorm2 += itsol->b[i] * itsol->b[i];
                 cg->p[i] = x[i];
             }
-            cg->bnorm2 = sqrt(cg->bnorm2);
+            cg->bnorm2 = blis::cblas_nrm2(n, itsol->b, 1);
             if(cg->bnorm2 != cg->bnorm2) // test for NaN
                 return aoclsparse_status_invalid_value; // vector b is rubbish
             rinfo[RINFO_RHS_NORM] = cg->bnorm2;
@@ -671,13 +669,11 @@ aoclsparse_status aoclsparse_cg_rci_solve(aoclsparse_itsol_data<T> *itsol,
             // Have: q = Ax, r = -b
             // Compute initial residual r = r + q (=Ax-b)
             // and its norm
-            cg->rnorm2 = 0.0;
             for(i = 0; i < n; i++)
             {
-                cg->r[i] += cg->q[i];
-                cg->rnorm2 += cg->r[i] * cg->r[i];
+                cg->r[i] = cg->r[i] + cg->q[i];
             }
-            cg->rnorm2 = sqrt(cg->rnorm2);
+            cg->rnorm2 = blis::cblas_nrm2(n, cg->r, 1);
             //bli_dnormfv(handle->n, cgd->r, 1, &cgd->rnorm2);
             if(cg->rnorm2 != cg->rnorm2) // test for NaN
             {
@@ -688,9 +684,16 @@ aoclsparse_status aoclsparse_cg_rci_solve(aoclsparse_itsol_data<T> *itsol,
 
             // initialize p = 0 (so that initil p=-z from p:=-z + beta*p)
             for(i = 0; i < n; i++)
-                cg->p[i] = 0.;
+                cg->p[i] = aoclsparse_numeric::zero<T>();
             // rz doesn't matter in the first iteration as long as it is not 0
-            cg->rz = 1.;
+            if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
+            {
+                cg->rz = v1;
+            }
+            else
+            {
+                cg->rz = {(tolerance_t<T>)v1, (tolerance_t<T>)v1};
+            }
 
             // continue without break to check convergence
             cg->task = task_check_conv;
@@ -735,7 +738,7 @@ aoclsparse_status aoclsparse_cg_rci_solve(aoclsparse_itsol_data<T> *itsol,
         case task_start_iter:
             // start new iteration, request preconditioner z=inv(M)*r
             cg->niter++;
-            rinfo[RINFO_ITER] = (T)cg->niter;
+            rinfo[RINFO_ITER] = (tolerance_t<T>)cg->niter;
 
             cg->task = task_compute_beta;
             if(!cg->precond)
@@ -761,13 +764,14 @@ aoclsparse_status aoclsparse_cg_rci_solve(aoclsparse_itsol_data<T> *itsol,
             //            p = beta*p - z
             // request the matrix vector product for A*p
 
-            rz_new = 0.;
+            rz_new = aoclsparse_numeric::zero<T>();
             for(i = 0; i < n; i++)
                 rz_new += cg->r[i] * cg->z[i];
             //bli_ddotv(
             //    BLIS_NO_CONJUGATE, BLIS_NO_CONJUGATE, handle->n, cgd->r, 1, cgd->z, 1, &cgd->beta);
-            if(cg->rz <= 0.) // preconditioner M is not positive definite
+            if(aoclsparse_is_negative_or_nearzero(cg->rz))
                 return aoclsparse_status_numerical_error;
+
             cg->beta = rz_new / cg->rz;
             cg->rz   = rz_new;
             for(i = 0; i < n; i++)
@@ -788,11 +792,11 @@ aoclsparse_status aoclsparse_cg_rci_solve(aoclsparse_itsol_data<T> *itsol,
             // x_{k+1} = x_k + alpha p_k
             // r_{k+1} = r_k + alpha Ap_k
             // Then check convergence
-            pq = 0.;
+            pq = aoclsparse_numeric::zero<T>();
             for(i = 0; i < n; i++)
                 pq += cg->p[i] * cg->q[i];
             //bli_ddotv(BLIS_NO_CONJUGATE, BLIS_NO_CONJUGATE, handle->n, cgd->p, 1, cgd->q, 1, &pq);
-            if(pq <= 0.) // system matrix A is not positive definite
+            if(aoclsparse_is_negative_or_nearzero(pq)) // system matrix A is not positive definite
                 return aoclsparse_status_numerical_error;
             cg->alpha = cg->rz / pq;
             for(i = 0; i < n; i++)
@@ -804,10 +808,7 @@ aoclsparse_status aoclsparse_cg_rci_solve(aoclsparse_itsol_data<T> *itsol,
             //bli_daxpyv(BLIS_NO_CONJUGATE, handle->n, &cgd->alpha, cgd->q, 1, cgd->r, 1);
 
             // compute norm of the residual in rinfo[0]
-            cg->rnorm2 = 0.0;
-            for(i = 0; i < n; i++)
-                cg->rnorm2 += cg->r[i] * cg->r[i];
-            cg->rnorm2 = sqrt(cg->rnorm2);
+            cg->rnorm2 = blis::cblas_nrm2(n, cg->r, 1);
             //bli_dnormfv(handle->n, cgd->r, 1, &cgd->rnorm2);
             if(cg->rnorm2 != cg->rnorm2) // test for NaN
             {
@@ -845,7 +846,6 @@ aoclsparse_status
     aoclsparse_backward_solve(aoclsparse_int m, aoclsparse_int nn, const T *r, const T *g, T *y)
 {
     aoclsparse_status exit_status = aoclsparse_status_success;
-    bool              is_value_zero;
     if(r == NULL || g == NULL || y == NULL)
     {
         return aoclsparse_status_invalid_pointer;
@@ -859,9 +859,8 @@ aoclsparse_status
         {
             y[j] -= r[j * nn + i] * y[i];
         }
-        diag          = r[j * nn + j];
-        is_value_zero = aoclsparse_zerocheck(diag);
-        if(is_value_zero)
+        diag = r[j * nn + j];
+        if(aoclsparse_is_nearzero(diag))
         {
             exit_status = aoclsparse_status_numerical_error;
             break;
@@ -870,7 +869,6 @@ aoclsparse_status
     }
     return exit_status;
 }
-
 /* GMRES solver in reverse communication interface
  * Possible exits:
  * - maximum number of iteration reached
@@ -883,17 +881,17 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
                                              T                       **io1,
                                              T                       **io2,
                                              T                        *x,
-                                             T                         rinfo[100])
+                                             tolerance_t<T>            rinfo[100])
 {
     aoclsparse_status exit_status = aoclsparse_status_success;
     bool is_residnorm_below_abs_tolerance, is_rhsnorm_below_rel_tolerance, is_max_iters_reached;
     bool is_restart_cycled_ended, is_residual_vector_orthogonal;
-    T   *v = NULL, *h = NULL, *g = NULL, *c = NULL, *s = NULL, *z = NULL;
+    T   *v = NULL, *h = NULL, *g = NULL, *s = NULL, *z = NULL;
     aoclsparse_int n = 0, m = 0, j = 0, k = 0;
     gmres_data<T> *gmres;
-    T              hv = 0.0, rr = 0.0, hh = 0.0, r1 = 0.0, r2 = 0.0, g0 = 0.0;
-    T              alpha = 1.0, beta = -1.0;
+    T              temp_hh, hv, rr, r1, r2, g0;
     bool           loop = false;
+    tolerance_t<T> hh = 0.0, *c = NULL, temp_g0 = 0.0;
 
     gmres = itsol->gmres;
     n     = itsol->n;
@@ -905,6 +903,20 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
     c     = gmres->c;
     s     = gmres->s;
 
+    if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
+    {
+        hv = 0.0;
+        rr = 0.0;
+        r1 = 0.0;
+        r2 = 0.0;
+    }
+    else
+    {
+        hv = aoclsparse_numeric::zero<T>();
+        rr = aoclsparse_numeric::zero<T>();
+        r1 = aoclsparse_numeric::zero<T>();
+        r2 = aoclsparse_numeric::zero<T>();
+    }
     // Check for user's request to stop (but ignore on the first input)
     if(gmres->task != task_gmres_start && *ircomm == aoclsparse_rci_interrupt)
     {
@@ -927,9 +939,8 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
         case task_gmres_start:
             // Set up memory to compute A.x0
             // Request v = A*x0
-            *io1 = x;
-            *io2 = v;
-
+            *io1        = x;
+            *io2        = v;
             *ircomm     = aoclsparse_rci_mv;
             gmres->task = task_gmres_init_res;
             break;
@@ -958,7 +969,7 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
             rinfo[RINFO_RHS_NORM] = gmres->brtol;
 
             //exit if both the tolerances are zeroes
-            if((aoclsparse_zerocheck(gmres->atol)) && (aoclsparse_zerocheck(gmres->brtol)))
+            if((aoclsparse_is_nearzero(gmres->atol)) && (aoclsparse_is_nearzero(gmres->brtol)))
             {
                 exit_status = aoclsparse_status_invalid_value;
                 *ircomm     = aoclsparse_rci_stop;
@@ -967,20 +978,33 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
 
             //step 1.1
             //v = b - v
-            alpha = 1.0;
-            beta  = -1.0;
-            blis::cblas_axpby(n, alpha, itsol->b, 1, beta, v, 1);
+            if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
+            {
+                blis::cblas_axpby(n, 1.0, itsol->b, 1, -1.0, v, 1);
+            }
+            else
+            {
+                blis::cblas_axpby(n, {1.0, 0.0}, itsol->b, 1, {-1.0, 0.0}, v, 1);
+            }
             //step 1.2
-            g[0] = blis::cblas_nrm2(n, v, 1);
+            temp_g0 = blis::cblas_nrm2(n, v, 1);
+            if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
+            {
+                g[0] = temp_g0;
+            }
+            else
+            {
+                g[0] = {(tolerance_t<T>)temp_g0, (tolerance_t<T>)0.0};
+            }
             //step 1.3
-            gmres->rnorm2         = g[0];
+            gmres->rnorm2         = temp_g0;
             rinfo[RINFO_RES_NORM] = gmres->rnorm2;
             // Absolute tolerance ||Ax_k - b|| < atol
             if((0 < gmres->rnorm2) && (gmres->rnorm2 <= gmres->atol))
             {
                 exit_status       = aoclsparse_status_success;
                 *ircomm           = aoclsparse_rci_stop;
-                rinfo[RINFO_ITER] = (T)gmres->niter;
+                rinfo[RINFO_ITER] = (tolerance_t<T>)gmres->niter;
                 break;
             }
             // Relative tolerance ||Ax_k - b|| / ||b|| < rtol
@@ -988,10 +1012,10 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
             {
                 exit_status       = aoclsparse_status_success;
                 *ircomm           = aoclsparse_rci_stop;
-                rinfo[RINFO_ITER] = (T)gmres->niter;
+                rinfo[RINFO_ITER] = (tolerance_t<T>)gmres->niter;
                 break;
             }
-            blis::cblas_scal(n, (1.0 / g[0]), v, 1);
+            blis::cblas_scal(n, (1.0 / gmres->rnorm2), v, 1);
 
             if(!gmres->precond)
             {
@@ -1033,12 +1057,26 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
             //step 2.2
             for(int i = 0; i <= j; i++)
             {
-                h[i * m + j] = blis::cblas_dot(n, v + (j + 1) * n, 1, v + i * n, 1);
+                if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
+                {
+                    h[i * m + j] = blis::cblas_dot(n, v + (j + 1) * n, 1, v + i * n, 1);
+                }
+                else
+                {
+                    h[i * m + j] = blis::cblas_dotc(n, v + (j + 1) * n, 1, v + i * n, 1);
+                }
             }
             //step 2.3
             for(k = 0; k < n; k++)
             {
-                hv = blis::cblas_dot(j + 1, h + j, m, v + k, n);
+                if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
+                {
+                    hv = blis::cblas_dot(j + 1, h + j, m, v + k, n);
+                }
+                else
+                {
+                    hv = blis::cblas_dotc(j + 1, h + j, m, v + k, n);
+                }
                 v[(j + 1) * n + k] -= hv;
             }
             hh                            = blis::cblas_nrm2(n, v + (j + 1) * n, 1);
@@ -1055,7 +1093,7 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
                 // appropriate as it is the best approximation we have.
                 j += 1; //although convergence is reached while checking, we count the iteration so far
                 gmres->niter += j; //update iterations
-                rinfo[RINFO_ITER] = (T)gmres->niter;
+                rinfo[RINFO_ITER] = (tolerance_t<T>)gmres->niter;
                 //Since hh is zero, it means that the current residual vector is already
                 //orthogonal to the previous j columns of Q.
                 rinfo[RINFO_RES_NORM] = hh;
@@ -1065,7 +1103,6 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
             }
 
             /* plane rotations */
-
             for(int i = 0; i < j; i++)
             {
                 r1                 = h[i * m + j];
@@ -1076,14 +1113,37 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
             rr = h[j * m + j];
             hh = -hh;
 
-            libflame::lartg(&rr, &hh, &c[j], &s[j], &h[j * m + j]);
-
+            if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
+            {
+                temp_hh = hh;
+                libflame::lartg<T>(&rr, &temp_hh, &c[j], &s[j], &h[j * m + j]);
+            }
+            else
+            {
+                temp_hh = {(tolerance_t<T>)hh, (tolerance_t<T>)0.0};
+                if constexpr(std::is_same_v<T, std::complex<float>>)
+                {
+                    scomplex *pf = reinterpret_cast<scomplex *>(&rr);
+                    scomplex *pg = reinterpret_cast<scomplex *>(&temp_hh);
+                    scomplex *ps = reinterpret_cast<scomplex *>(&s[j]);
+                    scomplex *pr = reinterpret_cast<scomplex *>(&h[j * m + j]);
+                    libflame::lartg<scomplex, float>(pf, pg, &c[j], ps, pr);
+                }
+                else if constexpr(std::is_same_v<T, std::complex<double>>)
+                {
+                    dcomplex *pf = reinterpret_cast<dcomplex *>(&rr);
+                    dcomplex *pg = reinterpret_cast<dcomplex *>(&temp_hh);
+                    dcomplex *ps = reinterpret_cast<dcomplex *>(&s[j]);
+                    dcomplex *pr = reinterpret_cast<dcomplex *>(&h[j * m + j]);
+                    libflame::lartg<dcomplex, double>(pf, pg, &c[j], ps, pr);
+                }
+            }
             g0            = g[j];
             g[j]          = c[j] * g0;
             g[j + 1]      = s[j] * g0;
             gmres->rnorm2 = std::abs(g[j /*m*/]); /* residual */
 
-            rinfo[RINFO_ITER]     = (T)gmres->niter;
+            rinfo[RINFO_ITER]     = (tolerance_t<T>)gmres->niter;
             rinfo[RINFO_RES_NORM] = gmres->rnorm2;
 
             //control should come here only if (j < restart_iters) and inner loop is still iterating
@@ -1134,16 +1194,15 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
             break;
 
         case task_gmres_x_update:
-            j = gmres->j;
             /* 3. form the approximate solution */
             // M . x = b, solve for x using backward pass of triangular solve
-            // h . c = g, solve for c from Solver point of view
+            // h . s = g, solve for s from Solver point of view
             j           = gmres->j;
             exit_status = aoclsparse_backward_solve<T>(j,
                                                        m,
                                                        h, //hessenberg matrix h, known
                                                        g, //g, rhs known
-                                                       c); //c = ?, unknown
+                                                       s); //s = ?, unknown
 
             if(exit_status != aoclsparse_status_success)
             {
@@ -1159,23 +1218,36 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
             {
                 for(int i = 0; i < n; i++)
                 {
-                    x[i] += blis::cblas_dot(m, v + i, n, c, 1);
+                    if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
+                    {
+                        x[i] += blis::cblas_dot(m, v + i, n, s, 1);
+                    }
+                    else
+                    {
+                        x[i] += blis::cblas_dotc(m, v + i, n, s, 1);
+                    }
                 }
             }
             else
             {
                 for(int i = 0; i < n; i++)
                 {
-                    x[i] += blis::cblas_dot(m, z + i, n, c, 1);
+                    if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
+                    {
+                        x[i] += blis::cblas_dot(m, z + i, n, s, 1);
+                    }
+                    else
+                    {
+                        x[i] += blis::cblas_dotc(m, z + i, n, s, 1);
+                    }
                 }
             }
             gmres->rnorm2 = std::abs(g[j /*m*/]); /* residual */
             gmres->niter += j; //update iterations
-            rinfo[RINFO_ITER]     = (T)gmres->niter;
+            rinfo[RINFO_ITER]     = (tolerance_t<T>)gmres->niter;
             rinfo[RINFO_RES_NORM] = gmres->rnorm2;
 
             // check convergence via internal stopping criteria
-
             // Absolute tolerance ||Ax_k - b|| < atol
             is_residnorm_below_abs_tolerance
                 = (0.0 < gmres->atol) && (gmres->rnorm2 <= gmres->atol);
@@ -1184,7 +1256,6 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
                 = (0.0 < gmres->rnorm2) && (gmres->rnorm2 <= gmres->brtol);
 
             is_max_iters_reached = ((gmres->maxit > 0) && (gmres->niter >= gmres->maxit));
-
             //check if restart loop has ended
             //if yes then restart the whole process again using the newly updated x
             if(j >= m)
@@ -1260,7 +1331,6 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
             break;
         }
     } while(loop);
-
     return exit_status;
 }
 
@@ -1270,10 +1340,11 @@ aoclsparse_status aoclsparse_cg_solve(
     aoclsparse_matrix          mat,
     const aoclsparse_mat_descr descr,
     T                         *x,
-    T                          rinfo[100],
+    tolerance_t<T>             rinfo[100],
     aoclsparse_int precond(aoclsparse_int flag, aoclsparse_int n, const T *u, T *v, void *udata),
-    aoclsparse_int monit(aoclsparse_int n, const T *x, const T *r, T rinfo[100], void *udata),
-    void          *udata)
+    aoclsparse_int monit(
+        aoclsparse_int n, const T *x, const T *r, tolerance_t<T> rinfo[100], void *udata),
+    void *udata)
 {
     /* CG solver in direct communication interface
      * Possible exits:
@@ -1289,11 +1360,20 @@ aoclsparse_status aoclsparse_cg_solve(
     aoclsparse_itsol_rci_job ircomm = aoclsparse_rci_start;
     T                       *u      = nullptr;
     T                       *v      = nullptr;
-    T                        alpha = 1.0, beta = 0.;
+    T                        alpha, beta;
     std::vector<T>           y;
     aoclsparse_status        exit_status = aoclsparse_status_success;
     aoclsparse_status        status;
-
+    if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
+    {
+        alpha = 1.0;
+        beta  = 0.0;
+    }
+    else
+    {
+        alpha = {(tolerance_t<T>)1.0, (tolerance_t<T>)0.0};
+        beta  = {(tolerance_t<T>)0.0, (tolerance_t<T>)0.0};
+    }
     if(mat->m != n || mat->n != n)
         return aoclsparse_status_invalid_size;
     if(descr->type != aoclsparse_matrix_type_symmetric)
@@ -1333,8 +1413,6 @@ aoclsparse_status aoclsparse_cg_solve(
         {
         case aoclsparse_rci_mv:
             // Compute v = Au
-            beta   = 0.0;
-            alpha  = 1.0;
             status = aoclsparse_mv_t<T>(aoclsparse_operation_none, &alpha, mat, descr, u, &beta, v);
             if(status != aoclsparse_status_success)
                 // Shouldn't happen, invalid pointer/value/not implemented should be checked before
@@ -1403,22 +1481,33 @@ aoclsparse_status aoclsparse_gmres_solve(
     aoclsparse_matrix          mat,
     const aoclsparse_mat_descr descr,
     T                         *x,
-    T                          rinfo[100],
+    tolerance_t<T>             rinfo[100],
     aoclsparse_int             precond(
         aoclsparse_int flag, aoclsparse_int n, const T *io1, T *io2, void *udata),
-    aoclsparse_int monit(aoclsparse_int n, const T *x, const T *r, T rinfo[100], void *udata),
-    void          *udata)
+    aoclsparse_int monit(
+        aoclsparse_int n, const T *x, const T *r, tolerance_t<T> rinfo[100], void *udata),
+    void *udata)
 {
     aoclsparse_int           flag;
     aoclsparse_int           n      = itsol->n;
     aoclsparse_itsol_rci_job ircomm = aoclsparse_rci_start;
     T                       *io1    = nullptr;
     T                       *io2    = nullptr;
-    T                        alpha = 1.0, beta = 0.;
+    T                        alpha, beta;
     T                       *precond_data = NULL;
     aoclsparse_status        exit_status  = aoclsparse_status_success;
     aoclsparse_status        status;
 
+    if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
+    {
+        alpha = 1.0;
+        beta  = 0.0;
+    }
+    else
+    {
+        alpha = {(tolerance_t<T>)1.0, (tolerance_t<T>)0.0};
+        beta  = {(tolerance_t<T>)0.0, (tolerance_t<T>)0.0};
+    }
     if(mat->m != n || mat->n != n)
         return aoclsparse_status_invalid_size;
 
@@ -1443,8 +1532,6 @@ aoclsparse_status aoclsparse_gmres_solve(
         {
         case aoclsparse_rci_mv:
             // Compute v = Au
-            beta   = 0.0;
-            alpha  = 1.0;
             status = aoclsparse_mv_t<T>(
                 aoclsparse_operation_none, &alpha, mat, descr, io1, &beta, io2);
             if(status != aoclsparse_status_success)
@@ -1508,7 +1595,7 @@ aoclsparse_status handle_parse_option(aoclsparse_options::OptionRegistry<T> &opt
     aoclsparse_int       flag;
     aoclsparse_int       iquery, iset;
     aoclsparse_int       otype = 0;
-    T                    rquery, rset;
+    tolerance_t<T>       rquery, rset;
     bool                 bquery, bset;
     std::string          squery, sset, name;
 
@@ -1556,7 +1643,16 @@ aoclsparse_status handle_parse_option(aoclsparse_options::OptionRegistry<T> &opt
         flag = opts.SetOption(name, iset, byuser);
         break;
     case 2: // real
-        rset = std::stod(value); // TODO FIX float / double
+        if constexpr(std::is_same_v<T, double> || std::is_same_v<T, double>
+                     || std::is_same_v<T, aoclsparse_double_complex>)
+        {
+            rset = std::stod(value);
+        }
+        else
+        {
+            rset = std::stof(value);
+        }
+
         flag = opts.SetOption(name, rset, byuser);
         break;
     case 3: // string

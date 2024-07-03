@@ -89,6 +89,7 @@
 #define AOCLSPARSE_SOLVERS_H_
 
 #include "aoclsparse.h"
+
 /**
  * @brief Optimization handle
  *
@@ -197,8 +198,8 @@ aoclsparse_status aoclsparse_itsol_option_set(aoclsparse_itsol_handle handle,
  * \brief Initialize a problem \p handle ( \c aoclsparse_itsol_handle) for the iterative solvers suite of the library.
  *
  * \details
- * \ref aoclsparse_itsol_s_init and aoclsparse_itsol_d_init initialize a data structure referred to as
- * problem \p handle. This \p handle is used by iterative solvers (itsol) suite to setup options, define which
+ * The init apis initialize a data structure referred to as problem \p handle.
+ * This \p handle is used by iterative solvers (itsol) suite to setup options, define which
  * solver to use, etc.
  *
  * @param[inout] handle the pointer to the problem handle data structure.
@@ -216,6 +217,12 @@ aoclsparse_status aoclsparse_itsol_d_init(aoclsparse_itsol_handle *handle);
 
 DLL_PUBLIC
 aoclsparse_status aoclsparse_itsol_s_init(aoclsparse_itsol_handle *handle);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_itsol_z_init(aoclsparse_itsol_handle *handle);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_itsol_c_init(aoclsparse_itsol_handle *handle);
 /**@}*/
 
 /*! \ingroup solvers_module
@@ -264,6 +271,16 @@ aoclsparse_status
 DLL_PUBLIC
 aoclsparse_status
     aoclsparse_itsol_s_rci_input(aoclsparse_itsol_handle handle, aoclsparse_int n, const float *b);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_itsol_z_rci_input(aoclsparse_itsol_handle          handle,
+                                               aoclsparse_int                   n,
+                                               const aoclsparse_double_complex *b);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_itsol_c_rci_input(aoclsparse_itsol_handle         handle,
+                                               aoclsparse_int                  n,
+                                               const aoclsparse_float_complex *b);
 /**@}*/
 
 /*! \ingroup solvers_module
@@ -284,19 +301,22 @@ aoclsparse_status
  * operation is requested. Once the user performs the requested task it must call this function again to resume the solve.
  *
  * The expected workflow is as follows:
- * -# Call \ref aoclsparse_itsol_s_init or \ref aoclsparse_itsol_d_init to initialize the problem \p handle ( \ref aoclsparse_itsol_handle)
+ * -# Call \ref aoclsparse_itsol_s_init or \ref aoclsparse_itsol_d_init or \ref aoclsparse_itsol_c_init or
+ *    \ref aoclsparse_itsol_z_init to initialize the problem \p handle ( \ref aoclsparse_itsol_handle)
  * -# Choose the solver and adjust its behaviour by setting optional parameters with \ref aoclsparse_itsol_option_set, see also \ref anchor_itsol_options.
  * -# Define the problem size and right-hand side vector \f$b\f$ with \ref aoclsparse_itsol_d_rci_input.
- * -# Solve the system with either \ref aoclsparse_itsol_s_rci_solve or \ref aoclsparse_itsol_d_rci_solve.
+ * -# Solve the system with either \ref aoclsparse_itsol_s_rci_solve or \ref aoclsparse_itsol_d_rci_solve or \ref aoclsparse_itsol_c_rci_solve or \ref aoclsparse_itsol_z_rci_solve.
  * -# If there is another linear system of equations to solve with the same matrix but a different right-hand side \f$b\f$, then repeat from step 3.
  * -# If solver terminated successfully then vector \p x contains the solution.
  * -# Free the memory with \ref aoclsparse_itsol_destroy.
  *
- * These reverse communication interfaces complement the _forward communication_ interfaces \ref aoclsparse_itsol_d_rci_solve and
- * \ref aoclsparse_itsol_s_rci_solve.
+ * These reverse communication interfaces complement the _forward communication_ interfaces \ref aoclsparse_itsol_d_rci_solve,
+ * \ref aoclsparse_itsol_s_rci_solve, \ref aoclsparse_itsol_c_rci_solve and \ref aoclsparse_itsol_z_rci_solve.
  *
  * @param [inout] handle problem \p handle. Needs to be previously initialized by \ref aoclsparse_itsol_s_init or
- *                \ref aoclsparse_itsol_d_init and then populated using either \ref aoclsparse_itsol_s_rci_input or \ref aoclsparse_itsol_d_rci_input, as appropriate.
+ *                \ref aoclsparse_itsol_d_init or \ref aoclsparse_itsol_c_init or \ref aoclsparse_itsol_z_init and
+ *                then populated using either \ref aoclsparse_itsol_s_rci_input or \ref aoclsparse_itsol_d_rci_input,
+ *                 or \ref aoclsparse_itsol_c_rci_input  or \ref aoclsparse_itsol_z_rci_input as appropriate.
  * @param [inout] ircomm pointer to the reverse communication instruction flag and defined in \ref aoclsparse_itsol_rci_job.
  * @param [inout] u pointer to a generic vector of data. The solver will point to the data on which the operation defined by \p ircomm
  * needs to be applied.
@@ -371,6 +391,21 @@ aoclsparse_status aoclsparse_itsol_s_rci_solve(aoclsparse_itsol_handle   handle,
                                                float                   **v,
                                                float                    *x,
                                                float                     rinfo[100]);
+DLL_PUBLIC
+aoclsparse_status aoclsparse_itsol_z_rci_solve(aoclsparse_itsol_handle     handle,
+                                               aoclsparse_itsol_rci_job   *ircomm,
+                                               aoclsparse_double_complex **u,
+                                               aoclsparse_double_complex **v,
+                                               aoclsparse_double_complex  *x,
+                                               double                      rinfo[100]);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_itsol_c_rci_solve(aoclsparse_itsol_handle    handle,
+                                               aoclsparse_itsol_rci_job  *ircomm,
+                                               aoclsparse_float_complex **u,
+                                               aoclsparse_float_complex **v,
+                                               aoclsparse_float_complex  *x,
+                                               float                      rinfo[100]);
 /**@}*/
 
 /*! \ingroup solvers_module
@@ -388,7 +423,7 @@ aoclsparse_status aoclsparse_itsol_s_rci_solve(aoclsparse_itsol_handle   handle,
  * The expected workflow is as follows:
  * -# Call \ref aoclsparse_itsol_s_init or \ref aoclsparse_itsol_d_init to initialize the problem \p handle ( \ref aoclsparse_itsol_handle).
  * -# Choose the solver and adjust its behaviour by setting optional parameters with \ref aoclsparse_itsol_option_set, see also \ref anchor_itsol_options.
- * -# Solve the system by calling \ref aoclsparse_itsol_s_solve or \ref aoclsparse_itsol_d_solve.
+ * -# Solve the system by calling \ref aoclsparse_itsol_s_solve or \ref aoclsparse_itsol_d_solve or \ref aoclsparse_itsol_c_solve or \ref aoclsparse_itsol_z_solve.
  * -# If there is another linear system of equations to solve with the same matrix but a different right-hand side \f$b\f$, then repeat from step 3.
  * -# If solver terminated successfully then vector \p x contains the solution.
  * -# Free the memory with \ref aoclsparse_itsol_destroy.
@@ -496,6 +531,46 @@ aoclsparse_status aoclsparse_itsol_s_solve(
     aoclsparse_int monit(
         aoclsparse_int n, const float *x, const float *r, float rinfo[100], void *udata),
     void *udata);
+
+DLL_PUBLIC
+aoclsparse_status
+    aoclsparse_itsol_z_solve(aoclsparse_itsol_handle          handle,
+                             aoclsparse_int                   n,
+                             aoclsparse_matrix                mat,
+                             const aoclsparse_mat_descr       descr,
+                             const aoclsparse_double_complex *b,
+                             aoclsparse_double_complex       *x,
+                             double                           rinfo[100],
+                             aoclsparse_int                   precond(aoclsparse_int                   flag,
+                                                    aoclsparse_int                   n,
+                                                    const aoclsparse_double_complex *u,
+                                                    aoclsparse_double_complex       *v,
+                                                    void                            *udata),
+                             aoclsparse_int                   monit(aoclsparse_int                   n,
+                                                  const aoclsparse_double_complex *x,
+                                                  const aoclsparse_double_complex *r,
+                                                  double                           rinfo[100],
+                                                  void                            *udata),
+                             void                            *udata);
+DLL_PUBLIC
+aoclsparse_status aoclsparse_itsol_c_solve(aoclsparse_itsol_handle         handle,
+                                           aoclsparse_int                  n,
+                                           aoclsparse_matrix               mat,
+                                           const aoclsparse_mat_descr      descr,
+                                           const aoclsparse_float_complex *b,
+                                           aoclsparse_float_complex       *x,
+                                           float                           rinfo[100],
+                                           aoclsparse_int precond(aoclsparse_int flag,
+                                                                  aoclsparse_int n,
+                                                                  const aoclsparse_float_complex *u,
+                                                                  aoclsparse_float_complex       *v,
+                                                                  void *udata),
+                                           aoclsparse_int monit(aoclsparse_int                  n,
+                                                                const aoclsparse_float_complex *x,
+                                                                const aoclsparse_float_complex *r,
+                                                                float rinfo[100],
+                                                                void *udata),
+                                           void          *udata);
 /**@}*/
 
 /*! \ingroup solvers_module

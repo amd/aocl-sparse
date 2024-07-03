@@ -124,30 +124,30 @@ int register_options(aoclsparse_options::OptionRegistry<T> &opts)
             return 2;
     }
     {
-        OptionReal<T> o("cg rel tolerance",
-                        4,
-                        "Set relative convergence tolerance for cg method",
-                        false,
-                        1,
-                        0.0,
-                        greaterequal,
-                        1.0,
-                        p_inf,
-                        expected_precision((T)2.0));
+        OptionReal<tolerance_t<T>> o("cg rel tolerance",
+                                     4,
+                                     "Set relative convergence tolerance for cg method",
+                                     false,
+                                     1,
+                                     0.0,
+                                     greaterequal,
+                                     1.0,
+                                     p_inf,
+                                     expected_precision((tolerance_t<T>)2.0));
         if(opts.Register(o))
             return 2;
     }
     {
-        OptionReal<T> o("cg abs tolerance",
-                        1,
-                        "Set absolute convergence tolerance for cg method",
-                        false,
-                        1,
-                        0.0,
-                        greaterequal,
-                        1.0,
-                        p_inf,
-                        expected_precision<T>());
+        OptionReal<tolerance_t<T>> o("cg abs tolerance",
+                                     1,
+                                     "Set absolute convergence tolerance for cg method",
+                                     false,
+                                     1,
+                                     0.0,
+                                     greaterequal,
+                                     1.0,
+                                     p_inf,
+                                     expected_precision<tolerance_t<T>>());
         if(opts.Register(o))
             return 2;
     }
@@ -183,30 +183,30 @@ int register_options(aoclsparse_options::OptionRegistry<T> &opts)
             return 2;
     }
     {
-        OptionReal<T> o("gmres rel tolerance",
-                        4,
-                        "Set relative convergence tolerance for gmres method",
-                        false,
-                        1,
-                        0.0,
-                        greaterequal,
-                        1.0,
-                        p_inf,
-                        expected_precision((T)2.0));
+        OptionReal<tolerance_t<T>> o("gmres rel tolerance",
+                                     4,
+                                     "Set relative convergence tolerance for gmres method",
+                                     false,
+                                     1,
+                                     0.0,
+                                     greaterequal,
+                                     1.0,
+                                     p_inf,
+                                     expected_precision((tolerance_t<T>)2.0));
         if(opts.Register(o))
             return 2;
     }
     {
-        OptionReal<T> o("gmres abs tolerance",
-                        1,
-                        "Set absolute convergence tolerance for gmres method",
-                        false,
-                        1,
-                        0.0,
-                        greaterequal,
-                        1.0,
-                        p_inf,
-                        expected_precision<T>());
+        OptionReal<tolerance_t<T>> o("gmres abs tolerance",
+                                     1,
+                                     "Set absolute convergence tolerance for gmres method",
+                                     false,
+                                     1,
+                                     0.0,
+                                     greaterequal,
+                                     1.0,
+                                     p_inf,
+                                     expected_precision<tolerance_t<T>>());
         if(opts.Register(o))
             return 2;
     }

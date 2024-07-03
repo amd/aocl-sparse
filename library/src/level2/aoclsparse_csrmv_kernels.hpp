@@ -199,11 +199,11 @@ aoclsparse_status
     T              val;
 
     // Perform (beta * y)
-    if(beta == static_cast<T>(0))
+    if(beta == aoclsparse_numeric::zero<T>())
     {
         // if beta==0 and y contains any NaNs, we can zero y directly
         for(i = 0; i < m; i++)
-            y[i] = 0.;
+            y[i] = aoclsparse_numeric::zero<T>();
     }
     else if(beta != static_cast<T>(1))
     {
