@@ -73,7 +73,7 @@ aoclsparse_status aoclsparse_ilu0_factorization(aoclsparse_int        n,
             {
                 T diag_elem = csr_val[lu_diag_ptr[k]];
 
-                if(aoclsparse_zerocheck(diag_elem))
+                if(aoclsparse_is_nearzero(diag_elem))
                     return aoclsparse_status_numerical_error;
                 csr_val[j] = csr_val[j] / diag_elem;
 
@@ -94,7 +94,7 @@ aoclsparse_status aoclsparse_ilu0_factorization(aoclsparse_int        n,
         }
         lu_diag_ptr[i] = j;
         //Error: ro Pivot
-        if(k != i || aoclsparse_zerocheck(csr_val[j]))
+        if(k != i || aoclsparse_is_nearzero(csr_val[j]))
         {
             //ret = i;
             ret = aoclsparse_status_numerical_error;
@@ -153,7 +153,7 @@ aoclsparse_status aoclsparse_ilu_solve(aoclsparse_int        n,
             xv[i]                  = xv[i] - temp;
         }
         diag_elem = csr_val[diag_idx];
-        if(!aoclsparse_zerocheck(diag_elem))
+        if(!aoclsparse_is_nearzero(diag_elem))
         {
             xv[i] = xv[i] / diag_elem;
         }

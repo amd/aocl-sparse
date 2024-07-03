@@ -25,6 +25,7 @@
 #define AOCLSPARSE_ITSOL_OPTIONS_HPP_
 
 #include "aoclsparse.h"
+#include "aoclsparse_utils.hpp"
 
 #include <cctype>
 #include <cmath>
@@ -36,7 +37,6 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
-
 /*
  * Options Registry
  * ================
@@ -329,16 +329,17 @@ namespace aoclsparse_options
     template <typename T>
     class OptionReal : public OptionBase
     {
+        using baseT = tolerance_t<T>;
         // default value for option
-        T vdefault = 0.0;
+        baseT vdefault = 0.0;
         // actual value of the option
-        T value;
+        baseT value;
         // lower bound value for option
-        T lower;
+        baseT lower;
         // lower bound type (none (-inf), greater than..., greater or equal than...)
         lbound_t lbound;
         // upper value for option
-        T upper;
+        baseT upper;
         // upper bound type (none (+inf), less than..., less or equal than...)
         ubound_t ubound;
 
@@ -348,11 +349,11 @@ namespace aoclsparse_options
                    const std::string    desc,
                    const bool           hidden,
                    const aoclsparse_int pgrp,
-                   const T              lower,
+                   const baseT          lower,
                    const lbound_t       lbound,
-                   const T              upper,
+                   const baseT          upper,
                    const ubound_t       ubound,
-                   const T              vdefault)
+                   const baseT          vdefault)
         {
             if(upper != upper || lower != lower)
                 throw std::invalid_argument("Either lower or upper are not finite.");
@@ -479,8 +480,8 @@ namespace aoclsparse_options
             return rec.str();
         }
 
-        aoclsparse_int
-            CheckRange(T value, T lower, const lbound_t lbound, T upper, const ubound_t ubound)
+        aoclsparse_int CheckRange(
+            baseT value, baseT lower, const lbound_t lbound, baseT upper, const ubound_t ubound)
         {
             aoclsparse_int iflag = 0;
             // check that it is within range (lower bound)
@@ -498,11 +499,11 @@ namespace aoclsparse_options
             return iflag;
         }
 
-        T GetRealValue(void) const
+        baseT GetRealValue(void) const
         {
             return value;
         };
-        void SetRealValue(T value, aoclsparse_int setby = 0)
+        void SetRealValue(baseT value, aoclsparse_int setby = 0)
         {
             if(std::isnan(value))
             {
@@ -743,13 +744,14 @@ namespace aoclsparse_options
     template <typename T>
     class OptionRegistry
     {
+        using baseT = tolerance_t<T>;
         OptionUtility util;
         bool          readonly = false;
         // These can change under the hood for std::map <const string, Option???>
-        std::vector<OptionInt>     IntRegistry;
-        std::vector<OptionReal<T>> RealRegistry;
-        std::vector<OptionBool>    BoolRegistry;
-        std::vector<OptionString>  StringRegistry;
+        std::vector<OptionInt>         IntRegistry;
+        std::vector<OptionReal<baseT>> RealRegistry;
+        std::vector<OptionBool>        BoolRegistry;
+        std::vector<OptionString>      StringRegistry;
 
     public:
         OptionRegistry()
@@ -773,7 +775,7 @@ namespace aoclsparse_options
             IntRegistry.push_back(i);
             return 0;
         };
-        aoclsparse_int Register(const OptionReal<T> r)
+        aoclsparse_int Register(const OptionReal<baseT> r)
         {
             // if (already_registered)
             //    return 2;
@@ -832,13 +834,14 @@ namespace aoclsparse_options
             }
             return 0;
         };
-        aoclsparse_int SetOption(const std::string name, const T value, const aoclsparse_int setby)
+        aoclsparse_int
+            SetOption(const std::string name, const baseT value, const aoclsparse_int setby)
         {
             OptionUtility u;
             std::string   pname(name);
             u.PrepareString(pname);
-            typename std::vector<OptionReal<T>>::iterator it
-                = find_if(RealRegistry.begin(), RealRegistry.end(), [pname](OptionReal<T> o) {
+            typename std::vector<OptionReal<baseT>>::iterator it
+                = find_if(RealRegistry.begin(), RealRegistry.end(), [pname](OptionReal<baseT> o) {
                       return o.GetName() == pname;
                   });
             if(it != RealRegistry.end())
@@ -945,13 +948,13 @@ namespace aoclsparse_options
             return 3;
         };
 
-        aoclsparse_int GetOption(const std::string name, T &value)
+        aoclsparse_int GetOption(const std::string name, baseT &value)
         {
             OptionUtility u;
             std::string   pname(name);
             u.PrepareString(pname);
-            typename std::vector<OptionReal<T>>::iterator it
-                = find_if(RealRegistry.begin(), RealRegistry.end(), [pname](OptionReal<T> o) {
+            typename std::vector<OptionReal<baseT>>::iterator it
+                = find_if(RealRegistry.begin(), RealRegistry.end(), [pname](OptionReal<baseT> o) {
                       return o.GetName() == pname;
                   });
             if(it != RealRegistry.end())

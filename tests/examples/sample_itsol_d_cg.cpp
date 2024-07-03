@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022-2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -123,7 +123,7 @@ int main()
     }
     else if(status == aoclsparse_status_user_stop)
     {
-        std::cout << "User requested to terminate at interation " << (aoclsparse_int)rinfo[30]
+        std::cout << "User requested to terminate at iteration " << (aoclsparse_int)rinfo[30]
                   << std::endl;
     }
     else

@@ -91,6 +91,24 @@ namespace aoclsparse_numeric
             return value;
         }
     };
+    template <>
+    struct zero<std::complex<float>>
+    {
+        static constexpr std::complex<float> value{0, 0};
+        constexpr operator std::complex<float>() const noexcept
+        {
+            return value;
+        }
+    };
+    template <>
+    struct zero<std::complex<double>>
+    {
+        static constexpr std::complex<double> value{0, 0};
+        constexpr operator std::complex<double>() const noexcept
+        {
+            return value;
+        }
+    };
     /* Provide a quiet_NaN for all floating point data types */
     /* Default definition handles real/std types */
     template <typename T>
@@ -471,13 +489,46 @@ template <typename T, gather_op OP>
 using y_type = typename std::conditional<OP == gather_op::gather, const T *, T *>::type;
 
 /*
-    Perform a comparison test to determine if the value is near zero
+    compute machine-epsilon based tolerance for floating point comparisons
 */
 template <typename T>
-bool aoclsparse_zerocheck(const T &value, tolerance_t<T> scale = (tolerance_t<T>)1e-2)
+tolerance_t<T> eps_tolerance(tolerance_t<T> scale = (tolerance_t<T>)1e-2)
 {
     const tolerance_t<T> macheps      = std::numeric_limits<tolerance_t<T>>::epsilon();
     const tolerance_t<T> safe_macheps = scale * (tolerance_t<T>)2.0 * macheps;
-    return (std::abs(value) <= safe_macheps);
+    return safe_macheps;
+}
+/*
+    check if the value is near zero based on tolerance computed using machine epsilon
+ */
+template <typename T>
+bool aoclsparse_is_nearzero(const T &value, tolerance_t<T> scale = (tolerance_t<T>)1e-2)
+{
+    return (std::abs(value) <= eps_tolerance<T>(scale));
+}
+/*
+    check if the value is either negative or near zero based on tolerance computed using machine epsilon.
+    Following rules are used in comparison
+    1. real values: (value <= 0)
+            -- For '=': use near zero check using EPS based tolerance
+            -- For '<': do not use std::abs(value) else sign is lost
+
+    2. complex values:(value <= 0)
+            -- For '=': near zero check [using std::abs(value)] using EPS based tolerance
+            -- For '<': does not apply since for complex nos we only check magnitude and
+                value can not be negative
+ */
+template <typename T>
+bool aoclsparse_is_negative_or_nearzero(const T &value, tolerance_t<T> scale = (tolerance_t<T>)1e-2)
+{
+    const tolerance_t<T> safe_macheps = eps_tolerance<T>(scale);
+    if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
+    {
+        return (value <= safe_macheps);
+    }
+    else
+    {
+        return (std::abs(value) <= safe_macheps);
+    }
 }
 #endif

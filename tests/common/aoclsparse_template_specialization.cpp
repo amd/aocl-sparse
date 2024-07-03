@@ -25,7 +25,6 @@
 #include "aoclsparse.hpp"
 
 #include <complex>
-
 template <>
 aoclsparse_status aoclsparse_csr2m<double>(aoclsparse_operation       transA,
                                            const aoclsparse_mat_descr descrA,
@@ -2850,4 +2849,112 @@ aoclsparse_status aoclsparse_symgs_mv(aoclsparse_operation             trans,
                                       aoclsparse_double_complex       *y)
 {
     return aoclsparse_zsymgs_mv(trans, A, descr, alpha, b, x, y);
+}
+template <>
+aoclsparse_status
+    aoclsparse_itsol_rci_input(aoclsparse_itsol_handle handle, aoclsparse_int n, const double *b)
+{
+    return aoclsparse_itsol_d_rci_input(handle, n, b);
+}
+template <>
+aoclsparse_status
+    aoclsparse_itsol_rci_input(aoclsparse_itsol_handle handle, aoclsparse_int n, const float *b)
+{
+    return aoclsparse_itsol_s_rci_input(handle, n, b);
+}
+template <>
+aoclsparse_status aoclsparse_itsol_rci_input(aoclsparse_itsol_handle          handle,
+                                             aoclsparse_int                   n,
+                                             const aoclsparse_double_complex *b)
+{
+    return aoclsparse_itsol_z_rci_input(handle, n, b);
+}
+template <>
+aoclsparse_status aoclsparse_itsol_rci_input(aoclsparse_itsol_handle     handle,
+                                             aoclsparse_int              n,
+                                             const std::complex<double> *b)
+{
+    const aoclsparse_double_complex *pb = reinterpret_cast<const aoclsparse_double_complex *>(b);
+    return aoclsparse_itsol_z_rci_input(handle, n, pb);
+}
+template <>
+aoclsparse_status aoclsparse_itsol_rci_input(aoclsparse_itsol_handle         handle,
+                                             aoclsparse_int                  n,
+                                             const aoclsparse_float_complex *b)
+{
+    return aoclsparse_itsol_c_rci_input(handle, n, b);
+}
+template <>
+aoclsparse_status aoclsparse_itsol_rci_input(aoclsparse_itsol_handle    handle,
+                                             aoclsparse_int             n,
+                                             const std::complex<float> *b)
+{
+    const aoclsparse_float_complex *pb = reinterpret_cast<const aoclsparse_float_complex *>(b);
+    return aoclsparse_itsol_c_rci_input(handle, n, pb);
+}
+template <>
+aoclsparse_status aoclsparse_itsol_rci_solve(aoclsparse_itsol_handle   handle,
+                                             aoclsparse_itsol_rci_job *ircomm,
+                                             double                  **u,
+                                             double                  **v,
+                                             double                   *x,
+                                             double                    rinfo[100])
+{
+    return aoclsparse_itsol_d_rci_solve(handle, ircomm, u, v, x, rinfo);
+}
+template <>
+aoclsparse_status aoclsparse_itsol_rci_solve(aoclsparse_itsol_handle   handle,
+                                             aoclsparse_itsol_rci_job *ircomm,
+                                             float                   **u,
+                                             float                   **v,
+                                             float                    *x,
+                                             float                     rinfo[100])
+{
+    return aoclsparse_itsol_s_rci_solve(handle, ircomm, u, v, x, rinfo);
+}
+template <>
+aoclsparse_status aoclsparse_itsol_rci_solve(aoclsparse_itsol_handle     handle,
+                                             aoclsparse_itsol_rci_job   *ircomm,
+                                             aoclsparse_double_complex **u,
+                                             aoclsparse_double_complex **v,
+                                             aoclsparse_double_complex  *x,
+                                             double                      rinfo[100])
+{
+    return aoclsparse_itsol_z_rci_solve(handle, ircomm, u, v, x, rinfo);
+}
+template <>
+aoclsparse_status aoclsparse_itsol_rci_solve(aoclsparse_itsol_handle   handle,
+                                             aoclsparse_itsol_rci_job *ircomm,
+                                             std::complex<double>    **u,
+                                             std::complex<double>    **v,
+                                             std::complex<double>     *x,
+                                             double                    rinfo[100])
+{
+    aoclsparse_double_complex **pu = reinterpret_cast<aoclsparse_double_complex **>(u);
+    aoclsparse_double_complex **pv = reinterpret_cast<aoclsparse_double_complex **>(v);
+    aoclsparse_double_complex  *px = reinterpret_cast<aoclsparse_double_complex *>(x);
+    return aoclsparse_itsol_z_rci_solve(handle, ircomm, pu, pv, px, rinfo);
+}
+template <>
+aoclsparse_status aoclsparse_itsol_rci_solve(aoclsparse_itsol_handle    handle,
+                                             aoclsparse_itsol_rci_job  *ircomm,
+                                             aoclsparse_float_complex **u,
+                                             aoclsparse_float_complex **v,
+                                             aoclsparse_float_complex  *x,
+                                             float                      rinfo[100])
+{
+    return aoclsparse_itsol_c_rci_solve(handle, ircomm, u, v, x, rinfo);
+}
+template <>
+aoclsparse_status aoclsparse_itsol_rci_solve(aoclsparse_itsol_handle   handle,
+                                             aoclsparse_itsol_rci_job *ircomm,
+                                             std::complex<float>     **u,
+                                             std::complex<float>     **v,
+                                             std::complex<float>      *x,
+                                             float                     rinfo[100])
+{
+    aoclsparse_float_complex **pu = reinterpret_cast<aoclsparse_float_complex **>(u);
+    aoclsparse_float_complex **pv = reinterpret_cast<aoclsparse_float_complex **>(v);
+    aoclsparse_float_complex  *px = reinterpret_cast<aoclsparse_float_complex *>(x);
+    return aoclsparse_itsol_c_rci_solve(handle, ircomm, pu, pv, px, rinfo);
 }

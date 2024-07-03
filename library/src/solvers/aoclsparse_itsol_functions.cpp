@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022-2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -41,10 +41,20 @@ void aoclsparse_itsol_handle_prn_options(aoclsparse_itsol_handle handle)
         if(handle->itsol_d)
             handle->itsol_d->opts.PrintOptions();
     }
-    else
+    else if(handle->type == aoclsparse_smat)
     {
         if(handle->itsol_s)
             handle->itsol_s->opts.PrintOptions();
+    }
+    else if(handle->type == aoclsparse_cmat)
+    {
+        if(handle->itsol_c)
+            handle->itsol_c->opts.PrintOptions();
+    }
+    else if(handle->type == aoclsparse_zmat)
+    {
+        if(handle->itsol_z)
+            handle->itsol_z->opts.PrintOptions();
     }
 }
 
@@ -55,17 +65,31 @@ aoclsparse_status aoclsparse_itsol_option_set(aoclsparse_itsol_handle handle,
     if(handle == nullptr)
         return aoclsparse_status_invalid_pointer;
 
-    if(handle->type == aoclsparse_dmat)
+    switch(handle->type)
     {
+    case aoclsparse_dmat:
         if(handle->itsol_d == nullptr)
             return aoclsparse_status_internal_error;
         return handle_parse_option<double>(handle->itsol_d->opts, option, value);
-    }
-    else
-    {
+        break;
+    case aoclsparse_smat:
         if(handle->itsol_s == nullptr)
             return aoclsparse_status_internal_error;
         return handle_parse_option<float>(handle->itsol_s->opts, option, value);
+        break;
+    case aoclsparse_zmat:
+        if(handle->itsol_z == nullptr)
+            return aoclsparse_status_internal_error;
+        return handle_parse_option<aoclsparse_double_complex>(handle->itsol_z->opts, option, value);
+        break;
+    case aoclsparse_cmat:
+        if(handle->itsol_c == nullptr)
+            return aoclsparse_status_internal_error;
+        return handle_parse_option<aoclsparse_float_complex>(handle->itsol_c->opts, option, value);
+        break;
+    default:
+        return aoclsparse_status_invalid_value;
+        break;
     }
 }
 
@@ -77,6 +101,8 @@ void aoclsparse_itsol_destroy(aoclsparse_itsol_handle *handle)
         {
             aoclsparse_itsol_data_free((*handle)->itsol_d);
             aoclsparse_itsol_data_free((*handle)->itsol_s);
+            aoclsparse_itsol_data_free((*handle)->itsol_z);
+            aoclsparse_itsol_data_free((*handle)->itsol_c);
 
             delete *handle;
             *handle = nullptr;
@@ -100,10 +126,11 @@ aoclsparse_status aoclsparse_itsol_d_init(aoclsparse_itsol_handle *handle)
         return aoclsparse_status_memory_error;
     }
 
-    (*handle)->type    = aoclsparse_dmat;
-    (*handle)->itsol_s = nullptr;
-    (*handle)->itsol_d = nullptr;
-
+    (*handle)->type          = aoclsparse_dmat;
+    (*handle)->itsol_s       = nullptr;
+    (*handle)->itsol_d       = nullptr;
+    (*handle)->itsol_c       = nullptr;
+    (*handle)->itsol_z       = nullptr;
     aoclsparse_status status = aoclsparse_itsol_data_init(&(*handle)->itsol_d);
     if(status != aoclsparse_status_success)
     {
@@ -134,6 +161,8 @@ aoclsparse_status aoclsparse_itsol_s_init(aoclsparse_itsol_handle *handle)
     (*handle)->type    = aoclsparse_smat;
     (*handle)->itsol_s = nullptr;
     (*handle)->itsol_d = nullptr;
+    (*handle)->itsol_c = nullptr;
+    (*handle)->itsol_z = nullptr;
 
     aoclsparse_status status = aoclsparse_itsol_data_init(&(*handle)->itsol_s);
     if(status != aoclsparse_status_success)
@@ -144,7 +173,65 @@ aoclsparse_status aoclsparse_itsol_s_init(aoclsparse_itsol_handle *handle)
 
     return aoclsparse_status_success;
 }
+aoclsparse_status aoclsparse_itsol_z_init(aoclsparse_itsol_handle *handle)
+{
+    if(handle == nullptr)
+        return aoclsparse_status_invalid_pointer;
 
+    try
+    {
+        *handle = new _aoclsparse_itsol_handle;
+    }
+    catch(std::bad_alloc &)
+    {
+        return aoclsparse_status_memory_error;
+    }
+
+    (*handle)->type    = aoclsparse_zmat;
+    (*handle)->itsol_s = nullptr;
+    (*handle)->itsol_d = nullptr;
+
+    (*handle)->itsol_c = nullptr;
+    (*handle)->itsol_z = nullptr;
+
+    aoclsparse_status status = aoclsparse_itsol_data_init(&(*handle)->itsol_z);
+    if(status != aoclsparse_status_success)
+    {
+        aoclsparse_itsol_destroy(handle);
+        return status;
+    }
+
+    return aoclsparse_status_success;
+}
+aoclsparse_status aoclsparse_itsol_c_init(aoclsparse_itsol_handle *handle)
+{
+    if(handle == nullptr)
+        return aoclsparse_status_invalid_pointer;
+
+    try
+    {
+        *handle = new _aoclsparse_itsol_handle;
+    }
+    catch(std::bad_alloc &)
+    {
+        return aoclsparse_status_memory_error;
+    }
+
+    (*handle)->type    = aoclsparse_cmat;
+    (*handle)->itsol_s = nullptr;
+    (*handle)->itsol_d = nullptr;
+
+    (*handle)->itsol_c = nullptr;
+    (*handle)->itsol_z = nullptr;
+
+    aoclsparse_status status = aoclsparse_itsol_data_init(&(*handle)->itsol_c);
+    if(status != aoclsparse_status_success)
+    {
+        aoclsparse_itsol_destroy(handle);
+        return status;
+    }
+    return aoclsparse_status_success;
+}
 /* Initialize the iterative solver input data (double):
  * - n: dimension of the problem
  * - b: right hand side of the system
@@ -177,7 +264,34 @@ aoclsparse_status
         return aoclsparse_status_wrong_type;
     return aoclsparse_itsol_rci_input(handle->itsol_s, n, b);
 }
+aoclsparse_status aoclsparse_itsol_z_rci_input(aoclsparse_itsol_handle          handle,
+                                               aoclsparse_int                   n,
+                                               const aoclsparse_double_complex *b)
+{
+    if(handle == nullptr)
+        return aoclsparse_status_invalid_pointer;
+    if(handle->type != aoclsparse_zmat)
+        return aoclsparse_status_wrong_type;
 
+    const std::complex<double> *pb = reinterpret_cast<const std::complex<double> *>(b);
+    auto                       *z_itsol
+        = reinterpret_cast<aoclsparse_itsol_data<std::complex<double>> *>(handle->itsol_z);
+
+    return aoclsparse_itsol_rci_input(z_itsol, n, pb);
+}
+aoclsparse_status aoclsparse_itsol_c_rci_input(aoclsparse_itsol_handle         handle,
+                                               aoclsparse_int                  n,
+                                               const aoclsparse_float_complex *b)
+{
+    if(handle == nullptr)
+        return aoclsparse_status_invalid_pointer;
+    if(handle->type != aoclsparse_cmat)
+        return aoclsparse_status_wrong_type;
+
+    const std::complex<float> *pb = reinterpret_cast<const std::complex<float> *>(b);
+    auto *c_itsol = reinterpret_cast<aoclsparse_itsol_data<std::complex<float>> *>(handle->itsol_c);
+    return aoclsparse_itsol_rci_input(c_itsol, n, pb);
+}
 /*
  * Generic RCI entry point for all iterative solvers
  */
@@ -213,7 +327,45 @@ aoclsparse_status aoclsparse_itsol_s_rci_solve(aoclsparse_itsol_handle   handle,
         return aoclsparse_status_wrong_type;
     return aoclsparse_itsol_rci_solve(handle->itsol_s, ircomm, u, v, x, rinfo);
 }
+aoclsparse_status aoclsparse_itsol_z_rci_solve(aoclsparse_itsol_handle     handle,
+                                               aoclsparse_itsol_rci_job   *ircomm,
+                                               aoclsparse_double_complex **u,
+                                               aoclsparse_double_complex **v,
+                                               aoclsparse_double_complex  *x,
+                                               double                      rinfo[100])
+{
+    if(handle == nullptr)
+        return aoclsparse_status_invalid_pointer;
+    if(handle->type != aoclsparse_zmat)
+        return aoclsparse_status_wrong_type;
 
+    std::complex<double> **pu = reinterpret_cast<std::complex<double> **>(u);
+    std::complex<double> **pv = reinterpret_cast<std::complex<double> **>(v);
+    std::complex<double>  *px = reinterpret_cast<std::complex<double> *>(x);
+    auto                  *z_itsol
+        = reinterpret_cast<aoclsparse_itsol_data<std::complex<double>> *>(handle->itsol_z);
+
+    return aoclsparse_itsol_rci_solve(z_itsol, ircomm, pu, pv, px, rinfo);
+}
+aoclsparse_status aoclsparse_itsol_c_rci_solve(aoclsparse_itsol_handle    handle,
+                                               aoclsparse_itsol_rci_job  *ircomm,
+                                               aoclsparse_float_complex **u,
+                                               aoclsparse_float_complex **v,
+                                               aoclsparse_float_complex  *x,
+                                               float                      rinfo[100])
+{
+    if(handle == nullptr)
+        return aoclsparse_status_invalid_pointer;
+    if(handle->type != aoclsparse_cmat)
+        return aoclsparse_status_wrong_type;
+
+    std::complex<float> **pu = reinterpret_cast<std::complex<float> **>(u);
+    std::complex<float> **pv = reinterpret_cast<std::complex<float> **>(v);
+    std::complex<float>  *px = reinterpret_cast<std::complex<float> *>(x);
+    auto *c_itsol = reinterpret_cast<aoclsparse_itsol_data<std::complex<float>> *>(handle->itsol_c);
+
+    return aoclsparse_itsol_rci_solve(c_itsol, ircomm, pu, pv, px, rinfo);
+}
 /*
  * Generic (direct/forward) interface for all iterative solvers
  */
@@ -260,7 +412,110 @@ aoclsparse_status aoclsparse_itsol_s_solve(
     return aoclsparse_itsol_solve(
         handle->itsol_s, n, mat, descr, b, x, rinfo, precond, monit, udata);
 }
+aoclsparse_status
+    aoclsparse_itsol_z_solve(aoclsparse_itsol_handle          handle,
+                             aoclsparse_int                   n,
+                             aoclsparse_matrix                mat,
+                             const aoclsparse_mat_descr       descr,
+                             const aoclsparse_double_complex *b,
+                             aoclsparse_double_complex       *x,
+                             double                           rinfo[100],
+                             aoclsparse_int                   precond(aoclsparse_int                   flag,
+                                                    aoclsparse_int                   n,
+                                                    const aoclsparse_double_complex *u,
+                                                    aoclsparse_double_complex       *v,
+                                                    void                            *udata),
+                             aoclsparse_int                   monit(aoclsparse_int                   n,
+                                                  const aoclsparse_double_complex *x,
+                                                  const aoclsparse_double_complex *r,
+                                                  double                           rinfo[100],
+                                                  void                            *udata),
+                             void                            *udata)
+{
+    if(!handle)
+        return aoclsparse_status_invalid_pointer;
+    if(handle->type != aoclsparse_zmat)
+        return aoclsparse_status_wrong_type;
 
+    const std::complex<double> *pb = reinterpret_cast<const std::complex<double> *>(b);
+    std::complex<double>       *px = reinterpret_cast<std::complex<double> *>(x);
+    auto                       *z_itsol
+        = reinterpret_cast<aoclsparse_itsol_data<std::complex<double>> *>(handle->itsol_z);
+    aoclsparse_int (*zprecond_wrapper)(aoclsparse_int              flag,
+                                       aoclsparse_int              n,
+                                       const std::complex<double> *u,
+                                       std::complex<double>       *v,
+                                       void                       *udata)
+        = reinterpret_cast<aoclsparse_int (*)(aoclsparse_int              flag,
+                                              aoclsparse_int              n,
+                                              const std::complex<double> *u,
+                                              std::complex<double>       *v,
+                                              void                       *udata)>(precond);
+    aoclsparse_int (*zmonit_wrapper)(aoclsparse_int              n,
+                                     const std::complex<double> *x,
+                                     const std::complex<double> *r,
+                                     double                      rinfo[100],
+                                     void                       *udata)
+        = reinterpret_cast<aoclsparse_int (*)(aoclsparse_int              n,
+                                              const std::complex<double> *x,
+                                              const std::complex<double> *r,
+                                              double                      rinfo[100],
+                                              void                       *udata)>(monit);
+
+    return aoclsparse_itsol_solve(
+        z_itsol, n, mat, descr, pb, px, rinfo, zprecond_wrapper, zmonit_wrapper, udata);
+}
+aoclsparse_status aoclsparse_itsol_c_solve(aoclsparse_itsol_handle         handle,
+                                           aoclsparse_int                  n,
+                                           aoclsparse_matrix               mat,
+                                           const aoclsparse_mat_descr      descr,
+                                           const aoclsparse_float_complex *b,
+                                           aoclsparse_float_complex       *x,
+                                           float                           rinfo[100],
+                                           aoclsparse_int precond(aoclsparse_int flag,
+                                                                  aoclsparse_int n,
+                                                                  const aoclsparse_float_complex *u,
+                                                                  aoclsparse_float_complex       *v,
+                                                                  void *udata),
+                                           aoclsparse_int monit(aoclsparse_int                  n,
+                                                                const aoclsparse_float_complex *x,
+                                                                const aoclsparse_float_complex *r,
+                                                                float rinfo[100],
+                                                                void *udata),
+                                           void          *udata)
+{
+    if(!handle)
+        return aoclsparse_status_invalid_pointer;
+    if(handle->type != aoclsparse_cmat)
+        return aoclsparse_status_wrong_type;
+
+    const std::complex<float> *pb = reinterpret_cast<const std::complex<float> *>(b);
+    std::complex<float>       *px = reinterpret_cast<std::complex<float> *>(x);
+    auto *c_itsol = reinterpret_cast<aoclsparse_itsol_data<std::complex<float>> *>(handle->itsol_c);
+    aoclsparse_int (*cprecond_wrapper)(aoclsparse_int             flag,
+                                       aoclsparse_int             n,
+                                       const std::complex<float> *u,
+                                       std::complex<float>       *v,
+                                       void                      *udata)
+        = reinterpret_cast<aoclsparse_int (*)(aoclsparse_int             flag,
+                                              aoclsparse_int             n,
+                                              const std::complex<float> *u,
+                                              std::complex<float>       *v,
+                                              void                      *udata)>(precond);
+    aoclsparse_int (*cmonit_wrapper)(aoclsparse_int             n,
+                                     const std::complex<float> *x,
+                                     const std::complex<float> *r,
+                                     float                      rinfo[100],
+                                     void                      *udata)
+        = reinterpret_cast<aoclsparse_int (*)(aoclsparse_int             n,
+                                              const std::complex<float> *x,
+                                              const std::complex<float> *r,
+                                              float                      rinfo[100],
+                                              void                      *udata)>(monit);
+
+    return aoclsparse_itsol_solve(
+        c_itsol, n, mat, descr, pb, px, rinfo, cprecond_wrapper, cmonit_wrapper, udata);
+}
 template <>
 inline aoclsparse_status aoclsparse_csrmv(aoclsparse_operation       trans,
                                           const float               *alpha,

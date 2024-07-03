@@ -31,6 +31,7 @@
 #define AOCLSPARSE_HPP
 
 #include "aoclsparse.h"
+#include "aoclsparse_utils.hpp"
 
 #include <complex>
 
@@ -557,5 +558,17 @@ aoclsparse_status aoclsparse_export_coo(const aoclsparse_matrix mat,
 
 template <typename T>
 aoclsparse_status aoclsparse_update_values(aoclsparse_matrix mat, aoclsparse_int len, T *val);
+
+template <typename T>
+aoclsparse_status
+    aoclsparse_itsol_rci_input(aoclsparse_itsol_handle handle, aoclsparse_int n, const T *b);
+
+template <typename T>
+aoclsparse_status aoclsparse_itsol_rci_solve(aoclsparse_itsol_handle   handle,
+                                             aoclsparse_itsol_rci_job *ircomm,
+                                             T                       **u,
+                                             T                       **v,
+                                             T                        *x,
+                                             tolerance_t<T>            rinfo[100]);
 
 #endif /*AOCLSPARSE_HPP*/

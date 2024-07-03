@@ -356,6 +356,7 @@ aoclsparse_status aoclsparse_export_coo_t(const aoclsparse_matrix mat,
     *base = mat->base;
     return aoclsparse_status_success;
 }
+
 template <typename T>
 aoclsparse_status aoclsparse_set_coo_value(aoclsparse_matrix A,
                                            aoclsparse_int    row_idx,

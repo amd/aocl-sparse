@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022-2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -109,14 +109,15 @@ template <typename T>
 struct cg_data
 {
     /* Working vectors and values */
-    T *r, *z, *p, *q;
-    T  alpha, rz, beta, rnorm2, bnorm2, brtol;
+    T             *r, *z, *p, *q;
+    T              alpha, rz, beta;
+    tolerance_t<T> rnorm2, bnorm2, brtol;
     /* CG algorithm state */
     cg_rc_task     task;
     aoclsparse_int niter;
 
     /* CG algorithm options */
-    T              rtol, atol;
+    tolerance_t<T> rtol, atol;
     aoclsparse_int maxit, precond;
 };
 
@@ -127,9 +128,9 @@ template <typename T>
 struct gmres_data
 {
     /* Working vectors and values */
-    T *v = 0, *h = 0, *g = 0;
-    T *c = 0, *s = 0, *z = 0;
-    T  rnorm2, bnorm2, brtol;
+    T              *v = nullptr, *h = nullptr, *g = nullptr;
+    T              *s = nullptr, *z = nullptr;
+    tolerance_t<T> *c = nullptr, rnorm2, bnorm2, brtol;
     /* GMRES algorithm state */
     gmres_rc_task  task;
     aoclsparse_int niter;
@@ -138,7 +139,7 @@ struct gmres_data
     aoclsparse_int restart_iters;
 
     /* GMRES algorithm options */
-    T              rtol, atol;
+    tolerance_t<T> rtol, atol;
     aoclsparse_int maxit, precond;
 };
 
@@ -176,8 +177,9 @@ struct _aoclsparse_itsol_handle
     aoclsparse_matrix_data_type type;
     /* Pointer to the templated itsolve_data, only the one matching type
        will be used. */
-    aoclsparse_itsol_data<float>  *itsol_s;
-    aoclsparse_itsol_data<double> *itsol_d;
+    aoclsparse_itsol_data<float>                     *itsol_s;
+    aoclsparse_itsol_data<double>                    *itsol_d;
+    aoclsparse_itsol_data<aoclsparse_float_complex>  *itsol_c;
+    aoclsparse_itsol_data<aoclsparse_double_complex> *itsol_z;
 };
-
 #endif
