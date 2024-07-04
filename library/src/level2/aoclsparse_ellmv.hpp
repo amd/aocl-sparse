@@ -28,17 +28,19 @@
 #include "aoclsparse_descr.h"
 
 #include <immintrin.h>
-#include <iostream>
-
-aoclsparse_status aoclsparse_ellmv_template(const float                alpha,
-                                            aoclsparse_int             m,
-                                            const float               *ell_val,
-                                            const aoclsparse_int      *ell_col_ind,
-                                            aoclsparse_int             ell_width,
-                                            const aoclsparse_mat_descr descr,
-                                            const float               *x,
-                                            const float                beta,
-                                            float                     *y)
+//======================================
+// ELLMV
+//======================================
+template <typename T>
+aoclsparse_status aoclsparse_ellmv_ref(const T                    alpha,
+                                       aoclsparse_int             m,
+                                       const T                   *ell_val,
+                                       const aoclsparse_int      *ell_col_ind,
+                                       aoclsparse_int             ell_width,
+                                       const aoclsparse_mat_descr descr,
+                                       const T                   *x,
+                                       const T                    beta,
+                                       T                         *y)
 
 {
     using namespace aoclsparse;
@@ -50,7 +52,7 @@ aoclsparse_status aoclsparse_ellmv_template(const float                alpha,
 #endif
     for(aoclsparse_int i = 0; i < m; ++i)
     {
-        float result = 0.0;
+        T result = 0.0;
 
         for(aoclsparse_int p = 0; p < ell_width; ++p)
         {
@@ -68,12 +70,12 @@ aoclsparse_status aoclsparse_ellmv_template(const float                alpha,
             }
         }
 
-        if(alpha != static_cast<float>(1))
+        if(alpha != static_cast<T>(1))
         {
             result = alpha * result;
         }
 
-        if(beta != static_cast<float>(0))
+        if(beta != static_cast<T>(0))
         {
             result += beta * y[i];
         }
@@ -84,18 +86,20 @@ aoclsparse_status aoclsparse_ellmv_template(const float                alpha,
     return aoclsparse_status_success;
 }
 
-#if USE_AVX512
-aoclsparse_status aoclsparse_ellmv_template_avx512(const double                    alpha,
-                                                   aoclsparse_int                  m,
-                                                   [[maybe_unused]] aoclsparse_int n,
-                                                   [[maybe_unused]] aoclsparse_int nnz,
-                                                   const double                   *ell_val,
-                                                   const aoclsparse_int           *ell_col_ind,
-                                                   aoclsparse_int                  ell_width,
-                                                   const aoclsparse_mat_descr      descr,
-                                                   const double                   *x,
-                                                   const double                    beta,
-                                                   double                         *y)
+#ifdef __AVX512F__
+template <typename T>
+std::enable_if_t<std::is_same_v<T, double>, aoclsparse_status>
+    aoclsparse_dellmv_avx512(const double                    alpha,
+                             aoclsparse_int                  m,
+                             [[maybe_unused]] aoclsparse_int n,
+                             [[maybe_unused]] aoclsparse_int nnz,
+                             const double                   *ell_val,
+                             const aoclsparse_int           *ell_col_ind,
+                             aoclsparse_int                  ell_width,
+                             const aoclsparse_mat_descr      descr,
+                             const double                   *x,
+                             const double                    beta,
+                             double                         *y)
 {
     __m256d vec_y;
     __m512d vec_vals_512, vec_x_512, vec_y_512;
@@ -207,17 +211,19 @@ aoclsparse_status aoclsparse_ellmv_template_avx512(const double                 
 }
 #endif
 
-aoclsparse_status aoclsparse_ellmv_template_avx2(const double                    alpha,
-                                                 aoclsparse_int                  m,
-                                                 [[maybe_unused]] aoclsparse_int n,
-                                                 [[maybe_unused]] aoclsparse_int nnz,
-                                                 const double                   *ell_val,
-                                                 const aoclsparse_int           *ell_col_ind,
-                                                 aoclsparse_int                  ell_width,
-                                                 const aoclsparse_mat_descr      descr,
-                                                 const double                   *x,
-                                                 const double                    beta,
-                                                 double                         *y)
+template <typename T>
+std::enable_if_t<std::is_same_v<T, double>, aoclsparse_status>
+    aoclsparse_dellmv_avx2(const double                    alpha,
+                           aoclsparse_int                  m,
+                           [[maybe_unused]] aoclsparse_int n,
+                           [[maybe_unused]] aoclsparse_int nnz,
+                           const double                   *ell_val,
+                           const aoclsparse_int           *ell_col_ind,
+                           aoclsparse_int                  ell_width,
+                           const aoclsparse_mat_descr      descr,
+                           const double                   *x,
+                           const double                    beta,
+                           double                         *y)
 {
     using namespace aoclsparse;
     __m256d               vec_vals, vec_x, vec_y;
@@ -327,23 +333,131 @@ aoclsparse_status aoclsparse_ellmv_template_avx2(const double                   
     return aoclsparse_status_success;
 }
 
+template <typename T>
+aoclsparse_status aoclsparse_ellmv_t(aoclsparse_operation            trans,
+                                     const T                        *alpha,
+                                     aoclsparse_int                  m,
+                                     aoclsparse_int                  n,
+                                     [[maybe_unused]] aoclsparse_int nnz,
+                                     const T                        *ell_val,
+                                     const aoclsparse_int           *ell_col_ind,
+                                     aoclsparse_int                  ell_width,
+                                     const aoclsparse_mat_descr      descr,
+                                     const T                        *x,
+                                     const T                        *beta,
+                                     T                              *y)
+{
+    if(descr == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+
+    // Check index base
+    if(descr->base != aoclsparse_index_base_zero && descr->base != aoclsparse_index_base_one)
+    {
+        return aoclsparse_status_invalid_value;
+    }
+
+    if(descr->type != aoclsparse_matrix_type_general)
+    {
+        // TODO
+        return aoclsparse_status_not_implemented;
+    }
+
+    if(trans != aoclsparse_operation_none)
+    {
+        // TODO
+        return aoclsparse_status_not_implemented;
+    }
+
+    // Check sizes
+    if(m < 0)
+    {
+        return aoclsparse_status_invalid_size;
+    }
+    else if(n < 0)
+    {
+        return aoclsparse_status_invalid_size;
+    }
+    else if(ell_width < 0)
+    {
+        return aoclsparse_status_invalid_size;
+    }
+
+    // Sanity check
+    if((m == 0 || n == 0) && ell_width != 0)
+    {
+        return aoclsparse_status_invalid_size;
+    }
+
+    // Quick return if possible
+    if(m == 0 || n == 0 || ell_width == 0)
+    {
+        return aoclsparse_status_success;
+    }
+
+    // Check pointer arguments
+    if(ell_val == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    else if(ell_col_ind == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    else if(x == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    else if(y == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+
+    if constexpr(std::is_same_v<T, float>)
+    {
+        return aoclsparse_ellmv_ref<T>(
+            *alpha, m, ell_val, ell_col_ind, ell_width, descr, x, *beta, y);
+    }
+    else if constexpr(std::is_same_v<T, double>)
+    {
+        using namespace aoclsparse;
+
+#ifdef __AVX512F__
+        if(context::get_context()->supports<context_isa_t::AVX512F>())
+            return aoclsparse_dellmv_avx512<T>(
+                *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, *beta, y);
+        else
+#endif
+            return aoclsparse_dellmv_avx2<T>(
+                *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, *beta, y);
+    }
+}
+
+//======================================
+// ELLTMV
+//======================================
+
 // ToDo: just an outline for now
-aoclsparse_status aoclsparse_elltmv_template(const float                     alpha,
-                                             aoclsparse_int                  m,
-                                             [[maybe_unused]] aoclsparse_int n,
-                                             [[maybe_unused]] aoclsparse_int nnz,
-                                             const float                    *ell_val,
-                                             const aoclsparse_int           *ell_col_ind,
-                                             aoclsparse_int                  ell_width,
-                                             const aoclsparse_mat_descr      descr,
-                                             const float                    *x,
-                                             const float                     beta,
-                                             float                          *y)
+template <typename T>
+aoclsparse_status aoclsparse_elltmv_ref(const T                         alpha,
+                                        aoclsparse_int                  m,
+                                        [[maybe_unused]] aoclsparse_int n,
+                                        [[maybe_unused]] aoclsparse_int nnz,
+                                        const T                        *ell_val,
+                                        const aoclsparse_int           *ell_col_ind,
+                                        aoclsparse_int                  ell_width,
+                                        const aoclsparse_mat_descr      descr,
+                                        const T                        *x,
+                                        const T                         beta,
+                                        T                              *y)
 {
     using namespace aoclsparse;
+
     aoclsparse_int        k = ell_width;
-    double                rd;
+    T                     rd;
     aoclsparse_index_base base = descr->base;
+
 #ifdef _OPENMP
     aoclsparse_int chunk = (m / context::get_context()->get_num_threads())
                                ? (m / context::get_context()->get_num_threads())
@@ -359,12 +473,12 @@ aoclsparse_status aoclsparse_elltmv_template(const float                     alp
             rd += *(ell_val + i * m + j) * (x[*(ell_col_ind + i * m + j) - base]);
         }
 
-        if(alpha != static_cast<double>(1))
+        if(alpha != static_cast<T>(1))
         {
             rd = alpha * rd;
         }
 
-        if(beta != static_cast<double>(0))
+        if(beta != static_cast<T>(0))
         {
             rd += beta * y[j];
         }
@@ -374,21 +488,23 @@ aoclsparse_status aoclsparse_elltmv_template(const float                     alp
     return aoclsparse_status_success;
 }
 
-#if USE_AVX512
-aoclsparse_status aoclsparse_elltmv_template_avx512(const double                    alpha,
-                                                    aoclsparse_int                  m,
-                                                    [[maybe_unused]] aoclsparse_int n,
-                                                    [[maybe_unused]] aoclsparse_int nnz,
-                                                    const double                   *ell_val,
-                                                    const aoclsparse_int           *ell_col_ind,
-                                                    aoclsparse_int                  ell_width,
-                                                    const aoclsparse_mat_descr      descr,
-                                                    const double                   *x,
-                                                    const double                    beta,
-                                                    double                         *y)
+#ifdef __AVX512F__
+template <typename T>
+std::enable_if_t<std::is_same_v<T, double>, aoclsparse_status>
+    aoclsparse_elltmv_avx512(const double                    alpha,
+                             aoclsparse_int                  m,
+                             [[maybe_unused]] aoclsparse_int n,
+                             [[maybe_unused]] aoclsparse_int nnz,
+                             const double                   *ell_val,
+                             const aoclsparse_int           *ell_col_ind,
+                             aoclsparse_int                  ell_width,
+                             const aoclsparse_mat_descr      descr,
+                             const double                   *x,
+                             const double                    beta,
+                             double                         *y)
 {
 
-    __m512d res, vvals, vx, vy, va, vb, vvals1, vx1, vy1;
+    __m512d res, vvals, vx, vy, va, vb;
 
     va                         = _mm512_set1_pd(alpha);
     vb                         = _mm512_set1_pd(beta);
@@ -454,17 +570,19 @@ aoclsparse_status aoclsparse_elltmv_template_avx512(const double                
 }
 #endif
 
-aoclsparse_status aoclsparse_elltmv_template_avx2(const double                    alpha,
-                                                  aoclsparse_int                  m,
-                                                  [[maybe_unused]] aoclsparse_int n,
-                                                  [[maybe_unused]] aoclsparse_int nnz,
-                                                  const double                   *ell_val,
-                                                  const aoclsparse_int           *ell_col_ind,
-                                                  aoclsparse_int                  ell_width,
-                                                  const aoclsparse_mat_descr      descr,
-                                                  const double                   *x,
-                                                  const double                    beta,
-                                                  double                         *y)
+template <typename T>
+std::enable_if_t<std::is_same_v<T, double>, aoclsparse_status>
+    aoclsparse_elltmv_avx2(const double                    alpha,
+                           aoclsparse_int                  m,
+                           [[maybe_unused]] aoclsparse_int n,
+                           [[maybe_unused]] aoclsparse_int nnz,
+                           const double                   *ell_val,
+                           const aoclsparse_int           *ell_col_ind,
+                           aoclsparse_int                  ell_width,
+                           const aoclsparse_mat_descr      descr,
+                           const double                   *x,
+                           const double                    beta,
+                           double                         *y)
 {
     using namespace aoclsparse;
 
@@ -540,25 +658,132 @@ aoclsparse_status aoclsparse_elltmv_template_avx2(const double                  
     return aoclsparse_status_success;
 }
 
+template <typename T>
+aoclsparse_status aoclsparse_elltmv_t(aoclsparse_operation       trans,
+                                      const T                   *alpha,
+                                      aoclsparse_int             m,
+                                      aoclsparse_int             n,
+                                      aoclsparse_int             nnz,
+                                      const T                   *ell_val,
+                                      const aoclsparse_int      *ell_col_ind,
+                                      aoclsparse_int             ell_width,
+                                      const aoclsparse_mat_descr descr,
+                                      const T                   *x,
+                                      const T                   *beta,
+                                      T                         *y)
+{
+    if(descr == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+
+    // Check index base
+    if(descr->base != aoclsparse_index_base_zero && descr->base != aoclsparse_index_base_one)
+    {
+        return aoclsparse_status_invalid_value;
+    }
+
+    if(descr->type != aoclsparse_matrix_type_general)
+    {
+        // TODO
+        return aoclsparse_status_not_implemented;
+    }
+
+    if(trans != aoclsparse_operation_none)
+    {
+        // TODO
+        return aoclsparse_status_not_implemented;
+    }
+
+    // Check sizes
+    if(m < 0)
+    {
+        return aoclsparse_status_invalid_size;
+    }
+    else if(n < 0)
+    {
+        return aoclsparse_status_invalid_size;
+    }
+    else if(ell_width < 0)
+    {
+        return aoclsparse_status_invalid_size;
+    }
+
+    // Sanity check
+    if((m == 0 || n == 0) && ell_width != 0)
+    {
+        return aoclsparse_status_invalid_size;
+    }
+
+    // Quick return if possible
+    if(m == 0 || n == 0 || ell_width == 0)
+    {
+        return aoclsparse_status_success;
+    }
+
+    // Check pointer arguments
+    if(ell_val == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    else if(ell_col_ind == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    else if(x == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    else if(y == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+
+    if constexpr(std::is_same_v<T, float>)
+    {
+        return aoclsparse_elltmv_ref<T>(
+            *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, *beta, y);
+    }
+    else
+    {
+        using namespace aoclsparse;
+
+#ifdef __AVX512F__
+        if(context::get_context()->supports<context_isa_t::AVX512F>())
+            return aoclsparse_elltmv_avx512<T>(
+                *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, *beta, y);
+        else
+#endif
+            return aoclsparse_elltmv_avx2<T>(
+                *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, *beta, y);
+    }
+}
+
+//======================================
+// ELLTHYBMV
+//======================================
+
 // Hybrid ELL-CSR implementation
-#if USE_AVX512
-aoclsparse_status aoclsparse_ellthybmv_template_avx512(const double                    alpha,
-                                                       aoclsparse_int                  m,
-                                                       [[maybe_unused]] aoclsparse_int n,
-                                                       [[maybe_unused]] aoclsparse_int nnz,
-                                                       const double                   *ell_val,
-                                                       const aoclsparse_int           *ell_col_ind,
-                                                       aoclsparse_int                  ell_width,
-                                                       aoclsparse_int                  ell_m,
-                                                       const double                   *csr_val,
-                                                       const aoclsparse_int           *csr_row_ind,
-                                                       const aoclsparse_int           *csr_col_ind,
-                                                       aoclsparse_int                 *row_idx_map,
-                                                       aoclsparse_int            *csr_row_idx_map,
-                                                       const aoclsparse_mat_descr descr,
-                                                       const double              *x,
-                                                       const double               beta,
-                                                       double                    *y)
+#ifdef __AVX512F__
+template <typename T>
+std::enable_if_t<std::is_same_v<T, double>, aoclsparse_status>
+    aoclsparse_ellthybmv_avx512(const double                     alpha,
+                                aoclsparse_int                   m,
+                                [[maybe_unused]] aoclsparse_int  n,
+                                [[maybe_unused]] aoclsparse_int  nnz,
+                                const double                    *ell_val,
+                                const aoclsparse_int            *ell_col_ind,
+                                aoclsparse_int                   ell_width,
+                                aoclsparse_int                   ell_m,
+                                const double                    *csr_val,
+                                const aoclsparse_int            *csr_row_ind,
+                                const aoclsparse_int            *csr_col_ind,
+                                [[maybe_unused]] aoclsparse_int *row_idx_map,
+                                aoclsparse_int                  *csr_row_idx_map,
+                                const aoclsparse_mat_descr       descr,
+                                const double                    *x,
+                                const double                     beta,
+                                double                          *y)
 {
 
     __m512d res, vvals, vx, vy, va, vb;
@@ -568,7 +793,7 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx512(const double             
     aoclsparse_int k = ell_width;
     if(ell_m == m)
     {
-        return aoclsparse_elltmv_template_avx512(
+        return aoclsparse_elltmv_avx512<T>(
             alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, beta, y);
     }
 
@@ -747,23 +972,25 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx512(const double             
 }
 #endif
 
-aoclsparse_status aoclsparse_ellthybmv_template_avx2(const double                     alpha,
-                                                     aoclsparse_int                   m,
-                                                     [[maybe_unused]] aoclsparse_int  n,
-                                                     [[maybe_unused]] aoclsparse_int  nnz,
-                                                     const double                    *ell_val,
-                                                     const aoclsparse_int            *ell_col_ind,
-                                                     aoclsparse_int                   ell_width,
-                                                     aoclsparse_int                   ell_m,
-                                                     const double                    *csr_val,
-                                                     const aoclsparse_int            *csr_row_ind,
-                                                     const aoclsparse_int            *csr_col_ind,
-                                                     [[maybe_unused]] aoclsparse_int *row_idx_map,
-                                                     aoclsparse_int            *csr_row_idx_map,
-                                                     const aoclsparse_mat_descr descr,
-                                                     const double              *x,
-                                                     const double               beta,
-                                                     double                    *y)
+template <typename T>
+std::enable_if_t<std::is_same_v<T, double>, aoclsparse_status>
+    aoclsparse_ellthybmv_avx2(const double                     alpha,
+                              aoclsparse_int                   m,
+                              [[maybe_unused]] aoclsparse_int  n,
+                              [[maybe_unused]] aoclsparse_int  nnz,
+                              const double                    *ell_val,
+                              const aoclsparse_int            *ell_col_ind,
+                              aoclsparse_int                   ell_width,
+                              aoclsparse_int                   ell_m,
+                              const double                    *csr_val,
+                              const aoclsparse_int            *csr_row_ind,
+                              const aoclsparse_int            *csr_col_ind,
+                              [[maybe_unused]] aoclsparse_int *row_idx_map,
+                              aoclsparse_int                  *csr_row_idx_map,
+                              const aoclsparse_mat_descr       descr,
+                              const double                    *x,
+                              const double                     beta,
+                              double                          *y)
 {
     using namespace aoclsparse;
 
@@ -774,7 +1001,7 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx2(const double               
     aoclsparse_int k      = ell_width;
     if(ell_m == m)
     {
-        return aoclsparse_elltmv_template_avx2(
+        return aoclsparse_elltmv_avx2<T>(
             alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, beta, y);
     }
 
@@ -958,27 +1185,74 @@ aoclsparse_status aoclsparse_ellthybmv_template_avx2(const double               
     return aoclsparse_status_success;
 }
 
-aoclsparse_status aoclsparse_ellthybmv_template([[maybe_unused]] const float           alpha,
-                                                [[maybe_unused]] aoclsparse_int        m,
-                                                [[maybe_unused]] aoclsparse_int        n,
-                                                [[maybe_unused]] aoclsparse_int        nnz,
-                                                [[maybe_unused]] const float          *ell_val,
-                                                [[maybe_unused]] const aoclsparse_int *ell_col_ind,
-                                                [[maybe_unused]] aoclsparse_int        ell_width,
-                                                [[maybe_unused]] aoclsparse_int        ell_m,
-                                                [[maybe_unused]] const float          *csr_val,
-                                                [[maybe_unused]] const aoclsparse_int *csr_row_ind,
-                                                [[maybe_unused]] const aoclsparse_int *csr_col_ind,
-                                                [[maybe_unused]] aoclsparse_int       *row_idx_map,
-                                                [[maybe_unused]] aoclsparse_int *csr_row_idx_map,
-                                                [[maybe_unused]] const aoclsparse_mat_descr descr,
-                                                [[maybe_unused]] const float               *x,
-                                                [[maybe_unused]] const float                beta,
-                                                [[maybe_unused]] float                     *y)
+template <typename T>
+aoclsparse_status aoclsparse_ellthybmv_t([[maybe_unused]] aoclsparse_operation trans,
+                                         const T                              *alpha,
+                                         aoclsparse_int                        m,
+                                         aoclsparse_int                        n,
+                                         aoclsparse_int                        nnz,
+                                         const T                              *ell_val,
+                                         const aoclsparse_int                 *ell_col_ind,
+                                         aoclsparse_int                        ell_width,
+                                         aoclsparse_int                        ell_m,
+                                         const T                              *csr_val,
+                                         const aoclsparse_int                 *csr_row_ind,
+                                         const aoclsparse_int                 *csr_col_ind,
+                                         aoclsparse_int                       *row_idx_map,
+                                         aoclsparse_int                       *csr_row_idx_map,
+                                         const aoclsparse_mat_descr            descr,
+                                         const T                              *x,
+                                         const T                              *beta,
+                                         T                                    *y)
 
 {
-    // ToDo: Need to implement this functionality
-    return aoclsparse_status_not_implemented;
+    if constexpr(std::is_same_v<T, float>)
+    {
+        // ToDo: Need to implement this functionality
+        return aoclsparse_status_not_implemented;
+    }
+    else
+    {
+        using namespace aoclsparse;
+#ifdef __AVX512F__
+        if(context::get_context()->supports<context_isa_t::AVX512F>())
+            return aoclsparse_ellthybmv_avx512<T>(*alpha,
+                                                  m,
+                                                  n,
+                                                  nnz,
+                                                  ell_val,
+                                                  ell_col_ind,
+                                                  ell_width,
+                                                  ell_m,
+                                                  csr_val,
+                                                  csr_row_ind,
+                                                  csr_col_ind,
+                                                  row_idx_map,
+                                                  csr_row_idx_map,
+                                                  descr,
+                                                  x,
+                                                  *beta,
+                                                  y);
+        else
+#endif
+            return aoclsparse_ellthybmv_avx2<T>(*alpha,
+                                                m,
+                                                n,
+                                                nnz,
+                                                ell_val,
+                                                ell_col_ind,
+                                                ell_width,
+                                                ell_m,
+                                                csr_val,
+                                                csr_row_ind,
+                                                csr_col_ind,
+                                                row_idx_map,
+                                                csr_row_idx_map,
+                                                descr,
+                                                x,
+                                                *beta,
+                                                y);
+    }
 }
 
 #endif // AOCLSPARSE_ELLMV_HPP

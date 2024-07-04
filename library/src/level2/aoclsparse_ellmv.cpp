@@ -28,92 +28,29 @@
 /*
  *===========================================================================
  *   C wrapper
- * ===========================================================================
+ * ==========================================================================
  */
-extern "C" aoclsparse_status aoclsparse_sellmv(aoclsparse_operation            trans,
-                                               const float                    *alpha,
-                                               aoclsparse_int                  m,
-                                               aoclsparse_int                  n,
-                                               [[maybe_unused]] aoclsparse_int nnz,
-                                               const float                    *ell_val,
-                                               const aoclsparse_int           *ell_col_ind,
-                                               aoclsparse_int                  ell_width,
-                                               const aoclsparse_mat_descr      descr,
-                                               const float                    *x,
-                                               const float                    *beta,
-                                               float                          *y)
+
+/*
+ *  ELLMV
+ * ===============================================
+ */
+extern "C" aoclsparse_status aoclsparse_sellmv(aoclsparse_operation       trans,
+                                               const float               *alpha,
+                                               aoclsparse_int             m,
+                                               aoclsparse_int             n,
+                                               aoclsparse_int             nnz,
+                                               const float               *ell_val,
+                                               const aoclsparse_int      *ell_col_ind,
+                                               aoclsparse_int             ell_width,
+                                               const aoclsparse_mat_descr descr,
+                                               const float               *x,
+                                               const float               *beta,
+                                               float                     *y)
 {
-    if(descr == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-
-    // Check index base
-    if(descr->base != aoclsparse_index_base_zero && descr->base != aoclsparse_index_base_one)
-    {
-        return aoclsparse_status_invalid_value;
-    }
-
-    if(descr->type != aoclsparse_matrix_type_general)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-
-    if(trans != aoclsparse_operation_none)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-
-    // Check sizes
-    if(m < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    else if(n < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    else if(ell_width < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-
-    // Sanity check
-    if((m == 0 || n == 0) && ell_width != 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-
-    // Quick return if possible
-    if(m == 0 || n == 0 || ell_width == 0)
-    {
-        return aoclsparse_status_success;
-    }
-
-    // Check pointer arguments
-    if(ell_val == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(ell_col_ind == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(x == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(y == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-
-    return aoclsparse_ellmv_template(
-        *alpha, m, ell_val, ell_col_ind, ell_width, descr, x, *beta, y);
+    return aoclsparse_ellmv_t<float>(
+        trans, alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, beta, y);
 }
-
 extern "C" aoclsparse_status aoclsparse_dellmv(aoclsparse_operation       trans,
                                                const double              *alpha,
                                                aoclsparse_int             m,
@@ -127,88 +64,14 @@ extern "C" aoclsparse_status aoclsparse_dellmv(aoclsparse_operation       trans,
                                                const double              *beta,
                                                double                    *y)
 {
-    if(descr == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-
-    // Check index base
-    if(descr->base != aoclsparse_index_base_zero && descr->base != aoclsparse_index_base_one)
-    {
-        return aoclsparse_status_invalid_value;
-    }
-
-    if(descr->type != aoclsparse_matrix_type_general)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-
-    if(trans != aoclsparse_operation_none)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-
-    // Check sizes
-    if(m < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    else if(n < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    else if(ell_width < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-
-    // Sanity check
-    if((m == 0 || n == 0) && ell_width != 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-
-    // Quick return if possible
-    if(m == 0 || n == 0 || ell_width == 0)
-    {
-        return aoclsparse_status_success;
-    }
-
-    // Check pointer arguments
-    if(ell_val == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(ell_col_ind == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(x == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(y == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-
-    using namespace aoclsparse;
-
-#if USE_AVX512
-    if(context::get_context()->supports<context_isa_t::AVX512F>())
-        return aoclsparse_ellmv_template_avx512(
-            *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, *beta, y);
-    else
-        return aoclsparse_ellmv_template_avx2(
-            *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, *beta, y);
-#else
-    return aoclsparse_ellmv_template_avx2(
-        *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, *beta, y);
-#endif
+    return aoclsparse_ellmv_t<double>(
+        trans, alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, beta, y);
 }
 
+/*
+ *  ELLTMV
+ * ===============================================
+ */
 extern "C" aoclsparse_status aoclsparse_selltmv(aoclsparse_operation       trans,
                                                 const float               *alpha,
                                                 aoclsparse_int             m,
@@ -222,75 +85,8 @@ extern "C" aoclsparse_status aoclsparse_selltmv(aoclsparse_operation       trans
                                                 const float               *beta,
                                                 float                     *y)
 {
-    if(descr == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-
-    // Check index base
-    if(descr->base != aoclsparse_index_base_zero && descr->base != aoclsparse_index_base_one)
-    {
-        return aoclsparse_status_invalid_value;
-    }
-
-    if(descr->type != aoclsparse_matrix_type_general)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-
-    if(trans != aoclsparse_operation_none)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-
-    // Check sizes
-    if(m < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    else if(n < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    else if(ell_width < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-
-    // Sanity check
-    if((m == 0 || n == 0) && ell_width != 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-
-    // Quick return if possible
-    if(m == 0 || n == 0 || ell_width == 0)
-    {
-        return aoclsparse_status_success;
-    }
-
-    // Check pointer arguments
-    if(ell_val == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(ell_col_ind == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(x == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(y == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-
-    return aoclsparse_elltmv_template(
-        *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, *beta, y);
+    return aoclsparse_elltmv_t<float>(
+        trans, alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, beta, y);
 }
 
 extern "C" aoclsparse_status aoclsparse_delltmv(aoclsparse_operation       trans,
@@ -306,94 +102,20 @@ extern "C" aoclsparse_status aoclsparse_delltmv(aoclsparse_operation       trans
                                                 const double              *beta,
                                                 double                    *y)
 {
-    if(descr == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-
-    // Check index base
-    if(descr->base != aoclsparse_index_base_zero && descr->base != aoclsparse_index_base_one)
-    {
-        return aoclsparse_status_invalid_value;
-    }
-
-    if(descr->type != aoclsparse_matrix_type_general)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-
-    if(trans != aoclsparse_operation_none)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-
-    // Check sizes
-    if(m < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    else if(n < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    else if(ell_width < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-
-    // Sanity check
-    if((m == 0 || n == 0) && ell_width != 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-
-    // Quick return if possible
-    if(m == 0 || n == 0 || ell_width == 0)
-    {
-        return aoclsparse_status_success;
-    }
-
-    // Check pointer arguments
-    if(ell_val == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(ell_col_ind == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(x == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    else if(y == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-
-    using namespace aoclsparse;
-
-#if USE_AVX512
-    if(context::get_context()->supports<context_isa_t::AVX512F>())
-        return aoclsparse_elltmv_template_avx512(
-            *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, *beta, y);
-    else
-        return aoclsparse_elltmv_template_avx2(
-            *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, *beta, y);
-#else
-    return aoclsparse_elltmv_template_avx2(
-        *alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, *beta, y);
-#endif
+    return aoclsparse_elltmv_t<double>(
+        trans, alpha, m, n, nnz, ell_val, ell_col_ind, ell_width, descr, x, beta, y);
 }
 
-extern "C" aoclsparse_status aoclsparse_sellthybmv([[maybe_unused]] aoclsparse_operation trans,
-                                                   const float                          *alpha,
-                                                   aoclsparse_int                        m,
-                                                   aoclsparse_int                        n,
-                                                   aoclsparse_int                        nnz,
-                                                   const float                          *ell_val,
+/*
+ *  ELLTHYMV
+ * ===============================================
+ */
+extern "C" aoclsparse_status aoclsparse_sellthybmv(aoclsparse_operation       trans,
+                                                   const float               *alpha,
+                                                   aoclsparse_int             m,
+                                                   aoclsparse_int             n,
+                                                   aoclsparse_int             nnz,
+                                                   const float               *ell_val,
                                                    const aoclsparse_int      *ell_col_ind,
                                                    aoclsparse_int             ell_width,
                                                    aoclsparse_int             ell_m,
@@ -407,7 +129,8 @@ extern "C" aoclsparse_status aoclsparse_sellthybmv([[maybe_unused]] aoclsparse_o
                                                    const float               *beta,
                                                    float                     *y)
 {
-    return aoclsparse_ellthybmv_template(*alpha,
+    return aoclsparse_ellthybmv_t<float>(trans,
+                                         alpha,
                                          m,
                                          n,
                                          nnz,
@@ -422,16 +145,16 @@ extern "C" aoclsparse_status aoclsparse_sellthybmv([[maybe_unused]] aoclsparse_o
                                          csr_row_idx_map,
                                          descr,
                                          x,
-                                         *beta,
+                                         beta,
                                          y);
 }
 
-extern "C" aoclsparse_status aoclsparse_dellthybmv([[maybe_unused]] aoclsparse_operation trans,
-                                                   const double                         *alpha,
-                                                   aoclsparse_int                        m,
-                                                   aoclsparse_int                        n,
-                                                   aoclsparse_int                        nnz,
-                                                   const double                         *ell_val,
+extern "C" aoclsparse_status aoclsparse_dellthybmv(aoclsparse_operation       trans,
+                                                   const double              *alpha,
+                                                   aoclsparse_int             m,
+                                                   aoclsparse_int             n,
+                                                   aoclsparse_int             nnz,
+                                                   const double              *ell_val,
                                                    const aoclsparse_int      *ell_col_ind,
                                                    aoclsparse_int             ell_width,
                                                    aoclsparse_int             ell_m,
@@ -445,61 +168,22 @@ extern "C" aoclsparse_status aoclsparse_dellthybmv([[maybe_unused]] aoclsparse_o
                                                    const double              *beta,
                                                    double                    *y)
 {
-    using namespace aoclsparse;
-#if USE_AVX512
-    if(context::get_context()->supports<context_isa_t::AVX512F>())
-        return aoclsparse_ellthybmv_template_avx512(*alpha,
-                                                    m,
-                                                    n,
-                                                    nnz,
-                                                    ell_val,
-                                                    ell_col_ind,
-                                                    ell_width,
-                                                    ell_m,
-                                                    csr_val,
-                                                    csr_row_ind,
-                                                    csr_col_ind,
-                                                    row_idx_map,
-                                                    csr_row_idx_map,
-                                                    descr,
-                                                    x,
-                                                    *beta,
-                                                    y);
-    else
-        return aoclsparse_ellthybmv_template_avx2(*alpha,
-                                                  m,
-                                                  n,
-                                                  nnz,
-                                                  ell_val,
-                                                  ell_col_ind,
-                                                  ell_width,
-                                                  ell_m,
-                                                  csr_val,
-                                                  csr_row_ind,
-                                                  csr_col_ind,
-                                                  row_idx_map,
-                                                  csr_row_idx_map,
-                                                  descr,
-                                                  x,
-                                                  *beta,
-                                                  y);
-#else
-    return aoclsparse_ellthybmv_template_avx2(*alpha,
-                                              m,
-                                              n,
-                                              nnz,
-                                              ell_val,
-                                              ell_col_ind,
-                                              ell_width,
-                                              ell_m,
-                                              csr_val,
-                                              csr_row_ind,
-                                              csr_col_ind,
-                                              row_idx_map,
-                                              csr_row_idx_map,
-                                              descr,
-                                              x,
-                                              *beta,
-                                              y);
-#endif
+    return aoclsparse_ellthybmv_t<double>(trans,
+                                          alpha,
+                                          m,
+                                          n,
+                                          nnz,
+                                          ell_val,
+                                          ell_col_ind,
+                                          ell_width,
+                                          ell_m,
+                                          csr_val,
+                                          csr_row_ind,
+                                          csr_col_ind,
+                                          row_idx_map,
+                                          csr_row_idx_map,
+                                          descr,
+                                          x,
+                                          beta,
+                                          y);
 }
