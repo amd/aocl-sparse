@@ -78,9 +78,7 @@
 #include "testing_complex_mtx_load.hpp"
 
 //aocl utils
-#include "alci/cxx/cpu.hh"
-
-using namespace alci;
+#include "Au/Cpuid/X86Cpu.hh"
 
 int main(int argc, char *argv[])
 {
@@ -413,8 +411,8 @@ int main(int argc, char *argv[])
     }
     else if(strcmp(arg.function, "blkcsrmv") == 0)
     {
-        alci::Cpu core{0};
-        bool okblk = core.isAvailable(ALC_E_FLAG_AVX512F) && core.isAvailable(ALC_E_FLAG_AVX512VL);
+        Au::X86Cpu Cpu = {0};
+        bool okblk = Cpu.hasFlag(Au::ECpuidFlag::avx512f) && Cpu.hasFlag(Au::ECpuidFlag::avx512vl);
         //float and complex are not supported. avx512 code on non-avx512 machine not supported
         if(precision == 'd' && okblk)
             return testing_blkcsrmv<double>(arg);

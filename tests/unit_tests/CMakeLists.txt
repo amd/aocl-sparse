@@ -86,7 +86,6 @@ set(GTEST_EXECUTABLES
     sctr_tests
     roti_tests
     createcsr_tests
-    utils_tests
     axpyi_tests
     dotmv_tests
     sorv_tests

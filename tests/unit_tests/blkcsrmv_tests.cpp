@@ -26,12 +26,10 @@
 #include "aoclsparse.hpp"
 
 //aocl utils
-#include "alci/cxx/cpu.hh"
+#include "Au/Cpuid/X86Cpu.hh"
 
 namespace
 {
-    using namespace alci;
-
     // Several tests in one when nullptr is passed instead
     // of valid data
     template <typename T>
@@ -860,16 +858,16 @@ namespace
     //
     TEST(blkcsrmv, NullArgDouble)
     {
-        alci::Cpu core{0};
-        bool okblk = core.isAvailable(ALC_E_FLAG_AVX512F) && core.isAvailable(ALC_E_FLAG_AVX512VL);
+        Au::X86Cpu Cpu = {0};
+        bool okblk = Cpu.hasFlag(Au::ECpuidFlag::avx512f) && Cpu.hasFlag(Au::ECpuidFlag::avx512vl);
         const aoclsparse_status blkcsrmv_status
             = okblk ? aoclsparse_status_invalid_pointer : aoclsparse_status_not_implemented;
         test_blkcsrmv_nullptr<double>(blkcsrmv_status);
     }
     TEST(blkcsrmv, WrongSizeDouble)
     {
-        alci::Cpu core{0};
-        bool okblk = core.isAvailable(ALC_E_FLAG_AVX512F) && core.isAvailable(ALC_E_FLAG_AVX512VL);
+        Au::X86Cpu Cpu = {0};
+        bool okblk = Cpu.hasFlag(Au::ECpuidFlag::avx512f) && Cpu.hasFlag(Au::ECpuidFlag::avx512vl);
         const aoclsparse_status blkcsrmv_status
             = okblk ? aoclsparse_status_invalid_size : aoclsparse_status_not_implemented;
         test_blkcsrmv_wrong_size<double>(blkcsrmv_status);
@@ -877,8 +875,8 @@ namespace
 
     TEST(blkcsrmv, DoNothingDouble)
     {
-        alci::Cpu core{0};
-        bool okblk = core.isAvailable(ALC_E_FLAG_AVX512F) && core.isAvailable(ALC_E_FLAG_AVX512VL);
+        Au::X86Cpu Cpu = {0};
+        bool okblk = Cpu.hasFlag(Au::ECpuidFlag::avx512f) && Cpu.hasFlag(Au::ECpuidFlag::avx512vl);
         const aoclsparse_status blkcsrmv_status
             = okblk ? aoclsparse_status_success : aoclsparse_status_not_implemented;
         test_blkcsrmv_do_nothing<double>(blkcsrmv_status);
@@ -886,8 +884,8 @@ namespace
 
     TEST(blkcsrmv, InvalidBase)
     {
-        alci::Cpu core{0};
-        bool okblk = core.isAvailable(ALC_E_FLAG_AVX512F) && core.isAvailable(ALC_E_FLAG_AVX512VL);
+        Au::X86Cpu Cpu = {0};
+        bool okblk = Cpu.hasFlag(Au::ECpuidFlag::avx512f) && Cpu.hasFlag(Au::ECpuidFlag::avx512vl);
         const aoclsparse_status blkcsrmv_status
             = okblk ? aoclsparse_status_invalid_value : aoclsparse_status_not_implemented;
         test_blkcsrmv_invalid_base<double>(blkcsrmv_status);
@@ -899,8 +897,8 @@ namespace
 
     TEST(blkcsrmv, AVX512BaseOneDoubleBlkCSRInput)
     {
-        alci::Cpu core{0};
-        bool okblk = core.isAvailable(ALC_E_FLAG_AVX512F) && core.isAvailable(ALC_E_FLAG_AVX512VL);
+        Au::X86Cpu Cpu = {0};
+        bool okblk = Cpu.hasFlag(Au::ECpuidFlag::avx512f) && Cpu.hasFlag(Au::ECpuidFlag::avx512vl);
         const aoclsparse_status blkcsrmv_status
             = okblk ? aoclsparse_status_success : aoclsparse_status_not_implemented;
         test_blkcsrmv_baseOneBlkCSRInput<double>(blkcsrmv_status);
@@ -908,16 +906,16 @@ namespace
 
     TEST(blkcsrmv, AVX512BaseOneDoubleCSRInput)
     {
-        alci::Cpu core{0};
-        bool okblk = core.isAvailable(ALC_E_FLAG_AVX512F) && core.isAvailable(ALC_E_FLAG_AVX512VL);
+        Au::X86Cpu Cpu = {0};
+        bool okblk = Cpu.hasFlag(Au::ECpuidFlag::avx512f) && Cpu.hasFlag(Au::ECpuidFlag::avx512vl);
         const aoclsparse_status blkcsrmv_status
             = okblk ? aoclsparse_status_success : aoclsparse_status_not_implemented;
         test_blkcsrmv_baseOneCSRInput<double>(blkcsrmv_status);
     }
     TEST(blkcsrmv, AVX512BaseZeroDoubleCSRInput)
     {
-        alci::Cpu core{0};
-        bool okblk = core.isAvailable(ALC_E_FLAG_AVX512F) && core.isAvailable(ALC_E_FLAG_AVX512VL);
+        Au::X86Cpu Cpu = {0};
+        bool okblk = Cpu.hasFlag(Au::ECpuidFlag::avx512f) && Cpu.hasFlag(Au::ECpuidFlag::avx512vl);
         const aoclsparse_status blkcsrmv_status
             = okblk ? aoclsparse_status_success : aoclsparse_status_not_implemented;
         test_blkcsrmv_baseZeroCSRInput<double>(blkcsrmv_status);

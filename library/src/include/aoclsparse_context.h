@@ -35,7 +35,7 @@
 #include <omp.h>
 #endif
 
-#include "alci/cxx/cpu.hh"
+#include "Au/Cpuid/X86Cpu.hh"
 
 namespace aoclsparse
 {
@@ -131,12 +131,6 @@ namespace aoclsparse
         static context   *global_obj;
         static std::mutex global_lock;
 
-        // ALCI CPU object
-        std::unique_ptr<alci::Cpu> Cpu = nullptr;
-
-        // Architecture reported by ALCI
-        alci::Uarch Uarch;
-
         //AOCLSPARSE local arch info container
         archs lib_local_arch;
 
@@ -148,40 +142,40 @@ namespace aoclsparse
         // Ensure direct calls to constructor is not possible
         context()
         {
-            this->Cpu   = std::make_unique<alci::Cpu>();
-            this->Uarch = this->Cpu->getUarch();
+            Au::X86Cpu Cpu   = {0};
+            Au::EUarch uarch = Cpu.getUarch();
 
             // Check for the list of flags supported
             // Note: Utils does not support BF16 flag lookup
             this->cpuflags[static_cast<int>(context_isa_t::AVX2)]
-                = this->Cpu->isAvailable(alci::ALC_E_FLAG_AVX2);
+                = Cpu.hasFlag(Au::ECpuidFlag::avx2);
 
             this->cpuflags[static_cast<int>(context_isa_t::AVX512F)]
-                = this->Cpu->isAvailable(alci::ALC_E_FLAG_AVX512F);
+                = Cpu.hasFlag(Au::ECpuidFlag::avx512f);
 
             this->cpuflags[static_cast<int>(context_isa_t::AVX512DQ)]
-                = this->Cpu->isAvailable(alci::ALC_E_FLAG_AVX512DQ);
+                = Cpu.hasFlag(Au::ECpuidFlag::avx512dq);
 
             this->cpuflags[static_cast<int>(context_isa_t::AVX512VL)]
-                = this->Cpu->isAvailable(alci::ALC_E_FLAG_AVX512VL);
+                = Cpu.hasFlag(Au::ECpuidFlag::avx512vl);
 
             this->cpuflags[static_cast<int>(context_isa_t::AVX512IFMA)]
-                = this->Cpu->isAvailable(alci::ALC_E_FLAG_AVX512_IFMA);
+                = Cpu.hasFlag(Au::ECpuidFlag::avx512ifma);
 
             this->cpuflags[static_cast<int>(context_isa_t::AVX512CD)]
-                = this->Cpu->isAvailable(alci::ALC_E_FLAG_AVX512CD);
+                = Cpu.hasFlag(Au::ECpuidFlag::avx512cd);
 
             this->cpuflags[static_cast<int>(context_isa_t::AVX512BW)]
-                = this->Cpu->isAvailable(alci::ALC_E_FLAG_AVX512BW);
+                = Cpu.hasFlag(Au::ECpuidFlag::avx512bw);
 
             this->cpuflags[static_cast<int>(context_isa_t::AVX512_VBMI)]
-                = this->Cpu->isAvailable(alci::ALC_E_FLAG_AVX512_VBMI);
+                = Cpu.hasFlag(Au::ECpuidFlag::avx512vbmi);
 
             this->cpuflags[static_cast<int>(context_isa_t::AVX512_VNNI)]
-                = this->Cpu->isAvailable(alci::ALC_E_FLAG_AVX512_VNNI);
+                = Cpu.hasFlag(Au::ECpuidFlag::avx512_4vnniw);
 
             this->cpuflags[static_cast<int>(context_isa_t::AVX512_VPOPCNTDQ)]
-                = this->Cpu->isAvailable(alci::ALC_E_FLAG_AVX512_VPOPCNTDQ);
+                = Cpu.hasFlag(Au::ECpuidFlag::avx512_vpopcntdq);
 
             // Check for the enviromental variable "AOCL_ENABLE_INSTRUCTIONS"
             // global_context.isa is already initialized to UNSET (default)
@@ -216,15 +210,15 @@ namespace aoclsparse
                 }
             }
 
-            switch(this->Uarch)
+            switch(uarch)
             {
-            case alci::Uarch::eZen:
+            case Au::EUarch::Zen:
                 lib_local_arch = archs::ZEN;
-            case alci::Uarch::eZen2:
+            case Au::EUarch::Zen2:
                 lib_local_arch = archs::ZEN2;
-            case alci::Uarch::eZen3:
+            case Au::EUarch::Zen3:
                 lib_local_arch = archs::ZEN3;
-            case alci::Uarch::eZen4:
+            case Au::EUarch::Zen4:
                 lib_local_arch = archs::ZEN4;
             // Todo: Add support for newer and older AMD architectures
             default:

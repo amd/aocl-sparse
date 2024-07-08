@@ -30,7 +30,7 @@
 #include <thread>
 #include <type_traits>
 
-#include "alci/cxx/cpu.hh"
+#include "Au/Cpuid/X86Cpu.hh"
 
 namespace contextTest
 {
@@ -130,8 +130,8 @@ namespace contextTest
     // Test if the isa hint change is thread local
     TEST(context, tl_isa_change)
     {
-        char      isa[8] = "GENERIC";
-        alci::Cpu core;
+        char       isa[8] = "GENERIC";
+        Au::X86Cpu Cpu    = {0};
 
         // Enable a different instruction for the calling thread
         [[maybe_unused]] auto s = aoclsparse_enable_instructions("AVX512");
@@ -144,9 +144,9 @@ namespace contextTest
         aoclsparse_debug_get(info.global_isa, info.sparse_nt, info.tl_isa, info.is_isa_updated);
 
         // If AVX512 is supported by the core, then the tl isa will be AVX512
-        if(core.isAvailable(alci::ALC_E_FLAG_AVX512F))
+        if(Cpu.hasFlag(Au::ECpuidFlag::avx512f))
             EXPECT_TRUE(!strcmp("AVX512", info.tl_isa));
-        else if(core.isAvailable(alci::ALC_E_FLAG_AVX2))
+        else if(Cpu.hasFlag(Au::ECpuidFlag::avx2))
             EXPECT_TRUE(!strcmp("AVX2", info.tl_isa));
         else
             EXPECT_TRUE(!strcmp("GENERIC", info.tl_isa));
@@ -172,7 +172,7 @@ namespace contextTest
     void cpp_thread_instance()
     {
         constexpr size_t thread_count = 3;
-        alci::Cpu        core;
+        Au::X86Cpu       Cpu          = {0};
 
         char init_v_1[10] = "AVX2";
         char init_v_2[10] = "AVX512";
@@ -190,15 +190,15 @@ namespace contextTest
         for(size_t i = 0; i < 2; ++i)
             t[i].join();
 
-        if(core.isAvailable(alci::ALC_E_FLAG_AVX2))
+        if(Cpu.hasFlag(Au::ECpuidFlag::avx2))
             EXPECT_TRUE(!strcmp(init_v_1, ledger_1));
         else
             EXPECT_TRUE(!strcmp("GENERIC", ledger_1));
 
         // If AVX512 is supported by the core, then the tl isa will be AVX512
-        if(core.isAvailable(alci::ALC_E_FLAG_AVX512F))
+        if(Cpu.hasFlag(Au::ECpuidFlag::avx512f))
             EXPECT_TRUE(!strcmp(init_v_2, ledger_2));
-        else if(core.isAvailable(alci::ALC_E_FLAG_AVX2))
+        else if(Cpu.hasFlag(Au::ECpuidFlag::avx2))
             EXPECT_TRUE(!strcmp("AVX2", ledger_2));
         else
             EXPECT_TRUE(!strcmp("GENERIC", ledger_2));
@@ -217,7 +217,7 @@ namespace contextTest
     void omp_thread_instance_test()
     {
 #ifdef _OPENMP
-        alci::Cpu core;
+        Au::X86Cpu Cpu = {0};
 
         char init_ledger[3][10] = {"AVX2", "AVX512", "GENERIC"};
         char res_ledger[3][10];
@@ -228,15 +228,15 @@ namespace contextTest
             modify_isa(init_ledger[i], res_ledger[i]);
         }
 
-        if(core.isAvailable(alci::ALC_E_FLAG_AVX2))
+        if(Cpu.hasFlag(Au::ECpuidFlag::avx2))
             EXPECT_TRUE(!strcmp(init_ledger[0], res_ledger[0]));
         else
             EXPECT_TRUE(!strcmp("GENERIC", res_ledger[0]));
 
         // If AVX512 is supported by the core, then the tl isa will be AVX512
-        if(core.isAvailable(alci::ALC_E_FLAG_AVX512F))
+        if(Cpu.hasFlag(Au::ECpuidFlag::avx512f))
             EXPECT_TRUE(!strcmp(init_ledger[1], res_ledger[1]));
-        else if(core.isAvailable(alci::ALC_E_FLAG_AVX2))
+        else if(Cpu.hasFlag(Au::ECpuidFlag::avx2))
             EXPECT_TRUE(!strcmp("AVX2", res_ledger[1]));
         else
             EXPECT_TRUE(!strcmp("GENERIC", res_ledger[1]));
@@ -279,7 +279,7 @@ namespace contextTest
     void cpp_thread_invalid()
     {
         constexpr size_t thread_count = 3;
-        alci::Cpu        core;
+        Au::X86Cpu       Cpu          = {0};
 
         char init_v_1[10] = "AVX2";
         char init_v_2[10] = "AVX512";
@@ -307,15 +307,15 @@ namespace contextTest
         for(size_t i = 0; i < 2; ++i)
             t[i].join();
 
-        if(core.isAvailable(alci::ALC_E_FLAG_AVX2))
+        if(Cpu.hasFlag(Au::ECpuidFlag::avx2))
             EXPECT_TRUE(!strcmp(init_v_1, ledger_1));
         else
             EXPECT_TRUE(!strcmp("GENERIC", ledger_1));
 
         // If AVX512 is supported by the core, then the tl isa will be AVX512
-        if(core.isAvailable(alci::ALC_E_FLAG_AVX512F))
+        if(Cpu.hasFlag(Au::ECpuidFlag::avx512f))
             EXPECT_TRUE(!strcmp(init_v_2, ledger_2));
-        else if(core.isAvailable(alci::ALC_E_FLAG_AVX2))
+        else if(Cpu.hasFlag(Au::ECpuidFlag::avx2))
             EXPECT_TRUE(!strcmp("AVX2", ledger_2));
         else
             EXPECT_TRUE(!strcmp("GENERIC", ledger_2));
