@@ -151,12 +151,7 @@ int testing_gthr(const Arguments &arg)
         }
     }
 
-    int         number_hot_calls = arg.iters;
-    std::string prob_name        = gen_problem_name(arg, td);
-
-    std::cout.precision(2);
-    std::cout.setf(std::ios::fixed);
-    std::cout.setf(std::ios::left);
+    std::string prob_name = gen_problem_name(arg, td);
 
     for(unsigned itest = 0; itest < testqueue.size(); ++itest)
     {

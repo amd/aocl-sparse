@@ -121,8 +121,6 @@ int testing_csrmm(const Arguments &arg)
     aoclsparse_operation   trans    = arg.transA;
     aoclsparse_index_base  base     = arg.baseA;
     aoclsparse_matrix_type mattype  = arg.mattypeA;
-    aoclsparse_fill_mode   fill     = arg.uplo;
-    aoclsparse_diag_type   diag     = arg.diag;
     aoclsparse_order       order    = arg.order;
     aoclsparse_matrix_init mat      = arg.matrix;
     std::string            filename = arg.filename;

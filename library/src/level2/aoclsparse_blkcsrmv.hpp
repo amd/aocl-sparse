@@ -75,20 +75,20 @@ aoclsparse_status
 // Blocked SpMV only supports single threaded usecases.
 template <typename T>
 std::enable_if_t<std::is_same_v<T, double>, aoclsparse_status>
-    aoclsparse_blkcsrmv_t(aoclsparse_operation       trans,
-                          const T                   *alpha,
-                          aoclsparse_int             m,
-                          aoclsparse_int             n,
-                          aoclsparse_int             nnz,
-                          const uint8_t             *masks,
-                          const T                   *blk_csr_val,
-                          const aoclsparse_int      *blk_col_ind,
-                          const aoclsparse_int      *blk_row_ptr,
-                          const aoclsparse_mat_descr descr,
-                          const T                   *x,
-                          const T                   *beta,
-                          T                         *y,
-                          aoclsparse_int             nRowsblk)
+    aoclsparse_blkcsrmv_t(aoclsparse_operation            trans,
+                          [[maybe_unused]] const T       *alpha,
+                          aoclsparse_int                  m,
+                          aoclsparse_int                  n,
+                          aoclsparse_int                  nnz,
+                          const uint8_t                  *masks,
+                          const T                        *blk_csr_val,
+                          const aoclsparse_int           *blk_col_ind,
+                          const aoclsparse_int           *blk_row_ptr,
+                          const aoclsparse_mat_descr      descr,
+                          const T                        *x,
+                          [[maybe_unused]] const T       *beta,
+                          T                              *y,
+                          [[maybe_unused]] aoclsparse_int nRowsblk)
 {
     using namespace aoclsparse;
 
@@ -187,10 +187,8 @@ std::enable_if_t<std::is_same_v<T, double>, aoclsparse_status>
             return aoclsparse_status_invalid_size;
 #endif
     }
-    else // If the API cannot be executed
-    {
-        return aoclsparse_status_not_implemented;
-    }
+    // else the API cannot be executed
+    return aoclsparse_status_not_implemented;
 }
 
 #endif // AOCLSPARSE_BLKCSRMV_HPP
