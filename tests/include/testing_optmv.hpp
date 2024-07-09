@@ -215,11 +215,7 @@ int testing_optmv(const Arguments &arg)
                                          y_gold.data()));
     }
 
-    std::string prob_name        = gen_problem_name(arg, td);
-    int         number_hot_calls = arg.iters;
-    std::cout.precision(2);
-    std::cout.setf(std::ios::fixed);
-    std::cout.setf(std::ios::left);
+    std::string prob_name = gen_problem_name(arg, td);
 
     for(unsigned itest = 0; itest < testqueue.size(); ++itest)
     {

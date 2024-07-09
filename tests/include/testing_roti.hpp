@@ -147,12 +147,8 @@ int testing_roti(const Arguments &arg)
         }
     }
 
-    std::string prob_name        = gen_problem_name(arg, td);
-    int         number_hot_calls = arg.iters;
+    std::string prob_name = gen_problem_name(arg, td);
 
-    std::cout.precision(2);
-    std::cout.setf(std::ios::fixed);
-    std::cout.setf(std::ios::left);
     for(unsigned itest = 0; itest < testqueue.size(); ++itest)
     {
         // Run the test loop
