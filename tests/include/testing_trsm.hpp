@@ -199,7 +199,45 @@ int testing_trsm(const Arguments &arg)
 
     if(order == aoclsparse_order_column)
     {
-        //test for ldy and ldx greater than matrix dimension
+        /*
+                 ◄────────── k  ──────────────►
+             ▲  ┌─┬───┬───┬───┬───┬───┬───┬───┐
+             │  │ │   │   │   │   │   │   │   │
+             │  │ │   │   │   │   │   │   │   │
+             │  │ │   │   │   │   │   │   │   │
+             │  │ │   │   │   │   │   │   │   │
+             │  │ │   │   │   │   │   │   │   │
+             │  │ │   │   │   │   │   │   │   │
+             |  │ │   │   │   │   │   │   │   │
+        ldx=m+2 │ │   │   │   │   │   │   │   │
+             │  │ │   │   │   │   │   │   │   │
+             │  │ │   │   │   │   │   │   │   │
+             │  │ │   │   │   │   │   │   │   │
+             │  │ │   │   │   │   │   │   │   │
+             │  │ ▼   ▼   ▼   ▼   ▼   ▼   ▼   │
+             ▼  └─────────────────────────────┘
+                 ┌─ ─┐
+                 │ │ │
+                 │ │ │
+                 │ │ │
+                 │ │ │
+                 │ │ │
+                 │ │ │
+                 │ │ │
+            x[0]=│ │ │
+                 │ │ │
+                 │ │ │
+                 │ │ │
+                 │ │ │
+                 │ │ │
+                 │ │ │
+                 │ ▼ │
+                 └─ ─┘
+            ldx and ldy are intentionally increased to (m+2), so as to
+            1. offset happens by ldx = m+2, to reach next column
+            2. only compare (k x m) with reference, the last 2 rows might
+                have garbage so unit check might fail
+        */
         td.ldy = td.m + 2;
         td.ldx = td.m + 2;
         mm     = td.k;
@@ -207,9 +245,30 @@ int testing_trsm(const Arguments &arg)
     }
     else if(order == aoclsparse_order_row)
     {
-        //test for ldy and ldx greater than matrix dimension
-        td.ldy = td.k + td.m + 2;
-        td.ldx = td.k + td.m + 2;
+        /*
+                ◄──────────────ldx=k────────────►
+             ▲  ┌───────────────────────────────┐
+             │  │                               │
+             │  │  ──────────────────────────►  │
+             │  │                               │
+             │  │  ──────────────────────────►  │
+             │  │                               │
+             │  │  ──────────────────────────►  │
+                │                               │
+             m  │  ──────────────────────────►  │
+             │  │                               │
+             │  │  ──────────────────────────►  │
+             │  │                               │
+             │  │  ──────────────────────────►  │
+             │  │                               │
+             ▼  └───────────────────────────────┘
+                 ┌─                             ─┐
+            x[0]=│ ────────────────────────────► │
+                 └─                             ─┘
+            increase k as needed to control leading dimensions
+        */
+        td.ldy = td.k;
+        td.ldx = td.k;
         mm     = td.m;
         nn     = td.k;
     }
