@@ -97,18 +97,13 @@ aoclsparse_status aoclsparse_dotmv_t(const aoclsparse_operation op,
                                      T                         *d,
                                      aoclsparse_int             kid)
 {
-    aoclsparse_status status;
-
-    if(d == nullptr)
+    if(d == nullptr || A == nullptr)
     {
-        // Remaining validations are done in mv and mv_t functions
+        // Todo: All validations need to be done here
         return aoclsparse_status_invalid_pointer;
     }
 
-    if constexpr(std::is_same_v<T, double> || std::is_same_v<T, float>)
-        status = aoclsparse_mv(op, alpha, A, descr, x, beta, y);
-    else
-        status = aoclsparse_mv_t(op, alpha, A, descr, x, beta, y);
+    aoclsparse_status status = aoclsparse_mv_t(op, &alpha, A, descr, x, &beta, y);
 
     if(status)
     {
