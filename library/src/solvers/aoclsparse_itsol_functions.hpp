@@ -1334,7 +1334,7 @@ aoclsparse_status aoclsparse_cg_solve(
             // Compute v = Au
             beta   = 0.0;
             alpha  = 1.0;
-            status = aoclsparse_mv(aoclsparse_operation_none, alpha, mat, descr, u, beta, v);
+            status = aoclsparse_mv_t<T>(aoclsparse_operation_none, &alpha, mat, descr, u, &beta, v);
             if(status != aoclsparse_status_success)
                 // Shouldn't happen, invalid pointer/value/not implemented should be checked before
                 return aoclsparse_status_internal_error;
@@ -1444,7 +1444,8 @@ aoclsparse_status aoclsparse_gmres_solve(
             // Compute v = Au
             beta   = 0.0;
             alpha  = 1.0;
-            status = aoclsparse_mv(aoclsparse_operation_none, alpha, mat, descr, io1, beta, io2);
+            status = aoclsparse_mv_t<T>(
+                aoclsparse_operation_none, &alpha, mat, descr, io1, &beta, io2);
             if(status != aoclsparse_status_success)
                 // Shouldn't happen, invalid pointer/value/not implemented should be checked before
                 return aoclsparse_status_internal_error;

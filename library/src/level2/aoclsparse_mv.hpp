@@ -26,44 +26,142 @@
 #include "aoclsparse.h"
 #include "aoclsparse_descr.h"
 #include "aoclsparse_mat_structures.h"
+#include "aoclsparse_blkcsrmv.hpp"
 #include "aoclsparse_csr_util.hpp"
 #include "aoclsparse_csrmv.hpp"
+#include "aoclsparse_ellmv.hpp"
 
 #include <complex>
 #include <immintrin.h>
 
+// Kernels
+// -----------------------------------
 template <typename T>
-aoclsparse_status aoclsparse_dcsr_mat_br4(aoclsparse_operation       op,
-                                          const T                    alpha,
-                                          aoclsparse_matrix          A,
-                                          const aoclsparse_mat_descr descr,
-                                          const T                   *x,
-                                          const T                    beta,
-                                          T                         *y);
+std::enable_if_t<std::is_same_v<T, double>, aoclsparse_status>
+    aoclsparse_dcsr_mat_br4([[maybe_unused]] aoclsparse_operation       op,
+                            const T                                     alpha,
+                            aoclsparse_matrix                           A,
+                            [[maybe_unused]] const aoclsparse_mat_descr descr,
+                            const T                                    *x,
+                            const T                                     beta,
+                            T                                          *y)
+{
+    using namespace aoclsparse;
 
-template <typename T>
-aoclsparse_status aoclsparse_mv_general(aoclsparse_operation       op,
-                                        const T                    alpha,
-                                        aoclsparse_matrix          A,
-                                        const aoclsparse_mat_descr descr,
-                                        const T                   *x,
-                                        const T                    beta,
-                                        T                         *y);
+    __m256d               res, vvals, vx, vy, va, vb;
+    aoclsparse_index_base base = A->base;
+
+    va  = _mm256_set1_pd(alpha);
+    vb  = _mm256_set1_pd(beta);
+    res = _mm256_setzero_pd();
+
+    aoclsparse_int                 *tcptr = A->csr_mat_br4.csr_col_ptr;
+    aoclsparse_int                 *rptr  = A->csr_mat_br4.csr_row_ptr;
+    aoclsparse_int                 *cptr;
+    double                         *tvptr = (double *)A->csr_mat_br4.csr_val;
+    const double                   *vptr;
+    aoclsparse_int                  blk = 4;
+    [[maybe_unused]] aoclsparse_int chunk_size
+        = (A->m) / (blk * context::get_context()->get_num_threads());
+
+#ifdef _OPENMP
+    chunk_size = chunk_size ? chunk_size : 1;
+#pragma omp parallel for num_threads(context::get_context()->get_num_threads()) \
+    schedule(dynamic, chunk_size) private(res, vvals, vx, vy, vptr, cptr)
+#endif
+    for(aoclsparse_int i = 0; i < (A->m) / blk; i++)
+    {
+
+        aoclsparse_int r = rptr[i * blk];
+        vptr             = tvptr + r - base;
+        cptr             = tcptr + r - base;
+
+        res = _mm256_setzero_pd();
+        // aoclsparse_int nnz = rptr[i*blk];
+        aoclsparse_int nnz = rptr[i * blk + 1] - r;
+        for(aoclsparse_int j = 0; j < nnz; ++j)
+        {
+            aoclsparse_int off = j * blk;
+            vvals              = _mm256_loadu_pd((double const *)(vptr + off));
+
+            vx = _mm256_set_pd(x[*(cptr + off + 3) - base],
+                               x[*(cptr + off + 2) - base],
+                               x[*(cptr + off + 1) - base],
+                               x[*(cptr + off) - base]);
+
+            res = _mm256_fmadd_pd(vvals, vx, res);
+        }
+        /*
+	   tc += blk*nnz;
+	   vptr += blk*nnz;
+	   cptr += blk*nnz;
+	   */
+
+        if(alpha != static_cast<double>(1))
+        {
+            res = _mm256_mul_pd(va, res);
+        }
+
+        if(beta != static_cast<double>(0))
+        {
+            vy  = _mm256_loadu_pd(&y[i * blk]);
+            res = _mm256_fmadd_pd(vb, vy, res);
+        }
+        _mm256_storeu_pd(&y[i * blk], res);
+    }
+
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(aoclsparse::context::get_context()->get_num_threads())
+#endif
+    for(aoclsparse_int k = ((A->m) / blk) * blk; k < A->m; ++k)
+    {
+        double result = 0;
+        /*
+	   aoclsparse_int nnz = A->csr_mat_br4.csr_row_ptr[k];
+	   for(j = 0; j < nnz; ++j)
+	   {
+	   result += ((double *)A->csr_mat_br4.csr_val)[tc] * x[A->csr_mat_br4.csr_col_ptr[tc]];
+	   tc++;;
+	   }
+	   */
+        for(aoclsparse_int j = (A->csr_mat_br4.csr_row_ptr[k] - base);
+            j < (A->csr_mat_br4.csr_row_ptr[k + 1] - base);
+            ++j)
+        {
+            result
+                += ((double *)A->csr_mat_br4.csr_val)[j] * x[A->csr_mat_br4.csr_col_ptr[j] - base];
+        }
+
+        if(alpha != static_cast<double>(1))
+        {
+            result = alpha * result;
+        }
+
+        if(beta != static_cast<double>(0))
+        {
+            result += beta * y[k];
+        }
+        y[k] = result;
+    }
+
+    return aoclsparse_status_success;
+}
 
 /* templated SpMV for complex types - can be extended for floats and doubles*/
 template <typename T>
-aoclsparse_status aoclsparse_mv_t(aoclsparse_operation op,
-                                  T                    alpha, /* ToDo: this is not a pointer */
-                                  aoclsparse_matrix    A,
-                                  const aoclsparse_mat_descr descr,
-                                  const T                   *x,
-                                  T                          beta,
-                                  T                         *y)
+std::enable_if_t<std::is_same_v<T, std::complex<float>> || std::is_same_v<T, std::complex<double>>,
+                 aoclsparse_status>
+    aoclsparse_mv_t(aoclsparse_operation       op,
+                    const T                   *alpha,
+                    aoclsparse_matrix          A,
+                    const aoclsparse_mat_descr descr,
+                    const T                   *x,
+                    const T                   *beta,
+                    T                         *y)
 {
-    aoclsparse_status     status;
-    _aoclsparse_mat_descr descr_cpy;
+    if(alpha == nullptr || beta == nullptr)
+        return aoclsparse_status_invalid_pointer;
 
-    aoclsparse_copy_mat_descr(&descr_cpy, descr);
     if(A == nullptr)
         return aoclsparse_status_invalid_pointer;
 
@@ -122,10 +220,10 @@ aoclsparse_status aoclsparse_mv_t(aoclsparse_operation op,
     if(A->m == 0 || A->n == 0 || (A->nnz == 0 && descr->type == aoclsparse_matrix_type_general))
     {
         aoclsparse_int dim = op == aoclsparse_operation_none ? A->m : A->n;
-        if(beta != zero)
+        if(*beta != zero)
         {
             for(aoclsparse_int i = 0; i < dim; i++)
-                y[i] = beta * y[i];
+                y[i] = (*beta) * y[i];
         }
         else
         {
@@ -134,6 +232,11 @@ aoclsparse_status aoclsparse_mv_t(aoclsparse_operation op,
         }
         return aoclsparse_status_success;
     }
+
+    aoclsparse_status     status;
+    _aoclsparse_mat_descr descr_cpy;
+
+    aoclsparse_copy_mat_descr(&descr_cpy, descr);
 
     if((descr->type == aoclsparse_matrix_type_triangular
         || descr->type == aoclsparse_matrix_type_symmetric
@@ -158,7 +261,7 @@ aoclsparse_status aoclsparse_mv_t(aoclsparse_operation op,
         if(descr->type == aoclsparse_matrix_type_symmetric)
         {
             return aoclsparse_csrmv_symm_internal(descr_cpy.base,
-                                                  alpha,
+                                                  *alpha,
                                                   A->m,
                                                   descr_cpy.diag_type,
                                                   descr_cpy.fill_mode,
@@ -168,19 +271,19 @@ aoclsparse_status aoclsparse_mv_t(aoclsparse_operation op,
                                                   A->idiag,
                                                   A->iurow,
                                                   x,
-                                                  beta,
+                                                  *beta,
                                                   y);
         }
         else if(descr->type == aoclsparse_matrix_type_general)
         {
             return aoclsparse_csrmv_general(descr->base,
-                                            alpha,
+                                            *alpha,
                                             m,
                                             (T *)A->csr_mat.csr_val,
                                             A->csr_mat.csr_col_ptr,
                                             A->csr_mat.csr_row_ptr,
                                             x,
-                                            beta,
+                                            *beta,
                                             y);
         }
         else if(descr->type == aoclsparse_matrix_type_triangular)
@@ -198,7 +301,7 @@ aoclsparse_status aoclsparse_mv_t(aoclsparse_operation op,
                 crend   = &A->opt_csr_mat.csr_row_ptr[1];
             }
             return aoclsparse_csrmv_ref(&descr_cpy,
-                                        alpha,
+                                        *alpha,
                                         A->m,
                                         A->n,
                                         (T *)A->opt_csr_mat.csr_val,
@@ -206,13 +309,13 @@ aoclsparse_status aoclsparse_mv_t(aoclsparse_operation op,
                                         crstart,
                                         crend,
                                         x,
-                                        beta,
+                                        *beta,
                                         y);
         }
         else if(descr->type == aoclsparse_matrix_type_hermitian)
         {
             return aoclsparse_csrmv_herm_internal(descr_cpy.base,
-                                                  alpha,
+                                                  *alpha,
                                                   A->m,
                                                   descr_cpy.diag_type,
                                                   descr_cpy.fill_mode,
@@ -222,7 +325,7 @@ aoclsparse_status aoclsparse_mv_t(aoclsparse_operation op,
                                                   A->idiag,
                                                   A->iurow,
                                                   x,
-                                                  beta,
+                                                  *beta,
                                                   y);
         }
         break;
@@ -231,7 +334,7 @@ aoclsparse_status aoclsparse_mv_t(aoclsparse_operation op,
         if(descr->type == aoclsparse_matrix_type_symmetric)
         {
             return aoclsparse_csrmv_symm_internal(descr_cpy.base,
-                                                  alpha,
+                                                  *alpha,
                                                   A->m,
                                                   descr_cpy.diag_type,
                                                   descr_cpy.fill_mode,
@@ -241,20 +344,20 @@ aoclsparse_status aoclsparse_mv_t(aoclsparse_operation op,
                                                   A->idiag,
                                                   A->iurow,
                                                   x,
-                                                  beta,
+                                                  *beta,
                                                   y);
         }
         else if(descr->type == aoclsparse_matrix_type_general)
         {
             return aoclsparse_csrmvt(descr->base,
-                                     alpha,
+                                     *alpha,
                                      m,
                                      n,
                                      (T *)A->csr_mat.csr_val,
                                      A->csr_mat.csr_col_ptr,
                                      A->csr_mat.csr_row_ptr,
                                      x,
-                                     beta,
+                                     *beta,
                                      y);
         }
         else if(descr->type == aoclsparse_matrix_type_triangular)
@@ -272,7 +375,7 @@ aoclsparse_status aoclsparse_mv_t(aoclsparse_operation op,
                 crend   = &A->opt_csr_mat.csr_row_ptr[1];
             }
             return aoclsparse_csrmvt_ptr(&descr_cpy,
-                                         alpha,
+                                         *alpha,
                                          A->m,
                                          A->n,
                                          (T *)A->opt_csr_mat.csr_val,
@@ -280,13 +383,13 @@ aoclsparse_status aoclsparse_mv_t(aoclsparse_operation op,
                                          crstart,
                                          crend,
                                          x,
-                                         beta,
+                                         *beta,
                                          y);
         }
         else if(descr->type == aoclsparse_matrix_type_hermitian)
         {
             return aoclsparse_csrmv_hermt_internal(descr_cpy.base,
-                                                   alpha,
+                                                   *alpha,
                                                    A->m,
                                                    descr_cpy.diag_type,
                                                    descr_cpy.fill_mode,
@@ -296,7 +399,7 @@ aoclsparse_status aoclsparse_mv_t(aoclsparse_operation op,
                                                    A->idiag,
                                                    A->iurow,
                                                    x,
-                                                   beta,
+                                                   *beta,
                                                    y);
         }
         break;
@@ -305,7 +408,7 @@ aoclsparse_status aoclsparse_mv_t(aoclsparse_operation op,
         if(descr->type == aoclsparse_matrix_type_symmetric)
         {
             return aoclsparse_csrmvh_symm_internal(descr_cpy.base,
-                                                   alpha,
+                                                   *alpha,
                                                    A->m,
                                                    descr_cpy.diag_type,
                                                    descr_cpy.fill_mode,
@@ -315,20 +418,20 @@ aoclsparse_status aoclsparse_mv_t(aoclsparse_operation op,
                                                    A->idiag,
                                                    A->iurow,
                                                    x,
-                                                   beta,
+                                                   *beta,
                                                    y);
         }
         else if(descr->type == aoclsparse_matrix_type_general)
         {
             return aoclsparse_csrmvh(descr->base,
-                                     alpha,
+                                     *alpha,
                                      m,
                                      n,
                                      (T *)A->csr_mat.csr_val,
                                      A->csr_mat.csr_col_ptr,
                                      A->csr_mat.csr_row_ptr,
                                      x,
-                                     beta,
+                                     *beta,
                                      y);
         }
         else if(descr->type == aoclsparse_matrix_type_triangular)
@@ -346,7 +449,7 @@ aoclsparse_status aoclsparse_mv_t(aoclsparse_operation op,
                 crend   = &A->opt_csr_mat.csr_row_ptr[1];
             }
             return aoclsparse_csrmvh_ptr(&descr_cpy,
-                                         alpha,
+                                         *alpha,
                                          A->m,
                                          A->n,
                                          (T *)A->opt_csr_mat.csr_val,
@@ -354,13 +457,13 @@ aoclsparse_status aoclsparse_mv_t(aoclsparse_operation op,
                                          crstart,
                                          crend,
                                          x,
-                                         beta,
+                                         *beta,
                                          y);
         }
         else if(descr->type == aoclsparse_matrix_type_hermitian)
         {
             return aoclsparse_csrmv_herm_internal(descr_cpy.base,
-                                                  alpha,
+                                                  *alpha,
                                                   A->m,
                                                   descr_cpy.diag_type,
                                                   descr_cpy.fill_mode,
@@ -370,7 +473,7 @@ aoclsparse_status aoclsparse_mv_t(aoclsparse_operation op,
                                                   A->idiag,
                                                   A->iurow,
                                                   x,
-                                                  beta,
+                                                  *beta,
                                                   y);
         }
         break;
@@ -388,17 +491,17 @@ aoclsparse_status aoclsparse_mv_t(aoclsparse_operation op,
  * Compute y:= beta*y + alpha*A*x    or   + alpha*A'*x
  */
 template <typename T>
-aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
-                                T                          alpha,
-                                aoclsparse_matrix          A,
-                                const aoclsparse_mat_descr descr,
-                                const T                   *x,
-                                T                          beta,
-                                T                         *y)
+std::enable_if_t<std::is_same_v<T, float> || std::is_same_v<T, double>, aoclsparse_status>
+    aoclsparse_mv_t(aoclsparse_operation       op,
+                    const T                   *alpha,
+                    aoclsparse_matrix          A,
+                    const aoclsparse_mat_descr descr,
+                    const T                   *x,
+                    const T                   *beta,
+                    T                         *y)
 {
-    aoclsparse_status     status;
-    _aoclsparse_mat_descr descr_cpy;
-    aoclsparse_copy_mat_descr(&descr_cpy, descr);
+    if(alpha == nullptr || beta == nullptr)
+        return aoclsparse_status_invalid_pointer;
 
     // still check A, in case the template is called directly
     // now A->mat_type should match T
@@ -468,10 +571,10 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
     if(A->m == 0 || A->n == 0 || (A->nnz == 0 && descr->type == aoclsparse_matrix_type_general))
     {
         aoclsparse_int dim = op == aoclsparse_operation_none ? A->m : A->n;
-        if(beta != zero)
+        if(*beta != zero)
         {
             for(aoclsparse_int i = 0; i < dim; i++)
-                y[i] = beta * y[i];
+                y[i] = (*beta) * y[i];
         }
         else
         {
@@ -480,6 +583,11 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
         }
         return aoclsparse_status_success;
     }
+
+    aoclsparse_status     status;
+    _aoclsparse_mat_descr descr_cpy;
+
+    aoclsparse_copy_mat_descr(&descr_cpy, descr);
 
     // In UK/HPCG branch this would be triggered every time
     // Let's do it only for triangular/symmetric matrices
@@ -493,14 +601,86 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
         descr_cpy.base = A->internal_base_index;
     }
 
-    aoclsparse_int *crstart = nullptr;
-    aoclsparse_int *crend   = nullptr;
-
     // Dispatcher
     if(descr->type == aoclsparse_matrix_type_general)
     {
-        // TODO trigger appropriate optimization?
-        return aoclsparse_mv_general(op, alpha, A, descr, x, beta, y);
+        _aoclsparse_mat_descr descr_cpy;
+
+        switch(A->mat_type)
+        {
+        case aoclsparse_csr_mat:
+            if constexpr(std::is_same_v<T, double>)
+            {
+                if(A->blk_optimized)
+                    return aoclsparse_blkcsrmv_t<T>(op,
+                                                    alpha,
+                                                    A->m,
+                                                    A->n,
+                                                    A->nnz,
+                                                    A->csr_mat.masks,
+                                                    (T *)A->csr_mat.blk_val,
+                                                    A->csr_mat.blk_col_ptr,
+                                                    A->csr_mat.blk_row_ptr,
+                                                    descr,
+                                                    x,
+                                                    beta,
+                                                    y,
+                                                    A->csr_mat.nRowsblk);
+            }
+
+            aoclsparse_copy_mat_descr(&descr_cpy, descr);
+
+            return aoclsparse_csrmv_t<T>(op,
+                                         alpha,
+                                         A->m,
+                                         A->n,
+                                         A->nnz,
+                                         (T *)A->csr_mat.csr_val,
+                                         A->csr_mat.csr_col_ptr,
+                                         A->csr_mat.csr_row_ptr,
+                                         &descr_cpy,
+                                         x,
+                                         beta,
+                                         y);
+
+        case aoclsparse_ellt_mat:
+        case aoclsparse_ellt_csr_hyb_mat:
+            return (aoclsparse_ellthybmv_t<T>(op,
+                                              alpha,
+                                              A->m,
+                                              A->n,
+                                              A->nnz,
+                                              (T *)A->ell_csr_hyb_mat.ell_val,
+                                              A->ell_csr_hyb_mat.ell_col_ind,
+                                              A->ell_csr_hyb_mat.ell_width,
+                                              A->ell_csr_hyb_mat.ell_m,
+                                              (T *)A->ell_csr_hyb_mat.csr_val,
+                                              A->csr_mat.csr_row_ptr,
+                                              A->csr_mat.csr_col_ptr,
+                                              nullptr,
+                                              A->ell_csr_hyb_mat.csr_row_id_map,
+                                              descr,
+                                              x,
+                                              beta,
+                                              y));
+        case aoclsparse_csr_mat_br4:
+            if constexpr(std::is_same_v<T, double>)
+            {
+                return (aoclsparse_dcsr_mat_br4(op, *alpha, A, descr, x, *beta, y));
+            }
+            else
+            {
+                return aoclsparse_status_not_implemented;
+            }
+        case aoclsparse_ell_csr_hyb_mat:
+        case aoclsparse_dia_mat:
+        case aoclsparse_ell_mat:
+        case aoclsparse_csc_mat:
+        case aoclsparse_coo_mat:
+        default:
+            return aoclsparse_status_invalid_value;
+        }
+
         // In UK/HPCG branch this would go only to AVX2 CSR
         // y = alpha A * x + beta y
         /*return aoclsparse_csrmv_vectorized_avx2ptr(descr,
@@ -522,7 +702,7 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
         // transposed and non-transposed operation
         // y = alpha A * x + beta y
         return aoclsparse_csrmv_symm_internal(descr_cpy.base,
-                                              alpha,
+                                              *alpha,
                                               A->m,
                                               descr_cpy.diag_type,
                                               descr_cpy.fill_mode,
@@ -532,27 +712,26 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
                                               A->idiag,
                                               A->iurow,
                                               x,
-                                              beta,
+                                              *beta,
                                               y);
     }
-    else
+    else if(descr->type == aoclsparse_matrix_type_triangular)
     {
+        aoclsparse_int *csr_start = nullptr, *csr_end = nullptr;
         //Triangular SPMV
-        if(descr->type == aoclsparse_matrix_type_triangular)
+        if(descr->fill_mode == aoclsparse_fill_mode_lower)
         {
-            if(descr->fill_mode == aoclsparse_fill_mode_lower)
-            {
-                // y = alpha L * x + beta y
-                crstart = A->opt_csr_mat.csr_row_ptr;
-                crend   = A->iurow;
-            }
-            else if(descr->fill_mode == aoclsparse_fill_mode_upper)
-            {
-                // y = alpha U * x + beta y
-                crstart = A->idiag;
-                crend   = &A->opt_csr_mat.csr_row_ptr[1];
-            }
+            // y = alpha L * x + beta y
+            csr_start = A->opt_csr_mat.csr_row_ptr;
+            csr_end   = A->iurow;
         }
+        else if(descr->fill_mode == aoclsparse_fill_mode_upper)
+        {
+            // y = alpha U * x + beta y
+            csr_start = A->idiag;
+            csr_end   = &A->opt_csr_mat.csr_row_ptr[1];
+        }
+
         //kernels as per transpose operation
         if(op == aoclsparse_operation_none)
         {
@@ -560,45 +739,45 @@ aoclsparse_status aoclsparse_mv(aoclsparse_operation       op,
             if constexpr(std::is_same_v<T, double>)
             {
                 return aoclsparse_csrmv_vectorized_avx2ptr(&descr_cpy,
-                                                           alpha,
+                                                           *alpha,
                                                            A->m,
                                                            A->n,
                                                            A->nnz,
                                                            (T *)A->opt_csr_mat.csr_val,
                                                            A->opt_csr_mat.csr_col_ptr,
-                                                           crstart,
-                                                           crend,
+                                                           csr_start,
+                                                           csr_end,
                                                            x,
-                                                           beta,
+                                                           *beta,
                                                            y);
             }
             else
             {
                 return aoclsparse_csrmv_ref(&descr_cpy,
-                                            alpha,
+                                            *alpha,
                                             A->m,
                                             A->n,
                                             (T *)A->opt_csr_mat.csr_val,
                                             A->opt_csr_mat.csr_col_ptr,
-                                            crstart,
-                                            crend,
+                                            csr_start,
+                                            csr_end,
                                             x,
-                                            beta,
+                                            *beta,
                                             y);
             }
         }
         else if(op == aoclsparse_operation_transpose)
         {
             return aoclsparse_csrmvt_ptr(&descr_cpy,
-                                         alpha,
+                                         *alpha,
                                          A->m,
                                          A->n,
                                          (T *)A->opt_csr_mat.csr_val,
                                          A->opt_csr_mat.csr_col_ptr,
-                                         crstart,
-                                         crend,
+                                         csr_start,
+                                         csr_end,
                                          x,
-                                         beta,
+                                         *beta,
                                          y);
         }
     }

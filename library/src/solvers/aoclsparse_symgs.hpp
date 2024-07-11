@@ -134,15 +134,7 @@ aoclsparse_status symgs_ref(aoclsparse_operation       trans,
                 Step 2: Sparse product
                 y = A . x
             */
-            if constexpr(std::is_same_v<T, std::complex<float>>
-                         || std::is_same_v<T, std::complex<double>>)
-            {
-                status = aoclsparse_mv_t(trans, alpha_one, A, descr, x, beta, y);
-            }
-            else if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
-            {
-                status = aoclsparse_mv(trans, alpha_one, A, descr, x, beta, y);
-            }
+            status = aoclsparse_mv_t<T>(trans, &alpha_one, A, descr, x, &beta, y);
         }
         return status;
     }
@@ -199,14 +191,8 @@ aoclsparse_status symgs_ref(aoclsparse_operation       trans,
     */
     set_symgs_matrix_properties(&descr_cpy, &trans_cpy, u_fmode, dtype_strict, u_trans);
     //Step 1.1: q = alpha.U.x0
-    if constexpr(std::is_same_v<T, std::complex<float>> || std::is_same_v<T, std::complex<double>>)
-    {
-        status = aoclsparse_mv_t(trans_cpy, alpha, A, &descr_cpy, x, beta, q);
-    }
-    else if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
-    {
-        status = aoclsparse_mv(trans_cpy, alpha, A, &descr_cpy, x, beta, q);
-    }
+
+    status = aoclsparse_mv_t(trans_cpy, &alpha, A, &descr_cpy, x, &beta, q);
 
     //Step 1.2: r = b - q = b - alpha.U.x0
     for(aoclsparse_int i = 0; i < A->m; i++)
@@ -235,14 +221,9 @@ aoclsparse_status symgs_ref(aoclsparse_operation       trans,
     */
     set_symgs_matrix_properties(&descr_cpy, &trans_cpy, l_fmode, dtype_strict, l_trans);
     //Step 2.1: r = L.q = L.x1
-    if constexpr(std::is_same_v<T, std::complex<float>> || std::is_same_v<T, std::complex<double>>)
-    {
-        status = aoclsparse_mv_t(trans_cpy, alpha_one, A, &descr_cpy, q, beta, r);
-    }
-    else if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
-    {
-        status = aoclsparse_mv(trans_cpy, alpha_one, A, &descr_cpy, q, beta, r);
-    }
+
+    status = aoclsparse_mv_t(trans_cpy, &alpha_one, A, &descr_cpy, q, &beta, r);
+
     //Step 2.2: q = b - r = (b - L.x1)
     for(aoclsparse_int i = 0; i < A->m; i++)
     {
@@ -261,15 +242,8 @@ aoclsparse_status symgs_ref(aoclsparse_operation       trans,
             Step 3: Sparse product
             y = A . x
         */
-        if constexpr(std::is_same_v<T, std::complex<float>>
-                     || std::is_same_v<T, std::complex<double>>)
-        {
-            status = aoclsparse_mv_t(trans, alpha_one, A, descr, x, beta, y);
-        }
-        else if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
-        {
-            status = aoclsparse_mv(trans, alpha_one, A, descr, x, beta, y);
-        }
+        status = aoclsparse_mv_t(trans, &alpha_one, A, descr, x, &beta, y);
+
         if(status != aoclsparse_status_success)
             return status;
     }

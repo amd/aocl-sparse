@@ -90,7 +90,7 @@ int testing_optmv_aocl(const Arguments &arg, testdata<T> &td, double timings[], 
             td.y                  = td.y_in;
             double cpu_time_start = aoclsparse_clock();
             NEW_CHECK_AOCLSPARSE_ERROR(
-                aoclsparse_mv(trans, &td.alpha, A, descr, td.x.data(), &td.beta, td.y.data()));
+                aoclsparse_mv(trans, &(td.alpha), A, descr, td.x.data(), &(td.beta), td.y.data()));
             timings[iter] = aoclsparse_clock_diff(cpu_time_start);
         }
     }
