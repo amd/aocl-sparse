@@ -34,41 +34,16 @@
 
 namespace contextTest
 {
-    class debug_info
-    {
-    public:
-        char           *global_isa;
-        char           *tl_isa;
-        aoclsparse_int *sparse_nt;
-        bool           *is_isa_updated;
-
-        debug_info()
-        {
-            global_isa     = new char[20];
-            tl_isa         = new char[20];
-            sparse_nt      = new aoclsparse_int;
-            is_isa_updated = new bool;
-        }
-
-        ~debug_info()
-        {
-            delete[] global_isa;
-            delete[] tl_isa;
-            delete sparse_nt;
-            delete is_isa_updated;
-        }
-    };
-
     // Test if number of threads returned by get_num_threads() can be launched
     TEST(context, threadingTest)
     {
 
 #ifdef _OPENMP
-        size_t n = 10;
-        // Get the number of threads from the sparse global object
+        size_t     n = 10;
         debug_info info;
 
-        aoclsparse_debug_get(info.global_isa, info.sparse_nt, info.tl_isa, info.is_isa_updated);
+        [[maybe_unused]] auto st = aoclsparse_debug_get(
+            info.global_isa, info.sparse_nt, info.tl_isa, info.is_isa_updated, info.arch);
 
 #pragma omp parallel num_threads(*(info.sparse_nt))
         for(size_t i = 0; i < n; ++i)
@@ -87,19 +62,19 @@ namespace contextTest
         debug_info info;
 
         [[maybe_unused]] auto st = aoclsparse_debug_get(
-            info.global_isa, info.sparse_nt, info.tl_isa, info.is_isa_updated);
+            info.global_isa, info.sparse_nt, info.tl_isa, info.is_isa_updated, info.arch);
 
         // Check if the global isa hint is same as that of the tl isa during init
         EXPECT_TRUE(!strcmp(info.global_isa, info.tl_isa));
 
         // Check if the new and old ISA preference are the same at init
-        EXPECT_TRUE(*(info.is_isa_updated));
+        EXPECT_FALSE(*(info.is_isa_updated));
 
         // Enable a different instruction
         [[maybe_unused]] auto s = aoclsparse_enable_instructions(tl_isa_hint);
 
         st = aoclsparse_debug_get(
-            info.global_isa, info.sparse_nt, info.tl_isa, info.is_isa_updated);
+            info.global_isa, info.sparse_nt, info.tl_isa, info.is_isa_updated, info.arch);
 
         // Test if the expected value is set
         // ToDo: This test can fail if the target hardware doesn't support "tl_isa_hint" - need to revisit
@@ -110,7 +85,7 @@ namespace contextTest
         EXPECT_FALSE(!strcmp(info.global_isa, info.tl_isa));
 
         // Check if the new and old ISA preference are NOT the same at init
-        EXPECT_FALSE(*(info.is_isa_updated));
+        EXPECT_TRUE(*(info.is_isa_updated));
     }
 
     // Test if the isa hint is initialized to the global context' isa
@@ -119,7 +94,7 @@ namespace contextTest
         debug_info info;
 
         [[maybe_unused]] auto s = aoclsparse_debug_get(
-            info.global_isa, info.sparse_nt, info.tl_isa, info.is_isa_updated);
+            info.global_isa, info.sparse_nt, info.tl_isa, info.is_isa_updated, info.arch);
 
         EXPECT_TRUE(!strcmp(info.global_isa, info.tl_isa));
 
@@ -141,7 +116,8 @@ namespace contextTest
 
         debug_info info;
 
-        aoclsparse_debug_get(info.global_isa, info.sparse_nt, info.tl_isa, info.is_isa_updated);
+        [[maybe_unused]] auto st = aoclsparse_debug_get(
+            info.global_isa, info.sparse_nt, info.tl_isa, info.is_isa_updated, info.arch);
 
         // If AVX512 is supported by the core, then the tl isa will be AVX512
         if(Cpu.hasFlag(Au::ECpuidFlag::avx512f))
@@ -163,7 +139,7 @@ namespace contextTest
         debug_info info;
 
         [[maybe_unused]] auto st = aoclsparse_debug_get(
-            info.global_isa, info.sparse_nt, info.tl_isa, info.is_isa_updated);
+            info.global_isa, info.sparse_nt, info.tl_isa, info.is_isa_updated, info.arch);
 
         strcpy(ledger, info.tl_isa);
     }
@@ -293,7 +269,7 @@ namespace contextTest
 
         // Get the debug information
         [[maybe_unused]] auto st = aoclsparse_debug_get(
-            info.global_isa, info.sparse_nt, info.tl_isa, info.is_isa_updated);
+            info.global_isa, info.sparse_nt, info.tl_isa, info.is_isa_updated, info.arch);
 
         // Copy the global isa
         strcpy(ledger_base, info.global_isa);

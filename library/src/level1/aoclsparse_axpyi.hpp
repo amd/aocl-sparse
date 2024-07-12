@@ -23,16 +23,10 @@
  */
 #ifndef AOCLSPARSE_AXPYI_HPP
 #define AOCLSPARSE_AXPYI_HPP
-#endif
-
 #include "aoclsparse.h"
-
-#include <complex>
-
-#if defined(_WIN32) || defined(_WIN64)
-//Windows equivalent of gcc c99 type qualifier __restrict__
-#define __restrict__ __restrict
-#endif
+#include "aoclsparse_dispatcher.hpp"
+#include "aoclsparse_kernel_templates.hpp"
+#include "aoclsparse_utils.hpp"
 
 /*
  * axpyi reference implementation
@@ -44,8 +38,7 @@ inline aoclsparse_status axpyi_ref(aoclsparse_int nnz,
                                    T              a,
                                    const T *__restrict__ x,
                                    const aoclsparse_int *__restrict__ indx,
-                                   T *__restrict__ y,
-                                   [[maybe_unused]] aoclsparse_int kid)
+                                   T *__restrict__ y)
 {
     aoclsparse_int i;
     for(i = 0; i < nnz; i++)
@@ -58,6 +51,44 @@ inline aoclsparse_status axpyi_ref(aoclsparse_int nnz,
     return aoclsparse_status_success;
 }
 
+using namespace kernel_templates;
+
+template <bsz SZ, typename T>
+aoclsparse_status axpyi_kt(aoclsparse_int nnz,
+                           T              a,
+                           const T *__restrict__ x,
+                           const aoclsparse_int *__restrict__ indx,
+                           T *__restrict__ y)
+{
+    const aoclsparse_int tsz = tsz_v<SZ, T>;
+    aoclsparse_int       i   = 0;
+    avxvector_t<SZ, T>   xvec, yvec;
+    avxvector_t<SZ, T>   alpha = kt_set1_p<SZ, T>(a);
+
+    for(; (i + (tsz - 1)) < nnz; i += tsz)
+    {
+
+        xvec = kt_loadu_p<SZ, T>(x + i);
+        yvec = kt_set_p<SZ, T>(y, &indx[i]);
+
+        yvec = kt_fmadd_p<SZ, T>(alpha, xvec, yvec);
+
+        // TODO Replaced with kt_storep
+        for(aoclsparse_int j = 0; j < tsz; ++j)
+        {
+            T *ytmp        = reinterpret_cast<T *>(&yvec);
+            y[indx[i + j]] = ytmp[j];
+        }
+    }
+
+    for(; i < nnz; i++)
+    {
+        y[indx[i]] = a * x[i] + y[indx[i]];
+    }
+
+    return aoclsparse_status_success;
+}
+
 /*
  * aoclsparse_axpyi_t dispatcher
  */
@@ -67,8 +98,14 @@ inline aoclsparse_status aoclsparse_axpyi_t(aoclsparse_int nnz,
                                             const T *__restrict__ x,
                                             const aoclsparse_int *__restrict__ indx,
                                             T *__restrict__ y,
-                                            [[maybe_unused]] aoclsparse_int kid)
+                                            aoclsparse_int kid = -1)
 {
+    using namespace aoclsparse;
+    using namespace Dispatch;
+
+    // Defining kernel pointer type
+    using K = decltype(&axpyi_ref<T>);
+
     // Check pointer arguments
     if((nullptr == x) || (nullptr == indx) || (nullptr == y))
     {
@@ -85,8 +122,26 @@ inline aoclsparse_status aoclsparse_axpyi_t(aoclsparse_int nnz,
     {
         return aoclsparse_status_invalid_size;
     }
-    else
-    {
-        return axpyi_ref<T>(nnz, a, x, indx, y, kid);
-    }
+
+    // clang-format off
+    // Table of available kernels
+    static constexpr Table<K> tbl[]{
+    {axpyi_ref<T>,           context_isa_t::GENERIC, 0U | archs::ALL},
+#ifdef __AVX2__
+    {axpyi_kt<bsz::b256, T>, context_isa_t::AVX2,    0U | archs::ZEN123},
+#endif
+#ifdef __AVX512F__
+    {axpyi_kt<bsz::b512, T>, context_isa_t::AVX512F, 0U | archs::ZEN4}
+#endif
+    };
+    // clang-format on
+
+    // Inquire with the oracle
+    auto kernel = Oracle<K, api::axpyi>(tbl, kid);
+
+    if(!kernel)
+        return aoclsparse_status_invalid_kid;
+
+    return kernel(nnz, a, x, indx, y);
 }
+#endif

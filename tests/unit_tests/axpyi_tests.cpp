@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,9 +24,9 @@
 #include "common_data_utils.h"
 #include "gtest/gtest.h"
 #include "aoclsparse.hpp"
+#include "aoclsparse_axpyi.hpp"
 
 #include <complex>
-#include <iostream>
 #include <vector>
 
 namespace
@@ -120,13 +120,19 @@ namespace
                   aoclsparse_status_invalid_pointer);
         EXPECT_EQ((aoclsparse_axpyi<T>(-1, a, x.data(), indx.data(), y.data(), -1)),
                   aoclsparse_status_invalid_size);
+        // Only reference kernel checks for invalid index entries
         indx[0] = -1;
-        EXPECT_EQ((aoclsparse_axpyi<T>(nnz, a, x.data(), indx.data(), y.data(), -1)),
+        aoclsparse_int kid
+            = 0; // Invalid index checks are only done for the reference implementation
+        EXPECT_EQ((aoclsparse_axpyi_t<T>(nnz, a, x.data(), indx.data(), y.data(), kid)),
                   aoclsparse_status_invalid_index_value);
     }
 
+    // Test private / public axpyi interfaces
+    // pub = false will call directly axpyi_t along with kid
+    // pub = true calls saxpyi, daxpyi, ... without kid taking effect.
     template <typename T>
-    void test_aoclsparse_axpyi_success()
+    void test_aoclsparse_axpyi_success(bool pub = true, aoclsparse_int kid = -1)
     {
         T                           a;
         aoclsparse_int              nnz;
@@ -140,8 +146,20 @@ namespace
         {
             init(nnz, a, x, indx, y, y_exp, len);
             aoclsparse_int y_exp_size = y_exp.size();
-            EXPECT_EQ((aoclsparse_axpyi<T>(nnz, a, x.data(), indx.data(), y.data(), -1)),
-                      aoclsparse_status_success);
+            if(pub)
+            {
+                EXPECT_EQ((aoclsparse_axpyi<T>(nnz, a, x.data(), indx.data(), y.data(), kid)),
+                          aoclsparse_status_success);
+            }
+            else
+            {
+                // take care of aliasing aoclsparse_xxx_complex to std::complex<xxx>
+                using U = typename get_data_type<T>::type;
+                EXPECT_EQ((aoclsparse_axpyi_t<U>(
+                              nnz, *((U *)&a), (U *)x.data(), indx.data(), (U *)y.data(), kid)),
+                          aoclsparse_status_success);
+            }
+
             if constexpr(std::is_same_v<T, float>)
             {
                 EXPECT_FLOAT_EQ_VEC(y_exp_size, y, y_exp);
@@ -170,50 +188,63 @@ namespace
             {
                 EXPECT_COMPLEX_DOUBLE_EQ_VEC(y_exp_size, y, y_exp);
             }
-            EXPECT_EQ((aoclsparse_axpyi<T>(0, a, x.data(), indx.data(), y.data(), -1)),
+
+            EXPECT_EQ((aoclsparse_axpyi<T>(0, a, x.data(), indx.data(), y.data(), kid)),
                       aoclsparse_status_success);
         }
     }
 
-    TEST(axpyi, InvalidFloat)
+    TEST(axpyi, InvalidParms)
     {
         test_aoclsparse_axpyi_invalid<float>();
-    }
-    TEST(axpyi, InvalidDouble)
-    {
         test_aoclsparse_axpyi_invalid<double>();
-    }
-    TEST(axpyi, InvalidCFloat)
-    {
         test_aoclsparse_axpyi_invalid<std::complex<float>>();
-    }
-    TEST(axpyi, InvalidCDouble)
-    {
         test_aoclsparse_axpyi_invalid<std::complex<double>>();
     }
+
     TEST(axpyi, SuccessFloat)
-    {
+    { // public path
         test_aoclsparse_axpyi_success<float>();
+        // private path
+        test_aoclsparse_axpyi_success<float>(false, 0);
     }
     TEST(axpyi, SuccessDouble)
-    {
+    { // public
         test_aoclsparse_axpyi_success<double>();
+        // private
+        test_aoclsparse_axpyi_success<double>(false, 1);
     }
     TEST(axpyi, SuccessCFloat)
-    {
+    { // public
         test_aoclsparse_axpyi_success<std::complex<float>>();
+        // private
+        test_aoclsparse_axpyi_success<std::complex<float>>(false, 1);
     }
     TEST(axpyi, SuccessCDouble)
-    {
+    { // public
         test_aoclsparse_axpyi_success<std::complex<double>>();
+        // private
+#ifdef USE_AVX512
+        test_aoclsparse_axpyi_success<std::complex<double>>(false, 2);
+#else
+        test_aoclsparse_axpyi_success<std::complex<double>>(false, 0);
+#endif
     }
     TEST(axpyi, SuccessCStructFloat)
-    {
+    { // public
         test_aoclsparse_axpyi_success<aoclsparse_float_complex>();
+        // private
+        test_aoclsparse_axpyi_success<aoclsparse_float_complex>(false, 1);
     }
     TEST(axpyi, SuccessCStructDouble)
-    {
+    { // public
         test_aoclsparse_axpyi_success<aoclsparse_double_complex>();
+        // private
+#ifdef USE_AVX512
+        test_aoclsparse_axpyi_success<aoclsparse_double_complex>(false, 2);
+#else
+        test_aoclsparse_axpyi_success<aoclsparse_double_complex>(false, 0);
+#endif
     }
 
 } // namespace

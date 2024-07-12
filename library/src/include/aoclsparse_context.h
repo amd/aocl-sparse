@@ -214,12 +214,16 @@ namespace aoclsparse
             {
             case Au::EUarch::Zen:
                 lib_local_arch = archs::ZEN;
+                break;
             case Au::EUarch::Zen2:
                 lib_local_arch = archs::ZEN2;
+                break;
             case Au::EUarch::Zen3:
                 lib_local_arch = archs::ZEN3;
+                break;
             case Au::EUarch::Zen4:
                 lib_local_arch = archs::ZEN4;
+                break;
             // Todo: Add support for newer and older AMD architectures
             default:
                 lib_local_arch = archs::UNKNOWN;
@@ -265,12 +269,28 @@ namespace aoclsparse
         // Function to check if an ISA is supported
         // ----------------------------------------
         //
-        // Usage   - Pass the isa as part of the template parameter
+        // Usage   - Pass the isa as a template parameter
         // Example - bool check = supports<context_isa_t::AVX512F>();
+        // Note: This is for compile time checks
         template <context_isa_t... isa>
         bool supports()
         {
             return (... && this->cpuflags[static_cast<int>(isa)]);
+        }
+
+        // Function to check if an ISA is supported
+        // ----------------------------------------
+        //
+        // Usage   - Pass the isa as a function parameter
+        // Example - bool check = supports(context_isa_t::AVX512F);
+        // Note: This is for run time checks
+        bool supports(context_isa_t isa)
+        {
+            // Return true for generic
+            if(isa == context_isa_t::GENERIC)
+                return true;
+
+            return this->cpuflags[static_cast<int>(isa)];
         }
 
         // Returns the number of threads set
@@ -331,7 +351,7 @@ namespace aoclsparse
 
         bool is_isa_updated()
         {
-            return (this->current_hint == this->old_hint);
+            return (this->current_hint != this->old_hint);
         }
 
         // Delete the copy constructor of the context class
