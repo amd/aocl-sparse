@@ -3343,3 +3343,33 @@ aoclsparse_status
     }
     return status;
 }
+
+// Class object to capture all the information from
+// 'aoclsparse_debug_get' function
+class debug_info
+{
+public:
+    char           *global_isa;
+    char           *tl_isa;
+    aoclsparse_int *sparse_nt;
+    bool           *is_isa_updated;
+    char           *arch;
+
+    debug_info()
+    {
+        global_isa     = new char[20];
+        tl_isa         = new char[20];
+        sparse_nt      = new aoclsparse_int;
+        is_isa_updated = new bool;
+        arch           = new char[20];
+    }
+
+    ~debug_info()
+    {
+        delete[] global_isa;
+        delete[] tl_isa;
+        delete sparse_nt;
+        delete is_isa_updated;
+        delete[] arch;
+    }
+};

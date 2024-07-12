@@ -111,13 +111,14 @@ aoclsparse_status aoclsparse_enable_instructions(const char isa_preference[])
 }
 
 /********************************************************************************
- * \brief Gets the ISA path preference from the global context and thread local
- * ISA hint. Gets the number of threads from the global context.
+ * \brief Gets the ISA path preference, thread local ISA hint, the number of
+ * threads and the architecture from library internal objects.
  *******************************************************************************/
 aoclsparse_status aoclsparse_debug_get(char            isa_preference[],
                                        aoclsparse_int *num_threads,
                                        char            tl_isa_preference[],
-                                       bool           *is_isa_updated)
+                                       bool           *is_isa_updated,
+                                       char            arch[])
 {
     using namespace aoclsparse;
 
@@ -127,18 +128,37 @@ aoclsparse_status aoclsparse_debug_get(char            isa_preference[],
     context_map[context_isa_t::AVX512F] = "AVX512";
     context_map[context_isa_t::GENERIC] = "GENERIC";
 
+    std::map<archs, std::string> arch_map;
+
+    arch_map[archs::ZEN]     = "ZEN";
+    arch_map[archs::ZEN2]    = "ZEN2";
+    arch_map[archs::ZEN3]    = "ZEN3";
+    arch_map[archs::ZEN4]    = "ZEN4";
+    arch_map[archs::UNKNOWN] = "UNKNOWN";
+
     context_isa_t global_isa, tl_isa;
+    archs         architecture;
 
-    global_isa = context::get_context()->get_isa_hint();
-    tl_isa     = tl_isa_hint.get_isa_hint();
+    global_isa   = context::get_context()->get_isa_hint();
+    tl_isa       = tl_isa_hint.get_isa_hint();
+    architecture = context::get_context()->get_archs();
 
-    std::string val = context_map[global_isa];
+    std::string val;
+
+    // Resize the string for longer arch and context names
+    val.resize(20);
+
+    val = context_map[global_isa];
 
     strcpy(isa_preference, val.c_str());
 
     val = context_map[tl_isa];
 
     strcpy(tl_isa_preference, val.c_str());
+
+    val = arch_map[architecture];
+
+    strcpy(arch, val.c_str());
 
     *num_threads = context::get_context()->get_num_threads();
 

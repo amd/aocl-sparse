@@ -317,7 +317,8 @@ typedef enum aoclsparse_status_
     aoclsparse_status_numerical_error     = 11, ///< numerical error, e.g., matrix is not positive
                                                 ///< definite, divide-by-zero error
     aoclsparse_status_invalid_operation   = 12, ///< cannot proceed with the request at this point.
-    aoclsparse_status_unsorted_input      = 13  ///< the input matrices are not sorted
+    aoclsparse_status_unsorted_input      = 13, ///< the input matrices are not sorted
+    aoclsparse_status_invalid_kid         = 14  ///< user requested kernel id was not available.
     // clang-format on
 } aoclsparse_status;
 

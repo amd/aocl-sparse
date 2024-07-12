@@ -57,6 +57,7 @@ include_directories(${CMAKE_SOURCE_DIR}/library/src/include
                     ${CMAKE_SOURCE_DIR}/tests/include)
 
 set(GTEST_EXECUTABLES
+    dispatcher_tests
     gmres_tests
     cg_tests
     csrmv_tests

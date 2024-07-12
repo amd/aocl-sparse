@@ -73,13 +73,14 @@ aoclsparse_status aoclsparse_enable_instructions(const char isa_preference[]);
  *  This auxiliary function is intended for debug purposes, it reports the global and thread-level
  *  ISA code-path preference and the number of threads to use.
  *
- *  @param[inout] isa_preference pointer to a char array specifying the global ISA
+ *  @param[inout] isa_preference pointer to a char array of at least size 20 specifying the global ISA
  *  preference, valid values are: "AVX2", "AVX512", "GENERIC".
  *  @param[inout] num_threads pointer to an integer specifying the number of threads.
- *  @param[inout] tl_isa_preference pointer to a char array specifying the thread local
+ *  @param[inout] tl_isa_preference pointer to a char array of at least size 20 specifying the thread local
  *  ISA preference, valid values are: "AVX2", "AVX512", "GENERIC".
  *  @param[inout] is_isa_updated pointer to a bool specifying if the current ISA preference is different from
  *  the last ISA preference.
+  *  @param[inout] arch pointer to a char array of at least size 20 specifying the architecture of the machine
  *
  *  \returns \ref aoclsparse_status.
  *  \retval aoclsparse_status_success ISA preference retrieved successfully.
@@ -88,7 +89,8 @@ DLL_PUBLIC
 aoclsparse_status aoclsparse_debug_get(char            isa_preference[],
                                        aoclsparse_int *num_threads,
                                        char            tl_isa_preference[],
-                                       bool           *is_isa_updated);
+                                       bool           *is_isa_updated,
+                                       char            arch[]);
 
 /*! \ingroup aux_module
  *  \brief Create a matrix descriptor

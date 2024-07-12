@@ -35,6 +35,12 @@
 #define __restrict__ __restrict
 #endif
 
+#if !defined(__clang__) && (defined(_WIN32) || defined(_WIN64))
+#define POPCOUNT(x) __popcnt(x)
+#else
+#define POPCOUNT(x) __builtin_popcount(x)
+#endif
+
 extern const size_t data_size[];
 
 /*
@@ -182,6 +188,8 @@ struct get_data_type
 template <>
 struct get_data_type<float>
 {
+    using base_type = float;
+    using type      = float;
     constexpr operator aoclsparse_matrix_data_type() const
     {
         return aoclsparse_smat;
@@ -190,6 +198,8 @@ struct get_data_type<float>
 template <>
 struct get_data_type<double>
 {
+    using base_type = double;
+    using type      = double;
     constexpr operator aoclsparse_matrix_data_type() const
     {
         return aoclsparse_dmat;
@@ -198,6 +208,8 @@ struct get_data_type<double>
 template <>
 struct get_data_type<aoclsparse_float_complex>
 {
+    using base_type = float;
+    using type      = std::complex<float>;
     constexpr operator aoclsparse_matrix_data_type() const
     {
         return aoclsparse_cmat;
@@ -206,6 +218,8 @@ struct get_data_type<aoclsparse_float_complex>
 template <>
 struct get_data_type<aoclsparse_double_complex>
 {
+    using base_type = double;
+    using type      = std::complex<double>;
     constexpr operator aoclsparse_matrix_data_type() const
     {
         return aoclsparse_zmat;
@@ -214,6 +228,8 @@ struct get_data_type<aoclsparse_double_complex>
 template <>
 struct get_data_type<std::complex<float>>
 {
+    using base_type = float;
+    using type      = std::complex<float>;
     constexpr operator aoclsparse_matrix_data_type() const
     {
         return aoclsparse_cmat;
@@ -222,6 +238,8 @@ struct get_data_type<std::complex<float>>
 template <>
 struct get_data_type<std::complex<double>>
 {
+    using base_type = double;
+    using type      = std::complex<double>;
     constexpr operator aoclsparse_matrix_data_type() const
     {
         return aoclsparse_zmat;
@@ -246,36 +264,10 @@ namespace Index
 
 }
 
-/* real data type for tolerance in case the templated type is of complex data
+/* Get tolerance type based on "underlying" base data type
  */
 template <typename T>
-struct tolerance
-{
-    using type = T;
-};
-template <>
-struct tolerance<std::complex<float>>
-{
-    using type = float;
-};
-template <>
-struct tolerance<std::complex<double>>
-{
-    using type = double;
-};
-template <>
-struct tolerance<aoclsparse_float_complex>
-{
-    using type = float;
-};
-template <>
-struct tolerance<aoclsparse_double_complex>
-{
-    using type = double;
-};
-
-template <typename T>
-using tolerance_t = typename tolerance<T>::type;
+using tolerance_t = typename get_data_type<T>::base_type;
 
 // Define precision to which we expect the results to match ==================================
 template <typename T>

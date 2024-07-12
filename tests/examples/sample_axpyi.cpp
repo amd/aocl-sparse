@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023-2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -65,12 +65,12 @@ int main(void)
 
     aoclsparse_status status;
 
-    std::cout << "Invoking aoclsparse_zsctr...\n";
+    std::cout << "Invoking aoclsparse_zaxpyi...\n";
     //Invoke complex axpyi
     status = aoclsparse_zaxpyi(nnz, &a, x.data(), indx.data(), y.data());
     if(status != aoclsparse_status_success)
     {
-        std::cerr << "Error returned from aoclsparse_zsctr, status = " << status << "."
+        std::cerr << "Error returned from aoclsparse_zaxpyi, status = " << status << "."
                   << std::endl;
         return 3;
     }
