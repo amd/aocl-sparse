@@ -113,7 +113,7 @@ set(CMAKE_AOCL_ROOT
       STRING
       "AOCL_ROOT directory to be used to find BLAS/LAPACK/AOCLUTILS libraries")
 option(SUPPORT_OMP "Compile with OpenMP support." ON)
-set(USE_EXTERNAL_OMP_LIB "Use OpenMP target generated from find_package(OpenMP) by default" OFF)
+set(USE_EXTERNAL_OMP_LIB OFF CACHE BOOL "Use OpenMP target generated from find_package(OpenMP) by default")
 set(EXTERNAL_OMP_LIBRARY "" CACHE STRING "Provide external OMP library")
 
 if (NOT (${ASAN} AND ${CMAKE_SYSTEM_NAME} MATCHES "Linux" AND CMAKE_BUILD_TYPE MATCHES "Debug"))
