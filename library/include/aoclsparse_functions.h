@@ -95,6 +95,38 @@ aoclsparse_status aoclsparse_daxpyi(const aoclsparse_int  nnz,
                                     double               *y);
 
 DLL_PUBLIC
+aoclsparse_status aoclsparse_saxpyi_kid(const aoclsparse_int  nnz,
+                                        const float           a,
+                                        const float          *x,
+                                        const aoclsparse_int *indx,
+                                        float                *y,
+                                        aoclsparse_int        kid);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_zaxpyi_kid(const aoclsparse_int  nnz,
+                                        const void           *a,
+                                        const void           *x,
+                                        const aoclsparse_int *indx,
+                                        void                 *y,
+                                        aoclsparse_int        kid);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_caxpyi_kid(const aoclsparse_int  nnz,
+                                        const void           *a,
+                                        const void           *x,
+                                        const aoclsparse_int *indx,
+                                        void                 *y,
+                                        aoclsparse_int        kid);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_daxpyi_kid(const aoclsparse_int  nnz,
+                                        const double          a,
+                                        const double         *x,
+                                        const aoclsparse_int *indx,
+                                        double               *y,
+                                        aoclsparse_int        kid);
+
+DLL_PUBLIC
 aoclsparse_status aoclsparse_saxpyi(
     const aoclsparse_int nnz, const float a, const float *x, const aoclsparse_int *indx, float *y);
 /**@}*/
