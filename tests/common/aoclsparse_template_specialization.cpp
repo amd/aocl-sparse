@@ -2054,7 +2054,10 @@ aoclsparse_status aoclsparse_axpyi(aoclsparse_int nnz,
                                    float *__restrict__ y,
                                    [[maybe_unused]] const aoclsparse_int kid)
 {
-    return aoclsparse_saxpyi(nnz, a, x, indx, y);
+    if(kid == -1)
+        return aoclsparse_saxpyi(nnz, a, x, indx, y);
+    else
+        return aoclsparse_saxpyi_kid(nnz, a, x, indx, y, kid);
 }
 template <>
 aoclsparse_status aoclsparse_axpyi(aoclsparse_int nnz,
@@ -2064,7 +2067,10 @@ aoclsparse_status aoclsparse_axpyi(aoclsparse_int nnz,
                                    double *__restrict__ y,
                                    [[maybe_unused]] const aoclsparse_int kid)
 {
-    return aoclsparse_daxpyi(nnz, a, x, indx, y);
+    if(kid == -1)
+        return aoclsparse_daxpyi(nnz, a, x, indx, y);
+    else
+        return aoclsparse_daxpyi_kid(nnz, a, x, indx, y, kid);
 }
 template <>
 aoclsparse_status aoclsparse_axpyi(aoclsparse_int      nnz,
@@ -2074,7 +2080,10 @@ aoclsparse_status aoclsparse_axpyi(aoclsparse_int      nnz,
                                    std::complex<float> *__restrict__ y,
                                    [[maybe_unused]] const aoclsparse_int kid)
 {
-    return aoclsparse_caxpyi(nnz, &a, x, indx, y);
+    if(kid == -1)
+        return aoclsparse_caxpyi(nnz, &a, x, indx, y);
+    else
+        return aoclsparse_caxpyi_kid(nnz, &a, x, indx, y, kid);
 }
 template <>
 aoclsparse_status aoclsparse_axpyi(aoclsparse_int       nnz,
@@ -2084,7 +2093,10 @@ aoclsparse_status aoclsparse_axpyi(aoclsparse_int       nnz,
                                    std::complex<double> *__restrict__ y,
                                    [[maybe_unused]] const aoclsparse_int kid)
 {
-    return aoclsparse_zaxpyi(nnz, &a, x, indx, y);
+    if(kid == -1)
+        return aoclsparse_zaxpyi(nnz, &a, x, indx, y);
+    else
+        return aoclsparse_zaxpyi_kid(nnz, &a, x, indx, y, kid);
 }
 template <>
 aoclsparse_status aoclsparse_axpyi(aoclsparse_int           nnz,
@@ -2094,7 +2106,10 @@ aoclsparse_status aoclsparse_axpyi(aoclsparse_int           nnz,
                                    aoclsparse_float_complex *__restrict__ y,
                                    [[maybe_unused]] const aoclsparse_int kid)
 {
-    return aoclsparse_caxpyi(nnz, &a, x, indx, y);
+    if(kid == -1)
+        return aoclsparse_caxpyi(nnz, &a, x, indx, y);
+    else
+        return aoclsparse_caxpyi_kid(nnz, &a, x, indx, y, kid);
 }
 template <>
 aoclsparse_status aoclsparse_axpyi(aoclsparse_int            nnz,
@@ -2104,7 +2119,10 @@ aoclsparse_status aoclsparse_axpyi(aoclsparse_int            nnz,
                                    aoclsparse_double_complex *__restrict__ y,
                                    [[maybe_unused]] const aoclsparse_int kid)
 {
-    return aoclsparse_zaxpyi(nnz, &a, x, indx, y);
+    if(kid == -1)
+        return aoclsparse_zaxpyi(nnz, &a, x, indx, y);
+    else
+        return aoclsparse_zaxpyi_kid(nnz, &a, x, indx, y, kid);
 }
 
 template <>

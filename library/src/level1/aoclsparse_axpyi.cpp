@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -74,6 +74,64 @@ extern "C" aoclsparse_status aoclsparse_zaxpyi(
     const aoclsparse_int nnz, const void *a, const void *x, const aoclsparse_int *indx, void *y)
 {
     aoclsparse_int kid = -1;
+    if(a == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    return aoclsparse_axpyi_t(nnz,
+                              *((std::complex<double> *)a),
+                              (std::complex<double> *)x,
+                              indx,
+                              (std::complex<double> *)y,
+                              kid);
+}
+
+extern "C" aoclsparse_status aoclsparse_saxpyi_kid(const aoclsparse_int  nnz,
+                                                   const float           a,
+                                                   const float          *x,
+                                                   const aoclsparse_int *indx,
+                                                   float                *y,
+                                                   aoclsparse_int        kid)
+{
+    return aoclsparse_axpyi_t(nnz, a, x, indx, y, kid);
+}
+
+extern "C" aoclsparse_status aoclsparse_daxpyi_kid(const aoclsparse_int  nnz,
+                                                   const double          a,
+                                                   const double         *x,
+                                                   const aoclsparse_int *indx,
+                                                   double               *y,
+                                                   aoclsparse_int        kid)
+{
+    return aoclsparse_axpyi_t(nnz, a, x, indx, y, kid);
+}
+
+extern "C" aoclsparse_status aoclsparse_caxpyi_kid(const aoclsparse_int  nnz,
+                                                   const void           *a,
+                                                   const void           *x,
+                                                   const aoclsparse_int *indx,
+                                                   void                 *y,
+                                                   aoclsparse_int        kid)
+{
+    if(a == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+    return aoclsparse_axpyi_t(nnz,
+                              *((std::complex<float> *)a),
+                              (std::complex<float> *)x,
+                              indx,
+                              (std::complex<float> *)y,
+                              kid);
+}
+
+extern "C" aoclsparse_status aoclsparse_zaxpyi_kid(const aoclsparse_int  nnz,
+                                                   const void           *a,
+                                                   const void           *x,
+                                                   const aoclsparse_int *indx,
+                                                   void                 *y,
+                                                   aoclsparse_int        kid)
+{
     if(a == nullptr)
     {
         return aoclsparse_status_invalid_pointer;

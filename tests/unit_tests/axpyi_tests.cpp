@@ -24,7 +24,6 @@
 #include "common_data_utils.h"
 #include "gtest/gtest.h"
 #include "aoclsparse.hpp"
-#include "aoclsparse_axpyi.hpp"
 
 #include <complex>
 #include <vector>
@@ -124,7 +123,7 @@ namespace
         indx[0] = -1;
         aoclsparse_int kid
             = 0; // Invalid index checks are only done for the reference implementation
-        EXPECT_EQ((aoclsparse_axpyi_t<T>(nnz, a, x.data(), indx.data(), y.data(), kid)),
+        EXPECT_EQ((aoclsparse_axpyi<T>(nnz, a, x.data(), indx.data(), y.data(), 0)),
                   aoclsparse_status_invalid_index_value);
     }
 
@@ -155,7 +154,7 @@ namespace
             {
                 // take care of aliasing aoclsparse_xxx_complex to std::complex<xxx>
                 using U = typename get_data_type<T>::type;
-                EXPECT_EQ((aoclsparse_axpyi_t<U>(
+                EXPECT_EQ((aoclsparse_axpyi<U>(
                               nnz, *((U *)&a), (U *)x.data(), indx.data(), (U *)y.data(), kid)),
                           aoclsparse_status_success);
             }
