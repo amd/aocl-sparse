@@ -152,7 +152,7 @@ function(openmp_libs)
     message(FATAL_ERROR
             "Error: could not find a suitable installation of OpenMP for the requested multi-threaded build")
   else()
-    if(WIN32 AND USE_EXTERNAL_OMP_LIB)
+    if(USE_EXTERNAL_OMP_LIB)
       if(EXISTS ${EXTERNAL_OMP_LIBRARY})
         set(OpenMP_Library ${EXTERNAL_OMP_LIBRARY})
       else()
