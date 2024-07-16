@@ -46,8 +46,9 @@ if (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
     OPTION(BUILD_SHARED_LIBS "Build aocl-sparse as a shared library" ON)
     OPTION(BUILD_ILP64 "ILP64 Support" OFF)
     OPTION(SUPPORT_OMP "Compile with OpenMP support." ON)
-    OPTION(USE_OMP_LIB "Use libomp by default" ON)
-    set(EXTERNAL_OMP_LIBRARY "" CACHE STRING "Provide external OMP library path")
+    set(USE_EXTERNAL_OMP_LIB OFF CACHE BOOL "Use OpenMP target generated from find_package(OpenMP) by default")
+    set(EXTERNAL_OMP_LIBRARY "" CACHE STRING "Provide external OMP library")
+
     # Set paths to AOCLUTILS, BLAS and LAPACK installations.
     set(CMAKE_AOCL_ROOT
         $ENV{AOCL_ROOT}

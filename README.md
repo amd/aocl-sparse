@@ -52,11 +52,6 @@ set PATH=<aoclsparse_install_path>\lib;%PATH%
 ```
 build_directory\tests\examples\sample_spmv.exe
 ```
-**Note** By default USE_EXTERNAL_OMP_LIB is disabled, indicating that the OpenMP targets are fetched from find_package(OpenMP) when multi-threading is turned on.
-**Note** If external OpenMP library is to be configured (for Windows only builds at present), enable USE_EXTERNAL_OMP_LIB and set EXTERNAL_OMP_LIBRARY to the path of the external OpenMP library.
-```
-cmake -S . -B <build_dir> -DUSE_EXTERNAL_OMP_LIB=ON" -DEXTERNAL_OMP_LIBRARY="C:\Path-to\default-external-openMP\library\libomp.lib"
-```
 #### Building on Linux
 1. Install AOCL-BLAS, AOCL-LAPACK and AOCL-UTILS
 2. Define the environment variable AOCL_ROOT to point to AOCL libs installation
@@ -92,6 +87,11 @@ make
 ```
 6. Refer the sections below to run examples/tests and to build documentation
 
+**Note** By default USE_EXTERNAL_OMP_LIB is disabled, indicating that the OpenMP targets are fetched from find_package(OpenMP) when multi-threading is turned on.
+**Note** If external OpenMP library is to be configured, enable USE_EXTERNAL_OMP_LIB and set EXTERNAL_OMP_LIBRARY to the path of the external OpenMP library.
+```
+cmake -S . -B <build_dir> -DUSE_EXTERNAL_OMP_LIB=ON -DEXTERNAL_OMP_LIBRARY="C:\Path-to\default-external-openMP\library\libomp.lib"
+```
 #### Running basic examples
 To get acquainted on how to use the library, a variety of small illustrative examples
 are provided (under the `tests/samples` folder). The purpose of these examples is
