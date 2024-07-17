@@ -899,6 +899,76 @@ aoclsparse_status aoclsparse_export_zcsc(const aoclsparse_matrix     mat,
     return aoclsparse_export_csc_t(mat, base, m, n, nnz, col_ptr, row_ind, val);
 }
 
+aoclsparse_int aoclsparse_debug_dispatcher(const char                  dispatcher[],
+                                           aoclsparse_matrix_data_type dt,
+                                           aoclsparse_int              kid)
+{
+    std::string dispatch = dispatcher;
+
+    if(dt == aoclsparse_dmat)
+    {
+        if(dispatch.compare("dispatch_only_ref") == 0)
+            return dispatcher_instantiations::dispatch_only_ref<double>(kid);
+        else if(dispatch.compare("dispatch_l1") == 0)
+            return dispatcher_instantiations::dispatch_l1<double>(kid);
+        else if(dispatch.compare("dispatch_multi") == 0)
+            return dispatcher_instantiations::dispatch_multi<double>(kid);
+        else if(dispatch.compare("dispatch_noexact") == 0)
+            return dispatcher_instantiations::dispatch_noexact<double>(kid);
+        else if(dispatch.compare("dispatch") == 0)
+            return dispatcher_instantiations::dispatch<double>(kid);
+        else if(dispatch.compare("dispatch_isa") == 0)
+            return dispatcher_instantiations::dispatch_isa<double>(kid);
+    }
+    else if(dt == aoclsparse_smat)
+    {
+        if(dispatch.compare("dispatch_only_ref") == 0)
+            return dispatcher_instantiations::dispatch_only_ref<float>(kid);
+        else if(dispatch.compare("dispatch_l1") == 0)
+            return dispatcher_instantiations::dispatch_l1<float>(kid);
+        else if(dispatch.compare("dispatch_multi") == 0)
+            return dispatcher_instantiations::dispatch_multi<float>(kid);
+        else if(dispatch.compare("dispatch_noexact") == 0)
+            return dispatcher_instantiations::dispatch_noexact<float>(kid);
+        else if(dispatch.compare("dispatch") == 0)
+            return dispatcher_instantiations::dispatch<float>(kid);
+        else if(dispatch.compare("dispatch_isa") == 0)
+            return dispatcher_instantiations::dispatch_isa<float>(kid);
+    }
+    else if(dt == aoclsparse_zmat)
+    {
+        if(dispatch.compare("dispatch_only_ref") == 0)
+            return dispatcher_instantiations::dispatch_only_ref<std::complex<double>>(kid);
+        else if(dispatch.compare("dispatch_l1") == 0)
+            return dispatcher_instantiations::dispatch_l1<std::complex<double>>(kid);
+        else if(dispatch.compare("dispatch_multi") == 0)
+            return dispatcher_instantiations::dispatch_multi<std::complex<double>>(kid);
+        else if(dispatch.compare("dispatch_noexact") == 0)
+            return dispatcher_instantiations::dispatch_noexact<std::complex<double>>(kid);
+        else if(dispatch.compare("dispatch") == 0)
+            return dispatcher_instantiations::dispatch<std::complex<double>>(kid);
+        else if(dispatch.compare("dispatch_isa") == 0)
+            return dispatcher_instantiations::dispatch_isa<std::complex<double>>(kid);
+    }
+    else if(dt == aoclsparse_cmat)
+    {
+        if(dispatch.compare("dispatch_only_ref") == 0)
+            return dispatcher_instantiations::dispatch_only_ref<std::complex<float>>(kid);
+        else if(dispatch.compare("dispatch_l1") == 0)
+            return dispatcher_instantiations::dispatch_l1<std::complex<float>>(kid);
+        else if(dispatch.compare("dispatch_multi") == 0)
+            return dispatcher_instantiations::dispatch_multi<std::complex<float>>(kid);
+        else if(dispatch.compare("dispatch_noexact") == 0)
+            return dispatcher_instantiations::dispatch_noexact<std::complex<float>>(kid);
+        else if(dispatch.compare("dispatch") == 0)
+            return dispatcher_instantiations::dispatch<std::complex<float>>(kid);
+        else if(dispatch.compare("dispatch_isa") == 0)
+            return dispatcher_instantiations::dispatch_isa<std::complex<float>>(kid);
+    }
+
+    return -1000;
+}
+
 #ifdef __cplusplus
 }
 #endif
