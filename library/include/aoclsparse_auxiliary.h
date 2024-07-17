@@ -883,7 +883,14 @@ aoclsparse_status aoclsparse_export_zcsc(const aoclsparse_matrix     mat,
                                          aoclsparse_int            **col_ptr,
                                          aoclsparse_int            **row_ind,
                                          aoclsparse_double_complex **val);
+
 /**@}*/
+
+DLL_PUBLIC
+aoclsparse_int aoclsparse_debug_dispatcher(const char                  name[],
+                                           aoclsparse_matrix_data_type dt,
+                                           aoclsparse_int              kid);
+
 #ifdef __cplusplus
 }
 #endif

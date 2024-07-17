@@ -27,6 +27,7 @@
 #include "aoclsparse_mat_structures.h"
 #include "aoclsparse_analysis.hpp"
 #include "aoclsparse_csr_util.hpp"
+#include "aoclsparse_dispatcher.hpp"
 #include "aoclsparse_utils.hpp"
 
 #include <cmath>
@@ -387,6 +388,218 @@ aoclsparse_status aoclsparse_set_value_t(aoclsparse_matrix A,
 
     // destroy the previously optimized data
     return aoclsparse_destroy_opt_csr(A);
+}
+
+// This is library-side instantiations of "internal" dispatchers
+// used to UT the L1 dispacher/oracle framework
+namespace dispatcher_instantiations
+{
+    enum ext
+    {
+        RESERVE_1,
+        RESERVE_2,
+        RESERVE_3
+    };
+
+    // -------------------------------------------------------------------------
+    // KERNELS
+    // -------------------------------------------------------------------------
+
+    // boilerplate reference kernel
+    template <aoclsparse_int K, typename T>
+    aoclsparse_int kernel_ref()
+    {
+        T           t{0};
+        std::string id{typeid(t).name()};
+        std::cout << "K=" + std::to_string(K) + " " + std::string(__func__) + "<" + id + ">"
+                  << std::endl;
+        return K;
+    }
+
+    // boilerplate KT kernel
+    template <aoclsparse_int K, aoclsparse_int SZ, typename SUF, ext M>
+    aoclsparse_int kernel_kt()
+    {
+        SUF         t{0};
+        std::string id{typeid(t).name()};
+        std::cout << "K=" + std::to_string(K) + " " + std::string(__func__) + "<" + id + ","
+                         + std::to_string(SZ) + "," + std::to_string(M) + ">"
+                  << std::endl;
+        return K;
+    }
+
+    // -------------------------------------------------------------------------
+    // DISPATCHERS
+    // -------------------------------------------------------------------------
+
+    // dispatcher to single kernel
+    template <typename T>
+    aoclsparse_int dispatch_only_ref(aoclsparse_int kid = -1)
+    {
+        using K = decltype(&kernel_ref<0, T>);
+
+        using namespace aoclsparse;
+
+        // clang-format off
+        static constexpr Dispatch::Table<K> tbl[] {
+        // name                 cpu flag requirements    suggested architecture
+        {kernel_ref<0, T>,      context_isa_t::GENERIC, 0|archs::ALL}
+        };
+        // clang-format on
+
+        auto kernel = Dispatch::Oracle<K, Dispatch::api::reserved0>(tbl, kid);
+
+        if(!kernel)
+            return aoclsparse_status_invalid_kid;
+
+        auto okid = kernel();
+
+        return 0 + okid;
+    }
+
+    /* Boilerplate dispatcher common for all Level 1 Sparse BLAS API entry points */
+    template <typename T>
+    aoclsparse_int dispatch_l1(aoclsparse_int kid = -1)
+    {
+        using K = decltype(&kernel_ref<0, T>);
+
+        using namespace aoclsparse;
+
+        // clang-format off
+        static constexpr Dispatch::Table<K> tbl[] {
+        // name                              cpu flag requirements   suggested architecture
+        {kernel_ref<0, T>,                   context_isa_t::GENERIC, 0|archs::ALL },
+        {kernel_kt<1, 256, T, ext::RESERVE_1>, context_isa_t::AVX2,    0|archs::ZENS}, // Zen 1+ AVX2
+        {kernel_kt<2, 256, T, ext::RESERVE_1>, context_isa_t::AVX2,    0|archs::ZEN4}, // Zen 4+ AVX2
+#ifdef USE_AVX512
+        {kernel_kt<3, 512, T, ext::RESERVE_2>, context_isa_t::AVX512F, 0|archs::ZEN4} // Zen 4+ AVX512F
+#endif
+        };
+        // clang-format on
+        auto kernel = Dispatch::Oracle<K, Dispatch::api::reserved1>(tbl, kid);
+
+        if(!kernel)
+            return aoclsparse_status_invalid_kid;
+
+        auto okid = kernel();
+
+        return 10 + okid;
+    }
+
+    template <typename T>
+    aoclsparse_int dispatch_multi(aoclsparse_int kid = -1)
+    {
+        using K = decltype(&kernel_ref<0, T>);
+
+        using namespace aoclsparse;
+
+        if constexpr(std::is_same_v<T, float>)
+        {
+            static constexpr Dispatch::Table<K> tbl[]{
+                {kernel_ref<0, T>, context_isa_t::GENERIC, 0 | archs::ALL},
+                {kernel_ref<1, T>, context_isa_t::GENERIC, 0 | archs::ALL},
+                {kernel_ref<2, T>, context_isa_t::GENERIC, 0 | archs::ALL}};
+            auto kernel = Dispatch::Oracle<K, Dispatch::api::reserved2>(tbl, kid);
+
+            if(kernel == nullptr)
+                return aoclsparse_status_invalid_kid;
+
+            return kernel();
+        }
+        else
+        {
+            static constexpr Dispatch::Table<K> tbl[]{
+                {kernel_ref<7, T>, context_isa_t::GENERIC, 0 | archs::ALL}};
+            auto kernel = Dispatch::Oracle<K, Dispatch::api::reserved3>(tbl, kid);
+
+            if(kernel == nullptr)
+                return aoclsparse_status_invalid_kid;
+
+            return kernel();
+        }
+    }
+
+    // Table does not provide exact kernel match
+    template <typename T>
+    aoclsparse_int dispatch_noexact(aoclsparse_int kid = -1)
+    {
+        using K = decltype(&kernel_ref<0, T>);
+
+        using namespace aoclsparse;
+
+        // clang-format off
+        static constexpr Dispatch::Table<K> tbl[] {
+        // name            cpu flag requirements   suggested architecture
+        {kernel_ref<0, T>, context_isa_t::GENERIC, 0|archs::ALL},
+        {kernel_ref<1, T>, context_isa_t::GENERIC, 0|archs::ZEN123},
+        {kernel_ref<2, T>, context_isa_t::GENERIC, 0|archs::ZENS}
+        };
+        // clang-format on
+        auto kernel = Dispatch::Oracle<K, Dispatch::api::reserved4>(tbl, kid);
+
+        if(!kernel)
+            return aoclsparse_status_invalid_kid;
+
+        auto okid = kernel();
+        return 0 + okid;
+    }
+
+    // high complexity dispatcher to test corner cases
+    template <typename T>
+    aoclsparse_int dispatch(aoclsparse_int kid = -1)
+    {
+        using K = decltype(&kernel_ref<0, T>);
+        using namespace aoclsparse;
+
+        // clang-format off
+        static constexpr Dispatch::Table<K> tbl[] {
+        // name                              cpu flag requirements    suggested architecture
+        {kernel_ref<0, T>,                   context_isa_t::GENERIC,  0|archs::ALL},    // 0 All machines
+        {kernel_ref<1, T>,                   context_isa_t::AVX2,     0|archs::ZEN123}, // 1 Naples/Rome/Milan: Zen AVX2
+        {kernel_kt<2, 256, T, ext::RESERVE_1>, context_isa_t::AVX2,     0|archs::ZENS},   // 2 AMD platform AVX2
+        {kernel_kt<3, 256, T, ext::RESERVE_1>, context_isa_t::AVX2,     0|archs::ZEN3},   // 3 Milan: Zen3 AVX2
+        {kernel_kt<4, 256, T, ext::RESERVE_1>, context_isa_t::AVX2,     0|archs::ZEN4},   // 4 Bergamo/Genoa/Sienna: Zen4 AVX2
+#ifdef USE_AVX512
+        {kernel_kt<5, 512, T, ext::RESERVE_3>, context_isa_t::AVX512DQ, 0|archs::ZENS},   // 5 AMD platform AVX512F
+        {kernel_kt<6, 512, T, ext::RESERVE_3>, context_isa_t::AVX512VL, 0|archs::ZEN4}   // 6 Bergamo/Genoa/Sienna: Zen4 AVX512F
+#endif
+        };
+        // clang-format on
+
+        auto kernel = Dispatch::Oracle<K, Dispatch::api::reserved5>(tbl, kid);
+
+        if(!kernel)
+            return aoclsparse_status_invalid_kid;
+
+        auto okid = kernel();
+
+        return 1000 + okid;
+    }
+
+    // Table does not provide exactly one kernel per ISA_HINT
+    template <typename T>
+    aoclsparse_int dispatch_isa(aoclsparse_int kid = -1)
+    {
+        using K = decltype(&kernel_ref<0, T>);
+
+        using namespace aoclsparse;
+
+        // clang-format off
+        static constexpr Dispatch::Table<K> tbl[] {
+        // name            cpu flag requirements    suggested architecture
+        {kernel_ref<0, T>, context_isa_t::GENERIC, 0|archs::ALL},
+        {kernel_ref<1, T>, context_isa_t::AVX2, 0|archs::ALL}
+        };
+        // clang-format on
+        auto kernel = Dispatch::Oracle<K, Dispatch::api::reserved4>(tbl, kid);
+
+        if(kernel == nullptr)
+            return aoclsparse_status_invalid_kid;
+
+        auto okid = kernel();
+
+        return 0 + okid;
+    }
 }
 
 #endif
