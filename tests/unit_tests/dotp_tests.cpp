@@ -24,7 +24,6 @@
 #include "common_data_utils.h"
 #include "gtest/gtest.h"
 #include "aoclsparse.hpp"
-#include "aoclsparse_dot.hpp"
 
 #include <complex>
 #include <vector>
@@ -87,8 +86,16 @@ namespace
 
         for(bool conj : {true, false})
         {
-            dotp_ref(nnz, x.data(), indx.data(), y.data(), &dot, conj);
-            expect_eq<T>((conj ? dotc_exp : dot_exp), dot);
+            if constexpr(std::is_same_v<T, double> || std::is_same_v<T, float>)
+            {
+            }
+            else
+            {
+                EXPECT_EQ((aoclsparse_dot<T, aoclsparse_status>(
+                              nnz, x.data(), indx.data(), y.data(), &dot, conj, 0)),
+                          aoclsparse_status_success);
+                expect_eq<T>((conj ? dotc_exp : dot_exp), dot);
+            }
         }
     }
 
@@ -186,18 +193,20 @@ namespace
 
         std::cerr << "Kernel ID : " << KID << std::endl;
 
-        EXPECT_EQ((aoclsparse_dotp<T>(nnz, x.data(), indx.data(), y.data(), &dot, false, KID)),
-                  aoclsparse_status_success);
-
-        expect_eq<T>(dot, dot_exp);
-
         if constexpr(std::is_same_v<T, std::complex<double>>
                      || std::is_same_v<T, std::complex<float>>)
         {
             // In case of complex, test conjugate dot.
-            EXPECT_EQ((aoclsparse_dotp<T>(nnz, x.data(), indx.data(), y.data(), &dot, true, KID)),
+            EXPECT_EQ((aoclsparse_dot<T, aoclsparse_status>(
+                          nnz, x.data(), indx.data(), y.data(), &dot, true, KID)),
                       aoclsparse_status_success);
             expect_eq<T>(dot, dotc_exp);
+        }
+        else
+        {
+            expect_eq<T>(
+                (aoclsparse_dot<T, T>(nnz, x.data(), indx.data(), y.data(), &dot, false, KID)),
+                dot_exp);
         }
     }
 
@@ -229,23 +238,23 @@ namespace
         tdot_exp  = (complex_t *)&dot_exp;
 
         std::cerr << "Kernel ID : " << KID << std::endl;
-        EXPECT_EQ((aoclsparse_dotp<complex_t>(nnz,
-                                              (complex_t *)x.data(),
-                                              indx.data(),
-                                              (complex_t *)y.data(),
-                                              (complex_t *)&dot,
-                                              false,
-                                              KID)),
+        EXPECT_EQ((aoclsparse_dot<complex_t, aoclsparse_status>(nnz,
+                                                                (complex_t *)x.data(),
+                                                                indx.data(),
+                                                                (complex_t *)y.data(),
+                                                                (complex_t *)&dot,
+                                                                false,
+                                                                KID)),
                   aoclsparse_status_success);
         expect_eq<complex_t>(*tdot, *tdot_exp);
 
-        EXPECT_EQ((aoclsparse_dotp<complex_t>(nnz,
-                                              (complex_t *)x.data(),
-                                              indx.data(),
-                                              (complex_t *)y.data(),
-                                              (complex_t *)&dot,
-                                              true,
-                                              KID)),
+        EXPECT_EQ((aoclsparse_dot<complex_t, aoclsparse_status>(nnz,
+                                                                (complex_t *)x.data(),
+                                                                indx.data(),
+                                                                (complex_t *)y.data(),
+                                                                (complex_t *)&dot,
+                                                                true,
+                                                                KID)),
                   aoclsparse_status_success);
         expect_eq<complex_t>(*tdot, *tdotc_exp);
     }
@@ -290,7 +299,9 @@ namespace
         // Explicitly, request the kernels
         test_dotp_success<double, 0>();
         test_dotp_success<double, 1>();
+#ifdef __AVX512F__
         test_dotp_success<double, 2>();
+#endif
     }
     TEST(dot, SuccessArgFloat)
     {
@@ -300,7 +311,9 @@ namespace
         // Explicitly, request the kernels
         test_dotp_success<float, 0>();
         test_dotp_success<float, 1>();
+#ifdef __AVX512F__
         test_dotp_success<float, 2>();
+#endif
     }
     TEST(dot, SuccessArgCDouble)
     {
@@ -310,7 +323,9 @@ namespace
         // Explicitly, request the kernels
         test_dotp_success<std::complex<double>, 0>();
         test_dotp_success<std::complex<double>, 1>();
+#ifdef __AVX512F__
         test_dotp_success<std::complex<double>, 2>();
+#endif
     }
     TEST(dot, SuccessArgCFloat)
     {
@@ -320,7 +335,9 @@ namespace
         // Explicitly, request the kernels
         test_dotp_success<std::complex<float>, 0>();
         test_dotp_success<std::complex<float>, 1>();
+#ifdef __AVX512F__
         test_dotp_success<std::complex<float>, 2>();
+#endif
     }
     TEST(dot, SuccessArgCStructDouble)
     {
@@ -330,7 +347,9 @@ namespace
         // Explicitly, request the kernels
         test_dotp_success_struct<aoclsparse_double_complex, 0>();
         test_dotp_success_struct<aoclsparse_double_complex, 1>();
+#ifdef __AVX512F__
         test_dotp_success_struct<aoclsparse_double_complex, 2>();
+#endif
     }
     TEST(dot, SuccessArgCStructFloat)
     {
@@ -340,7 +359,9 @@ namespace
         // Explicitly, request the kernels
         test_dotp_success_struct<aoclsparse_float_complex, 0>();
         test_dotp_success_struct<aoclsparse_float_complex, 1>();
+#ifdef __AVX512F__
         test_dotp_success_struct<aoclsparse_float_complex, 2>();
+#endif
     }
 
 } // namespace

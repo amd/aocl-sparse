@@ -84,8 +84,13 @@ namespace dispatch_Test
             // Auto kernel
             EXPECT_EQ(aoclsparse_debug_dispatcher(dispatcher.c_str(), aoclsparse_smat, -1), 2 + 10);
 
-            // Request specific kernel 3
+            // Request specific kernel 3. On AVX512 build on Zen 4 machines, this kernel can be launched.
+#ifdef __AVX512F__
             EXPECT_EQ(aoclsparse_debug_dispatcher(dispatcher.c_str(), aoclsparse_smat, 3), 3 + 10);
+#else // On AVX2 build on Zen 4 machines, this kernel is invalid.
+            EXPECT_EQ(aoclsparse_debug_dispatcher(dispatcher.c_str(), aoclsparse_smat, 3),
+                      aoclsparse_status_invalid_kid);
+#endif
 
             // Force generic path
             EXPECT_EQ(aoclsparse_enable_instructions("GENERIC"), aoclsparse_status_success);
@@ -100,7 +105,13 @@ namespace dispatch_Test
 
             // Force AVX512 path on Zen4 is kid=3
             EXPECT_EQ(aoclsparse_enable_instructions("AVX512"), aoclsparse_status_success);
+
+            // Request AVX512 path. On AVX512 build on Zen 4 machines, the kernel can be launched.
+#ifdef __AVX512F__
             EXPECT_EQ(aoclsparse_debug_dispatcher(dispatcher.c_str(), aoclsparse_smat, -1), 3 + 10);
+#else // On AVX2 build on Zen 4 machines, the  AVX2 kernel is dispatched.
+            EXPECT_EQ(aoclsparse_debug_dispatcher(dispatcher.c_str(), aoclsparse_smat, -1), 2 + 10);
+#endif
 
             break;
         case tokenize_isa("ZEN", 3):

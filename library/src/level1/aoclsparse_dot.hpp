@@ -24,6 +24,7 @@
 #ifndef AOCLSPARSE_DOT_HPP
 #define AOCLSPARSE_DOT_HPP
 #include "aoclsparse.h"
+#include "aoclsparse_dispatcher.hpp"
 #include "aoclsparse_kernel_templates.hpp"
 #include "aoclsparse_utils.hpp"
 
@@ -169,28 +170,30 @@ inline aoclsparse_status aoclsparse_dotp(aoclsparse_int nnz,
         return aoclsparse_status_invalid_pointer;
     }
 
+    using namespace aoclsparse;
+    using namespace Dispatch;
+
     // Creating pointer to the kernel
     using K = decltype(&dotp_ref<T>);
 
-    K kernel;
+    // clang-format off
+    // Table of available kernels
+    static constexpr Table<K> tbl[]{
+    {dotp_ref<T>,           context_isa_t::GENERIC, 0U | archs::ALL},
+#ifdef __AVX2__
+    {dotp_kt<bsz::b256, T>, context_isa_t::AVX2,    0U | archs::ZEN123},
+#endif
+#ifdef __AVX512F__
+    {dotp_kt<bsz::b512, T>, context_isa_t::AVX512F, 0U | archs::ZEN4}
+#endif
+    };
+    // clang-format on
 
-    // TODO: Replace with L1 dispatcher
-    // Pick the kernel based on the KID passed
-    switch(kid)
-    {
-    case 2:
-#if defined(__AVX512F__)
-        kernel = dotp_kt<bsz::b512, T>;
-        break;
-#endif
-    case 1:
-#if defined(__AVX2__)
-        kernel = dotp_kt<bsz::b256, T>;
-        break;
-#endif
-    default:
-        kernel = dotp_ref;
-    }
+    // Inquire with the oracle
+    auto kernel = Oracle<K, api::doti>(tbl, kid);
+
+    if(!kernel)
+        return aoclsparse_status_invalid_kid;
 
     // Invoke the kernel
     return kernel(nnz, x, indx, y, dot, conj);

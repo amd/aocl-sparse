@@ -143,3 +143,107 @@ extern "C" double aoclsparse_ddoti(const aoclsparse_int  nnz,
     aoclsparse_dotp<double>(nnz, x, indx, y, &dot, conj, kid);
     return dot;
 }
+
+// Public interfaces that accept Kernel-ID
+// ------------------------------------------------------------------------------------------------------
+
+extern "C" aoclsparse_status aoclsparse_cdotci_kid(const aoclsparse_int  nnz,
+                                                   const void           *x,
+                                                   const aoclsparse_int *indx,
+                                                   const void           *y,
+                                                   void                 *dot,
+                                                   aoclsparse_int        kid)
+{
+    const bool        conj   = true;
+    aoclsparse_status status = aoclsparse_status_success;
+
+    status = aoclsparse_dotp<std::complex<float>>(nnz,
+                                                  (std::complex<float> *)x,
+                                                  indx,
+                                                  (std::complex<float> *)y,
+                                                  (std::complex<float> *)dot,
+                                                  conj,
+                                                  kid);
+    return status;
+}
+
+extern "C" aoclsparse_status aoclsparse_zdotci_kid(const aoclsparse_int  nnz,
+                                                   const void           *x,
+                                                   const aoclsparse_int *indx,
+                                                   const void           *y,
+                                                   void                 *dot,
+                                                   aoclsparse_int        kid)
+{
+    const bool        conj   = true;
+    aoclsparse_status status = aoclsparse_status_success;
+    status                   = aoclsparse_dotp<std::complex<double>>(nnz,
+                                                   (std::complex<double> *)x,
+                                                   indx,
+                                                   (std::complex<double> *)y,
+                                                   (std::complex<double> *)dot,
+                                                   conj,
+                                                   kid);
+    return status;
+}
+
+extern "C" aoclsparse_status aoclsparse_cdotui_kid(const aoclsparse_int  nnz,
+                                                   const void           *x,
+                                                   const aoclsparse_int *indx,
+                                                   const void           *y,
+                                                   void                 *dot,
+                                                   aoclsparse_int        kid)
+{
+    const bool        conj   = false;
+    aoclsparse_status status = aoclsparse_status_success;
+    status                   = aoclsparse_dotp<std::complex<float>>(nnz,
+                                                  (std::complex<float> *)x,
+                                                  indx,
+                                                  (std::complex<float> *)y,
+                                                  (std::complex<float> *)dot,
+                                                  conj,
+                                                  kid);
+    return status;
+}
+
+extern "C" aoclsparse_status aoclsparse_zdotui_kid(const aoclsparse_int  nnz,
+                                                   const void           *x,
+                                                   const aoclsparse_int *indx,
+                                                   const void           *y,
+                                                   void                 *dot,
+                                                   aoclsparse_int        kid)
+{
+    const bool        conj   = false;
+    aoclsparse_status status = aoclsparse_status_success;
+    status                   = aoclsparse_dotp<std::complex<double>>(nnz,
+                                                   (std::complex<double> *)x,
+                                                   indx,
+                                                   (std::complex<double> *)y,
+                                                   (std::complex<double> *)dot,
+                                                   conj,
+                                                   kid);
+    return status;
+}
+
+extern "C" float aoclsparse_sdoti_kid(const aoclsparse_int  nnz,
+                                      const float          *x,
+                                      const aoclsparse_int *indx,
+                                      const float          *y,
+                                      aoclsparse_int        kid)
+{
+    const bool conj = false;
+    float      dot;
+    aoclsparse_dotp<float>(nnz, x, indx, y, &dot, conj, kid);
+    return dot;
+}
+
+extern "C" double aoclsparse_ddoti_kid(const aoclsparse_int  nnz,
+                                       const double         *x,
+                                       const aoclsparse_int *indx,
+                                       const double         *y,
+                                       aoclsparse_int        kid)
+{
+    const bool conj = false;
+    double     dot;
+    aoclsparse_dotp<double>(nnz, x, indx, y, &dot, conj, kid);
+    return dot;
+}
