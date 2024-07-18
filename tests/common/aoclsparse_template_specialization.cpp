@@ -1597,9 +1597,18 @@ double aoclsparse_dot(const aoclsparse_int nnz,
                       [[maybe_unused]] bool                 conj,
                       [[maybe_unused]] const aoclsparse_int kid)
 {
-    double dotp;
-    dotp = aoclsparse_ddoti(nnz, x, indx, y);
-    return dotp;
+    if(kid == -1)
+    {
+        double dotp;
+        dotp = aoclsparse_ddoti(nnz, x, indx, y);
+        return dotp;
+    }
+    else
+    {
+        double dotp;
+        dotp = aoclsparse_ddoti_kid(nnz, x, indx, y, kid);
+        return dotp;
+    }
 }
 
 template <>
@@ -1611,9 +1620,18 @@ float aoclsparse_dot(const aoclsparse_int nnz,
                      [[maybe_unused]] bool                 conj,
                      [[maybe_unused]] const aoclsparse_int kid)
 {
-    float dotp;
-    dotp = aoclsparse_sdoti(nnz, x, indx, y);
-    return dotp;
+    if(kid == -1)
+    {
+        float dotp;
+        dotp = aoclsparse_sdoti(nnz, x, indx, y);
+        return dotp;
+    }
+    else
+    {
+        float dotp;
+        dotp = aoclsparse_sdoti_kid(nnz, x, indx, y, kid);
+        return dotp;
+    }
 }
 
 template <>
@@ -1625,13 +1643,27 @@ aoclsparse_status aoclsparse_dot(const aoclsparse_int nnz,
                                  bool                                  conj,
                                  [[maybe_unused]] const aoclsparse_int kid)
 {
-    if(conj)
+    if(kid == -1)
     {
-        return aoclsparse_cdotci(nnz, x, indx, y, dot);
+        if(conj)
+        {
+            return aoclsparse_cdotci(nnz, x, indx, y, dot);
+        }
+        else
+        {
+            return aoclsparse_cdotui(nnz, x, indx, y, dot);
+        }
     }
     else
     {
-        return aoclsparse_cdotui(nnz, x, indx, y, dot);
+        if(conj)
+        {
+            return aoclsparse_cdotci_kid(nnz, x, indx, y, dot, kid);
+        }
+        else
+        {
+            return aoclsparse_cdotui_kid(nnz, x, indx, y, dot, kid);
+        }
     }
 }
 template <>
@@ -1646,13 +1678,28 @@ aoclsparse_status aoclsparse_dot(const aoclsparse_int nnz,
     const std::complex<float> *px   = reinterpret_cast<const std::complex<float> *>(x);
     const std::complex<float> *py   = reinterpret_cast<const std::complex<float> *>(y);
     std::complex<float>       *pdot = reinterpret_cast<std::complex<float> *>(dot);
-    if(conj)
+
+    if(kid == -1)
     {
-        return aoclsparse_cdotci(nnz, px, indx, py, pdot);
+        if(conj)
+        {
+            return aoclsparse_cdotci(nnz, px, indx, py, pdot);
+        }
+        else
+        {
+            return aoclsparse_cdotui(nnz, px, indx, py, pdot);
+        }
     }
     else
     {
-        return aoclsparse_cdotui(nnz, px, indx, py, pdot);
+        if(conj)
+        {
+            return aoclsparse_cdotci_kid(nnz, px, indx, py, pdot, kid);
+        }
+        else
+        {
+            return aoclsparse_cdotui_kid(nnz, px, indx, py, pdot, kid);
+        }
     }
 }
 
@@ -1665,13 +1712,27 @@ aoclsparse_status aoclsparse_dot(const aoclsparse_int nnz,
                                  bool                                  conj,
                                  [[maybe_unused]] const aoclsparse_int kid)
 {
-    if(conj)
+    if(kid == -1)
     {
-        return aoclsparse_zdotci(nnz, x, indx, y, dot);
+        if(conj)
+        {
+            return aoclsparse_zdotci(nnz, x, indx, y, dot);
+        }
+        else
+        {
+            return aoclsparse_zdotui(nnz, x, indx, y, dot);
+        }
     }
     else
     {
-        return aoclsparse_zdotui(nnz, x, indx, y, dot);
+        if(conj)
+        {
+            return aoclsparse_zdotci_kid(nnz, x, indx, y, dot, kid);
+        }
+        else
+        {
+            return aoclsparse_zdotui_kid(nnz, x, indx, y, dot, kid);
+        }
     }
 }
 template <>
@@ -1686,13 +1747,27 @@ aoclsparse_status aoclsparse_dot(const aoclsparse_int nnz,
     const std::complex<double> *px   = reinterpret_cast<const std::complex<double> *>(x);
     const std::complex<double> *py   = reinterpret_cast<const std::complex<double> *>(y);
     std::complex<double>       *pdot = reinterpret_cast<std::complex<double> *>(dot);
-    if(conj)
+    if(kid == -1)
     {
-        return aoclsparse_zdotci(nnz, px, indx, py, pdot);
+        if(conj)
+        {
+            return aoclsparse_zdotci(nnz, px, indx, py, pdot);
+        }
+        else
+        {
+            return aoclsparse_zdotui(nnz, px, indx, py, pdot);
+        }
     }
     else
     {
-        return aoclsparse_zdotui(nnz, px, indx, py, pdot);
+        if(conj)
+        {
+            return aoclsparse_zdotci_kid(nnz, px, indx, py, pdot, kid);
+        }
+        else
+        {
+            return aoclsparse_zdotui_kid(nnz, px, indx, py, pdot, kid);
+        }
     }
 }
 

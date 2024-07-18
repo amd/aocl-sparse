@@ -43,7 +43,7 @@
 #include "aoclsparse_no_ext_benchmarking.hpp"
 #endif
 
-template <typename T, bool CALL_INTERNAL>
+template <typename T>
 int testing_dotui_aocl(const Arguments &arg, testdata<T> &td, double timings[])
 {
     int            status           = 0;
@@ -57,30 +57,8 @@ int testing_dotui_aocl(const Arguments &arg, testdata<T> &td, double timings[])
             td.s                  = aoclsparse_numeric::zero<T>();
             double cpu_time_start = aoclsparse_clock();
 
-            if constexpr(CALL_INTERNAL)
-            {
-                /*
-                 * In case of all L1 APIs, the bench invokes the dispatcher directly since
-                 * the public APIs don't support KID parameter.
-                 *
-                 * To invoke the dispatcher, the aoclsparse_*_complex needs to be maps to
-                 * the corresponding std::complex<*>. That mapping is done here.
-                 */
-                using U = internal_t<T>;
-
-                NEW_CHECK_AOCLSPARSE_ERROR((aoclsparse_dotp<U>(nnz,
-                                                               reinterpret_cast<U *>(td.x.data()),
-                                                               td.indx.data(),
-                                                               reinterpret_cast<U *>(td.y.data()),
-                                                               reinterpret_cast<U *>(&td.s),
-                                                               false,
-                                                               arg.kid)));
-            }
-            else
-            {
-                NEW_CHECK_AOCLSPARSE_ERROR((aoclsparse_dot<T, aoclsparse_status>(
-                    nnz, td.x.data(), td.indx.data(), td.y.data(), &(td.s), false, arg.kid)));
-            }
+            NEW_CHECK_AOCLSPARSE_ERROR((aoclsparse_dot<T, aoclsparse_status>(
+                nnz, td.x.data(), td.indx.data(), td.y.data(), &(td.s), false, arg.kid)));
 
             timings[iter] = aoclsparse_clock_diff(cpu_time_start);
         }
@@ -101,11 +79,7 @@ int testing_dotui(const Arguments &arg)
     // unless more tests are registered via EXT_BENCHMARKING
     std::vector<testsetting<T>> testqueue;
 
-    // When kernel ID is -1 invoke the public interface. Else invoke the dispatcher.
-    if(arg.kid == -1)
-        testqueue.push_back({"aocl", &testing_dotui_aocl<T, false>});
-    else
-        testqueue.push_back({"aocl", &testing_dotui_aocl<T, true>});
+    testqueue.push_back({"aocl", &testing_dotui_aocl<T>});
 
     register_tests_dotui(testqueue);
 
