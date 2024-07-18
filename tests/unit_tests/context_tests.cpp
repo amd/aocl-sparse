@@ -27,6 +27,7 @@
 #include "gtest/gtest.h"
 
 #include <omp.h>
+#include <stdlib.h>
 #include <thread>
 #include <type_traits>
 
@@ -45,6 +46,7 @@ namespace contextTest
         [[maybe_unused]] auto st = aoclsparse_debug_get(
             info.global_isa, info.sparse_nt, info.tl_isa, info.is_isa_updated, info.arch);
 
+        // Try to launch threads returned
 #pragma omp parallel num_threads(*(info.sparse_nt))
         for(size_t i = 0; i < n; ++i)
         {
