@@ -107,7 +107,6 @@ namespace aoclsparse
                 // If there was no error, convert the char[] to an integer and
                 // return that integer.
                 r_val = static_cast<aoclsparse_int>(strtol(str, NULL, 10));
-
                 return r_val;
             }
             else if constexpr(std::is_same_v<T, std::string>)
@@ -234,23 +233,16 @@ namespace aoclsparse
         {
             aoclsparse_int nt = 1;
 
-            /*
-            * Read from OpenMP params and sparse ENVs for threading, only if OMP is enabled.
-            * Since the library relies on OpenMP for multithreading OpenMP variables get the
-            * maximum priority.
-            */
 #ifdef _OPENMP
             // Try to read AOCLSPARSE_NUM_THREADS with fallback value
             // to indicate if it has been set or not.
-            nt = env_get_var("AOCLSPARSE_NUM_THREADS", (aoclsparse_int)-1);
+            nt = env_get_var("AOCLSPARSE_NUM_THREADS",
+                             static_cast<aoclsparse_int>(omp_get_num_procs()));
 
-            // If AOCLSPARSE_NUM_THREADS was not set, try to read OMP_NUM_THREADS.
-            if(nt == -1 || nt == 0)
-                nt = env_get_var("OMP_NUM_THREADS", (aoclsparse_int)-1);
+            // When NT is set to an invalid value number (negative numbers of zero) of threads will be 1.
+            if(nt <= 0)
+                nt = 1;
 
-            // If AOCLSPARSE_NUM_THREADS and OMP_NUM_THREADS was not set, set it to number of procs.
-            if(nt == -1 || nt == 0)
-                nt = static_cast<aoclsparse_int>(omp_get_num_procs());
 #endif
             return nt;
         }
@@ -275,7 +267,7 @@ namespace aoclsparse
         template <context_isa_t... isa>
         bool supports()
         {
-            return (... && this->cpuflags[static_cast<int>(isa)]);
+            return (... && this->cpuflags[static_cast<aoclsparse_int>(isa)]);
         }
 
         // Function to check if an ISA is supported
@@ -290,13 +282,59 @@ namespace aoclsparse
             if(isa == context_isa_t::GENERIC)
                 return true;
 
-            return this->cpuflags[static_cast<int>(isa)];
+            return this->cpuflags[static_cast<aoclsparse_int>(isa)];
         }
 
-        // Returns the number of threads set
+        // Returns the number of threads that can be launched by the calling thread
         aoclsparse_int get_num_threads(void)
         {
-            return get_thread_from_env();
+            aoclsparse_int num_threads = 1;
+
+            /*
+            * Read from OpenMP params and sparse ENVs for threading, only if OMP is enabled.
+            * If both AOCLSPARSE_NUM_THREADS and OMP_NUM_THREADS are set, the number of threads
+            * used by the library will be the least of both the values.
+            */
+#ifdef _OPENMP
+            /*
+            * Read the sparse specific thread-count environment
+            * variable to initialize the global object.
+            * The expectation is that 'get_thread_from_env()' cannot
+            * return invalid values.
+            */
+            aoclsparse_int env_num_threads = this->get_thread_from_env();
+
+            aoclsparse_int max_threads  = omp_get_max_threads();
+            aoclsparse_int thread_limit = omp_get_thread_limit();
+
+            // Get the threads upper bound from OMP.
+            aoclsparse_int omp_min = (max_threads > thread_limit) ? thread_limit : max_threads;
+
+            /*
+            * If the AOCLSPARSE_NUM_THREADS is set, set the number of threads to the
+            * minimum of OMP variable(s) and AOCLSPARSE_NUM_THREADS.
+            *
+            * In certain scenarios, the value set in "AOCLSPARSE_NUM_THREADS" will be overridden
+            * if any of (OMP_NUM_THREADS, OMP_THREAD_LIMIT, OMP_NESTED) are set. When the OMP variables
+            * are set "AOCLSPARSE_NUM_THREADS" will only act as a thread capping/limiting mechanism
+            * .i.e. num_threads will never be greater than omp_min.
+            */
+            num_threads = (omp_min > env_num_threads) ? env_num_threads : omp_min;
+
+            aoclsparse_int max_levels    = omp_get_max_active_levels();
+            aoclsparse_int current_level = omp_get_active_level();
+
+            /*
+            * If the number of maximum active levels variable is less than or equal
+            * to the current active level then number of threads is set to one.
+            */
+            if(max_levels <= current_level)
+            {
+                num_threads = 1;
+            }
+#endif
+
+            return num_threads;
         }
 
         // Returns the ISA hint set
