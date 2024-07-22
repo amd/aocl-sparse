@@ -23,6 +23,7 @@
 #ifndef AOCLSPARSE_CSRMV_HPP
 #define AOCLSPARSE_CSRMV_HPP
 
+#include "aoclsparse_csrmv_avx512.hpp"
 #include "aoclsparse_csrmv_kernels.hpp"
 
 template <typename T>
@@ -148,7 +149,7 @@ aoclsparse_status aoclsparse_csrmv_t(aoclsparse_operation       trans,
                     kernel = aoclsparse_csrmv_general;
                 else
                 {
-#ifdef __AVX512F__
+#ifdef USE_AVX512
                     if(context::get_context()->supports<context_isa_t::AVX512F>())
                         kernel = aoclsparse_csrmv_vectorized_avx512;
                     else

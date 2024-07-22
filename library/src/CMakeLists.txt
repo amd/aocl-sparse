@@ -29,6 +29,9 @@ set(AOCLSPARSE_SOURCES
   src/level1/aoclsparse_axpyi.cpp
   src/level2/aoclsparse_csrmv.cpp
   src/level2/aoclsparse_blkcsrmv.cpp
+  src/level2/aoclsparse_blkcsrmv_avx512.cpp
+  src/level2/aoclsparse_csrmv_avx512.cpp
+  src/level2/aoclsparse_ellmv_avx512.cpp
   src/level2/aoclsparse_ellmv.cpp
   src/level2/aoclsparse_mv.cpp
   src/level2/aoclsparse_diamv.cpp
