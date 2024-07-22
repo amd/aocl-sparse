@@ -86,7 +86,10 @@ else()
   target_link_libraries(aoclsparse PUBLIC ${LAPACK_LIBRARIES})
 endif()
 
-set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/src/level2/aoclsparse_blkcsrmv.cpp PROPERTIES COMPILE_OPTIONS "-mavx512f;-mavx512vl")
+# Files that need to be built with AVX512
+set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/src/level2/aoclsparse_blkcsrmv_avx512.cpp PROPERTIES COMPILE_OPTIONS "-mavx512f;-mavx512vl")
+set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/src/level2/aoclsparse_csrmv_avx512.cpp PROPERTIES COMPILE_OPTIONS "-mavx512f;-mavx512vl")
+set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/src/level2/aoclsparse_ellmv_avx512.cpp PROPERTIES COMPILE_OPTIONS "-mavx512f;-mavx512vl")
 
 # Target properties
 set_target_properties(aoclsparse PROPERTIES SOVERSION ${AOCLSPARSE_VERSION} )

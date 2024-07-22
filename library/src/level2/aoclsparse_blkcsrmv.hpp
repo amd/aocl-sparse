@@ -25,50 +25,7 @@
 #include "aoclsparse.h"
 #include "aoclsparse_context.h"
 #include "aoclsparse_descr.h"
-
-/*
-*    NOTE: These declarations are enabled only when compiled with AVX512F
-*    and AVX512VL flags. Without those flags, the definition cannot be enabled.
-*/
-// Function definitions.
-// -----------------------
-#if defined __AVX512F__ && defined __AVX512VL__
-aoclsparse_status
-    aoclsparse_blkcsrmv_1x8_vectorized_avx512(aoclsparse_index_base base,
-                                              const double          alpha,
-                                              aoclsparse_int        m,
-                                              const uint8_t *__restrict__ masks,
-                                              const double *__restrict__ blk_csr_val,
-                                              const aoclsparse_int *__restrict__ blk_col_ind,
-                                              const aoclsparse_int *__restrict__ blk_row_ptr,
-                                              const double *__restrict__ x,
-                                              const double beta,
-                                              double *__restrict__ y);
-
-aoclsparse_status
-    aoclsparse_blkcsrmv_2x8_vectorized_avx512(aoclsparse_index_base base,
-                                              const double          alpha,
-                                              aoclsparse_int        m,
-                                              const uint8_t *__restrict__ masks,
-                                              const double *__restrict__ blk_csr_val,
-                                              const aoclsparse_int *__restrict__ blk_col_ind,
-                                              const aoclsparse_int *__restrict__ blk_row_ptr,
-                                              const double *__restrict__ x,
-                                              const double beta,
-                                              double *__restrict__ y);
-
-aoclsparse_status
-    aoclsparse_blkcsrmv_4x8_vectorized_avx512(aoclsparse_index_base base,
-                                              const double          alpha,
-                                              aoclsparse_int        m,
-                                              const uint8_t *__restrict__ masks,
-                                              const double *__restrict__ blk_csr_val,
-                                              const aoclsparse_int *__restrict__ blk_col_ind,
-                                              const aoclsparse_int *__restrict__ blk_row_ptr,
-                                              const double *__restrict__ x,
-                                              const double beta,
-                                              double *__restrict__ y);
-#endif
+#include "aoclsparse_blkcsrmv_avx512.hpp"
 
 // This routine performs sparse-matrix multiplication on matrices stored in blocked CSR format for double.
 // Supports blocking factors of size 1x8, 2x8 and 4x8. Blocking size is chosen depending on the matrix characteristics.
@@ -173,7 +130,7 @@ std::enable_if_t<std::is_same_v<T, double>, aoclsparse_status>
             return aoclsparse_status_invalid_pointer;
         }
 
-#if defined __AVX512F__ && defined __AVX512VL__
+#ifdef USE_AVX512
         if(nRowsblk == 1)
             return aoclsparse_blkcsrmv_1x8_vectorized_avx512(
                 descr->base, *alpha, m, masks, blk_csr_val, blk_col_ind, blk_row_ptr, x, *beta, y);
