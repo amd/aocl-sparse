@@ -279,16 +279,19 @@ aoclsparse_status aoclsparse_dotmv(const aoclsparse_operation op,
  * ===========================================================================
  */
 template <typename T>
-aoclsparse_status
-    aoclsparse_gthr(const aoclsparse_int nnz, const T *y, T *x, const aoclsparse_int *indx);
+aoclsparse_status aoclsparse_gthr(const aoclsparse_int  nnz,
+                                  const T              *y,
+                                  T                    *x,
+                                  const aoclsparse_int *indx,
+                                  aoclsparse_int        kid = -1);
 
 template <typename T>
-aoclsparse_status
-    aoclsparse_gthrz(const aoclsparse_int nnz, T *y, T *x, const aoclsparse_int *indx);
+aoclsparse_status aoclsparse_gthrz(
+    const aoclsparse_int nnz, T *y, T *x, const aoclsparse_int *indx, aoclsparse_int kid = -1);
 
 template <typename T>
-aoclsparse_status
-    aoclsparse_gthrs(const aoclsparse_int nnz, const T *y, T *x, aoclsparse_int stride);
+aoclsparse_status aoclsparse_gthrs(
+    const aoclsparse_int nnz, const T *y, T *x, aoclsparse_int stride, aoclsparse_int kid = -1);
 
 template <typename T, typename R>
 R aoclsparse_dot(const aoclsparse_int nnz,

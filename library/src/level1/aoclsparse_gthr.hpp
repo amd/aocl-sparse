@@ -25,6 +25,7 @@
 #define AOCLSPARSE_GTHR_HPP
 
 #include "aoclsparse.h"
+#include "aoclsparse_dispatcher.hpp"
 #include "aoclsparse_kernel_templates.hpp"
 #include "aoclsparse_utils.hpp"
 
@@ -146,6 +147,17 @@ inline aoclsparse_status
     return aoclsparse_status_success;
 }
 
+template <typename T, gather_op OP, Index::type I>
+constexpr Dispatch::api get_gthr_id()
+{
+    if constexpr(OP == gather_op::gather && I == Index::type::indexed)
+        return Dispatch::api::gthr;
+    else if constexpr(OP == gather_op::gatherz && I == Index::type::indexed)
+        return Dispatch::api::gthrz;
+    else if constexpr(OP == gather_op::gather && I == Index::type::strided)
+        return Dispatch::api::gthrs;
+}
+
 /*
  * aoclsparse_gthrs dispatcher with strided or indexed array access
  * handles both cases gather and gatherz
@@ -188,28 +200,30 @@ aoclsparse_status aoclsparse_gthr_t(
         }
     }
 
+    using namespace aoclsparse;
+    using namespace Dispatch;
+
     // Creating pointer to the kernel
     using K = decltype(&gthr_ref<T, OP, I>);
 
-    K kernel;
+    // clang-format off
+    // Table of available kernels
+    static constexpr Table<K> tbl[]{
+    {gthr_ref<T, OP, I>,           context_isa_t::GENERIC, 0U | archs::ALL},
+#ifdef __AVX2__
+    {gthr_kt<bsz::b256, T, OP, kt_avxext::AVX2, I>, context_isa_t::AVX2,    0U | archs::ZEN123},
+#endif
+#ifdef __AVX512F__
+    {gthr_kt<bsz::b512, T, OP, kt_avxext::AVX2, I>, context_isa_t::AVX512F, 0U | archs::ZEN4}
+#endif
+    };
+    // clang-format on
 
-    // TODO: Replace with L1 dispatcher
-    // Pick the kernel based on the KID passed
-    switch(kid)
-    {
-    case 2:
-#if defined(__AVX512F__)
-        kernel = gthr_kt<bsz::b512, T, OP, kt_avxext::AVX512F, I>;
-        break;
-#endif
-    case 1:
-#if defined(__AVX2__)
-        kernel = gthr_kt<bsz::b256, T, OP, kt_avxext::AVX2, I>;
-        break;
-#endif
-    default:
-        kernel = gthr_ref<T, OP, I>;
-    }
+    // Inquire with the oracle
+    auto kernel = Oracle<K, get_gthr_id<T, OP, I>()>(tbl, kid);
+
+    if(!kernel)
+        return aoclsparse_status_invalid_kid;
 
     // Invoke the kernel
     return kernel(nnz, y, x, xi);

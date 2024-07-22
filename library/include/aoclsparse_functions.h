@@ -34,80 +34,6 @@
 extern "C" {
 #endif
 
-// Public interfaces with KID
-// ------------------------------------------------------------------------------------
-
-DLL_PUBLIC
-aoclsparse_status aoclsparse_saxpyi_kid(const aoclsparse_int  nnz,
-                                        const float           a,
-                                        const float          *x,
-                                        const aoclsparse_int *indx,
-                                        float                *y,
-                                        aoclsparse_int        kid);
-
-DLL_PUBLIC
-aoclsparse_status aoclsparse_zaxpyi_kid(const aoclsparse_int  nnz,
-                                        const void           *a,
-                                        const void           *x,
-                                        const aoclsparse_int *indx,
-                                        void                 *y,
-                                        aoclsparse_int        kid);
-
-DLL_PUBLIC
-aoclsparse_status aoclsparse_caxpyi_kid(const aoclsparse_int  nnz,
-                                        const void           *a,
-                                        const void           *x,
-                                        const aoclsparse_int *indx,
-                                        void                 *y,
-                                        aoclsparse_int        kid);
-
-DLL_PUBLIC
-aoclsparse_status aoclsparse_daxpyi_kid(const aoclsparse_int  nnz,
-                                        const double          a,
-                                        const double         *x,
-                                        const aoclsparse_int *indx,
-                                        double               *y,
-                                        aoclsparse_int        kid);
-
-DLL_PUBLIC aoclsparse_status aoclsparse_cdotci_kid(const aoclsparse_int  nnz,
-                                                   const void           *x,
-                                                   const aoclsparse_int *indx,
-                                                   const void           *y,
-                                                   void                 *dot,
-                                                   aoclsparse_int        kid);
-
-DLL_PUBLIC aoclsparse_status aoclsparse_zdotci_kid(const aoclsparse_int  nnz,
-                                                   const void           *x,
-                                                   const aoclsparse_int *indx,
-                                                   const void           *y,
-                                                   void                 *dot,
-                                                   aoclsparse_int        kid);
-
-DLL_PUBLIC aoclsparse_status aoclsparse_cdotui_kid(const aoclsparse_int  nnz,
-                                                   const void           *x,
-                                                   const aoclsparse_int *indx,
-                                                   const void           *y,
-                                                   void                 *dot,
-                                                   aoclsparse_int        kid);
-
-DLL_PUBLIC aoclsparse_status aoclsparse_zdotui_kid(const aoclsparse_int  nnz,
-                                                   const void           *x,
-                                                   const aoclsparse_int *indx,
-                                                   const void           *y,
-                                                   void                 *dot,
-                                                   aoclsparse_int        kid);
-
-DLL_PUBLIC float  aoclsparse_sdoti_kid(const aoclsparse_int  nnz,
-                                       const float          *x,
-                                       const aoclsparse_int *indx,
-                                       const float          *y,
-                                       aoclsparse_int        kid);
-DLL_PUBLIC double aoclsparse_ddoti_kid(const aoclsparse_int  nnz,
-                                       const double         *x,
-                                       const aoclsparse_int *indx,
-                                       const double         *y,
-                                       aoclsparse_int        kid);
-
 /*! \ingroup level1_module
  *  \brief A variant of sparse vector-vector addition between compressed sparse vector and dense vector.
  *
@@ -3212,6 +3138,134 @@ aoclsparse_status aoclsparse_zsyrkd(const aoclsparse_operation      opA,
                                     const aoclsparse_int            ldc);
 
 /**@}*/
+
+// ====================================================================================
+// Undocumented public interfaces with KID. Used for testing and benchmarking
+// different kernels in the API
+// ====================================================================================
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_saxpyi_kid(const aoclsparse_int  nnz,
+                                        const float           a,
+                                        const float          *x,
+                                        const aoclsparse_int *indx,
+                                        float                *y,
+                                        aoclsparse_int        kid);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_zaxpyi_kid(const aoclsparse_int  nnz,
+                                        const void           *a,
+                                        const void           *x,
+                                        const aoclsparse_int *indx,
+                                        void                 *y,
+                                        aoclsparse_int        kid);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_caxpyi_kid(const aoclsparse_int  nnz,
+                                        const void           *a,
+                                        const void           *x,
+                                        const aoclsparse_int *indx,
+                                        void                 *y,
+                                        aoclsparse_int        kid);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_daxpyi_kid(const aoclsparse_int  nnz,
+                                        const double          a,
+                                        const double         *x,
+                                        const aoclsparse_int *indx,
+                                        double               *y,
+                                        aoclsparse_int        kid);
+
+DLL_PUBLIC aoclsparse_status aoclsparse_cdotci_kid(const aoclsparse_int  nnz,
+                                                   const void           *x,
+                                                   const aoclsparse_int *indx,
+                                                   const void           *y,
+                                                   void                 *dot,
+                                                   aoclsparse_int        kid);
+
+DLL_PUBLIC aoclsparse_status aoclsparse_zdotci_kid(const aoclsparse_int  nnz,
+                                                   const void           *x,
+                                                   const aoclsparse_int *indx,
+                                                   const void           *y,
+                                                   void                 *dot,
+                                                   aoclsparse_int        kid);
+
+DLL_PUBLIC aoclsparse_status aoclsparse_cdotui_kid(const aoclsparse_int  nnz,
+                                                   const void           *x,
+                                                   const aoclsparse_int *indx,
+                                                   const void           *y,
+                                                   void                 *dot,
+                                                   aoclsparse_int        kid);
+
+DLL_PUBLIC aoclsparse_status aoclsparse_zdotui_kid(const aoclsparse_int  nnz,
+                                                   const void           *x,
+                                                   const aoclsparse_int *indx,
+                                                   const void           *y,
+                                                   void                 *dot,
+                                                   aoclsparse_int        kid);
+
+DLL_PUBLIC float aoclsparse_sdoti_kid(const aoclsparse_int  nnz,
+                                      const float          *x,
+                                      const aoclsparse_int *indx,
+                                      const float          *y,
+                                      aoclsparse_int        kid);
+
+DLL_PUBLIC double aoclsparse_ddoti_kid(const aoclsparse_int  nnz,
+                                       const double         *x,
+                                       const aoclsparse_int *indx,
+                                       const double         *y,
+                                       aoclsparse_int        kid);
+
+DLL_PUBLIC aoclsparse_status aoclsparse_sgthr_kid(const aoclsparse_int  nnz,
+                                                  const float          *y,
+                                                  float                *x,
+                                                  const aoclsparse_int *indx,
+                                                  aoclsparse_int        kid);
+
+DLL_PUBLIC aoclsparse_status aoclsparse_dgthr_kid(const aoclsparse_int  nnz,
+                                                  const double         *y,
+                                                  double               *x,
+                                                  const aoclsparse_int *indx,
+                                                  aoclsparse_int        kid);
+
+DLL_PUBLIC aoclsparse_status aoclsparse_cgthr_kid(const aoclsparse_int  nnz,
+                                                  const void           *y,
+                                                  void                 *x,
+                                                  const aoclsparse_int *indx,
+                                                  aoclsparse_int        kid);
+
+DLL_PUBLIC aoclsparse_status aoclsparse_zgthr_kid(const aoclsparse_int  nnz,
+                                                  const void           *y,
+                                                  void                 *x,
+                                                  const aoclsparse_int *indx,
+                                                  aoclsparse_int        kid);
+
+DLL_PUBLIC aoclsparse_status aoclsparse_sgthrz_kid(
+    const aoclsparse_int nnz, float *y, float *x, const aoclsparse_int *indx, aoclsparse_int kid);
+
+DLL_PUBLIC aoclsparse_status aoclsparse_dgthrz_kid(
+    const aoclsparse_int nnz, double *y, double *x, const aoclsparse_int *indx, aoclsparse_int kid);
+
+DLL_PUBLIC aoclsparse_status aoclsparse_cgthrz_kid(
+    const aoclsparse_int nnz, void *y, void *x, const aoclsparse_int *indx, aoclsparse_int kid);
+
+DLL_PUBLIC aoclsparse_status aoclsparse_zgthrz_kid(
+    const aoclsparse_int nnz, void *y, void *x, const aoclsparse_int *indx, aoclsparse_int kid);
+
+DLL_PUBLIC aoclsparse_status aoclsparse_sgthrs_kid(
+    const aoclsparse_int nnz, const float *y, float *x, aoclsparse_int stride, aoclsparse_int kid);
+
+DLL_PUBLIC aoclsparse_status aoclsparse_dgthrs_kid(const aoclsparse_int nnz,
+                                                   const double        *y,
+                                                   double              *x,
+                                                   aoclsparse_int       stride,
+                                                   aoclsparse_int       kid);
+
+DLL_PUBLIC aoclsparse_status aoclsparse_cgthrs_kid(
+    const aoclsparse_int nnz, const void *y, void *x, aoclsparse_int stride, aoclsparse_int kid);
+
+DLL_PUBLIC aoclsparse_status aoclsparse_zgthrs_kid(
+    const aoclsparse_int nnz, const void *y, void *x, aoclsparse_int stride, aoclsparse_int kid);
 
 #ifdef __cplusplus
 }

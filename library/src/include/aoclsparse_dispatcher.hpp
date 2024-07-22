@@ -75,6 +75,14 @@ namespace Dispatch
     /***************************************************************************
      * Oracle
      *
+     * Template Parameters
+     * -------------------
+     * 1) "typename K" is the type of the kernel's pointer.
+     * 2) "api A" provides means to distinguish between two otherwise undistinguishable
+     *    kernels signatures (typename) K. See enum class api (add new kernels as
+     *    required).
+     * 3) "aoclsparse_int N" is the number of kernels in the dispatch table.
+     *
      * Decides the best kernel based on a "Kernel Attribute Table".
      * The precedence is as follows: (0 highest -> 3 lowest)
      * 0) kid:        User requested KID to use (kid < 0 means auto).

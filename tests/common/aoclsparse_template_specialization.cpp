@@ -928,16 +928,26 @@ template <>
 aoclsparse_status aoclsparse_gthr(const aoclsparse_int  nnz,
                                   const double         *y,
                                   double               *x,
-                                  const aoclsparse_int *indx)
+                                  const aoclsparse_int *indx,
+                                  aoclsparse_int        kid)
 {
-    return aoclsparse_dgthr(nnz, y, x, indx);
+    if(kid == -1)
+        return aoclsparse_dgthr(nnz, y, x, indx);
+    else
+        return aoclsparse_dgthr_kid(nnz, y, x, indx, kid);
 }
 
 template <>
-aoclsparse_status
-    aoclsparse_gthr(const aoclsparse_int nnz, const float *y, float *x, const aoclsparse_int *indx)
+aoclsparse_status aoclsparse_gthr(const aoclsparse_int  nnz,
+                                  const float          *y,
+                                  float                *x,
+                                  const aoclsparse_int *indx,
+                                  aoclsparse_int        kid)
 {
-    return aoclsparse_sgthr(nnz, y, x, indx);
+    if(kid == -1)
+        return aoclsparse_sgthr(nnz, y, x, indx);
+    else
+        return aoclsparse_sgthr_kid(nnz, y, x, indx, kid);
 }
 template <>
 aoclsparse_status aoclsparse_trsv_kid(const aoclsparse_operation trans,
@@ -1037,141 +1047,201 @@ template <>
 aoclsparse_status aoclsparse_gthr(const aoclsparse_int        nnz,
                                   const std::complex<double> *y,
                                   std::complex<double>       *x,
-                                  const aoclsparse_int       *indx)
+                                  const aoclsparse_int       *indx,
+                                  aoclsparse_int              kid)
 {
-    return aoclsparse_zgthr(nnz, y, x, indx);
+    if(kid == -1)
+        return aoclsparse_zgthr(nnz, y, x, indx);
+    else
+        return aoclsparse_zgthr_kid(nnz, y, x, indx, kid);
 }
 template <>
 aoclsparse_status aoclsparse_gthr(const aoclsparse_int             nnz,
                                   const aoclsparse_double_complex *y,
                                   aoclsparse_double_complex       *x,
-                                  const aoclsparse_int            *indx)
+                                  const aoclsparse_int            *indx,
+                                  aoclsparse_int                   kid)
 {
     const std::complex<double> *py = reinterpret_cast<const std::complex<double> *>(y);
     std::complex<double>       *px = reinterpret_cast<std::complex<double> *>(x);
-    return aoclsparse_zgthr(nnz, py, px, indx);
+    if(kid == -1)
+        return aoclsparse_zgthr(nnz, py, px, indx);
+    else
+        return aoclsparse_zgthr_kid(nnz, y, x, indx, kid);
 }
 
 template <>
 aoclsparse_status aoclsparse_gthr(const aoclsparse_int       nnz,
                                   const std::complex<float> *y,
                                   std::complex<float>       *x,
-                                  const aoclsparse_int      *indx)
+                                  const aoclsparse_int      *indx,
+                                  aoclsparse_int             kid)
 {
-    return aoclsparse_cgthr(nnz, y, x, indx);
+    if(kid == -1)
+        return aoclsparse_cgthr(nnz, y, x, indx);
+    else
+        return aoclsparse_cgthr_kid(nnz, y, x, indx, kid);
 }
 
 template <>
 aoclsparse_status aoclsparse_gthr(const aoclsparse_int            nnz,
                                   const aoclsparse_float_complex *y,
                                   aoclsparse_float_complex       *x,
-                                  const aoclsparse_int           *indx)
+                                  const aoclsparse_int           *indx,
+                                  aoclsparse_int                  kid)
 {
     const std::complex<float> *py = reinterpret_cast<const std::complex<float> *>(y);
     std::complex<float>       *px = reinterpret_cast<std::complex<float> *>(x);
-    return aoclsparse_cgthr(nnz, py, px, indx);
+    if(kid == -1)
+        return aoclsparse_cgthr(nnz, py, px, indx);
+    else
+        return aoclsparse_cgthr_kid(nnz, y, x, indx, kid);
 }
 
 template <>
-aoclsparse_status
-    aoclsparse_gthrz(const aoclsparse_int nnz, double *y, double *x, const aoclsparse_int *indx)
+aoclsparse_status aoclsparse_gthrz(
+    const aoclsparse_int nnz, double *y, double *x, const aoclsparse_int *indx, aoclsparse_int kid)
 {
-    return aoclsparse_dgthrz(nnz, y, x, indx);
+    if(kid == -1)
+        return aoclsparse_dgthrz(nnz, y, x, indx);
+    else
+        return aoclsparse_dgthrz_kid(nnz, y, x, indx, kid);
 }
 
 template <>
-aoclsparse_status
-    aoclsparse_gthrz(const aoclsparse_int nnz, float *y, float *x, const aoclsparse_int *indx)
+aoclsparse_status aoclsparse_gthrz(
+    const aoclsparse_int nnz, float *y, float *x, const aoclsparse_int *indx, aoclsparse_int kid)
 {
-    return aoclsparse_sgthrz(nnz, y, x, indx);
+    if(kid == -1)
+        return aoclsparse_sgthrz(nnz, y, x, indx);
+    else
+        return aoclsparse_sgthrz_kid(nnz, y, x, indx, kid);
 }
 
 template <>
 aoclsparse_status aoclsparse_gthrz(const aoclsparse_int  nnz,
                                    std::complex<double> *y,
                                    std::complex<double> *x,
-                                   const aoclsparse_int *indx)
+                                   const aoclsparse_int *indx,
+                                   aoclsparse_int        kid)
 {
-    return aoclsparse_zgthrz(nnz, y, x, indx);
+    if(kid == -1)
+        return aoclsparse_zgthrz(nnz, y, x, indx);
+    else
+        return aoclsparse_zgthrz_kid(nnz, y, x, indx, kid);
 }
 template <>
 aoclsparse_status aoclsparse_gthrz(const aoclsparse_int       nnz,
                                    aoclsparse_double_complex *y,
                                    aoclsparse_double_complex *x,
-                                   const aoclsparse_int      *indx)
+                                   const aoclsparse_int      *indx,
+                                   aoclsparse_int             kid)
 {
     std::complex<double> *py = reinterpret_cast<std::complex<double> *>(y);
     std::complex<double> *px = reinterpret_cast<std::complex<double> *>(x);
-    return aoclsparse_zgthrz(nnz, py, px, indx);
+    if(kid == -1)
+        return aoclsparse_zgthrz(nnz, py, px, indx);
+    else
+        return aoclsparse_zgthrz_kid(nnz, y, x, indx, kid);
 }
 
 template <>
 aoclsparse_status aoclsparse_gthrz(const aoclsparse_int  nnz,
                                    std::complex<float>  *y,
                                    std::complex<float>  *x,
-                                   const aoclsparse_int *indx)
+                                   const aoclsparse_int *indx,
+                                   aoclsparse_int        kid)
 {
-    return aoclsparse_cgthrz(nnz, y, x, indx);
+    if(kid == -1)
+        return aoclsparse_cgthrz(nnz, y, x, indx);
+    else
+        return aoclsparse_cgthrz_kid(nnz, y, x, indx, kid);
 }
 template <>
 aoclsparse_status aoclsparse_gthrz(const aoclsparse_int      nnz,
                                    aoclsparse_float_complex *y,
                                    aoclsparse_float_complex *x,
-                                   const aoclsparse_int     *indx)
+                                   const aoclsparse_int     *indx,
+                                   aoclsparse_int            kid)
 {
     std::complex<float> *py = reinterpret_cast<std::complex<float> *>(y);
     std::complex<float> *px = reinterpret_cast<std::complex<float> *>(x);
-    return aoclsparse_cgthrz(nnz, py, px, indx);
+    if(kid == -1)
+        return aoclsparse_cgthrz(nnz, py, px, indx);
+    else
+        return aoclsparse_cgthrz_kid(nnz, y, x, indx, kid);
 }
 
 template <>
-aoclsparse_status
-    aoclsparse_gthrs(const aoclsparse_int nnz, const double *y, double *x, aoclsparse_int stride)
+aoclsparse_status aoclsparse_gthrs(
+    const aoclsparse_int nnz, const double *y, double *x, aoclsparse_int stride, aoclsparse_int kid)
 {
-    return aoclsparse_dgthrs(nnz, y, x, stride);
+    if(kid == -1)
+        return aoclsparse_dgthrs(nnz, y, x, stride);
+    else
+        return aoclsparse_dgthrs_kid(nnz, y, x, stride, kid);
 }
 
 template <>
-aoclsparse_status
-    aoclsparse_gthrs(const aoclsparse_int nnz, const float *y, float *x, aoclsparse_int stride)
+aoclsparse_status aoclsparse_gthrs(
+    const aoclsparse_int nnz, const float *y, float *x, aoclsparse_int stride, aoclsparse_int kid)
 {
-    return aoclsparse_sgthrs(nnz, y, x, stride);
+    if(kid == -1)
+        return aoclsparse_sgthrs(nnz, y, x, stride);
+    else
+        return aoclsparse_sgthrs_kid(nnz, y, x, stride, kid);
 }
 
 template <>
 aoclsparse_status aoclsparse_gthrs(const aoclsparse_int        nnz,
                                    const std::complex<double> *y,
                                    std::complex<double>       *x,
-                                   aoclsparse_int              stride)
+                                   aoclsparse_int              stride,
+                                   aoclsparse_int              kid)
 {
-    return aoclsparse_zgthrs(nnz, y, x, stride);
+    if(kid == -1)
+        return aoclsparse_zgthrs(nnz, y, x, stride);
+    else
+        return aoclsparse_zgthrs_kid(nnz, y, x, stride, kid);
 }
 
 template <>
 aoclsparse_status aoclsparse_gthrs(const aoclsparse_int       nnz,
                                    const std::complex<float> *y,
                                    std::complex<float>       *x,
-                                   aoclsparse_int             stride)
+                                   aoclsparse_int             stride,
+                                   aoclsparse_int             kid)
 {
-    return aoclsparse_cgthrs(nnz, y, x, stride);
+    if(kid == -1)
+        return aoclsparse_cgthrs(nnz, y, x, stride);
+    else
+        return aoclsparse_cgthrs_kid(nnz, y, x, stride, kid);
 }
 
 template <>
 aoclsparse_status aoclsparse_gthrs(const aoclsparse_int             nnz,
                                    const aoclsparse_double_complex *y,
                                    aoclsparse_double_complex       *x,
-                                   aoclsparse_int                   stride)
+                                   aoclsparse_int                   stride,
+                                   aoclsparse_int                   kid)
 {
-    return aoclsparse_zgthrs(nnz, y, x, stride);
+    if(kid == -1)
+        return aoclsparse_zgthrs(nnz, y, x, stride);
+    else
+        return aoclsparse_zgthrs_kid(nnz, y, x, stride, kid);
 }
 
 template <>
 aoclsparse_status aoclsparse_gthrs(const aoclsparse_int            nnz,
                                    const aoclsparse_float_complex *y,
                                    aoclsparse_float_complex       *x,
-                                   aoclsparse_int                  stride)
+                                   aoclsparse_int                  stride,
+                                   aoclsparse_int                  kid)
 {
-    return aoclsparse_cgthrs(nnz, y, x, stride);
+    if(kid == -1)
+        return aoclsparse_cgthrs(nnz, y, x, stride);
+    else
+        return aoclsparse_cgthrs_kid(nnz, y, x, stride, kid);
 }
 
 template <>
