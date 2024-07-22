@@ -26,7 +26,6 @@
 #include "aoclsparse_mat_structures.h"
 #include "common_data_utils.h"
 #include "gtest/gtest.h"
-#include "aoclsparse_gthr.hpp"
 
 #include <algorithm>
 #include <vector>
@@ -118,8 +117,7 @@ namespace
 
         init(nnz, x, y, indx, x_exp, y_exp);
 
-        aoclsparse_status res = aoclsparse_gthr_t<T, gather_op::gather, Index::type::indexed>(
-            nnz, y.data(), x.data(), indx.data(), KID);
+        aoclsparse_status res = aoclsparse_gthr(nnz, y.data(), x.data(), indx.data(), KID);
 
         // expect success
         EXPECT_EQ(res, aoclsparse_status_success);
@@ -154,8 +152,7 @@ namespace
 
         init(nnz, x, y, indx, x_exp, y_exp);
 
-        aoclsparse_status res = aoclsparse_gthr_t<T, gather_op::gatherz, Index::type::indexed>(
-            nnz, y.data(), x.data(), indx.data(), KID);
+        aoclsparse_status res = aoclsparse_gthrz(nnz, y.data(), x.data(), indx.data(), KID);
 
         // expect success
         EXPECT_EQ(res, aoclsparse_status_success);
@@ -259,8 +256,7 @@ namespace
         // Pass negative value in index array
         // and expect aoclsparse_status_invalid_index_value
         // This tests is only valid for reference kernel
-        aoclsparse_status res = aoclsparse_gthr_t<T, gather_op::gather, Index::type::indexed>(
-            nnz, y.data(), x.data(), indx.data(), 0);
+        aoclsparse_status res = aoclsparse_gthr(nnz, y.data(), x.data(), indx.data(), 0);
         EXPECT_EQ(res, aoclsparse_status_invalid_index_value);
     }
 
@@ -341,8 +337,7 @@ namespace
         // Pass negative value in index array
         // and expect aoclsparse_status_invalid_index_value
         // This tests is only valid for reference kernel
-        aoclsparse_status res = aoclsparse_gthr_t<T, gather_op::gatherz, Index::type::indexed>(
-            nnz, y.data(), x.data(), indx.data(), 0);
+        aoclsparse_status res = aoclsparse_gthrz(nnz, y.data(), x.data(), indx.data(), 0);
         EXPECT_EQ(res, aoclsparse_status_invalid_index_value);
     }
 
@@ -351,13 +346,13 @@ namespace
     template <typename T, int KID>
     void test_gthrs_success()
     {
-        aoclsparse_int            m, n, nnz;
-        aoclsparse_int            stride;
-        std::vector<T>            x_gold;
-        std::vector<T>            y;
-        std::vector<T>            x;
-        T                         xtol;
-        decltype(std::real(xtol)) tol;
+        aoclsparse_int m, n, nnz;
+        aoclsparse_int stride;
+        std::vector<T> x_gold;
+        std::vector<T> y;
+        std::vector<T> x;
+        T              xtol;
+        tolerance_t<T> tol;
         xtol = (T)0;
         tol  = std::real(xtol); // get the tolerance.
 
@@ -366,8 +361,7 @@ namespace
         {
             T val = col + 1;
 
-            aoclsparse_status res = aoclsparse_gthr_t<T, gather_op::gather, Index::type::strided>(
-                n, &y[col], &x[0], stride, KID);
+            aoclsparse_status res = aoclsparse_gthrs(n, &y[col], &x[0], stride, KID);
 
             // expect success
             EXPECT_EQ(res, aoclsparse_status_success);
@@ -446,25 +440,45 @@ namespace
     {
         test_gthr_success<double, 0>();
         test_gthr_success<double, 1>();
+#ifdef __AVX512__
         test_gthr_success<double, 2>();
+#endif
     }
     TEST(gthr, SuccessFloat)
     {
         test_gthr_success<float, 0>();
         test_gthr_success<float, 1>();
+#ifdef __AVX512__
         test_gthr_success<float, 2>();
+#endif
     }
     TEST(gthr, SuccessCDouble)
     {
         test_gthr_success<std::complex<double>, 0>();
         test_gthr_success<std::complex<double>, 1>();
+#ifdef __AVX512__
         test_gthr_success<std::complex<double>, 2>();
+#endif
+
+        test_gthr_success<aoclsparse_double_complex, 0>();
+        test_gthr_success<aoclsparse_double_complex, 1>();
+#ifdef __AVX512__
+        test_gthr_success<aoclsparse_double_complex, 2>();
+#endif
     }
     TEST(gthr, SuccessCFloat)
     {
         test_gthr_success<std::complex<float>, 0>();
         test_gthr_success<std::complex<float>, 1>();
+#ifdef __AVX512__
         test_gthr_success<std::complex<float>, 2>();
+#endif
+
+        test_gthr_success<aoclsparse_float_complex, 0>();
+        test_gthr_success<aoclsparse_float_complex, 1>();
+#ifdef __AVX512__
+        test_gthr_success<aoclsparse_float_complex, 2>();
+#endif
     }
 
     TEST(gthr, NullArgDouble)
@@ -539,25 +553,45 @@ namespace
     {
         test_gthrz_success<double, 0>();
         test_gthrz_success<double, 1>();
+#ifdef __AVX512__
         test_gthrz_success<double, 2>();
+#endif
     }
     TEST(gthrz, SuccessFloat)
     {
         test_gthrz_success<float, 0>();
         test_gthrz_success<float, 1>();
+#ifdef __AVX512__
         test_gthrz_success<float, 2>();
+#endif
     }
     TEST(gthrz, SuccessCDouble)
     {
         test_gthrz_success<std::complex<double>, 0>();
         test_gthrz_success<std::complex<double>, 1>();
+#ifdef __AVX512__
         test_gthrz_success<std::complex<double>, 2>();
+#endif
+
+        test_gthrz_success<aoclsparse_double_complex, 0>();
+        test_gthrz_success<aoclsparse_double_complex, 1>();
+#ifdef __AVX512__
+        test_gthrz_success<aoclsparse_double_complex, 2>();
+#endif
     }
     TEST(gthrz, SuccessCFloat)
     {
         test_gthrz_success<std::complex<float>, 0>();
         test_gthrz_success<std::complex<float>, 1>();
+#ifdef __AVX512__
         test_gthrz_success<std::complex<float>, 2>();
+#endif
+
+        test_gthrz_success<aoclsparse_float_complex, 0>();
+        test_gthrz_success<aoclsparse_float_complex, 1>();
+#ifdef __AVX512__
+        test_gthrz_success<aoclsparse_float_complex, 2>();
+#endif
     }
 
     TEST(gthrz, NullArgDouble)
@@ -633,25 +667,33 @@ namespace
     {
         test_gthrs_success<double, 0>();
         test_gthrs_success<double, 1>();
+#ifdef __AVX512__
         test_gthrs_success<double, 2>();
+#endif
     }
     TEST(gthrs, SuccessFloat)
     {
         test_gthrs_success<float, 0>();
         test_gthrs_success<float, 1>();
+#ifdef __AVX512__
         test_gthrs_success<float, 2>();
+#endif
     }
     TEST(gthrs, SuccessCDouble)
     {
         test_gthrs_success<std::complex<double>, 0>();
         test_gthrs_success<std::complex<double>, 1>();
+#ifdef __AVX512__
         test_gthrs_success<std::complex<double>, 2>();
+#endif
     }
     TEST(gthrs, SuccessCFloat)
     {
         test_gthrs_success<std::complex<float>, 0>();
         test_gthrs_success<std::complex<float>, 1>();
+#ifdef __AVX512__
         test_gthrs_success<std::complex<float>, 2>();
+#endif
     }
 
     TEST(gthrs, NullArgDouble)
