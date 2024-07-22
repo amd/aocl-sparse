@@ -24,6 +24,7 @@
 #include "common_data_utils.h"
 #include "gtest/gtest.h"
 #include "aoclsparse.hpp"
+#include "aoclsparse_utils.hpp"
 
 #include <complex>
 #include <vector>
@@ -191,16 +192,24 @@ namespace
 
         init(nnz, indx, x, y, dot_exp, dotc_exp);
 
-        std::cerr << "Kernel ID : " << KID << std::endl;
-
         if constexpr(std::is_same_v<T, std::complex<double>>
-                     || std::is_same_v<T, std::complex<float>>)
+                     || std::is_same_v<T, std::complex<float>>
+                     || std::is_same_v<T, aoclsparse_float_complex>
+                     || std::is_same_v<T, aoclsparse_double_complex>)
         {
             // In case of complex, test conjugate dot.
             EXPECT_EQ((aoclsparse_dot<T, aoclsparse_status>(
                           nnz, x.data(), indx.data(), y.data(), &dot, true, KID)),
                       aoclsparse_status_success);
-            expect_eq<T>(dot, dotc_exp);
+
+            using U = typename get_data_type<T>::type;
+
+            U *tdot, *tdotc_exp;
+
+            tdot      = reinterpret_cast<U *>(&dot);
+            tdotc_exp = reinterpret_cast<U *>(&dotc_exp);
+
+            expect_eq<U>(*tdot, *tdotc_exp);
         }
         else
         {
@@ -208,55 +217,6 @@ namespace
                 (aoclsparse_dot<T, T>(nnz, x.data(), indx.data(), y.data(), &dot, false, KID)),
                 dot_exp);
         }
-    }
-
-    // testing aoclsparse_*_complex types
-    template <typename T, int KID = -1>
-    void test_dotp_success_struct()
-    {
-        aoclsparse_int              nnz;
-        std::vector<aoclsparse_int> indx;
-        std::vector<T>              x;
-        std::vector<T>              y;
-        T                           dot_exp;
-        T                           dotc_exp;
-        T                           dot;
-
-        init(nnz, indx, x, y, dot_exp, dotc_exp);
-
-        /*  Determine the complex type
-         *  If T is aoclsparse_double_complex, complex_t will be std::complex<double>.
-         *  Else, complex_t will be std::complex<float>.
-        */
-        using complex_t = std::conditional_t<std::is_same_v<T, aoclsparse_double_complex>,
-                                             std::complex<double>,
-                                             std::complex<float>>;
-
-        complex_t *tdot, *tdot_exp, *tdotc_exp;
-        tdot      = (complex_t *)&dot;
-        tdotc_exp = (complex_t *)&dotc_exp;
-        tdot_exp  = (complex_t *)&dot_exp;
-
-        std::cerr << "Kernel ID : " << KID << std::endl;
-        EXPECT_EQ((aoclsparse_dot<complex_t, aoclsparse_status>(nnz,
-                                                                (complex_t *)x.data(),
-                                                                indx.data(),
-                                                                (complex_t *)y.data(),
-                                                                (complex_t *)&dot,
-                                                                false,
-                                                                KID)),
-                  aoclsparse_status_success);
-        expect_eq<complex_t>(*tdot, *tdot_exp);
-
-        EXPECT_EQ((aoclsparse_dot<complex_t, aoclsparse_status>(nnz,
-                                                                (complex_t *)x.data(),
-                                                                indx.data(),
-                                                                (complex_t *)y.data(),
-                                                                (complex_t *)&dot,
-                                                                true,
-                                                                KID)),
-                  aoclsparse_status_success);
-        expect_eq<complex_t>(*tdot, *tdotc_exp);
     }
 
     TEST(dot, RefImplAll)
@@ -342,25 +302,25 @@ namespace
     TEST(dot, SuccessArgCStructDouble)
     {
         // Test the default API
-        test_dotp_success_struct<aoclsparse_double_complex>();
+        test_dotp_success<aoclsparse_double_complex>();
 
         // Explicitly, request the kernels
-        test_dotp_success_struct<aoclsparse_double_complex, 0>();
-        test_dotp_success_struct<aoclsparse_double_complex, 1>();
+        test_dotp_success<aoclsparse_double_complex, 0>();
+        test_dotp_success<aoclsparse_double_complex, 1>();
 #ifdef __AVX512F__
-        test_dotp_success_struct<aoclsparse_double_complex, 2>();
+        test_dotp_success<aoclsparse_double_complex, 2>();
 #endif
     }
     TEST(dot, SuccessArgCStructFloat)
     {
         // Test the default API
-        test_dotp_success_struct<aoclsparse_float_complex>();
+        test_dotp_success<aoclsparse_float_complex>();
 
         // Explicitly, request the kernels
-        test_dotp_success_struct<aoclsparse_float_complex, 0>();
-        test_dotp_success_struct<aoclsparse_float_complex, 1>();
+        test_dotp_success<aoclsparse_float_complex, 0>();
+        test_dotp_success<aoclsparse_float_complex, 1>();
 #ifdef __AVX512F__
-        test_dotp_success_struct<aoclsparse_float_complex, 2>();
+        test_dotp_success<aoclsparse_float_complex, 2>();
 #endif
     }
 
