@@ -247,9 +247,6 @@ namespace
         if(iformat == CSR)
         {
             //allocate for csr buffers
-            csr_row_ptr.resize(m + 1);
-            csr_col_ind.resize(nnz);
-            csr_val.resize(nnz);
             status = aoclsparse_init_csr_matrix(csr_row_ptr,
                                                 csr_col_ind,
                                                 csr_val,
@@ -282,9 +279,6 @@ namespace
         else if(iformat == COO)
         {
             //allocate for coo buffers
-            coo_row_ind.resize(nnz);
-            coo_col_ind.resize(nnz);
-            coo_val.resize(nnz);
             status = aoclsparse_init_coo_matrix(coo_row_ind,
                                                 coo_col_ind,
                                                 coo_val,
@@ -392,9 +386,9 @@ namespace
         ADD_TEST(BS0, FALSE, CSR, 14, 14, 30, MTX, FULL_SORT, TRUE, TRUE),
         ADD_TEST(BS1, FALSE, COO, 14, 14, 30, MTX, FULL_SORT, TRUE, TRUE),
         //edge case csr: computed nnz greater than matrix dimension
-        ADD_TEST(BS0, TRUE, CSR, 1001, 1001, 0, DIAG_DOM, FULL_SORT, TRUE, TRUE),
+        ADD_TEST(BS0, TRUE, CSR, 1001, 1001, -1, DIAG_DOM, FULL_SORT, TRUE, TRUE),
         //edge case coo: computed nnz greater than matrix dimension
-        ADD_TEST(BS1, TRUE, COO, 1001, 1001, 0, DIAG_DOM, FULL_SORT, TRUE, TRUE),
+        ADD_TEST(BS1, TRUE, COO, 1001, 1001, -1, DIAG_DOM, FULL_SORT, TRUE, TRUE),
     };
 
     // It is used to when testing::PrintToString(GetParam()) to generate test name for ctest
@@ -454,7 +448,7 @@ namespace
         aoclsparse_matrix_sort      sort   = aoclsparse_unsorted;
         aoclsparse_int              m      = 10;
         aoclsparse_int              n      = 10;
-        aoclsparse_int              nnz = 35, wrong, zero = 0;
+        aoclsparse_int              nnz = 35, negnnz = -2, wrong, neg = -1;
 
         //allocate for csr buffers
         row_array.resize(m + 1);
@@ -464,13 +458,13 @@ namespace
         //m=0,n=0 quick exit check
         exp_status = aoclsparse_status_invalid_size;
         status     = aoclsparse_init_csr_matrix(
-            row_array, col_array, val, zero, n, nnz, base, matrix, nullptr, is_symm, true, sort);
+            row_array, col_array, val, neg, n, nnz, base, matrix, nullptr, is_symm, true, sort);
         EXPECT_EQ(status, exp_status)
-            << "Test failed to validate zero dimensions in aoclsparse_init_csr_matrix";
+            << "Test failed to validate negative dimensions in aoclsparse_init_csr_matrix";
         status = aoclsparse_init_coo_matrix(
-            row_array, col_array, val, m, zero, nnz, base, matrix, nullptr, is_symm, true, sort);
+            row_array, col_array, val, m, neg, nnz, base, matrix, nullptr, is_symm, true, sort);
         EXPECT_EQ(status, exp_status)
-            << "Test failed to validate zero dimensions in aoclsparse_init_coo_matrix";
+            << "Test failed to validate negative dimensions in aoclsparse_init_coo_matrix";
 
         //negative dimensions quick exit check
         exp_status = aoclsparse_status_invalid_size;
@@ -486,7 +480,7 @@ namespace
 
         //nnz > m*n check
         wrong      = m * n + 1;
-        exp_status = aoclsparse_status_invalid_size;
+        exp_status = aoclsparse_status_invalid_value;
         status     = aoclsparse_init_csr_matrix(
             row_array, col_array, val, m, n, wrong, base, matrix, nullptr, is_symm, true, sort);
         EXPECT_EQ(status, exp_status)
@@ -558,16 +552,18 @@ namespace
         EXPECT_EQ(status, exp_status)
             << "Test failed to validate invalid sort option in aoclsparse_init_coo_matrix";
 
-        //zero nnz, expect nnz computed to be 2% of m*n and a random non-full-diagonal output
+        // negnnz=-2, expect nnz computed to be 2% of m*n and a random non-full-diagonal output
         exp_status = aoclsparse_status_success;
+        negnnz     = -2;
         status     = aoclsparse_init_csr_matrix(
-            row_array, col_array, val, m, n, zero, base, matrix, nullptr, is_symm, true, sort);
+            row_array, col_array, val, m, n, negnnz, base, matrix, nullptr, is_symm, true, sort);
         EXPECT_EQ(status, exp_status)
-            << "Test failed to validate zero nnz in aoclsparse_init_csr_matrix";
+            << "Test failed to validate nnz<0 in aoclsparse_init_csr_matrix";
+        negnnz = -2;
         status = aoclsparse_init_coo_matrix(
-            row_array, col_array, val, m, n, zero, base, matrix, nullptr, is_symm, true, sort);
+            row_array, col_array, val, m, n, negnnz, base, matrix, nullptr, is_symm, true, sort);
         EXPECT_EQ(status, exp_status)
-            << "Test failed to validate zero nnz in aoclsparse_init_coo_matrix";
+            << "Test failed to validate nnz<0 in aoclsparse_init_coo_matrix";
 
         //partial sorting in coo
         exp_status = aoclsparse_status_not_implemented;
