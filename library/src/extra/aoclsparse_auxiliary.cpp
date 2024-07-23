@@ -150,15 +150,18 @@ aoclsparse_status aoclsparse_debug_get(char            isa_preference[],
 
     val = context_map[global_isa];
 
-    strcpy(isa_preference, val.c_str());
+    val.copy(isa_preference, val.length());
+    isa_preference[val.length()] = '\0';
 
     val = context_map[tl_isa];
 
-    strcpy(tl_isa_preference, val.c_str());
+    val.copy(tl_isa_preference, val.length());
+    tl_isa_preference[val.length()] = '\0';
 
     val = arch_map[architecture];
 
-    strcpy(arch, val.c_str());
+    val.copy(arch, val.length());
+    arch[val.length()] = '\0';
 
     *num_threads = context::get_context()->get_num_threads();
 

@@ -50,8 +50,11 @@ std::string aoclsparse_exepath()
     char *pgmptr;
     if(_get_pgmptr(&pgmptr) == 0)
     {
-        strcpy(path, pgmptr);
-        pgmptr = NULL;
+        std::string tmp = pgmptr;
+
+        tmp.copy(path, tmp.length());
+        path[tmp.length()] = '\0';
+        pgmptr             = NULL;
     }
     else
     {

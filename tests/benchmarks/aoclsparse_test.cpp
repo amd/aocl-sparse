@@ -110,7 +110,12 @@ int main(int argc, char *argv[])
     int  order     = 1;
     char matrix    = 'R';
     char sort      = 'U';
-    strcpy(arg.function, "csrmv");
+
+    std::string tmp = "csrmv";
+
+    tmp.copy(arg.function, tmp.length());
+    arg.function[tmp.length()] = '\0';
+
     // Initialize command line
     aoclsparse_command_line_args args(argc, argv);
 

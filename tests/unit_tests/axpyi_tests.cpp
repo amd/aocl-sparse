@@ -121,8 +121,7 @@ namespace
                   aoclsparse_status_invalid_size);
         // Only reference kernel checks for invalid index entries
         indx[0] = -1;
-        aoclsparse_int kid
-            = 0; // Invalid index checks are only done for the reference implementation
+        // Invalid index checks are only done for the reference implementation
         EXPECT_EQ((aoclsparse_axpyi<T>(nnz, a, x.data(), indx.data(), y.data(), 0)),
                   aoclsparse_status_invalid_index_value);
     }

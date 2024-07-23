@@ -1848,7 +1848,10 @@ aoclsparse_status aoclsparse_roti(const aoclsparse_int nnz,
                                   const double                          s,
                                   [[maybe_unused]] const aoclsparse_int kid)
 {
-    return aoclsparse_droti(nnz, x, indx, y, c, s);
+    if(kid == -1)
+        return aoclsparse_droti(nnz, x, indx, y, c, s);
+    else
+        return aoclsparse_droti_kid(nnz, x, indx, y, c, s, kid);
 }
 
 template <>
@@ -1860,7 +1863,10 @@ aoclsparse_status aoclsparse_roti(const aoclsparse_int nnz,
                                   const float                           s,
                                   [[maybe_unused]] const aoclsparse_int kid)
 {
-    return aoclsparse_sroti(nnz, x, indx, y, c, s);
+    if(kid == -1)
+        return aoclsparse_sroti(nnz, x, indx, y, c, s);
+    else
+        return aoclsparse_sroti_kid(nnz, x, indx, y, c, s, kid);
 }
 
 template <>

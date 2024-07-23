@@ -141,7 +141,10 @@ namespace contextTest
         [[maybe_unused]] auto st = aoclsparse_debug_get(
             info.global_isa, info.sparse_nt, info.tl_isa, info.is_isa_updated, info.arch);
 
-        strcpy(ledger, info.tl_isa);
+        std::string t = info.tl_isa;
+
+        t.copy(ledger, t.length());
+        ledger[t.length()] = '\0';
     }
 
     // Spawn CPP threads and test if they set the expected values
@@ -271,8 +274,11 @@ namespace contextTest
         [[maybe_unused]] auto st = aoclsparse_debug_get(
             info.global_isa, info.sparse_nt, info.tl_isa, info.is_isa_updated, info.arch);
 
+        std::string tmp = info.tl_isa;
+
         // Copy the global isa
-        strcpy(ledger_base, info.global_isa);
+        tmp.copy(ledger_base, tmp.length());
+        ledger_base[tmp.length()] = '\0';
 
         std::thread t[thread_count];
 
