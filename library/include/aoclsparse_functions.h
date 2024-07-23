@@ -3268,6 +3268,22 @@ DLL_PUBLIC aoclsparse_status aoclsparse_cgthrs_kid(
 DLL_PUBLIC aoclsparse_status aoclsparse_zgthrs_kid(
     const aoclsparse_int nnz, const void *y, void *x, aoclsparse_int stride, aoclsparse_int kid);
 
+DLL_PUBLIC aoclsparse_status aoclsparse_sroti_kid(const aoclsparse_int  nnz,
+                                                  float                *x,
+                                                  const aoclsparse_int *indx,
+                                                  float                *y,
+                                                  const float           c,
+                                                  const float           s,
+                                                  aoclsparse_int        kid);
+
+DLL_PUBLIC aoclsparse_status aoclsparse_droti_kid(const aoclsparse_int  nnz,
+                                                  double               *x,
+                                                  const aoclsparse_int *indx,
+                                                  double               *y,
+                                                  const double          c,
+                                                  const double          s,
+                                                  aoclsparse_int        kid);
+
 #ifdef __cplusplus
 }
 #endif

@@ -24,7 +24,6 @@
 #include "common_data_utils.h"
 #include "gtest/gtest.h"
 #include "aoclsparse.hpp"
-#include "aoclsparse_roti.hpp"
 
 #include <complex>
 #include <iostream>
@@ -140,7 +139,8 @@ namespace
         EXPECT_EQ((aoclsparse_roti<T>(-1, x.data(), indx.data(), y.data(), c, s, -1)),
                   aoclsparse_status_invalid_size);
         indx[0] = -1;
-        EXPECT_EQ((aoclsparse_roti<T>(nnz, x.data(), indx.data(), y.data(), c, s, -1)),
+        // Invalid indices test is valid only for reference kernel
+        EXPECT_EQ((aoclsparse_roti<T>(nnz, x.data(), indx.data(), y.data(), c, s, 0)),
                   aoclsparse_status_invalid_index_value);
     }
 
@@ -166,7 +166,7 @@ namespace
             aoclsparse_int y_sz = y_exp.size();
             aoclsparse_int x_sz = x_exp.size();
 
-            EXPECT_EQ((aoclsparse_rot<T>(nnz, x.data(), indx.data(), y.data(), c, s, KID)),
+            EXPECT_EQ((aoclsparse_roti<T>(nnz, x.data(), indx.data(), y.data(), c, s, KID)),
                       aoclsparse_status_success);
 
             expect_eq_vec<T>(y_sz, y.data(), y_exp.data());
@@ -187,13 +187,17 @@ namespace
     {
         test_roti_success<double, 0>();
         test_roti_success<double, 1>();
+#ifdef __AVX512F__
         test_roti_success<double, 2>();
+#endif
     }
     TEST(roti, SuccessArgFloat)
     {
         test_roti_success<float, 0>();
         test_roti_success<float, 1>();
+#ifdef __AVX512F__
         test_roti_success<float, 2>();
+#endif
     }
 
 } // namespace

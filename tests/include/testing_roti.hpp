@@ -33,7 +33,6 @@
 #include "aoclsparse_init.hpp"
 #include "aoclsparse_random.hpp"
 #include "aoclsparse_reference.hpp"
-#include "aoclsparse_roti.hpp"
 #include "aoclsparse_stats.hpp"
 #include "aoclsparse_test.hpp"
 #include "aoclsparse_utility.hpp"
@@ -44,7 +43,7 @@
 #include "aoclsparse_no_ext_benchmarking.hpp"
 #endif
 
-template <typename T, bool CALL_INTERNAL>
+template <typename T>
 int testing_roti_aocl(const Arguments &arg, testdata<T> &td, double timings[])
 {
     int            status = 0;
@@ -59,16 +58,10 @@ int testing_roti_aocl(const Arguments &arg, testdata<T> &td, double timings[])
             td.y                  = td.y_in;
             td.x                  = td.x_in;
             double cpu_time_start = aoclsparse_clock();
-            if constexpr(CALL_INTERNAL)
-            {
-                NEW_CHECK_AOCLSPARSE_ERROR((aoclsparse_rot<T>(
-                    nnz, td.x.data(), td.indx.data(), td.y.data(), td.alpha, td.beta, arg.kid)));
-            }
-            else
-            {
-                NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_roti(
-                    nnz, td.x.data(), td.indx.data(), td.y.data(), td.alpha, td.beta, arg.kid))
-            }
+
+            NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_roti(
+                nnz, td.x.data(), td.indx.data(), td.y.data(), td.alpha, td.beta, arg.kid))
+
             timings[iter] = aoclsparse_clock_diff(cpu_time_start);
         }
     }
@@ -88,11 +81,7 @@ int testing_roti(const Arguments &arg)
     // unless more tests are registered via EXT_BENCHMARKING
     std::vector<testsetting<T>> testqueue;
 
-    // When kernel ID is -1 invoke the public interface. Else invoke the dispatcher.
-    if(arg.kid == -1)
-        testqueue.push_back({"aocl", &testing_roti_aocl<T, false>});
-    else
-        testqueue.push_back({"aocl", &testing_roti_aocl<T, true>});
+    testqueue.push_back({"aocl", &testing_roti_aocl<T>});
 
     register_tests_roti(testqueue);
 

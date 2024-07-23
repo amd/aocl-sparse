@@ -234,11 +234,17 @@ namespace
             if constexpr(std::is_same_v<T, aoclsparse_double_complex>
                          || std::is_same_v<T, aoclsparse_float_complex>)
             {
-                strcpy(mtx_input, "data/tinyc.mtx");
+                std::string tmp = "data/tinyc.mtx";
+
+                tmp.copy(mtx_input, tmp.length());
+                mtx_input[tmp.length()] = '\0';
             }
             else if constexpr(std::is_same_v<T, double> || std::is_same_v<T, float>)
             {
-                strcpy(mtx_input, "data/tinyr.mtx");
+                std::string tmp = "data/tinyr.mtx";
+
+                tmp.copy(mtx_input, tmp.length());
+                mtx_input[tmp.length()] = '\0';
             }
 
             filename = mtx_input;

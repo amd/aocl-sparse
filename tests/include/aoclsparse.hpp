@@ -439,7 +439,7 @@ aoclsparse_status aoclsparse_roti(const aoclsparse_int nnz,
                                   T *__restrict__ y,
                                   const T              c,
                                   const T              s,
-                                  const aoclsparse_int kid);
+                                  const aoclsparse_int kid = -1);
 /*
  * ===========================================================================
  *    Initialize
