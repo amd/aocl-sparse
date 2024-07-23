@@ -89,8 +89,8 @@ int main(int argc, char *argv[])
     arg.M          = 128;
     arg.N          = 128;
     arg.K          = 128;
-    arg.nnz        = 0;
-    arg.nnzB       = 0;
+    arg.nnz        = -10; // 10% sparsity by default (useful for small sizes)
+    arg.nnzB       = -7;
     arg.blk        = 4;
     arg.block_dim  = 2;
     arg.alpha      = 1.0;
@@ -132,7 +132,9 @@ int main(int argc, char *argv[])
             "--sizek=<Number of columns> \t  LEVEL-2 & LEVEL-3: the number of columns (default: "
             "128)"
             "\n\t"
-            "--sizennz=<Number of non-zeroes> \t  Number of the non-zeroes in sparse matrix/vector"
+            "--sizennz=<Number of non-zeroes> \t  Number of the non-zeroes in sparse matrix/vector;"
+            "\n\t\t negative number specifies the sparsity percentage (default: -10, i.e. 10%% "
+            "sparsity)"
             "\n\t"
             "--sizennzB=<Number of non-zeroes> \t  Number of the non-zeroes in sparse matrix B. "
             "Only applicable for level 3 API"

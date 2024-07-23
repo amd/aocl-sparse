@@ -62,6 +62,10 @@ inline void
 
     size_t num = 0;
 
+    // produce at most full vector
+    if(nnz > end - start)
+        nnz = end - start;
+
     while(num < nnz)
     {
         aoclsparse_int val = random_generator<aoclsparse_int>(start, end - 1);
@@ -73,6 +77,17 @@ inline void
     }
 
     std::sort(x.begin(), x.end());
+}
+
+// Decide the size of a sparse vector, if nnz is negative, it provides sparsity in pct
+inline aoclsparse_int aoclsparse_init_spvec_size(aoclsparse_int nnz, aoclsparse_int n)
+{
+    if(nnz >= 0)
+        return (std::min)(nnz, n);
+    else if(nnz <= -100)
+        return n;
+    else
+        return (aoclsparse_int)(0.01 * (-nnz) * n);
 }
 
 // Initialize matrix so adjacent entries have alternating sign.
@@ -158,33 +173,61 @@ inline void aoclsparse_init_nan(
                 A[i + j * lda + i_batch * stride] = T(aoclsparse_nan_rng());
 }
 /* ==================================================================================== */
-/*! \brief  Generate a random sparse matrix in COO format */
+/*! \brief  Generate a random sparse matrix in COO format in the given base and sizes.
+ * If nnz<0, it is interpretted as the desired sparsity percentage (nnz=-3 -> 3% sparsity).
+ * if square and full_diag, the resulting matrix will have full diagonal
+ * and will be diagonally dominant. If suggested nnz was too small,
+ * it will get increased.
+ * If is_herm, the diagonal entries will have imag=0. */
 template <typename T>
-inline void aoclsparse_generate_coo_matrix(std::vector<aoclsparse_int> &row_ind,
-                                           std::vector<aoclsparse_int> &col_ind,
-                                           std::vector<T>              &val,
-                                           size_t                       M,
-                                           size_t                       N,
-                                           size_t                       nnz,
-                                           aoclsparse_index_base        base,
-                                           bool                         full_diag = false,
-                                           bool                         is_herm   = false)
+aoclsparse_status aoclsparse_generate_coo_matrix(std::vector<aoclsparse_int> &row_ind,
+                                                 std::vector<aoclsparse_int> &col_ind,
+                                                 std::vector<T>              &val,
+                                                 aoclsparse_int               M,
+                                                 aoclsparse_int               N,
+                                                 aoclsparse_int              &nnz,
+                                                 aoclsparse_index_base        base,
+                                                 bool                         full_diag = false,
+                                                 bool                         is_herm   = false)
 {
+    if(base != aoclsparse_index_base_zero && base != aoclsparse_index_base_one)
+        return aoclsparse_status_invalid_value;
+
+    if(M < 0 || N < 0)
+        return aoclsparse_status_invalid_size;
+
+    if(nnz <= -100)
+        return aoclsparse_status_invalid_value;
+    else if(nnz < 0)
+        nnz = (-nnz / 100.0) * M * N;
+
+    if((size_t)nnz > (size_t)M * (size_t)N)
+        return aoclsparse_status_invalid_value;
+
+    // Increase nnz if too small to be diagonally dominant (if requested)
+    full_diag = M == N && full_diag;
+    if(full_diag)
+        if(nnz < M)
+            nnz = M;
+
     //allocate coo arrays (row_ind[],  col_ind[], val[]) of sufficient space i.e., nnz
-    if(row_ind.size() != nnz)
-    {
+    if(row_ind.size() != (size_t)nnz)
         row_ind.resize(nnz);
-    }
-    if(col_ind.size() != nnz)
-    {
+    if(col_ind.size() != (size_t)nnz)
         col_ind.resize(nnz);
-    }
-    if(val.size() != nnz)
-    {
+    if(val.size() != (size_t)nnz)
         val.resize(nnz);
+
+    // reserve size not to return NULL pointers with nnz=0
+    if(nnz == 0)
+    {
+        row_ind.reserve(1);
+        col_ind.reserve(1);
+        val.reserve(1);
     }
+
     // Add diagonal entry, if full rank is flagged
-    size_t i = 0, row_idx = 0;
+    aoclsparse_int i = 0, row_idx = 0;
 
     // Uniform distributed row indices
     aoclsparse_int rand_row_ind;
@@ -216,7 +259,7 @@ inline void aoclsparse_generate_coo_matrix(std::vector<aoclsparse_int> &row_ind,
         {
             //Generate a random row index between 0 to M-1
             rand_row_ind = random_generator<aoclsparse_int>(0, M - 1);
-        } while((size_t)nnzs_row_wise[rand_row_ind]
+        } while(nnzs_row_wise[rand_row_ind]
                 >= N); //condition to avoid any row storing more than N nnz entries
         row_ind[i] = rand_row_ind;
         //accumulate nnz for that specific row
@@ -232,7 +275,7 @@ inline void aoclsparse_generate_coo_matrix(std::vector<aoclsparse_int> &row_ind,
         ri_row_end_idx: indexes to first entry of next row index in row_ind[]
         difference gives no of nnz entries for the current row
     */
-    size_t ri_row_start_idx, ri_row_end_idx, col_idx;
+    aoclsparse_int ri_row_start_idx, ri_row_end_idx, col_idx;
     ri_row_end_idx = 0;
     while(ri_row_end_idx < nnz)
     {
@@ -291,7 +334,7 @@ inline void aoclsparse_generate_coo_matrix(std::vector<aoclsparse_int> &row_ind,
     // Correct index base accordingly
     if(base == aoclsparse_index_base_one)
     {
-        for(size_t i = 0; i < nnz; ++i)
+        for(aoclsparse_int i = 0; i < nnz; ++i)
         {
             ++row_ind[i];
             ++col_ind[i];
@@ -300,7 +343,7 @@ inline void aoclsparse_generate_coo_matrix(std::vector<aoclsparse_int> &row_ind,
     T max_val_entry = random_generator_normal<T>();
 
     // Sample random off-diagonal values
-    for(size_t i = 0; i < nnz; ++i)
+    for(aoclsparse_int i = 0; i < nnz; ++i)
     {
         val[i] = random_generator_normal<T>();
         // Sample nnz values, and collect the max nnz entry along the way
@@ -327,7 +370,7 @@ inline void aoclsparse_generate_coo_matrix(std::vector<aoclsparse_int> &row_ind,
         // choosing a large number to scale the diagonal element, so as to
         // generate a diagonally dominant matrix with low condition number
         const double scale = 4. * 10.;
-        for(size_t i = 0; i < nnz; ++i)
+        for(aoclsparse_int i = 0; i < nnz; ++i)
         {
             //scale the diagonal element
             if(row_ind[i] == col_ind[i])
@@ -377,6 +420,7 @@ inline void aoclsparse_generate_coo_matrix(std::vector<aoclsparse_int> &row_ind,
             }
         }
     }
+    return aoclsparse_status_success;
 }
 
 /* ============================================================================================ */
@@ -701,74 +745,7 @@ inline aoclsparse_status aoclsparse_readmtx_csr(const char                  *fil
 }
 
 /* ==================================================================================== */
-/*! \brief  Generate a random sparse matrix in CSR format. If the input nnz is zero, sparsity
-            defaults to 2%. This is a internal API and avoid using it in unit tests and benchmarks
-            to get a randomly generated CSR matrix. Instead use aoclsparse_init_csr_matrix()
-            with appropriate arguments, since it also does argument validation.
-*/
-template <typename T>
-inline void aoclsparse_init_csr_random(std::vector<aoclsparse_int> &row_ptr,
-                                       std::vector<aoclsparse_int> &col_ind,
-                                       std::vector<T>              &val,
-                                       aoclsparse_int               M,
-                                       aoclsparse_int               N,
-                                       aoclsparse_int              &nnz,
-                                       aoclsparse_index_base        base,
-                                       float                        alpha     = 0.02,
-                                       bool                         full_diag = false,
-                                       bool                         is_herm   = false)
-{
-    // Compute non-zero entries of the matrix
-    if(!nnz)
-    {
-        nnz = alpha * M * N;
-    }
-
-    // Sample random matrix
-    std::vector<aoclsparse_int> row_ind(nnz);
-
-    //turn off full-diagonal and fall back to default random generation, if either
-    //  1. matrix is rectangular
-    //  2. nnz entries are less than matrix dimension
-    // Sample COO matrix
-    aoclsparse_generate_coo_matrix(
-        row_ind, col_ind, val, M, N, nnz, base, ((M == N) && (nnz >= M) && full_diag), is_herm);
-    // Convert to CSR
-    coo_to_csr(M, nnz, row_ind, row_ptr, base);
-}
-/* ==================================================================================== */
-/*! \brief  Generate a random sparse matrix in COO format. If the input nnz is zero, sparsity
-            defaults to 2%. This is a internal API and avoid using it in unit tests and benchmarks
-            to get a randomly generated COO matrix. Instead use aoclsparse_init_coo_matrix()
-            with appropriate arguments, since it also does argument validation.
-*/
-template <typename T>
-inline void aoclsparse_init_coo_random(std::vector<aoclsparse_int> &row_ind,
-                                       std::vector<aoclsparse_int> &col_ind,
-                                       std::vector<T>              &val,
-                                       aoclsparse_int               M,
-                                       aoclsparse_int               N,
-                                       aoclsparse_int              &nnz,
-                                       aoclsparse_index_base        base,
-                                       float                        alpha     = 0.02,
-                                       bool                         full_diag = false,
-                                       bool                         is_herm   = false)
-{
-    // Compute non-zero entries of the matrix
-    if(!nnz)
-    {
-        nnz = alpha * M * N;
-    }
-
-    //turn off full-diagonal and fall back to default random generation, if either
-    //  1. matrix is rectangular
-    //  2. nnz entries are less than matrix dimension
-    // Sample random matrix
-    aoclsparse_generate_coo_matrix(
-        row_ind, col_ind, val, M, N, nnz, base, ((M == N) && (nnz >= M) && full_diag), is_herm);
-}
-/* ==================================================================================== */
-/*! \brief  Using Fisher–Yates algorithm, the below function shuffles arrays between a range of
+/*! \brief  Using Fisher-Yates algorithm, the below function shuffles arrays between a range of
     indices
 */
 template <typename T>
@@ -809,7 +786,7 @@ inline void aoclsparse_shuffle_core(aoclsparse_int  start_idx,
 }
 /* ==================================================================================== */
 /*! \brief  Shuffle the column index and value arrays in CSR and the triplet arrays in COO
-            using Fisher-Yates Shuffle. Refer Fisher–Yates algorithm
+            using Fisher-Yates Shuffle. Refer Fisher-Yates algorithm
 */
 template <typename T>
 inline void aoclsparse_full_shuffle(aoclsparse_matrix_format_type mtype,
@@ -841,7 +818,7 @@ inline void aoclsparse_full_shuffle(aoclsparse_matrix_format_type mtype,
 }
 /* ==================================================================================== */
 /*! \brief  Shuffle the index and value arrays in CSR/CSC using Fisher-Yates Shuffle.
-            Refer Fisher–Yates algorithm. Either lower or upper triangle is shuffled
+            Refer Fisher-Yates algorithm. Either lower or upper triangle is shuffled
             with leading diagonal untouched, so the function does partial shuffling
 */
 template <typename T>
@@ -877,135 +854,23 @@ inline void aoclsparse_partial_shuffle(std::vector<aoclsparse_int> &row_ptr,
     }
 }
 /* ==================================================================================== */
-/*! \brief  Initialize a sparse matrix in CSR format. Also handle whether to generate a
-            matrix with full diagonals based on input matrix type. The level of sorting
-            (full, partial, unsorting) also is controlled using a input parameter 'sort'
- */
-template <typename T>
-inline aoclsparse_status aoclsparse_init_csr_matrix(std::vector<aoclsparse_int> &csr_row_ptr,
-                                                    std::vector<aoclsparse_int> &csr_col_ind,
-                                                    std::vector<T>              &csr_val,
-                                                    aoclsparse_int              &M,
-                                                    aoclsparse_int              &N,
-                                                    aoclsparse_int              &nnz,
-                                                    aoclsparse_index_base        base,
-                                                    aoclsparse_matrix_init       matrix,
-                                                    const char                  *filename,
-                                                    bool                        &issymm,
-                                                    bool                         general,
-                                                    aoclsparse_matrix_sort       sort
-                                                    = aoclsparse_unsorted)
-{
-    aoclsparse_status status = aoclsparse_status_success;
-
-    if(matrix != aoclsparse_matrix_file_mtx && matrix != aoclsparse_matrix_random
-       && matrix != aoclsparse_matrix_random_diag_dom
-       && matrix != aoclsparse_matrix_herm_random_diag_dom)
-    {
-        return aoclsparse_status_invalid_value;
-    }
-    if(sort != aoclsparse_unsorted && sort != aoclsparse_partially_sorted
-       && sort != aoclsparse_fully_sorted)
-    {
-        return aoclsparse_status_invalid_value;
-    }
-
-    //deal with file based mtx input first, and get matrix dimensions
-    if(matrix == aoclsparse_matrix_file_mtx)
-    {
-        //process a matrix market file
-        status = aoclsparse_readmtx_csr(
-            filename, csr_row_ptr, csr_col_ind, csr_val, M, N, nnz, base, issymm, general);
-        if(status != aoclsparse_status_success)
-        {
-            return status;
-        }
-    }
-
-    //validate matrix dimensions
-    //quick exit
-    if((M * N) <= 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-
-    // Exit with error if nnz is greater than size of matrix
-    if(nnz > M * N)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-
-    //alpha specifies sparsity %
-    float alpha = 0.02;
-
-    /*
-    alpha * M * M >= M
-    alpha >= (1/M)
-    For 2% sparsity, alpha = 0.02 => M = 50. So for any M > 50, alpha  = 0.02 should be fine
-    if M <= 50, assign alpha = (3/M)
-    */
-    if((M == N) && (M <= 50))
-    {
-        alpha = 3. / M;
-    }
-
-    // Differentiate the different matrix generators for random case
-    if(matrix == aoclsparse_matrix_random)
-    {
-        //generate a random matrix whose diagonal may or may not contain full-diagonal
-        aoclsparse_init_csr_random(csr_row_ptr, csr_col_ind, csr_val, M, N, nnz, base, alpha);
-    }
-    else if(matrix == aoclsparse_matrix_random_diag_dom)
-    {
-        /*
-        generates random matrix with dominant diagonals and since only the triangular portion is
-        considered during an operation on a hermitian/symmetric matrix (L+D or D+U), we don't need to
-        generate explicit symmetric matrices.
-        For a full-diagonal case in square matrix, assign appropriate sparsity
-        since nnz entries should atleast be 'M' to account for all diagonals
-        */
-
-        //generate a random matrix with full-diagonal that is diagonally dominant
-        aoclsparse_init_csr_random(csr_row_ptr, csr_col_ind, csr_val, M, N, nnz, base, alpha, true);
-    }
-    else if(matrix == aoclsparse_matrix_herm_random_diag_dom)
-    {
-        //generate a random hermitian matrix with full-diagonal that is diagonally dominant
-        aoclsparse_init_csr_random(
-            csr_row_ptr, csr_col_ind, csr_val, M, N, nnz, base, alpha, true, true);
-    }
-    //default random generation in COO, is a sorted operation. So do nothing.
-    if(sort == aoclsparse_unsorted)
-    {
-        //shuffle the csr col_ind and csr_val arrays
-        aoclsparse_full_shuffle(
-            aoclsparse_csr_mat, csr_row_ptr, csr_col_ind, csr_val, M, nnz, base);
-    }
-    else if(sort == aoclsparse_partially_sorted)
-    {
-        aoclsparse_partial_shuffle(csr_row_ptr, csr_col_ind, csr_val, M, base);
-    }
-    return status;
-}
-/* ==================================================================================== */
 /*! \brief  Initialize a sparse matrix in COO format. Also handle whether to generate a
             matrix with full diagonals based on input matrix type. The level of sorting
             (full, unsorting) also is controlled using a input parameter 'sort'. Partial
             Sorting is not supported for COO format */
 template <typename T>
-inline aoclsparse_status aoclsparse_init_coo_matrix(std::vector<aoclsparse_int> &coo_row_ind,
-                                                    std::vector<aoclsparse_int> &coo_col_ind,
-                                                    std::vector<T>              &coo_val,
-                                                    aoclsparse_int              &M,
-                                                    aoclsparse_int              &N,
-                                                    aoclsparse_int              &nnz,
-                                                    aoclsparse_index_base        base,
-                                                    aoclsparse_matrix_init       matrix,
-                                                    const char                  *filename,
-                                                    bool                        &issymm,
-                                                    bool                         general,
-                                                    aoclsparse_matrix_sort       sort
-                                                    = aoclsparse_unsorted)
+aoclsparse_status aoclsparse_init_coo_matrix(std::vector<aoclsparse_int> &coo_row_ind,
+                                             std::vector<aoclsparse_int> &coo_col_ind,
+                                             std::vector<T>              &coo_val,
+                                             aoclsparse_int              &M,
+                                             aoclsparse_int              &N,
+                                             aoclsparse_int              &nnz,
+                                             aoclsparse_index_base        base,
+                                             aoclsparse_matrix_init       matrix,
+                                             const char                  *filename,
+                                             bool                        &issymm,
+                                             bool                         general,
+                                             aoclsparse_matrix_sort sort = aoclsparse_unsorted)
 {
     aoclsparse_status status = aoclsparse_status_success;
 
@@ -1034,56 +899,22 @@ inline aoclsparse_status aoclsparse_init_coo_matrix(std::vector<aoclsparse_int> 
         //process a matrix market file
         status = aoclsparse_readmtx_coo(
             filename, coo_row_ind, coo_col_ind, coo_val, M, N, nnz, base, issymm, general);
-        if(status != aoclsparse_status_success)
-        {
-            return status;
-        }
     }
-
-    //validate matrix dimensions
-    //quick exit
-    if((M * N) <= 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-
-    // Exit with error if nnz is greater than size of matrix
-    if(nnz > M * N)
-    {
-        return aoclsparse_status_invalid_size;
-    }
-
-    //alpha specifies sparsity %
-    float alpha = 0.02;
-
-    // Differentiate the different matrix generators for random case
-    if(matrix == aoclsparse_matrix_random)
+    else if(matrix == aoclsparse_matrix_random)
     {
         //generate a random matrix whose diagonal may or may not contain full-diagonal
-        aoclsparse_init_coo_random(coo_row_ind, coo_col_ind, coo_val, M, N, nnz, base, alpha);
+        status = aoclsparse_generate_coo_matrix(
+            coo_row_ind, coo_col_ind, coo_val, M, N, nnz, base, false, false);
     }
     else if(matrix == aoclsparse_matrix_random_diag_dom)
     {
         /*
-        generates random matrix with dominnant diagonals and since only the triangular portion is
+        generates random matrix with dominant diagonals and since only the triangular portion is
         considered during an operation on a trinagular/symmetric matrix (L+D or D+U), we don't need to
         generate explicit symmetric matrices.
-        for a full-diagonal case in square matrix, assign 30% sparsity
-        since nnz entries should atleast be 'M' to account for all diagonals
         */
-        /*
-            alpha * M * M >= M
-            alpha * M >= 1
-            alpha >= (1/M)
-            For 2% sparsity, alpha = 0.02 => M = 50. So for any M > 50, alpha  = 0.02 should be fine
-            if M <= 50, assign alpha = (3/M)
-        */
-        if((M == N) && (M <= 50))
-        {
-            alpha = 3. / M;
-        }
-        //generate a random matrix with full-diagonal that is diagonally dominant
-        aoclsparse_init_coo_random(coo_row_ind, coo_col_ind, coo_val, M, N, nnz, base, alpha, true);
+        status = aoclsparse_generate_coo_matrix(
+            coo_row_ind, coo_col_ind, coo_val, M, N, nnz, base, true, false);
     }
     else if(matrix == aoclsparse_matrix_herm_random_diag_dom)
     {
@@ -1091,17 +922,13 @@ inline aoclsparse_status aoclsparse_init_coo_matrix(std::vector<aoclsparse_int> 
         generates random complex matrix with real diagonals and since only the triangular portion is
         considered during an operation on a hermitian matrix (L+D or D+U), we don't need to
         generate explicit hermitian matrices.
-        for a full-diagonal case in square matrix, assign 30% sparsity
-        since nnz entries should atleast be 'M' to account for all diagonals
         */
-        if((M == N) && (M <= 50))
-        {
-            alpha = 3. / M;
-        }
-        //generate a random hermitian matrix with full-diagonal that is diagonally dominant
-        aoclsparse_init_coo_random(
-            coo_row_ind, coo_col_ind, coo_val, M, N, nnz, base, alpha, true, true);
+        status = aoclsparse_generate_coo_matrix(
+            coo_row_ind, coo_col_ind, coo_val, M, N, nnz, base, true, true);
     }
+
+    if(status != aoclsparse_status_success)
+        return status;
 
     //default random generation in COO, is a sorted operation. So do nothing.
     if(sort == aoclsparse_unsorted)
@@ -1111,6 +938,66 @@ inline aoclsparse_status aoclsparse_init_coo_matrix(std::vector<aoclsparse_int> 
             aoclsparse_coo_mat, coo_row_ind, coo_col_ind, coo_val, M, nnz, base);
     }
 
+    return status;
+}
+/* ==================================================================================== */
+/*! \brief  Initialize a sparse matrix in CSR format. Also handle whether to generate a
+            matrix with full diagonals based on input matrix type. The level of sorting
+            (full, partial, unsorting) also is controlled using a input parameter 'sort'
+ */
+template <typename T>
+aoclsparse_status aoclsparse_init_csr_matrix(std::vector<aoclsparse_int> &csr_row_ptr,
+                                             std::vector<aoclsparse_int> &csr_col_ind,
+                                             std::vector<T>              &csr_val,
+                                             aoclsparse_int              &M,
+                                             aoclsparse_int              &N,
+                                             aoclsparse_int              &nnz,
+                                             aoclsparse_index_base        base,
+                                             aoclsparse_matrix_init       matrix,
+                                             const char                  *filename,
+                                             bool                        &issymm,
+                                             bool                         general,
+                                             aoclsparse_matrix_sort sort = aoclsparse_unsorted)
+{
+    aoclsparse_status           status = aoclsparse_status_success;
+    std::vector<aoclsparse_int> coo_row_ind;
+
+    //check sort option
+    if(sort != aoclsparse_unsorted && sort != aoclsparse_partially_sorted
+       && sort != aoclsparse_fully_sorted)
+        return aoclsparse_status_invalid_value;
+
+    // generate COO matrix of the same parameters which is fully sorted
+    // (that's default) so that we can apply coo_csr()
+    status = aoclsparse_init_coo_matrix(coo_row_ind,
+                                        csr_col_ind,
+                                        csr_val,
+                                        M,
+                                        N,
+                                        nnz,
+                                        base,
+                                        matrix,
+                                        filename,
+                                        issymm,
+                                        general,
+                                        aoclsparse_fully_sorted);
+    if(status != aoclsparse_status_success)
+        return status;
+
+    // convert to CSR (already in that order, just need the correct csr_row_ptr
+    coo_to_csr(M, nnz, coo_row_ind, csr_row_ptr, base);
+
+    //default random generation in COO, is a sorted operation. So do nothing.
+    if(sort == aoclsparse_unsorted)
+    {
+        //shuffle the csr col_ind and csr_val arrays
+        aoclsparse_full_shuffle(
+            aoclsparse_csr_mat, csr_row_ptr, csr_col_ind, csr_val, M, nnz, base);
+    }
+    else if(sort == aoclsparse_partially_sorted)
+    {
+        aoclsparse_partial_shuffle(csr_row_ptr, csr_col_ind, csr_val, M, base);
+    }
     return status;
 }
 /* ==================================================================================== */
@@ -1128,38 +1015,17 @@ aoclsparse_status aoclsparse_init_matrix_random(aoclsparse_index_base         ba
                                                 std::vector<aoclsparse_int>  &coo_col,
                                                 std::vector<T>               &coo_val,
                                                 std::vector<aoclsparse_int>  &ptr,
-                                                aoclsparse_matrix            &mat)
+                                                aoclsparse_matrix            &mat,
+                                                bool                          full_diag = false,
+                                                bool                          is_herm   = false)
 {
     aoclsparse_status status = aoclsparse_status_success;
     mat                      = nullptr;
 
-    // fix weird values
-    if(M <= 0)
-    {
-        M   = 0;
-        NNZ = 0;
-    }
-    if(N <= 0)
-    {
-        N   = 0;
-        NNZ = 0;
-    }
-    if(NNZ < 0)
-        NNZ = 0;
-    if(NNZ > M * N)
-        NNZ = M * N;
-
-    if(NNZ > 0)
-    {
-        aoclsparse_init_coo_random(coo_row, coo_col, coo_val, M, N, NNZ, base);
-    }
-    else
-    {
-        // to have not NULL pointers when we pass them to aoclsparse_create_*()
-        coo_row.reserve(1);
-        coo_col.reserve(1);
-        coo_val.reserve(1);
-    }
+    status = aoclsparse_generate_coo_matrix(
+        coo_row, coo_col, coo_val, M, N, NNZ, base, full_diag, is_herm);
+    if(status != aoclsparse_status_success)
+        return status;
 
     switch(format_type)
     {

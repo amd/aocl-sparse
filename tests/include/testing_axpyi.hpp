@@ -88,7 +88,7 @@ int testing_axpyi(const Arguments &arg)
     // create relevant test data for this API
     testdata<T> td;
     td.n    = arg.N;
-    td.nnzA = arg.nnz;
+    td.nnzA = aoclsparse_init_spvec_size(arg.nnz, arg.N);
 
     if constexpr(std::is_same_v<T, aoclsparse_float_complex>
                  || std::is_same_v<T, std::complex<float>>)

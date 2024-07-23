@@ -2134,7 +2134,20 @@ namespace
         std::vector<T>              val_a;
         std::vector<aoclsparse_int> col_ind_a;
         std::vector<aoclsparse_int> row_ptr_a;
-        aoclsparse_init_csr_random(row_ptr_a, col_ind_a, val_a, m_a, n_a, nnz_a, b_a);
+        bool                        issymm;
+        ASSERT_EQ(aoclsparse_init_csr_matrix(row_ptr_a,
+                                             col_ind_a,
+                                             val_a,
+                                             m_a,
+                                             n_a,
+                                             nnz_a,
+                                             b_a,
+                                             aoclsparse_matrix_random,
+                                             "",
+                                             issymm,
+                                             true,
+                                             aoclsparse_fully_sorted),
+                  aoclsparse_status_success);
         if(val_a.size() == 0)
             val_a.reserve(1);
         if(col_ind_a.size() == 0)

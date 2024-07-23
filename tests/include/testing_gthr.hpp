@@ -87,7 +87,7 @@ int testing_gthr(const Arguments &arg)
     // create relevant test data for this API
     testdata<T> td;
     td.n    = arg.N;
-    td.nnzA = arg.nnz;
+    td.nnzA = aoclsparse_init_spvec_size(arg.nnz, arg.N);
 
     // space for the API time measurements
     std::vector<double> timings(arg.iters);
