@@ -124,7 +124,7 @@ int testing_add(const Arguments &arg)
     register_tests_csradd(testqueue);
 
     // data for comparing results
-    vector<double>          timings(arg.iters, 0.0);
+    std::vector<double>     timings(arg.iters, 0.0);
     std::vector<data_stats> tstats(testqueue.size());
 
     // At present alpha and beta have the same real / imaginary parts.

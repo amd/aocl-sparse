@@ -119,6 +119,9 @@ namespace
                   aoclsparse_status_invalid_pointer);
         EXPECT_EQ((aoclsparse_axpyi<T>(-1, a, x.data(), indx.data(), y.data(), -1)),
                   aoclsparse_status_invalid_size);
+        // Invalid KID
+        EXPECT_EQ((aoclsparse_axpyi<T>(nnz, a, x.data(), indx.data(), y.data(), 999)),
+                  aoclsparse_status_invalid_kid);
         // Only reference kernel checks for invalid index entries
         indx[0] = -1;
         // Invalid index checks are only done for the reference implementation
@@ -201,27 +204,23 @@ namespace
     }
 
     TEST(axpyi, SuccessFloat)
-    { // public path
+    {
         test_aoclsparse_axpyi_success<float>();
-        // private path
         test_aoclsparse_axpyi_success<float>(false, 0);
     }
     TEST(axpyi, SuccessDouble)
-    { // public
+    {
         test_aoclsparse_axpyi_success<double>();
-        // private
         test_aoclsparse_axpyi_success<double>(false, 1);
     }
     TEST(axpyi, SuccessCFloat)
-    { // public
+    {
         test_aoclsparse_axpyi_success<std::complex<float>>();
-        // private
         test_aoclsparse_axpyi_success<std::complex<float>>(false, 1);
     }
     TEST(axpyi, SuccessCDouble)
-    { // public
+    {
         test_aoclsparse_axpyi_success<std::complex<double>>();
-        // private
 #ifdef USE_AVX512
         test_aoclsparse_axpyi_success<std::complex<double>>(false, 2);
 #else
@@ -229,15 +228,13 @@ namespace
 #endif
     }
     TEST(axpyi, SuccessCStructFloat)
-    { // public
+    {
         test_aoclsparse_axpyi_success<aoclsparse_float_complex>();
-        // private
         test_aoclsparse_axpyi_success<aoclsparse_float_complex>(false, 1);
     }
     TEST(axpyi, SuccessCStructDouble)
-    { // public
+    {
         test_aoclsparse_axpyi_success<aoclsparse_double_complex>();
-        // private
 #ifdef USE_AVX512
         test_aoclsparse_axpyi_success<aoclsparse_double_complex>(false, 2);
 #else

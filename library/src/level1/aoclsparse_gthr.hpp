@@ -147,8 +147,8 @@ inline aoclsparse_status
     return aoclsparse_status_success;
 }
 
-template <typename T, gather_op OP, Index::type I>
-constexpr Dispatch::api get_gthr_id()
+template <gather_op OP, Index::type I>
+constexpr Dispatch::api get_gthr_api()
 {
     if constexpr(OP == gather_op::gather && I == Index::type::indexed)
         return Dispatch::api::gthr;
@@ -214,13 +214,13 @@ aoclsparse_status aoclsparse_gthr_t(
     {gthr_kt<bsz::b256, T, OP, kt_avxext::AVX2, I>, context_isa_t::AVX2,    0U | archs::ZEN123},
 #endif
 #ifdef __AVX512F__
-    {gthr_kt<bsz::b512, T, OP, kt_avxext::AVX2, I>, context_isa_t::AVX512F, 0U | archs::ZEN4}
+    {gthr_kt<bsz::b512, T, OP, kt_avxext::AVX512F, I>, context_isa_t::AVX512F, 0U | archs::ZEN4}
 #endif
     };
     // clang-format on
 
     // Inquire with the oracle
-    auto kernel = Oracle<K, get_gthr_id<T, OP, I>()>(tbl, kid);
+    auto kernel = Oracle<K, get_gthr_api<OP, I>()>(tbl, kid);
 
     if(!kernel)
         return aoclsparse_status_invalid_kid;

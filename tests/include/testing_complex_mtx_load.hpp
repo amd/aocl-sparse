@@ -46,9 +46,9 @@ void generate_matrix(aoclsparse_matrix_type                 mat_type,
                      std::vector<float>                    &real_part,
                      std::vector<float>                    &imag_part)
 {
-    ofstream mtxf("complex.mtx");
-    ofstream mtxf_r("real_part.mtx");
-    ofstream mtxf_i("imag_part.mtx");
+    std::ofstream mtxf("complex.mtx");
+    std::ofstream mtxf_r("real_part.mtx");
+    std::ofstream mtxf_i("imag_part.mtx");
 
     if(mat_type == aoclsparse_matrix_type_general)
     {

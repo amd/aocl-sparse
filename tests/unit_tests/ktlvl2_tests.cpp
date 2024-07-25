@@ -34,7 +34,6 @@
 namespace TestsKT
 {
     using namespace kernel_templates;
-    using namespace std;
 
     template <bsz SZ, typename SUF>
     void kt_spmv(const aoclsparse_int                  m,

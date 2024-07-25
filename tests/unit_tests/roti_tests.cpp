@@ -138,6 +138,11 @@ namespace
                   aoclsparse_status_invalid_pointer);
         EXPECT_EQ((aoclsparse_roti<T>(-1, x.data(), indx.data(), y.data(), c, s, -1)),
                   aoclsparse_status_invalid_size);
+
+        // Invalid KID
+        EXPECT_EQ((aoclsparse_roti<T>(nnz, x.data(), indx.data(), y.data(), c, s, 999)),
+                  aoclsparse_status_invalid_kid);
+
         indx[0] = -1;
         // Invalid indices test is valid only for reference kernel
         EXPECT_EQ((aoclsparse_roti<T>(nnz, x.data(), indx.data(), y.data(), c, s, 0)),

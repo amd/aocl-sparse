@@ -101,6 +101,7 @@ namespace
     }
 
     // Several tests in one when nullptr is passed instead of valid data
+    // Also tests for Invalid KID
     template <typename T>
     void test_dotp_nullptr()
     {
@@ -125,6 +126,11 @@ namespace
         EXPECT_EQ((aoclsparse_dot<T, aoclsparse_status>(
                       nnz, x.data(), indx.data(), y.data(), nullptr, false, -1)),
                   aoclsparse_status_invalid_pointer);
+
+        // Invalid KID test
+        EXPECT_EQ((aoclsparse_dot<T, aoclsparse_status>(
+                      nnz, x.data(), indx.data(), y.data(), &dot, false, 999)),
+                  aoclsparse_status_invalid_kid);
     }
 
     template <typename T>
