@@ -33,7 +33,6 @@
 #include "aoclsparse_init.hpp"
 #include "aoclsparse_random.hpp"
 #include "aoclsparse_reference.hpp"
-#include "aoclsparse_sctr.hpp"
 #include "aoclsparse_stats.hpp"
 #include "aoclsparse_test.hpp"
 #include "aoclsparse_utility.hpp"
@@ -44,7 +43,7 @@
 #include "aoclsparse_no_ext_benchmarking.hpp"
 #endif
 
-template <typename T, bool CALL_INTERNAL>
+template <typename T>
 int testing_sctr_aocl(const Arguments &arg, testdata<T> &td, double timings[])
 {
     int            status = 0;
@@ -58,29 +57,9 @@ int testing_sctr_aocl(const Arguments &arg, testdata<T> &td, double timings[])
         {
             std::fill(td.y.begin(), td.y.end(), aoclsparse_numeric::zero<T>());
             double cpu_time_start = aoclsparse_clock();
-            if constexpr(CALL_INTERNAL)
-            {
-                /*
-                 * In case of all L1 APIs, the bench invokes the dispatcher directly since
-                 * the public APIs don't support KID parameter.
-                 *
-                 * To invoke the dispatcher, the aoclsparse_*_complex needs to be maps to
-                 * the corresponding std::complex<*>. That mapping is done here.
-                 */
-                using U = internal_t<T>;
+            NEW_CHECK_AOCLSPARSE_ERROR(
+                aoclsparse_sctr(nnz, td.x.data(), td.indx.data(), td.y.data(), arg.kid));
 
-                NEW_CHECK_AOCLSPARSE_ERROR(
-                    (aoclsparse_scatter<U, Index::type::indexed>(nnz,
-                                                                 reinterpret_cast<U *>(td.x.data()),
-                                                                 td.indx.data(),
-                                                                 reinterpret_cast<U *>(td.y.data()),
-                                                                 arg.kid)));
-            }
-            else
-            {
-                NEW_CHECK_AOCLSPARSE_ERROR(
-                    aoclsparse_sctr(nnz, td.x.data(), td.indx.data(), td.y.data(), arg.kid));
-            }
             timings[iter] = aoclsparse_clock_diff(cpu_time_start);
         }
     }
@@ -100,11 +79,7 @@ int testing_sctr(const Arguments &arg)
     // unless more tests are registered via EXT_BENCHMARKING
     std::vector<testsetting<T>> testqueue;
 
-    // When kernel ID is -1 invoke the public interface. Else invoke the dispatcher.
-    if(arg.kid == -1)
-        testqueue.push_back({"aocl", &testing_sctr_aocl<T, false>});
-    else
-        testqueue.push_back({"aocl", &testing_sctr_aocl<T, true>});
+    testqueue.push_back({"aocl", &testing_sctr_aocl<T>});
 
     register_tests_sctr(testqueue);
 

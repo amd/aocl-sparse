@@ -3284,6 +3284,45 @@ DLL_PUBLIC aoclsparse_status aoclsparse_droti_kid(const aoclsparse_int  nnz,
                                                   const double          s,
                                                   aoclsparse_int        kid);
 
+DLL_PUBLIC aoclsparse_status aoclsparse_csctr_kid(const aoclsparse_int  nnz,
+                                                  const void           *x,
+                                                  const aoclsparse_int *indx,
+                                                  void                 *y,
+                                                  aoclsparse_int        kid);
+
+DLL_PUBLIC aoclsparse_status aoclsparse_zsctr_kid(const aoclsparse_int  nnz,
+                                                  const void           *x,
+                                                  const aoclsparse_int *indx,
+                                                  void                 *y,
+                                                  aoclsparse_int        kid);
+
+DLL_PUBLIC aoclsparse_status aoclsparse_ssctr_kid(const aoclsparse_int  nnz,
+                                                  const float          *x,
+                                                  const aoclsparse_int *indx,
+                                                  float                *y,
+                                                  aoclsparse_int        kid);
+
+DLL_PUBLIC aoclsparse_status aoclsparse_dsctr_kid(const aoclsparse_int  nnz,
+                                                  const double         *x,
+                                                  const aoclsparse_int *indx,
+                                                  double               *y,
+                                                  aoclsparse_int        kid);
+
+DLL_PUBLIC aoclsparse_status aoclsparse_csctrs_kid(
+    const aoclsparse_int nnz, const void *x, aoclsparse_int stride, void *y, aoclsparse_int kid);
+
+DLL_PUBLIC aoclsparse_status aoclsparse_zsctrs_kid(
+    const aoclsparse_int nnz, const void *x, aoclsparse_int stride, void *y, aoclsparse_int kid);
+
+DLL_PUBLIC aoclsparse_status aoclsparse_ssctrs_kid(
+    const aoclsparse_int nnz, const float *x, aoclsparse_int stride, float *y, aoclsparse_int kid);
+
+DLL_PUBLIC aoclsparse_status aoclsparse_dsctrs_kid(const aoclsparse_int nnz,
+                                                   const double        *x,
+                                                   aoclsparse_int       stride,
+                                                   double              *y,
+                                                   aoclsparse_int       kid);
+
 #ifdef __cplusplus
 }
 #endif

@@ -24,7 +24,6 @@
 #include "common_data_utils.h"
 #include "gtest/gtest.h"
 #include "aoclsparse.hpp"
-#include "aoclsparse_sctr.hpp"
 #include "aoclsparse_utils.hpp"
 
 #include <vector>
@@ -136,8 +135,14 @@ namespace
                   aoclsparse_status_invalid_pointer);
         EXPECT_EQ((aoclsparse_sctr<T>(-1, x.data(), indx.data(), y.data(), -1)),
                   aoclsparse_status_invalid_size);
+
+        EXPECT_EQ((aoclsparse_sctr<T>(nnz, x.data(), indx.data(), y.data(), 999)),
+                  aoclsparse_status_invalid_kid);
+
         indx[0] = -1;
-        EXPECT_EQ((aoclsparse_sctr<T>(nnz, x.data(), indx.data(), y.data(), -1)),
+
+        // Invalid indices test can only be done on reference kernels
+        EXPECT_EQ((aoclsparse_sctr<T>(nnz, x.data(), indx.data(), y.data(), 0)),
                   aoclsparse_status_invalid_index_value);
     }
 
@@ -155,15 +160,13 @@ namespace
             init(nnz, indx, x, y, y_exp, len);
             aoclsparse_int sz = y_exp.size();
 
-            EXPECT_EQ((aoclsparse_scatter<T, Index::type::indexed>(
-                          nnz, x.data(), indx.data(), y.data(), KID)),
+            EXPECT_EQ((aoclsparse_sctr<T>(nnz, x.data(), indx.data(), y.data(), KID)),
                       aoclsparse_status_success);
 
             expect_eq_vec<T>(sz, y.data(), y_exp.data());
 
             // Early return test
-            EXPECT_EQ((aoclsparse_scatter<T, Index::type::indexed>(
-                          0, x.data(), indx.data(), y.data(), KID)),
+            EXPECT_EQ((aoclsparse_sctr<T>(0, x.data(), indx.data(), y.data(), KID)),
                       aoclsparse_status_success);
         }
     }
@@ -192,8 +195,7 @@ namespace
 
             aoclsparse_int sz = y_exp.size();
 
-            EXPECT_EQ((aoclsparse_scatter<complex_t, Index::type::indexed>(
-                          nnz, (complex_t *)x.data(), indx.data(), (complex_t *)y.data(), KID)),
+            EXPECT_EQ((aoclsparse_sctr<T>(nnz, x.data(), indx.data(), y.data(), KID)),
                       aoclsparse_status_success);
 
             expect_eq_vec<complex_t>(sz, (complex_t *)y.data(), (complex_t *)y_exp.data());
@@ -221,8 +223,7 @@ namespace
             x     = {
                 bc((T)val), bc((T)val), bc((T)val), bc((T)val), bc((T)val), bc((T)val), bc((T)val)};
 
-            aoclsparse_status res
-                = aoclsparse_scatter<T, Index::type::strided>(n, &x[0], stride, &y[col], KID);
+            aoclsparse_status res = aoclsparse_sctrs<T>(n, &x[0], stride, &y[col], KID);
 
             // expect success
             EXPECT_EQ(res, aoclsparse_status_success);
@@ -249,6 +250,9 @@ namespace
         std::vector<T> x;
 
         init_strided_data(m, n, nnz, stride, x, y, y_gold);
+
+        EXPECT_EQ(aoclsparse_sctrs<T>(n, &x[0], stride, &y[0], 999 /*INVALID KERNEL ID*/),
+                  aoclsparse_status_invalid_kid);
 
         // In turns pass nullptr in every single pointer argument
         // and expect pointer error
@@ -317,37 +321,49 @@ namespace
     {
         test_aoclsparse_sctr_success<double, 0>();
         test_aoclsparse_sctr_success<double, 1>();
+#ifdef __AVX512F__
         test_aoclsparse_sctr_success<double, 2>();
+#endif
     }
     TEST(sctr, SuccessArgFloat)
     {
         test_aoclsparse_sctr_success<float, 0>();
         test_aoclsparse_sctr_success<float, 1>();
+#ifdef __AVX512F__
         test_aoclsparse_sctr_success<float, 2>();
+#endif
     }
     TEST(sctr, SuccessArgCDouble)
     {
         test_aoclsparse_sctr_success<std::complex<double>, 0>();
         test_aoclsparse_sctr_success<std::complex<double>, 1>();
+#ifdef __AVX512F__
         test_aoclsparse_sctr_success<std::complex<double>, 2>();
+#endif
     }
     TEST(sctr, SuccessArgCFloat)
     {
         test_aoclsparse_sctr_success<std::complex<float>, 0>();
         test_aoclsparse_sctr_success<std::complex<float>, 1>();
+#ifdef __AVX512F__
         test_aoclsparse_sctr_success<std::complex<float>, 2>();
+#endif
     }
     TEST(sctr, SuccessArgCStructDouble)
     {
         test_aoclsparse_sctr_success_struct<aoclsparse_double_complex, 0>();
         test_aoclsparse_sctr_success_struct<aoclsparse_double_complex, 1>();
+#ifdef __AVX512F__
         test_aoclsparse_sctr_success_struct<aoclsparse_double_complex, 2>();
+#endif
     }
     TEST(sctr, SuccessArgCStructFloat)
     {
         test_aoclsparse_sctr_success_struct<aoclsparse_float_complex, 0>();
         test_aoclsparse_sctr_success_struct<aoclsparse_float_complex, 1>();
+#ifdef __AVX512F__
         test_aoclsparse_sctr_success_struct<aoclsparse_float_complex, 2>();
+#endif
     }
 
     //Scatter with stride
@@ -355,25 +371,33 @@ namespace
     {
         test_sctrs_success<double, 0>();
         test_sctrs_success<double, 1>();
+#ifdef __AVX512F__
         test_sctrs_success<double, 2>();
+#endif
     }
     TEST(sctrs, SuccessArgFloat)
     {
         test_sctrs_success<float, 0>();
         test_sctrs_success<float, 1>();
+#ifdef __AVX512F__
         test_sctrs_success<float, 2>();
+#endif
     }
     TEST(sctrs, SuccessArgCDouble)
     {
         test_sctrs_success<std::complex<double>, 0>();
         test_sctrs_success<std::complex<double>, 1>();
+#ifdef __AVX512F__
         test_sctrs_success<std::complex<double>, 2>();
+#endif
     }
     TEST(sctrs, SuccessArgCFloat)
     {
         test_sctrs_success<std::complex<float>, 0>();
         test_sctrs_success<std::complex<float>, 1>();
+#ifdef __AVX512F__
         test_sctrs_success<std::complex<float>, 2>();
+#endif
     }
     TEST(sctrs, NullArgDouble)
     {

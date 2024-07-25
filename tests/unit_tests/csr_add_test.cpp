@@ -36,8 +36,6 @@
 #include <algorithm>
 #include <vector>
 
-using namespace std;
-
 namespace
 {
     typedef struct
@@ -61,13 +59,13 @@ namespace
                       aoclsparse_int        nnz_A,
                       aoclsparse_int        nnz_B)
     {
-        aoclsparse_matrix      src_mat_A = nullptr, src_mat_B = nullptr, dest_mat = nullptr;
-        vector<aoclsparse_int> A_row, A_col, B_row, B_col, C_row_ref, C_col_ref;
-        vector<T>              A_val, B_val, C_val_ref;
-        aoclsparse_int         B_m = M, B_n = N, C_nnz = nnz_A + nnz_B;
-        const char             filename[] = "";
-        bool                   issymm, general = true;
-        aoclsparse_matrix_sort sort = aoclsparse_unsorted; //aoclsparse_fully_sorted;
+        aoclsparse_matrix           src_mat_A = nullptr, src_mat_B = nullptr, dest_mat = nullptr;
+        std::vector<aoclsparse_int> A_row, A_col, B_row, B_col, C_row_ref, C_col_ref;
+        std::vector<T>              A_val, B_val, C_val_ref;
+        aoclsparse_int              B_m = M, B_n = N, C_nnz = nnz_A + nnz_B;
+        const char                  filename[] = "";
+        bool                        issymm, general = true;
+        aoclsparse_matrix_sort      sort = aoclsparse_unsorted; //aoclsparse_fully_sorted;
 
         aoclsparse_seedrand();
         T alpha = random_generator_normal<T>();
@@ -91,7 +89,7 @@ namespace
 
         if(op != aoclsparse_operation_none)
         {
-            swap(B_m, B_n);
+            std::swap(B_m, B_n);
         }
 
         ASSERT_EQ(aoclsparse_init_csr_matrix(B_row,
@@ -352,11 +350,11 @@ namespace
 
     TEST(AddValidationSuite, MatrixDimensionTest)
     {
-        aoclsparse_matrix      A = nullptr, B = nullptr, C = nullptr;
-        vector<aoclsparse_int> row_ptr(6, 0), col_ptr(1, 0);
-        aoclsparse_int         m = 5, n = 4, nnz = 0;
-        aoclsparse_index_base  base = aoclsparse_index_base_zero;
-        float                 *val  = new float;
+        aoclsparse_matrix           A = nullptr, B = nullptr, C = nullptr;
+        std::vector<aoclsparse_int> row_ptr(6, 0), col_ptr(1, 0);
+        aoclsparse_int              m = 5, n = 4, nnz = 0;
+        aoclsparse_index_base       base = aoclsparse_index_base_zero;
+        float                      *val  = new float;
         EXPECT_EQ(aoclsparse_create_csr(&A, base, m, n, nnz, row_ptr.data(), col_ptr.data(), val),
                   aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_create_csr(&B, base, m, n, nnz, row_ptr.data(), col_ptr.data(), val),
@@ -382,11 +380,11 @@ namespace
 
     TEST(AddValidationSuite, NonInitMatrix)
     {
-        aoclsparse_matrix      A = nullptr, B = nullptr, C = nullptr;
-        vector<aoclsparse_int> row_ptr(6, 0), col_ptr(1, 0);
-        aoclsparse_int         m = 5, n = 4, nnz = 0;
-        aoclsparse_index_base  base = aoclsparse_index_base_zero;
-        float                 *val  = new float;
+        aoclsparse_matrix           A = nullptr, B = nullptr, C = nullptr;
+        std::vector<aoclsparse_int> row_ptr(6, 0), col_ptr(1, 0);
+        aoclsparse_int              m = 5, n = 4, nnz = 0;
+        aoclsparse_index_base       base = aoclsparse_index_base_zero;
+        float                      *val  = new float;
         EXPECT_EQ(aoclsparse_create_csr(&A, base, m, n, nnz, row_ptr.data(), col_ptr.data(), val),
                   aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_add(aoclsparse_operation_none, A, 0.1f, B, &C),
@@ -403,11 +401,11 @@ namespace
 
     TEST(AddValidationSuite, WrongMatrixFormatTest)
     {
-        aoclsparse_matrix      A = nullptr, B = nullptr, C = nullptr;
-        vector<aoclsparse_int> row_ptr(6, 0), col_ptr(1, 0);
-        aoclsparse_int         m = 5, n = 5, nnz = 0;
-        aoclsparse_index_base  base = aoclsparse_index_base_zero;
-        float                 *val  = new float;
+        aoclsparse_matrix           A = nullptr, B = nullptr, C = nullptr;
+        std::vector<aoclsparse_int> row_ptr(6, 0), col_ptr(1, 0);
+        aoclsparse_int              m = 5, n = 5, nnz = 0;
+        aoclsparse_index_base       base = aoclsparse_index_base_zero;
+        float                      *val  = new float;
         EXPECT_EQ(aoclsparse_create_coo(&A, base, m, n, nnz, row_ptr.data(), col_ptr.data(), val),
                   aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_create_csr(&B, base, m, n, nnz, row_ptr.data(), col_ptr.data(), val),
@@ -422,12 +420,12 @@ namespace
 
     TEST(AddValidationSuite, WrongMatrixTypeTest)
     {
-        aoclsparse_matrix      A = nullptr, B = nullptr, C = nullptr;
-        vector<aoclsparse_int> row_ptr(6, 0), col_ptr(1, 0);
-        aoclsparse_int         m = 5, n = 5, nnz = 0;
-        aoclsparse_index_base  base = aoclsparse_index_base_zero;
-        float                 *fval = new float;
-        double                *dval = new double;
+        aoclsparse_matrix           A = nullptr, B = nullptr, C = nullptr;
+        std::vector<aoclsparse_int> row_ptr(6, 0), col_ptr(1, 0);
+        aoclsparse_int              m = 5, n = 5, nnz = 0;
+        aoclsparse_index_base       base = aoclsparse_index_base_zero;
+        float                      *fval = new float;
+        double                     *dval = new double;
         EXPECT_EQ(aoclsparse_create_csr(&A, base, m, n, nnz, row_ptr.data(), col_ptr.data(), dval),
                   aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_create_csr(&B, base, m, n, nnz, row_ptr.data(), col_ptr.data(), fval),

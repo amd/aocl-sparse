@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022-2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -81,7 +81,6 @@
 
 namespace aoclsparse_options
 {
-    using namespace std;
 
     typedef enum lbound_type
     {
@@ -102,15 +101,15 @@ namespace aoclsparse_options
     {
     public:
         // Method to trim and squeeze [:blank:]s, and convert to lower case
-        void PrepareString(string &str)
+        void PrepareString(std::string &str)
         {
-            regex ltrim("^[[:space:]]+");
-            regex rtrim("[[:space:]]+$");
-            regex squeeze("[[:space:]]+");
+            std::regex ltrim("^[[:space:]]+");
+            std::regex rtrim("[[:space:]]+$");
+            std::regex squeeze("[[:space:]]+");
 
-            str = regex_replace(str, ltrim, string(""));
-            str = regex_replace(str, rtrim, string(""));
-            str = regex_replace(str, squeeze, string(" "));
+            str = regex_replace(str, ltrim, std::string(""));
+            str = regex_replace(str, rtrim, std::string(""));
+            str = regex_replace(str, squeeze, std::string(" "));
             transform(str.begin(), str.end(), str.begin(), ::tolower);
         };
     };
@@ -120,27 +119,27 @@ namespace aoclsparse_options
         OptionUtility util;
 
     protected:
-        string         name; // name i.e. "Iteration Limit"
-        aoclsparse_int id; // unique id (not used for now)
-        string         desc; // brief description (free text)
-        aoclsparse_int setby; // 0 default, 1 user, 2 solver
-        bool           hidden; // option is hidden to the user (not used)
-        aoclsparse_int pgrp; // printing group (pretty print options, not used)
-        const string   setby_l[3] = {"(default)", "(user)", "(solver)"};
+        std::string       name; // name i.e. "Iteration Limit"
+        aoclsparse_int    id; // unique id (not used for now)
+        std::string       desc; // brief description (free text)
+        aoclsparse_int    setby; // 0 default, 1 user, 2 solver
+        bool              hidden; // option is hidden to the user (not used)
+        aoclsparse_int    pgrp; // printing group (pretty print options, not used)
+        const std::string setby_l[3] = {"(default)", "(user)", "(solver)"};
         OptionBase(){};
-        void SetName(string str)
+        void SetName(std::string str)
         {
             name = str;
             util.PrepareString(name);
         }
 
     private:
-        virtual string PrintOption(void)          = 0;
-        virtual string PrintDetails(bool doxygen) = 0;
+        virtual std::string PrintOption(void)          = 0;
+        virtual std::string PrintDetails(bool doxygen) = 0;
 
     public:
         virtual ~OptionBase(){};
-        string GetName(void)
+        std::string GetName(void)
         {
             return name;
         };
@@ -162,9 +161,9 @@ namespace aoclsparse_options
         ubound_t ubound;
 
     public:
-        OptionInt(const string         name,
+        OptionInt(const std::string    name,
                   const aoclsparse_int id,
-                  const string         desc,
+                  const std::string    desc,
                   const bool           hidden,
                   const aoclsparse_int pgrp,
                   const aoclsparse_int lower,
@@ -174,7 +173,7 @@ namespace aoclsparse_options
                   const aoclsparse_int vdefault)
         {
             if(upper < lower)
-                throw invalid_argument("Invalid bounds for option value: lower > upper.");
+                throw std::invalid_argument("Invalid bounds for option value: lower > upper.");
             // Check bounds (special case)
             // l = u and l <  value <= u OR
             //           l <  value <  u OR
@@ -182,13 +181,13 @@ namespace aoclsparse_options
             if(lower == upper && lbound != m_inf && ubound != p_inf)
             {
                 if(!(lbound == greaterequal && ubound == lessequal))
-                    throw invalid_argument("Invalid bounds for option.");
+                    throw std::invalid_argument("Invalid bounds for option.");
             }
             if(CheckRange(vdefault, lower, lbound, upper, ubound) != 0)
-                throw invalid_argument("Default value out-of-bounds");
+                throw std::invalid_argument("Default value out-of-bounds");
             SetName(name);
             if(OptionInt::name == "")
-                throw invalid_argument("Invalid name (string reduced to zero-length).");
+                throw std::invalid_argument("Invalid name (string reduced to zero-length).");
             OptionInt::id       = id;
             OptionInt::desc     = desc;
             OptionInt::hidden   = hidden;
@@ -203,25 +202,25 @@ namespace aoclsparse_options
         };
         ~OptionInt(){};
 
-        string PrintOption(void)
+        std::string PrintOption(void)
         {
-            ostringstream rec;
-            rec << " " << name << " = " << value << endl;
+            std::ostringstream rec;
+            rec << " " << name << " = " << value << std::endl;
             return rec.str();
         }
 
-        string PrintDetails(bool doxygen)
+        std::string PrintDetails(bool doxygen)
         {
-            ostringstream rec;
+            std::ostringstream rec;
             if(doxygen)
             {
                 rec << " * | **" << name << "** | integer | \\f$ i = " << vdefault << "\\f$ |"
-                    << endl;
-                rec << " * | " << desc << "|||" << endl;
+                    << std::endl;
+                rec << " * | " << desc << "|||" << std::endl;
 
                 if(lbound == m_inf && ubound == p_inf)
                 {
-                    rec << " * | There are no constraints on \\f$i\\f$. |||" << endl;
+                    rec << " * | There are no constraints on \\f$i\\f$. |||" << std::endl;
                 }
                 else
                 {
@@ -244,18 +243,18 @@ namespace aoclsparse_options
                     {
                         rec << " \\lt " << upper;
                     }
-                    rec << "\\f$. |||" << endl;
+                    rec << "\\f$. |||" << std::endl;
                 }
             }
             else
             {
-                rec << "Begin Option [Integer]" << endl;
-                rec << "   Name: '" << name << "'" << endl;
-                rec << "   Value: " << value << "     [default: " << vdefault << "]" << endl;
+                rec << "Begin Option [Integer]" << std::endl;
+                rec << "   Name: '" << name << "'" << std::endl;
+                rec << "   Value: " << value << "     [default: " << vdefault << "]" << std::endl;
                 rec << "   Range: ";
                 if(lbound == m_inf && ubound == p_inf)
                 {
-                    rec << "unbounded" << endl;
+                    rec << "unbounded" << std::endl;
                 }
                 else
                 {
@@ -276,15 +275,15 @@ namespace aoclsparse_options
                     {
                         rec << " < " << upper;
                     }
-                    rec << endl;
+                    rec << std::endl;
                 }
-                rec << "   Id: " << id << endl;
-                rec << "   Desc: " << desc << endl;
-                rec << "   Hidden: " << boolalpha << hidden << endl;
-                rec << "   Set-by: " << setby_l[setby] << endl;
-                rec << "   Print-group: " << pgrp << endl;
+                rec << "   Id: " << id << std::endl;
+                rec << "   Desc: " << desc << std::endl;
+                rec << "   Hidden: " << std::boolalpha << hidden << std::endl;
+                rec << "   Set-by: " << setby_l[setby] << std::endl;
+                rec << "   Print-group: " << pgrp << std::endl;
 
-                rec << "End Option" << endl;
+                rec << "End Option" << std::endl;
             }
             return rec.str();
         }
@@ -319,7 +318,7 @@ namespace aoclsparse_options
         {
             if(CheckRange(value, lower, lbound, upper, ubound) != 0)
             {
-                throw out_of_range("Value out-of-bounds.");
+                throw std::out_of_range("Value out-of-bounds.");
             }
 
             OptionInt::value = value;
@@ -344,9 +343,9 @@ namespace aoclsparse_options
         ubound_t ubound;
 
     public:
-        OptionReal(const string         name,
+        OptionReal(const std::string    name,
                    const aoclsparse_int id,
-                   const string         desc,
+                   const std::string    desc,
                    const bool           hidden,
                    const aoclsparse_int pgrp,
                    const T              lower,
@@ -356,29 +355,29 @@ namespace aoclsparse_options
                    const T              vdefault)
         {
             if(upper != upper || lower != lower)
-                throw invalid_argument("Either lower or upper are not finite.");
+                throw std::invalid_argument("Either lower or upper are not finite.");
             if(upper < lower)
-                throw invalid_argument("Invalid bounds for option value: lower > upper.");
+                throw std::invalid_argument("Invalid bounds for option value: lower > upper.");
             // Check bounds
             // l = u and l <  value <= u OR
             //           l <= value <  u
             if(lower == upper && lbound != m_inf && ubound != p_inf)
             {
                 if(!(lbound == greaterequal && ubound == lessequal))
-                    throw invalid_argument("Invalid bounds for option.");
+                    throw std::invalid_argument("Invalid bounds for option.");
             }
             if(vdefault != vdefault)
             {
-                throw invalid_argument("Invalid default value.");
+                throw std::invalid_argument("Invalid default value.");
             }
             else
             {
                 if(CheckRange(vdefault, lower, lbound, upper, ubound) != 0)
-                    throw invalid_argument("Default value out-of-bounds.");
+                    throw std::invalid_argument("Default value out-of-bounds.");
             }
             SetName(name);
             if(OptionReal::name == "")
-                throw invalid_argument("Invalid name (string reduced to zero-length).");
+                throw std::invalid_argument("Invalid name (string reduced to zero-length).");
             OptionReal::id       = id;
             OptionReal::desc     = desc;
             OptionReal::hidden   = hidden;
@@ -394,24 +393,25 @@ namespace aoclsparse_options
 
         ~OptionReal(){};
 
-        string PrintOption(void)
+        std::string PrintOption(void)
         {
-            ostringstream rec;
-            rec << " " << name << " = " << value << endl;
+            std::ostringstream rec;
+            rec << " " << name << " = " << value << std::endl;
             return rec.str();
         }
 
-        string PrintDetails(bool doxygen)
+        std::string PrintDetails(bool doxygen)
         {
-            ostringstream rec;
+            std::ostringstream rec;
             if(doxygen)
             {
-                rec << " * | **" << name << "** | real | \\f$ r = " << vdefault << "\\f$ |" << endl;
-                rec << " * | " << desc << "|||" << endl;
+                rec << " * | **" << name << "** | real | \\f$ r = " << vdefault << "\\f$ |"
+                    << std::endl;
+                rec << " * | " << desc << "|||" << std::endl;
 
                 if(lbound == m_inf && ubound == p_inf)
                 {
-                    rec << " * | There are no constraints on \\f$r\\f$. |||" << endl;
+                    rec << " * | There are no constraints on \\f$r\\f$. |||" << std::endl;
                 }
                 else
                 {
@@ -434,18 +434,18 @@ namespace aoclsparse_options
                     {
                         rec << " \\lt " << upper;
                     }
-                    rec << "\\f$. |||" << endl;
+                    rec << "\\f$. |||" << std::endl;
                 }
             }
             else
             {
-                rec << "Begin Option [Real]" << endl;
-                rec << "   Name: '" << name << "'" << endl;
-                rec << "   Value: " << value << "     [default: " << vdefault << "]" << endl;
+                rec << "Begin Option [Real]" << std::endl;
+                rec << "   Name: '" << name << "'" << std::endl;
+                rec << "   Value: " << value << "     [default: " << vdefault << "]" << std::endl;
                 rec << "   Range: ";
                 if(lbound == m_inf && ubound == p_inf)
                 {
-                    rec << "unbounded" << endl;
+                    rec << "unbounded" << std::endl;
                 }
                 else
                 {
@@ -466,15 +466,15 @@ namespace aoclsparse_options
                     {
                         rec << " < " << upper;
                     }
-                    rec << endl;
+                    rec << std::endl;
                 }
-                rec << "   Id: " << id << endl;
-                rec << "   Desc: " << desc << endl;
-                rec << "   Hidden: " << boolalpha << hidden << endl;
-                rec << "   Set-by: " << setby_l[setby] << endl;
-                rec << "   Print-group: " << pgrp << endl;
+                rec << "   Id: " << id << std::endl;
+                rec << "   Desc: " << desc << std::endl;
+                rec << "   Hidden: " << std::boolalpha << hidden << std::endl;
+                rec << "   Set-by: " << setby_l[setby] << std::endl;
+                rec << "   Print-group: " << pgrp << std::endl;
 
-                rec << "End Option" << endl;
+                rec << "End Option" << std::endl;
             }
             return rec.str();
         }
@@ -506,13 +506,13 @@ namespace aoclsparse_options
         {
             if(std::isnan(value))
             {
-                throw invalid_argument("Passed option value is invalid.");
+                throw std::invalid_argument("Passed option value is invalid.");
             }
 
             if(CheckRange(value, lower, lbound, upper, ubound) != 0)
             {
-                string msg = "Value out-of-bounds.";
-                throw out_of_range(msg);
+                std::string msg = "Value out-of-bounds.";
+                throw std::out_of_range(msg);
             }
 
             OptionReal::value = value;
@@ -528,16 +528,16 @@ namespace aoclsparse_options
         bool value;
 
     public:
-        OptionBool(const string         name,
+        OptionBool(const std::string    name,
                    const aoclsparse_int id,
-                   const string         desc,
+                   const std::string    desc,
                    const bool           hidden,
                    const aoclsparse_int pgrp,
                    const bool           vdefault)
         {
             SetName(name);
             if(OptionBool::name == "")
-                throw invalid_argument("Invalid name (string reduced to zero-length).");
+                throw std::invalid_argument("Invalid name (string reduced to zero-length).");
             OptionBool::id       = id;
             OptionBool::desc     = desc;
             OptionBool::hidden   = hidden;
@@ -548,35 +548,35 @@ namespace aoclsparse_options
         };
         ~OptionBool(){};
 
-        string PrintOption(void)
+        std::string PrintOption(void)
         {
-            ostringstream rec;
-            rec << " " << name << " = " << value << endl;
+            std::ostringstream rec;
+            rec << " " << name << " = " << value << std::endl;
             return rec.str();
         }
 
-        string PrintDetails(bool doxygen)
+        std::string PrintDetails(bool doxygen)
         {
-            ostringstream rec;
+            std::ostringstream rec;
             if(doxygen)
             {
                 rec << " * | **" << name << "** | Boolean | \\f$ b = \\f$ "
-                    << (vdefault ? "True" : "False") << " |" << endl;
-                rec << " * | " << desc << "|||" << endl;
+                    << (vdefault ? "True" : "False") << " |" << std::endl;
+                rec << " * | " << desc << "|||" << std::endl;
                 rec << " * | "
-                    << "Valid values: \\f$b =\\f$ True, or False. |||" << endl;
+                    << "Valid values: \\f$b =\\f$ True, or False. |||" << std::endl;
             }
             else
             {
-                rec << "Begin Option [Boolean]" << endl;
-                rec << "   Name: '" << name << "'" << endl;
-                rec << "   Value: " << value << "     [default: " << vdefault << "]" << endl;
-                rec << "   Id: " << id << endl;
-                rec << "   Desc: " << desc << endl;
-                rec << "   Hidden: " << boolalpha << hidden << endl;
-                rec << "   Set-by: " << setby_l[setby] << endl;
-                rec << "   Print-group: " << pgrp << endl;
-                rec << "End Option" << endl;
+                rec << "Begin Option [Boolean]" << std::endl;
+                rec << "   Name: '" << name << "'" << std::endl;
+                rec << "   Value: " << value << "     [default: " << vdefault << "]" << std::endl;
+                rec << "   Id: " << id << std::endl;
+                rec << "   Desc: " << desc << std::endl;
+                rec << "   Hidden: " << std::boolalpha << hidden << std::endl;
+                rec << "   Set-by: " << setby_l[setby] << std::endl;
+                rec << "   Print-group: " << pgrp << std::endl;
+                rec << "End Option" << std::endl;
             }
             return rec.str();
         }
@@ -596,45 +596,46 @@ namespace aoclsparse_options
     class OptionString : public OptionBase
     {
         // default label
-        string vdefault;
+        std::string vdefault;
         // selected label
-        string                      value;
-        map<string, aoclsparse_int> labels;
+        std::string                           value;
+        std::map<std::string, aoclsparse_int> labels;
 
     public:
-        OptionString(const string                      name,
-                     const aoclsparse_int              id,
-                     const string                      desc,
-                     const bool                        hidden,
-                     const aoclsparse_int              pgrp,
-                     const map<string, aoclsparse_int> labels,
-                     const string                      vdefault)
+        OptionString(const std::string                           name,
+                     const aoclsparse_int                        id,
+                     const std::string                           desc,
+                     const bool                                  hidden,
+                     const aoclsparse_int                        pgrp,
+                     const std::map<std::string, aoclsparse_int> labels,
+                     const std::string                           vdefault)
         {
             OptionUtility u;
             OptionString::id     = id;
             OptionString::desc   = desc;
             OptionString::hidden = hidden;
             OptionString::pgrp   = pgrp;
-            string label;
+            std::string label;
 
             if(labels.size() == 0)
             {
-                throw invalid_argument("Label's map must contain at least one entry.");
+                throw std::invalid_argument("Label's map must contain at least one entry.");
             }
             SetName(name);
             if(OptionString::name == "")
-                throw invalid_argument("Invalid name (string reduced to zero-length).");
+                throw std::invalid_argument("Invalid name (string reduced to zero-length).");
 
             for(const auto &entry : labels)
             {
                 label = entry.first;
                 u.PrepareString(label);
                 if(label == "")
-                    throw invalid_argument("Invalid option value (string reduced to zero-length).");
+                    throw std::invalid_argument(
+                        "Invalid option value (string reduced to zero-length).");
                 auto const ok = OptionString::labels.insert({label, entry.second});
                 if(not ok.second)
                 {
-                    throw invalid_argument("Failed to insert a label, duplicate?");
+                    throw std::invalid_argument("Failed to insert a label, duplicate?");
                 }
             }
             // check that default is valid
@@ -644,7 +645,7 @@ namespace aoclsparse_options
             auto it = OptionString::labels.find(label);
             if(it == OptionString::labels.end())
             {
-                throw invalid_argument("Default label is invalid.");
+                throw std::invalid_argument("Default label is invalid.");
             }
             OptionString::vdefault = label;
             OptionString::value    = label;
@@ -652,20 +653,20 @@ namespace aoclsparse_options
         };
         ~OptionString(){};
 
-        string PrintOption(void)
+        std::string PrintOption(void)
         {
-            ostringstream rec;
-            rec << " " << name << " = " << value << endl;
+            std::ostringstream rec;
+            rec << " " << name << " = " << value << std::endl;
             return rec.str();
         }
-        string PrintDetails(bool doxygen)
+        std::string PrintDetails(bool doxygen)
         {
-            ostringstream rec;
+            std::ostringstream rec;
             if(doxygen)
             {
                 rec << " * | **" << name << "** | string | \\f$ s = \\f$ `" << vdefault << "` |"
-                    << endl;
-                rec << " * | " << desc << "|||" << endl;
+                    << std::endl;
+                rec << " * | " << desc << "|||" << std::endl;
                 rec << " * | "
                     << "Valid values: \\f$s =\\f$ ";
                 {
@@ -687,42 +688,43 @@ namespace aoclsparse_options
                         }
                         n--;
                     }
-                    rec << " |||" << endl;
+                    rec << " |||" << std::endl;
                 }
             }
             else
             {
-                rec << "Begin Option [String]" << endl;
-                rec << "   Name: '" << name << "'" << endl;
-                rec << "   Value: '" << value << "'     [default: '" << vdefault << "']" << endl;
-                rec << "   Valid values: " << endl;
+                rec << "Begin Option [String]" << std::endl;
+                rec << "   Name: '" << name << "'" << std::endl;
+                rec << "   Value: '" << value << "'     [default: '" << vdefault << "']"
+                    << std::endl;
+                rec << "   Valid values: " << std::endl;
                 for(auto const &it : labels)
                 {
-                    rec << "      '" << it.first << "' : " << it.second << endl;
+                    rec << "      '" << it.first << "' : " << it.second << std::endl;
                 }
-                rec << "   Id: " << id << endl;
-                rec << "   Desc: " << desc << endl;
-                rec << "   Hidden: " << boolalpha << hidden << endl;
-                rec << "   Set-by: " << setby_l[setby] << endl;
-                rec << "   Print-group: " << pgrp << endl;
-                rec << "End Option" << endl;
+                rec << "   Id: " << id << std::endl;
+                rec << "   Desc: " << desc << std::endl;
+                rec << "   Hidden: " << std::boolalpha << hidden << std::endl;
+                rec << "   Set-by: " << setby_l[setby] << std::endl;
+                rec << "   Print-group: " << pgrp << std::endl;
+                rec << "End Option" << std::endl;
             }
             return rec.str();
         }
 
-        string GetStringValue(void) const
+        std::string GetStringValue(void) const
         {
             return value;
         };
-        string GetStringValue(aoclsparse_int &key) const
+        std::string GetStringValue(aoclsparse_int &key) const
         {
             key = labels.at(value);
             return value;
         }
-        void SetStringValue(const string value, const aoclsparse_int setby = 0)
+        void SetStringValue(const std::string value, const aoclsparse_int setby = 0)
         {
             OptionUtility u;
-            string        val(value);
+            std::string   val(value);
             u.PrepareString(val);
 
             // check that value is a valid key
@@ -744,10 +746,10 @@ namespace aoclsparse_options
         OptionUtility util;
         bool          readonly = false;
         // These can change under the hood for std::map <const string, Option???>
-        vector<OptionInt>     IntRegistry;
-        vector<OptionReal<T>> RealRegistry;
-        vector<OptionBool>    BoolRegistry;
-        vector<OptionString>  StringRegistry;
+        std::vector<OptionInt>     IntRegistry;
+        std::vector<OptionReal<T>> RealRegistry;
+        std::vector<OptionBool>    BoolRegistry;
+        std::vector<OptionString>  StringRegistry;
 
     public:
         OptionRegistry()
@@ -796,13 +798,14 @@ namespace aoclsparse_options
         // name - option name
         // value - value to set
         // setby - flag 0 (default), 1 (user), 2 (solver)
-        aoclsparse_int
-            SetOption(const string name, const aoclsparse_int value, const aoclsparse_int setby)
+        aoclsparse_int SetOption(const std::string    name,
+                                 const aoclsparse_int value,
+                                 const aoclsparse_int setby)
         {
             OptionUtility u;
-            string        pname(name);
+            std::string   pname(name);
             u.PrepareString(pname);
-            vector<OptionInt>::iterator it
+            std::vector<OptionInt>::iterator it
                 = find_if(IntRegistry.begin(), IntRegistry.end(), [pname](OptionInt o) {
                       return o.GetName() == pname;
                   });
@@ -814,11 +817,11 @@ namespace aoclsparse_options
                 {
                     (*it).SetInvegerValue(value, setby);
                 }
-                catch(const out_of_range &oor)
+                catch(const std::out_of_range &oor)
                 {
                     return 1;
                 }
-                catch(const invalid_argument &iarg)
+                catch(const std::invalid_argument &iarg)
                 {
                     return 2;
                 }
@@ -829,12 +832,12 @@ namespace aoclsparse_options
             }
             return 0;
         };
-        aoclsparse_int SetOption(const string name, const T value, const aoclsparse_int setby)
+        aoclsparse_int SetOption(const std::string name, const T value, const aoclsparse_int setby)
         {
             OptionUtility u;
-            string        pname(name);
+            std::string   pname(name);
             u.PrepareString(pname);
-            typename vector<OptionReal<T>>::iterator it
+            typename std::vector<OptionReal<T>>::iterator it
                 = find_if(RealRegistry.begin(), RealRegistry.end(), [pname](OptionReal<T> o) {
                       return o.GetName() == pname;
                   });
@@ -846,11 +849,11 @@ namespace aoclsparse_options
                 {
                     (*it).SetRealValue(value, setby);
                 }
-                catch(const out_of_range &oor)
+                catch(const std::out_of_range &oor)
                 {
                     return 1;
                 }
-                catch(const invalid_argument &iarg)
+                catch(const std::invalid_argument &iarg)
                 {
                     return 2;
                 }
@@ -861,12 +864,13 @@ namespace aoclsparse_options
             }
             return 0;
         };
-        aoclsparse_int SetOption(const string name, const bool value, const aoclsparse_int setby)
+        aoclsparse_int
+            SetOption(const std::string name, const bool value, const aoclsparse_int setby)
         {
             OptionUtility u;
-            string        pname(name);
+            std::string   pname(name);
             u.PrepareString(pname);
-            vector<OptionBool>::iterator it
+            std::vector<OptionBool>::iterator it
                 = find_if(BoolRegistry.begin(), BoolRegistry.end(), [pname](OptionBool o) {
                       return o.GetName() == pname;
                   });
@@ -878,7 +882,7 @@ namespace aoclsparse_options
                 {
                     (*it).SetBoolValue(value, setby);
                 }
-                catch(const invalid_argument &iarg)
+                catch(const std::invalid_argument &iarg)
                 {
                     return 2;
                 }
@@ -889,12 +893,13 @@ namespace aoclsparse_options
             }
             return 0;
         };
-        aoclsparse_int SetOption(const string name, const string value, const aoclsparse_int setby)
+        aoclsparse_int
+            SetOption(const std::string name, const std::string value, const aoclsparse_int setby)
         {
             OptionUtility u;
-            string        pname(name);
+            std::string   pname(name);
             u.PrepareString(pname);
-            vector<OptionString>::iterator it
+            std::vector<OptionString>::iterator it
                 = find_if(StringRegistry.begin(), StringRegistry.end(), [pname](OptionString o) {
                       return o.GetName() == pname;
                   });
@@ -906,11 +911,11 @@ namespace aoclsparse_options
                 {
                     (*it).SetStringValue(value, setby);
                 }
-                catch(const out_of_range &oor)
+                catch(const std::out_of_range &oor)
                 {
                     return 1;
                 }
-                catch(const invalid_argument &iarg)
+                catch(const std::invalid_argument &iarg)
                 {
                     return 2;
                 }
@@ -922,12 +927,12 @@ namespace aoclsparse_options
             return 0;
         };
         // Getters
-        aoclsparse_int GetOption(const string name, aoclsparse_int &value)
+        aoclsparse_int GetOption(const std::string name, aoclsparse_int &value)
         {
             OptionUtility u;
-            string        pname(name);
+            std::string   pname(name);
             u.PrepareString(pname);
-            vector<OptionInt>::iterator it
+            std::vector<OptionInt>::iterator it
                 = find_if(IntRegistry.begin(), IntRegistry.end(), [pname](OptionInt o) {
                       return o.GetName() == pname;
                   });
@@ -940,12 +945,12 @@ namespace aoclsparse_options
             return 3;
         };
 
-        aoclsparse_int GetOption(const string name, T &value)
+        aoclsparse_int GetOption(const std::string name, T &value)
         {
             OptionUtility u;
-            string        pname(name);
+            std::string   pname(name);
             u.PrepareString(pname);
-            typename vector<OptionReal<T>>::iterator it
+            typename std::vector<OptionReal<T>>::iterator it
                 = find_if(RealRegistry.begin(), RealRegistry.end(), [pname](OptionReal<T> o) {
                       return o.GetName() == pname;
                   });
@@ -956,12 +961,12 @@ namespace aoclsparse_options
             }
             return 3;
         };
-        aoclsparse_int GetOption(const string name, bool &value)
+        aoclsparse_int GetOption(const std::string name, bool &value)
         {
             OptionUtility u;
-            string        pname(name);
+            std::string   pname(name);
             u.PrepareString(pname);
-            vector<OptionBool>::iterator it
+            std::vector<OptionBool>::iterator it
                 = find_if(BoolRegistry.begin(), BoolRegistry.end(), [pname](OptionBool o) {
                       return o.GetName() == pname;
                   });
@@ -972,12 +977,12 @@ namespace aoclsparse_options
             }
             return 3;
         };
-        aoclsparse_int GetOption(const string name, string &value, aoclsparse_int &key)
+        aoclsparse_int GetOption(const std::string name, std::string &value, aoclsparse_int &key)
         {
             OptionUtility u;
-            string        pname(name);
+            std::string   pname(name);
             u.PrepareString(pname);
-            vector<OptionString>::iterator it
+            std::vector<OptionString>::iterator it
                 = find_if(StringRegistry.begin(), StringRegistry.end(), [pname](OptionString o) {
                       return o.GetName() == pname;
                   });
@@ -988,12 +993,12 @@ namespace aoclsparse_options
             }
             return 3;
         };
-        aoclsparse_int GetKey(const string name, aoclsparse_int &key)
+        aoclsparse_int GetKey(const std::string name, aoclsparse_int &key)
         {
             OptionUtility u;
-            string        pname(name);
+            std::string   pname(name);
             u.PrepareString(pname);
-            vector<OptionString>::iterator it
+            std::vector<OptionString>::iterator it
                 = find_if(StringRegistry.begin(), StringRegistry.end(), [pname](OptionString o) {
                       return o.GetName() == pname;
                   });
@@ -1008,20 +1013,20 @@ namespace aoclsparse_options
         void PrintOptions(void)
         {
             // void PrintOptions(const vector<aoclsparse_int> pgrp){
-            cout << "Begin Options" << endl;
+            std::cout << "Begin Options" << std::endl;
             // cout << "Integer Options"
             for(auto it : IntRegistry)
-                cout << it.PrintOption();
+                std::cout << it.PrintOption();
             // cout << "Real Options"
             for(auto it : RealRegistry)
-                cout << it.PrintOption();
+                std::cout << it.PrintOption();
             // cout << "Boolean Options"
             for(auto it : BoolRegistry)
-                cout << it.PrintOption();
+                std::cout << it.PrintOption();
             // cout << "Boolean Options"
             for(auto it : StringRegistry)
-                cout << it.PrintOption();
-            cout << "End Options" << endl;
+                std::cout << it.PrintOption();
+            std::cout << "End Options" << std::endl;
         };
 
         void PrintDetails(bool doxygen)
@@ -1029,52 +1034,53 @@ namespace aoclsparse_options
             bool sep = false;
             if(doxygen)
             {
-                cout << " *" << endl;
-                cout << " * \\section anchor_itsol_options Options" << endl;
-                cout << " * The iterative solver framework has the following options." << endl;
-                cout << " *" << endl;
-                cout << " * | **Option name** |  Type  | Default value|" << endl;
-                cout << " * |:----------------|:------:|-------------:|" << endl;
+                std::cout << " *" << std::endl;
+                std::cout << " * \\section anchor_itsol_options Options" << std::endl;
+                std::cout << " * The iterative solver framework has the following options."
+                          << std::endl;
+                std::cout << " *" << std::endl;
+                std::cout << " * | **Option name** |  Type  | Default value|" << std::endl;
+                std::cout << " * |:----------------|:------:|-------------:|" << std::endl;
             }
             else
             {
-                cout << "Begin (detailed print of registered options)" << endl;
+                std::cout << "Begin (detailed print of registered options)" << std::endl;
             }
             for(auto it : IntRegistry)
             {
                 if(sep && doxygen)
-                    cout << " * | |||" << endl;
-                cout << it.PrintDetails(doxygen);
+                    std::cout << " * | |||" << std::endl;
+                std::cout << it.PrintDetails(doxygen);
                 sep = true;
             }
             for(auto it : RealRegistry)
             {
                 if(sep && doxygen)
-                    cout << " * | |||" << endl;
-                cout << it.PrintDetails(doxygen);
+                    std::cout << " * | |||" << std::endl;
+                std::cout << it.PrintDetails(doxygen);
                 sep = true;
             }
             for(auto it : BoolRegistry)
             {
                 if(sep && doxygen)
-                    cout << " * | |||" << endl;
-                cout << it.PrintDetails(doxygen);
+                    std::cout << " * | |||" << std::endl;
+                std::cout << it.PrintDetails(doxygen);
                 sep = true;
             }
             for(auto it : StringRegistry)
             {
                 if(sep && doxygen)
-                    cout << " * | |||" << endl;
-                cout << it.PrintDetails(doxygen);
+                    std::cout << " * | |||" << std::endl;
+                std::cout << it.PrintDetails(doxygen);
                 sep = true;
             }
             if(doxygen)
             {
-                cout << " *" << endl;
+                std::cout << " *" << std::endl;
             }
             else
             {
-                cout << "End" << endl;
+                std::cout << "End" << std::endl;
             }
         };
     };

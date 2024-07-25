@@ -27,6 +27,7 @@
 
 #include "aoclsparse.h"
 #include "aoclsparse_context.h"
+#include "aoclsparse_dispatcher.hpp"
 #include "aoclsparse_kernel_templates.hpp"
 #include "aoclsparse_utils.hpp"
 
@@ -122,6 +123,15 @@ inline aoclsparse_status sctr_kt(aoclsparse_int nnz,
     return aoclsparse_status_success;
 }
 
+template <Index::type I>
+constexpr Dispatch::api get_sctr_api()
+{
+    if constexpr(I == Index::type::indexed)
+        return Dispatch::api::sctr;
+    else if constexpr(I == Index::type::strided)
+        return Dispatch::api::sctrs;
+}
+
 /*
  * aoclsparse_scatter dispatcher
  */
@@ -163,28 +173,30 @@ inline aoclsparse_status aoclsparse_scatter(aoclsparse_int nnz,
             return aoclsparse_status_invalid_pointer;
     }
 
+    using namespace aoclsparse;
+    using namespace Dispatch;
+
     // Creating pointer to the kernel
     using K = decltype(&sctr_ref<T, I>);
 
-    K kernel;
+    // clang-format off
+    // Table of available kernels
+    static constexpr Table<K> tbl[]{
+    {sctr_ref<T, I>,           context_isa_t::GENERIC, 0U | archs::ALL},
+#ifdef __AVX2__
+    {sctr_kt<bsz::b256, T, I>, context_isa_t::AVX2,    0U | archs::ZEN123},
+#endif
+#ifdef __AVX512F__
+    {sctr_kt<bsz::b512, T, I>, context_isa_t::AVX512F, 0U | archs::ZEN4}
+#endif
+    };
+    // clang-format on
 
-    // TODO: Replace with L1 dispatcher
-    // Pick the kernel based on the KID passed
-    switch(kid)
-    {
-    case 2:
-#if defined(__AVX512F__)
-        kernel = sctr_kt<bsz::b512, T, I>;
-        break;
-#endif
-    case 1:
-#if defined(__AVX2__)
-        kernel = sctr_kt<bsz::b256, T, I>;
-        break;
-#endif
-    default:
-        kernel = sctr_ref<T, I>;
-    }
+    // Inquire with the oracle
+    auto kernel = Oracle<K, get_sctr_api<I>()>(tbl, kid);
+
+    if(!kernel)
+        return aoclsparse_status_invalid_kid;
 
     // Invoke the kernel
     return kernel(nnz, x, xi, y);

@@ -240,6 +240,7 @@ namespace
     }
 
     // Negative value in index array return error
+    // Additionally tests for invalid KID
     template <typename T>
     void test_gthr_invalid_index()
     {
@@ -251,12 +252,16 @@ namespace
         std::vector<T>              y_exp;
 
         init(nnz, x, y, indx, x_exp, y_exp);
+
+        aoclsparse_status res = aoclsparse_gthr(nnz, y.data(), x.data(), indx.data(), 999);
+        EXPECT_EQ(res, aoclsparse_status_invalid_kid);
+
         indx[0] = -3;
 
         // Pass negative value in index array
         // and expect aoclsparse_status_invalid_index_value
         // This tests is only valid for reference kernel
-        aoclsparse_status res = aoclsparse_gthr(nnz, y.data(), x.data(), indx.data(), 0);
+        res = aoclsparse_gthr(nnz, y.data(), x.data(), indx.data(), 0);
         EXPECT_EQ(res, aoclsparse_status_invalid_index_value);
     }
 
@@ -321,6 +326,7 @@ namespace
     }
 
     // Negative value in index array return error
+    // Tests for Invalid KID
     template <typename T>
     void test_gthrz_invalid_index()
     {
@@ -332,12 +338,17 @@ namespace
         std::vector<T>              y_exp;
 
         init(nnz, x, y, indx, x_exp, y_exp);
+
+        // Invoke with invalid KID
+        aoclsparse_status res = aoclsparse_gthrz(nnz, y.data(), x.data(), indx.data(), 9999);
+        EXPECT_EQ(res, aoclsparse_status_invalid_kid);
+
         indx[0] = -3;
 
         // Pass negative value in index array
         // and expect aoclsparse_status_invalid_index_value
         // This tests is only valid for reference kernel
-        aoclsparse_status res = aoclsparse_gthrz(nnz, y.data(), x.data(), indx.data(), 0);
+        res = aoclsparse_gthrz(nnz, y.data(), x.data(), indx.data(), 0);
         EXPECT_EQ(res, aoclsparse_status_invalid_index_value);
     }
 
@@ -400,6 +411,10 @@ namespace
                   aoclsparse_status_invalid_pointer);
         EXPECT_EQ(aoclsparse_gthrs<T>(nnz, y.data(), nullptr, stride),
                   aoclsparse_status_invalid_pointer);
+
+        // Invalid KID
+        EXPECT_EQ(aoclsparse_gthrs<T>(nnz, y.data(), x.data(), stride, 9999),
+                  aoclsparse_status_invalid_kid);
     }
     // tests with wrong scalar data n, m, nnz
     template <typename T>

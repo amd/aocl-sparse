@@ -24,7 +24,6 @@
 
 #include "aoclsparse.h"
 #include "aoclsparse_sctr.hpp"
-#include "aoclsparse_utils.hpp"
 
 /*
  *===========================================================================
@@ -137,6 +136,124 @@ extern "C" aoclsparse_status
     aoclsparse_dsctrs(const aoclsparse_int nnz, const double *x, aoclsparse_int stride, double *y)
 {
     aoclsparse_int    kid = -1;
+    aoclsparse_status status;
+    status = aoclsparse_scatter<double, Index::type::strided>(nnz, x, stride, y, kid);
+    return status;
+}
+
+/*
+ *===========================================================================
+ *   C wrapper with KID
+ * ===========================================================================
+ */
+
+/*
+ * Performs indexed scatter operation of a complex (single precision) compressed sparse vector (x)
+ * to a complex full storage vector (y).
+ */
+extern "C" aoclsparse_status aoclsparse_csctr_kid(const aoclsparse_int  nnz,
+                                                  const void           *x,
+                                                  const aoclsparse_int *indx,
+                                                  void                 *y,
+                                                  aoclsparse_int        kid)
+{
+    aoclsparse_status status;
+    status = aoclsparse_scatter<std::complex<float>, Index::type::indexed>(
+        nnz, (std::complex<float> *)x, indx, (std::complex<float> *)y, kid);
+    return status;
+}
+
+/*
+ * Performs indexed scatter operation of a complex (double precision) compressed sparse vector (x)
+ * to a complex full storage vector (y).
+ */
+extern "C" aoclsparse_status aoclsparse_zsctr_kid(const aoclsparse_int  nnz,
+                                                  const void           *x,
+                                                  const aoclsparse_int *indx,
+                                                  void                 *y,
+                                                  aoclsparse_int        kid)
+{
+    aoclsparse_status status;
+    status = aoclsparse_scatter<std::complex<double>, Index::type::indexed>(
+        nnz, (std::complex<double> *)x, indx, (std::complex<double> *)y, kid);
+    return status;
+}
+
+/*
+ * Performs indexed scatter operation of a real (single precision) compressed sparse vector (x)
+ * to a real full storage vector (y).
+ */
+extern "C" aoclsparse_status aoclsparse_ssctr_kid(const aoclsparse_int  nnz,
+                                                  const float          *x,
+                                                  const aoclsparse_int *indx,
+                                                  float                *y,
+                                                  aoclsparse_int        kid)
+{
+    aoclsparse_status status;
+    status = aoclsparse_scatter<float, Index::type::indexed>(nnz, x, indx, y, kid);
+    return status;
+}
+
+/*
+ * Performs indexed scatter operation of a real (double precision) compressed sparse vector (x)
+ * to a real full storage vector (y).
+ */
+extern "C" aoclsparse_status aoclsparse_dsctr_kid(const aoclsparse_int  nnz,
+                                                  const double         *x,
+                                                  const aoclsparse_int *indx,
+                                                  double               *y,
+                                                  aoclsparse_int        kid)
+{
+    aoclsparse_status status;
+    status = aoclsparse_scatter<double, Index::type::indexed>(nnz, x, indx, y, kid);
+    return status;
+}
+
+/*
+ * Performs strided scatter operation of a complex (single precision) compressed sparse vector (x)
+ * to a complex full storage vector (y).
+ */
+extern "C" aoclsparse_status aoclsparse_csctrs_kid(
+    const aoclsparse_int nnz, const void *x, aoclsparse_int stride, void *y, aoclsparse_int kid)
+{
+    aoclsparse_status status;
+    status = aoclsparse_scatter<std::complex<float>, Index::type::strided>(
+        nnz, (std::complex<float> *)x, stride, (std::complex<float> *)y, kid);
+    return status;
+}
+
+/*
+ * Performs strided scatter operation of a complex (double precision) compressed sparse vector (x)
+ * to a complex full storage vector (y).
+ */
+extern "C" aoclsparse_status aoclsparse_zsctrs_kid(
+    const aoclsparse_int nnz, const void *x, aoclsparse_int stride, void *y, aoclsparse_int kid)
+{
+    aoclsparse_status status;
+    status = aoclsparse_scatter<std::complex<double>, Index::type::strided>(
+        nnz, (std::complex<double> *)x, stride, (std::complex<double> *)y, kid);
+    return status;
+}
+
+/*
+ * Performs strided scatter operation of a real (single precision) compressed sparse vector (x)
+ * to a real full storage vector (y).
+ */
+extern "C" aoclsparse_status aoclsparse_ssctrs_kid(
+    const aoclsparse_int nnz, const float *x, aoclsparse_int stride, float *y, aoclsparse_int kid)
+{
+    aoclsparse_status status;
+    status = aoclsparse_scatter<float, Index::type::strided>(nnz, x, stride, y, kid);
+    return status;
+}
+
+/*
+ * Performs strided scatter operation of a real (double precision) compressed sparse vector (x)
+ * to a real full storage vector (y).
+ */
+extern "C" aoclsparse_status aoclsparse_dsctrs_kid(
+    const aoclsparse_int nnz, const double *x, aoclsparse_int stride, double *y, aoclsparse_int kid)
+{
     aoclsparse_status status;
     status = aoclsparse_scatter<double, Index::type::strided>(nnz, x, stride, y, kid);
     return status;

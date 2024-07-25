@@ -94,11 +94,10 @@ struct aoclsparse_command_line_args
         : keys(4)
         , values(4)
     {
-        using namespace std;
 
         for(aoclsparse_int i = 1; i < argc; i++)
         {
-            string arg = argv[i];
+            std::string arg = argv[i];
 
             if((arg[0] != '-') || (arg[1] != '-'))
             {
@@ -106,17 +105,17 @@ struct aoclsparse_command_line_args
                 continue;
             }
 
-            string::size_type pos;
-            string            key, val;
-            if((pos = arg.find('=')) == string::npos)
+            std::string::size_type pos;
+            std::string            key, val;
+            if((pos = arg.find('=')) == std::string::npos)
             {
-                key = string(arg, 2, arg.length() - 2);
+                key = std::string(arg, 2, arg.length() - 2);
                 val = "";
             }
             else
             {
-                key = string(arg, 2, pos - 2);
-                val = string(arg, pos + 1, arg.length() - 1);
+                key = std::string(arg, 2, pos - 2);
+                val = std::string(arg, pos + 1, arg.length() - 1);
             }
 
             keys.push_back(key);
@@ -129,11 +128,10 @@ struct aoclsparse_command_line_args
      */
     bool aoclsparse_check_cmdline_flag(const char *arg_name)
     {
-        using namespace std;
 
         for(aoclsparse_int i = 0; i < aoclsparse_int(keys.size()); ++i)
         {
-            if(keys[i] == string(arg_name))
+            if(keys[i] == std::string(arg_name))
                 return true;
         }
         return false;
@@ -154,10 +152,10 @@ struct aoclsparse_command_line_args
     template <typename T>
     void aoclsparse_get_cmdline_argument(aoclsparse_int index, T &val)
     {
-        using namespace std;
+
         if((size_t)index < args.size())
         {
-            istringstream str_stream(args[index]);
+            std::istringstream str_stream(args[index]);
             str_stream >> val;
         }
     }
@@ -168,13 +166,12 @@ struct aoclsparse_command_line_args
     template <typename T>
     void aoclsparse_get_cmdline_argument(const char *arg_name, T &val)
     {
-        using namespace std;
 
         for(aoclsparse_int i = 0; i < aoclsparse_int(keys.size()); ++i)
         {
-            if(keys[i] == string(arg_name))
+            if(keys[i] == std::string(arg_name))
             {
-                istringstream str_stream(values[i]);
+                std::istringstream str_stream(values[i]);
                 str_stream >> val;
             }
         }
@@ -186,7 +183,6 @@ struct aoclsparse_command_line_args
     template <typename T>
     void aoclsparse_get_cmdline_arguments(const char *arg_name, std::vector<T> &vals)
     {
-        using namespace std;
 
         if(aoclsparse_check_cmdline_flag(arg_name))
         {
@@ -196,16 +192,16 @@ struct aoclsparse_command_line_args
             // Recover from multi-value string
             for(aoclsparse_int i = 0; i < (aoclsparse_int)keys.size(); ++i)
             {
-                if(keys[i] == string(arg_name))
+                if(keys[i] == std::string(arg_name))
                 {
-                    string            val_string(values[i]);
-                    istringstream     str_stream(val_string);
-                    string::size_type old_pos = 0;
-                    string::size_type new_pos = 0;
+                    std::string            val_string(values[i]);
+                    std::istringstream     str_stream(val_string);
+                    std::string::size_type old_pos = 0;
+                    std::string::size_type new_pos = 0;
 
                     // Iterate comma-separated values
                     T val;
-                    while((new_pos = val_string.find(',', old_pos)) != string::npos)
+                    while((new_pos = val_string.find(',', old_pos)) != std::string::npos)
                     {
                         if(new_pos != old_pos)
                         {

@@ -39,7 +39,6 @@
 #include <immintrin.h>
 #include <iostream>
 #include <limits.h>
-using namespace std;
 
 template <typename T>
 int testing_blkcsrmv(const Arguments &arg)

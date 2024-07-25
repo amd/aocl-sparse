@@ -40,8 +40,6 @@
 #include <fstream>
 #include <string>
 
-using namespace std;
-
 template <typename T>
 inline void ref_csrilu0(aoclsparse_int                     M,
                         aoclsparse_int                     base,

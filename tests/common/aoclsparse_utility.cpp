@@ -29,6 +29,7 @@
 #include <cstring>
 
 #if defined(_WIN32) || defined(_WIN64)
+#define _HAS_STD_BYTE 0
 #include <windows.h>
 #else
 #include <time.h>
