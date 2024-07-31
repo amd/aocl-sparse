@@ -930,8 +930,11 @@ aoclsparse_status aoclsparse_init_coo_matrix(std::vector<aoclsparse_int> &coo_ro
     if(status != aoclsparse_status_success)
         return status;
 
-    //default random generation in COO, is a sorted operation. So do nothing.
-    if(sort == aoclsparse_unsorted)
+    /*
+        default random generation in COO, is a sorted operation. So do nothing.
+        if the input is of matrix market format(mtx), then do not shuffle
+    */
+    if(matrix != aoclsparse_matrix_file_mtx && sort == aoclsparse_unsorted)
     {
         //shuffle the coo col_ind and csr_val arrays
         aoclsparse_full_shuffle(
@@ -987,17 +990,24 @@ aoclsparse_status aoclsparse_init_csr_matrix(std::vector<aoclsparse_int> &csr_ro
     // convert to CSR (already in that order, just need the correct csr_row_ptr
     coo_to_csr(M, nnz, coo_row_ind, csr_row_ptr, base);
 
-    //default random generation in COO, is a sorted operation. So do nothing.
-    if(sort == aoclsparse_unsorted)
+    /*
+        default random generation in COO, is a sorted operation. So do nothing.
+        if the input is of matrix market format(mtx), then do not shuffle
+    */
+    if(matrix != aoclsparse_matrix_file_mtx)
     {
-        //shuffle the csr col_ind and csr_val arrays
-        aoclsparse_full_shuffle(
-            aoclsparse_csr_mat, csr_row_ptr, csr_col_ind, csr_val, M, nnz, base);
+        if(sort == aoclsparse_unsorted)
+        {
+            //shuffle the csr col_ind and csr_val arrays
+            aoclsparse_full_shuffle(
+                aoclsparse_csr_mat, csr_row_ptr, csr_col_ind, csr_val, M, nnz, base);
+        }
+        else if(sort == aoclsparse_partially_sorted)
+        {
+            aoclsparse_partial_shuffle(csr_row_ptr, csr_col_ind, csr_val, M, base);
+        }
     }
-    else if(sort == aoclsparse_partially_sorted)
-    {
-        aoclsparse_partial_shuffle(csr_row_ptr, csr_col_ind, csr_val, M, base);
-    }
+
     return status;
 }
 /* ==================================================================================== */
