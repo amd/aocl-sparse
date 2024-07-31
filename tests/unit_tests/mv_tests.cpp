@@ -1256,7 +1256,11 @@ namespace
         mv_cmplx_success<aoclsparse_double_complex>(7, 9, 29, one, op_n, 1);
         mv_cmplx_success<aoclsparse_double_complex>(11, 9, 39, one, op_n, 2);
         mv_cmplx_success<aoclsparse_double_complex>(8, 8, 8, one, op_n, 0);
+        mv_cmplx_success<aoclsparse_double_complex>(7, 7, 38, zero, op_n, 0);
+        mv_cmplx_success<aoclsparse_double_complex>(8, 10, 49, one, op_n, 0);
+        mv_cmplx_success<aoclsparse_double_complex>(10, 7, 45, zero, op_n, 0);
     }
+
     TEST(mv, CmplxGSuccessOpT)
     {
         mv_cmplx_success<aoclsparse_double_complex>(3, 2, 3, zero, op_t, 0);
