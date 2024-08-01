@@ -66,7 +66,7 @@ namespace
                                     aoclsparse_index_base        base,
                                     aoclsparse_fill_mode         fill_mode)
     {
-        aoclsparse_int m, n, nnz;
+        aoclsparse_int m = 0, n = 0, nnz = 0;
         // Initialise matrix. Only lower part is used for general matrix
         //  | 0  1  2  3  4
         // -|---------------
@@ -369,7 +369,7 @@ namespace
                                      aoclsparse_index_base        base,
                                      aoclsparse_fill_mode         fill_mode)
     {
-        aoclsparse_int m, n, nnz;
+        aoclsparse_int m = 0, n = 0, nnz = 0;
         // Initialise matrix
         //  | 0  1  2  3  4
         // -|---------------
@@ -533,7 +533,7 @@ namespace
             {
                 d_exp.real += 40.0;
                 d_exp.imag += 40.0;
-                for(int i = 0; i < y_exp.size(); i++)
+                for(int i = 0; i < (int)y_exp.size(); i++)
                 {
                     y_exp[i].real += 0.0;
                     y_exp[i].imag += 4.0;
@@ -568,7 +568,7 @@ namespace
             if(diag_type == aoclsparse_diag_type_unit)
             {
                 d_exp += 20.0;
-                for(int i = 0; i < y_exp.size(); i++)
+                for(int i = 0; i < (int)y_exp.size(); i++)
                 {
                     y_exp[i] += 2.0;
                 }

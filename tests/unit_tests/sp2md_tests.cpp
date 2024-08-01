@@ -325,7 +325,7 @@ namespace
                             aoclsparse_int        offset = 0,
                             aoclsparse_int        scalar = 0)
     {
-        aoclsparse_int m_c, n_c, lda, ldb, dense_c_sz;
+        aoclsparse_int m_c = 0, n_c = 0, lda, ldb, dense_c_sz;
         CBLAS_ORDER    blis_layout;
         if(layout == aoclsparse_order_row)
         {
@@ -406,7 +406,7 @@ namespace
         aoclsparse_mat_descr descrB;
         ASSERT_EQ(aoclsparse_create_mat_descr(&descrB), aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_set_mat_index_base(descrB, b_b), aoclsparse_status_success);
-        aoclsparse_int m, n, k;
+        aoclsparse_int m, n, k = 0;
         if((op_a == aoclsparse_operation_none) && (op_b == aoclsparse_operation_none))
         {
             m_c = A->m;

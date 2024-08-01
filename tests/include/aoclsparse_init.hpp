@@ -830,7 +830,7 @@ inline void aoclsparse_partial_shuffle(std::vector<aoclsparse_int> &row_ptr,
 {
     for(aoclsparse_int i = 0; i < m; i++)
     {
-        aoclsparse_int rowstart, rowend, diag_index;
+        aoclsparse_int rowstart, rowend, diag_index = 0;
         aoclsparse_int nnz_in_L, nnz_in_row;
         rowstart   = row_ptr[i] - base;
         rowend     = row_ptr[i + 1] - base;

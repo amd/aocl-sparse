@@ -373,9 +373,11 @@ namespace
     } symgs_list_t;
 
 #undef ADD_TEST
-#define ADD_TEST(ID, FUSE_MV, KID, BASE, ITERS, MTYPE, FMODE, TRANSP)                            \
-    ID, #ID "/" #KID "/" #BASE "/ITERS=" #ITERS "/" #MTYPE "/" #FMODE "/" #TRANSP, FUSE_MV, KID, \
-        BASE, ITERS, MTYPE, FMODE, TRANSP
+#define ADD_TEST(ID, FUSE_MV, KID, BASE, ITERS, MTYPE, FMODE, TRANSP)                           \
+    {                                                                                           \
+        ID, #ID "/" #KID "/" #BASE "/ITERS=" #ITERS "/" #MTYPE "/" #FMODE "/" #TRANSP, FUSE_MV, \
+            KID, BASE, ITERS, MTYPE, FMODE, TRANSP                                              \
+    }
 
     symgs_list_t symgs_list[]
         = {ADD_TEST(GS_S7, DISABLED, KD_REF, BASEZERO, 1, SYMMETRIC, LOWER, NONTRANS),

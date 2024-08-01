@@ -90,10 +90,10 @@ int main(void)
         ok &= oki;
     }
 
-    oki = std::abs(d - d_exp) <= tol;
-    std::cout << std::endl << "Output dot product: " << d << (oki ? " " : "!  ") << std::endl;
+    ok &= (std::abs(d - d_exp) <= tol);
+    std::cout << std::endl << "Output dot product: " << d << (ok ? " " : "!  ") << std::endl;
 
     aoclsparse_destroy_mat_descr(descr);
     aoclsparse_destroy(&A);
-    return 0;
+    return ok ? 0 : 4;
 }

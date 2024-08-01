@@ -623,7 +623,7 @@ aoclsparse_status aoclsparse_set_hint(aoclsparse_matrix          mat,
     }
 
     // Check if action is valid or not
-    if((act <= aoclsparse_action_none) && (act >= aoclsparse_action_max))
+    if((act <= aoclsparse_action_none) || (act >= aoclsparse_action_max))
     {
         return aoclsparse_status_invalid_operation;
     }
