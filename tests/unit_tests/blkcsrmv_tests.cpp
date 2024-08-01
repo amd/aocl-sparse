@@ -25,9 +25,6 @@
 #include "gtest/gtest.h"
 #include "aoclsparse.hpp"
 
-//aocl utils
-#include "Au/Cpuid/X86Cpu.hh"
-
 namespace
 {
     // Several tests in one when nullptr is passed instead
@@ -858,36 +855,31 @@ namespace
     //
     TEST(blkcsrmv, NullArgDouble)
     {
-        Au::X86Cpu Cpu = {0};
-        bool okblk = Cpu.hasFlag(Au::ECpuidFlag::avx512f) && Cpu.hasFlag(Au::ECpuidFlag::avx512vl);
-        const aoclsparse_status blkcsrmv_status
-            = okblk ? aoclsparse_status_invalid_pointer : aoclsparse_status_not_implemented;
+        const aoclsparse_status blkcsrmv_status = can_exec_blkcsrmv()
+                                                      ? aoclsparse_status_invalid_pointer
+                                                      : aoclsparse_status_not_implemented;
         test_blkcsrmv_nullptr<double>(blkcsrmv_status);
     }
     TEST(blkcsrmv, WrongSizeDouble)
     {
-        Au::X86Cpu Cpu = {0};
-        bool okblk = Cpu.hasFlag(Au::ECpuidFlag::avx512f) && Cpu.hasFlag(Au::ECpuidFlag::avx512vl);
-        const aoclsparse_status blkcsrmv_status
-            = okblk ? aoclsparse_status_invalid_size : aoclsparse_status_not_implemented;
+        const aoclsparse_status blkcsrmv_status = can_exec_blkcsrmv()
+                                                      ? aoclsparse_status_invalid_size
+                                                      : aoclsparse_status_not_implemented;
         test_blkcsrmv_wrong_size<double>(blkcsrmv_status);
     }
 
     TEST(blkcsrmv, DoNothingDouble)
     {
-        Au::X86Cpu Cpu = {0};
-        bool okblk = Cpu.hasFlag(Au::ECpuidFlag::avx512f) && Cpu.hasFlag(Au::ECpuidFlag::avx512vl);
         const aoclsparse_status blkcsrmv_status
-            = okblk ? aoclsparse_status_success : aoclsparse_status_not_implemented;
+            = can_exec_blkcsrmv() ? aoclsparse_status_success : aoclsparse_status_not_implemented;
         test_blkcsrmv_do_nothing<double>(blkcsrmv_status);
     }
 
     TEST(blkcsrmv, InvalidBase)
     {
-        Au::X86Cpu Cpu = {0};
-        bool okblk = Cpu.hasFlag(Au::ECpuidFlag::avx512f) && Cpu.hasFlag(Au::ECpuidFlag::avx512vl);
-        const aoclsparse_status blkcsrmv_status
-            = okblk ? aoclsparse_status_invalid_value : aoclsparse_status_not_implemented;
+        const aoclsparse_status blkcsrmv_status = can_exec_blkcsrmv()
+                                                      ? aoclsparse_status_invalid_value
+                                                      : aoclsparse_status_not_implemented;
         test_blkcsrmv_invalid_base<double>(blkcsrmv_status);
     }
     TEST(blkcsrmv, Conversion)
@@ -897,27 +889,21 @@ namespace
 
     TEST(blkcsrmv, AVX512BaseOneDoubleBlkCSRInput)
     {
-        Au::X86Cpu Cpu = {0};
-        bool okblk = Cpu.hasFlag(Au::ECpuidFlag::avx512f) && Cpu.hasFlag(Au::ECpuidFlag::avx512vl);
         const aoclsparse_status blkcsrmv_status
-            = okblk ? aoclsparse_status_success : aoclsparse_status_not_implemented;
+            = can_exec_blkcsrmv() ? aoclsparse_status_success : aoclsparse_status_not_implemented;
         test_blkcsrmv_baseOneBlkCSRInput<double>(blkcsrmv_status);
     }
 
     TEST(blkcsrmv, AVX512BaseOneDoubleCSRInput)
     {
-        Au::X86Cpu Cpu = {0};
-        bool okblk = Cpu.hasFlag(Au::ECpuidFlag::avx512f) && Cpu.hasFlag(Au::ECpuidFlag::avx512vl);
         const aoclsparse_status blkcsrmv_status
-            = okblk ? aoclsparse_status_success : aoclsparse_status_not_implemented;
+            = can_exec_blkcsrmv() ? aoclsparse_status_success : aoclsparse_status_not_implemented;
         test_blkcsrmv_baseOneCSRInput<double>(blkcsrmv_status);
     }
     TEST(blkcsrmv, AVX512BaseZeroDoubleCSRInput)
     {
-        Au::X86Cpu Cpu = {0};
-        bool okblk = Cpu.hasFlag(Au::ECpuidFlag::avx512f) && Cpu.hasFlag(Au::ECpuidFlag::avx512vl);
         const aoclsparse_status blkcsrmv_status
-            = okblk ? aoclsparse_status_success : aoclsparse_status_not_implemented;
+            = can_exec_blkcsrmv() ? aoclsparse_status_success : aoclsparse_status_not_implemented;
         test_blkcsrmv_baseZeroCSRInput<double>(blkcsrmv_status);
     }
 } // namespace

@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -122,4 +122,11 @@ template <>
 aoclsparse_status itsol_init<float>(aoclsparse_itsol_handle *handle)
 {
     return aoclsparse_itsol_s_init(handle);
+}
+
+bool can_exec_blkcsrmv()
+{
+    Au::X86Cpu Cpu = {0};
+    return Cpu.hasFlag(Au::ECpuidFlag::avx512f) && Cpu.hasFlag(Au::ECpuidFlag::avx512vl)
+           && aoclsparse_is_avx512_build();
 }
