@@ -834,8 +834,8 @@ namespace
         // Initialise vectors
         T x[5] = {{0, 1}, {2, 1}, {3, 0}, {4, -1}, {5, 2}};
         //        T y_exp[5]      = {{9, 5}, {5, 3}, {16, 17}, {20, 12}, {21, 46}};
-        T y[5]      = {0, 0};
-        T y_gold[5] = {0, 0};
+        T y[5]      = {{0, 0}};
+        T y_gold[5] = {{0, 0}};
 
         aoclsparse_index_base base = aoclsparse_index_base_zero;
         aoclsparse_mat_descr  descr;

@@ -193,7 +193,7 @@ int testing_trsm(const Arguments &arg)
         return -1;
     }
 
-    aoclsparse_int mm, nn;
+    aoclsparse_int mm = 0, nn;
     // Allocate memory for matrix
     std::vector<T> y_gold;
 

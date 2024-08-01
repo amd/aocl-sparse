@@ -191,7 +191,7 @@ namespace
                   << std::endl;
 #endif
         const aoclsparse_int m = A->m, n = A->n;
-        aoclsparse_int       ldb, ldx; // leading dimensions of dense matrices B and X
+        aoclsparse_int       ldb = 0, ldx = 0; // leading dimensions of dense matrices B and X
         int                  mm, nn, starting_offset_x, starting_offset_b;
         std::vector<T>       B, X, XRef;
         std::vector<T>       xref_scaled, b_scaled;
@@ -349,8 +349,10 @@ namespace
     } trsm_list_t;
 
 #undef ADD_TEST
-#define ADD_TEST(ID, KID, BASE, ORDER, K) \
-    ID, #ID "/" #ORDER "/" #KID "/" #BASE "/K=" #K, KID, BASE, ORDER, K
+#define ADD_TEST(ID, KID, BASE, ORDER, K)                                   \
+    {                                                                       \
+        ID, #ID "/" #ORDER "/" #KID "/" #BASE "/K=" #K, KID, BASE, ORDER, K \
+    }
 
 #define ADD_TEST_BATCH(PRE, K)                                       \
     ADD_TEST(PRE##_Lx_aB, KD_REF, BASEONE, ROWMAJOR, K),             \
