@@ -58,6 +58,7 @@ std::enable_if_t<std::is_same_v<T, double>, aoclsparse_status>
 
     if(can_exec)
     {
+#ifdef USE_AVX512
         if(descr == nullptr)
         {
             return aoclsparse_status_invalid_pointer;
@@ -130,7 +131,6 @@ std::enable_if_t<std::is_same_v<T, double>, aoclsparse_status>
             return aoclsparse_status_invalid_pointer;
         }
 
-#ifdef USE_AVX512
         if(nRowsblk == 1)
             return aoclsparse_blkcsrmv_1x8_vectorized_avx512(
                 descr->base, *alpha, m, masks, blk_csr_val, blk_col_ind, blk_row_ptr, x, *beta, y);

@@ -419,8 +419,10 @@ int main(int argc, char *argv[])
     else if(strcmp(arg.function, "blkcsrmv") == 0)
     {
         Au::X86Cpu Cpu = {0};
-        bool okblk = Cpu.hasFlag(Au::ECpuidFlag::avx512f) && Cpu.hasFlag(Au::ECpuidFlag::avx512vl);
-        //float and complex are not supported. avx512 code on non-avx512 machine not supported
+        bool okblk = Cpu.hasFlag(Au::ECpuidFlag::avx512f) && Cpu.hasFlag(Au::ECpuidFlag::avx512vl)
+                     && aoclsparse_is_avx512_build();
+        //float and complex are not supported. avx512 code on non-avx512 machine not supported.
+        //build has to be AVX512
         if(precision == 'd' && okblk)
             return testing_blkcsrmv<double>(arg);
     }

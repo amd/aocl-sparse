@@ -891,6 +891,9 @@ aoclsparse_int aoclsparse_debug_dispatcher(const char                  name[],
                                            aoclsparse_matrix_data_type dt,
                                            aoclsparse_int              kid);
 
+DLL_PUBLIC
+aoclsparse_int aoclsparse_is_avx512_build();
+
 #ifdef __cplusplus
 }
 #endif

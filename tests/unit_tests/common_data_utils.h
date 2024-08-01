@@ -38,6 +38,9 @@
 #include <typeinfo>
 #include <vector>
 
+//aocl utils
+#include "Au/Cpuid/X86Cpu.hh"
+
 // Utilities to compare complex real scalars and vectors =============================================
 
 #define EXPECT_COMPLEX_EQ_VEC(n, x, y)                                           \
@@ -3373,3 +3376,6 @@ public:
         delete[] arch;
     }
 };
+
+// Returns 'true' if blkcsrmv tests can be executed in the given build
+bool can_exec_blkcsrmv();

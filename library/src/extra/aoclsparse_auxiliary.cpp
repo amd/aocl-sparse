@@ -1589,3 +1589,13 @@ void set_symgs_matrix_properties(aoclsparse_mat_descr  descr_dest,
     *trans_dest = trans;
     return;
 }
+
+// Returns '1' if the build is AVX512 enabled. Else return '0'
+aoclsparse_int aoclsparse_is_avx512_build()
+{
+#ifdef USE_AVX512
+    return 1;
+#else
+    return 0;
+#endif
+}
