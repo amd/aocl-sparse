@@ -92,7 +92,7 @@ aoclsparse_int aoclsparse_opt_blksize(aoclsparse_int        m,
                     if(iVal[iSubRow] < (csr_row_ptr[iRow + iSubRow + 1] - base))
                     {
                         blockComplete = false;
-                        iCol          = std::min<int>(iCol, (csr_col_ind[iVal[iSubRow]] - base));
+                        iCol          = (std::min<int>)(iCol, (csr_col_ind[iVal[iSubRow]] - base));
                     }
                 }
                 if(blockComplete)
@@ -230,7 +230,7 @@ aoclsparse_status aoclsparse_csr2blkcsr(aoclsparse_int        m,
                 if(iVal[iSubRow] < (blk_row_ptr_local[iRow + iSubRow + 1] - base))
                 {
                     blockComplete = false;
-                    iCol          = std::min<int>(iCol, (csr_col_ind[iVal[iSubRow]] - base));
+                    iCol          = (std::min<int>)(iCol, (csr_col_ind[iVal[iSubRow]] - base));
                 }
             }
             if(blockComplete)

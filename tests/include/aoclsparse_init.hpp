@@ -350,10 +350,10 @@ aoclsparse_status aoclsparse_generate_coo_matrix(std::vector<aoclsparse_int> &ro
         if constexpr(std::is_same_v<T, aoclsparse_float_complex>
                      || std::is_same_v<T, aoclsparse_double_complex>)
         {
-            max_val_entry.real = std::max(std::abs(val[i].real), max_val_entry.real);
+            max_val_entry.real = (std::max)(std::abs(val[i].real), max_val_entry.real);
             if(!is_herm)
             {
-                max_val_entry.imag = std::max(std::abs(val[i].imag), max_val_entry.imag);
+                max_val_entry.imag = (std::max)(std::abs(val[i].imag), max_val_entry.imag);
             }
             else
             {
@@ -362,7 +362,7 @@ aoclsparse_status aoclsparse_generate_coo_matrix(std::vector<aoclsparse_int> &ro
         }
         else
         {
-            max_val_entry = std::max(std::abs(val[i]), max_val_entry);
+            max_val_entry = (std::max)(std::abs(val[i]), max_val_entry);
         }
     }
     if(full_diag)
