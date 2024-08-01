@@ -265,10 +265,16 @@ namespace dispatch_Test
         case tokenize_isa("GENERIC", 6):
             // test already covered
             break;
-        default:
+        case tokenize_isa("ZEN", 3):
+        case tokenize_isa("ZEN2", 4):
             // Zen 1/1+/2:
             EXPECT_EQ(aoclsparse_debug_dispatcher(dispatcher.c_str(), aoclsparse_smat, -1),
                       1 + 1000);
+            break;
+        default:
+            // For unknown architectures
+            EXPECT_EQ(aoclsparse_debug_dispatcher(dispatcher.c_str(), aoclsparse_smat, -1),
+                      0 + 1000);
             break;
         }
     }
