@@ -74,10 +74,10 @@ int near_check_general(
                 does_ipart_exists = false;
             }
 
-            compare_val_real = std::max(std::abs(ref_rpart * 1e-6f), abserr);
+            compare_val_real = (std::max)(std::abs(ref_rpart * 1e-6f), abserr);
             if(does_ipart_exists)
             {
-                compare_val_imag = std::max(std::abs(actual_ipart * 1e-6f), abserr);
+                compare_val_imag = (std::max)(std::abs(actual_ipart * 1e-6f), abserr);
             }
             for(k = 1; k <= MAX_TOL_MULTIPLIER; ++k)
             {
@@ -109,7 +109,7 @@ int near_check_general(
                 }
                 return 1;
             }
-            tolm = std::max(tolm, k);
+            tolm = (std::max)(tolm, k);
         }
     }
     if(tolm > 1)

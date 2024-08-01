@@ -168,7 +168,7 @@ namespace
 
     void check_opt_csr(aoclsparse_matrix &A, sol_opt_csr &sol)
     {
-        aoclsparse_int dim = std::min(A->n, A->m);
+        aoclsparse_int dim = (std::min)(A->n, A->m);
         ASSERT_EQ(A->opt_csr_is_users, sol.opt_csr_is_users);
         EXPECT_EQ_VEC(A->m + 1, A->opt_csr_mat.csr_row_ptr, sol.icrow);
         EXPECT_EQ_VEC(A->opt_csr_mat.csr_row_ptr[A->m], A->opt_csr_mat.csr_col_ptr, sol.icol);
