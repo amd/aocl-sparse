@@ -265,9 +265,8 @@ namespace
         // Explicitly, request the kernels
         test_dotp_success<double, 0>();
         test_dotp_success<double, 1>();
-#ifdef __AVX512F__
-        test_dotp_success<double, 2>();
-#endif
+        if(can_exec_avx512_tests())
+            test_dotp_success<double, 2>();
     }
     TEST(dot, SuccessArgFloat)
     {
@@ -277,9 +276,8 @@ namespace
         // Explicitly, request the kernels
         test_dotp_success<float, 0>();
         test_dotp_success<float, 1>();
-#ifdef __AVX512F__
-        test_dotp_success<float, 2>();
-#endif
+        if(can_exec_avx512_tests())
+            test_dotp_success<float, 2>();
     }
     TEST(dot, SuccessArgCDouble)
     {
@@ -289,9 +287,8 @@ namespace
         // Explicitly, request the kernels
         test_dotp_success<std::complex<double>, 0>();
         test_dotp_success<std::complex<double>, 1>();
-#ifdef __AVX512F__
-        test_dotp_success<std::complex<double>, 2>();
-#endif
+        if(can_exec_avx512_tests())
+            test_dotp_success<std::complex<double>, 2>();
     }
     TEST(dot, SuccessArgCFloat)
     {
@@ -301,9 +298,8 @@ namespace
         // Explicitly, request the kernels
         test_dotp_success<std::complex<float>, 0>();
         test_dotp_success<std::complex<float>, 1>();
-#ifdef __AVX512F__
-        test_dotp_success<std::complex<float>, 2>();
-#endif
+        if(can_exec_avx512_tests())
+            test_dotp_success<std::complex<float>, 2>();
     }
     TEST(dot, SuccessArgCStructDouble)
     {
@@ -313,9 +309,8 @@ namespace
         // Explicitly, request the kernels
         test_dotp_success<aoclsparse_double_complex, 0>();
         test_dotp_success<aoclsparse_double_complex, 1>();
-#ifdef __AVX512F__
-        test_dotp_success<aoclsparse_double_complex, 2>();
-#endif
+        if(can_exec_avx512_tests())
+            test_dotp_success<aoclsparse_double_complex, 2>();
     }
     TEST(dot, SuccessArgCStructFloat)
     {
@@ -325,9 +320,8 @@ namespace
         // Explicitly, request the kernels
         test_dotp_success<aoclsparse_float_complex, 0>();
         test_dotp_success<aoclsparse_float_complex, 1>();
-#ifdef __AVX512F__
-        test_dotp_success<aoclsparse_float_complex, 2>();
-#endif
+        if(can_exec_avx512_tests())
+            test_dotp_success<aoclsparse_float_complex, 2>();
     }
 
 } // namespace

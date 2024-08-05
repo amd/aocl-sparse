@@ -20,14 +20,14 @@
  * THE SOFTWARE.
  *
  * ************************************************************************ */
-
+#ifndef AOCLSPARESE_ELLMV_K_HPP
+#define AOCLSPARESE_ELLMV_K_HPP
 #include "aoclsparse.h"
 #include "aoclsparse_context.h"
 #include "aoclsparse_descr.h"
 
 #include <immintrin.h>
 
-#ifdef __AVX512F__
 aoclsparse_status aoclsparse_dellmv_avx512(const double                    alpha,
                                            aoclsparse_int                  m,
                                            [[maybe_unused]] aoclsparse_int n,

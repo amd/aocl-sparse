@@ -21,6 +21,9 @@
  *
  * ************************************************************************ */
 
+// Note: Since it uses KT outside the scope of the library, AVX512 tests will be
+// executed only if this file is compiled with appropriate AVX512 flags
+
 #include "aoclsparse.h"
 #include "common_data_utils.h"
 #include "aoclsparse_kernel_templates.hpp"
@@ -396,7 +399,8 @@ namespace TestsKT
         driver_spmv<bsz::b256, std::complex<double>>();
     }
 
-#ifdef USE_AVX512
+// Enabled only if compiled with AVX-512
+#ifdef __AVX512F__
     TEST(KT_L2, kt_spmb512)
     {
         driver_spmv<bsz::b512, float>();

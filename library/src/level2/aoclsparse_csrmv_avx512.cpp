@@ -20,7 +20,9 @@
  * THE SOFTWARE.
  *
  * ************************************************************************ */
-
+#ifndef __AVX512F__
+#error "File contains AVX512 kernels and needs to be compiled with AVX512 flags."
+#else
 #include "aoclsparse_csrmv_avx512.hpp"
 
 #include <immintrin.h>
@@ -30,7 +32,6 @@
 #define __restrict__ __restrict
 #endif
 
-#ifdef __AVX512F__
 aoclsparse_status aoclsparse_csrmv_vectorized_avx512(aoclsparse_index_base base,
                                                      const double          alpha,
                                                      aoclsparse_int        m,
@@ -205,5 +206,4 @@ aoclsparse_status aoclsparse_zcsrmv_avx512(aoclsparse_index_base      base,
     }
     return aoclsparse_status_success;
 }
-
 #endif

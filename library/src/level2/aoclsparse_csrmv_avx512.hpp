@@ -20,14 +20,16 @@
  * THE SOFTWARE.
  *
  * ************************************************************************ */
+#ifndef AOCLSPARSE_CSRMV_K_HPP
+#define AOCLSPARSE_CSRMV_K_HPP
 #include "aoclsparse.h"
 
 #include <complex>
 
 // AVX512 kernels
 // =================
+// Only builds with AVX512 will have this functions defined
 
-#ifdef __AVX512F__
 aoclsparse_status aoclsparse_csrmv_vectorized_avx512(aoclsparse_index_base base,
                                                      const double          alpha,
                                                      aoclsparse_int        m,

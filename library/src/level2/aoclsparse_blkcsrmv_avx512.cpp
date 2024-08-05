@@ -20,14 +20,15 @@
  * THE SOFTWARE.
  *
  * ************************************************************************ */
-
+#ifndef __AVX512F__
+#error "File contains AVX512 kernels and needs to be compiled with AVX512 flags."
+#else
 #include "aoclsparse_blkcsrmv_avx512.hpp"
 
 // Kernels and its dependencies
 //-------------------------------
 
-#if defined __AVX512F__ && defined __AVX512VL__
-int                                bits_set(uint8_t x)
+int bits_set(uint8_t x)
 {
 #if !defined(__clang__) && (defined(_WIN32) || defined(_WIN64))
     return __popcnt(x);

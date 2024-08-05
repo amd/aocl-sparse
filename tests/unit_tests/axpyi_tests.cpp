@@ -207,39 +207,49 @@ namespace
     {
         test_aoclsparse_axpyi_success<float>();
         test_aoclsparse_axpyi_success<float>(false, 0);
+        test_aoclsparse_axpyi_success<float>(false, 1);
+        if(can_exec_avx512_tests())
+            test_aoclsparse_axpyi_success<float>(false, 2);
     }
     TEST(axpyi, SuccessDouble)
     {
         test_aoclsparse_axpyi_success<double>();
+        test_aoclsparse_axpyi_success<double>(false, 0);
         test_aoclsparse_axpyi_success<double>(false, 1);
+        if(can_exec_avx512_tests())
+            test_aoclsparse_axpyi_success<double>(false, 2);
     }
     TEST(axpyi, SuccessCFloat)
     {
         test_aoclsparse_axpyi_success<std::complex<float>>();
+        test_aoclsparse_axpyi_success<std::complex<float>>(false, 0);
         test_aoclsparse_axpyi_success<std::complex<float>>(false, 1);
+        if(can_exec_avx512_tests())
+            test_aoclsparse_axpyi_success<std::complex<float>>(false, 2);
     }
     TEST(axpyi, SuccessCDouble)
     {
         test_aoclsparse_axpyi_success<std::complex<double>>();
-#ifdef USE_AVX512
-        test_aoclsparse_axpyi_success<std::complex<double>>(false, 2);
-#else
         test_aoclsparse_axpyi_success<std::complex<double>>(false, 0);
-#endif
+        test_aoclsparse_axpyi_success<std::complex<double>>(false, 1);
+        if(can_exec_avx512_tests())
+            test_aoclsparse_axpyi_success<std::complex<double>>(false, 2);
     }
     TEST(axpyi, SuccessCStructFloat)
     {
         test_aoclsparse_axpyi_success<aoclsparse_float_complex>();
+        test_aoclsparse_axpyi_success<aoclsparse_float_complex>(false, 0);
         test_aoclsparse_axpyi_success<aoclsparse_float_complex>(false, 1);
+        if(can_exec_avx512_tests())
+            test_aoclsparse_axpyi_success<aoclsparse_float_complex>(false, 2);
     }
     TEST(axpyi, SuccessCStructDouble)
     {
         test_aoclsparse_axpyi_success<aoclsparse_double_complex>();
-#ifdef USE_AVX512
-        test_aoclsparse_axpyi_success<aoclsparse_double_complex>(false, 2);
-#else
         test_aoclsparse_axpyi_success<aoclsparse_double_complex>(false, 0);
-#endif
+        test_aoclsparse_axpyi_success<aoclsparse_double_complex>(false, 1);
+        if(can_exec_avx512_tests())
+            test_aoclsparse_axpyi_success<aoclsparse_double_complex>(false, 2);
     }
 
 } // namespace

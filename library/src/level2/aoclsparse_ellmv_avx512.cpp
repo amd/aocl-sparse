@@ -20,9 +20,11 @@
  * THE SOFTWARE.
  *
  * ************************************************************************ */
+#ifndef __AVX512F__
+#error "File contains AVX512 kernels and needs to be compiled with AVX512 flags."
+#else
 #include "aoclsparse_ellmv_avx512.hpp"
 
-#ifdef __AVX512F__
 aoclsparse_status aoclsparse_dellmv_avx512(const double                    alpha,
                                            aoclsparse_int                  m,
                                            [[maybe_unused]] aoclsparse_int n,
