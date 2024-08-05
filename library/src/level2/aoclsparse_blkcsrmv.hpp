@@ -32,20 +32,20 @@
 // Blocked SpMV only supports single threaded usecases.
 template <typename T>
 std::enable_if_t<std::is_same_v<T, double>, aoclsparse_status>
-    aoclsparse_blkcsrmv_t(aoclsparse_operation            trans,
-                          [[maybe_unused]] const T       *alpha,
-                          aoclsparse_int                  m,
-                          aoclsparse_int                  n,
-                          aoclsparse_int                  nnz,
-                          const uint8_t                  *masks,
-                          const T                        *blk_csr_val,
-                          const aoclsparse_int           *blk_col_ind,
-                          const aoclsparse_int           *blk_row_ptr,
-                          const aoclsparse_mat_descr      descr,
-                          const T                        *x,
-                          [[maybe_unused]] const T       *beta,
-                          T                              *y,
-                          [[maybe_unused]] aoclsparse_int nRowsblk)
+    aoclsparse_blkcsrmv_t([[maybe_unused]] aoclsparse_operation       trans,
+                          [[maybe_unused]] const T                   *alpha,
+                          [[maybe_unused]] aoclsparse_int             m,
+                          [[maybe_unused]] aoclsparse_int             n,
+                          [[maybe_unused]] aoclsparse_int             nnz,
+                          [[maybe_unused]] const uint8_t             *masks,
+                          [[maybe_unused]] const T                   *blk_csr_val,
+                          [[maybe_unused]] const aoclsparse_int      *blk_col_ind,
+                          [[maybe_unused]] const aoclsparse_int      *blk_row_ptr,
+                          [[maybe_unused]] const aoclsparse_mat_descr descr,
+                          [[maybe_unused]] const T                   *x,
+                          [[maybe_unused]] const T                   *beta,
+                          [[maybe_unused]] T                         *y,
+                          [[maybe_unused]] aoclsparse_int             nRowsblk)
 {
     using namespace aoclsparse;
 
