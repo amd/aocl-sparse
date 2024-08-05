@@ -192,17 +192,15 @@ namespace
     {
         test_roti_success<double, 0>();
         test_roti_success<double, 1>();
-#ifdef __AVX512F__
-        test_roti_success<double, 2>();
-#endif
+        if(can_exec_avx512_tests())
+            test_roti_success<double, 2>();
     }
     TEST(roti, SuccessArgFloat)
     {
         test_roti_success<float, 0>();
         test_roti_success<float, 1>();
-#ifdef __AVX512F__
-        test_roti_success<float, 2>();
-#endif
+        if(can_exec_avx512_tests())
+            test_roti_success<float, 2>();
     }
 
 } // namespace

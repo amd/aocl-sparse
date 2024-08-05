@@ -130,3 +130,10 @@ bool can_exec_blkcsrmv()
     return Cpu.hasFlag(Au::ECpuidFlag::avx512f) && Cpu.hasFlag(Au::ECpuidFlag::avx512vl)
            && aoclsparse_is_avx512_build();
 }
+
+// Returns 'true' if AVX512 tests can be executed in the given build
+bool can_exec_avx512_tests()
+{
+    Au::X86Cpu Cpu = {0};
+    return Cpu.hasFlag(Au::ECpuidFlag::avx512f) && aoclsparse_is_avx512_build();
+}

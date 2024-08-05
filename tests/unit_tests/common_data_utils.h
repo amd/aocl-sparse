@@ -4232,3 +4232,7 @@ void init_tcsr_matrix(aoclsparse_int              &m,
         }
     }
 }
+/* Returns 'true' if AVX512 tests can be executed in the given build
+ * i.e. the build is AVX512-enabled running on AVX512 hardware.
+ */
+bool can_exec_avx512_tests();

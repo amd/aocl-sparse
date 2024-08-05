@@ -30,13 +30,6 @@
 #include <intrin.h>
 #endif
 
-/*
-*    NOTE: These declarations are enabled only when compiled with AVX512F
-*    and AVX512VL flags. Without those flags, the definition cannot be enabled.
-*/
-// Function definitions.
-// -----------------------
-#if defined __AVX512F__ && defined __AVX512VL__
 aoclsparse_status
     aoclsparse_blkcsrmv_1x8_vectorized_avx512(aoclsparse_index_base base,
                                               const double          alpha,
@@ -72,6 +65,4 @@ aoclsparse_status
                                               const double *__restrict__ x,
                                               const double beta,
                                               double *__restrict__ y);
-#endif // For AVX512F
-
 #endif

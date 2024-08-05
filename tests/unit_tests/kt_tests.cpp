@@ -21,6 +21,9 @@
  *
  * ************************************************************************
  */
+
+// Note: Since it uses KT outside the scope of the library, AVX512 tests will be
+// executed only if this file is compiled with appropriate AVX512 flags
 #include "common_data_utils.h"
 #include "gtest/gtest.h"
 
@@ -121,7 +124,7 @@ namespace TestsKT
         EXPECT_EQ((hsz_v<bsz::b256, double>), 2U);
         EXPECT_EQ((tsz_v<bsz::b256, double>), 4U);
     }
-#ifdef USE_AVX512
+#ifdef __AVX512F__
     TEST(KT_L0, KT_TYPES_512)
     {
         /*
@@ -204,7 +207,7 @@ namespace TestsKT
         EXPECT_EQ((hsz_v<bsz::b256, cdouble>), 2U);
         EXPECT_EQ((tsz_v<bsz::b256, cdouble>), 2U);
     }
-#ifdef USE_AVX512
+#ifdef __AVX512F__
     TEST(KT_L0, KT_CTYPES_512)
     {
         /*
@@ -271,7 +274,7 @@ namespace TestsKT
         // Check in complex space
         EXPECT_EQ_VEC((tsz_v<bsz::b256, cdouble>), z, &D.vz[1]);
     }
-#ifdef USE_AVX512
+#ifdef __AVX512F__
     TEST(KT_L0, kt_loadu_p_512)
     {
         EXPECT_EQ_VEC(
@@ -312,7 +315,7 @@ namespace TestsKT
         EXPECT_EQ_VEC((tsz_v<bsz::b256, cfloat>), (kt_setzero_p<bsz::b256, cfloat>()), szero);
         EXPECT_EQ_VEC((tsz_v<bsz::b256, cdouble>), (kt_setzero_p<bsz::b256, cdouble>()), dzero);
     }
-#ifdef USE_AVX512
+#ifdef __AVX512F__
     TEST(KT_L0, kt_setzero_p_512)
     {
         const size_t ns        = tsz_v<bsz::b512, float>;
@@ -355,7 +358,7 @@ namespace TestsKT
         z  = reinterpret_cast<std::complex<double> *>(&vz);
         EXPECT_EQ_VEC((tsz_v<bsz::b256, cdouble>), z, refz);
     }
-#ifdef USE_AVX512
+#ifdef __AVX512F__
     TEST(KT_L0, kt_set1_p_512)
     {
         float refs[]{
@@ -450,7 +453,7 @@ namespace TestsKT
         EXPECT_COMPLEX_DOUBLE_EQ_VEC(nz, pz, refz);
     }
 
-#ifdef USE_AVX512
+#ifdef __AVX512F__
     TEST(KT_L0, kt_add_p_512)
     {
         const size_t                   ns = tsz_v<bsz::b512, float>;
@@ -571,7 +574,7 @@ namespace TestsKT
         EXPECT_COMPLEX_DOUBLE_EQ_VEC(nz, pz, refz);
     }
 
-#ifdef USE_AVX512
+#ifdef __AVX512F__
     TEST(KT_L0, kt_sub_p_512)
     {
         const size_t                   ns = tsz_v<bsz::b512, float>;
@@ -690,7 +693,7 @@ namespace TestsKT
         EXPECT_COMPLEX_DOUBLE_EQ_VEC(nz, pz, refz);
     }
 
-#ifdef USE_AVX512
+#ifdef __AVX512F__
     TEST(KT_L0, kt_mul_p_512)
     {
         size_t                         ns = tsz_v<bsz::b512, float>;
@@ -818,7 +821,7 @@ namespace TestsKT
         EXPECT_COMPLEX_DOUBLE_EQ_VEC(nz, pz, refz);
     }
 
-#ifdef USE_AVX512
+#ifdef __AVX512F__
     TEST(KT_L0, kt_fmadd_p_512)
     {
         size_t                         ns = tsz_v<bsz::b512, float>;
@@ -971,7 +974,7 @@ namespace TestsKT
         EXPECT_COMPLEX_DOUBLE_EQ_VEC(nz, pz, refz);
     }
 
-#ifdef USE_AVX512
+#ifdef __AVX512F__
     TEST(KT_L0, kt_fmsub_p_512)
     {
         size_t                         ns = tsz_v<bsz::b512, float>;
@@ -1106,7 +1109,7 @@ namespace TestsKT
         EXPECT_COMPLEX_EQ_VEC(nz, pz, refz);
     }
 
-#ifdef USE_AVX512
+#ifdef __AVX512F__
     TEST(KT_L0, kt_set_p_512)
     {
         const size_t                    ns = tsz_v<bsz::b512, float>;
@@ -1285,7 +1288,7 @@ namespace TestsKT
         kt_maskz_set_p_param_indir(bsz::b256, cdouble, z, AVX512DQ, 0, 0);
     }
 
-#ifdef USE_AVX512
+#ifdef __AVX512F__
     TEST(KT_L0, kt_maskz_set_p_256_AVX512VL)
     {
         kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX512VL, 1, 0);
@@ -1314,7 +1317,7 @@ namespace TestsKT
     }
 #endif
 
-#ifdef USE_AVX512
+#ifdef __AVX512F__
     TEST(KT_L0, kt_maskz_set_p_512_AVX512F)
     {
         // Direct
@@ -1449,7 +1452,7 @@ namespace TestsKT
         EXPECT_COMPLEX_DOUBLE_EQ(sumz, refz);
     }
 
-#ifdef USE_AVX512
+#ifdef __AVX512F__
     TEST(KT_L0, kt_hsum_p_512)
     {
         const size_t                   ns = tsz_v<bsz::b512, float>;
@@ -1568,7 +1571,7 @@ namespace TestsKT
         EXPECT_COMPLEX_EQ_VEC(nz, refz, pz);
     }
 
-#ifdef USE_AVX512
+#ifdef __AVX512F__
     TEST(KT_L0, kt_conj_p_512)
     {
         constexpr size_t                ns = tsz_v<bsz::b512, float>;
@@ -1678,7 +1681,7 @@ namespace TestsKT
         EXPECT_COMPLEX_DOUBLE_EQ(refz, zdot);
     }
 
-#ifdef USE_AVX512
+#ifdef __AVX512F__
     TEST(KT_L1, kt_dot_p_512)
     {
         const size_t                   ns   = tsz_v<bsz::b512, float>;
@@ -1768,7 +1771,7 @@ namespace TestsKT
         EXPECT_COMPLEX_DOUBLE_EQ(refz, zdot);
     }
 
-#ifdef USE_AVX512
+#ifdef __AVX512F__
     TEST(KT_L1, kt_cdot_p_512)
     {
         size_t                         ns   = tsz_v<bsz::b512, float>;
@@ -1863,7 +1866,7 @@ namespace TestsKT
         EXPECT_EQ_VEC(nz, vz, refz);
     }
 
-#ifdef USE_AVX512
+#ifdef __AVX512F__
     TEST(KT_L0, kt_storeu_p_512)
     {
         constexpr size_t                ns = tsz_v<bsz::b512, float>;
