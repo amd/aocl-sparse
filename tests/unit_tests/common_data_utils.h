@@ -1118,7 +1118,7 @@ aoclsparse_status
     aoclsparse_order       order;
     T                      beta;
     std::vector<T>         wcolxref, wcolb;
-    aoclsparse_int         csr_value_offset, x_offset;
+    aoclsparse_int         csr_value_offset = 0, x_offset = 0;
     const bool             cplx
         = std::is_same_v<T, std::complex<float>> || std::is_same_v<T, std::complex<double>>;
 
