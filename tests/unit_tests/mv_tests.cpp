@@ -1667,9 +1667,11 @@ namespace
         aoclsparse_int   ou_range;
     } extreme_value_list_t;
 #undef ADD_TEST
-#define ADD_TEST(ID, MTYPE, FMODE, TRANSP, OPERAND1, OPERAND2, FLOW_RANGE)                        \
-    ID, #ID "/" #MTYPE "/" #FMODE "/" #TRANSP "/" #OPERAND1 "/" #OPERAND2 "/" #FLOW_RANGE, MTYPE, \
-        FMODE, TRANSP, OPERAND1, OPERAND2, FLOW_RANGE
+#define ADD_TEST(ID, MTYPE, FMODE, TRANSP, OPERAND1, OPERAND2, FLOW_RANGE)                     \
+    {                                                                                          \
+        ID, #ID "/" #MTYPE "/" #FMODE "/" #TRANSP "/" #OPERAND1 "/" #OPERAND2 "/" #FLOW_RANGE, \
+            MTYPE, FMODE, TRANSP, OPERAND1, OPERAND2, FLOW_RANGE                               \
+    }
 
     extreme_value_list_t extreme_value_list[] = {
         //General matrices with variations in transpose/Non-transpose and 3 cases of extreme values
