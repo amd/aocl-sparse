@@ -436,13 +436,13 @@ int main(int argc, char *argv[])
     else if(strcmp(arg.function, "optmv") == 0)
     {
         if(precision == 's')
-            testing_optmv<float>(arg);
+            return testing_optmv<float>(arg);
         else if(precision == 'd')
-            testing_optmv<double>(arg);
+            return testing_optmv<double>(arg);
         else if(precision == 'c')
-            testing_optmv<aoclsparse_float_complex>(arg);
+            return testing_optmv<aoclsparse_float_complex>(arg);
         else if(precision == 'z')
-            testing_optmv<aoclsparse_double_complex>(arg);
+            return testing_optmv<aoclsparse_double_complex>(arg);
     }
     else if(strcmp(arg.function, "diamv") == 0)
     {

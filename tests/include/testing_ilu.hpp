@@ -139,7 +139,6 @@ inline void ref_csrilu0(aoclsparse_int                     M,
 template <typename T>
 void testing_ilu(const Arguments &arg)
 {
-    aoclsparse_status      ret;
     aoclsparse_int         M     = arg.M;
     aoclsparse_int         N     = arg.N;
     aoclsparse_int         nnz   = arg.nnz;
@@ -165,10 +164,10 @@ void testing_ilu(const Arguments &arg)
     std::vector<T> b(N);
     aoclsparse_seedrand();
 
-    aoclsparse_init_csr_matrix(
-        csr_row_ptr, csr_col_ind, csr_val, M, N, nnz, base, mat, filename.c_str(), issymm, true);
+    CHECK_AOCLSPARSE_ERROR(aoclsparse_init_csr_matrix(
+        csr_row_ptr, csr_col_ind, csr_val, M, N, nnz, base, mat, filename.c_str(), issymm, true));
 
-    aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_symmetric);
+    CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_symmetric));
 
     aoclsparse_matrix A;
 
@@ -199,15 +198,7 @@ void testing_ilu(const Arguments &arg)
     }
 
     //Basic routine type checks
-    ret = aoclsparse_set_lu_smoother_hint(A, trans, descr, 0);
-    if(aoclsparse_status_success != ret)
-    {
-        std::cerr << "aoclSPARSE status error: Expected "
-                  << aoclsparse_status_to_string(aoclsparse_status_success) << ", received "
-                  << aoclsparse_status_to_string(ret) << std::endl;
-        aoclsparse_destroy(&A);
-        return;
-    }
+    CHECK_AOCLSPARSE_ERROR(aoclsparse_set_lu_smoother_hint(A, trans, descr, 1));
 
     // Optimize the matrix, "A"
     CHECK_AOCLSPARSE_ERROR(aoclsparse_optimize(A));
