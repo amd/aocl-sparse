@@ -120,7 +120,9 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
     */
     static bool can_exec = context::get_context()->supports<context_isa_t::AVX512F>();
 
-    if(can_exec)
+    // conversion of blkcsr assumes sorted indices in rows so don't test suitability
+    // of this format unless the matrix is sorted
+    if(can_exec && A->sort == aoclsparse_fully_sorted)
     {
         if(nnza >= 10)
         {
