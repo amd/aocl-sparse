@@ -54,8 +54,12 @@ int testing_doti_aocl(const Arguments &arg, testdata<T> &td, double timings[])
         td.s                  = aoclsparse_numeric::zero<T>();
         double cpu_time_start = aoclsparse_clock();
 
+        /*
+         * This interface of dot does not return an error code. Instead it returns
+         * the dot product value. Hence NEW_CHECK_AOCLSPARSE_ERROR cannot be used here.
+         */
         td.s = aoclsparse_dot<T, T>(
-            nnz, td.x.data(), td.indx.data(), td.y.data(), &(td.s), false, -1);
+            nnz, td.x.data(), td.indx.data(), td.y.data(), &(td.s), false, arg.kid);
 
         timings[iter] = aoclsparse_clock_diff(cpu_time_start);
     }
