@@ -32,7 +32,7 @@ set(COMPILER_OPTIONS "")
 
 ## Setup the pre-requisites for out-of-source-tree build
 if (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
-    cmake_minimum_required(VERSION 3.21 FATAL_ERROR)
+    cmake_minimum_required(VERSION 3.22 FATAL_ERROR)
 #sparse examples project
     project(aoclsparse_examples LANGUAGES CXX C)
 

@@ -3,7 +3,7 @@ This directory contains sample source files showing usage of AOCL-Sparse library
 
 ## Requirements
 * Git
-* CMake versions 3.21 through 3.29
+* CMake versions 3.22 through 3.29
 * Boost library versions 1.80 through 1.85
 
 ## Build steps on Linux
