@@ -33,7 +33,7 @@ This directory contains sample source files showing usage of AOCL-Sparse library
 
 5. Configure the build system to compile sample applications. Make sure the build configuration is same as the one used to build aoclsparse library for BUILD_ILP64 and SUPPORT_OMP variables.
 	```
-	cmake -S . -B out_sparse -DBUILD_ILP64=ON -DSUPPORT_OMP=OFF
+	cmake -S . -B out_sparse -DBUILD_SHARED_LIBS=ON -DBUILD_ILP64=OFF -DSUPPORT_OMP=ON
 	```
 Build options:
 	BUILD_SHARED_LIBS        - search for shared libraries of dependent libraries (BLAS, LAPACK, UTILS, SPARSE) and build sparse-example build as a shared library
@@ -77,7 +77,7 @@ Build options:
 
 5. Configure the build system to compile sample applications. Make sure the build configuration is same as the one used to build aoclsparse library for BUILD_ILP64 and SUPPORT_OMP variables.
 	```
-	cmake -S . -B out_sparse -G "Visual Studio 17 2022" -A x64 -T "clangcl" -DCMAKE_CXX_COMPILER=clang-cl -DBUILD_SHARED_LIBS=ON -DBUILD_ILP64=OFF -DSUPPORT_OMP=OFF
+	cmake -S . -B out_sparse -G "Visual Studio 17 2022" -A x64 -T "clangcl" -DCMAKE_CXX_COMPILER=clang-cl -DBUILD_SHARED_LIBS=ON -DBUILD_ILP64=OFF -DSUPPORT_OMP=ON
 	```
 6. Compile the sample applications
 	```
