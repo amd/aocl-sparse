@@ -98,9 +98,7 @@ set_target_properties(aoclsparse PROPERTIES CXX_VISIBILITY_PRESET "hidden" VISIB
 set_target_properties(aoclsparse PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/library")
 set_target_properties(aoclsparse PROPERTIES DEBUG_POSTFIX "-d")
 # Sets -fPIC flag
-if(BUILD_SHARED_LIBS)
-  set_target_properties(aoclsparse PROPERTIES POSITION_INDEPENDENT_CODE ON)
-endif()
+set_target_properties(aoclsparse PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 install(TARGETS aoclsparse DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 install(FILES ${PUBLIC_HEADERS} DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
