@@ -444,19 +444,20 @@ static inline void
     if constexpr(std::is_same_v<T, aoclsparse_float_complex>
                  || std::is_same_v<T, std::complex<float>>)
     {
-        float real;
-        float imag;
+        // initialize with some value other than 1/0
+        float real = 1.3;
+        float imag = 2.7;
 
         is >> row >> col >> real >> imag;
-
         val = {real, imag};
     }
 
     if constexpr(std::is_same_v<T, aoclsparse_double_complex>
                  || std::is_same_v<T, std::complex<double>>)
     {
-        double real;
-        double imag;
+        // initialize with some value other than 1/0
+        double real = 1.3;
+        double imag = 2.7;
 
         is >> row >> col >> real >> imag;
 
@@ -585,9 +586,9 @@ inline aoclsparse_status aoclsparse_readmtx_coo(const char                  *fil
     // Read dimensions
     aoclsparse_int snnz;
 
-    int inrow;
-    int incol;
-    int innz;
+    int inrow = 0;
+    int incol = 0;
+    int innz  = 0;
 
     sscanf(line, "%d %d %d", &inrow, &incol, &innz);
 
@@ -610,9 +611,9 @@ inline aoclsparse_status aoclsparse_readmtx_coo(const char                  *fil
             return aoclsparse_status_internal_error;
         }
 
-        aoclsparse_int irow;
-        aoclsparse_int icol;
-        T              ival;
+        aoclsparse_int irow = 0;
+        aoclsparse_int icol = 0;
+        T              ival = aoclsparse_numeric::zero<T>();
 
         std::istringstream ss(line);
 
