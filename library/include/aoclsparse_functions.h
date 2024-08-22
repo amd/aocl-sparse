@@ -3323,6 +3323,61 @@ DLL_PUBLIC aoclsparse_status aoclsparse_dsctrs_kid(const aoclsparse_int nnz,
                                                    double              *y,
                                                    aoclsparse_int       kid);
 
+DLL_PUBLIC
+aoclsparse_status aoclsparse_zcsrmm_kid(aoclsparse_operation             op,
+                                        const aoclsparse_double_complex  alpha,
+                                        const aoclsparse_matrix          A,
+                                        const aoclsparse_mat_descr       descr,
+                                        aoclsparse_order                 order,
+                                        const aoclsparse_double_complex *B,
+                                        aoclsparse_int                   n,
+                                        aoclsparse_int                   ldb,
+                                        const aoclsparse_double_complex  beta,
+                                        aoclsparse_double_complex       *C,
+                                        aoclsparse_int                   ldc,
+                                        const aoclsparse_int             kid);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_ccsrmm_kid(aoclsparse_operation            op,
+                                        const aoclsparse_float_complex  alpha,
+                                        const aoclsparse_matrix         A,
+                                        const aoclsparse_mat_descr      descr,
+                                        aoclsparse_order                order,
+                                        const aoclsparse_float_complex *B,
+                                        aoclsparse_int                  n,
+                                        aoclsparse_int                  ldb,
+                                        const aoclsparse_float_complex  beta,
+                                        aoclsparse_float_complex       *C,
+                                        aoclsparse_int                  ldc,
+                                        const aoclsparse_int            kid);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_dcsrmm_kid(aoclsparse_operation       op,
+                                        const double               alpha,
+                                        const aoclsparse_matrix    A,
+                                        const aoclsparse_mat_descr descr,
+                                        aoclsparse_order           order,
+                                        const double              *B,
+                                        aoclsparse_int             n,
+                                        aoclsparse_int             ldb,
+                                        const double               beta,
+                                        double                    *C,
+                                        aoclsparse_int             ldc,
+                                        const aoclsparse_int       kid);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_scsrmm_kid(aoclsparse_operation       op,
+                                        const float                alpha,
+                                        const aoclsparse_matrix    A,
+                                        const aoclsparse_mat_descr descr,
+                                        aoclsparse_order           order,
+                                        const float               *B,
+                                        aoclsparse_int             n,
+                                        aoclsparse_int             ldb,
+                                        const float                beta,
+                                        float                     *C,
+                                        aoclsparse_int             ldc,
+                                        const aoclsparse_int       kid);
 #ifdef __cplusplus
 }
 #endif

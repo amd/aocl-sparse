@@ -92,6 +92,7 @@ set(DOUBLE_COMPILATION
 
   src/level2/aoclsparse_csrmv_kt.cpp
   src/level2/aoclsparse_trsv_kt.cpp
+  src/level3/aoclsparse_csrmm_kt.cpp
 )
 
 include(Suppressions)

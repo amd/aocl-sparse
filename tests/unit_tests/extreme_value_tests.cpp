@@ -320,6 +320,9 @@ namespace
         std::vector<T> C_exp_val; // Since A and B are both 7x7, we use A_m*A_m instead of A_m*B_n
         std::vector<T> C;
         std::vector<T> B_dense;
+        aoclsparse_int kid = 1;
+        if(can_exec_avx512_tests())
+            kid = 3;
 
         T tmp = /*1.615856e+285; */ (std::numeric_limits<T>::max)() * 8.988500e-24 + 1.000000e+00;
         C_exp_val.assign({aoclsparse_numeric::quiet_NaN<T>(),
@@ -409,7 +412,8 @@ namespace
                                       A_m,
                                       0 /*beta*/,
                                       C.data(),
-                                      A_m),
+                                      A_m,
+                                      kid),
                   aoclsparse_status_success);
 
         T              tol       = 1;

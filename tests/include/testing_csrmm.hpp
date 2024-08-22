@@ -95,7 +95,8 @@ int testing_csrmm_aocl(const Arguments &arg, testdata<T> &td, double timings[])
                                                         td.ldx,
                                                         td.beta,
                                                         td.y.data(),
-                                                        td.ldy));
+                                                        td.ldy,
+                                                        arg.kid));
             timings[iter] = aoclsparse_clock_diff(cpu_time_start);
         }
     }
@@ -235,7 +236,6 @@ int testing_csrmm(const Arguments &arg)
 
     for(unsigned itest = 0; itest < testqueue.size(); ++itest)
     {
-        status = 0;
         std::cout << "-----" << testqueue[itest].name << "-----" << std::endl;
 
         // Run the test loop

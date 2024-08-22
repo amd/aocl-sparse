@@ -60,7 +60,8 @@ aoclsparse_status aoclsparse_csrmm(aoclsparse_operation       op,
                                    aoclsparse_int             ldb,
                                    T                          beta,
                                    T                         *C,
-                                   aoclsparse_int             ldc);
+                                   aoclsparse_int             ldc,
+                                   const aoclsparse_int       kid);
 
 template <typename T>
 aoclsparse_status aoclsparse_add(const aoclsparse_operation op,

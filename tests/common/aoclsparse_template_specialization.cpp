@@ -63,9 +63,13 @@ aoclsparse_status aoclsparse_csrmm(aoclsparse_operation       op,
                                    aoclsparse_int             ldb,
                                    float                      beta,
                                    float                     *C,
-                                   aoclsparse_int             ldc)
+                                   aoclsparse_int             ldc,
+                                   const aoclsparse_int       kid)
 {
-    return aoclsparse_scsrmm(op, alpha, A, descr, order, B, n, ldb, beta, C, ldc);
+    if(kid >= 0)
+        return aoclsparse_scsrmm_kid(op, alpha, A, descr, order, B, n, ldb, beta, C, ldc, kid);
+    else
+        return aoclsparse_scsrmm(op, alpha, A, descr, order, B, n, ldb, beta, C, ldc);
 }
 
 template <>
@@ -79,9 +83,13 @@ aoclsparse_status aoclsparse_csrmm(aoclsparse_operation       op,
                                    aoclsparse_int             ldb,
                                    double                     beta,
                                    double                    *C,
-                                   aoclsparse_int             ldc)
+                                   aoclsparse_int             ldc,
+                                   const aoclsparse_int       kid)
 {
-    return aoclsparse_dcsrmm(op, alpha, A, descr, order, B, n, ldb, beta, C, ldc);
+    if(kid >= 0)
+        return aoclsparse_dcsrmm_kid(op, alpha, A, descr, order, B, n, ldb, beta, C, ldc, kid);
+    else
+        return aoclsparse_dcsrmm(op, alpha, A, descr, order, B, n, ldb, beta, C, ldc);
 }
 
 template <>
@@ -95,9 +103,13 @@ aoclsparse_status aoclsparse_csrmm(aoclsparse_operation            op,
                                    aoclsparse_int                  ldb,
                                    aoclsparse_float_complex        beta,
                                    aoclsparse_float_complex       *C,
-                                   aoclsparse_int                  ldc)
+                                   aoclsparse_int                  ldc,
+                                   const aoclsparse_int            kid)
 {
-    return aoclsparse_ccsrmm(op, alpha, A, descr, order, B, n, ldb, beta, C, ldc);
+    if(kid >= 0)
+        return aoclsparse_ccsrmm_kid(op, alpha, A, descr, order, B, n, ldb, beta, C, ldc, kid);
+    else
+        return aoclsparse_ccsrmm(op, alpha, A, descr, order, B, n, ldb, beta, C, ldc);
 }
 
 template <>
@@ -111,9 +123,13 @@ aoclsparse_status aoclsparse_csrmm(aoclsparse_operation             op,
                                    aoclsparse_int                   ldb,
                                    aoclsparse_double_complex        beta,
                                    aoclsparse_double_complex       *C,
-                                   aoclsparse_int                   ldc)
+                                   aoclsparse_int                   ldc,
+                                   const aoclsparse_int             kid)
 {
-    return aoclsparse_zcsrmm(op, alpha, A, descr, order, B, n, ldb, beta, C, ldc);
+    if(kid >= 0)
+        return aoclsparse_zcsrmm_kid(op, alpha, A, descr, order, B, n, ldb, beta, C, ldc, kid);
+    else
+        return aoclsparse_zcsrmm(op, alpha, A, descr, order, B, n, ldb, beta, C, ldc);
 }
 
 template <>
