@@ -46,6 +46,7 @@ namespace Dispatch
         gthrz,
         gthrs,
         dense_dot,
+        csrmm,
         reserved0,
         reserved1,
         reserved2,

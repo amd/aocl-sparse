@@ -295,7 +295,7 @@ foreach(FUNCTION "bsrmv")
 endforeach(FUNCTION)
 
 foreach(FUNCTION "csrmm")
-  foreach(PREC "d" "s")
+  foreach(PREC "d" "s" "c" "z")
     foreach(BASE "0" "1")      #test for base-0 and base-1
       foreach(MATSIZE ${SQMATRIXSIZES} ${RCTMATRIXSIZES})
         # split MATSIZE string to individual tokens
