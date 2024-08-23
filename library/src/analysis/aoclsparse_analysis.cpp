@@ -118,7 +118,8 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
         Check if the requested operation can execute
         This check needs to be done only once in a run
     */
-    static bool can_exec = context::get_context()->supports<context_isa_t::AVX512F>();
+    static bool can_exec = context::get_context()->supports<context_isa_t::AVX512F>()
+                           && aoclsparse_is_avx512_build();
 
     // conversion of blkcsr assumes sorted indices in rows so don't test suitability
     // of this format unless the matrix is sorted
