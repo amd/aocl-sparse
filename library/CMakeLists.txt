@@ -49,11 +49,72 @@ set(INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_INCLUDEDIR})
 # Include sources
 include(src/CMakeLists.txt)
 
+# --------------- Compile files with AVX512 intrinsics -------------------------------------
+# ==========================================================================================
+if(USE_AVX512)
+ add_library(AVX512_FILES OBJECT ${AVX512_SOURCES})
+ target_include_directories(AVX512_FILES
+                        PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/include>
+                                $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/level2
+                        PUBLIC  $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/library/include>
+                                $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
+                                $<BUILD_INTERFACE:${UTILS_INCLUDE_DIRS}>
+                                $<INSTALL_INTERFACE:include>
+ )
+
+ target_compile_options(AVX512_FILES PRIVATE ${AOCLSPARSE_AVX512_FLAGS})
+
+ # Add definitions that depend on the CMake configuration.
+ target_compile_definitions(AVX512_FILES PRIVATE ${AOCLSPARSE_DEFS})
+ # Define -Daoclsparse_ILP64 when ILP64 libraries are built. For LP64, this is an empty string.
+ target_compile_definitions(AVX512_FILES PRIVATE ${AOCLSPARSE_ILP64})
+
+ set_target_properties(AVX512_FILES PROPERTIES POSITION_INDEPENDENT_CODE ON)
+endif()
+
+# -------------------------------------------------------------------------------------------
+
+# --------------- Compile files with Kernel templates -------------------------------------
+# ==========================================================================================
+
+add_library(TEMPLATE_FILES OBJECT ${TEMPLATE_SOURCES})
+target_include_directories(TEMPLATE_FILES
+                           PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/include>
+                                   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/analysis>
+                                   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/level2>
+                                   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/level1>
+                                   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/extra>
+                           PUBLIC  $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/library/include>
+                                   $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
+                                   $<BUILD_INTERFACE:${LAPACK_INCLUDE_DIRS}>
+                                   $<BUILD_INTERFACE:${BLIS_INCLUDE_DIRS}>
+                                   $<BUILD_INTERFACE:${UTILS_INCLUDE_DIRS}>
+                                   $<INSTALL_INTERFACE:include>
+)
+if(USE_AVX512)
+ target_compile_options(TEMPLATE_FILES PRIVATE ${AOCLSPARSE_AVX512_FLAGS})
+else()
+ target_compile_options(TEMPLATE_FILES PRIVATE ${AOCLSPARSE_AVX2_FLAGS})
+endif()
+
+# Add definitions that depend on the CMake configuration.
+target_compile_definitions(TEMPLATE_FILES PRIVATE ${AOCLSPARSE_DEFS})
+# Define -Daoclsparse_ILP64 when ILP64 libraries are built. For LP64, this is an empty string.
+target_compile_definitions(TEMPLATE_FILES PRIVATE ${AOCLSPARSE_ILP64})
+
+set_target_properties(TEMPLATE_FILES PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+# -------------------------------------------------------------------------------------------
 
 # TODO plug-ins
 
 # Create aoclsparse library
-add_library(aoclsparse ${AOCLSPARSE_SOURCES} ${PUBLIC_HEADERS})
+if(USE_AVX512)
+ add_library(aoclsparse ${AOCLSPARSE_SOURCES} ${PUBLIC_HEADERS}  $<TARGET_OBJECTS:TEMPLATE_FILES> $<TARGET_OBJECTS:AVX512_FILES>)
+else()
+ add_library(aoclsparse ${AOCLSPARSE_SOURCES} ${PUBLIC_HEADERS}  $<TARGET_OBJECTS:TEMPLATE_FILES>)
+endif()
+
 add_library(aocl::aoclsparse ALIAS aoclsparse)
 
 # Target include directories
@@ -85,11 +146,6 @@ if(SUPPORT_OMP AND OPENMP_FOUND)
 else()
   target_link_libraries(aoclsparse PUBLIC ${LAPACK_LIBRARIES})
 endif()
-
-# Files that need to be built with AVX512
-set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/src/level2/aoclsparse_blkcsrmv_avx512.cpp PROPERTIES COMPILE_OPTIONS "-mavx512f;-mavx512vl")
-set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/src/level2/aoclsparse_csrmv_avx512.cpp PROPERTIES COMPILE_OPTIONS "-mavx512f;-mavx512vl")
-set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/src/level2/aoclsparse_ellmv_avx512.cpp PROPERTIES COMPILE_OPTIONS "-mavx512f;-mavx512vl")
 
 # Target properties
 set_target_properties(aoclsparse PROPERTIES SOVERSION ${AOCLSPARSE_VERSION} )

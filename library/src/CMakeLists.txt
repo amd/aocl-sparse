@@ -21,23 +21,18 @@
 #
 # ########################################################################
 
+
+# List of sources that need to compiled only once with the
+# library's base compilation flag (AVX2)
+# ----------------------------------------------------------
 set(AOCLSPARSE_SOURCES
-  src/level1/aoclsparse_roti.cpp
-  src/level1/aoclsparse_dot.cpp
-  src/level1/aoclsparse_gthr.cpp
-  src/level1/aoclsparse_sctr.cpp
-  src/level1/aoclsparse_axpyi.cpp
   src/level2/aoclsparse_csrmv.cpp
   src/level2/aoclsparse_blkcsrmv.cpp
-  src/level2/aoclsparse_blkcsrmv_avx512.cpp
-  src/level2/aoclsparse_csrmv_avx512.cpp
-  src/level2/aoclsparse_ellmv_avx512.cpp
   src/level2/aoclsparse_ellmv.cpp
   src/level2/aoclsparse_mv.cpp
   src/level2/aoclsparse_diamv.cpp
   src/level2/aoclsparse_bsrmv.cpp
   src/level2/aoclsparse_csrsv.cpp
-  src/level2/aoclsparse_trsv.cpp
   src/level2/aoclsparse_dotmv.cpp
   src/level3/aoclsparse_csradd.cpp
   src/level2/aoclsparse_tcsrmv.cpp
@@ -45,13 +40,16 @@ set(AOCLSPARSE_SOURCES
   src/level3/aoclsparse_csr2m.cpp
   src/level3/aoclsparse_sp2m.cpp
   src/level3/aoclsparse_spmm.cpp
-  src/level3/aoclsparse_trsm.cpp
   src/level3/aoclsparse_spmmd.cpp
   src/level3/aoclsparse_sp2md.cpp
   src/level3/aoclsparse_syrkd.cpp
   src/level3/aoclsparse_syprd.cpp
   src/level3/aoclsparse_sypr.cpp
   src/level3/aoclsparse_syrk.cpp
+
+# Solvers
+  src/solvers/aoclsparse_ilu.cpp
+  src/solvers/aoclsparse_sorv.cpp
 
 # Conversion
   src/conversion/aoclsparse_convert.cpp
@@ -60,15 +58,41 @@ set(AOCLSPARSE_SOURCES
   src/extra/aoclsparse_auxiliary.cpp
   src/extra/aoclsparse_context.cpp
 
-# Solvers
-  src/solvers/aoclsparse_ilu.cpp
-  src/solvers/aoclsparse_itsol_functions.cpp
-  src/solvers/aoclsparse_sorv.cpp
-  src/solvers/aoclsparse_symgs.cpp
-
 # Analysis
   src/analysis/aoclsparse_analysis.cpp
   src/analysis/aoclsparse_csr_util.cpp
+)
+
+# List of sources that need to compiled based on the build type.
+# In AVX512 build, with AVX512 flags. In AVX2 build, with AVX2 flags.
+# Note - this is a temporary change. All files listed below will
+# require double compilation to support mutliarchitecture build.
+# ------------------------------------------------------------------
+set(TEMPLATE_SOURCES
+  src/level1/aoclsparse_roti.cpp
+  src/level1/aoclsparse_dot.cpp
+  src/level1/aoclsparse_gthr.cpp
+  src/level1/aoclsparse_sctr.cpp
+  src/level1/aoclsparse_axpyi.cpp
+
+# Level 2
+  src/level2/aoclsparse_trsv.cpp
+
+# Level 3
+  src/level3/aoclsparse_trsm.cpp
+
+# Solvers
+  src/solvers/aoclsparse_itsol_functions.cpp
+  src/solvers/aoclsparse_symgs.cpp
+
+)
+
+# List of sources that need to compiled with AVX512
+# -------------------------------------------------
+set(AVX512_SOURCES
+  src/level2/aoclsparse_blkcsrmv_avx512.cpp
+  src/level2/aoclsparse_csrmv_avx512.cpp
+  src/level2/aoclsparse_ellmv_avx512.cpp
 )
 
 include(Suppressions)

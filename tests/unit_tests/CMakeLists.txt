@@ -109,6 +109,18 @@ set(GTEST_EXECUTABLES
     tcsrmv_tests
 )
 
+set (KT_TEST_SOURCES
+${CMAKE_CURRENT_SOURCE_DIR}/kt_tests.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/ktlvl2_tests.cpp
+)
+
+# KT tests need to be built with AVX512 flags for AVX512 build. Else with AVX2 flags.
+if(USE_AVX512)
+  set_source_files_properties(KT_TEST_SOURCES PROPERTIES COMPILE_OPTIONS "-mavx512f;-mavx512vl;-mavx512dq")
+else()
+  set_source_files_properties(KT_TEST_SOURCES PROPERTIES COMPILE_OPTIONS "-mavx2;-mfma")
+endif()
+
 #copy the raw data files (mtx inputs) to build directory
 add_subdirectory(data)
 
