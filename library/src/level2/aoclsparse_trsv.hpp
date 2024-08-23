@@ -942,7 +942,7 @@ aoclsparse_status
             switch(usekid)
             {
             case 3: // AVX-512F (Note: if not available then trickle down to next best)
-#if USE_AVX512
+#if __AVX512F__ // Todo: Change all __AVX512F__ to USE_AVX512 to support multiarchitecture build
                 return kt_trsv_l<bsz::b512, T, kt_avxext::ANY>(
                     alpha, m, base, a, icol, ilrow, idiag, b, incb, x, incx, unit);
                 break;
@@ -962,7 +962,7 @@ aoclsparse_status
             switch(usekid)
             {
             case 3: // AVX-512F (Note: if not available then trickle down to next best)
-#if USE_AVX512
+#if __AVX512F__
                 return kt_trsv_lt<bsz::b512, T, kt_avxext::ANY>(
                     alpha, m, base, a, icol, ilrow, idiag, b, incb, x, incx, unit);
                 break;
@@ -982,7 +982,7 @@ aoclsparse_status
             switch(usekid)
             {
             case 3: // AVX-512F (Note: if not available then trickle down to next best)
-#if USE_AVX512
+#if __AVX512F__
                 if constexpr(std::is_same_v<T, std::complex<float>>
                              || std::is_same_v<T, std::complex<double>>)
                     return kt_trsv_lt<bsz::b512, T, kt_avxext::ANY, trsv_op::herm>(
@@ -1023,7 +1023,7 @@ aoclsparse_status
             switch(usekid)
             {
             case 3: // AVX-512F (Note: if not available then trickle down to next best)
-#if USE_AVX512
+#if __AVX512F__
                 return kt_trsv_u<bsz::b512, T, kt_avxext::ANY>(
                     alpha, m, base, a, icol, ilrow, iurow, b, incb, x, incx, unit);
                 break;
@@ -1043,7 +1043,7 @@ aoclsparse_status
             switch(usekid)
             {
             case 3: // AVX-512F (Note: if not available then trickle down to next best)
-#if USE_AVX512
+#if __AVX512F__
                 return kt_trsv_ut<bsz::b512, T, kt_avxext::ANY>(
                     alpha, m, base, a, icol, ilrow, iurow, b, incb, x, incx, unit);
                 break;
@@ -1063,7 +1063,7 @@ aoclsparse_status
             switch(usekid)
             {
             case 3: // AVX-512F (Note: if not available then trickle down to next best)
-#if USE_AVX512
+#if __AVX512F__
                 if constexpr(std::is_same_v<T, std::complex<float>>
                              || std::is_same_v<T, std::complex<double>>)
                     return kt_trsv_ut<bsz::b512, T, kt_avxext::ANY, trsv_op::herm>(

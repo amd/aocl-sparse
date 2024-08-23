@@ -77,7 +77,7 @@ cmake ../.. -DCMAKE_INSTALL_PREFIX="<aoclsparse_install_path>"
 #   BUILD_UNIT_TESTS      	 - build unit tests (Default: OFF)
 #   BUILD_CLIENTS_BENCHMARKS - build benchmarks (Default: OFF)
 #   BUILD_DOCS               - build the PDF documentation (Default: OFF)
-#   USE_AVX512               - AVX512 Support (Default: OFF)
+#   USE_AVX512               - AVX512 Support (Default: ON)
 ```
 **Note** If `CMAKE_INSTALL_PREFIX` is not provided then `/opt/aoclsparse/` is chosen as the default installation location. Inside it will contain the `lib`, `include`, and `examples` directories and associated files.
 5. Build the project by typing make. To install the binaries, do make install
