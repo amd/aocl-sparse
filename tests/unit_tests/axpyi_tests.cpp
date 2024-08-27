@@ -91,6 +91,9 @@ namespace
     template <typename T>
     void test_aoclsparse_axpyi_invalid()
     {
+        SCOPED_TRACE(std::string("test_aoclsparse_axpyi_invalid for ")
+                     + std::string(typeid(T).name()) + std::string("datatype"));
+
         T                           a;
         aoclsparse_int              nnz;
         std::vector<aoclsparse_int> indx;
@@ -135,6 +138,10 @@ namespace
     template <typename T>
     void test_aoclsparse_axpyi_success(bool pub = true, aoclsparse_int kid = -1)
     {
+        SCOPED_TRACE(std::string("test_aoclsparse_axpyi_success for ")
+                     + std::string(typeid(T).name()) + std::string("datatype with KID = ")
+                     + std::to_string(kid));
+
         T                           a;
         aoclsparse_int              nnz;
         std::vector<aoclsparse_int> indx;

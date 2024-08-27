@@ -75,6 +75,8 @@ namespace
     template <typename T>
     void test_dotp_ref(void)
     {
+        SCOPED_TRACE(std::string("test_dotp_ref for ") + std::string(typeid(T).name()));
+
         aoclsparse_int              nnz;
         std::vector<aoclsparse_int> indx;
         std::vector<T>              x;
@@ -105,6 +107,8 @@ namespace
     template <typename T>
     void test_dotp_nullptr()
     {
+        SCOPED_TRACE(std::string("test_dotp_nullptr for ") + std::string(typeid(T).name()));
+
         aoclsparse_int              nnz;
         std::vector<aoclsparse_int> indx;
         std::vector<T>              x;
@@ -136,6 +140,8 @@ namespace
     template <typename T>
     void test_dotp_invalidsize()
     {
+        SCOPED_TRACE(std::string("test_dotp_invalidsize for ") + std::string(typeid(T).name()));
+
         aoclsparse_int              nnz;
         std::vector<aoclsparse_int> indx;
         std::vector<T>              x;
@@ -188,6 +194,9 @@ namespace
     template <typename T, int KID = -1>
     void test_dotp_success()
     {
+        SCOPED_TRACE(std::string("test_dotp_success for ") + std::string(typeid(T).name())
+                     + std::string("datatype with KID = ") + std::to_string(KID));
+
         aoclsparse_int              nnz;
         std::vector<aoclsparse_int> indx;
         std::vector<T>              x;

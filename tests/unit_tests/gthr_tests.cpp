@@ -108,6 +108,9 @@ namespace
     template <typename T, int KID>
     void test_gthr_success()
     {
+        SCOPED_TRACE(std::string("test_gthr_success for ") + std::string(typeid(T).name())
+                     + std::string("datatype with KID = ") + std::to_string(KID));
+
         aoclsparse_int              nnz;
         std::vector<aoclsparse_int> indx;
         std::vector<T>              x;
@@ -143,6 +146,9 @@ namespace
     template <typename T, int KID>
     void test_gthrz_success()
     {
+        SCOPED_TRACE(std::string("test_gthrz_success for ") + std::string(typeid(T).name())
+                     + std::string("datatype with KID = ") + std::to_string(KID));
+
         aoclsparse_int              nnz;
         std::vector<aoclsparse_int> indx;
         std::vector<T>              x;
@@ -183,6 +189,8 @@ namespace
     template <typename T>
     void test_gthr_nullptr()
     {
+        SCOPED_TRACE(std::string("test_gthr_nullptr for ") + std::string(typeid(T).name()));
+
         aoclsparse_int              nnz;
         std::vector<aoclsparse_int> indx;
         std::vector<T>              x;
@@ -205,6 +213,8 @@ namespace
     template <typename T>
     void test_gthr_wrong_size()
     {
+        SCOPED_TRACE(std::string("test_gthr_wrong_size for ") + std::string(typeid(T).name()));
+
         // Sparse index vector
         aoclsparse_int              nnz;
         std::vector<aoclsparse_int> indx;
@@ -224,6 +234,8 @@ namespace
     template <typename T>
     void test_gthr_do_nothing()
     {
+        SCOPED_TRACE(std::string("test_gthr_do_nothing for ") + std::string(typeid(T).name()));
+
         aoclsparse_int              nnz;
         std::vector<aoclsparse_int> indx;
         std::vector<T>              x;
@@ -244,6 +256,8 @@ namespace
     template <typename T>
     void test_gthr_invalid_index()
     {
+        SCOPED_TRACE(std::string("test_gthr_invalid_index for ") + std::string(typeid(T).name()));
+
         aoclsparse_int              nnz;
         std::vector<aoclsparse_int> indx;
         std::vector<T>              x;
@@ -270,6 +284,8 @@ namespace
     template <typename T>
     void test_gthrz_nullptr()
     {
+        SCOPED_TRACE(std::string("test_gthrz_nullptr for ") + std::string(typeid(T).name()));
+
         aoclsparse_int              nnz;
         std::vector<aoclsparse_int> indx;
         std::vector<T>              x;
@@ -292,6 +308,8 @@ namespace
     template <typename T>
     void test_gthrz_wrong_size()
     {
+        SCOPED_TRACE(std::string("test_gthrz_wrong_size for ") + std::string(typeid(T).name()));
+
         aoclsparse_int              nnz;
         std::vector<aoclsparse_int> indx;
         std::vector<T>              x;
@@ -310,6 +328,8 @@ namespace
     template <typename T>
     void test_gthrz_do_nothing()
     {
+        SCOPED_TRACE(std::string("test_gthrz_do_nothing for ") + std::string(typeid(T).name()));
+
         aoclsparse_int              nnz;
         std::vector<aoclsparse_int> indx;
         std::vector<T>              x;
@@ -330,6 +350,8 @@ namespace
     template <typename T>
     void test_gthrz_invalid_index()
     {
+        SCOPED_TRACE(std::string("test_gthrz_invalid_index for ") + std::string(typeid(T).name()));
+
         aoclsparse_int              nnz;
         std::vector<aoclsparse_int> indx;
         std::vector<T>              x;
@@ -357,6 +379,8 @@ namespace
     template <typename T, int KID>
     void test_gthrs_success()
     {
+        SCOPED_TRACE(std::string("test_gthrs_success for ") + std::string(typeid(T).name()));
+
         aoclsparse_int m, n, nnz;
         aoclsparse_int stride;
         std::vector<T> x_gold;
@@ -397,6 +421,8 @@ namespace
     template <typename T>
     void test_gthrs_nullptr()
     {
+        SCOPED_TRACE(std::string("test_gthrs_nullptr for ") + std::string(typeid(T).name()));
+
         aoclsparse_int m, n, nnz;
         aoclsparse_int stride;
         std::vector<T> x_gold;
@@ -420,6 +446,8 @@ namespace
     template <typename T>
     void test_gthrs_wrong_size()
     {
+        SCOPED_TRACE(std::string("test_gthrs_wrong_size for ") + std::string(typeid(T).name()));
+
         aoclsparse_int m, n, nnz;
         aoclsparse_int stride;
         std::vector<T> x_gold;
@@ -439,6 +467,8 @@ namespace
     template <typename T>
     void test_gthrs_do_nothing()
     {
+        SCOPED_TRACE(std::string("test_gthrs_do_nothing for ") + std::string(typeid(T).name()));
+
         aoclsparse_int m, n, nnz;
         aoclsparse_int stride;
         std::vector<T> x_gold;

@@ -119,6 +119,8 @@ namespace
     template <typename T>
     void test_roti_nullptr()
     {
+        SCOPED_TRACE(std::string("test_roti_nullptr for ") + std::string(typeid(T).name()));
+
         aoclsparse_int              nnz;
         std::vector<aoclsparse_int> indx;
         std::vector<T>              x;
@@ -152,6 +154,9 @@ namespace
     template <typename T, int KID>
     void test_roti_success()
     {
+        SCOPED_TRACE(std::string("test_roti_success for ") + std::string(typeid(T).name())
+                     + std::string("datatype with KID = ") + std::to_string(KID));
+
         aoclsparse_int              nnz;
         std::vector<aoclsparse_int> indx;
         std::vector<T>              x;

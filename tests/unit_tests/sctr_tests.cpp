@@ -120,6 +120,8 @@ namespace
     template <typename T>
     void test_aoclsparse_sctr_invalid()
     {
+        SCOPED_TRACE(std::string("test_roti_nullptr for ") + std::string(typeid(T).name()));
+
         aoclsparse_int              nnz;
         std::vector<aoclsparse_int> indx;
         std::vector<T>              x;
@@ -149,6 +151,10 @@ namespace
     template <typename T, int KID>
     void test_aoclsparse_sctr_success()
     {
+        SCOPED_TRACE(std::string("test_aoclsparse_sctr_success for ")
+                     + std::string(typeid(T).name()) + std::string("datatype with KID = ")
+                     + std::to_string(KID));
+
         aoclsparse_int              nnz;
         std::vector<aoclsparse_int> indx;
         std::vector<T>              x;
@@ -175,6 +181,10 @@ namespace
     template <typename T, int KID>
     void test_aoclsparse_sctr_success_struct()
     {
+        SCOPED_TRACE(std::string("test_aoclsparse_sctr_success_struct for ")
+                     + std::string(typeid(T).name()) + std::string("datatype with KID = ")
+                     + std::to_string(KID));
+
         aoclsparse_int              nnz;
         std::vector<aoclsparse_int> indx;
         std::vector<T>              x;
@@ -206,6 +216,9 @@ namespace
     template <typename T, int KID>
     void test_sctrs_success()
     {
+        SCOPED_TRACE(std::string("test_sctrs_success for ") + std::string(typeid(T).name())
+                     + std::string("datatype with KID = ") + std::to_string(KID));
+
         aoclsparse_int            m, n, nnz;
         aoclsparse_int            stride;
         std::vector<T>            y_gold;
@@ -243,6 +256,8 @@ namespace
     template <typename T>
     void test_sctrs_nullptr()
     {
+        SCOPED_TRACE(std::string("test_sctrs_nullptr for ") + std::string(typeid(T).name()));
+
         aoclsparse_int m, n, nnz;
         aoclsparse_int stride;
         std::vector<T> y_gold;
@@ -265,6 +280,8 @@ namespace
     template <typename T>
     void test_sctrs_wrong_size()
     {
+        SCOPED_TRACE(std::string("test_sctrs_wrong_size for ") + std::string(typeid(T).name()));
+
         aoclsparse_int m, n, nnz;
         aoclsparse_int stride;
         std::vector<T> y_gold;
@@ -285,6 +302,8 @@ namespace
     template <typename T>
     void test_sctrs_do_nothing()
     {
+        SCOPED_TRACE(std::string("test_sctrs_do_nothing for ") + std::string(typeid(T).name()));
+
         aoclsparse_int m, n, nnz;
         aoclsparse_int stride;
         std::vector<T> y_gold;
