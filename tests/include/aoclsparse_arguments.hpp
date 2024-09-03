@@ -152,6 +152,10 @@ struct testdata
     aoclsparse_int n;
     aoclsparse_int k;
 
+    aoclsparse_int bsr_dim;
+
+    aoclsparse_mat_descr descr;
+
     //Used for trsm: leading dimensions of dense matrices 'x'/'y', provides means to access the correct elements of the matrix within the larger memory layout.
     aoclsparse_int ldx;
     aoclsparse_int ldy;

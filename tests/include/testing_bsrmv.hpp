@@ -32,12 +32,52 @@
 #include "aoclsparse_gbyte.hpp"
 #include "aoclsparse_init.hpp"
 #include "aoclsparse_random.hpp"
+#include "aoclsparse_stats.hpp"
 #include "aoclsparse_test.hpp"
 #include "aoclsparse_utility.hpp"
 
 template <typename T>
+int testing_bsrmv_aocl(const Arguments &arg, testdata<T> &td, double timings[])
+{
+    int                  status = 0;
+    aoclsparse_int       m      = td.m;
+    aoclsparse_int       n      = td.n;
+    aoclsparse_operation trans  = arg.transA;
+
+    try
+    {
+        int number_hot_calls = arg.iters;
+        // Performance run
+        for(int iter = 0; iter < number_hot_calls; ++iter)
+        {
+            td.y                  = td.y_in;
+            double cpu_time_start = aoclsparse_clock();
+            CHECK_AOCLSPARSE_ERROR(aoclsparse_bsrmv(trans,
+                                                    &td.alpha,
+                                                    m,
+                                                    n,
+                                                    td.bsr_dim,
+                                                    td.csr_valA.data(),
+                                                    td.csr_col_indA.data(),
+                                                    td.csr_row_ptrA.data(),
+                                                    td.descr,
+                                                    td.x.data(),
+                                                    &td.beta,
+                                                    td.y.data()));
+            timings[iter] = aoclsparse_clock_diff(cpu_time_start);
+        }
+    }
+    catch(BenchmarkException &e)
+    {
+        status = 1;
+    }
+    return status;
+}
+
+template <typename T>
 void testing_bsrmv(const Arguments &arg)
 {
+    int                    status   = 0;
     aoclsparse_int         M        = arg.M;
     aoclsparse_int         N        = arg.N;
     aoclsparse_int         nnz      = arg.nnz;
@@ -50,6 +90,16 @@ void testing_bsrmv(const Arguments &arg)
     T                      alpha = static_cast<T>(arg.alpha);
     T                      beta  = static_cast<T>(arg.beta);
 
+    testdata<T> td;
+    td.m    = arg.M;
+    td.n    = arg.N;
+    td.nnzA = arg.nnz;
+
+    // The queue of test functions to run, normally it would be just one API
+    // unless more tests are registered via EXT_BENCHMARKING
+    std::vector<testsetting<T>> testqueue;
+    testqueue.push_back({"aocl", &testing_bsrmv_aocl<T>});
+
     // Create matrix descriptor
     aoclsparse_local_mat_descr descr;
 
@@ -61,11 +111,12 @@ void testing_bsrmv(const Arguments &arg)
     std::vector<aoclsparse_int> csr_col_ind;
     std::vector<T>              csr_val;
 
+    std::vector<double> timings(arg.iters);
+    // and their statistics
+    std::vector<data_stats> tstats(testqueue.size());
+
     aoclsparse_seedrand();
-#if 0
-    // Print aoclsparse version
-    std::cout << aoclsparse_get_version() << std::endl;
-#endif
+
     // Sample matrix
     aoclsparse_init_csr_matrix(
         csr_row_ptr, csr_col_ind, csr_val, M, N, nnz, base, mat, filename.c_str(), issymm, false);
@@ -104,6 +155,18 @@ void testing_bsrmv(const Arguments &arg)
                                                  bsr_row_ptr.data(),
                                                  bsr_col_ind.data()));
 
+    td.m            = mb;
+    td.n            = nb;
+    td.bsr_dim      = bsr_dim;
+    td.csr_col_indA = bsr_col_ind;
+    td.csr_row_ptrA = bsr_row_ptr;
+    td.csr_valA     = bsr_val;
+    td.x            = x;
+    td.y            = y;
+    td.alpha        = alpha;
+    td.beta         = beta;
+    td.descr        = descr;
+
     if(arg.unit_check)
     {
         CHECK_AOCLSPARSE_ERROR(aoclsparse_bsrmv(trans,
@@ -131,46 +194,42 @@ void testing_bsrmv(const Arguments &arg)
         if(near_check_general<T>(1, M, 1, y_gold.data(), y.data()))
             return;
     }
-    int number_hot_calls = arg.iters;
+    int         number_hot_calls = arg.iters;
+    std::string prob_name        = gen_problem_name(arg, td);
 
     double cpu_time_used = DBL_MAX;
 
-    // Performance run
-    for(int iter = 0; iter < number_hot_calls; ++iter)
+    for(unsigned itest = 0; itest < testqueue.size(); ++itest)
     {
-        double cpu_time_start = aoclsparse_clock();
-        CHECK_AOCLSPARSE_ERROR(aoclsparse_bsrmv(trans,
-                                                &alpha,
-                                                mb,
-                                                nb,
-                                                bsr_dim,
-                                                bsr_val.data(),
-                                                bsr_col_ind.data(),
-                                                bsr_row_ptr.data(),
-                                                descr,
-                                                x.data(),
-                                                &beta,
-                                                y.data()));
-        cpu_time_used = aoclsparse_clock_min_diff(cpu_time_used, cpu_time_start);
+        // Run the test loop
+        status += testqueue[itest].tf(arg, td, timings.data());
+
+        // Check the results against the reference result
+        int verify = 0; // assume not tested
+        if(arg.unit_check)
+        {
+            verify = 1; // assume pass
+            if(near_check_general<T>(1, M, 1, y_gold.data(), td.y.data()))
+            {
+                status++;
+                verify = 2;
+            }
+        }
+
+        compute_stats(timings.data(), timings.size(), tstats[itest]);
+        twosample_test_result cmp, *pcmp = NULL;
+
+        // compare the run against the first run (AOCL)
+        if(itest > 0)
+        {
+            cmp  = twosample_test(tstats[itest], tstats[0]);
+            pcmp = &cmp;
+            // twosample_print(cmp, testqueue[itest].name, tstats[itest],
+            // testqueue[0].name, tstats[0]); //, bool debug=false, bool onehdr=true)
+        }
+        print_results(
+            testqueue[itest].name, prob_name.c_str(), verify, tstats[itest], pcmp, itest == 0);
     }
-
-    double cpu_gflops = spmv_gflop_count<T>(M, nnz, beta != static_cast<T>(0)) / cpu_time_used;
-    double cpu_gbyte  = csrmv_gbyte_count<T>(M, N, nnz, beta != static_cast<T>(0)) / cpu_time_used;
-
-    std::cout.precision(2);
-    std::cout.setf(std::ios::fixed);
-    std::cout.setf(std::ios::left);
-
-    std::cout << std::setw(12) << "M" << std::setw(12) << "N" << std::setw(12) << "nnz"
-              << std::setw(12) << "alpha" << std::setw(12) << "beta" << std::setw(12) << "GFlop/s"
-              << std::setw(12) << "GB/s" << std::setw(12) << "msec" << std::setw(12) << "iter"
-              << std::setw(12) << "verified" << std::endl;
-
-    std::cout << std::setw(12) << M << std::setw(12) << N << std::setw(12) << nnz << std::setw(12)
-              << alpha << std::setw(12) << beta << std::setw(12) << cpu_gflops << std::setw(12)
-              << cpu_gbyte << std::setw(12) << std::scientific << cpu_time_used * 1e3
-              << std::setw(12) << number_hot_calls << std::setw(12)
-              << (arg.unit_check ? "yes" : "no") << std::endl;
 }
 
 #endif // TESTING_CSRMV_HPP
