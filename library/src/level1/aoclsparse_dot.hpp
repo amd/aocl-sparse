@@ -25,6 +25,7 @@
 #define AOCLSPARSE_DOT_HPP
 #include "aoclsparse.h"
 #include "aoclsparse_dispatcher.hpp"
+#include "aoclsparse_dot_kt.hpp"
 #include "aoclsparse_kernel_templates.hpp"
 #include "aoclsparse_utils.hpp"
 
@@ -62,88 +63,7 @@ inline aoclsparse_status dotp_ref(aoclsparse_int nnz,
     return aoclsparse_status_success;
 }
 
-using namespace kernel_templates;
-
-// This KT function performs dot product of a sparse vector (x) with a dense vector (y).
-// Precision types supported: complex (float and double), real (float and double).
-// For complex types, conjugated dot product is supported in addition to the dot product.
-template <bsz SZ, typename SUF>
-inline aoclsparse_status dotp_kt(aoclsparse_int nnz,
-                                 const SUF *__restrict__ x,
-                                 const aoclsparse_int *__restrict__ indx,
-                                 const SUF *__restrict__ y,
-                                 SUF *__restrict__ dot,
-                                 bool conj)
-{
-    // Automatically determine the type of tsz
-    const auto tsz = tsz_v<SZ, SUF>;
-
-    avxvector_t<SZ, SUF> xv, yv, acc;
-
-    // Initialize the accumulation vector to zero
-    acc = kt_setzero_p<SZ, SUF>();
-
-    aoclsparse_int count = nnz / tsz;
-    aoclsparse_int rem   = nnz % tsz;
-
-    // Conjugate path for complex types
-    if constexpr(std::is_same_v<SUF, std::complex<double>>
-                 || std::is_same_v<SUF, std::complex<float>>)
-    {
-        if(conj)
-        {
-            for(aoclsparse_int i = 0; i < count; ++i)
-            {
-                auto itsz = i * tsz;
-
-                // Load the 'x' vector
-                xv = kt_loadu_p<SZ, SUF>(x + itsz);
-
-                // Conjugate 'x'
-                xv = kt_conj_p<SZ, SUF>(xv);
-
-                // Indirect load of 'y' vector
-                yv = kt_set_p<SZ, SUF>(y, indx + itsz);
-
-                // tmp += 'xv' * 'yv'
-                acc = kt_fmadd_p<SZ, SUF>(xv, yv, acc);
-            }
-
-            // Accumulate the intermediate results in the vector
-            *dot = kt_hsum_p<SZ, SUF>(acc);
-
-            // Remainder part
-            for(auto i = nnz - rem; i < nnz; i++)
-            {
-                *dot += std::conj(x[i]) * y[indx[i]];
-            }
-
-            return aoclsparse_status_success;
-        }
-    }
-
-    for(aoclsparse_int i = 0; i < count; ++i)
-    {
-        // Load the 'x' vector
-        xv = kt_loadu_p<SZ, SUF>(x + (i * tsz));
-
-        // Indirect load of 'y' vector
-        yv = kt_set_p<SZ, SUF>(y, indx + (i * tsz));
-
-        // tmp += 'xv' * 'yv'
-        acc = kt_fmadd_p<SZ, SUF>(xv, yv, acc);
-    }
-
-    // Accumulate the intermediate results in the vector
-    *dot = kt_hsum_p<SZ, SUF>(acc);
-
-    for(auto i = nnz - rem; i < nnz; i++)
-    {
-        *dot += x[i] * y[indx[i]];
-    }
-
-    return aoclsparse_status_success;
-}
+EXTERN_DECLARE(DOT_TEMPLATE_DECLARATION);
 
 // Wrapper to the dot-product function with the necessary validations.
 template <typename T>
@@ -172,6 +92,7 @@ inline aoclsparse_status aoclsparse_dotp(aoclsparse_int nnz,
 
     using namespace aoclsparse;
     using namespace Dispatch;
+    using namespace kernel_templates;
 
     // Creating pointer to the kernel
     using K = decltype(&dotp_ref<T>);
@@ -180,10 +101,8 @@ inline aoclsparse_status aoclsparse_dotp(aoclsparse_int nnz,
     // Table of available kernels
     static constexpr Table<K> tbl[]{
     {dotp_ref<T>,           context_isa_t::GENERIC, 0U | archs::ALL},
-#ifdef __AVX2__
     {dotp_kt<bsz::b256, T>, context_isa_t::AVX2,    0U | archs::ZEN123},
-#endif
-#ifdef __AVX512F__
+#ifdef USE_AVX512
     {dotp_kt<bsz::b512, T>, context_isa_t::AVX512F, 0U | archs::ZEN4}
 #endif
     };
