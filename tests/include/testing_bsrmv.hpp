@@ -194,10 +194,7 @@ void testing_bsrmv(const Arguments &arg)
         if(near_check_general<T>(1, M, 1, y_gold.data(), y.data()))
             return;
     }
-    int         number_hot_calls = arg.iters;
-    std::string prob_name        = gen_problem_name(arg, td);
-
-    double cpu_time_used = DBL_MAX;
+    std::string prob_name = gen_problem_name(arg, td);
 
     for(unsigned itest = 0; itest < testqueue.size(); ++itest)
     {
