@@ -112,4 +112,9 @@ template <typename T>
 void register_tests_sypr([[maybe_unused]] std::vector<testsetting<T>> &testqueue)
 {
 }
+template <typename T>
+void register_tests_ilu([[maybe_unused]] std::vector<testsetting<T>> &testqueue)
+{
+}
+
 #endif

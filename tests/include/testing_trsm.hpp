@@ -137,7 +137,6 @@ int testing_trsm(const Arguments &arg)
     populate_queue_kid<T, FN>(testqueue, arg, testing_trsm_aocl<T>);
 
     register_tests_trsm(testqueue);
-
     // create relevant test data for this API
     testdata<T> td;
     td.m    = arg.M;

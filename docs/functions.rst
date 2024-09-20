@@ -341,20 +341,3 @@ aoclsparse\_?syprd()
     :outline:
 .. doxygenfunction:: aoclsparse_zsyprd
 
-Miscellaneous
-=============
-
-aoclsparse_ilu\_?smoother()
----------------------------
-
-.. doxygenfunction:: aoclsparse_silu_smoother
-    :outline:
-.. doxygenfunction:: aoclsparse_dilu_smoother
-
-..
-   removed from doc in 4.2
-   .. doxygenfunction:: aoclsparse_selltmv
-   .. doxygenfunction:: aoclsparse_delltmv
-   .. doxygenfunction:: aoclsparse_sellthybmv
-   .. doxygenfunction:: aoclsparse_dellthybmv
-   .. doxygenfunction:: aoclsparse_dblkcsrmv

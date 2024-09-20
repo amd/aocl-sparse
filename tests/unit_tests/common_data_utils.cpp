@@ -27,34 +27,6 @@
 #include <vector>
 
 template <>
-aoclsparse_status create_aoclsparse_matrix(aoclsparse_matrix           &A,
-                                           const aoclsparse_mat_descr   descr,
-                                           aoclsparse_int               m,
-                                           aoclsparse_int               n,
-                                           aoclsparse_int               nnz,
-                                           std::vector<aoclsparse_int> &csr_row_ptr,
-                                           std::vector<aoclsparse_int> &csr_col_ind,
-                                           std::vector<double>         &csr_val)
-{
-    return aoclsparse_create_dcsr(
-        &A, descr->base, m, n, nnz, &csr_row_ptr[0], &csr_col_ind[0], &csr_val[0]);
-}
-
-template <>
-aoclsparse_status create_aoclsparse_matrix(aoclsparse_matrix           &A,
-                                           const aoclsparse_mat_descr   descr,
-                                           aoclsparse_int               m,
-                                           aoclsparse_int               n,
-                                           aoclsparse_int               nnz,
-                                           std::vector<aoclsparse_int> &csr_row_ptr,
-                                           std::vector<aoclsparse_int> &csr_col_ind,
-                                           std::vector<float>          &csr_val)
-{
-    return aoclsparse_create_scsr(
-        &A, descr->base, m, n, nnz, &csr_row_ptr[0], &csr_col_ind[0], &csr_val[0]);
-}
-
-template <>
 aoclsparse_status itsol_solve(
     aoclsparse_itsol_handle    handle,
     aoclsparse_int             n,

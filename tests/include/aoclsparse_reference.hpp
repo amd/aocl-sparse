@@ -1392,4 +1392,119 @@ inline aoclsparse_status ref_add(aoclsparse_operation       op,
                    reinterpret_cast<std::complex<double> *>(val_C_ref));
 }
 
+/*
+    compute ILU factorization using ILU0 preconditioner
+*/
+template <typename T>
+inline aoclsparse_status ref_csrilu0(aoclsparse_int                     M,
+                                     aoclsparse_int                     base,
+                                     const std::vector<aoclsparse_int> &csr_row_ptr,
+                                     const std::vector<aoclsparse_int> &csr_col_ind,
+                                     T                                 *csr_val)
+{
+    if(csr_val == nullptr)
+        return aoclsparse_status_invalid_pointer;
+
+    if(M < 0)
+        return aoclsparse_status_invalid_value;
+
+    if(base != aoclsparse_index_base_zero && base != aoclsparse_index_base_one)
+        return aoclsparse_status_invalid_value;
+
+    // pointer of upper part of each row
+    std::vector<aoclsparse_int> diag_offset(M);
+    std::vector<aoclsparse_int> nnz_entries(M, 0);
+
+    // ai = 0 to N loop over all rows
+    for(aoclsparse_int ai = 0; ai < M; ++ai)
+    {
+        // ai-th row entries
+        aoclsparse_int row_begin = csr_row_ptr[ai] - base;
+        aoclsparse_int row_end   = csr_row_ptr[ai + 1] - base;
+        aoclsparse_int j;
+
+        // nnz position of ai-th row in val array
+        for(j = row_begin; j < row_end; ++j)
+        {
+            nnz_entries[csr_col_ind[j] - base] = j;
+        }
+
+        bool has_diag = false;
+
+        // loop over ai-th row nnz entries
+        for(j = row_begin; j < row_end; ++j)
+        {
+            // if nnz entry is in lower matrix
+            if(csr_col_ind[j] - base < ai)
+            {
+
+                aoclsparse_int col_j  = csr_col_ind[j] - base;
+                aoclsparse_int diag_j = diag_offset[col_j];
+
+                if(csr_val[diag_j] != aoclsparse_numeric::zero<T>())
+                {
+                    // multiplication factor
+                    csr_val[j] = csr_val[j] / csr_val[diag_j];
+                    // loop over upper offset pointer and do linear combination for nnz entry
+                    for(aoclsparse_int k = diag_j + 1; k < csr_row_ptr[col_j + 1] - base; ++k)
+                    {
+                        // if nnz at this position do linear combination
+                        if(nnz_entries[csr_col_ind[k] - base] != 0)
+                        {
+                            aoclsparse_int idx = nnz_entries[csr_col_ind[k] - base];
+                            csr_val[idx] += (-csr_val[j]) * csr_val[k];
+                        }
+                    }
+                }
+                else
+                {
+                    // Numerical zero diagonal
+                    return aoclsparse_status_numerical_error;
+                }
+            }
+            else if(csr_col_ind[j] - base == ai)
+            {
+                has_diag = true;
+                break;
+            }
+        }
+
+        if(!has_diag)
+        {
+            // Structural (and numerical) zero diagonal
+            return aoclsparse_status_numerical_error;
+        }
+
+        // set diagonal pointer to diagonal element
+        diag_offset[ai] = j;
+
+        // clear nnz entries
+        for(j = row_begin; j < row_end; ++j)
+        {
+            nnz_entries[csr_col_ind[j] - base] = 0;
+        }
+    }
+    return aoclsparse_status_success;
+}
+template <>
+inline aoclsparse_status ref_csrilu0(aoclsparse_int                     M,
+                                     aoclsparse_int                     base,
+                                     const std::vector<aoclsparse_int> &csr_row_ptr,
+                                     const std::vector<aoclsparse_int> &csr_col_ind,
+                                     aoclsparse_float_complex          *csr_val)
+{
+    return ref_csrilu0(
+        M, base, csr_row_ptr, csr_col_ind, reinterpret_cast<std::complex<float> *>(csr_val));
+}
+
+template <>
+inline aoclsparse_status ref_csrilu0(aoclsparse_int                     M,
+                                     aoclsparse_int                     base,
+                                     const std::vector<aoclsparse_int> &csr_row_ptr,
+                                     const std::vector<aoclsparse_int> &csr_col_ind,
+                                     aoclsparse_double_complex         *csr_val)
+{
+    return ref_csrilu0(
+        M, base, csr_row_ptr, csr_col_ind, reinterpret_cast<std::complex<double> *>(csr_val));
+}
 #endif // AOCLSPARSE_REFERENCE_HPP

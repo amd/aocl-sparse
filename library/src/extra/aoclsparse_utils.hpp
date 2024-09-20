@@ -44,19 +44,6 @@
 
 extern const size_t data_size[];
 
-/*
-    Perform a comparison test to determine if the value is near zero
-*/
-template <typename T>
-bool aoclsparse_zerocheck(const T &value)
-{
-    bool        is_value_zero = false;
-    constexpr T macheps       = std::numeric_limits<T>::epsilon();
-    constexpr T safe_macheps  = (T)2.0 * macheps;
-    is_value_zero             = std::fabs(value) <= safe_macheps;
-    return is_value_zero;
-}
-
 /* Conjugate functionality the returns both complex and real types */
 /* The standard std::conj return only complex types */
 namespace aoclsparse
@@ -482,4 +469,15 @@ enum class gather_op
 // Template to generate type of 'y' vector based on the API type in gather
 template <typename T, gather_op OP>
 using y_type = typename std::conditional<OP == gather_op::gather, const T *, T *>::type;
+
+/*
+    Perform a comparison test to determine if the value is near zero
+*/
+template <typename T>
+bool aoclsparse_zerocheck(const T &value, tolerance_t<T> scale = (tolerance_t<T>)1e-2)
+{
+    const tolerance_t<T> macheps      = std::numeric_limits<tolerance_t<T>>::epsilon();
+    const tolerance_t<T> safe_macheps = scale * (tolerance_t<T>)2.0 * macheps;
+    return (std::abs(value) <= safe_macheps);
+}
 #endif

@@ -833,7 +833,7 @@ aoclsparse_status aoclsparse_ssymgs_kid(aoclsparse_operation       trans,
  *  @rst For full details refer to :cpp:func:`aoclsparse_?symgs()<aoclsparse_ssymgs>`.
  *
  *  This variation of SYMGS, namely with a suffix of `_mv`, performs matrix-vector multiplication between
- *  the sparse matrix \f$A\f$ and the Gauss Seidel solution vector \f$x\f$.
+ *  the sparse matrix :math:`A` and the Gauss Seidel solution vector :math:`x`.
  *  @endrst
  *  @param[in]
  *  trans       matrix operation to perform on \f$A\f$. Possible values are \ref aoclsparse_operation_none,
@@ -993,6 +993,105 @@ aoclsparse_status aoclsparse_ssymgs_mv_kid(aoclsparse_operation       trans,
                                            float                     *x,
                                            float                     *y,
                                            const aoclsparse_int       kid);
+/**@}*/
+
+/*! \ingroup solver_module
+ *  \brief Incomplete LU factorization with zero fill-in, ILU(0).
+ *  \details
+ *  Performs incomplete LU factorization with zero fill-in on square sparse matrix
+ *  \f$ A \f$ of size \f$n \times n\f$. It also performs a solve for \f$x\f$ in
+ *  \f[ L U x = b, \qquad \text{where} \qquad LU\approx A.\f]
+ *  Matrix \f$A\f$ should be numerically of full rank. The first call will perform
+ *  both the factorization and the solve, whereas any subsequent calls will only
+ *  solve the system with the existing factors.
+ *
+ *  @param[in]
+ *  op           matrix \f$A\f$ operation type. Transpose or conjugate transpose
+ *               are not supported in this release.
+ *  @param[in]
+ *  A            sparse matrix handle. Currently only CSR matrix format is supported.
+ *               The matrix needs to be square with all diagonal elements and fully
+ *               or partially sorted in rows. The partial sorting means that all
+ *               strictly lower triangular elements are followed by the diagonal
+ *               and strictly upper triangular elements in each row, however,
+ *               the non-diagonal elements don't need to follow any particular order
+ *               within their group. If the matrix is unsorted, you might want to call
+ *               aoclsparse_order_mat().
+ *  @param[in]
+ *  descr        descriptor of the sparse matrix handle \p A. Currently,
+ *               only \ref aoclsparse_matrix_type_general is supported.
+ *  @param[out]
+ *  precond_csr_val    pointer to the internal array of \f$L\f$ and \f$U\f$ values, it must not
+ *                     be changed by the user. It gets deallocated when the matrix
+ *                     handle \p A is destroyed. It contains \f$L\f$ and \f$U\f$ factors after
+ *                     the ILU factorization stored as one matrix with the same number
+ *                     of nonzeroes and sparsity pattern as \f$A\f$. Strictly lower triangular
+ *                     elements define \f$L\f$ (together with the implicit unit diagonal),
+ *                     the upper triangular elements represent \f$U\f$.
+ *  @param[in]
+ *  approx_inv_diag    Reserved for future use. This is not used and hence not validated.
+ *  @param[out]
+ *  x           array of \p n elements containing an approximate solution of \f$Ax=b\f$.
+ *  @param[in]
+ *  b           Right-hand-side of the linear system of equations \f$Ax = b\f$.
+ *
+ *  \retval     aoclsparse_status_success the operation completed successfully.
+ *  \retval     aoclsparse_status_invalid_size wrong matrix size (e.g., not square).
+ *  \retval     aoclsparse_status_invalid_value input parameters contain an invalid value (e.g., wrong base).
+ *  \retval     aoclsparse_status_invalid_pointer \p descr, \p A, \p precond_csr_val, \p x or \p b is invalid.
+ *  \retval     aoclsparse_status_wrong_type matrix handle \p A does not match the floating point data type.
+ *  \retval     aoclsparse_status_unsorted_input input matrix is not sorted.
+ *  \retval     aoclsparse_status_numerical_error encoutered a diagonal pivot too close to zero or a diagonal element is missing.
+ *  \retval     aoclsparse_status_not_implemented matrix format, type or operation is not supported.
+ *  \retval     aoclsparse_status_memory_error memory allocation failure.
+ *  \retval     aoclsparse_status_internal_error an internal error occurred.
+ *
+ * @rst
+ * .. collapse:: Example (tests/examples/sample_itsol_d_gmres.cpp)
+ *
+ *    .. only:: html
+ *
+ *       .. literalinclude:: ../tests/examples/sample_itsol_d_gmres.cpp
+ *          :language: C++
+ *          :linenos:
+ * @endrst
+ */
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_silu_smoother(aoclsparse_operation       op,
+                                           aoclsparse_matrix          A,
+                                           const aoclsparse_mat_descr descr,
+                                           float                    **precond_csr_val,
+                                           const float               *approx_inv_diag,
+                                           float                     *x,
+                                           const float               *b);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_dilu_smoother(aoclsparse_operation       op,
+                                           aoclsparse_matrix          A,
+                                           const aoclsparse_mat_descr descr,
+                                           double                   **precond_csr_val,
+                                           const double              *approx_inv_diag,
+                                           double                    *x,
+                                           const double              *b);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_cilu_smoother(aoclsparse_operation            op,
+                                           aoclsparse_matrix               A,
+                                           const aoclsparse_mat_descr      descr,
+                                           aoclsparse_float_complex      **precond_csr_val,
+                                           const aoclsparse_float_complex *approx_inv_diag,
+                                           aoclsparse_float_complex       *x,
+                                           const aoclsparse_float_complex *b);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_zilu_smoother(aoclsparse_operation             op,
+                                           aoclsparse_matrix                A,
+                                           const aoclsparse_mat_descr       descr,
+                                           aoclsparse_double_complex      **precond_csr_val,
+                                           const aoclsparse_double_complex *approx_inv_diag,
+                                           aoclsparse_double_complex       *x,
+                                           const aoclsparse_double_complex *b);
 /**@}*/
 #ifdef __cplusplus
 }
