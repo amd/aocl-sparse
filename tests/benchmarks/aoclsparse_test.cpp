@@ -537,9 +537,13 @@ int main(int argc, char *argv[])
     else if(strcmp(arg.function, "ilu") == 0)
     {
         if(precision == 'd')
-            testing_ilu<double>(arg);
+            return testing_ilu<double>(arg);
         else if(precision == 's')
-            testing_ilu<float>(arg);
+            return testing_ilu<float>(arg);
+        else if(precision == 'c')
+            return testing_ilu<aoclsparse_float_complex>(arg);
+        else if(precision == 'z')
+            return testing_ilu<aoclsparse_double_complex>(arg);
     }
     else if(strcmp(arg.function, "trsv") == 0)
     {

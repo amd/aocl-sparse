@@ -2692,69 +2692,7 @@ aoclsparse_status aoclsparse_dcsr2m(aoclsparse_operation       trans_A,
                                     const aoclsparse_matrix    csrB,
                                     const aoclsparse_request   request,
                                     aoclsparse_matrix         *csrC);
-/**@}*/
 
-/*! \ingroup solver_module
- *  \brief Incomplete LU factorization with zero fill-in, ILU(0).
- *  \details
- *  Performs incomplete LU factorization with zero fill-in on symmetric sparse matrix
- *  \p A of size \f$n \times n\f$. It also performs a solve for \p x in \f[ L U x = b,
- *  \qquad \text{where} \qquad LU\approx A.\f]
- *  Matrix \p A should be numerically of full rank. Currently single and double
- *  precision datatypes are supported.
- *
- *  @param[in]
- *  op           matrix \p A operation type. Transpose not supported in this release.
- *  @param[in]
- *  A            sparse symmetric matrix handle. Currently ILU functionality is supported only for CSR matrix format.
- *  @param[in]
- *  descr        descriptor of the sparse matrix handle \p A. Currently, only
- *               \ref aoclsparse_matrix_type_symmetric is supported.
- *  @param[out]
- *  precond_csr_val        pointer that contains
- *                         L and U factors after ILU factorization operation.
- *                         \p A is not overwritten with the factors.
- *  @param[in]
- *  approx_inv_diag        Reserved for future use.
- *  @param[out]
- *  x           array of \p n elements containing the solution to solving aproximatly \f$Ax=b\f$.
- *  @param[in]
- *  b           Right-hand-side of the linear system of equations \f$Ax = b\f$.
- *
- *  \retval     aoclsparse_status_success the operation completed successfully.
- *  \retval     aoclsparse_status_invalid_size input parameters contain an invalid value.
- *  \retval     aoclsparse_status_invalid_pointer \p descr,  \p A is invalid.
- *  \retval     aoclsparse_status_not_implemented
- *              \ref aoclsparse_matrix_type is not \ref aoclsparse_matrix_type_symmetric or
- *              input matrix \p A is not in CSR format
- * @rst
- * .. collapse:: Example (tests/examples/sample_itsol_d_gmres.cpp)
- *
- *    .. only:: html
- *
- *       .. literalinclude:: ../tests/examples/sample_itsol_d_gmres.cpp
- *          :language: C++
- *          :linenos:
- * @endrst
- * @{
- */
-DLL_PUBLIC
-aoclsparse_status aoclsparse_silu_smoother(aoclsparse_operation       op,
-                                           aoclsparse_matrix          A,
-                                           const aoclsparse_mat_descr descr,
-                                           float                    **precond_csr_val,
-                                           const float               *approx_inv_diag,
-                                           float                     *x,
-                                           const float               *b);
-
-DLL_PUBLIC
-aoclsparse_status aoclsparse_dilu_smoother(aoclsparse_operation       op,
-                                           aoclsparse_matrix          A,
-                                           const aoclsparse_mat_descr descr,
-                                           double                   **precond_csr_val,
-                                           const double              *approx_inv_diag,
-                                           double                    *x,
-                                           const double              *b);
 /**@}*/
 
 /*! \ingroup level3_module

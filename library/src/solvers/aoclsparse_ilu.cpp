@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,122 +29,59 @@
  *   C wrapper
  * ===========================================================================
  */
-extern "C" aoclsparse_status aoclsparse_silu_smoother(aoclsparse_operation       op,
-                                                      aoclsparse_matrix          A,
-                                                      const aoclsparse_mat_descr descr,
-                                                      float                    **precond_csr_val,
-                                                      const float               *approx_inv_diag,
-                                                      float                     *x,
-                                                      const float               *b)
+extern "C" aoclsparse_status aoclsparse_silu_smoother(aoclsparse_operation          op,
+                                                      aoclsparse_matrix             A,
+                                                      const aoclsparse_mat_descr    descr,
+                                                      float                       **precond_csr_val,
+                                                      [[maybe_unused]] const float *approx_inv_diag,
+                                                      float                        *x,
+                                                      const float                  *b)
 {
-    if(descr == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    if(A == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-
-    // Only CSR input format supported
-    if(A->input_format != aoclsparse_csr_mat)
-    {
-        return aoclsparse_status_not_implemented;
-    }
-
-    if(op != aoclsparse_operation_none)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-    if(approx_inv_diag != NULL)
-    {
-        // TODO: argument for future use. expect this to be NULL
-        return aoclsparse_status_not_implemented;
-    }
-    // Check sizes
-    if((A->m < 0) || (A->n < 0))
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    // Quick return if possible
-    if(A->m == 0 || A->n == 0 || A->nnz == 0)
-    {
-        return aoclsparse_status_success;
-    }
-    // Check pointer arguments
-    if((x == nullptr) || (b == nullptr))
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    //Check index base
-    if((A->base != aoclsparse_index_base_zero) && (A->base != aoclsparse_index_base_one))
-    {
-        return aoclsparse_status_invalid_value;
-    }
-    if(A->base != descr->base)
-    {
-        return aoclsparse_status_invalid_value;
-    }
-    return aoclsparse_ilu_template<float>(A, precond_csr_val, x, b);
+    return aoclsparse_ilu_template<float>(op, A, descr, precond_csr_val, x, b);
 }
 
-extern "C" aoclsparse_status aoclsparse_dilu_smoother(aoclsparse_operation       op,
-                                                      aoclsparse_matrix          A,
-                                                      const aoclsparse_mat_descr descr,
-                                                      double                   **precond_csr_val,
-                                                      const double              *approx_inv_diag,
-                                                      double                    *x,
-                                                      const double              *b)
+extern "C" aoclsparse_status
+    aoclsparse_dilu_smoother(aoclsparse_operation           op,
+                             aoclsparse_matrix              A,
+                             const aoclsparse_mat_descr     descr,
+                             double                       **precond_csr_val,
+                             [[maybe_unused]] const double *approx_inv_diag,
+                             double                        *x,
+                             const double                  *b)
 {
-    if(descr == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    if(A == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-
-    // Only CSR input format supported
-    if(A->input_format != aoclsparse_csr_mat)
-    {
-        return aoclsparse_status_not_implemented;
-    }
-
-    if(op != aoclsparse_operation_none)
-    {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
-    if(approx_inv_diag != NULL)
-    {
-        // TODO: argument for future use. expect this to be NULL
-        return aoclsparse_status_not_implemented;
-    }
-    // Check sizes
-    if((A->m < 0) || (A->n < 0))
-    {
-        return aoclsparse_status_invalid_size;
-    }
-    // Quick return if possible
-    if(A->m == 0 || A->n == 0 || A->nnz == 0)
-    {
-        return aoclsparse_status_success;
-    }
-    // Check pointer arguments
-    if((x == nullptr) || (b == nullptr))
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    //Check index base
-    if((A->base != aoclsparse_index_base_zero) && (A->base != aoclsparse_index_base_one))
-    {
-        return aoclsparse_status_invalid_value;
-    }
-    if(A->base != descr->base)
-    {
-        return aoclsparse_status_invalid_value;
-    }
-    return aoclsparse_ilu_template<double>(A, precond_csr_val, x, b);
+    return aoclsparse_ilu_template<double>(op, A, descr, precond_csr_val, x, b);
+}
+extern "C" aoclsparse_status
+    aoclsparse_cilu_smoother(aoclsparse_operation                             op,
+                             aoclsparse_matrix                                A,
+                             const aoclsparse_mat_descr                       descr,
+                             aoclsparse_float_complex                       **precond_csr_val,
+                             [[maybe_unused]] const aoclsparse_float_complex *approx_inv_diag,
+                             aoclsparse_float_complex                        *x,
+                             const aoclsparse_float_complex                  *b)
+{
+    return aoclsparse_ilu_template<std::complex<float>>(
+        op,
+        A,
+        descr,
+        reinterpret_cast<std::complex<float> **>(precond_csr_val),
+        reinterpret_cast<std::complex<float> *>(x),
+        reinterpret_cast<const std::complex<float> *>(b));
+}
+extern "C" aoclsparse_status
+    aoclsparse_zilu_smoother(aoclsparse_operation                              op,
+                             aoclsparse_matrix                                 A,
+                             const aoclsparse_mat_descr                        descr,
+                             aoclsparse_double_complex                       **precond_csr_val,
+                             [[maybe_unused]] const aoclsparse_double_complex *approx_inv_diag,
+                             aoclsparse_double_complex                        *x,
+                             const aoclsparse_double_complex                  *b)
+{
+    return aoclsparse_ilu_template<std::complex<double>>(
+        op,
+        A,
+        descr,
+        reinterpret_cast<std::complex<double> **>(precond_csr_val),
+        reinterpret_cast<std::complex<double> *>(x),
+        reinterpret_cast<const std::complex<double> *>(b));
 }

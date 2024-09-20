@@ -409,16 +409,6 @@ aoclsparse_status itsol_rci_solve(aoclsparse_itsol_handle   handle,
 template <typename T>
 aoclsparse_status itsol_init(aoclsparse_itsol_handle *handle);
 
-template <typename T>
-aoclsparse_status create_aoclsparse_matrix(aoclsparse_matrix           &A,
-                                           const aoclsparse_mat_descr   descr,
-                                           aoclsparse_int               m,
-                                           aoclsparse_int               n,
-                                           aoclsparse_int               nnz,
-                                           std::vector<aoclsparse_int> &csr_row_ptr,
-                                           std::vector<aoclsparse_int> &csr_col_ind,
-                                           std::vector<T>              &csr_val);
-
 // Problem DATABASES =========================================================================
 // DB for matrices: returns a matrix
 // Use create_matrix(...)
@@ -442,6 +432,10 @@ enum matrix_id
     sample_gmres_mat_01,
     sample_gmres_mat_02,
     sample_gmres_mat_03,
+    S5_sym_fullmatrix,
+    S5_sym_lowerfill,
+    S5_sym_upperfill,
+    S4_herm_rsym,
     invalid_mat,
 };
 
@@ -528,6 +522,25 @@ enum linear_system_id
     EXT_H5,
     EXT_H5_B0
 };
+
+template <typename T>
+inline T bc(T v)
+{
+    if constexpr(std::is_same_v<T, std::complex<float>> || std::is_same_v<T, std::complex<double>>)
+        return T(std::real(v), std::real(v) / 10);
+    else
+        return v;
+};
+
+template <typename T>
+inline T bcd(T v, T w)
+{
+    if constexpr(std::is_same_v<T, std::complex<float>> || std::is_same_v<T, std::complex<double>>)
+        return T(std::real(v), std::real(w));
+    else
+        return v;
+};
+
 template <typename T>
 aoclsparse_status create_matrix(matrix_id                    mid,
                                 aoclsparse_int              &m,
@@ -540,7 +553,8 @@ aoclsparse_status create_matrix(matrix_id                    mid,
                                 aoclsparse_mat_descr        &descr,
                                 aoclsparse_int               verbose)
 {
-    aoclsparse_status ret = aoclsparse_status_success;
+    aoclsparse_status     ret  = aoclsparse_status_success;
+    aoclsparse_index_base base = descr->base;
 
     switch(mid)
     {
@@ -555,7 +569,7 @@ aoclsparse_status create_matrix(matrix_id                    mid,
         nnz         = 8;
         csr_row_ptr = {0, 2, 3, 4, 7, 8};
         csr_col_ind = {0, 3, 1, 2, 1, 3, 4, 4};
-        csr_val     = {1, 2, 3, 4, 5, 6, 7, 8};
+        csr_val = {bc((T)1), bc((T)2), bc((T)3), bc((T)4), bc((T)5), bc((T)6), bc((T)7), bc((T)8)};
         break;
 
     case N5_full_unsorted:
@@ -564,7 +578,7 @@ aoclsparse_status create_matrix(matrix_id                    mid,
         nnz         = 8;
         csr_row_ptr = {0, 2, 3, 4, 7, 8};
         csr_col_ind = {3, 0, 1, 2, 3, 1, 4, 4};
-        csr_val     = {2, 1, 3, 4, 6, 5, 7, 8};
+        csr_val = {bc((T)2), bc((T)1), bc((T)3), bc((T)4), bc((T)6), bc((T)5), bc((T)7), bc((T)8)};
         break;
 
     case N59_partial_sort:
@@ -669,7 +683,16 @@ aoclsparse_status create_matrix(matrix_id                    mid,
         nnz         = 10;
         csr_row_ptr = {0, 2, 3, 3, 6, 6, 8, 10};
         csr_col_ind = {0, 3, 1, 3, 1, 4, 1, 2, 0, 3};
-        csr_val     = {1, 2, 3, 6, 5, 7, 1, 2, 3, 4};
+        csr_val     = {bc((T)1),
+                       bc((T)2),
+                       bc((T)3),
+                       bc((T)6),
+                       bc((T)5),
+                       bc((T)7),
+                       bc((T)1),
+                       bc((T)2),
+                       bc((T)3),
+                       bc((T)4)};
         break;
 
     case sample_cg_mat:
@@ -679,7 +702,24 @@ aoclsparse_status create_matrix(matrix_id                    mid,
         nnz         = 18;
         csr_row_ptr = {0, 1, 2, 5, 6, 8, 11, 15, 18};
         csr_col_ind = {0, 1, 0, 1, 2, 3, 1, 4, 0, 4, 5, 0, 3, 4, 6, 2, 5, 7};
-        csr_val     = {19, 10, 1, 8, 11, 13, 2, 11, 2, 1, 9, 7, 9, 5, 12, 5, 5, 9};
+        csr_val     = {bc((T)19),
+                       bc((T)10),
+                       bc((T)1),
+                       bc((T)8),
+                       bc((T)11),
+                       bc((T)13),
+                       bc((T)2),
+                       bc((T)11),
+                       bc((T)2),
+                       bc((T)1),
+                       bc((T)9),
+                       bc((T)7),
+                       bc((T)9),
+                       bc((T)5),
+                       bc((T)12),
+                       bc((T)5),
+                       bc((T)5),
+                       bc((T)9)};
         aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_symmetric);
         aoclsparse_set_mat_fill_mode(descr, aoclsparse_fill_mode_lower);
         break;
@@ -694,10 +734,15 @@ aoclsparse_status create_matrix(matrix_id                    mid,
         csr_row_ptr = {0, 5, 10, 15, 20, 26, 32, 38, 44, 49};
         csr_col_ind = {0, 1, 3, 4, 7, 0, 1, 2, 4, 5, 1, 2, 3, 5, 6, 0, 2, 3, 6, 7, 0, 1, 4, 5, 6,
                        8, 1, 2, 4, 5, 7, 8, 2, 3, 4, 6, 7, 8, 0, 3, 5, 6, 7, 8, 4, 5, 6, 7, 8};
-        csr_val     = {0.75, 0.14, 0.11, 0.14, 0.11, 0.08, 0.69, 0.11, 0.08, 0.11, 0.09, 0.67, 0.08,
-                       0.09, 0.08, 0.09, 0.14, 0.73, 0.14, 0.09, 0.04, 0.04, 0.54, 0.14, 0.11, 0.25,
-                       0.05, 0.05, 0.08, 0.45, 0.08, 0.15, 0.04, 0.04, 0.09, 0.47, 0.09, 0.18, 0.05,
-                       0.05, 0.14, 0.11, 0.55, 0.25, 0.08, 0.08, 0.09, 0.08, 0.17};
+        csr_val     = {bc((T)0.75), bc((T)0.14), bc((T)0.11), bc((T)0.14), bc((T)0.11), bc((T)0.08),
+                       bc((T)0.69), bc((T)0.11), bc((T)0.08), bc((T)0.11), bc((T)0.09), bc((T)0.67),
+                       bc((T)0.08), bc((T)0.09), bc((T)0.08), bc((T)0.09), bc((T)0.14), bc((T)0.73),
+                       bc((T)0.14), bc((T)0.09), bc((T)0.04), bc((T)0.04), bc((T)0.54), bc((T)0.14),
+                       bc((T)0.11), bc((T)0.25), bc((T)0.05), bc((T)0.05), bc((T)0.08), bc((T)0.45),
+                       bc((T)0.08), bc((T)0.15), bc((T)0.04), bc((T)0.04), bc((T)0.09), bc((T)0.47),
+                       bc((T)0.09), bc((T)0.18), bc((T)0.05), bc((T)0.05), bc((T)0.14), bc((T)0.11),
+                       bc((T)0.55), bc((T)0.25), bc((T)0.08), bc((T)0.08), bc((T)0.09), bc((T)0.08),
+                       bc((T)0.17)};
         aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_general);
         break;
     case sample_gmres_mat_02:
@@ -717,19 +762,31 @@ aoclsparse_status create_matrix(matrix_id                    mid,
                12, 14, 18, 3,  7,  9,  10, 11, 12, 13, 15, 4,  8,  10, 11, 12, 13, 14, 16, 5,  9,
                11, 12, 13, 14, 15, 17, 6,  10, 12, 13, 14, 15, 16, 18, 7,  11, 13, 14, 15, 16, 17,
                0,  8,  12, 14, 15, 16, 17, 18, 1,  9,  13, 15, 16, 17, 18, 2,  10, 14, 16, 17, 18};
-        csr_val = {3.00, 1.00,  1.00, 1.00,  1.00,  1.00, 1.00, 5.00,  1.00, 1.00, 1.00,  1.00,
-                   1.00, 1.00,  1.00, 7.00,  1.00,  1.00, 1.00, 1.00,  1.00, 1.00, 1.00,  11.00,
-                   1.00, 1.00,  1.00, 1.00,  1.00,  1.00, 1.00, 13.00, 1.00, 1.00, 1.00,  1.00,
-                   1.00, 1.00,  1.00, 17.00, 1.00,  1.00, 1.00, 1.00,  1.00, 1.00, 1.00,  19.00,
-                   1.00, 1.00,  1.00, 1.00,  1.00,  1.00, 1.00, 23.00, 1.00, 1.00, 1.00,  1.00,
-                   1.00, 1.00,  1.00, 1.00,  29.00, 1.00, 1.00, 1.00,  1.00, 1.00, 1.00,  1.00,
-                   1.00, 31.00, 1.00, 1.00,  1.00,  1.00, 1.00, 1.00,  1.00, 1.00, 37.00, 1.00,
-                   1.00, 1.00,  1.00, 1.00,  1.00,  1.00, 1.00, 41.00, 1.00, 1.00, 1.00,  1.00,
-                   1.00, 1.00,  1.00, 43.00, 1.00,  1.00, 1.00, 1.00,  1.00, 1.00, 1.00,  47.00,
-                   1.00, 1.00,  1.00, 1.00,  1.00,  1.00, 1.00, 53.00, 1.00, 1.00, 1.00,  1.00,
-                   1.00, 1.00,  1.00, 59.00, 1.00,  1.00, 1.00, 1.00,  1.00, 1.00, 1.00,  61.00,
-                   1.00, 1.00,  1.00, 1.00,  1.00,  1.00, 1.00, 67.00, 1.00, 1.00, 1.00,  1.00,
-                   1.00, 1.00,  71.00};
+        csr_val = {bc((T)3.00), bc((T)1.00),  bc((T)1.00), bc((T)1.00),  bc((T)1.00),  bc((T)1.00),
+                   bc((T)1.00), bc((T)5.00),  bc((T)1.00), bc((T)1.00),  bc((T)1.00),  bc((T)1.00),
+                   bc((T)1.00), bc((T)1.00),  bc((T)1.00), bc((T)7.00),  bc((T)1.00),  bc((T)1.00),
+                   bc((T)1.00), bc((T)1.00),  bc((T)1.00), bc((T)1.00),  bc((T)1.00),  bc((T)11.00),
+                   bc((T)1.00), bc((T)1.00),  bc((T)1.00), bc((T)1.00),  bc((T)1.00),  bc((T)1.00),
+                   bc((T)1.00), bc((T)13.00), bc((T)1.00), bc((T)1.00),  bc((T)1.00),  bc((T)1.00),
+                   bc((T)1.00), bc((T)1.00),  bc((T)1.00), bc((T)17.00), bc((T)1.00),  bc((T)1.00),
+                   bc((T)1.00), bc((T)1.00),  bc((T)1.00), bc((T)1.00),  bc((T)1.00),  bc((T)19.00),
+                   bc((T)1.00), bc((T)1.00),  bc((T)1.00), bc((T)1.00),  bc((T)1.00),  bc((T)1.00),
+                   bc((T)1.00), bc((T)23.00), bc((T)1.00), bc((T)1.00),  bc((T)1.00),  bc((T)1.00),
+                   bc((T)1.00), bc((T)1.00),  bc((T)1.00), bc((T)1.00),  bc((T)29.00), bc((T)1.00),
+                   bc((T)1.00), bc((T)1.00),  bc((T)1.00), bc((T)1.00),  bc((T)1.00),  bc((T)1.00),
+                   bc((T)1.00), bc((T)31.00), bc((T)1.00), bc((T)1.00),  bc((T)1.00),  bc((T)1.00),
+                   bc((T)1.00), bc((T)1.00),  bc((T)1.00), bc((T)1.00),  bc((T)37.00), bc((T)1.00),
+                   bc((T)1.00), bc((T)1.00),  bc((T)1.00), bc((T)1.00),  bc((T)1.00),  bc((T)1.00),
+                   bc((T)1.00), bc((T)41.00), bc((T)1.00), bc((T)1.00),  bc((T)1.00),  bc((T)1.00),
+                   bc((T)1.00), bc((T)1.00),  bc((T)1.00), bc((T)43.00), bc((T)1.00),  bc((T)1.00),
+                   bc((T)1.00), bc((T)1.00),  bc((T)1.00), bc((T)1.00),  bc((T)1.00),  bc((T)47.00),
+                   bc((T)1.00), bc((T)1.00),  bc((T)1.00), bc((T)1.00),  bc((T)1.00),  bc((T)1.00),
+                   bc((T)1.00), bc((T)53.00), bc((T)1.00), bc((T)1.00),  bc((T)1.00),  bc((T)1.00),
+                   bc((T)1.00), bc((T)1.00),  bc((T)1.00), bc((T)59.00), bc((T)1.00),  bc((T)1.00),
+                   bc((T)1.00), bc((T)1.00),  bc((T)1.00), bc((T)1.00),  bc((T)1.00),  bc((T)61.00),
+                   bc((T)1.00), bc((T)1.00),  bc((T)1.00), bc((T)1.00),  bc((T)1.00),  bc((T)1.00),
+                   bc((T)1.00), bc((T)67.00), bc((T)1.00), bc((T)1.00),  bc((T)1.00),  bc((T)1.00),
+                   bc((T)1.00), bc((T)1.00),  bc((T)71.00)};
         aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_symmetric);
         aoclsparse_set_mat_fill_mode(descr, aoclsparse_fill_mode_lower);
         break;
@@ -778,6 +835,113 @@ aoclsparse_status create_matrix(matrix_id                    mid,
         aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_symmetric);
         aoclsparse_set_mat_fill_mode(descr, aoclsparse_fill_mode_lower);
         break;
+    case S5_sym_fullmatrix:
+        n           = 5;
+        m           = 5;
+        nnz         = 13;
+        csr_row_ptr = {0, 3, 6, 7, 10, 13};
+        csr_col_ind = {0, 1, 3, 0, 1, 4, 2, 0, 3, 4, 1, 3, 4};
+        //one-base test case
+        transform(csr_row_ptr.begin(),
+                  csr_row_ptr.end(),
+                  csr_row_ptr.begin(),
+                  [base](aoclsparse_int &d) { return d + base; });
+        transform(csr_col_ind.begin(),
+                  csr_col_ind.end(),
+                  csr_col_ind.begin(),
+                  [base](aoclsparse_int &d) { return d + base; });
+
+        csr_val = {bc((T)0.10000000000000001),
+                   bc((T)0.4081472627313027),
+                   bc((T)0.6498582641797952),
+                   bc((T)0.4081472627313027),
+                   bc((T)0.10000000000000001),
+                   bc((T)-0.86888798575545645),
+                   bc((T)1.3257997547570228),
+                   bc((T)0.6498582641797952),
+                   bc((T)-0.45905550575269161),
+                   bc((T)-0.26103653234662899),
+                   bc((T)-0.86888798575545645),
+                   bc((T)-0.26103653234662899),
+                   bc((T)0.10000000000000001)};
+        aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_general);
+        break;
+    case S5_sym_lowerfill:
+        n           = 5;
+        m           = 5;
+        nnz         = 9;
+        csr_row_ptr = {0, 1, 3, 4, 6, 9};
+        csr_col_ind = {0, 0, 1, 2, 0, 3, 1, 3, 4};
+        csr_val     = {bc((T)0.10000000000000001),
+                       bc((T)0.4081472627313027),
+                       bc((T)0.10000000000000001),
+                       bc((T)1.3257997547570228),
+                       bc((T)0.6498582641797952),
+                       bc((T)-0.45905550575269161),
+                       bc((T)-0.86888798575545645),
+                       bc((T)-0.26103653234662899),
+                       bc((T)0.10000000000000001)};
+        aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_symmetric);
+        aoclsparse_set_mat_fill_mode(descr, aoclsparse_fill_mode_lower);
+        break;
+    case S5_sym_upperfill:
+        n           = 5;
+        m           = 5;
+        nnz         = 9;
+        csr_row_ptr = {0, 3, 5, 6, 8, 9};
+        csr_col_ind = {0, 1, 3, 1, 4, 2, 3, 4, 4};
+        csr_val     = {bc((T)0.10000000000000001),
+                       bc((T)0.4081472627313027),
+                       bc((T)0.6498582641797952),
+                       bc((T)0.10000000000000001),
+                       bc((T)-0.86888798575545645),
+                       bc((T)1.3257997547570228),
+                       bc((T)-0.45905550575269161),
+                       bc((T)-0.26103653234662899),
+                       bc((T)0.10000000000000001)};
+        aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_symmetric);
+        aoclsparse_set_mat_fill_mode(descr, aoclsparse_fill_mode_upper);
+        break;
+    case S4_herm_rsym:
+        /* Small Hermitian matrix that is symmetric for real components as well
+        -154 +   0i     1 -   1i     1 +   2i     0 -   1i;
+           1 +   1i   160 +   0i    -2 +   0i     3 -   2i;
+           1 -   2i    -2 +   0i   142 +   0i     4 +   0i;
+           0 +   1i     3 +   2i     4 +   0i   178 +   0i;
+        */
+
+        n = m = 4;
+        if constexpr(std::is_same_v<T, std::complex<double>>
+                     || std::is_same_v<T, std::complex<float>>)
+        {
+            //real upper hermitian
+            nnz         = 10;
+            csr_row_ptr = {0, 4, 7, 9, 10};
+            csr_col_ind = {0, 1, 2, 3, 1, 2, 3, 2, 3, 3};
+            csr_val     = {bcd((T)-154, (T)0),
+                           bcd((T)1, (T)-1),
+                           bcd((T)1, (T)2),
+                           bcd((T)0, (T)-1),
+                           bcd((T)160, (T)0),
+                           bcd((T)-2, (T)0),
+                           bcd((T)3, (T)-2),
+                           bcd((T)142, (T)0),
+                           bcd((T)4, (T)0),
+                           bcd((T)178, (T)0)};
+            aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_hermitian);
+            aoclsparse_set_mat_fill_mode(descr, aoclsparse_fill_mode_upper);
+        }
+        else
+        {
+            //real lower symmetric
+            nnz         = 9;
+            csr_row_ptr = {0, 1, 3, 6, 9};
+            csr_col_ind = {0, 0, 1, 0, 1, 2, 1, 2, 3};
+            csr_val     = {-154, 1, 160, 1, -2, 142, 3, 4, 178};
+            aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_symmetric);
+            aoclsparse_set_mat_fill_mode(descr, aoclsparse_fill_mode_lower);
+        }
+        break;
     case invalid_mat:
         // matrix from the CG sample examples
         // symmetric, lower triangle filled
@@ -797,7 +961,8 @@ aoclsparse_status create_matrix(matrix_id                    mid,
         return aoclsparse_status_invalid_value;
     }
 
-    ret = create_aoclsparse_matrix<T>(A, descr, m, n, nnz, csr_row_ptr, csr_col_ind, csr_val);
+    ret = aoclsparse_create_csr<T>(
+        &A, base, m, n, nnz, &csr_row_ptr[0], &csr_col_ind[0], &csr_val[0]);
     if(ret != aoclsparse_status_success && verbose)
         std::cout << "Unexpected error in matrix creation" << std::endl;
 
@@ -808,23 +973,6 @@ aoclsparse_status create_matrix(matrix_id                    mid,
     return ret;
 }
 
-template <typename T>
-inline T bc(T v)
-{
-    if constexpr(std::is_same_v<T, std::complex<float>> || std::is_same_v<T, std::complex<double>>)
-        return T(std::real(v), std::real(v) / 10);
-    else
-        return v;
-};
-
-template <typename T>
-inline T bcd(T v, T w)
-{
-    if constexpr(std::is_same_v<T, std::complex<float>> || std::is_same_v<T, std::complex<double>>)
-        return T(std::real(v), std::real(w));
-    else
-        return v;
-};
 /*
     compute right exponents to calculate operand values for extreme value testing.
     This is used in overflow and underflow testing

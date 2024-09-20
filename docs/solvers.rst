@@ -172,3 +172,14 @@ aoclsparse\_?sorv()
 .. doxygenfunction:: aoclsparse_ssorv
    :outline:
 .. doxygenfunction:: aoclsparse_dsorv
+
+aoclsparse_ilu\_?smoother()
+---------------------------
+
+.. doxygenfunction:: aoclsparse_silu_smoother
+    :outline:
+.. doxygenfunction:: aoclsparse_dilu_smoother
+    :outline:
+.. doxygenfunction:: aoclsparse_cilu_smoother
+    :outline:
+.. doxygenfunction:: aoclsparse_zilu_smoother

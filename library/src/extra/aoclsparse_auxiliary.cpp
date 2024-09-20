@@ -1134,11 +1134,6 @@ aoclsparse_status aoclsparse_destroy_ilu(_aoclsparse_ilu *ilu_info)
 {
     if(ilu_info != NULL)
     {
-        if(ilu_info->col_idx_mapper != NULL)
-        {
-            delete[] ilu_info->col_idx_mapper;
-            ilu_info->col_idx_mapper = NULL;
-        }
         if(ilu_info->lu_diag_ptr != NULL)
         {
             delete[] ilu_info->lu_diag_ptr;

@@ -1081,7 +1081,7 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
             g0            = g[j];
             g[j]          = c[j] * g0;
             g[j + 1]      = s[j] * g0;
-            gmres->rnorm2 = fabs(g[j /*m*/]); /* residual */
+            gmres->rnorm2 = std::abs(g[j /*m*/]); /* residual */
 
             rinfo[RINFO_ITER]     = (T)gmres->niter;
             rinfo[RINFO_RES_NORM] = gmres->rnorm2;
@@ -1169,7 +1169,7 @@ aoclsparse_status aoclsparse_gmres_rci_solve(aoclsparse_itsol_data<T> *itsol,
                     x[i] += blis::cblas_dot(m, z + i, n, c, 1);
                 }
             }
-            gmres->rnorm2 = fabs(g[j /*m*/]); /* residual */
+            gmres->rnorm2 = std::abs(g[j /*m*/]); /* residual */
             gmres->niter += j; //update iterations
             rinfo[RINFO_ITER]     = (T)gmres->niter;
             rinfo[RINFO_RES_NORM] = gmres->rnorm2;
@@ -1467,7 +1467,9 @@ aoclsparse_status aoclsparse_gmres_solve(
             case 2:
                 //Run ILU Preconditioner only once in the beginning
                 //Run Triangular Solve using ILU0 factorization
-                aoclsparse_ilu_template(mat, //precond martix M
+                aoclsparse_ilu_template(aoclsparse_operation_none,
+                                        mat, //precond martix M
+                                        descr,
                                         &precond_data,
                                         io2, //x = ?, io1 = z+j*n,
                                         (const T *)io1); //rhs, io2 = v+j*n

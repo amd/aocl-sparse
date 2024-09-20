@@ -394,9 +394,15 @@ namespace
         ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
 
         aoclsparse_matrix A = nullptr;
-        ASSERT_EQ(
-            create_aoclsparse_matrix<T>(A, descr, m, n, nnz, csr_row_ptr, csr_col_ind, csr_val),
-            aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_create_csr<T>(&A,
+                                           (aoclsparse_index_base)invalid_index_base,
+                                           m,
+                                           n,
+                                           nnz,
+                                           &csr_row_ptr[0],
+                                           &csr_col_ind[0],
+                                           &csr_val[0]),
+                  aoclsparse_status_invalid_value);
 
         //check if base index value is invalid
         iB = 2; //nRowsblk = 4
@@ -510,9 +516,15 @@ namespace
                   aoclsparse_status_success);
 
         aoclsparse_matrix A = nullptr;
-        ASSERT_EQ(
-            create_aoclsparse_matrix<T>(A, descr, m, n, nnz, csr_row_ptr, csr_col_ind, csr_val),
-            aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_create_csr<T>(&A,
+                                           aoclsparse_index_base_one,
+                                           m,
+                                           n,
+                                           nnz,
+                                           &csr_row_ptr[0],
+                                           &csr_col_ind[0],
+                                           &csr_val[0]),
+                  aoclsparse_status_success);
 
         for(iB = 0; iB < 3; iB++)
         {
@@ -606,9 +618,15 @@ namespace
                   aoclsparse_status_success);
 
         aoclsparse_matrix A = nullptr;
-        ASSERT_EQ(
-            create_aoclsparse_matrix<T>(A, descr, m, n, nnz, csr_row_ptr, csr_col_ind, csr_val),
-            aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_create_csr<T>(&A,
+                                           aoclsparse_index_base_zero,
+                                           m,
+                                           n,
+                                           nnz,
+                                           &csr_row_ptr[0],
+                                           &csr_col_ind[0],
+                                           &csr_val[0]),
+                  aoclsparse_status_success);
 
         for(iB = 0; iB < 3; iB++)
         {

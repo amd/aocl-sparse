@@ -384,40 +384,6 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
     return aoclsparse_status_success;
 }
 /*
-    the ilu optimize fucntion currently just allocates the memory
-    needed for the working buffers of preconditioning
-*/
-aoclsparse_status aoclsparse_optimize_ilu0(aoclsparse_matrix A)
-{
-    aoclsparse_status ret      = aoclsparse_status_success;
-    _aoclsparse_ilu  *ilu_info = nullptr;
-    aoclsparse_int    nrows    = A->m;
-
-    ilu_info = &(A->ilu_info);
-
-    try
-    {
-        ilu_info->lu_diag_ptr    = new aoclsparse_int[nrows];
-        ilu_info->col_idx_mapper = new aoclsparse_int[nrows];
-    }
-    catch(std::bad_alloc &)
-    {
-        delete[] ilu_info->lu_diag_ptr;
-        delete[] ilu_info->col_idx_mapper;
-        ret = aoclsparse_status_memory_error;
-        return ret;
-    }
-    for(aoclsparse_int i = 0; i < nrows; i++)
-    {
-        ilu_info->col_idx_mapper[i] = 0;
-        ilu_info->lu_diag_ptr[i]    = 0;
-    }
-    //set members of ILU info
-    A->ilu_info.ilu_factorized = false;
-    A->optimized               = true;
-    return ret;
-}
-/*
     SYMGS optimize API allocates working buffers
 */
 aoclsparse_status aoclsparse_optimize_symgs(aoclsparse_matrix A)
@@ -459,33 +425,23 @@ aoclsparse_status aoclsparse_optimize_symgs(aoclsparse_matrix A)
 */
 aoclsparse_status aoclsparse_optimize_ilu(aoclsparse_matrix A)
 {
-    aoclsparse_status ret = aoclsparse_status_success;
-    void             *ilu_val;
+    aoclsparse_status ret     = aoclsparse_status_success;
+    void             *ilu_val = nullptr;
     //If already allocated, then no need to reallocate. So return. Need to happen only once in the beginning
     if(A->ilu_info.ilu_ready == true)
     {
         return ret;
     }
-    A->ilu_info.ilu_fact_type = aoclsparse_ilu0; // ILU0
-    switch(A->ilu_info.ilu_fact_type)
-    {
-    case aoclsparse_ilu0:
-        ret = aoclsparse_optimize_ilu0(A);
-        break;
-    case aoclsparse_ilup:
-        //ret = aoclsparse_optimize_ilup(A);
-        //To Do
-        break;
-    default:
-        ret = aoclsparse_status_invalid_value;
-        break;
-    }
+    A->ilu_info.ilu_fact_type = aoclsparse_ilu0;
     try
     {
-        ilu_val = ::operator new(data_size[A->val_type] * A->nnz);
+        A->ilu_info.lu_diag_ptr = new aoclsparse_int[A->m];
+        ilu_val                 = ::operator new(data_size[A->val_type] * A->nnz);
     }
     catch(std::bad_alloc &)
     {
+        delete[] A->ilu_info.lu_diag_ptr;
+        ::operator delete(ilu_val);
         return aoclsparse_status_memory_error;
     }
     memcpy(ilu_val, A->csr_mat.csr_val, (data_size[A->val_type] * A->nnz));

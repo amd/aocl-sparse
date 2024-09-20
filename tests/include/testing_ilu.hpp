@@ -40,193 +40,192 @@
 #include <fstream>
 #include <string>
 
+#ifdef EXT_BENCHMARKING
+#include "ext_benchmarking.hpp" // defines register_tests_*()
+#else
+#include "aoclsparse_no_ext_benchmarking.hpp" // defines them as empty/do nothing
+#endif
+
 template <typename T>
-inline void ref_csrilu0(aoclsparse_int                     M,
-                        aoclsparse_int                     base,
-                        const std::vector<aoclsparse_int> &csr_row_ptr,
-                        const std::vector<aoclsparse_int> &csr_col_ind,
-                        std::vector<T>                    &csr_val,
-                        aoclsparse_int                    *struct_pivot,
-                        aoclsparse_int                    *numeric_pivot)
+int testing_ilu_aocl(const Arguments &arg, testdata<T> &td, double timings[])
 {
-    // Initialize pivot
-    *struct_pivot  = -1;
-    *numeric_pivot = -1;
-
-    // pointer of upper part of each row
-    std::vector<aoclsparse_int> diag_offset(M);
-    std::vector<aoclsparse_int> nnz_entries(M, 0);
-
-    // ai = 0 to N loop over all rows
-    for(aoclsparse_int ai = 0; ai < M; ++ai)
+    int                    status  = 0;
+    aoclsparse_int         m       = td.m;
+    aoclsparse_int         nnz     = td.nnzA;
+    aoclsparse_operation   trans   = arg.transA;
+    aoclsparse_matrix_type mattype = arg.mattypeA;
+    aoclsparse_fill_mode   fill    = arg.uplo;
+    aoclsparse_diag_type   diag    = arg.diag;
+    aoclsparse_index_base  base    = arg.baseA;
+    aoclsparse_matrix      A;
+    T                     *precond_csr_val = NULL, *approx_inv_diag = NULL;
+    // Create matrix descriptor & set it as requested by command line arguments
+    aoclsparse_mat_descr descr = nullptr;
+    try
     {
-        // ai-th row entries
-        aoclsparse_int row_begin = csr_row_ptr[ai] - base;
-        aoclsparse_int row_end   = csr_row_ptr[ai + 1] - base;
-        aoclsparse_int j;
+        NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_create_mat_descr(&descr));
+        NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mat_type(descr, mattype));
+        NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mat_fill_mode(descr, fill));
+        NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mat_diag_type(descr, diag));
+        NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mat_index_base(descr, base));
 
-        // nnz position of ai-th row in val array
-        for(j = row_begin; j < row_end; ++j)
+        int number_hot_calls = arg.iters;
+        int hint             = 1000;
+
+        NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_create_csr<T>(&A,
+                                                            base,
+                                                            m,
+                                                            m,
+                                                            nnz,
+                                                            td.csr_row_ptrA.data(),
+                                                            td.csr_col_indA.data(),
+                                                            td.csr_valA.data()));
+        //to identify hint id(which routine is to be executed, destroyed later)
+        NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_set_lu_smoother_hint(A, trans, descr, hint));
+        // Optimize the matrix, "A"
+        NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_optimize(A));
+
+        // Performance run
+        for(int iter = 0; iter < number_hot_calls; ++iter)
         {
-            nnz_entries[csr_col_ind[j] - base] = j;
-        }
-
-        bool has_diag = false;
-
-        // loop over ai-th row nnz entries
-        for(j = row_begin; j < row_end; ++j)
-        {
-            // if nnz entry is in lower matrix
-            if(csr_col_ind[j] - base < ai)
-            {
-
-                aoclsparse_int col_j  = csr_col_ind[j] - base;
-                aoclsparse_int diag_j = diag_offset[col_j];
-
-                if(csr_val[diag_j] != static_cast<T>(0))
-                {
-                    // multiplication factor
-                    csr_val[j] = csr_val[j] / csr_val[diag_j];
-
-                    // loop over upper offset pointer and do linear combination for nnz entry
-                    for(aoclsparse_int k = diag_j + 1; k < csr_row_ptr[col_j + 1] - base; ++k)
-                    {
-                        // if nnz at this position do linear combination
-                        if(nnz_entries[csr_col_ind[k] - base] != 0)
-                        {
-                            aoclsparse_int idx = nnz_entries[csr_col_ind[k] - base];
-                            csr_val[idx]       = std::fma(-csr_val[j], csr_val[k], csr_val[idx]);
-                        }
-                    }
-                }
-                else
-                {
-                    // Numerical zero diagonal
-                    *numeric_pivot = col_j + base;
-                    return;
-                }
-            }
-            else if(csr_col_ind[j] - base == ai)
-            {
-                has_diag = true;
-                break;
-            }
-            else
-            {
-                break;
-            }
-        }
-
-        if(!has_diag)
-        {
-            // Structural (and numerical) zero diagonal
-            *struct_pivot  = ai + base;
-            *numeric_pivot = ai + base;
-            return;
-        }
-
-        // set diagonal pointer to diagonal element
-        diag_offset[ai] = j;
-
-        // clear nnz entries
-        for(j = row_begin; j < row_end; ++j)
-        {
-            nnz_entries[csr_col_ind[j] - base] = 0;
+            std::fill(td.y.begin(), td.y.end(), aoclsparse_numeric::zero<T>());
+            double cpu_time_start = aoclsparse_clock();
+            NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_ilu_smoother(
+                trans, A, descr, &precond_csr_val, approx_inv_diag, td.x.data(), td.b.data()));
+            std::copy(precond_csr_val, precond_csr_val + td.nnzA, td.y.begin());
+            timings[iter] = aoclsparse_clock_diff(cpu_time_start);
         }
     }
+    catch(BenchmarkException &e)
+    {
+        status = 1;
+    }
+    aoclsparse_destroy_mat_descr(descr);
+    aoclsparse_destroy(&A);
+    return status;
 }
 
 template <typename T>
-void testing_ilu(const Arguments &arg)
+int testing_ilu(const Arguments &arg)
 {
-    aoclsparse_int         M     = arg.M;
-    aoclsparse_int         N     = arg.N;
-    aoclsparse_int         nnz   = arg.nnz;
-    aoclsparse_matrix_init mat   = arg.matrix;
-    aoclsparse_operation   trans = arg.transA;
-    aoclsparse_index_base  base  = arg.baseA;
+    int                    status   = 0;
+    aoclsparse_index_base  base     = arg.baseA;
+    aoclsparse_matrix_init mat      = arg.matrix;
+    std::string            filename = arg.filename;
+    aoclsparse_matrix_sort sort     = arg.sort;
     bool                   issymm;
-    std::string            filename        = arg.filename;
-    T                     *approx_inv_diag = NULL;
+    // the queue of test functions to run, normally it would be just one API
+    // unless more tests are registered via EXT_BENCHMARKING
+    std::vector<testsetting<T>> testqueue;
+    testqueue.push_back({"aocl_ilu_hint", &testing_ilu_aocl<T>});
+    register_tests_ilu(testqueue);
 
-    // Create matrix descriptor
-    aoclsparse_local_mat_descr descr;
+    // create relevant test data for this API
+    testdata<T> td;
+    td.m    = arg.M;
+    td.n    = arg.N;
+    td.nnzA = arg.nnz;
 
-    // Set matrix index base
-    CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mat_index_base(descr, base));
+    // space for results
+    std::vector<double> timings(arg.iters);
+    // and their statistics
+    std::vector<data_stats> tstats(testqueue.size());
 
-    // Allocate memory for matrix
-    std::vector<aoclsparse_int> csr_row_ptr;
-    std::vector<aoclsparse_int> csr_col_ind;
-    std::vector<T>              csr_val;
-
-    std::vector<T> x(N);
-    std::vector<T> b(N);
     aoclsparse_seedrand();
 
-    CHECK_AOCLSPARSE_ERROR(aoclsparse_init_csr_matrix(
-        csr_row_ptr, csr_col_ind, csr_val, M, N, nnz, base, mat, filename.c_str(), issymm, true));
+    // Sample matrix
+    NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_init_csr_matrix(td.csr_row_ptrA,
+                                                          td.csr_col_indA,
+                                                          td.csr_valA,
+                                                          td.m,
+                                                          td.n,
+                                                          td.nnzA,
+                                                          base,
+                                                          mat,
+                                                          filename.c_str(),
+                                                          issymm,
+                                                          true,
+                                                          sort));
 
-    CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_symmetric));
-
-    aoclsparse_matrix A;
-
-    CHECK_AOCLSPARSE_ERROR(aoclsparse_create_csr<T>(
-        &A, base, M, N, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data()));
-
-    // Initialize data
-    T *precond_csr_val = NULL;
-
-    aoclsparse_int h_analysis_pivot_gold;
-    aoclsparse_int h_solve_pivot_gold;
-    std::vector<T> csr_val_gold(nnz);
-    std::vector<T> ref_copy_csr_val(nnz);
-    //save the csr values for in-place operation of ilu0
-    ref_copy_csr_val = csr_val;
-
-    if(arg.unit_check)
+    //exit since ILU expects a square matrix
+    if(td.m != td.n)
     {
-        csr_val_gold = csr_val;
-        //compute ILU0 using reference c code and store the LU factors as part of csr_val_gold
-        ref_csrilu0<T>(M,
-                       base,
-                       csr_row_ptr,
-                       csr_col_ind,
-                       csr_val_gold,
-                       &h_analysis_pivot_gold,
-                       &h_solve_pivot_gold);
+        std::cerr << "ILU Preconditioner requires a square matrix that can be either symmetric or "
+                     "triangular"
+                  << std::endl;
+        return -1;
     }
 
-    //Basic routine type checks
-    CHECK_AOCLSPARSE_ERROR(aoclsparse_set_lu_smoother_hint(A, trans, descr, 1));
+    std::vector<T> csr_val_gold;
 
-    // Optimize the matrix, "A"
-    CHECK_AOCLSPARSE_ERROR(aoclsparse_optimize(A));
-
-    CHECK_AOCLSPARSE_ERROR(aoclsparse_ilu_smoother(
-        trans, A, descr, &precond_csr_val, approx_inv_diag, x.data(), b.data()));
+    td.x.resize(td.n);
+    td.b.resize(td.n);
+    td.y.resize(
+        td.nnzA); //used to collect ILU factorization data from the library kernel. And then this is used for validation.
+    csr_val_gold.resize(td.nnzA);
 
     if(arg.unit_check)
     {
-        if(near_check_general<T>(1, nnz, 1, csr_val_gold.data(), precond_csr_val))
+        csr_val_gold = td.csr_valA;
+        try
         {
-            aoclsparse_destroy(&A);
-            return;
+            //compute ILU0 using reference c code and store the LU factors as part of csr_val_gold
+            NEW_CHECK_AOCLSPARSE_ERROR(
+                ref_csrilu0(td.n, base, td.csr_row_ptrA, td.csr_col_indA, csr_val_gold.data()));
+        }
+        catch(BenchmarkException &e)
+        {
+            std::cerr << "Error computing reference ILU0 results" << std::endl;
+            return 2;
         }
     }
+
+    std::string prob_name = gen_problem_name(arg, td);
 
     std::cout.precision(2);
     std::cout.setf(std::ios::fixed);
     std::cout.setf(std::ios::left);
 
-    std::cout << std::setw(20) << "input" << std::setw(12) << "M" << std::setw(12) << "nnz"
-              << std::setw(12) << "verified" << std::endl;
+    for(unsigned itest = 0; itest < testqueue.size(); ++itest)
+    {
+        status = 0;
+        std::cout << "-----" << testqueue[itest].name << "-----" << std::endl;
 
-    std::cout << std::setw(20) << filename.c_str() << std::setw(12) << M << std::setw(12) << nnz
-              << std::setw(12) << (arg.unit_check ? "yes" : "no") << std::endl;
+        // Run the test loop
+        status += testqueue[itest].tf(arg, td, timings.data());
 
-    aoclsparse_destroy(&A);
-    return;
+        // Check the results against the reference result
+        int verify = 0; // assume not tested
+        if(arg.unit_check)
+        {
+            verify = 1; // assume pass
+
+            if(!status)
+            {
+                if(near_check_general<T>(1, td.nnzA, 1, csr_val_gold.data(), td.y.data()))
+                {
+                    std::cerr << "Near check failed" << std::endl;
+                    status += 1;
+                    verify = 2;
+                }
+            }
+            else
+            {
+                verify = 2;
+            }
+        }
+        compute_stats(timings.data(), timings.size(), tstats[itest]);
+        twosample_test_result cmp, *pcmp = NULL;
+        // compare the run against the first run (AOCL)
+        if(itest > 0)
+        {
+            cmp  = twosample_test(tstats[itest], tstats[0]);
+            pcmp = &cmp;
+        }
+        print_results(
+            testqueue[itest].name, prob_name.c_str(), verify, tstats[itest], pcmp, itest == 0);
+    }
+    return status;
 }
 
 #endif // TESTING_ILU_HPP

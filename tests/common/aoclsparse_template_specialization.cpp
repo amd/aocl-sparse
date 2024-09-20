@@ -1626,7 +1626,62 @@ aoclsparse_status aoclsparse_ilu_smoother(aoclsparse_operation       op,
 {
     return aoclsparse_dilu_smoother(op, A, descr, precond_csr_val, approx_inv_diag, x, b);
 }
+template <>
+aoclsparse_status aoclsparse_ilu_smoother(aoclsparse_operation            op,
+                                          aoclsparse_matrix               A,
+                                          const aoclsparse_mat_descr      descr,
+                                          aoclsparse_float_complex      **precond_csr_val,
+                                          const aoclsparse_float_complex *approx_inv_diag,
+                                          aoclsparse_float_complex       *x,
+                                          const aoclsparse_float_complex *b)
+{
+    return aoclsparse_cilu_smoother(op, A, descr, precond_csr_val, approx_inv_diag, x, b);
+}
+template <>
+aoclsparse_status aoclsparse_ilu_smoother(aoclsparse_operation       op,
+                                          aoclsparse_matrix          A,
+                                          const aoclsparse_mat_descr descr,
+                                          std::complex<float>      **precond_csr_val,
+                                          const std::complex<float> *approx_inv_diag,
+                                          std::complex<float>       *x,
+                                          const std::complex<float> *b)
+{
+    aoclsparse_float_complex **pp = reinterpret_cast<aoclsparse_float_complex **>(precond_csr_val);
+    const aoclsparse_float_complex *pa
+        = reinterpret_cast<const aoclsparse_float_complex *>(approx_inv_diag);
+    aoclsparse_float_complex       *px = reinterpret_cast<aoclsparse_float_complex *>(x);
+    const aoclsparse_float_complex *pb = reinterpret_cast<const aoclsparse_float_complex *>(b);
+    return aoclsparse_cilu_smoother(op, A, descr, pp, pa, px, pb);
+}
 
+template <>
+aoclsparse_status aoclsparse_ilu_smoother(aoclsparse_operation             op,
+                                          aoclsparse_matrix                A,
+                                          const aoclsparse_mat_descr       descr,
+                                          aoclsparse_double_complex      **precond_csr_val,
+                                          const aoclsparse_double_complex *approx_inv_diag,
+                                          aoclsparse_double_complex       *x,
+                                          const aoclsparse_double_complex *b)
+{
+    return aoclsparse_zilu_smoother(op, A, descr, precond_csr_val, approx_inv_diag, x, b);
+}
+template <>
+aoclsparse_status aoclsparse_ilu_smoother(aoclsparse_operation        op,
+                                          aoclsparse_matrix           A,
+                                          const aoclsparse_mat_descr  descr,
+                                          std::complex<double>      **precond_csr_val,
+                                          const std::complex<double> *approx_inv_diag,
+                                          std::complex<double>       *x,
+                                          const std::complex<double> *b)
+{
+    aoclsparse_double_complex **pp
+        = reinterpret_cast<aoclsparse_double_complex **>(precond_csr_val);
+    const aoclsparse_double_complex *pa
+        = reinterpret_cast<const aoclsparse_double_complex *>(approx_inv_diag);
+    aoclsparse_double_complex       *px = reinterpret_cast<aoclsparse_double_complex *>(x);
+    const aoclsparse_double_complex *pb = reinterpret_cast<const aoclsparse_double_complex *>(b);
+    return aoclsparse_zilu_smoother(op, A, descr, pp, pa, px, pb);
+}
 template <>
 aoclsparse_status aoclsparse_sorv(aoclsparse_sor_type        sor_type,
                                   const aoclsparse_mat_descr descr,

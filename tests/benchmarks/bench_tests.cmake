@@ -284,7 +284,7 @@ foreach(FUNCTION "ilu")
           list(GET MATSIZE_LIST 1 SIZEN)
           list(GET MATSIZE_LIST 2 SIZENNZ)
 
-          add_test(FuncTest.${FUNCTION}-${PREC}-${SIZEM}-${SIZEM}x${SIZEN}x${SIZENNZ}xBase-${BASE} ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=${SIZEM} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --indexbaseA=${BASE} --verify=1 --iters=1)
+          add_test(FuncTest.${FUNCTION}-${PREC}-${SIZEM}-${SIZEM}x${SIZEN}x${SIZENNZ}xBase-${BASE} ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizek=${SIZEM} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --indexbaseA=${BASE} --matrix=D --sort=F --verify=1 --iters=1)
 
       endforeach(MATSIZE)
     endforeach(BASE)
