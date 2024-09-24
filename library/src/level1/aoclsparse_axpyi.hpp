@@ -24,8 +24,8 @@
 #ifndef AOCLSPARSE_AXPYI_HPP
 #define AOCLSPARSE_AXPYI_HPP
 #include "aoclsparse.h"
+#include "aoclsparse_axpyi_kt.hpp"
 #include "aoclsparse_dispatcher.hpp"
-#include "aoclsparse_kernel_templates.hpp"
 #include "aoclsparse_utils.hpp"
 
 /*
@@ -51,57 +51,22 @@ inline aoclsparse_status axpyi_ref(aoclsparse_int nnz,
     return aoclsparse_status_success;
 }
 
-using namespace kernel_templates;
-
-template <bsz SZ, typename T>
-aoclsparse_status axpyi_kt(aoclsparse_int nnz,
-                           T              a,
-                           const T *__restrict__ x,
-                           const aoclsparse_int *__restrict__ indx,
-                           T *__restrict__ y)
-{
-    const aoclsparse_int tsz = tsz_v<SZ, T>;
-    aoclsparse_int       i   = 0;
-    avxvector_t<SZ, T>   xvec, yvec;
-    avxvector_t<SZ, T>   alpha = kt_set1_p<SZ, T>(a);
-
-    for(; (i + (tsz - 1)) < nnz; i += tsz)
-    {
-
-        xvec = kt_loadu_p<SZ, T>(x + i);
-        yvec = kt_set_p<SZ, T>(y, &indx[i]);
-
-        yvec = kt_fmadd_p<SZ, T>(alpha, xvec, yvec);
-
-        // TODO Replaced with kt_storep
-        for(aoclsparse_int j = 0; j < tsz; ++j)
-        {
-            T *ytmp        = reinterpret_cast<T *>(&yvec);
-            y[indx[i + j]] = ytmp[j];
-        }
-    }
-
-    for(; i < nnz; i++)
-    {
-        y[indx[i]] = a * x[i] + y[indx[i]];
-    }
-
-    return aoclsparse_status_success;
-}
+EXTERN_DECLARE(AXPYI_TEMPLATE_DECLARATION);
 
 /*
  * aoclsparse_axpyi_t dispatcher
  */
 template <typename T>
-inline aoclsparse_status aoclsparse_axpyi_t(aoclsparse_int nnz,
-                                            T              a,
-                                            const T *__restrict__ x,
-                                            const aoclsparse_int *__restrict__ indx,
-                                            T *__restrict__ y,
-                                            aoclsparse_int kid = -1)
+aoclsparse_status aoclsparse_axpyi_t(aoclsparse_int nnz,
+                                     T              a,
+                                     const T *__restrict__ x,
+                                     const aoclsparse_int *__restrict__ indx,
+                                     T *__restrict__ y,
+                                     aoclsparse_int kid = -1)
 {
     using namespace aoclsparse;
     using namespace Dispatch;
+    using namespace kernel_templates;
 
     // Defining kernel pointer type
     using K = decltype(&axpyi_ref<T>);
@@ -127,10 +92,8 @@ inline aoclsparse_status aoclsparse_axpyi_t(aoclsparse_int nnz,
     // Table of available kernels
     static constexpr Table<K> tbl[]{
     {axpyi_ref<T>,           context_isa_t::GENERIC, 0U | archs::ALL},
-#ifdef __AVX2__
     {axpyi_kt<bsz::b256, T>, context_isa_t::AVX2,    0U | archs::ZEN123},
-#endif
-#ifdef __AVX512F__
+#ifdef USE_AVX512
     {axpyi_kt<bsz::b512, T>, context_isa_t::AVX512F, 0U | archs::ZEN4}
 #endif
     };
