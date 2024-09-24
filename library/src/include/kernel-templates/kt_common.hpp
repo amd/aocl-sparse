@@ -141,6 +141,18 @@ namespace kernel_templates
         b512 = supported_base_t * 2
     };
 
+    // For a given translation unit that includes this header,
+    // this function returns bsz::b512 if the source is compiled
+    // with AVX-512 flags else it returns bsz::b256.
+    constexpr bsz get_bsz()
+    {
+#ifdef __AVX512F__
+        return bsz::b512;
+#else
+        return bsz::b256;
+#endif
+    }
+
     // Checks if the base type is double - true only for double and cdouble
     template <typename T>
     struct kt_is_base_t_double

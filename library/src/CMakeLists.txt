@@ -26,6 +26,9 @@
 # library's base compilation flag (AVX2)
 # ----------------------------------------------------------
 set(AOCLSPARSE_SOURCES
+# Level 1 APIs
+  src/level1/aoclsparse_axpyi.cpp
+
   src/level2/aoclsparse_csrmv.cpp
   src/level2/aoclsparse_blkcsrmv.cpp
   src/level2/aoclsparse_ellmv.cpp
@@ -73,7 +76,6 @@ set(TEMPLATE_SOURCES
   src/level1/aoclsparse_dot.cpp
   src/level1/aoclsparse_gthr.cpp
   src/level1/aoclsparse_sctr.cpp
-  src/level1/aoclsparse_axpyi.cpp
 
 # Level 2
   src/level2/aoclsparse_trsv.cpp
@@ -84,7 +86,6 @@ set(TEMPLATE_SOURCES
 # Solvers
   src/solvers/aoclsparse_itsol_functions.cpp
   src/solvers/aoclsparse_symgs.cpp
-
 )
 
 # List of sources that need to compiled with AVX512
@@ -95,5 +96,8 @@ set(AVX512_SOURCES
   src/level2/aoclsparse_ellmv_avx512.cpp
 )
 
-include(Suppressions)
+set(DOUBLE_COMPILATION
+  src/level1/aoclsparse_axpyi_kt.cpp
+)
 
+include(Suppressions)

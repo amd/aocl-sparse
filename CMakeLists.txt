@@ -166,7 +166,7 @@ else()
 endif()
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CLANG_OPTIONS_STYLE STREQUAL "GNU"))
   # Common flags
-  set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};-mtune=native;-mavx2;-mfma")
+  set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};-mavx2;-mfma")
   # Release flags
   set(COMPILER_FLAGS_RELEASE "-DNDEBUG;-O3;-ftree-vectorize;-ffp-contract=fast")
   # Debug flags
@@ -198,7 +198,6 @@ else()
   set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};-mavx2;-mfma")
 endif()
 set(AOCLSPARSE_AVX512_FLAGS "-mavx512f;-mavx512vl;-mavx512dq")
-set(AOCLSPARSE_AVX2_FLAGS "-mavx2;-mfma")
 
 add_compile_options("$<$<CONFIG:Release>:${COMPILER_FLAGS_COMMON};${COMPILER_FLAGS_RELEASE}>")
 add_compile_options("$<$<CONFIG:Debug>:${COMPILER_FLAGS_COMMON};${COMPILER_FLAGS_DEBUG}>")
