@@ -59,36 +59,36 @@ aoclsparse_status aoclsparse_csrmm_col_major_ref(T                          alph
                                                  const T       *B,
                                                  aoclsparse_int n,
                                                  aoclsparse_int ldb,
+                                                 T              beta,
                                                  T             *C,
                                                  aoclsparse_int ldc)
 {
-    T                     zero            = 0.0;
     aoclsparse_index_base base            = descr->base;
     const aoclsparse_int *csr_col_ind_fix = csr_col_ind - base;
     const T              *csr_val_fix     = csr_val - base;
     const T              *B_fix           = B - base;
-    if(alpha != zero)
-    {
-        for(aoclsparse_int j = 0; j < n; ++j)
-        {
-            for(aoclsparse_int i = 0; i < m; ++i)
-            {
-                aoclsparse_int row_begin = csr_row_ptr[i];
-                aoclsparse_int row_end   = csr_row_ptr[i + 1];
-                aoclsparse_int idx_C     = i + j * ldc;
-                T              sum       = 0.0;
 
-                for(aoclsparse_int k = row_begin; k < row_end; ++k)
-                {
-                    aoclsparse_int idx_B = (csr_col_ind_fix[k] + j * ldb);
-                    sum                  = csr_val_fix[k] * B_fix[idx_B] + sum;
-                }
-                C[idx_C] += alpha * sum;
+    for(aoclsparse_int j = 0; j < n; ++j)
+    {
+        for(aoclsparse_int i = 0; i < m; ++i)
+        {
+            aoclsparse_int row_begin = csr_row_ptr[i];
+            aoclsparse_int row_end   = csr_row_ptr[i + 1];
+            aoclsparse_int idx_C     = i + j * ldc;
+            T              sum       = 0.0;
+
+            for(aoclsparse_int k = row_begin; k < row_end; ++k)
+            {
+                aoclsparse_int idx_B = (csr_col_ind_fix[k] + j * ldb);
+                sum                  = csr_val_fix[k] * B_fix[idx_B] + sum;
             }
+
+            C[idx_C] = (beta * C[idx_C]) + (alpha * sum);
         }
     }
     return aoclsparse_status_success;
 }
+
 template <typename T>
 aoclsparse_status aoclsparse_csrmm_row_major_ref(T                          alpha,
                                                  const aoclsparse_mat_descr descr,
@@ -99,33 +99,37 @@ aoclsparse_status aoclsparse_csrmm_row_major_ref(T                          alph
                                                  const T       *B,
                                                  aoclsparse_int n,
                                                  aoclsparse_int ldb,
+                                                 T              beta,
                                                  T             *C,
                                                  aoclsparse_int ldc)
 {
-    T                     zero            = 0.0;
     aoclsparse_index_base base            = descr->base;
     const aoclsparse_int *csr_col_ind_fix = csr_col_ind - base;
     const T              *csr_val_fix     = csr_val - base;
     const T              *B_fix           = B - (base * ldb);
-    if(alpha != zero)
-    {
-        for(aoclsparse_int i = 0; i < m; ++i)
-        {
-            aoclsparse_int row_begin = csr_row_ptr[i];
-            aoclsparse_int row_end   = csr_row_ptr[i + 1];
 
-            for(aoclsparse_int j = row_begin; j < row_end; ++j)
+    for(aoclsparse_int i = 0; i < m; ++i)
+    {
+        aoclsparse_int row_begin = csr_row_ptr[i];
+        aoclsparse_int row_end   = csr_row_ptr[i + 1];
+        aoclsparse_int idx_C     = i * ldc;
+
+        for(aoclsparse_int k = 0; k < n; ++k)
+        {
+            C[idx_C + k] = C[idx_C + k] * beta;
+        }
+
+        for(aoclsparse_int j = row_begin; j < row_end; ++j)
+        {
+            aoclsparse_int idx_B = csr_col_ind_fix[j] * ldb;
+
+            for(aoclsparse_int k = 0; k < n; ++k)
             {
-                // ind_C
-                aoclsparse_int idx_C = i * ldc;
-                aoclsparse_int idx_B = csr_col_ind_fix[j] * ldb;
-                for(aoclsparse_int k = 0; k < n; ++k)
-                {
-                    C[idx_C + k] += csr_val_fix[j] * B_fix[idx_B + k] * alpha;
-                }
+                C[idx_C + k] += csr_val_fix[j] * B_fix[idx_B + k] * alpha;
             }
         }
     }
+
     return aoclsparse_status_success;
 }
 
@@ -1878,19 +1882,76 @@ aoclsparse_status aoclsparse_csrmm_row_major(const float                alpha,
     return aoclsparse_status_success;
 }
 
+// This function performs scaling for a dense matrix, 'mtrx', by a value 'beta'
 template <typename T>
-aoclsparse_status aoclsparse_csrmm(aoclsparse_operation            op,
-                                   const T                         alpha,
-                                   const aoclsparse_matrix         A,
-                                   const aoclsparse_mat_descr      descr,
-                                   aoclsparse_order                order,
-                                   const T                        *B,
-                                   aoclsparse_int                  n,
-                                   aoclsparse_int                  ldb,
-                                   const T                         beta,
-                                   T                              *C,
-                                   aoclsparse_int                  ldc,
-                                   [[maybe_unused]] aoclsparse_int kid)
+aoclsparse_status scale_dense_matrix(
+    aoclsparse_order order, T *mtrx, aoclsparse_int m, aoclsparse_int n, aoclsparse_int ld, T beta)
+{
+    if(beta == aoclsparse_numeric::zero<T>())
+    {
+        if(order == aoclsparse_order_column)
+        {
+            for(aoclsparse_int j = 0; j < n; ++j)
+            {
+                for(aoclsparse_int i = 0; i < m; ++i)
+                {
+                    mtrx[i + j * ld] = 0;
+                }
+            }
+        }
+        else // order == aoclsparse_order_row
+        {
+            for(aoclsparse_int i = 0; i < m; ++i)
+            {
+                for(aoclsparse_int j = 0; j < n; ++j)
+                {
+                    mtrx[i * ld + j] = 0;
+                }
+            }
+        }
+    }
+    else
+    {
+        if(order == aoclsparse_order_column)
+        {
+            for(aoclsparse_int j = 0; j < n; ++j)
+            {
+                for(aoclsparse_int i = 0; i < m; ++i)
+                {
+                    aoclsparse_int idx_C = i + j * ld;
+                    mtrx[idx_C]          = beta * mtrx[idx_C];
+                }
+            }
+        }
+        else // order == aoclsparse_order_row
+        {
+            for(aoclsparse_int i = 0; i < m; ++i)
+            {
+                for(aoclsparse_int j = 0; j < n; ++j)
+                {
+                    aoclsparse_int idx_C = i * ld + j;
+                    mtrx[idx_C]          = beta * mtrx[idx_C];
+                }
+            }
+        }
+    }
+
+    return aoclsparse_status_success;
+}
+
+template <typename T>
+aoclsparse_status aoclsparse_csrmm(aoclsparse_operation       op,
+                                   const T                    alpha,
+                                   const aoclsparse_matrix    A,
+                                   const aoclsparse_mat_descr descr,
+                                   aoclsparse_order           order,
+                                   const T                   *B,
+                                   aoclsparse_int             n,
+                                   aoclsparse_int             ldb,
+                                   const T                    beta,
+                                   T                         *C,
+                                   aoclsparse_int             ldc,
+                                   aoclsparse_int             kid = -1)
 {
     // Check for valid matrix, descriptor
     if(A == nullptr || B == nullptr || C == nullptr || descr == nullptr)
@@ -2017,91 +2078,73 @@ aoclsparse_status aoclsparse_csrmm(aoclsparse_operation            op,
     {
         m_c = k;
     }
-    n_c         = n;
-    bool init_C = true;
-    if(beta != zero)
+    n_c = n;
+
+    // In case of general type matrices, beta scaling is done inside the kernel
+    // To support early return cases for alpha == zero scenario
+    if(alpha == zero || mat_type != aoclsparse_matrix_type_general) [[maybe_unused]]
+        aoclsparse_status st = scale_dense_matrix(order, C, m_c, n_c, ldc, beta);
+
+    if(alpha == zero)
     {
-        if(order == aoclsparse_order_column)
-        {
-            if(mat_type == aoclsparse_matrix_type_general)
-            {
-                if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
-                    init_C = false;
-            }
-            if(init_C)
-            {
-                for(aoclsparse_int j = 0; j < n_c; ++j)
-                {
-                    for(aoclsparse_int i = 0; i < m_c; ++i)
-                    {
-                        aoclsparse_int idx_C = i + j * ldc;
-                        C[idx_C]             = beta * C[idx_C];
-                    }
-                }
-            }
-        }
-        else // order == aoclsparse_order_row
-        {
-            if(mat_type == aoclsparse_matrix_type_general)
-            {
-                if constexpr(std::is_same_v<T, float>)
-                    init_C = false;
-            }
-            if(init_C)
-            {
-                for(aoclsparse_int i = 0; i < m_c; ++i)
-                {
-                    for(aoclsparse_int j = 0; j < n_c; ++j)
-                    {
-                        aoclsparse_int idx_C = i * ldc + j;
-                        C[idx_C]             = beta * C[idx_C];
-                    }
-                }
-            }
-        }
-    }
-    else
-    {
-        if(order == aoclsparse_order_column)
-        {
-            for(aoclsparse_int j = 0; j < n_c; ++j)
-            {
-                for(aoclsparse_int i = 0; i < m_c; ++i)
-                {
-                    C[i + j * ldc] = zero;
-                }
-            }
-        }
-        else // order == aoclsparse_order_row
-        {
-            for(aoclsparse_int i = 0; i < m_c; ++i)
-            {
-                for(aoclsparse_int j = 0; j < n_c; ++j)
-                {
-                    C[i * ldc + j] = zero;
-                }
-            }
-        }
-    }
-    if((alpha == zero) && init_C)
-    {
-        return aoclsparse_status_success;
+        return aoclsparse_status_success; // Early return
     }
 
-    // Call required kernels depending on the operation and matrix types
-    // These conditional blocks perform the required data reordering for transpose and conjugate transpose operations and calls the associated kernel.
-    if(op == aoclsparse_operation_conjugate_transpose || op == aoclsparse_operation_transpose)
+    // Invokes kernels for symmetric and hermitian matrices
+    if(mat_type != aoclsparse_matrix_type_general)
+    {
+        [[maybe_unused]] std::vector<T> csr_val_A;
+
+        T *val_A = const_cast<T *>(csr_val);
+
+        if(op == aoclsparse_operation_conjugate_transpose || op == aoclsparse_operation_transpose)
+        {
+            csr_val_A.resize(A->nnz);
+
+            // For symmetric and hermitian matrices, we only use:
+            // 1. Orginal row pointers and column indices,
+            // 2. Apply conjugate on original value array(non-transposed csr_val), because of the following reasons:
+            //    - Symmetric matrices are equal to its transpose.
+            //    - Hertmitian matrices are equal to its conjugate transpose.
+            // This enables kernel to process only the required triangle of the matrix (either upper or lower triangle)
+            // using the orignal row pointers and column indices. This is useful only in Hermitian matrices.
+            // Apply conjugate on transposed value array.
+            for(aoclsparse_int idx = 0; idx < A->nnz; idx++)
+                csr_val_A[idx] = aoclsparse::conj(csr_val[idx]);
+
+            val_A = csr_val_A.data();
+        }
+
+        using K = decltype(&aoclsparse_csrmm_sym_col_ref<T>);
+
+        K kernel;
+
+        if(order == aoclsparse_order_column)
+            kernel = aoclsparse_csrmm_sym_col_ref;
+        else // order == aoclsparse_order_row
+            kernel = aoclsparse_csrmm_sym_row_ref;
+
+        return kernel(alpha, descr, val_A, csr_col_ind, csr_row_ptr, k, B, n, ldb, C, ldc);
+    }
+    else // mat_type == aoclsparse_matrix_type_general
     {
         std::vector<aoclsparse_int> csr_row_ptr_A;
         std::vector<aoclsparse_int> csr_col_ind_A;
         std::vector<T>              csr_val_A;
-        csr_val_A.resize(A->nnz);
 
-        // Invoke kernels for general matrices - operation transpose or conjugate transpose
-        if(mat_type == aoclsparse_matrix_type_general)
+        // Assume the operation to be none
+        aoclsparse_int *row_ptr_A = const_cast<aoclsparse_int *>(csr_row_ptr);
+        aoclsparse_int *col_ind_A = const_cast<aoclsparse_int *>(csr_col_ind);
+        T              *val_A     = const_cast<T *>(csr_val);
+
+        aoclsparse_int mb = m;
+
+        if(op == aoclsparse_operation_conjugate_transpose || op == aoclsparse_operation_transpose)
         {
             csr_col_ind_A.resize(A->nnz);
             csr_row_ptr_A.resize(A->n + 1);
+            csr_val_A.resize(A->nnz);
+
             aoclsparse_status status = aoclsparse_csr2csc_template(A->m,
                                                                    A->n,
                                                                    A->nnz,
@@ -2123,148 +2166,70 @@ aoclsparse_status aoclsparse_csrmm(aoclsparse_operation            op,
                     csr_val_A[idx] = aoclsparse::conj(csr_val_A[idx]);
             }
 
-            // Call associated kernel with conjugated transposed value array and transposed row pointer and column indices.
-            // Column order: Reference code for complex types, optimized routine for real types
-            if(order == aoclsparse_order_column)
-            {
-                if constexpr(std::is_same_v<T, double> || std::is_same_v<T, float>)
-                    return aoclsparse_csrmm_col_major(alpha,
-                                                      descr,
-                                                      csr_val_A.data(),
-                                                      csr_col_ind_A.data(),
-                                                      csr_row_ptr_A.data(),
-                                                      k,
-                                                      B,
-                                                      n,
-                                                      ldb,
-                                                      beta,
-                                                      C,
-                                                      ldc);
-                else
-                    return aoclsparse_csrmm_col_major_ref(alpha,
-                                                          descr,
-                                                          csr_val_A.data(),
-                                                          csr_col_ind_A.data(),
-                                                          csr_row_ptr_A.data(),
-                                                          k,
-                                                          B,
-                                                          n,
-                                                          ldb,
-                                                          C,
-                                                          ldc);
-            }
-
-            // Row order: Reference code for complex and double types, optimized routine for float type
-            else
-            {
-                if constexpr(std::is_same_v<T, float>)
-                    return aoclsparse_csrmm_row_major(alpha,
-                                                      descr,
-                                                      csr_val_A.data(),
-                                                      csr_col_ind_A.data(),
-                                                      csr_row_ptr_A.data(),
-                                                      k,
-                                                      B,
-                                                      n,
-                                                      ldb,
-                                                      beta,
-                                                      C,
-                                                      ldc);
-                else
-                    return aoclsparse_csrmm_row_major_ref(alpha,
-                                                          descr,
-                                                          csr_val_A.data(),
-                                                          csr_col_ind_A.data(),
-                                                          csr_row_ptr_A.data(),
-                                                          k,
-                                                          B,
-                                                          n,
-                                                          ldb,
-                                                          C,
-                                                          ldc);
-            }
+            row_ptr_A = csr_row_ptr_A.data();
+            col_ind_A = csr_col_ind_A.data();
+            val_A     = csr_val_A.data();
+            mb        = k;
         }
 
-        // Invokes kernels for symmetric and hermitian matrices
+        // Call associated kernel with conjugated transposed value array and transposed row pointer and column indices.
+        // Column order: Reference code for complex types, optimized routine for real types
+        if(order == aoclsparse_order_column)
+        {
+            using K = decltype(&aoclsparse_csrmm_col_major_ref<T>);
+
+            K kernel;
+
+            if(kid == -1)
+                kid = 0;
+
+            switch(kid)
+            {
+            case 1:
+                if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
+                {
+                    kernel = aoclsparse_csrmm_col_major;
+                    break;
+                }
+                [[fallthrough]];
+            case 0:
+                kernel = aoclsparse_csrmm_col_major_ref;
+                break;
+            default:
+                return aoclsparse_status_invalid_kid;
+            }
+            return kernel(alpha, descr, val_A, col_ind_A, row_ptr_A, mb, B, n, ldb, beta, C, ldc);
+        }
+
+        // Row order: Reference code for complex and double types, optimized routine for float type
         else
         {
+            using K = decltype(&aoclsparse_csrmm_row_major_ref<T>);
 
-            // For symmetric and hermitian matrices, we only use:
-            // 1. Orginal row pointers and column indices,
-            // 2. Apply conjugate on original value array(non-transposed csr_val), because of the following reasons:
-            //    - Symmetric matrices are equal to its transpose.
-            //    - Hertmitian matrices are equal to its conjugate transpose.
-            // This enables kernel to process only the required triangle of the matrix (either upper or lower triangle)
-            // using the orignal row pointers and column indices. This is useful only in Hermitian matrices.
-            // Apply conjugate on transposed value array.
-            for(aoclsparse_int idx = 0; idx < A->nnz; idx++)
-                csr_val_A[idx] = aoclsparse::conj(csr_val[idx]);
-            if(order == aoclsparse_order_row)
-                return aoclsparse_csrmm_sym_row_ref(
-                    alpha, descr, csr_val_A.data(), csr_col_ind, csr_row_ptr, k, B, n, ldb, C, ldc);
-            else if(order == aoclsparse_order_column)
-                return aoclsparse_csrmm_sym_col_ref(
-                    alpha, descr, csr_val_A.data(), csr_col_ind, csr_row_ptr, k, B, n, ldb, C, ldc);
-        }
-    }
+            K kernel;
 
-    // Calls associated kernel for operation type none
-    else if(op == aoclsparse_operation_none)
-    {
-        // Invokes kernel for general matrices
-        if(mat_type == aoclsparse_matrix_type_general)
-        {
-            // Column order: Reference code for complex types, optimized routine for real types
-            if(order == aoclsparse_order_column)
+            if(kid == -1)
+                kid = 0;
+
+            switch(kid)
             {
-                if constexpr(std::is_same_v<T, double> || std::is_same_v<T, float>)
-                    return aoclsparse_csrmm_col_major(alpha,
-                                                      descr,
-                                                      csr_val,
-                                                      csr_col_ind,
-                                                      csr_row_ptr,
-                                                      m,
-                                                      B,
-                                                      n,
-                                                      ldb,
-                                                      beta,
-                                                      C,
-                                                      ldc);
-                else
-                    return aoclsparse_csrmm_col_major_ref(
-                        alpha, descr, csr_val, csr_col_ind, csr_row_ptr, m, B, n, ldb, C, ldc);
-            }
-            // Row order: Reference code for complex and double types, optimized routine for float type
-            else
-            {
+            case 1:
                 if constexpr(std::is_same_v<T, float>)
-                    return aoclsparse_csrmm_row_major(alpha,
-                                                      descr,
-                                                      csr_val,
-                                                      csr_col_ind,
-                                                      csr_row_ptr,
-                                                      m,
-                                                      B,
-                                                      n,
-                                                      ldb,
-                                                      beta,
-                                                      C,
-                                                      ldc);
-                else
-                    return aoclsparse_csrmm_row_major_ref(
-                        alpha, descr, csr_val, csr_col_ind, csr_row_ptr, m, B, n, ldb, C, ldc);
+                {
+                    kernel = aoclsparse_csrmm_row_major;
+                    break;
+                }
+                [[fallthrough]];
+            case 0:
+                kernel = aoclsparse_csrmm_row_major_ref;
+                break;
+            default:
+                return aoclsparse_status_invalid_kid;
             }
-        }
-        else // mat_type is symmetric or hermitian
-        {
-            if(order == aoclsparse_order_column)
-                return aoclsparse_csrmm_sym_col_ref(
-                    alpha, descr, csr_val, csr_col_ind, csr_row_ptr, k, B, n, ldb, C, ldc);
-            else // order == aoclsparse_order_row
-                return aoclsparse_csrmm_sym_row_ref(
-                    alpha, descr, csr_val, csr_col_ind, csr_row_ptr, k, B, n, ldb, C, ldc);
+            return kernel(alpha, descr, val_A, col_ind_A, row_ptr_A, mb, B, n, ldb, beta, C, ldc);
         }
     }
+
     return aoclsparse_status_not_implemented;
 }
 
