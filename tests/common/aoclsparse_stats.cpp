@@ -337,7 +337,7 @@ void print_results(const char                  *test_name,
         << std::setw(7)   << cmp->pvalue << sep
         << std::setw(1+5) << (cmp->result ? "same" : "DIFF") << sep;
       }
-      std::cout << std::setw(7) <<std::fixed << std::setprecision(1)
+      std::cout << std::setw(7) <<std::fixed << std::setprecision(2)
       << ((false && cmp->result) ? 1. : cmp->speedup) << sep;
     }
     std::cout << std::endl;

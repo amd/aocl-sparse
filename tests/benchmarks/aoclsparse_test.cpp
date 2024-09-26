@@ -270,6 +270,10 @@ int main(int argc, char *argv[])
     {
         arg.transA = aoclsparse_operation_transpose;
     }
+    else if(transA == 'H')
+    {
+        arg.transA = aoclsparse_operation_conjugate_transpose;
+    }
 
     arg.transB = aoclsparse_operation_none;
     if(transB == 'N')
