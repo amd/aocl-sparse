@@ -27,6 +27,7 @@
 # ----------------------------------------------------------
 set(AOCLSPARSE_SOURCES
 # Level 1 APIs
+  src/level1/aoclsparse_roti.cpp
   src/level1/aoclsparse_axpyi.cpp
   src/level1/aoclsparse_dot.cpp
 
@@ -73,7 +74,6 @@ set(AOCLSPARSE_SOURCES
 # require double compilation to support mutliarchitecture build.
 # ------------------------------------------------------------------
 set(TEMPLATE_SOURCES
-  src/level1/aoclsparse_roti.cpp
   src/level1/aoclsparse_gthr.cpp
   src/level1/aoclsparse_sctr.cpp
 
@@ -97,6 +97,7 @@ set(AVX512_SOURCES
 )
 
 set(DOUBLE_COMPILATION
+  src/level1/aoclsparse_roti_kt.cpp
   src/level1/aoclsparse_axpyi_kt.cpp
   src/level1/aoclsparse_dot_kt.cpp
 )
