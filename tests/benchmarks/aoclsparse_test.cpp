@@ -33,6 +33,7 @@
  */
 
 #include "aoclsparse.h"
+#include "benchmark.hpp"
 
 #include <complex>
 
@@ -83,6 +84,7 @@
 int main(int argc, char *argv[])
 {
     Arguments arg;
+
     // default values
     arg.unit_check = 0;
     arg.iters      = 10;
@@ -116,17 +118,22 @@ int main(int argc, char *argv[])
     tmp.copy(arg.function, tmp.length());
     arg.function[tmp.length()] = '\0';
 
+    // Welcome banner
+    printf("aoclsparse-bench - perform benchmarking tests.\n\n Registered libraries:\n");
+    driver_info.print();
+    printf("\n");
+
     // Initialize command line
     aoclsparse_command_line_args args(argc, argv);
 
     if(args.aoclsparse_check_cmdline_flag("help") || (argc == 1))
     {
         printf(
-            "aoclsparse test command line options:"
+            "Command line options:"
             "\n\t"
             "%s "
-            "\n\t"
-            "--help \t  produces this help message"
+            "\n\n\t"
+            "--help \t  prints this help message"
             "\n\t"
             "--sizem=<Number of rows> \t  m is only  applicable to LEVEL-2 & LEVEL-3: the number "
             " of rows (default: 128)"
@@ -217,6 +224,7 @@ int main(int argc, char *argv[])
 
         return 0;
     }
+
     args.aoclsparse_get_cmdline_argument("sizem", arg.M);
     args.aoclsparse_get_cmdline_argument("sizen", arg.N);
     args.aoclsparse_get_cmdline_argument("sizek", arg.K);
