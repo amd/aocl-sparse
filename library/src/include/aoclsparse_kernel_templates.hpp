@@ -41,26 +41,6 @@ using kt_int_t = aoclsparse_int;
     FUNC(BSZ, std::complex<float>); \
     FUNC(BSZ, std::complex<double>);
 
-// Generates extern declaration for a given Kernel templates function
-// defined by "FUNC"
-#ifdef USE_AVX512
-#define EXTERN_DECLARE(FUNC)                                        \
-    extern FUNC(kernel_templates::bsz::b256, float);                \
-    extern FUNC(kernel_templates::bsz::b256, double);               \
-    extern FUNC(kernel_templates::bsz::b256, std::complex<float>);  \
-    extern FUNC(kernel_templates::bsz::b256, std::complex<double>); \
-    extern FUNC(kernel_templates::bsz::b512, float);                \
-    extern FUNC(kernel_templates::bsz::b512, double);               \
-    extern FUNC(kernel_templates::bsz::b512, std::complex<float>);  \
-    extern FUNC(kernel_templates::bsz::b512, std::complex<double>);
-#else
-#define EXTERN_DECLARE(FUNC)                                       \
-    extern FUNC(kernel_templates::bsz::b256, float);               \
-    extern FUNC(kernel_templates::bsz::b256, double);              \
-    extern FUNC(kernel_templates::bsz::b256, std::complex<float>); \
-    extern FUNC(kernel_templates::bsz::b256, std::complex<double>);
-#endif
-
 //--------------------------------------------------------------------------------
 
 #endif // AOCLSPARSE_KERNEL_TEMPLATES_T_HPP

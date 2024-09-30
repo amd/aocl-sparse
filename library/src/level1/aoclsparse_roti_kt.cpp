@@ -21,7 +21,7 @@
  *
  * ************************************************************************
  */
-#include "aoclsparse_roti_kt.hpp"
+#include "aoclsparse_kernel_templates.hpp"
 
 using namespace kernel_templates;
 
@@ -86,7 +86,12 @@ inline aoclsparse_status roti_kt(aoclsparse_int nnz,
     return aoclsparse_status_success;
 }
 
-// Even though roti needs only real types
-// Complex types are also instantiated here
-// This will not cause any issues
+#define ROTI_TEMPLATE_DECLARATION(BSZ, SUF)                                               \
+    template aoclsparse_status roti_kt<BSZ, SUF>(aoclsparse_int nnz,                      \
+                                                 SUF *__restrict__ x,                     \
+                                                 const aoclsparse_int *__restrict__ indx, \
+                                                 SUF *__restrict__ y,                     \
+                                                 SUF c,                                   \
+                                                 SUF s)
+
 KT_INSTANTIATE(ROTI_TEMPLATE_DECLARATION, get_bsz());

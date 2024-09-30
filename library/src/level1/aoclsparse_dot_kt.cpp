@@ -21,7 +21,7 @@
  *
  * ************************************************************************
  */
-#include "aoclsparse_dot_kt.hpp"
+#include "aoclsparse_kernel_templates.hpp"
 
 using namespace kernel_templates;
 
@@ -106,4 +106,12 @@ aoclsparse_status dotp_kt(aoclsparse_int nnz,
     return aoclsparse_status_success;
 }
 
-KT_INSTANTIATE(DOT_TEMPLATE_DECLARATION, get_bsz())
+#define DOT_TEMPLATE_DECLARATION(BSZ, SUF)                                                \
+    template aoclsparse_status dotp_kt<BSZ, SUF>(aoclsparse_int nnz,                      \
+                                                 const SUF *__restrict__ x,               \
+                                                 const aoclsparse_int *__restrict__ indx, \
+                                                 const SUF *__restrict__ y,               \
+                                                 SUF *__restrict__ dot,                   \
+                                                 bool conj)
+
+KT_INSTANTIATE(DOT_TEMPLATE_DECLARATION, get_bsz());

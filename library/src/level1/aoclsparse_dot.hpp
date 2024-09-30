@@ -25,8 +25,8 @@
 #define AOCLSPARSE_DOT_HPP
 #include "aoclsparse.h"
 #include "aoclsparse_dispatcher.hpp"
-#include "aoclsparse_dot_kt.hpp"
 #include "aoclsparse_kernel_templates.hpp"
+#include "aoclsparse_l1_kt.hpp"
 #include "aoclsparse_utils.hpp"
 
 // The templated function performs dot product of a sparse vector (x) with a dense vector (y).
@@ -62,8 +62,6 @@ inline aoclsparse_status dotp_ref(aoclsparse_int nnz,
 
     return aoclsparse_status_success;
 }
-
-EXTERN_DECLARE(DOT_TEMPLATE_DECLARATION);
 
 // Wrapper to the dot-product function with the necessary validations.
 template <typename T>
