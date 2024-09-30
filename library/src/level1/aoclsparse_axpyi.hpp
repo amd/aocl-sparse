@@ -24,8 +24,9 @@
 #ifndef AOCLSPARSE_AXPYI_HPP
 #define AOCLSPARSE_AXPYI_HPP
 #include "aoclsparse.h"
-#include "aoclsparse_axpyi_kt.hpp"
 #include "aoclsparse_dispatcher.hpp"
+#include "aoclsparse_kernel_templates.hpp"
+#include "aoclsparse_l1_kt.hpp"
 #include "aoclsparse_utils.hpp"
 
 /*
@@ -50,8 +51,6 @@ inline aoclsparse_status axpyi_ref(aoclsparse_int nnz,
     }
     return aoclsparse_status_success;
 }
-
-EXTERN_DECLARE(AXPYI_TEMPLATE_DECLARATION);
 
 /*
  * aoclsparse_axpyi_t dispatcher

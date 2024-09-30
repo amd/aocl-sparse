@@ -21,10 +21,11 @@
  *
  * ************************************************************************
  */
-#ifndef AOCLSPARSE_AXPYI_KT_HPP
-#define AOCLSPARSE_AXPYI_KT_HPP
+#ifndef AOCLSPARSE_L1_KT_HPP
+#define AOCLSPARSE_L1_KT_HPP
 #include "aoclsparse_kernel_templates.hpp"
 
+// Extern declaration of KT kernels
 template <kernel_templates::bsz SZ, typename T>
 aoclsparse_status axpyi_kt(aoclsparse_int nnz,
                            T              a,
@@ -32,11 +33,20 @@ aoclsparse_status axpyi_kt(aoclsparse_int nnz,
                            const aoclsparse_int *__restrict__ indx,
                            T *__restrict__ y);
 
-#define AXPYI_TEMPLATE_DECLARATION(BSZ, DTYPE)                                               \
-    template aoclsparse_status axpyi_kt<BSZ, DTYPE>(aoclsparse_int nnz,                      \
-                                                    DTYPE          a,                        \
-                                                    const DTYPE *__restrict__ x,             \
-                                                    const aoclsparse_int *__restrict__ indx, \
-                                                    DTYPE *__restrict__ y);
+template <kernel_templates::bsz SZ, typename SUF>
+aoclsparse_status dotp_kt(aoclsparse_int nnz,
+                          const SUF *__restrict__ x,
+                          const aoclsparse_int *__restrict__ indx,
+                          const SUF *__restrict__ y,
+                          SUF *__restrict__ dot,
+                          bool conj);
 
-#endif
+template <kernel_templates::bsz SZ, typename SUF>
+aoclsparse_status roti_kt(aoclsparse_int nnz,
+                          SUF *__restrict__ x,
+                          const aoclsparse_int *__restrict__ indx,
+                          SUF *__restrict__ y,
+                          SUF c,
+                          SUF s);
+
+#endif // of AOCLSPARSE_L1_KT_HPP

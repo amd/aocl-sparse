@@ -21,7 +21,7 @@
  *
  * ************************************************************************
  */
-#include "aoclsparse_axpyi_kt.hpp"
+#include "aoclsparse_kernel_templates.hpp"
 
 using namespace kernel_templates;
 
@@ -56,4 +56,11 @@ aoclsparse_status axpyi_kt(aoclsparse_int nnz,
     return aoclsparse_status_success;
 }
 
-KT_INSTANTIATE(AXPYI_TEMPLATE_DECLARATION, get_bsz())
+#define AXPYI_TEMPLATE_DECLARATION(BSZ, DTYPE)                                               \
+    template aoclsparse_status axpyi_kt<BSZ, DTYPE>(aoclsparse_int nnz,                      \
+                                                    DTYPE          a,                        \
+                                                    const DTYPE *__restrict__ x,             \
+                                                    const aoclsparse_int *__restrict__ indx, \
+                                                    DTYPE *__restrict__ y)
+
+KT_INSTANTIATE(AXPYI_TEMPLATE_DECLARATION, get_bsz());

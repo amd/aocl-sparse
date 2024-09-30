@@ -26,7 +26,8 @@
 
 #include "aoclsparse.h"
 #include "aoclsparse_dispatcher.hpp"
-#include "aoclsparse_roti_kt.hpp"
+#include "aoclsparse_kernel_templates.hpp"
+#include "aoclsparse_l1_kt.hpp"
 #include "aoclsparse_utils.hpp"
 
 /*
@@ -55,11 +56,6 @@ inline aoclsparse_status roti_ref(aoclsparse_int nnz,
     }
     return aoclsparse_status_success;
 }
-
-// Even though roti needs only real types
-// Complex types are also extern declared here
-// This will not cause any issues
-EXTERN_DECLARE(ROTI_TEMPLATE_DECLARATION)
 
 /*
  * aoclsparse_roti dispatcher
