@@ -85,6 +85,15 @@ target_include_directories(aoclsparse-bench
     ${UTILS_INCLUDE_DIRS}
     ${Boost_INCLUDE_DIRS}
 )
+# Add extra info into definition
+execute_process(COMMAND ${GIT_EXECUTABLE} log -n 1 --format=%H RESULT_VARIABLE status OUTPUT_VARIABLE HASH ERROR_QUIET WORKING_DIRECTORY ${PROJECT_SOURCE_DIR} OUTPUT_STRIP_TRAILING_WHITESPACE)
+if(status EQUAL 0)
+    string(REPLACE "\n" "" HASH ${HASH})
+endif()
+set(HID "\"${HASH}\"")
+set(COMPILER_ID "\"${CMAKE_CXX_COMPILER_ID} ${COMPILER_BASENAME} (${CMAKE_CXX_COMPILER_VERSION}) ${CMAKE_CXX_PLATFORM_ID}\"")
+target_compile_definitions(aoclsparse-bench PRIVATE CID=${COMPILER_ID} HASH=${HID})
+
 # Add definitions that depend on the CMake configuration.
 target_compile_definitions(aoclsparse-bench PRIVATE ${AOCLSPARSE_DEFS})
 # Define -Daoclsparse_ILP64 when ILP64 libraries are built. For LP64, this is an empty string.
