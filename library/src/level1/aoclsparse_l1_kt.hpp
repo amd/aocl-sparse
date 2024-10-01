@@ -63,4 +63,12 @@ aoclsparse_status sctr_kt(aoclsparse_int nnz,
                           Index::index_t<I> xi,
                           SUF *__restrict__ y);
 
+namespace aoclsparse
+{
+    template <kernel_templates::bsz SZ, typename SUF>
+    aoclsparse_status dot_kt(const aoclsparse_int size,
+                             const SUF *__restrict__ x,
+                             const SUF *__restrict__ y,
+                             SUF *__restrict__ d);
+}
 #endif // of AOCLSPARSE_L1_KT_HPP

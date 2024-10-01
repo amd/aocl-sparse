@@ -92,6 +92,7 @@ set(AVX512_SOURCES
 )
 
 set(DOUBLE_COMPILATION
+  src/level1/aoclsparse_dense_dot_kt.cpp
   src/level1/aoclsparse_roti_kt.cpp
   src/level1/aoclsparse_axpyi_kt.cpp
   src/level1/aoclsparse_dot_kt.cpp
