@@ -283,6 +283,17 @@ namespace kernel_templates
         AVX512VL = 2 + 4 + 8 + 16
     };
 
+    // Based on compilation returns the kt extension to
+    // be used for a given translation unit
+    constexpr kt_avxext get_kt_ext()
+    {
+#ifdef __AVX512F__
+        return kt_avxext::AVX512F;
+#else
+        return kt_avxext::AVX2;
+#endif
+    }
+
     // Delta function (used for zero-padding)
     template <typename T, int L>
     constexpr T pz(const T &x) noexcept
