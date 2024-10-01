@@ -26,65 +26,8 @@
 #include "aoclsparse.h"
 #include "aoclsparse_descr.h"
 #include "aoclsparse_mat_structures.h"
-#include "aoclsparse_kernel_templates.hpp"
+#include "aoclsparse_dense_dot.hpp"
 #include "aoclsparse_mv.hpp"
-
-using namespace kernel_templates;
-// The templated function performs dot product of two dense vectors, x nd y.
-// Precision types supported: complex (float and double), real (float and double).
-// For complex types, conjugated dot product is supported in addition to the dot product.
-template <typename T>
-aoclsparse_status aoclsparse_dot_ref(const aoclsparse_int size,
-                                     const T *__restrict__ x,
-                                     const T *__restrict__ y,
-                                     T *__restrict__ d)
-{
-    aoclsparse_int i;
-    *d = aoclsparse_numeric::zero<T>();
-
-    for(i = 0; i < size; i++)
-    {
-        *d += aoclsparse::conj(x[i]) * y[i];
-    }
-    return aoclsparse_status_success;
-}
-
-template <bsz SZ, typename SUF>
-inline aoclsparse_status aoclsparse_dot_kt(const aoclsparse_int size,
-                                           const SUF *__restrict__ x,
-                                           const SUF *__restrict__ y,
-                                           SUF *__restrict__ d)
-{
-    // Number of elements to fit in vector
-    const aoclsparse_int tsz = tsz_v<SZ, SUF>;
-    avxvector_t<SZ, SUF> xv, yv, tmp;
-
-    // Initialize the accumulation vector to zero
-    tmp = kt_setzero_p<SZ, SUF>();
-
-    aoclsparse_int vc  = size / tsz;
-    aoclsparse_int rem = size % tsz;
-
-    for(aoclsparse_int i = 0; i < vc; ++i)
-    {
-        // Load the 'x' vector
-        xv = kt_loadu_p<SZ, SUF>(x + (i * tsz));
-        // Conjugate 'x'
-        xv = kt_conj_p<SZ, SUF>(xv);
-        // Load the 'y' vector
-        yv = kt_loadu_p<SZ, SUF>(y + (i * tsz));
-        // tmp += 'xv' * 'yv'
-        tmp = kt_fmadd_p<SZ, SUF>(xv, yv, tmp);
-    }
-    // Accumulate the intermediate results in the vector
-    *d = kt_hsum_p<SZ, SUF>(tmp);
-    // Remainder part that cannot be vectorized
-    for(auto i = size - rem; i < size; i++)
-    {
-        *d += aoclsparse::conj(x[i]) * y[i];
-    }
-    return aoclsparse_status_success;
-}
 
 template <typename T>
 aoclsparse_status aoclsparse_dotmv_t(const aoclsparse_operation op,
@@ -95,7 +38,7 @@ aoclsparse_status aoclsparse_dotmv_t(const aoclsparse_operation op,
                                      const T                    beta,
                                      T                         *y,
                                      T                         *d,
-                                     aoclsparse_int             kid)
+                                     aoclsparse_int             kid = -1)
 {
     if(d == nullptr || A == nullptr)
     {
@@ -110,37 +53,12 @@ aoclsparse_status aoclsparse_dotmv_t(const aoclsparse_operation op,
         return status;
     }
 
-    // Creating pointer to the kernel
-    using K = decltype(&aoclsparse_dot_ref<T>);
-    K dot_kernel;
-
-    /* Default AVX2.
-     * TODO: Use the framework to read kid from context once it is available.
-     */
-    kid = 1;
-    // Pick the kernel based on the KID passed
-    switch(kid)
-    {
-    case 2:
-#if defined(__AVX512F__)
-        dot_kernel = aoclsparse_dot_kt<bsz::b512, T>;
-        break;
-#endif
-    case 1:
-#if defined(__AVX2__)
-        dot_kernel = aoclsparse_dot_kt<bsz::b256, T>;
-        break;
-#endif
-    default:
-        dot_kernel = aoclsparse_dot_ref;
-    }
-
     /* Dot product needs x and y of same size but
      * op = non-transpose, size of y=m, x=n
      * op = transpose, size of y=n, x=m
      * hence, taking minimum of m and n
      */
-    return dot_kernel((std::min)(A->m, A->n), x, y, d);
+    return aoclsparse::dense_dot((std::min)(A->m, A->n), x, y, d, kid);
 }
 
 #endif // AOCLSPARSE_DOTMV_HPP
