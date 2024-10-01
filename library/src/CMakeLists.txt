@@ -52,10 +52,13 @@ set(AOCLSPARSE_SOURCES
   src/level3/aoclsparse_syprd.cpp
   src/level3/aoclsparse_sypr.cpp
   src/level3/aoclsparse_syrk.cpp
+  src/level3/aoclsparse_trsm.cpp
 
 # Solvers
   src/solvers/aoclsparse_ilu.cpp
   src/solvers/aoclsparse_sorv.cpp
+  src/solvers/aoclsparse_itsol_functions.cpp
+  src/solvers/aoclsparse_symgs.cpp
 
 # Conversion
   src/conversion/aoclsparse_convert.cpp
@@ -79,13 +82,6 @@ set(TEMPLATE_SOURCES
 
 # Level 2
   src/level2/aoclsparse_trsv.cpp
-
-# Level 3
-  src/level3/aoclsparse_trsm.cpp
-
-# Solvers
-  src/solvers/aoclsparse_itsol_functions.cpp
-  src/solvers/aoclsparse_symgs.cpp
 )
 
 # List of sources that need to compiled with AVX512

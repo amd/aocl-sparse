@@ -33,8 +33,8 @@
 #include "aoclsparse_itsol_data.hpp"
 #include "aoclsparse_itsol_list_options.hpp"
 #include "aoclsparse_itsol_options.hpp"
+#include "aoclsparse_l2.hpp"
 #include "aoclsparse_mv.hpp"
-#include "aoclsparse_trsv.hpp"
 #include "aoclsparse_utils.hpp"
 
 // Define all entries for rinfo[] array
