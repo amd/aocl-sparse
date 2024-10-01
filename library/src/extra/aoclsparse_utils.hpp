@@ -468,4 +468,18 @@ constexpr T expected_precision(T scale = (T)1.0) noexcept
     const T safe_macheps = (T)2.0 * macheps;
     return scale * safeguard<T>::value * sqrt(safe_macheps);
 }
+
+/* Gather operation types and requirements for input/output vector y.
+ * gather -> y be of type const T *
+ * gatherz -> y be of type T *
+ */
+enum class gather_op
+{
+    gather,
+    gatherz
+};
+
+// Template to generate type of 'y' vector based on the API type in gather
+template <typename T, gather_op OP>
+using y_type = typename std::conditional<OP == gather_op::gather, const T *, T *>::type;
 #endif

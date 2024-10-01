@@ -49,4 +49,11 @@ aoclsparse_status roti_kt(aoclsparse_int nnz,
                           SUF c,
                           SUF s);
 
+template <kernel_templates::bsz SZ,
+          typename SUF,
+          gather_op                   OP,
+          kernel_templates::kt_avxext EXT,
+          Index::type                 I>
+aoclsparse_status gthr_kt(aoclsparse_int nnz, y_type<SUF, OP> y, SUF *x, Index::index_t<I> xi);
+
 #endif // of AOCLSPARSE_L1_KT_HPP
