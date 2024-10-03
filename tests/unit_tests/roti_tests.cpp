@@ -197,15 +197,17 @@ namespace
     {
         test_roti_success<double, 0>();
         test_roti_success<double, 1>();
+        test_roti_success<double, 2>();
         if(can_exec_avx512_tests())
-            test_roti_success<double, 2>();
+            test_roti_success<double, 3>();
     }
     TEST(roti, SuccessArgFloat)
     {
         test_roti_success<float, 0>();
         test_roti_success<float, 1>();
+        test_roti_success<float, 2>();
         if(can_exec_avx512_tests())
-            test_roti_success<float, 2>();
+            test_roti_success<float, 3>();
     }
 
 } // namespace

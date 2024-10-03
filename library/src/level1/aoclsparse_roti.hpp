@@ -96,11 +96,10 @@ inline aoclsparse_status aoclsparse_rot(aoclsparse_int nnz,
     // clang-format off
     // Table of available kernels
     static constexpr Table<K> tbl[]{
-    {roti_ref<T>,           context_isa_t::GENERIC, 0U | archs::ALL},
-    {roti_kt<bsz::b256, T>, context_isa_t::AVX2,    0U | archs::ZEN123},
-#ifdef USE_AVX512
-    {roti_kt<bsz::b512, T>, context_isa_t::AVX512F, 0U | archs::ZEN4}
-#endif
+       {roti_ref<T>,           context_isa_t::GENERIC, 0U | archs::ALL},
+       {roti_kt<bsz::b256, T>, context_isa_t::AVX2,    0U | archs::ALL},
+       {roti_kt<bsz::b256, T>, context_isa_t::AVX2,    0U | archs::ALL}, // alias
+ORL<K>({roti_kt<bsz::b512, T>, context_isa_t::AVX512F, 0U | archs::ALL})
     };
     // clang-format on
 

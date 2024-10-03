@@ -98,11 +98,10 @@ inline aoclsparse_status aoclsparse_dotp(aoclsparse_int nnz,
     // clang-format off
     // Table of available kernels
     static constexpr Table<K> tbl[]{
-    {dotp_ref<T>,           context_isa_t::GENERIC, 0U | archs::ALL},
-    {dotp_kt<bsz::b256, T>, context_isa_t::AVX2,    0U | archs::ZEN123},
-#ifdef USE_AVX512
-    {dotp_kt<bsz::b512, T>, context_isa_t::AVX512F, 0U | archs::ZEN4}
-#endif
+       {dotp_ref<T>,           context_isa_t::GENERIC, 0U | archs::ALL},
+       {dotp_kt<bsz::b256, T>, context_isa_t::AVX2,    0U | archs::ALL},
+       {dotp_kt<bsz::b256, T>, context_isa_t::AVX2,    0U | archs::ALL}, // alias
+ORL<K>({dotp_kt<bsz::b512, T>, context_isa_t::AVX512F, 0U | archs::ALL})
     };
     // clang-format on
 

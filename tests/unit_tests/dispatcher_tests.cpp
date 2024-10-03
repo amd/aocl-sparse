@@ -48,11 +48,9 @@ namespace dispatch_Test
         3. ZEN2
         4. ZEN3
         5. ZEN4
-        6. ZEN123
-        7. ZENS
-
-        Note: Test the logic again when you want to add tokeenization for
-        new strings
+        ...
+        n-1. ZEN123
+        n. ZENS
     */
     constexpr uint32_t tokenize_isa(const char *isa, size_t size = 0) noexcept
     {
@@ -80,9 +78,15 @@ namespace dispatch_Test
 
         switch(arch_id)
         {
+        case tokenize_isa("ZEN5", 4):
         case tokenize_isa("ZEN4", 4):
             // Auto kernel
-            EXPECT_EQ(aoclsparse_debug_dispatcher(dispatcher.c_str(), aoclsparse_smat, -1), 2 + 10);
+            if(can_exec_avx512_tests())
+                EXPECT_EQ(aoclsparse_debug_dispatcher(dispatcher.c_str(), aoclsparse_smat, -1),
+                          3 + 10);
+            else
+                EXPECT_EQ(aoclsparse_debug_dispatcher(dispatcher.c_str(), aoclsparse_smat, -1),
+                          2 + 10);
 
             // Request specific kernel 3. On AVX512 build on Zen 4 machines, this kernel can be launched.
             if(can_exec_avx512_tests())
@@ -205,6 +209,7 @@ namespace dispatch_Test
         EXPECT_EQ(aoclsparse_enable_instructions(""), aoclsparse_status_success);
         switch(arch_id)
         {
+        case tokenize_isa("ZEN5", 4):
         case tokenize_isa("ZEN4", 4):
             // Auto
             EXPECT_EQ(aoclsparse_debug_dispatcher(dispatcher.c_str(), aoclsparse_smat, -1), 2);
@@ -249,14 +254,23 @@ namespace dispatch_Test
         EXPECT_EQ(aoclsparse_enable_instructions(""), aoclsparse_status_success);
         switch(arch_id)
         {
+        case tokenize_isa("ZEN5", 4):
         case tokenize_isa("ZEN4", 4):
             // kid auto contend ZEN123 vs ZENS vs ZEN3
-            EXPECT_EQ(aoclsparse_debug_dispatcher(dispatcher.c_str(), aoclsparse_smat, -1),
-                      4 + 1000); // AVX2 path priority by table
+            if(can_exec_avx512_tests())
+                EXPECT_EQ(aoclsparse_debug_dispatcher(dispatcher.c_str(), aoclsparse_smat, -1),
+                          6 + 1000); // AVX512 path priority by table
+            else
+                EXPECT_EQ(aoclsparse_debug_dispatcher(dispatcher.c_str(), aoclsparse_smat, -1),
+                          4 + 1000);
             // request AVX512 path contend ZEN4 vs ZENS
-            EXPECT_EQ(aoclsparse_enable_instructions("AVX512"), aoclsparse_status_success);
-            EXPECT_EQ(aoclsparse_debug_dispatcher(dispatcher.c_str(), aoclsparse_smat, -1),
-                      4 + 1000); // AVX2 path priority by table
+            if(can_exec_avx512_tests())
+            {
+                // This cannot be executed in AVX2 builds
+                EXPECT_EQ(aoclsparse_enable_instructions("AVX512"), aoclsparse_status_success);
+                EXPECT_EQ(aoclsparse_debug_dispatcher(dispatcher.c_str(), aoclsparse_smat, -1),
+                          6 + 1000); // AVX512 path priority by table
+            }
             break;
         case tokenize_isa("ZEN3", 4):
             // kid auto contend ZEN123 vs ZENS vs ZEN3
@@ -368,4 +382,48 @@ namespace dispatch_Test
         EXPECT_EQ(ok, 2);
     }
 #endif
+
+    /* Test scores for 256b vectors on AVX512VL machines */
+    TEST(Oracle, DispatchAVX512VL)
+    {
+        debug_info info;
+
+        [[maybe_unused]] aoclsparse_status st = aoclsparse_debug_get(
+            info.global_isa, info.sparse_nt, info.tl_isa, info.is_isa_updated, info.arch);
+
+        std::string dispatcher = "dispatch_AVX512VL";
+        std::string arch{info.arch};
+        uint32_t    arch_id = tokenize_isa(arch.c_str(), arch.length());
+
+        EXPECT_EQ(aoclsparse_enable_instructions(""), aoclsparse_status_success);
+        switch(arch_id)
+        {
+        case tokenize_isa("ZEN5", 4):
+        case tokenize_isa("ZEN4", 4):
+        case tokenize_isa("UNKNOWN", 7):
+            if(can_exec_avx512_tests())
+                EXPECT_EQ(aoclsparse_debug_dispatcher(dispatcher.c_str(), aoclsparse_dmat, -1),
+                          1 + 4000); // AVX512VL 256bit path priority by table
+            else
+                EXPECT_EQ(aoclsparse_debug_dispatcher(dispatcher.c_str(), aoclsparse_smat, -1),
+                          0 + 4000);
+            EXPECT_EQ(aoclsparse_enable_instructions("AVX2"), aoclsparse_status_success);
+            EXPECT_EQ(aoclsparse_debug_dispatcher(dispatcher.c_str(), aoclsparse_cmat, -1),
+                      0 + 4000);
+            EXPECT_EQ(aoclsparse_enable_instructions("AVX512"), aoclsparse_status_success);
+            if(can_exec_avx512_tests())
+                EXPECT_EQ(aoclsparse_debug_dispatcher(dispatcher.c_str(), aoclsparse_zmat, -1),
+                          1 + 4000); // AVX512VL 256bit path priority by table
+            else
+                EXPECT_EQ(aoclsparse_debug_dispatcher(dispatcher.c_str(), aoclsparse_smat, -1),
+                          0 + 4000);
+            break;
+        case tokenize_isa("ZEN3", 4):
+        case tokenize_isa("ZEN2", 4):
+        case tokenize_isa("ZEN1", 4):
+            EXPECT_EQ(aoclsparse_debug_dispatcher(dispatcher.c_str(), aoclsparse_dmat, -1),
+                      0 + 4000);
+            break;
+        }
+    }
 }

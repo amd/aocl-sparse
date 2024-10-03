@@ -552,16 +552,15 @@ namespace dispatcher_instantiations
         using K = decltype(&kernel_ref<0, T>);
 
         using namespace aoclsparse;
+        using namespace Dispatch;
 
         // clang-format off
         static constexpr Dispatch::Table<K> tbl[] {
-        // name                              cpu flag requirements   suggested architecture
-        {kernel_ref<0, T>,                   context_isa_t::GENERIC, 0|archs::ALL },
-        {kernel_kt<1, 256, T, ext::RESERVE_1>, context_isa_t::AVX2,    0|archs::ZENS}, // Zen 1+ AVX2
-        {kernel_kt<2, 256, T, ext::RESERVE_1>, context_isa_t::AVX2,    0|archs::ZEN4}, // Zen 4+ AVX2
-#ifdef USE_AVX512
-        {kernel_kt<3, 512, T, ext::RESERVE_2>, context_isa_t::AVX512F, 0|archs::ZEN4} // Zen 4+ AVX512F
-#endif
+        // name                               cpu flag requirements   suggested architecture
+        {kernel_ref<0, T>,                    context_isa_t::GENERIC, 0|archs::ALL },
+        {kernel_kt<1, 256, T, ext::RESERVE_1>,context_isa_t::AVX2,    0|archs::ZENS},            // Zen 1+ AVX2
+        {kernel_kt<2, 256, T, ext::RESERVE_1>,context_isa_t::AVX2,    0|archs::ZEN4|archs::ZEN5},// Zen 4+ AVX2
+ ORL<K>({kernel_kt<3, 512, T, ext::RESERVE_2>,context_isa_t::AVX512F, 0|archs::ZEN4|archs::ZEN5})// Zen 4+ AVX512F
         };
         // clang-format on
         auto kernel = Dispatch::Oracle<K, Dispatch::api::reserved1>(tbl, kid);
@@ -638,19 +637,18 @@ namespace dispatcher_instantiations
     {
         using K = decltype(&kernel_ref<0, T>);
         using namespace aoclsparse;
+        using namespace Dispatch;
 
         // clang-format off
         static constexpr Dispatch::Table<K> tbl[] {
         // name                              cpu flag requirements    suggested architecture
-        {kernel_ref<0, T>,                   context_isa_t::GENERIC,  0|archs::ALL},    // 0 All machines
-        {kernel_ref<1, T>,                   context_isa_t::AVX2,     0|archs::ZEN123}, // 1 Naples/Rome/Milan: Zen AVX2
-        {kernel_kt<2, 256, T, ext::RESERVE_1>, context_isa_t::AVX2,     0|archs::ZENS},   // 2 AMD platform AVX2
-        {kernel_kt<3, 256, T, ext::RESERVE_1>, context_isa_t::AVX2,     0|archs::ZEN3},   // 3 Milan: Zen3 AVX2
-        {kernel_kt<4, 256, T, ext::RESERVE_1>, context_isa_t::AVX2,     0|archs::ZEN4},   // 4 Bergamo/Genoa/Sienna: Zen4 AVX2
-#ifdef USE_AVX512
-        {kernel_kt<5, 512, T, ext::RESERVE_3>, context_isa_t::AVX512DQ, 0|archs::ZENS},   // 5 AMD platform AVX512F
-        {kernel_kt<6, 512, T, ext::RESERVE_3>, context_isa_t::AVX512VL, 0|archs::ZEN4}   // 6 Bergamo/Genoa/Sienna: Zen4 AVX512F
-#endif
+        {kernel_ref<0, T>,                     context_isa_t::GENERIC,  0|archs::ALL},             // 0 All machines
+        {kernel_ref<1, T>,                     context_isa_t::AVX2,     0|archs::ZEN123},          // 1 Naples/Rome/Milan: Zen AVX2
+        {kernel_kt<2, 256, T, ext::RESERVE_1>, context_isa_t::AVX2,     0|archs::ZENS},            // 2 AMD platform AVX2
+        {kernel_kt<3, 256, T, ext::RESERVE_1>, context_isa_t::AVX2,     0|archs::ZEN3},            // 3 Milan: Zen3 AVX2
+        {kernel_kt<4, 256, T, ext::RESERVE_1>, context_isa_t::AVX2,     0|archs::ZEN4|archs::ZEN5},// 4 Bergamo/Genoa/Siena: Zen4 AVX2
+ ORL<K>({kernel_kt<5, 512, T, ext::RESERVE_3>, context_isa_t::AVX512DQ, 0|archs::ZENS}),           // 5 AMD platform AVX512F
+ ORL<K>({kernel_kt<6, 512, T, ext::RESERVE_3>, context_isa_t::AVX512VL, 0|archs::ZEN4|archs::ZEN5})// 6 Bergamo/Genoa/Siena: Zen4 AVX512F
         };
         // clang-format on
 
@@ -688,6 +686,29 @@ namespace dispatcher_instantiations
 
         return 0 + okid;
     }
+
+    // Table to test for 256b kernels using AVX512VL flags
+    template <typename T>
+    aoclsparse_int dispatch_AVX512VL(aoclsparse_int kid = -1)
+    {
+        using K = decltype(&kernel_ref<0, T>);
+        using namespace aoclsparse;
+        using namespace Dispatch;
+        // clang-format off
+        static constexpr Dispatch::Table<K> tbl[] {
+        // name                                cpu flag requirements    suggested architecture
+        {kernel_kt<0, 256, T, ext::RESERVE_3>, context_isa_t::AVX2,     0|archs::ALL},
+ ORL<K>({kernel_kt<1, 256, T, ext::RESERVE_3>, context_isa_t::AVX512VL, 0|archs::ZEN5|archs::ZEN4}),
+ ORL<K>({kernel_kt<2, 512, T, ext::RESERVE_3>, context_isa_t::AVX512VL, 0|archs::ALL})
+        };
+        // clang-format on
+        auto kernel = Dispatch::Oracle<K, Dispatch::api::reserved4>(tbl, kid);
+        if(kernel == nullptr)
+            return aoclsparse_status_invalid_kid;
+        auto okid = kernel();
+        return 4000 + okid;
+    }
+
 }
 
 #endif

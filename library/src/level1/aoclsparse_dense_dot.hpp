@@ -71,10 +71,9 @@ namespace aoclsparse
         // Table of available kernels
         static constexpr Table<K> tbl[]{
         {dot_ref<T>,           context_isa_t::GENERIC, 0U | archs::ALL},
-        {dot_kt<bsz::b256, T>, context_isa_t::AVX2,    0U | archs::ZEN123},
-    #ifdef USE_AVX512
-        {dot_kt<bsz::b512, T>, context_isa_t::AVX512F, 0U | archs::ZEN4}
-    #endif
+        {dot_kt<bsz::b256, T>, context_isa_t::AVX2,    0U | archs::ALL},
+        {dot_kt<bsz::b256, T>, context_isa_t::AVX2,    0U | archs::ALL}, // alias
+ ORL<K>({dot_kt<bsz::b512, T>, context_isa_t::AVX512F, 0U | archs::ALL})
         };
         // clang-format on
 

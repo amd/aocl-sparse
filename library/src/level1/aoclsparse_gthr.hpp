@@ -131,11 +131,10 @@ aoclsparse_status aoclsparse_gthr_t(
     // clang-format off
     // Table of available kernels
     static constexpr Table<K> tbl[]{
-    {gthr_ref<T, OP, I>,           context_isa_t::GENERIC, 0U | archs::ALL},
-    {gthr_kt<bsz::b256, T, OP, kt_avxext::AVX2, I>, context_isa_t::AVX2,    0U | archs::ZEN123},
-#ifdef USE_AVX512
-    {gthr_kt<bsz::b512, T, OP, kt_avxext::AVX512F, I>, context_isa_t::AVX512F, 0U | archs::ZEN4}
-#endif
+           {gthr_ref<T, OP, I>,                                context_isa_t::GENERIC, 0U | archs::ALL},
+           {gthr_kt<bsz::b256, T, OP, kt_avxext::AVX2, I>,     context_isa_t::AVX2,    0U | archs::ALL},
+    ORL<K>({gthr_kt<bsz::b256, T, OP, kt_avxext::AVX512VL, I>, context_isa_t::AVX512VL,0U | archs::ALL}),
+    ORL<K>({gthr_kt<bsz::b512, T, OP, kt_avxext::AVX512F, I>,  context_isa_t::AVX512F, 0U | archs::ALL})
     };
     // clang-format on
 

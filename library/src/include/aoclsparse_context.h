@@ -59,7 +59,7 @@ namespace aoclsparse
     };
 
     // Dispatch::archs (Zen architecture and group)
-    // unsigned int -> __builtin_popcount(unsigned int)
+    // MUST BE unsigned int for __builtin_popcount(unsigned int) to work
     enum class archs : unsigned int
     {
         ALL     = ~0U,
@@ -68,8 +68,10 @@ namespace aoclsparse
         ZEN2    = 1U << 1U,
         ZEN3    = 1U << 2U,
         ZEN4    = 1U << 3U,
+        ZEN5    = 1U << 4U,
+        ZEN_NEW = ZEN5, // Replace with next generation
         ZEN123  = ZEN | ZEN2 | ZEN3,
-        ZENS    = ZEN | ZEN2 | ZEN3 | ZEN4
+        ZENS    = ZEN | ZEN2 | ZEN3 | ZEN4 | ZEN5 // Update
     };
 
     inline constexpr unsigned int operator|(archs a, archs b)
@@ -144,6 +146,9 @@ namespace aoclsparse
             Au::X86Cpu Cpu   = {0};
             Au::EUarch uarch = Cpu.getUarch();
 
+            for(int f = 0; f < static_cast<int>(context_isa_t::LENGTH); ++f)
+                cpuflags[f] = false;
+
             // Check for the list of flags supported
             // Note: Utils does not support BF16 flag lookup
             this->cpuflags[static_cast<int>(context_isa_t::AVX2)]
@@ -212,6 +217,7 @@ namespace aoclsparse
             switch(uarch)
             {
             case Au::EUarch::Zen:
+            case Au::EUarch::ZenPlus:
                 lib_local_arch = archs::ZEN;
                 break;
             case Au::EUarch::Zen2:
@@ -223,9 +229,30 @@ namespace aoclsparse
             case Au::EUarch::Zen4:
                 lib_local_arch = archs::ZEN4;
                 break;
-            // Todo: Add support for newer and older AMD architectures
+            case Au::EUarch::Zen5:
+                lib_local_arch = archs::ZEN5;
+                break;
             default:
-                lib_local_arch = archs::UNKNOWN;
+                // Check to see if it is a new Zen model
+                if(Cpu.isAMD()) // Assume new model
+                {
+                    lib_local_arch = archs::ZEN_NEW; // Fall-back to latest known model
+                }
+                else if(this->cpuflags[static_cast<int>(context_isa_t::AVX512F)]
+                        && this->cpuflags[static_cast<int>(context_isa_t::AVX512DQ)]
+                        && this->cpuflags[static_cast<int>(context_isa_t::AVX512VL)])
+                {
+                    // Map to an equivalent Zen model...
+                    lib_local_arch = archs::ZEN_NEW;
+                }
+                else if(this->cpuflags[static_cast<int>(context_isa_t::AVX2)])
+                {
+                    lib_local_arch = archs::ZEN3;
+                }
+                else
+                {
+                    lib_local_arch = archs::UNKNOWN;
+                }
             }
         }
 
