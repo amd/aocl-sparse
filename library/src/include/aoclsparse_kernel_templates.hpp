@@ -41,6 +41,13 @@ using kt_int_t = aoclsparse_int;
     FUNC(BSZ, std::complex<float>); \
     FUNC(BSZ, std::complex<double>);
 
+// Instantiates a kernel template function defined by "FUNC"
+#define KT_INSTANTIATE_EXT(FUNC, BSZ, EXT) \
+    FUNC(BSZ, float, EXT);                 \
+    FUNC(BSZ, double, EXT);                \
+    FUNC(BSZ, std::complex<float>, EXT);   \
+    FUNC(BSZ, std::complex<double>, EXT);
+
 //--------------------------------------------------------------------------------
 
 #endif // AOCLSPARSE_KERNEL_TEMPLATES_T_HPP

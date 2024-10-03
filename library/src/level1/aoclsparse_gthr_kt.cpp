@@ -96,16 +96,24 @@ aoclsparse_status gthr_kt(aoclsparse_int nnz, y_type<SUF, OP> y, SUF *x, Index::
         aoclsparse_int nnz, y_type<SUF, OP> y, SUF * x, Index::index_t<I> xi);
 
 // Template declaration macro used for instantiation
-#define GTHR_IDX_TEMPLATE_DECLARATION(BSZ, SUF) \
-    GTHR_TEMPLATE_DECLARATION(BSZ, SUF, gather_op::gather, get_kt_ext(), Index::type::indexed)
+#define GTHR_IDX_TEMPLATE_DECLARATION(BSZ, SUF, EXT) \
+    GTHR_TEMPLATE_DECLARATION(BSZ, SUF, gather_op::gather, EXT, Index::type::indexed)
 
-#define GTHRZ_IDX_TEMPLATE_DECLARATION(BSZ, SUF) \
-    GTHR_TEMPLATE_DECLARATION(BSZ, SUF, gather_op::gatherz, get_kt_ext(), Index::type::indexed)
+#define GTHRZ_IDX_TEMPLATE_DECLARATION(BSZ, SUF, EXT) \
+    GTHR_TEMPLATE_DECLARATION(BSZ, SUF, gather_op::gatherz, EXT, Index::type::indexed)
 
-#define GTHR_STR_TEMPLATE_DECLARATION(BSZ, SUF) \
-    GTHR_TEMPLATE_DECLARATION(BSZ, SUF, gather_op::gather, get_kt_ext(), Index::type::strided)
+#define GTHR_STR_TEMPLATE_DECLARATION(BSZ, SUF, EXT) \
+    GTHR_TEMPLATE_DECLARATION(BSZ, SUF, gather_op::gather, EXT, Index::type::strided)
+
+// In case of AVX512 compilation, instantiate 256-bit length vector kernels that use
+// AVX512-VL extensions
+#ifdef __AVX512F__
+KT_INSTANTIATE_EXT(GTHR_IDX_TEMPLATE_DECLARATION, bsz::b256, kt_avxext::AVX512VL);
+KT_INSTANTIATE_EXT(GTHRZ_IDX_TEMPLATE_DECLARATION, bsz::b256, kt_avxext::AVX512VL);
+KT_INSTANTIATE_EXT(GTHR_STR_TEMPLATE_DECLARATION, bsz::b256, kt_avxext::AVX512VL);
+#endif
 
 // Generates instantiation
-KT_INSTANTIATE(GTHR_IDX_TEMPLATE_DECLARATION, get_bsz());
-KT_INSTANTIATE(GTHRZ_IDX_TEMPLATE_DECLARATION, get_bsz());
-KT_INSTANTIATE(GTHR_STR_TEMPLATE_DECLARATION, get_bsz());
+KT_INSTANTIATE_EXT(GTHR_IDX_TEMPLATE_DECLARATION, get_bsz(), get_kt_ext());
+KT_INSTANTIATE_EXT(GTHRZ_IDX_TEMPLATE_DECLARATION, get_bsz(), get_kt_ext());
+KT_INSTANTIATE_EXT(GTHR_STR_TEMPLATE_DECLARATION, get_bsz(), get_kt_ext());

@@ -486,38 +486,54 @@ namespace
         test_gthr_success<double, 0>();
         test_gthr_success<double, 1>();
         if(can_exec_avx512_tests())
+        {
             test_gthr_success<double, 2>();
+            test_gthr_success<double, 3>();
+        }
     }
     TEST(gthr, SuccessFloat)
     {
         test_gthr_success<float, 0>();
         test_gthr_success<float, 1>();
         if(can_exec_avx512_tests())
+        {
             test_gthr_success<float, 2>();
+            test_gthr_success<float, 3>();
+        }
     }
     TEST(gthr, SuccessCDouble)
     {
         test_gthr_success<std::complex<double>, 0>();
         test_gthr_success<std::complex<double>, 1>();
         if(can_exec_avx512_tests())
+        {
             test_gthr_success<std::complex<double>, 2>();
-
+            test_gthr_success<std::complex<double>, 3>();
+        }
         test_gthr_success<aoclsparse_double_complex, 0>();
         test_gthr_success<aoclsparse_double_complex, 1>();
         if(can_exec_avx512_tests())
+        {
             test_gthr_success<aoclsparse_double_complex, 2>();
+            test_gthr_success<aoclsparse_double_complex, 3>();
+        }
     }
     TEST(gthr, SuccessCFloat)
     {
         test_gthr_success<std::complex<float>, 0>();
         test_gthr_success<std::complex<float>, 1>();
         if(can_exec_avx512_tests())
+        {
             test_gthr_success<std::complex<float>, 2>();
-
+            test_gthr_success<std::complex<float>, 3>();
+        }
         test_gthr_success<aoclsparse_float_complex, 0>();
         test_gthr_success<aoclsparse_float_complex, 1>();
         if(can_exec_avx512_tests())
+        {
             test_gthr_success<aoclsparse_float_complex, 2>();
+            test_gthr_success<aoclsparse_float_complex, 3>();
+        }
     }
 
     TEST(gthr, NullArgDouble)
@@ -593,38 +609,55 @@ namespace
         test_gthrz_success<double, 0>();
         test_gthrz_success<double, 1>();
         if(can_exec_avx512_tests())
+        {
             test_gthrz_success<double, 2>();
+            test_gthrz_success<double, 3>();
+        }
     }
     TEST(gthrz, SuccessFloat)
     {
         test_gthrz_success<float, 0>();
         test_gthrz_success<float, 1>();
         if(can_exec_avx512_tests())
+        {
             test_gthrz_success<float, 2>();
+            test_gthrz_success<float, 3>();
+        }
     }
     TEST(gthrz, SuccessCDouble)
     {
         test_gthrz_success<std::complex<double>, 0>();
         test_gthrz_success<std::complex<double>, 1>();
         if(can_exec_avx512_tests())
+        {
             test_gthrz_success<std::complex<double>, 2>();
+            test_gthrz_success<std::complex<double>, 3>();
+        }
 
         test_gthrz_success<aoclsparse_double_complex, 0>();
         test_gthrz_success<aoclsparse_double_complex, 1>();
         if(can_exec_avx512_tests())
+        {
             test_gthrz_success<aoclsparse_double_complex, 2>();
+            test_gthrz_success<aoclsparse_double_complex, 3>();
+        }
     }
     TEST(gthrz, SuccessCFloat)
     {
         test_gthrz_success<std::complex<float>, 0>();
         test_gthrz_success<std::complex<float>, 1>();
         if(can_exec_avx512_tests())
+        {
             test_gthrz_success<std::complex<float>, 2>();
-
+            test_gthrz_success<std::complex<float>, 3>();
+        }
         test_gthrz_success<aoclsparse_float_complex, 0>();
         test_gthrz_success<aoclsparse_float_complex, 1>();
         if(can_exec_avx512_tests())
+        {
             test_gthrz_success<aoclsparse_float_complex, 2>();
+            test_gthrz_success<aoclsparse_float_complex, 3>();
+        }
     }
 
     TEST(gthrz, NullArgDouble)
@@ -701,28 +734,40 @@ namespace
         test_gthrs_success<double, 0>();
         test_gthrs_success<double, 1>();
         if(can_exec_avx512_tests())
+        {
             test_gthrs_success<double, 2>();
+            test_gthrs_success<double, 3>();
+        }
     }
     TEST(gthrs, SuccessFloat)
     {
         test_gthrs_success<float, 0>();
         test_gthrs_success<float, 1>();
         if(can_exec_avx512_tests())
+        {
             test_gthrs_success<float, 2>();
+            test_gthrs_success<float, 3>();
+        }
     }
     TEST(gthrs, SuccessCDouble)
     {
         test_gthrs_success<std::complex<double>, 0>();
         test_gthrs_success<std::complex<double>, 1>();
         if(can_exec_avx512_tests())
+        {
             test_gthrs_success<std::complex<double>, 2>();
+            test_gthrs_success<std::complex<double>, 3>();
+        }
     }
     TEST(gthrs, SuccessCFloat)
     {
         test_gthrs_success<std::complex<float>, 0>();
         test_gthrs_success<std::complex<float>, 1>();
         if(can_exec_avx512_tests())
+        {
             test_gthrs_success<std::complex<float>, 2>();
+            test_gthrs_success<std::complex<float>, 3>();
+        }
     }
 
     TEST(gthrs, NullArgDouble)

@@ -134,6 +134,7 @@ aoclsparse_status aoclsparse_debug_get(char            isa_preference[],
     arch_map[archs::ZEN2]    = "ZEN2";
     arch_map[archs::ZEN3]    = "ZEN3";
     arch_map[archs::ZEN4]    = "ZEN4";
+    arch_map[archs::ZEN5]    = "ZEN5";
     arch_map[archs::UNKNOWN] = "UNKNOWN";
 
     context_isa_t global_isa, tl_isa;
@@ -990,6 +991,8 @@ aoclsparse_int aoclsparse_debug_dispatcher(const char                  dispatche
             return dispatcher_instantiations::dispatch<double>(kid);
         else if(dispatch.compare("dispatch_isa") == 0)
             return dispatcher_instantiations::dispatch_isa<double>(kid);
+        else if(dispatch.compare("dispatch_AVX512VL") == 0)
+            return dispatcher_instantiations::dispatch_AVX512VL<double>(kid);
     }
     else if(dt == aoclsparse_smat)
     {
@@ -1005,6 +1008,8 @@ aoclsparse_int aoclsparse_debug_dispatcher(const char                  dispatche
             return dispatcher_instantiations::dispatch<float>(kid);
         else if(dispatch.compare("dispatch_isa") == 0)
             return dispatcher_instantiations::dispatch_isa<float>(kid);
+        else if(dispatch.compare("dispatch_AVX512VL") == 0)
+            return dispatcher_instantiations::dispatch_AVX512VL<float>(kid);
     }
     else if(dt == aoclsparse_zmat)
     {
@@ -1020,6 +1025,8 @@ aoclsparse_int aoclsparse_debug_dispatcher(const char                  dispatche
             return dispatcher_instantiations::dispatch<std::complex<double>>(kid);
         else if(dispatch.compare("dispatch_isa") == 0)
             return dispatcher_instantiations::dispatch_isa<std::complex<double>>(kid);
+        else if(dispatch.compare("dispatch_AVX512VL") == 0)
+            return dispatcher_instantiations::dispatch_AVX512VL<std::complex<double>>(kid);
     }
     else if(dt == aoclsparse_cmat)
     {
@@ -1035,6 +1042,8 @@ aoclsparse_int aoclsparse_debug_dispatcher(const char                  dispatche
             return dispatcher_instantiations::dispatch<std::complex<float>>(kid);
         else if(dispatch.compare("dispatch_isa") == 0)
             return dispatcher_instantiations::dispatch_isa<std::complex<float>>(kid);
+        else if(dispatch.compare("dispatch_AVX512VL") == 0)
+            return dispatcher_instantiations::dispatch_AVX512VL<std::complex<float>>(kid);
     }
 
     return -1000;

@@ -340,43 +340,49 @@ namespace
     {
         test_aoclsparse_sctr_success<double, 0>();
         test_aoclsparse_sctr_success<double, 1>();
+        test_aoclsparse_sctr_success<double, 2>();
         if(can_exec_avx512_tests())
-            test_aoclsparse_sctr_success<double, 2>();
+            test_aoclsparse_sctr_success<double, 3>();
     }
     TEST(sctr, SuccessArgFloat)
     {
         test_aoclsparse_sctr_success<float, 0>();
         test_aoclsparse_sctr_success<float, 1>();
+        test_aoclsparse_sctr_success<float, 2>();
         if(can_exec_avx512_tests())
-            test_aoclsparse_sctr_success<float, 2>();
+            test_aoclsparse_sctr_success<float, 3>();
     }
     TEST(sctr, SuccessArgCDouble)
     {
         test_aoclsparse_sctr_success<std::complex<double>, 0>();
         test_aoclsparse_sctr_success<std::complex<double>, 1>();
+        test_aoclsparse_sctr_success<std::complex<double>, 2>();
         if(can_exec_avx512_tests())
-            test_aoclsparse_sctr_success<std::complex<double>, 2>();
+            test_aoclsparse_sctr_success<std::complex<double>, 3>();
     }
     TEST(sctr, SuccessArgCFloat)
     {
         test_aoclsparse_sctr_success<std::complex<float>, 0>();
         test_aoclsparse_sctr_success<std::complex<float>, 1>();
+        test_aoclsparse_sctr_success<std::complex<float>, 2>();
         if(can_exec_avx512_tests())
-            test_aoclsparse_sctr_success<std::complex<float>, 2>();
+            test_aoclsparse_sctr_success<std::complex<float>, 3>();
     }
     TEST(sctr, SuccessArgCStructDouble)
     {
         test_aoclsparse_sctr_success_struct<aoclsparse_double_complex, 0>();
         test_aoclsparse_sctr_success_struct<aoclsparse_double_complex, 1>();
+        test_aoclsparse_sctr_success_struct<aoclsparse_double_complex, 2>();
         if(can_exec_avx512_tests())
-            test_aoclsparse_sctr_success_struct<aoclsparse_double_complex, 2>();
+            test_aoclsparse_sctr_success_struct<aoclsparse_double_complex, 3>();
     }
     TEST(sctr, SuccessArgCStructFloat)
     {
         test_aoclsparse_sctr_success_struct<aoclsparse_float_complex, 0>();
         test_aoclsparse_sctr_success_struct<aoclsparse_float_complex, 1>();
+        test_aoclsparse_sctr_success_struct<aoclsparse_float_complex, 2>();
         if(can_exec_avx512_tests())
-            test_aoclsparse_sctr_success_struct<aoclsparse_float_complex, 2>();
+            test_aoclsparse_sctr_success_struct<aoclsparse_float_complex, 3>();
     }
 
     //Scatter with stride
@@ -384,29 +390,33 @@ namespace
     {
         test_sctrs_success<double, 0>();
         test_sctrs_success<double, 1>();
+        test_sctrs_success<double, 2>();
         if(can_exec_avx512_tests())
-            test_sctrs_success<double, 2>();
+            test_sctrs_success<double, 3>();
     }
     TEST(sctrs, SuccessArgFloat)
     {
         test_sctrs_success<float, 0>();
         test_sctrs_success<float, 1>();
+        test_sctrs_success<float, 2>();
         if(can_exec_avx512_tests())
-            test_sctrs_success<float, 2>();
+            test_sctrs_success<float, 3>();
     }
     TEST(sctrs, SuccessArgCDouble)
     {
         test_sctrs_success<std::complex<double>, 0>();
         test_sctrs_success<std::complex<double>, 1>();
+        test_sctrs_success<std::complex<double>, 2>();
         if(can_exec_avx512_tests())
-            test_sctrs_success<std::complex<double>, 2>();
+            test_sctrs_success<std::complex<double>, 3>();
     }
     TEST(sctrs, SuccessArgCFloat)
     {
         test_sctrs_success<std::complex<float>, 0>();
         test_sctrs_success<std::complex<float>, 1>();
+        test_sctrs_success<std::complex<float>, 2>();
         if(can_exec_avx512_tests())
-            test_sctrs_success<std::complex<float>, 2>();
+            test_sctrs_success<std::complex<float>, 3>();
     }
     TEST(sctrs, NullArgDouble)
     {
