@@ -31,6 +31,7 @@ set(AOCLSPARSE_SOURCES
   src/level1/aoclsparse_axpyi.cpp
   src/level1/aoclsparse_dot.cpp
   src/level1/aoclsparse_gthr.cpp
+  src/level1/aoclsparse_sctr.cpp
 
   src/level2/aoclsparse_csrmv.cpp
   src/level2/aoclsparse_blkcsrmv.cpp
@@ -78,8 +79,6 @@ set(AOCLSPARSE_SOURCES
 # require double compilation to support mutliarchitecture build.
 # ------------------------------------------------------------------
 set(TEMPLATE_SOURCES
-  src/level1/aoclsparse_sctr.cpp
-
 # Level 2
   src/level2/aoclsparse_trsv.cpp
 )
@@ -97,6 +96,7 @@ set(DOUBLE_COMPILATION
   src/level1/aoclsparse_axpyi_kt.cpp
   src/level1/aoclsparse_dot_kt.cpp
   src/level1/aoclsparse_gthr_kt.cpp
+  src/level1/aoclsparse_sctr_kt.cpp
 )
 
 include(Suppressions)

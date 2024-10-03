@@ -31,12 +31,12 @@ using namespace kernel_templates;
  * The indx vector is NOT checked for non-negative values.
  */
 template <bsz SZ, typename SUF>
-inline aoclsparse_status roti_kt(aoclsparse_int nnz,
-                                 SUF *__restrict__ x,
-                                 const aoclsparse_int *__restrict__ indx,
-                                 SUF *__restrict__ y,
-                                 SUF c,
-                                 SUF s)
+aoclsparse_status roti_kt(aoclsparse_int nnz,
+                          SUF *__restrict__ x,
+                          const aoclsparse_int *__restrict__ indx,
+                          SUF *__restrict__ y,
+                          SUF c,
+                          SUF s)
 {
     // Automatically determine the type of tsz
     constexpr aoclsparse_int tsz = tsz_v<SZ, SUF>;
