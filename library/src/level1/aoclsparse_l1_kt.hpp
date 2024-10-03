@@ -24,6 +24,7 @@
 #ifndef AOCLSPARSE_L1_KT_HPP
 #define AOCLSPARSE_L1_KT_HPP
 #include "aoclsparse_kernel_templates.hpp"
+#include "aoclsparse_utils.hpp"
 
 // Extern declaration of KT kernels
 template <kernel_templates::bsz SZ, typename T>
@@ -55,5 +56,11 @@ template <kernel_templates::bsz SZ,
           kernel_templates::kt_avxext EXT,
           Index::type                 I>
 aoclsparse_status gthr_kt(aoclsparse_int nnz, y_type<SUF, OP> y, SUF *x, Index::index_t<I> xi);
+
+template <kernel_templates::bsz SZ, typename SUF, Index::type I>
+aoclsparse_status sctr_kt(aoclsparse_int nnz,
+                          const SUF *__restrict__ x,
+                          Index::index_t<I> xi,
+                          SUF *__restrict__ y);
 
 #endif // of AOCLSPARSE_L1_KT_HPP

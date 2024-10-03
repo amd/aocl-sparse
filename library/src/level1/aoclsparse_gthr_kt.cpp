@@ -91,30 +91,19 @@ aoclsparse_status gthr_kt(aoclsparse_int nnz, y_type<SUF, OP> y, SUF *x, Index::
     return aoclsparse_status_success;
 }
 
+#define GTHR_TEMPLATE_DECLARATION(BSZ, SUF, OP, EXT, I)       \
+    template aoclsparse_status gthr_kt<BSZ, SUF, OP, EXT, I>( \
+        aoclsparse_int nnz, y_type<SUF, OP> y, SUF * x, Index::index_t<I> xi);
+
 // Template declaration macro used for instantiation
-#define GTHR_IDX_TEMPLATE_DECLARATION(BSZ, SUF)                                   \
-    template aoclsparse_status                                                    \
-        gthr_kt<BSZ, SUF, gather_op::gather, get_kt_ext(), Index::type::indexed>( \
-            aoclsparse_int                 nnz,                                   \
-            y_type<SUF, gather_op::gather> y,                                     \
-            SUF * x,                                                              \
-            Index::index_t<Index::type::indexed> xi)
+#define GTHR_IDX_TEMPLATE_DECLARATION(BSZ, SUF) \
+    GTHR_TEMPLATE_DECLARATION(BSZ, SUF, gather_op::gather, get_kt_ext(), Index::type::indexed)
 
-#define GTHRZ_IDX_TEMPLATE_DECLARATION(BSZ, SUF)                                   \
-    template aoclsparse_status                                                     \
-        gthr_kt<BSZ, SUF, gather_op::gatherz, get_kt_ext(), Index::type::indexed>( \
-            aoclsparse_int                  nnz,                                   \
-            y_type<SUF, gather_op::gatherz> y,                                     \
-            SUF * x,                                                               \
-            Index::index_t<Index::type::indexed> xi)
+#define GTHRZ_IDX_TEMPLATE_DECLARATION(BSZ, SUF) \
+    GTHR_TEMPLATE_DECLARATION(BSZ, SUF, gather_op::gatherz, get_kt_ext(), Index::type::indexed)
 
-#define GTHR_STR_TEMPLATE_DECLARATION(BSZ, SUF)                                   \
-    template aoclsparse_status                                                    \
-        gthr_kt<BSZ, SUF, gather_op::gather, get_kt_ext(), Index::type::strided>( \
-            aoclsparse_int                 nnz,                                   \
-            y_type<SUF, gather_op::gather> y,                                     \
-            SUF * x,                                                              \
-            Index::index_t<Index::type::strided> xi)
+#define GTHR_STR_TEMPLATE_DECLARATION(BSZ, SUF) \
+    GTHR_TEMPLATE_DECLARATION(BSZ, SUF, gather_op::gather, get_kt_ext(), Index::type::strided)
 
 // Generates instantiation
 KT_INSTANTIATE(GTHR_IDX_TEMPLATE_DECLARATION, get_bsz());
