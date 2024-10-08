@@ -33,7 +33,11 @@
 #include <type_traits>
 #include <vector>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "blis.hh"
+#pragma GCC diagnostic pop
+#include "cblas.hh"
 
 namespace
 {
