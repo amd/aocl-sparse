@@ -56,11 +56,11 @@ aoclsparse_status axpyi_kt(aoclsparse_int nnz,
     return aoclsparse_status_success;
 }
 
-#define AXPYI_TEMPLATE_DECLARATION(BSZ, DTYPE)                                               \
-    template aoclsparse_status axpyi_kt<BSZ, DTYPE>(aoclsparse_int nnz,                      \
-                                                    DTYPE          a,                        \
-                                                    const DTYPE *__restrict__ x,             \
-                                                    const aoclsparse_int *__restrict__ indx, \
-                                                    DTYPE *__restrict__ y)
+#define AXPYI_TEMPLATE_DECLARATION(BSZ, SUF)                                               \
+    template aoclsparse_status axpyi_kt<BSZ, SUF>(aoclsparse_int nnz,                      \
+                                                  SUF            a,                        \
+                                                  const SUF *__restrict__ x,               \
+                                                  const aoclsparse_int *__restrict__ indx, \
+                                                  SUF *__restrict__ y)
 
 KT_INSTANTIATE(AXPYI_TEMPLATE_DECLARATION, get_bsz());
