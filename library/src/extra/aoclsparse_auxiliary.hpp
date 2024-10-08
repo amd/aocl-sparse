@@ -34,7 +34,11 @@
 #include <limits>
 
 // clang-format off
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wtype-limits"
 #include "blis.h"
+#pragma GCC diagnostic pop
 #include "cblas.hh"
 #include "FLAME.h"
 // clang-format on
