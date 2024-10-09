@@ -80,14 +80,8 @@ add_library(DOUBLE_COMPILATION_AVX2 OBJECT ${DOUBLE_COMPILATION})
 aoclsparse_add_dependency(DOUBLE_COMPILATION_AVX2)
 # ==========================================================================================
 
-# --------------- Compile files with Kernel templates -------------------------------------
-# Note: These files will move to double compilation or single compilation (Todo).
-add_library(TEMPLATE_FILES OBJECT ${TEMPLATE_SOURCES})
-aoclsparse_add_dependency(TEMPLATE_FILES)
-# ==========================================================================================
-
 # List of all targets in the library
-set(AOCLSPARSE_TARGETS $<TARGET_OBJECTS:TEMPLATE_FILES> $<TARGET_OBJECTS:DOUBLE_COMPILATION_AVX2>)
+set(AOCLSPARSE_TARGETS $<TARGET_OBJECTS:DOUBLE_COMPILATION_AVX2>)
 
 if(USE_AVX512)
  # ---------------- Double compilation files with AVX 512 flags -----------------------------
@@ -101,7 +95,6 @@ if(USE_AVX512)
  target_compile_options(AVX512_FILES PRIVATE ${AOCLSPARSE_AVX512_FLAGS})
  aoclsparse_add_dependency(AVX512_FILES)
  # ==========================================================================================
- target_compile_options(TEMPLATE_FILES PRIVATE ${AOCLSPARSE_AVX512_FLAGS})
 
  # If the target is AVX512, append all the AVX512 objects
  list(APPEND AOCLSPARSE_TARGETS $<TARGET_OBJECTS:AVX512_FILES> $<TARGET_OBJECTS:DOUBLE_COMPILATION_AVX512>)

@@ -26,6 +26,13 @@
 #include "aoclsparse.h"
 #include "aoclsparse_kernel_templates.hpp"
 
+/* TRSV linear operators over matrix */
+enum trsv_op
+{
+    tran = 0, // alias for aoclsparse_operation_transpose
+    herm = 1 // alias for aoclsparse_operation_conjugate_transpose
+};
+
 namespace aoclsparse
 {
     template <kernel_templates::bsz SZ, typename SUF>
@@ -39,5 +46,67 @@ namespace aoclsparse
                                const SUF beta,
                                SUF *__restrict__ y);
 }
+
+template <kernel_templates::bsz SZ, typename SUF, kernel_templates::kt_avxext EXT>
+aoclsparse_status kt_trsv_l(const SUF             alpha,
+                            aoclsparse_int        m,
+                            aoclsparse_index_base base,
+                            const SUF *__restrict__ a,
+                            const aoclsparse_int *__restrict__ icol,
+                            const aoclsparse_int *__restrict__ ilrow,
+                            const aoclsparse_int *__restrict__ idiag,
+                            const SUF *__restrict__ b,
+                            aoclsparse_int incb,
+                            SUF *__restrict__ x,
+                            aoclsparse_int incx,
+                            const bool     unit);
+
+template <kernel_templates::bsz SZ,
+          typename SUF,
+          kernel_templates::kt_avxext EXT,
+          trsv_op                     OP = trsv_op::tran>
+aoclsparse_status kt_trsv_lt(const SUF             alpha,
+                             aoclsparse_int        m,
+                             aoclsparse_index_base base,
+                             const SUF *__restrict__ a,
+                             const aoclsparse_int *__restrict__ icol,
+                             const aoclsparse_int *__restrict__ ilrow,
+                             const aoclsparse_int *__restrict__ idiag,
+                             const SUF *__restrict__ b,
+                             aoclsparse_int incb,
+                             SUF *__restrict__ x,
+                             aoclsparse_int incx,
+                             const bool     unit);
+
+template <kernel_templates::bsz SZ, typename SUF, kernel_templates::kt_avxext EXT>
+aoclsparse_status kt_trsv_u(const SUF             alpha,
+                            aoclsparse_int        m,
+                            aoclsparse_index_base base,
+                            const SUF *__restrict__ a,
+                            const aoclsparse_int *__restrict__ icol,
+                            const aoclsparse_int *__restrict__ ilrow,
+                            const aoclsparse_int *__restrict__ iurow,
+                            const SUF *__restrict__ b,
+                            aoclsparse_int incb,
+                            SUF *__restrict__ x,
+                            aoclsparse_int incx,
+                            const bool     unit);
+
+template <kernel_templates::bsz SZ,
+          typename SUF,
+          kernel_templates::kt_avxext EXT,
+          trsv_op                     OP = trsv_op::tran>
+aoclsparse_status kt_trsv_ut(const SUF             alpha,
+                             aoclsparse_int        m,
+                             aoclsparse_index_base base,
+                             const SUF *__restrict__ a,
+                             const aoclsparse_int *__restrict__ icol,
+                             const aoclsparse_int *__restrict__ ilrow,
+                             const aoclsparse_int *__restrict__ iurow,
+                             const SUF *__restrict__ b,
+                             aoclsparse_int incb,
+                             SUF *__restrict__ x,
+                             aoclsparse_int incx,
+                             const bool     unit);
 
 #endif
