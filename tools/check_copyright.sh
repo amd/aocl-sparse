@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+# Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -23,10 +23,10 @@
 # Check if all files have adjusted current copyright year
 # and return number of non-matching files.
 # It is assumed that the copyright label should on the top of the files
-# in the form: 'Copyright (c) 2020-2023' or 'Copyright (c) 2023'
+# in the form: 'Copyright (c) 2020-2024' or 'Copyright (c) 2024'
 
 # Whitelist of files which are considered always OK
-whitelist=(README.md tests/examples/README.md docs/Doxyfile docs/AOCL-Sparse_API_Guide.pdf)
+whitelist=(README.md tests/examples/README.md docs/Doxyfile docs/AOCL-Sparse_API_Guide.pdf LICENSE.md)
 
 print_help() {
   echo $0 [-p] [file1 [file2 ...]]
@@ -104,4 +104,3 @@ for f in "$@"; do
 done
 
 exit $nfailed
-
