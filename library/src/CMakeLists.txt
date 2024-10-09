@@ -33,6 +33,7 @@ set(AOCLSPARSE_SOURCES
   src/level1/aoclsparse_gthr.cpp
   src/level1/aoclsparse_sctr.cpp
 
+  src/level2/aoclsparse_trsv.cpp
   src/level2/aoclsparse_csrmv.cpp
   src/level2/aoclsparse_blkcsrmv.cpp
   src/level2/aoclsparse_ellmv.cpp
@@ -73,16 +74,6 @@ set(AOCLSPARSE_SOURCES
   src/analysis/aoclsparse_csr_util.cpp
 )
 
-# List of sources that need to compiled based on the build type.
-# In AVX512 build, with AVX512 flags. In AVX2 build, with AVX2 flags.
-# Note - this is a temporary change. All files listed below will
-# require double compilation to support mutliarchitecture build.
-# ------------------------------------------------------------------
-set(TEMPLATE_SOURCES
-# Level 2
-  src/level2/aoclsparse_trsv.cpp
-)
-
 # List of sources that need to compiled with AVX512
 # -------------------------------------------------
 set(AVX512_SOURCES
@@ -100,6 +91,7 @@ set(DOUBLE_COMPILATION
   src/level1/aoclsparse_sctr_kt.cpp
 
   src/level2/aoclsparse_csrmv_kt.cpp
+  src/level2/aoclsparse_trsv_kt.cpp
 )
 
 include(Suppressions)
