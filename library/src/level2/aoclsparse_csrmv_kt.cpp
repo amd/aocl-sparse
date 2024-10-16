@@ -22,6 +22,7 @@
  * ************************************************************************
  */
 #include "aoclsparse.h"
+#include "aoclsparse_context.h"
 #include "aoclsparse_kernel_templates.hpp"
 #include "aoclsparse_l2_kt.hpp"
 
@@ -38,29 +39,40 @@ aoclsparse_status aoclsparse::csrmv_kt(aoclsparse_index_base base,
 {
 
     using namespace kernel_templates;
-
     const aoclsparse_int *icol_fix = icol - base;
     const SUF            *aval_fix = aval - base;
     const SUF            *x_fix    = x - base;
     avxvector_t<SZ, SUF>  va, vx, vb;
-    aoclsparse_int        j;
     const size_t          k = tsz_v<SZ, SUF>;
     // Perform (beta * y)
     if(beta == static_cast<SUF>(0))
     {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(context::get_context()->get_num_threads())
+#endif
         // if beta==0 and y contains any NaNs, we can zero y directly
         for(aoclsparse_int i = 0; i < m; i++)
             y[i] = 0.;
     }
     else if(beta != static_cast<SUF>(1))
     {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(context::get_context()->get_num_threads())
+#endif
         for(aoclsparse_int i = 0; i < m; i++)
             y[i] = beta * y[i];
     }
-
+#ifdef _OPENMP
+    aoclsparse_int chunk = (m / context::get_context()->get_num_threads())
+                               ? (m / context::get_context()->get_num_threads())
+                               : 1;
+#pragma omp parallel for num_threads(context::get_context()->get_num_threads()) \
+    schedule(dynamic, chunk) private(va, vx, vb)
+#endif
     for(aoclsparse_int i = 0; i < m; i++)
     {
-        SUF result             = 0.0;
+        aoclsparse_int j;
+        SUF            result  = 0.0;
         vb                     = kt_setzero_p<SZ, SUF>();
         aoclsparse_int crend   = row[i + 1];
         aoclsparse_int crstart = row[i];

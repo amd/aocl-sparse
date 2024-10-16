@@ -23,6 +23,7 @@
 #ifndef __AVX512F__
 #error "File contains AVX512 kernels and needs to be compiled with AVX512 flags."
 #else
+#include "aoclsparse_context.h"
 #include "aoclsparse_csrmv_avx512.hpp"
 
 #include <immintrin.h>
@@ -42,11 +43,21 @@ aoclsparse_status aoclsparse_csrmv_vectorized_avx512(aoclsparse_index_base base,
                                                      const double beta,
                                                      double *__restrict__ y)
 {
+    using namespace aoclsparse;
     __m256d               vec_y;
     __m512d               vec_vals_512, vec_x_512, vec_y_512;
     const aoclsparse_int *csr_col_ind_fix = csr_col_ind - base;
     const double         *csr_val_fix     = csr_val - base;
     const double         *x_fix           = x - base;
+
+#ifdef _OPENMP
+    aoclsparse_int        chunk           = (m / context::get_context()->get_num_threads())
+                                                ? (m / context::get_context()->get_num_threads())
+                                                : 1;
+#pragma omp parallel for num_threads(context::get_context()->get_num_threads()) \
+    schedule(dynamic, chunk) private(vec_vals_512, vec_x_512, vec_y_512, vec_y)
+#endif
+
     for(aoclsparse_int i = 0; i < m; i++)
     {
         aoclsparse_int j;
@@ -135,8 +146,8 @@ aoclsparse_status aoclsparse_zcsrmv_avx512(aoclsparse_index_base      base,
                                            const std::complex<double> beta,
                                            std::complex<double> *__restrict__ y)
 {
+    using namespace aoclsparse;
     __m512d                     va, vx, vbr, vbi, tval;
-    aoclsparse_int              j;
     const size_t                k        = 4;
     const aoclsparse_int       *icol_fix = icol - base;
     const std::complex<double> *aval_fix = aval - base;
@@ -144,28 +155,40 @@ aoclsparse_status aoclsparse_zcsrmv_avx512(aoclsparse_index_base      base,
     // Perform (beta * y)
     if(beta == static_cast<std::complex<double>>(0))
     {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(context::get_context()->get_num_threads())
+#endif
         // if beta==0 and y contains any NaNs, we can zero y directly
         for(aoclsparse_int i = 0; i < m; i++)
             y[i] = 0.;
     }
     else if(beta != static_cast<std::complex<double>>(1))
     {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(context::get_context()->get_num_threads())
+#endif
         for(aoclsparse_int i = 0; i < m; i++)
             y[i] = beta * y[i];
     }
 
+#ifdef _OPENMP
+    aoclsparse_int chunk = (m / context::get_context()->get_num_threads())
+                               ? (m / context::get_context()->get_num_threads())
+                               : 1;
+#pragma omp parallel for num_threads(context::get_context()->get_num_threads()) \
+    schedule(dynamic, chunk) private(va, vx, vbr, vbi, tval)
+#endif
     for(aoclsparse_int i = 0; i < m; i++)
     {
+        aoclsparse_int       j;
         std::complex<double> result = 0.0;
         vbr                         = _mm512_setzero_pd();
-        ;
-        vbi = _mm512_setzero_pd();
-        ;
-        aoclsparse_int crend   = row[i + 1];
-        aoclsparse_int crstart = row[i];
-        aoclsparse_int nnz     = crend - crstart;
-        aoclsparse_int k_iter  = nnz / k;
-        aoclsparse_int k_rem   = nnz % k;
+        vbi                         = _mm512_setzero_pd();
+        aoclsparse_int crend        = row[i + 1];
+        aoclsparse_int crstart      = row[i];
+        aoclsparse_int nnz          = crend - crstart;
+        aoclsparse_int k_iter       = nnz / k;
+        aoclsparse_int k_rem        = nnz % k;
 
         //Loop in multiples of K non-zeroes
         for(j = crstart; j < crend - k_rem; j += k)
