@@ -150,7 +150,7 @@ aoclsparse_status aoclsparse_csrmv_t(aoclsparse_operation       trans,
                 else
                 {
 #ifdef USE_AVX512
-                    if(context::get_context()->supports<context_isa_t::AVX512F>())
+                    if(context::get_context()->get_isa_hint() == context_isa_t::AVX512F)
                         kernel = aoclsparse_csrmv_vectorized_avx512;
                     else
 #endif
