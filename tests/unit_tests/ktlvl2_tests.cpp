@@ -20,10 +20,6 @@
  * THE SOFTWARE.
  *
  * ************************************************************************ */
-
-// Note: Since it uses KT outside the scope of the library, AVX512 tests will be
-// executed only if this file is compiled with appropriate AVX512 flags
-
 #include "aoclsparse.h"
 #include "common_data_utils.h"
 #include "aoclsparse_kernel_templates.hpp"
@@ -47,45 +43,7 @@ namespace TestsKT
                  const aoclsparse_int *__restrict__ crstart,
                  const aoclsparse_int *__restrict__ crend,
                  const SUF *__restrict__ x,
-                 SUF *__restrict__ y)
-    {
-
-        avxvector_t<SZ, SUF> va, vx, vb;
-        aoclsparse_int       j;
-        const size_t         k = tsz_v<SZ, SUF>;
-
-        for(aoclsparse_int i = 0; i < m; i++)
-        {
-            SUF result            = 0.0;
-            vb                    = kt_setzero_p<SZ, SUF>();
-            aoclsparse_int nnz    = crend[i] - crstart[i];
-            aoclsparse_int k_iter = nnz / k;
-            aoclsparse_int k_rem  = nnz % k;
-
-            //Loop in multiples of K non-zeroes
-            for(j = crstart[i]; j < crend[i] - k_rem; j += k)
-            {
-                va = kt_loadu_p<SZ, SUF>(&aval[j]);
-                vx = kt_set_p<SZ, SUF>(x, &icol[j]);
-                vb = kt_fmadd_p<SZ, SUF>(va, vx, vb);
-            }
-            if(k_iter)
-            {
-                // Horizontal addition
-                result = kt_hsum_p<SZ, SUF>(vb);
-            }
-            //Remainder loop for nnz%k
-            for(j = crend[i] - k_rem; j < crend[i]; j++)
-            {
-                result += aval[j] * x[icol[j]];
-            }
-
-            // Perform alpha * A * x
-            // result *= alpha;
-            // result += beta * y[i];
-            y[i] = result;
-        }
-    }
+                 SUF *__restrict__ y);
 
     template <bsz SZ, typename T>
     void driver_spmv(void)
@@ -399,14 +357,14 @@ namespace TestsKT
         driver_spmv<bsz::b256, std::complex<double>>();
     }
 
-// Enabled only if compiled with AVX-512
-#ifdef __AVX512F__
     TEST(KT_L2, kt_spmb512)
     {
-        driver_spmv<bsz::b512, float>();
-        driver_spmv<bsz::b512, std::complex<float>>();
-        driver_spmv<bsz::b512, double>();
-        driver_spmv<bsz::b512, std::complex<double>>();
+        if(can_exec_avx512_tests())
+        {
+            driver_spmv<bsz::b512, float>();
+            driver_spmv<bsz::b512, std::complex<float>>();
+            driver_spmv<bsz::b512, double>();
+            driver_spmv<bsz::b512, std::complex<double>>();
+        }
     }
-#endif
 }
