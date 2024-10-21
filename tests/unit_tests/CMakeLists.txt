@@ -71,7 +71,6 @@ set(GTEST_EXECUTABLES
     ilu_tests
     trsv_tests
     kt_tests
-    ktlvl2_tests
     mv_tests
     set_value_test
     csr_convert_tests
@@ -109,9 +108,15 @@ set(GTEST_EXECUTABLES
     tcsrmv_tests
 )
 
+# -----------------------------------------------------------------------
+# Build KT tests
+# -----------------------------------------------------------------------
 set (KT_TEST_SOURCES
 ${CMAKE_CURRENT_SOURCE_DIR}/kt_tests.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/ktlvl2_tests.cpp
+)
+
+set(KT_KERNELS
+${CMAKE_CURRENT_SOURCE_DIR}/ktlvl2_kernels.cpp
 )
 
 # KT tests need to be built with AVX512 flags for AVX512 build. Else with AVX2 flags.
@@ -121,6 +126,18 @@ else()
   set_source_files_properties(KT_TEST_SOURCES PROPERTIES COMPILE_OPTIONS "-mavx2;-mfma")
 endif()
 
+add_library(KT_KERNELS_AVX512 OBJECT ${KT_KERNELS})
+target_compile_options(KT_KERNELS_AVX512 PRIVATE ${AOCLSPARSE_AVX512_FLAGS})
+target_link_libraries(KT_KERNELS_AVX512 aoclsparse GTest::gtest_main)
+
+add_library(KT_KERNELS_AVX2 OBJECT ${KT_KERNELS})
+target_compile_options(KT_KERNELS_AVX2 PRIVATE ${AOCLSPARSE_AVX2_FLAGS})
+target_link_libraries(KT_KERNELS_AVX2 aoclsparse GTest::gtest_main)
+
+add_executable(ktlvl2_tests ktlvl2_tests.cpp ${utils_source})
+target_link_libraries(ktlvl2_tests aoclsparse GTest::gtest_main $<TARGET_OBJECTS:KT_KERNELS_AVX512> $<TARGET_OBJECTS:KT_KERNELS_AVX2>)
+
+# -----------------------------------------------------------------------
 #copy the raw data files (mtx inputs) to build directory
 add_subdirectory(data)
 
@@ -146,6 +163,9 @@ foreach(TNAME ${GTEST_EXECUTABLES})
     # Define -Daoclsparse_ILP64 when ILP64 libraries are built. For LP64, this is an empty string.
     target_compile_definitions(${TNAME} PUBLIC ${AOCLSPARSE_ILP64})
 endforeach()
+
+# Append the KT tests
+list(APPEND GTEST_EXECUTABLES ktlvl2_tests)
 
 include(GoogleTest)
 foreach(TNAME ${GTEST_EXECUTABLES})
