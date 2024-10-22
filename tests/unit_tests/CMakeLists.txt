@@ -66,6 +66,7 @@ set(GTEST_EXECUTABLES
     ilu_tests
     trsv_tests
     kt_tests
+    ktlvl2_tests
     mv_tests
     set_value_test
     csr_convert_tests
@@ -106,21 +107,12 @@ set(GTEST_EXECUTABLES
 # -----------------------------------------------------------------------
 # Build KT tests
 # -----------------------------------------------------------------------
-set (KT_TEST_SOURCES
-${CMAKE_CURRENT_SOURCE_DIR}/kt_tests.cpp
-)
-
 set(KT_KERNELS
+${CMAKE_CURRENT_SOURCE_DIR}/kt_kernels.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/ktlvl2_kernels.cpp
 )
 
-# KT tests need to be built with AVX512 flags for AVX512 build. Else with AVX2 flags.
-if(USE_AVX512)
-  set_source_files_properties(KT_TEST_SOURCES PROPERTIES COMPILE_OPTIONS "-mavx512f;-mavx512vl;-mavx512dq")
-else()
-  set_source_files_properties(KT_TEST_SOURCES PROPERTIES COMPILE_OPTIONS "-mavx2;-mfma")
-endif()
-
+# Double compilation of KT test kernels
 add_library(KT_KERNELS_AVX512 OBJECT ${KT_KERNELS})
 target_compile_options(KT_KERNELS_AVX512 PRIVATE ${AOCLSPARSE_AVX512_FLAGS})
 target_link_libraries(KT_KERNELS_AVX512 aoclsparse GTest::gtest_main)
@@ -128,17 +120,23 @@ target_link_libraries(KT_KERNELS_AVX512 aoclsparse GTest::gtest_main)
 add_library(KT_KERNELS_AVX2 OBJECT ${KT_KERNELS})
 target_compile_options(KT_KERNELS_AVX2 PRIVATE ${AOCLSPARSE_AVX2_FLAGS})
 target_link_libraries(KT_KERNELS_AVX2 aoclsparse GTest::gtest_main)
-
-add_executable(ktlvl2_tests ktlvl2_tests.cpp ${utils_source})
-target_link_libraries(ktlvl2_tests aoclsparse GTest::gtest_main $<TARGET_OBJECTS:KT_KERNELS_AVX512> $<TARGET_OBJECTS:KT_KERNELS_AVX2>)
-
 # -----------------------------------------------------------------------
+
 #copy the raw data files (mtx inputs) to build directory
 add_subdirectory(data)
 
+set(AOCLSPARSE_TEST_DEPENDENCIES
+aoclsparse
+${OpenMP_Library}
+${LAPACK_LIBRARIES}
+GTest::gtest_main
+$<TARGET_OBJECTS:KT_KERNELS_AVX512>
+$<TARGET_OBJECTS:KT_KERNELS_AVX2>
+)
+
 foreach(TNAME ${GTEST_EXECUTABLES})
     add_executable(${TNAME} ${TNAME}.cpp ${utils_source})
-    target_link_libraries(${TNAME} aoclsparse ${OpenMP_Library} ${LAPACK_LIBRARIES} GTest::gtest_main)
+    target_link_libraries(${TNAME} ${AOCLSPARSE_TEST_DEPENDENCIES})
     # For Windows shared library builds copying some relevant DLLs into the
     # unit_tests bin folder enables ctest to run without needing to update PATH
     # gtest_discover_tests does not work on Windows shared library builds - this
@@ -158,9 +156,6 @@ foreach(TNAME ${GTEST_EXECUTABLES})
     # Define -Daoclsparse_ILP64 when ILP64 libraries are built. For LP64, this is an empty string.
     target_compile_definitions(${TNAME} PUBLIC ${AOCLSPARSE_ILP64})
 endforeach()
-
-# Append the KT tests
-list(APPEND GTEST_EXECUTABLES ktlvl2_tests)
 
 include(GoogleTest)
 foreach(TNAME ${GTEST_EXECUTABLES})
