@@ -20,36 +20,38 @@
  * THE SOFTWARE.
  *
  * ************************************************************************ */
+#include "common_data_utils.h"
+using kt_int_t = size_t;
 
-#include "aoclsparse_kernel_templates.hpp"
+#include "kernel-templates/kernel_templates.hpp"
 
 using namespace kernel_templates;
 
 namespace TestsKT
 {
     template <bsz SZ, typename SUF>
-    void kt_spmv(const aoclsparse_int                  m,
-                 [[maybe_unused]] const aoclsparse_int n,
-                 [[maybe_unused]] const aoclsparse_int nnz,
+    void kt_spmv(const size_t                  m,
+                 [[maybe_unused]] const size_t n,
+                 [[maybe_unused]] const size_t nnz,
                  const SUF *__restrict__ aval,
-                 const aoclsparse_int *__restrict__ icol,
-                 const aoclsparse_int *__restrict__ crstart,
-                 const aoclsparse_int *__restrict__ crend,
+                 const size_t *__restrict__ icol,
+                 const size_t *__restrict__ crstart,
+                 const size_t *__restrict__ crend,
                  const SUF *__restrict__ x,
                  SUF *__restrict__ y)
     {
 
         avxvector_t<SZ, SUF> va, vx, vb;
-        aoclsparse_int       j;
+        size_t               j;
         const size_t         k = tsz_v<SZ, SUF>;
 
-        for(aoclsparse_int i = 0; i < m; i++)
+        for(size_t i = 0; i < m; i++)
         {
-            SUF result            = 0.0;
-            vb                    = kt_setzero_p<SZ, SUF>();
-            aoclsparse_int nnz    = crend[i] - crstart[i];
-            aoclsparse_int k_iter = nnz / k;
-            aoclsparse_int k_rem  = nnz % k;
+            SUF result    = 0.0;
+            vb            = kt_setzero_p<SZ, SUF>();
+            size_t nnz    = crend[i] - crstart[i];
+            size_t k_iter = nnz / k;
+            size_t k_rem  = nnz % k;
 
             //Loop in multiples of K non-zeroes
             for(j = crstart[i]; j < crend[i] - k_rem; j += k)
@@ -77,15 +79,18 @@ namespace TestsKT
     }
 
 }
-#define KT_SPMV_TEST(BSZ, SUF)                                                           \
-    template void TestsKT::kt_spmv<BSZ, SUF>(const aoclsparse_int                  m,    \
-                                             [[maybe_unused]] const aoclsparse_int n,    \
-                                             [[maybe_unused]] const aoclsparse_int nnz,  \
-                                             const SUF *__restrict__ aval,               \
-                                             const aoclsparse_int *__restrict__ icol,    \
-                                             const aoclsparse_int *__restrict__ crstart, \
-                                             const aoclsparse_int *__restrict__ crend,   \
-                                             const SUF *__restrict__ x,                  \
+#define KT_SPMV_TEST(BSZ, SUF)                                                   \
+    template void TestsKT::kt_spmv<BSZ, SUF>(const size_t                  m,    \
+                                             [[maybe_unused]] const size_t n,    \
+                                             [[maybe_unused]] const size_t nnz,  \
+                                             const SUF *__restrict__ aval,       \
+                                             const size_t *__restrict__ icol,    \
+                                             const size_t *__restrict__ crstart, \
+                                             const size_t *__restrict__ crend,   \
+                                             const SUF *__restrict__ x,          \
                                              SUF *__restrict__ y);
 
-KT_INSTANTIATE(KT_SPMV_TEST, get_bsz());
+KT_SPMV_TEST(get_bsz(), double);
+KT_SPMV_TEST(get_bsz(), float);
+KT_SPMV_TEST(get_bsz(), std::complex<double>);
+KT_SPMV_TEST(get_bsz(), std::complex<float>);
