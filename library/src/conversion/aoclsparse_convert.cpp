@@ -41,15 +41,15 @@ aoclsparse_int aoclsparse_opt_blksize(aoclsparse_int        m,
                                       aoclsparse_int       *total_blks)
 {
     // Check sizes
-    if((m < 0) || (nnz < 0))
+    if((m <= 0) || (nnz <= 0))
     {
-        return aoclsparse_status_invalid_size;
+        return 0;
     }
 
     // Check pointer arguments
     if((csr_row_ptr == nullptr) || (csr_col_ind == nullptr) || (total_blks == nullptr))
     {
-        return aoclsparse_status_invalid_pointer;
+        return 0;
     }
 
     //Initialize block width
@@ -347,6 +347,13 @@ aoclsparse_status aoclsparse_csr2ellthyb_width(aoclsparse_int        m,
     if(m < 0)
     {
         return aoclsparse_status_invalid_size;
+    }
+
+    if(m == 0)
+    {
+        *ell_width = 0;
+        *ell_m     = 0;
+        return aoclsparse_status_success;
     }
 
     // Check ell_width pointer

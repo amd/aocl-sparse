@@ -681,15 +681,12 @@ namespace
         aoclsparse_create_mat_descr(&descr);
         ASSERT_EQ(aoclsparse_set_mat_index_base(descr, base), aoclsparse_status_success);
 
+        EXPECT_EQ(aoclsparse_opt_blksize(0, nnz, base, csr_row_ptr, csr_col_ind, &total_blks), 0);
         //Test cases to identify failures in findng optimal block size -- used from optmv
-        EXPECT_EQ(aoclsparse_opt_blksize(-1, nnz, base, csr_row_ptr, csr_col_ind, &total_blks),
-                  aoclsparse_status_invalid_size);
-        EXPECT_EQ(aoclsparse_opt_blksize(m, -1, base, csr_row_ptr, csr_col_ind, &total_blks),
-                  aoclsparse_status_invalid_size);
-        EXPECT_EQ(aoclsparse_opt_blksize(m, nnz, base, nullptr, csr_col_ind, &total_blks),
-                  aoclsparse_status_invalid_pointer);
-        EXPECT_EQ(aoclsparse_opt_blksize(m, nnz, base, csr_row_ptr, nullptr, &total_blks),
-                  aoclsparse_status_invalid_pointer);
+        EXPECT_EQ(aoclsparse_opt_blksize(-1, nnz, base, csr_row_ptr, csr_col_ind, &total_blks), 0);
+        EXPECT_EQ(aoclsparse_opt_blksize(m, -1, base, csr_row_ptr, csr_col_ind, &total_blks), 0);
+        EXPECT_EQ(aoclsparse_opt_blksize(m, nnz, base, nullptr, csr_col_ind, &total_blks), 0);
+        EXPECT_EQ(aoclsparse_opt_blksize(m, nnz, base, csr_row_ptr, nullptr, &total_blks), 0);
 
         //Test cases in conversion routines
         for(int i = 0; i < 3; i++)
