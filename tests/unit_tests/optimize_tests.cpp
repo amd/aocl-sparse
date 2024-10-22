@@ -112,4 +112,46 @@ namespace
         aoclsparse_destroy(&A);
     }
 
+    TEST(OptimizeTest, EarlyReturn)
+    {
+        aoclsparse_mat_descr descr;
+        aoclsparse_create_mat_descr(&descr);
+        aoclsparse_matrix A = NULL;
+
+        double         val[]     = {2.0, 8.0, 10.0};
+        aoclsparse_int col_idx[] = {0, 0, 1};
+        aoclsparse_int row_ptr[] = {0, 1, 3};
+        ASSERT_EQ(
+            aoclsparse_create_dcsr(&A, aoclsparse_index_base_zero, 2, 2, 3, row_ptr, col_idx, val),
+            aoclsparse_status_success);
+
+        ASSERT_EQ(aoclsparse_set_mv_hint(A, aoclsparse_operation_none, descr, 1),
+                  aoclsparse_status_success);
+
+        // empty row (M)
+        A->m = 0;
+        EXPECT_EQ(aoclsparse_optimize(A), aoclsparse_status_success);
+
+        // single row (M)
+        A->m = 1;
+        EXPECT_EQ(aoclsparse_optimize(A), aoclsparse_status_success);
+
+        // empty column
+        A->n = 0;
+        EXPECT_EQ(aoclsparse_optimize(A), aoclsparse_status_success);
+
+        A->m = A->n = 2;
+        // return early for any mat_type other than aoclsparse_csr_mat
+        A->mat_type = aoclsparse_csc_mat;
+        EXPECT_EQ(aoclsparse_optimize(A), aoclsparse_status_success);
+
+        // return early for any A->val_type other than aoclsparse_dmat
+        A->mat_type = aoclsparse_csr_mat;
+        A->val_type = aoclsparse_cmat;
+        EXPECT_EQ(aoclsparse_optimize(A), aoclsparse_status_success);
+
+        aoclsparse_destroy_mat_descr(descr);
+        aoclsparse_destroy(&A);
+    }
+
 } // namespace

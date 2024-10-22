@@ -321,6 +321,11 @@ namespace
                   aoclsparse_status_invalid_pointer);
         // Fails this test
         //      EXPECT_EQ(aoclsparse_csr2ellthyb_width(M, nnz, csr_row_ptr, nullptr, &ell_width), aoclsparse_status_invalid_pointer);
+        EXPECT_EQ(aoclsparse_csr2ellthyb_width(0, nnz, csr_row_ptr, &ell_m, &ell_width),
+                  aoclsparse_status_success);
+        // resetting the values as before
+        ell_width = 3;
+        ell_m     = 3;
 
         EXPECT_EQ(aoclsparse_csr2ellthyb_width(M, nnz, csr_row_ptr, &ell_m, nullptr),
                   aoclsparse_status_invalid_pointer);

@@ -35,15 +35,26 @@
  */
 aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
 {
-    // Check the matrix precision type
-    // If the matrix type is not double precision real, set the matrix type
-    // as aoclsparse_csr_mat and return without any optimization
-    if(A->val_type != aoclsparse_dmat)
+    // Return without optimizations if
+    // 1) the matrix type is not double precision real
+    // 2) matrix dimensions are <= 1
+    // 3) matrix is not stored in the csr format
+    // 4) ToDo: add more exceptions
+    if(A->val_type != aoclsparse_dmat || A->mat_type != aoclsparse_csr_mat || A->m <= 1
+       || A->n <= 1)
     {
-        A->mat_type  = aoclsparse_csr_mat;
         A->optimized = true;
         return aoclsparse_status_success;
     }
+
+    // early return if already optimized
+    // ToDo: could have side effect of not optimizing A if
+    //       another  *_optimize_* API updates this variable
+    if(A->optimized)
+    {
+        return aoclsparse_status_success;
+    }
+
     // collect the required for decision making
     aoclsparse_int *row_ptr = A->csr_mat.csr_row_ptr;
     aoclsparse_int  m       = A->m;
