@@ -24,7 +24,6 @@
 #include "common_data_utils.h"
 #include "gtest/gtest.h"
 #include "aoclsparse.hpp"
-#include "aoclsparse_convert.hpp"
 #include "aoclsparse_init.hpp"
 
 #include <algorithm>

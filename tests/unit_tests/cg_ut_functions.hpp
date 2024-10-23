@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,6 @@
 #include "common_data_utils.h"
 #include "gtest/gtest.h"
 #include "aoclsparse.hpp"
-#include "aoclsparse_itsol_functions.hpp"
 
 #include <iostream>
 
