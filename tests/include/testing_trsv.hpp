@@ -43,7 +43,7 @@
 #endif
 
 template <typename T>
-int testing_trsv_aocl(const Arguments &arg, testdata<T> &td, double timings[])
+int testing_trsv_aocl(const Arguments &arg, testdata<T> &td, double timings[], aoclsparse_int kid)
 {
     int                    status  = 0;
     aoclsparse_int         m       = td.m;
@@ -90,7 +90,7 @@ int testing_trsv_aocl(const Arguments &arg, testdata<T> &td, double timings[])
             std::fill(td.y.begin(), td.y.end(), aoclsparse_numeric::zero<T>());
             double cpu_time_start = aoclsparse_clock();
             NEW_CHECK_AOCLSPARSE_ERROR(
-                aoclsparse_trsv_kid(trans, td.alpha, A, descr, td.x.data(), td.y.data(), arg.kid));
+                aoclsparse_trsv_kid(trans, td.alpha, A, descr, td.x.data(), td.y.data(), kid));
             timings[iter] = aoclsparse_clock_diff(cpu_time_start);
         }
     }
@@ -124,7 +124,11 @@ int testing_trsv(const Arguments &arg)
     // the queue of test functions to run, normally it would be just one API
     // unless more tests are registered via EXT_BENCHMARKING
     std::vector<testsetting<T>> testqueue;
-    testqueue.push_back({"aocl_trsv_hint", &testing_trsv_aocl<T>});
+
+    using FN = decltype(&testing_trsv_aocl<T>);
+
+    populate_queue_kid<T, FN>(testqueue, arg, testing_trsv_aocl<T>);
+
     register_tests_trsv(testqueue);
 
     // create relevant test data for this API

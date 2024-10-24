@@ -44,7 +44,7 @@
 #endif
 
 template <typename T>
-int testing_sctr_aocl(const Arguments &arg, testdata<T> &td, double timings[])
+int testing_sctr_aocl(const Arguments &arg, testdata<T> &td, double timings[], aoclsparse_int kid)
 {
     int            status = 0;
     aoclsparse_int nnz    = td.nnzA; //no of non-zero values in the output vector, n = nnz
@@ -58,7 +58,7 @@ int testing_sctr_aocl(const Arguments &arg, testdata<T> &td, double timings[])
             std::fill(td.y.begin(), td.y.end(), aoclsparse_numeric::zero<T>());
             double cpu_time_start = aoclsparse_clock();
             NEW_CHECK_AOCLSPARSE_ERROR(
-                aoclsparse_sctr(nnz, td.x.data(), td.indx.data(), td.y.data(), arg.kid));
+                aoclsparse_sctr(nnz, td.x.data(), td.indx.data(), td.y.data(), kid));
 
             timings[iter] = aoclsparse_clock_diff(cpu_time_start);
         }
@@ -79,7 +79,9 @@ int testing_sctr(const Arguments &arg)
     // unless more tests are registered via EXT_BENCHMARKING
     std::vector<testsetting<T>> testqueue;
 
-    testqueue.push_back({"aocl", &testing_sctr_aocl<T>});
+    using FN = decltype(&testing_sctr_aocl<T>);
+
+    populate_queue_kid<T, FN>(testqueue, arg, testing_sctr_aocl<T>);
 
     register_tests_sctr(testqueue);
 

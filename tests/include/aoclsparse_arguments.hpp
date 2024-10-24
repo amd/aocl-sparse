@@ -34,6 +34,7 @@
 
 #include <cmath>
 #include <cstring>
+#include <functional>
 #include <iomanip>
 #include <iostream>
 #include <vector>
@@ -74,9 +75,10 @@ struct Arguments
     std::string filenameB;
     char        function[64];
 
-    aoclsparse_int kid;
     aoclsparse_int x_stride, y_stride;
     char           output;
+
+    std::vector<aoclsparse_int> kid_list;
 
 private:
     // Function to read Structures data from stream
@@ -218,14 +220,39 @@ struct testdata
  * Returns: 0 on success, an error otherwise
  */
 template <typename T>
-using testfunc = int (*)(const Arguments &arg, testdata<T> &td, double timings[]);
+using testfunc = std::function<int(const Arguments &, testdata<T> &, double[])>;
 
 /* structure to join test name and test function into one element to build a test queue */
 template <typename T>
 struct testsetting
 {
-    const char *name; // name of the test for printing purposes
+    std::string name; // name of the test for printing purposes
     testfunc<T> tf; // test function which runs the computation over several iterations
 };
+
+// Add to test queue all variants of test_function with varying kid,
+// in the same order as given in --kid= argument by the user
+template <typename T, typename FN>
+void populate_queue_kid(std::vector<testsetting<T>> &testqueue,
+                        const Arguments             &arg,
+                        FN                           test_function)
+{
+    std::string prob_name;
+
+    for(size_t i = 0; i < arg.kid_list.size(); ++i)
+    {
+        auto wrapper
+            = [i, test_function](const Arguments &arg, testdata<T> &td, double timings[]) -> int {
+            return test_function(arg, td, timings, arg.kid_list[i]);
+        };
+
+        if(arg.kid_list[i] == -1)
+            prob_name = "aocl";
+        else
+            prob_name = "aocl/kid=" + std::to_string(arg.kid_list[i]);
+
+        testqueue.push_back({prob_name, wrapper});
+    }
+}
 
 #endif // AOCLSPARSE_ARGUMENTS_HPP

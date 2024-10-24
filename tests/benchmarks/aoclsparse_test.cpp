@@ -98,8 +98,9 @@ int main(int argc, char *argv[])
     arg.alpha      = 1.0;
     arg.beta       = 0.0;
     arg.stage      = 0;
-    arg.kid        = -1;
     arg.output     = 'S';
+    arg.kid_list.push_back(-1);
+
     char precision = 'd';
     char transA    = 'N';
     char transB    = 'N';
@@ -207,8 +208,8 @@ int main(int argc, char *argv[])
             "\n\t\tsingle stage: 0 (default)"
             "\n\t\tdouble stage: 1"
             "\n\t"
-            "--kid=<kernel ID> \t Indicates the kernel that will be dispatched (default: -1). "
-            "-1 is auto "
+            "--kid=<kernel ID> \t Indicates the comma-separated list of kernel that will be "
+            "benchmarked (e.g., \"0,2\"; default: -1), -1 is auto."
             "\n\t"
             "--matrix=<R/D> if .mtx input is not provided, then this option indicates the type of "
             "random matrix that is generated. Options are:"
@@ -251,7 +252,7 @@ int main(int argc, char *argv[])
     args.aoclsparse_get_cmdline_argument("output", arg.output);
     args.aoclsparse_get_cmdline_argument("order", order);
     args.aoclsparse_get_cmdline_argument("stage", arg.stage);
-    args.aoclsparse_get_cmdline_argument("kid", arg.kid);
+    args.aoclsparse_get_cmdline_arguments("kid", arg.kid_list);
     args.aoclsparse_get_cmdline_argument("matrix", matrix);
     args.aoclsparse_get_cmdline_argument("sort", sort);
 

@@ -44,7 +44,7 @@
 #endif
 
 template <typename T>
-int testing_axpyi_aocl(const Arguments &arg, testdata<T> &td, double timings[])
+int testing_axpyi_aocl(const Arguments &arg, testdata<T> &td, double timings[], aoclsparse_int kid)
 {
     int            status = 0;
     aoclsparse_int nnz    = td.nnzA; //no of non-zero values in the output vector, n = nnz
@@ -59,7 +59,7 @@ int testing_axpyi_aocl(const Arguments &arg, testdata<T> &td, double timings[])
             double cpu_time_start = aoclsparse_clock();
 
             NEW_CHECK_AOCLSPARSE_ERROR(
-                aoclsparse_axpyi(nnz, td.alpha, td.x.data(), td.indx.data(), td.y.data(), arg.kid));
+                aoclsparse_axpyi(nnz, td.alpha, td.x.data(), td.indx.data(), td.y.data(), kid));
 
             timings[iter] = aoclsparse_clock_diff(cpu_time_start);
         }
@@ -80,8 +80,9 @@ int testing_axpyi(const Arguments &arg)
     // unless more tests are registered via EXT_BENCHMARKING
     std::vector<testsetting<T>> testqueue;
 
-    // When kernel ID is -1 invoke the public interface. Else invoke the dispatcher.
-    testqueue.push_back({"aocl", &testing_axpyi_aocl<T>});
+    using FN = decltype(&testing_axpyi_aocl<T>);
+
+    populate_queue_kid<T, FN>(testqueue, arg, testing_axpyi_aocl<T>);
 
     register_tests_axpyi(testqueue);
 

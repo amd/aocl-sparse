@@ -263,7 +263,7 @@ void twosample_print(const twosample_test_result &cmp,
     // clang-format on
 }
 
-void print_results(const char                  *test_name,
+void print_results(std::string                 &test_name,
                    const char                  *prob_name,
                    int                          verify,
                    const data_stats            &tstats,
