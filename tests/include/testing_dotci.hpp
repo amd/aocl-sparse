@@ -44,7 +44,7 @@
 #endif
 
 template <typename T>
-int testing_dotci_aocl(const Arguments &arg, testdata<T> &td, double timings[])
+int testing_dotci_aocl(const Arguments &arg, testdata<T> &td, double timings[], aoclsparse_int kid)
 {
     int            status           = 0;
     aoclsparse_int nnz              = td.nnzA; //no of non-zero values in the output vector, n = nnz
@@ -57,7 +57,7 @@ int testing_dotci_aocl(const Arguments &arg, testdata<T> &td, double timings[])
             double cpu_time_start = aoclsparse_clock();
             td.s                  = aoclsparse_numeric::zero<T>();
             NEW_CHECK_AOCLSPARSE_ERROR((aoclsparse_dot<T, aoclsparse_status>(
-                nnz, td.x.data(), td.indx.data(), td.y.data(), &(td.s), true, arg.kid)));
+                nnz, td.x.data(), td.indx.data(), td.y.data(), &(td.s), true, kid)));
             timings[iter] = aoclsparse_clock_diff(cpu_time_start);
         }
     }
@@ -77,7 +77,9 @@ int testing_dotci(const Arguments &arg)
     // unless more tests are registered via EXT_BENCHMARKING
     std::vector<testsetting<T>> testqueue;
 
-    testqueue.push_back({"aocl", &testing_dotci_aocl<T>});
+    using FN = decltype(&testing_dotci_aocl<T>);
+
+    populate_queue_kid<T, FN>(testqueue, arg, testing_dotci_aocl<T>);
 
     register_tests_dotci(testqueue);
 

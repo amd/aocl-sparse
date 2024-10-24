@@ -70,6 +70,8 @@ inline const char *aoclsparse_status_to_string(aoclsparse_status status)
         return "aoclsparse_status_invalid_operation";
     case aoclsparse_status_unsorted_input:
         return "aoclsparse_status_unsorted_input";
+    case aoclsparse_status_invalid_kid:
+        return "aoclsparse_status_invalid_kid";
     default:
         return "<undefined aoclsparse_status value>";
     }

@@ -44,7 +44,7 @@
 #endif
 
 template <typename T>
-int testing_doti_aocl(const Arguments &arg, testdata<T> &td, double timings[])
+int testing_doti_aocl(const Arguments &arg, testdata<T> &td, double timings[], aoclsparse_int kid)
 {
     aoclsparse_int nnz              = td.nnzA; //no of non-zero values in the output vector, n = nnz
     int            number_hot_calls = arg.iters;
@@ -59,7 +59,7 @@ int testing_doti_aocl(const Arguments &arg, testdata<T> &td, double timings[])
          * the dot product value. Hence NEW_CHECK_AOCLSPARSE_ERROR cannot be used here.
          */
         td.s = aoclsparse_dot<T, T>(
-            nnz, td.x.data(), td.indx.data(), td.y.data(), &(td.s), false, arg.kid);
+            nnz, td.x.data(), td.indx.data(), td.y.data(), &(td.s), false, kid);
 
         timings[iter] = aoclsparse_clock_diff(cpu_time_start);
     }
@@ -76,7 +76,9 @@ int testing_doti(const Arguments &arg)
     // unless more tests are registered via EXT_BENCHMARKING
     std::vector<testsetting<T>> testqueue;
 
-    testqueue.push_back({"aocl", &testing_doti_aocl<T>});
+    using FN = decltype(&testing_doti_aocl<T>);
+
+    populate_queue_kid<T, FN>(testqueue, arg, testing_doti_aocl<T>);
 
     register_tests_doti(testqueue);
 

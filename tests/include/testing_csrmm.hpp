@@ -44,7 +44,7 @@
 #endif
 
 template <typename T>
-int testing_csrmm_aocl(const Arguments &arg, testdata<T> &td, double timings[])
+int testing_csrmm_aocl(const Arguments &arg, testdata<T> &td, double timings[], aoclsparse_int kid)
 {
     int                    status  = 0;
     aoclsparse_int         m       = td.m;
@@ -96,7 +96,7 @@ int testing_csrmm_aocl(const Arguments &arg, testdata<T> &td, double timings[])
                                                         td.beta,
                                                         td.y.data(),
                                                         td.ldy,
-                                                        arg.kid));
+                                                        kid));
             timings[iter] = aoclsparse_clock_diff(cpu_time_start);
         }
     }
@@ -130,7 +130,11 @@ int testing_csrmm(const Arguments &arg)
 
     // the queue of test functions to run
     std::vector<testsetting<T>> testqueue;
-    testqueue.push_back({"aocl_csrmm", &testing_csrmm_aocl<T>});
+
+    using FN = decltype(&testing_csrmm_aocl<T>);
+
+    populate_queue_kid<T, FN>(testqueue, arg, testing_csrmm_aocl<T>);
+
     register_tests_csrmm(testqueue);
 
     // create relevant test data for this API
