@@ -41,6 +41,20 @@ namespace aoclsparse
                                    SUF            beta,
                                    SUF           *C,
                                    aoclsparse_int ldc);
+
+    template <kernel_templates::bsz SZ, typename SUF>
+    aoclsparse_status csrmm_row_kt(const SUF                  alpha,
+                                   const aoclsparse_mat_descr descr,
+                                   const SUF *__restrict__ csr_val,
+                                   const aoclsparse_int *__restrict__ csr_col_ind,
+                                   const aoclsparse_int *__restrict__ csr_row_ptr,
+                                   aoclsparse_int m,
+                                   const SUF     *B,
+                                   aoclsparse_int n,
+                                   aoclsparse_int ldb,
+                                   SUF            beta,
+                                   SUF           *C,
+                                   aoclsparse_int ldc);
 }
 
 #endif
