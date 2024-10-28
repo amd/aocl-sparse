@@ -22,9 +22,9 @@
  * ************************************************************************ */
 #include "aoclsparse.h"
 #include "aoclsparse_context.h"
+#include "aoclsparse_mat_structures.h"
 #include "aoclsparse_analysis.hpp"
 #include "aoclsparse_csr_util.hpp"
-#include "aoclsparse_optimize_data.hpp"
 #include "aoclsparse_utils.hpp"
 
 #include <algorithm>

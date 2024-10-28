@@ -29,7 +29,7 @@
 #define AOCLSPARSE_STATS_HPP
 
 #include "aoclsparse.h"
-#include "aoclsparse_utils.hpp"
+#include "aoclsparse_reference.hpp"
 
 #include <algorithm>
 #include <cfloat>

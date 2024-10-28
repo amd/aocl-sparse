@@ -35,7 +35,6 @@
 #include "aoclsparse_reference.hpp"
 #include "aoclsparse_test.hpp"
 #include "aoclsparse_utility.hpp"
-#include "aoclsparse_utils.hpp"
 
 #ifdef EXT_BENCHMARKING
 #include "ext_benchmarking.hpp" // defines register_tests_*()

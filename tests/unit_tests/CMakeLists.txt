@@ -47,9 +47,6 @@ if(NOT googletest_POPULATED)
 endif()
 
 set(utils_source common_data_utils.cpp ../common/aoclsparse_template_specialization.cpp ../common/aoclsparse_utility.cpp)
-include_directories(${CMAKE_SOURCE_DIR}/library/src/include
-                    ${CMAKE_SOURCE_DIR}/library/src/extra
-                    ${CMAKE_SOURCE_DIR}/tests/include)
 
 set(GTEST_EXECUTABLES
     dispatcher_tests
@@ -105,7 +102,7 @@ set(GTEST_EXECUTABLES
 )
 
 # -----------------------------------------------------------------------
-# Build KT tests
+# Build KT tests (Note: this section should not be build for out of source)
 # -----------------------------------------------------------------------
 set(KT_KERNELS
 ${CMAKE_CURRENT_SOURCE_DIR}/kt_kernels.cpp
@@ -116,10 +113,16 @@ ${CMAKE_CURRENT_SOURCE_DIR}/ktlvl2_kernels.cpp
 add_library(KT_KERNELS_AVX512 OBJECT ${KT_KERNELS})
 target_compile_options(KT_KERNELS_AVX512 PRIVATE ${AOCLSPARSE_AVX512_FLAGS})
 target_link_libraries(KT_KERNELS_AVX512 aoclsparse GTest::gtest_main)
+target_include_directories(KT_KERNELS_AVX512 PRIVATE ${CMAKE_SOURCE_DIR}/library/src/include
+                                                     ${CMAKE_SOURCE_DIR}/library/src/extra
+                                                     ${CMAKE_SOURCE_DIR}/tests/include)
 
 add_library(KT_KERNELS_AVX2 OBJECT ${KT_KERNELS})
 target_compile_options(KT_KERNELS_AVX2 PRIVATE ${AOCLSPARSE_AVX2_FLAGS})
 target_link_libraries(KT_KERNELS_AVX2 aoclsparse GTest::gtest_main)
+target_include_directories(KT_KERNELS_AVX2 PRIVATE ${CMAKE_SOURCE_DIR}/library/src/include
+                                                   ${CMAKE_SOURCE_DIR}/library/src/extra
+                                                   ${CMAKE_SOURCE_DIR}/tests/include)
 # -----------------------------------------------------------------------
 
 #copy the raw data files (mtx inputs) to build directory
@@ -130,8 +133,8 @@ aoclsparse
 ${OpenMP_Library}
 ${LAPACK_LIBRARIES}
 GTest::gtest_main
-$<TARGET_OBJECTS:KT_KERNELS_AVX512>
-$<TARGET_OBJECTS:KT_KERNELS_AVX2>
+$<TARGET_OBJECTS:KT_KERNELS_AVX512> # Todo remove for out of source build
+$<TARGET_OBJECTS:KT_KERNELS_AVX2> # Todo remove for out of source build
 )
 
 foreach(TNAME ${GTEST_EXECUTABLES})
@@ -150,7 +153,13 @@ foreach(TNAME ${GTEST_EXECUTABLES})
           $<TARGET_RUNTIME_DLLS:${TNAME}> $<TARGET_FILE_DIR:${TNAME}>
         COMMAND_EXPAND_LISTS)
     endif()
-    target_include_directories(${TNAME} PUBLIC ${LAPACK_INCLUDE_DIRS} ${BLIS_INCLUDE_DIRS} ${UTILS_INCLUDE_DIRS})
+    target_include_directories(${TNAME} PUBLIC ${LAPACK_INCLUDE_DIRS}
+                                               ${BLIS_INCLUDE_DIRS}
+                                               ${UTILS_INCLUDE_DIRS}
+                                               ${CMAKE_SOURCE_DIR}/library/src/include # Todo remove for out of source build
+                                               ${CMAKE_SOURCE_DIR}/library/src/extra # Todo remove for out of source build
+                                               ${CMAKE_SOURCE_DIR}/tests/include)
+
     # Add definitions that depend on the CMake configuration.
     target_compile_definitions(${TNAME} PUBLIC ${AOCLSPARSE_DEFS})
     # Define -Daoclsparse_ILP64 when ILP64 libraries are built. For LP64, this is an empty string.

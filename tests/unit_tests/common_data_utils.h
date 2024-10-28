@@ -26,7 +26,6 @@
 #include "gtest/gtest.h"
 #include "aoclsparse.hpp"
 #include "aoclsparse_reference.hpp"
-#include "aoclsparse_utils.hpp"
 
 #include <array>
 #include <cmath>
