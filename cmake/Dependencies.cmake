@@ -133,9 +133,15 @@ function(aocl_libs)
     )
   endif()
 
-  set(LAPACK_LIBRARY
-      ${LAPACK_LIBRARY}
-      PARENT_SCOPE)
+  get_filename_component(BLIS_LIBRARY_DIR "${AOCL_BLIS_LIB}" DIRECTORY)
+  get_filename_component(LAPACK_LIBRARY_DIR "${AOCL_LIBFLAME}" DIRECTORY)
+  get_filename_component(UTILS_LIBRARY_DIR "${AOCL_UTILS_LIB}" DIRECTORY)
+
+  set(LAPACK_LIBRARY ${LAPACK_LIBRARY} PARENT_SCOPE)
+
+  set(BLIS_LIBRARY_DIR ${BLIS_LIBRARY_DIR} PARENT_SCOPE)
+  set(LAPACK_LIBRARY_DIR ${LAPACK_LIBRARY_DIR} PARENT_SCOPE)
+  set(UTILS_LIBRARY_DIR ${UTILS_LIBRARY_DIR} PARENT_SCOPE)
 
 endfunction(aocl_libs)
 
@@ -216,9 +222,12 @@ if(NOT WIN32)
 endif()
 
 # clear to avoid endless appending on subsequent calls
-set(LAPACK_LIBRARY)
-set(BLAS_LIBRARY)
+unset(LAPACK_LIBRARY)
+unset(BLAS_LIBRARY)
 unset(LAPACK_INCLUDE_DIR)
+unset(BLIS_LIBRARY_DIR)
+unset(LAPACK_LIBRARY_DIR)
+unset(UTILS_LIBRARY_DIR)
 
 # find AOCL dependencies such as Blis, Libflame
 aocl_libs()
@@ -238,6 +247,11 @@ message(STATUS "  \$LAPACK LIBRARIES......${LAPACK_LIBRARIES}")
 message(STATUS "  \$LAPACK_INCLUDE_DIRS...${LAPACK_INCLUDE_DIRS}")
 message(STATUS "  \$BLIS_INCLUDE_DIRS.....${BLIS_INCLUDE_DIRS}")
 message(STATUS "  \$UTILS_INCLUDE_DIRS....${UTILS_INCLUDE_DIRS}")
+
+message(STATUS "  \$BLIS_LIBRARY_DIR...${BLIS_LIBRARY_DIR}")
+message(STATUS "  \$LAPACK_LIBRARY_DIR.....${LAPACK_LIBRARY_DIR}")
+message(STATUS "  \$UTILS_LIBRARY_DIR....${UTILS_LIBRARY_DIR}")
+
 if(SUPPORT_OMP)
   message(STATUS "  \$OpenMP_Library....${OpenMP_Library}")
   message(STATUS "  \$OpenMP_Flags....${COMPILER_FLAGS_COMMON}")
@@ -245,4 +259,4 @@ else(SUPPORT_OMP)
   message(STATUS "  \$Threads Library....${Threads_Library}")
 endif(SUPPORT_OMP)
 
-mark_as_advanced(LAPACK_LIBRARIES LAPACK_INCLUDE_DIRS BLIS_INCLUDE_DIRS)
+mark_as_advanced(LAPACK_LIBRARIES LAPACK_INCLUDE_DIRS BLIS_INCLUDE_DIRS BLIS_LIBRARY_DIR LAPACK_LIBRARY_DIR UTILS_LIBRARY_DIR)

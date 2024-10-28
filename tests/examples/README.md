@@ -24,12 +24,12 @@ This directory contains sample source files showing usage of AOCL-Sparse library
 	```
 	export SPARSE_ROOT=$HOME/amd/aocl-sparse
 	```
-	**Note** If in case, AOCL_ROOT contains AOCL Sparse installation along with BLAS, LAPACK and UTILS libraries,   then "SPARSE_ROOT" takes precedence when searching for sparse library and headers.
-4. Add library paths of Sparse, BLAS LAPACK and UTILS to environment path variable $LD_LIBRARY_PATH.
+	**Note** If in case, AOCL_ROOT contains AOCL Sparse installation along with BLAS, LAPACK and UTILS libraries, then "SPARSE_ROOT" takes precedence when searching for sparse library and headers.
+4. Add library paths of Sparse, BLAS, LAPACK and UTILS to environment path variable $LD_LIBRARY_PATH.
 	```
 	export LD_LIBRARY_PATH=$SPARSE_ROOT/lib:$AOCL_ROOT/lib:$LD_LIBRARY_PATH
 	```
-	**Note** Adding the library and headers paths to LD_LIBRARY_PATH is required in case of shared library (.so)
+	**Note** Adding the library paths to LD_LIBRARY_PATH is required in case of shared library (.so)
 
 5. Configure the build system to compile sample applications. Make sure the build configuration is same as the one used to build aoclsparse library for BUILD_ILP64 and SUPPORT_OMP variables.
 	```
@@ -88,4 +88,3 @@ Build options:
 	.\out_sparse\sample_spmv.exe
 	```
 **Note** The environment variable "SPARSE_ROOT" takes precedence when searching for sparse library and headers. If the environment variable "SPARSE_ROOT" is not defined, then SPARSE_ROOT inherits the path from AOCL_ROOT and looks for AOCL sparse installation in AOCL_ROOT. If Sparse library/headers are not found either in SPARSE_ROOT or AOCL_ROOT, then an error is returned.
-**Note** Currently multi-threading is not supported on Windows.

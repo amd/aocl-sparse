@@ -211,9 +211,10 @@ endif(USE_AVX512)
 add_subdirectory(library)
 
 if(BUILD_CLIENTS_SAMPLES OR BUILD_CLIENTS_BENCHMARKS OR BUILD_UNIT_TESTS)
-  # Internal state variable indicating that tests are to be build inside the
+  # Internal state variable indicating that examples and tests are to be build inside the
   # source tree and not as an independent project
   set(ENABLE_OUTOFSRCTREE OFF)
+  set(ENABLE_OUTOFSRCTREE_TESTS OFF)
   enable_testing()
   add_subdirectory(tests)
 endif()
