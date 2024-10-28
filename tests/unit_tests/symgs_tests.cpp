@@ -25,7 +25,6 @@
  * Unit-tests for Symmetric Gauss Seidel Preconditioner (aoclsparse_symgs)
  */
 #include "aoclsparse.h"
-#include "aoclsparse_context.h"
 #include "aoclsparse_descr.h"
 #include "aoclsparse_mat_structures.h"
 #include "common_data_utils.h"

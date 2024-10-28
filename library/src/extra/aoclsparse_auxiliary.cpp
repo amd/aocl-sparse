@@ -27,7 +27,6 @@
 #include "aoclsparse_mat_structures.h"
 #include "aoclsparse_types.h"
 #include "aoclsparse_auxiliary.hpp"
-#include "aoclsparse_optimize_data.hpp"
 
 #include <cstring>
 #include <map>

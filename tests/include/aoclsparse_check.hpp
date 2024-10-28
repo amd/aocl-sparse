@@ -25,7 +25,7 @@
 #ifndef AOCLSPARSE_CHECK_HPP
 #define AOCLSPARSE_CHECK_HPP
 
-#include "aoclsparse_utils.hpp"
+#include "aoclsparse_reference.hpp"
 
 #include <aoclsparse.h>
 #include <limits>

@@ -26,7 +26,51 @@
 #define AOCLSPARSE_MAT_STRUCTS_H
 
 #include "aoclsparse.h"
-#include "aoclsparse_optimize_data.hpp"
+
+enum aoclsparse_hinted_action
+{
+    aoclsparse_action_none = 0,
+    aoclsparse_action_mv,
+    aoclsparse_action_sv,
+    aoclsparse_action_mm,
+    aoclsparse_action_2m,
+    aoclsparse_action_ilu0,
+    aoclsparse_action_sm_row,
+    aoclsparse_action_sm_col,
+    aoclsparse_action_dotmv,
+    aoclsparse_action_symgs,
+    aoclsparse_action_sorv_forward,
+    aoclsparse_action_sorv_backward,
+    aoclsparse_action_sorv_symm,
+    aoclsparse_action_max, // add any new action before this
+};
+
+/* Linked list of all the hint information that was passed through the
+ * functions aoclsparse_*_hint()
+ */
+struct aoclsparse_optimize_data
+{
+    aoclsparse_hinted_action act   = aoclsparse_action_none;
+    aoclsparse_operation     trans = aoclsparse_operation_none;
+    aoclsparse_matrix_type   type;
+    aoclsparse_fill_mode     fill_mode;
+    // number of operations estimated
+    aoclsparse_int nop = 0;
+    // store if the matrix has already been optimized for this specific operation
+    bool action_optimized = false;
+    // next hint requested
+    aoclsparse_optimize_data *next = nullptr;
+};
+
+/* Add a new optimize hint to the list */
+aoclsparse_status aoclsparse_add_hint(aoclsparse_optimize_data *&list,
+                                      aoclsparse_hinted_action   op,
+                                      aoclsparse_mat_descr       desc,
+                                      aoclsparse_operation       trans,
+                                      aoclsparse_int             nop);
+
+/* Deallocate the aoclsparse_optimize_data linked list*/
+void aoclsparse_optimize_destroy(aoclsparse_optimize_data *&opt);
 
 /********************************************************************************
  * \brief aoclsparse_csr is a structure holding the aoclsparse matrix
