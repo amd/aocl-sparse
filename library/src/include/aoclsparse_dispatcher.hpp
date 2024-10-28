@@ -57,7 +57,6 @@ namespace Dispatch
 
     /***************************************************************************
      * Dispatcher: Kernel Attribute Table (KAT)
-     * This table contains 3 columns:
      * |--------------------+----------------------+-------------------------|
      * |       Kernel       |        minimal       |                         |
      * |                    | CPU flag requirement | Supported architectures |
