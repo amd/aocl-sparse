@@ -26,7 +26,7 @@
 # in the form: 'Copyright (c) 2020-2024' or 'Copyright (c) 2024'
 
 # Whitelist of files which are considered always OK
-whitelist=(README.md tests/examples/README.md docs/Doxyfile docs/AOCL-Sparse_API_Guide.pdf LICENSE.md NOTICES CMakePresets.json cmake/presets/README.MD cmake/presets/base.json cmake/presets/linux-make.json cmake/presets/linux-ninja.json cmake/presets/win-msvc.json cmake/presets/win-ninja.json)
+whitelist=(README.md tests/examples/README.md docs/Doxyfile docs/AOCL-Sparse_API_Guide.pdf LICENSE.md NOTICES CMakePresets.json cmake/presets/README.MD cmake/presets/base.json cmake/presets/linux-make.json cmake/presets/linux-ninja.json cmake/presets/win-msvc.json cmake/presets/win-ninja.json tests/unit_tests/README.md)
 
 print_help() {
   echo $0 [-p] [file1 [file2 ...]]

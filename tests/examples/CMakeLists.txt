@@ -33,8 +33,11 @@ set(COMPILER_OPTIONS "")
 ## Setup the pre-requisites for out-of-source-tree build
 if (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
     cmake_minimum_required(VERSION 3.22 FATAL_ERROR)
-#sparse examples project
+    #sparse examples project
     project(aoclsparse_examples LANGUAGES CXX C)
+    set(CMAKE_CXX_STANDARD 17)
+    set(CMAKE_CXX_STANDARD_REQUIRED ON)
+    set(CMAKE_CXX_EXTENSIONS OFF)
 
     # Set a default build type if none was specified
     if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -71,17 +74,7 @@ if (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
     set (CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/../bin"
         CACHE PATH "New default Intallation Path" FORCE)
     endif ()
-endif (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
 
-IF(WIN32)
-    SET(CMAKE_FIND_LIBRARY_PREFIXES "")
-    SET(CMAKE_FIND_LIBRARY_SUFFIXES ".lib" ".dll")
-ELSE(WIN32)
-    SET(CMAKE_FIND_LIBRARY_PREFIXES "lib")
-    SET(CMAKE_FIND_LIBRARY_SUFFIXES ".so" ".a")
-ENDIF(WIN32)
-
-if (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
     IF(BUILD_ILP64)
         SET(ILP_DIR "ILP64")
         SET(AOCLSPARSE_ILP64 -Daoclsparse_ILP64)

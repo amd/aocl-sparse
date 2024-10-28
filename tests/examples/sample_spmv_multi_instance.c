@@ -74,11 +74,12 @@ aoclsparse_status batch_spmv(aoclsparse_operation       trans,
 #endif
 
                 printf("Output vector:\n");
+                aoclsparse_int ok = 1;
                 for(aoclsparse_int i = 0; i < M; i++)
                 {
                     aoclsparse_int oki = fabs(y[i] - y_exp[i]) <= tol;
                     printf("  %lf %c\n", y[i], oki ? ' ' : '!');
-                    aoclsparse_int ok = ok && oki;
+                    ok = ok && oki;
                 }
             }
         }
