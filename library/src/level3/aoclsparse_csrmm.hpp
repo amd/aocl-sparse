@@ -24,6 +24,7 @@
 #ifndef AOCLSPARSE_CSRMM_HPP
 #define AOCLSPARSE_CSRMM_HPP
 #include "aoclsparse.h"
+#include "aoclsparse_context.h"
 #include "aoclsparse_descr.h"
 #include "aoclsparse_convert.hpp"
 #include "aoclsparse_dispatcher.hpp"
@@ -39,16 +40,7 @@
 //Windows equivalent of gcc c99 type qualifier __restrict__
 #define __restrict__ __restrict
 #endif
-typedef union
-{
-    __m256d v;
-    double  d[4] __attribute__((aligned(64)));
-} v4df_t;
-typedef union
-{
-    __m128d v;
-    double  d[2] __attribute__((aligned(64)));
-} v2df_t;
+
 template <typename T>
 aoclsparse_status aoclsparse_csrmm_col_major_ref(T                          alpha,
                                                  const aoclsparse_mat_descr descr,
@@ -63,24 +55,39 @@ aoclsparse_status aoclsparse_csrmm_col_major_ref(T                          alph
                                                  T             *C,
                                                  aoclsparse_int ldc)
 {
+    using namespace aoclsparse;
     aoclsparse_index_base base            = descr->base;
     const aoclsparse_int *csr_col_ind_fix = csr_col_ind - base;
     const T              *csr_val_fix     = csr_val - base;
     const T              *B_fix           = B - base;
-    for(aoclsparse_int j = 0; j < n; ++j)
+#ifdef _OPENMP
+#pragma omp parallel num_threads(context::get_context()->get_num_threads())
+#endif
     {
-        for(aoclsparse_int i = 0; i < m; ++i)
+#ifdef _OPENMP
+        aoclsparse_int num_threads = omp_get_num_threads();
+        aoclsparse_int thread_num  = omp_get_thread_num();
+        aoclsparse_int start       = n * thread_num / num_threads;
+        aoclsparse_int end         = n * (thread_num + 1) / num_threads;
+#else
+        aoclsparse_int start = 0;
+        aoclsparse_int end   = n;
+#endif
+        for(aoclsparse_int j = start; j < end; ++j)
         {
-            aoclsparse_int row_begin = csr_row_ptr[i];
-            aoclsparse_int row_end   = csr_row_ptr[i + 1];
-            aoclsparse_int idx_C     = i + j * ldc;
-            T              sum       = 0.0;
-            for(aoclsparse_int k = row_begin; k < row_end; ++k)
+            for(aoclsparse_int i = 0; i < m; ++i)
             {
-                aoclsparse_int idx_B = (csr_col_ind_fix[k] + j * ldb);
-                sum                  = csr_val_fix[k] * B_fix[idx_B] + sum;
+                aoclsparse_int row_begin = csr_row_ptr[i];
+                aoclsparse_int row_end   = csr_row_ptr[i + 1];
+                aoclsparse_int idx_C     = i + j * ldc;
+                T              sum       = 0.0;
+                for(aoclsparse_int k = row_begin; k < row_end; ++k)
+                {
+                    aoclsparse_int idx_B = (csr_col_ind_fix[k] + j * ldb);
+                    sum                  = csr_val_fix[k] * B_fix[idx_B] + sum;
+                }
+                C[idx_C] = (beta * C[idx_C]) + (alpha * sum);
             }
-            C[idx_C] = (beta * C[idx_C]) + (alpha * sum);
         }
     }
     return aoclsparse_status_success;
@@ -99,25 +106,41 @@ aoclsparse_status aoclsparse_csrmm_row_major_ref(T                          alph
                                                  T             *C,
                                                  aoclsparse_int ldc)
 {
+    using namespace aoclsparse;
     aoclsparse_index_base base            = descr->base;
     const aoclsparse_int *csr_col_ind_fix = csr_col_ind - base;
     const T              *csr_val_fix     = csr_val - base;
     const T              *B_fix           = B - (base * ldb);
-    for(aoclsparse_int i = 0; i < m; ++i)
+
+#ifdef _OPENMP
+#pragma omp parallel num_threads(context::get_context()->get_num_threads())
+#endif
     {
-        aoclsparse_int row_begin = csr_row_ptr[i];
-        aoclsparse_int row_end   = csr_row_ptr[i + 1];
-        aoclsparse_int idx_C     = i * ldc;
-        for(aoclsparse_int k = 0; k < n; ++k)
+#ifdef _OPENMP
+        aoclsparse_int num_threads = omp_get_num_threads();
+        aoclsparse_int thread_num  = omp_get_thread_num();
+        aoclsparse_int start       = m * thread_num / num_threads;
+        aoclsparse_int end         = m * (thread_num + 1) / num_threads;
+#else
+        aoclsparse_int start = 0;
+        aoclsparse_int end   = m;
+#endif
+        for(aoclsparse_int i = start; i < end; ++i)
         {
-            C[idx_C + k] = C[idx_C + k] * beta;
-        }
-        for(aoclsparse_int j = row_begin; j < row_end; ++j)
-        {
-            aoclsparse_int idx_B = csr_col_ind_fix[j] * ldb;
+            aoclsparse_int row_begin = csr_row_ptr[i];
+            aoclsparse_int row_end   = csr_row_ptr[i + 1];
+            aoclsparse_int idx_C     = i * ldc;
             for(aoclsparse_int k = 0; k < n; ++k)
             {
-                C[idx_C + k] += csr_val_fix[j] * B_fix[idx_B + k] * alpha;
+                C[idx_C + k] = C[idx_C + k] * beta;
+            }
+            for(aoclsparse_int j = row_begin; j < row_end; ++j)
+            {
+                aoclsparse_int idx_B = csr_col_ind_fix[j] * ldb;
+                for(aoclsparse_int k = 0; k < n; ++k)
+                {
+                    C[idx_C + k] += csr_val_fix[j] * B_fix[idx_B + k] * alpha;
+                }
             }
         }
     }
@@ -305,10 +328,14 @@ template <typename T>
 aoclsparse_status scale_dense_matrix(
     aoclsparse_order order, T *mtrx, aoclsparse_int m, aoclsparse_int n, aoclsparse_int ld, T beta)
 {
+    using namespace aoclsparse;
     if(beta == aoclsparse_numeric::zero<T>())
     {
         if(order == aoclsparse_order_column)
         {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(context::get_context()->get_num_threads())
+#endif
             for(aoclsparse_int j = 0; j < n; ++j)
             {
                 for(aoclsparse_int i = 0; i < m; ++i)
@@ -319,6 +346,9 @@ aoclsparse_status scale_dense_matrix(
         }
         else // order == aoclsparse_order_row
         {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(context::get_context()->get_num_threads())
+#endif
             for(aoclsparse_int i = 0; i < m; ++i)
             {
                 for(aoclsparse_int j = 0; j < n; ++j)
@@ -332,6 +362,9 @@ aoclsparse_status scale_dense_matrix(
     {
         if(order == aoclsparse_order_column)
         {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(context::get_context()->get_num_threads())
+#endif
             for(aoclsparse_int j = 0; j < n; ++j)
             {
                 for(aoclsparse_int i = 0; i < m; ++i)
@@ -343,6 +376,9 @@ aoclsparse_status scale_dense_matrix(
         }
         else // order == aoclsparse_order_row
         {
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(context::get_context()->get_num_threads())
+#endif
             for(aoclsparse_int i = 0; i < m; ++i)
             {
                 for(aoclsparse_int j = 0; j < n; ++j)

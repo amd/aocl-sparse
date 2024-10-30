@@ -22,6 +22,7 @@
  * ************************************************************************
  */
 #include "aoclsparse.h"
+#include "aoclsparse_context.h"
 #include "aoclsparse_descr.h"
 #include "aoclsparse_kernel_templates.hpp"
 #include "aoclsparse_l3_kt.hpp"
@@ -41,127 +42,148 @@ aoclsparse_status aoclsparse::csrmm_col_kt(const SUF                  alpha,
                                            aoclsparse_int ldc)
 {
     using namespace kernel_templates;
+    using namespace aoclsparse;
 
-    aoclsparse_int       idxend, nnz, rem, mul;
-    SUF                  cij, cijp1, cijp2, cijp3, cdot0, cdot1, cdot2, cdot3;
-    const SUF           *bcol0, *bcol1, *bcol2, *bcol3;
-    avxvector_t<SZ, SUF> avec, bvec0, bvec1, bvec2, bvec3, cvec0, cvec1, cvec2, cvec3;
     const aoclsparse_int psz = tsz_v<SZ, SUF>;
     /* Block size for matrix B
      * blocks are of size 8x4
      */
     const aoclsparse_int bblk = 4;
-    aoclsparse_int       blkr = bblk;
 
     aoclsparse_index_base base            = descr->base;
     const aoclsparse_int *csr_col_ind_fix = csr_col_ind - base;
     const SUF            *csr_val_fix     = csr_val - base;
     const SUF            *B_fix           = B - base;
 
-    for(aoclsparse_int j = 0; j < n; j += bblk)
+#ifdef _OPENMP
+#pragma omp parallel num_threads(context::get_context()->get_num_threads())
+#endif
     {
-        // Process last column of B
-        if(j == n - 1)
-        {
-            blkr  = 1;
-            bcol0 = B_fix + j * ldb; // last column of B
-            bcol1 = bcol0;
-            bcol2 = bcol0;
-            bcol3 = bcol0;
-        }
-        else if(j == n - 2)
-        {
-            blkr  = 2;
-            bcol0 = B_fix + j * ldb; // second to last column of B
-            bcol1 = bcol0 + ldb; // last column of B
-            bcol2 = bcol0;
-            bcol3 = bcol0;
-        }
-        else if(j == n - 3)
-        {
-            blkr  = 3;
-            bcol0 = B_fix + j * ldb; // third to last column of B
-            bcol1 = bcol0 + ldb; // second to last column of B
-            bcol2 = bcol1 + ldb; // last column of B
-            bcol3 = bcol0;
-        }
-        else
-        {
-            // blkr = 4
-            bcol0 = B_fix + j * ldb; // j-th column of B
-            bcol1 = bcol0 + ldb; // (j+1)-th column of B
-            bcol2 = bcol1 + ldb; // (j+2)-th column of B
-            bcol3 = bcol2 + ldb; // (j+3)-th column of B
-        }
+        aoclsparse_int       idxend, nnz, rem, mul;
+        SUF                  cij, cijp1, cijp2, cijp3, cdot0, cdot1, cdot2, cdot3;
+        const SUF           *bcol0, *bcol1, *bcol2, *bcol3;
+        avxvector_t<SZ, SUF> avec, bvec0, bvec1, bvec2, bvec3, cvec0, cvec1, cvec2, cvec3;
+        aoclsparse_int       blkr = bblk;
+#ifdef _OPENMP
+        aoclsparse_int num_threads = omp_get_num_threads();
+        aoclsparse_int thread_num  = omp_get_thread_num();
 
-        for(aoclsparse_int i = 0; i < m; i++)
+        aoclsparse_int start = n * thread_num / num_threads;
+        start                = (start % bblk == 0) ? start : start + bblk - start % bblk;
+        start                = (std::min)(start, n);
+        aoclsparse_int end   = n * (thread_num + 1) / num_threads;
+        end                  = (end % bblk == 0) ? end : end + bblk - end % bblk;
+        end                  = (std::min)(end, n);
+
+#else
+        aoclsparse_int start = 0;
+        aoclsparse_int end   = n;
+#endif
+        for(aoclsparse_int j = start; j < end; j += bblk)
         {
-            cij    = 0.0f;
-            cijp1  = 0.0f;
-            cijp2  = 0.0f;
-            cijp3  = 0.0f;
-            idxend = csr_row_ptr[i + 1];
-            nnz    = idxend - csr_row_ptr[i];
-            mul    = nnz / psz;
-            rem    = nnz - psz * mul;
-            if(mul)
+            // Process last column of B
+            if(j == n - 1)
             {
-                cvec0 = kt_setzero_p<SZ, SUF>();
-                cvec1 = kt_setzero_p<SZ, SUF>();
-                cvec2 = kt_setzero_p<SZ, SUF>();
-                cvec3 = kt_setzero_p<SZ, SUF>();
-                for(aoclsparse_int idx = csr_row_ptr[i]; idx < idxend - rem; idx += psz)
-                {
-                    // Sequential 4x8 matrix-vector multiplication
-                    avec  = kt_loadu_p<SZ, SUF>(&csr_val_fix[idx]);
-                    bvec0 = kt_set_p<SZ, SUF>(bcol0, &csr_col_ind_fix[idx]);
-                    bvec1 = kt_set_p<SZ, SUF>(bcol1, &csr_col_ind_fix[idx]);
-                    bvec2 = kt_set_p<SZ, SUF>(bcol2, &csr_col_ind_fix[idx]);
-                    bvec3 = kt_set_p<SZ, SUF>(bcol3, &csr_col_ind_fix[idx]);
-                    cvec0 = kt_fmadd_p<SZ, SUF>(avec, bvec0, cvec0);
-                    cvec1 = kt_fmadd_p<SZ, SUF>(avec, bvec1, cvec1);
-                    cvec2 = kt_fmadd_p<SZ, SUF>(avec, bvec2, cvec2);
-                    cvec3 = kt_fmadd_p<SZ, SUF>(avec, bvec3, cvec3);
-                }
-                cdot0 = kt_hsum_p<SZ, SUF>(cvec0);
-                cdot1 = kt_hsum_p<SZ, SUF>(cvec1);
-                cdot2 = kt_hsum_p<SZ, SUF>(cvec2);
-                cdot3 = kt_hsum_p<SZ, SUF>(cvec3);
-                cij += cdot0;
-                cijp1 += cdot1;
-                cijp2 += cdot2;
-                cijp3 += cdot3;
+                blkr  = 1;
+                bcol0 = B_fix + j * ldb; // last column of B
+                bcol1 = bcol0;
+                bcol2 = bcol0;
+                bcol3 = bcol0;
             }
-            if(rem)
+            else if(j == n - 2)
             {
-                for(aoclsparse_int idx = idxend - rem; idx < idxend; idx++)
-                {
-                    cij += csr_val_fix[idx] * bcol0[csr_col_ind_fix[idx]];
-                    cijp1 += csr_val_fix[idx] * bcol1[csr_col_ind_fix[idx]];
-                    cijp2 += csr_val_fix[idx] * bcol2[csr_col_ind_fix[idx]];
-                    cijp3 += csr_val_fix[idx] * bcol3[csr_col_ind_fix[idx]];
-                }
+                blkr  = 2;
+                bcol0 = B_fix + j * ldb; // second to last column of B
+                bcol1 = bcol0 + ldb; // last column of B
+                bcol2 = bcol0;
+                bcol3 = bcol0;
             }
-            switch(blkr)
+            else if(j == n - 3)
             {
-            case 4:
-                cijp3 *= alpha;
-                C[(j + 3) * ldc + i] = beta * C[(j + 3) * ldc + i] + cijp3;
-                [[fallthrough]];
-            case 3:
-                cijp2 *= alpha;
-                cijp2 += beta * C[(j + 2) * ldc + i];
-                C[(j + 2) * ldc + i] = cijp2;
-                [[fallthrough]];
-            case 2:
-                cijp1 *= alpha;
-                cijp1 += beta * C[(j + 1) * ldc + i];
-                C[(j + 1) * ldc + i] = cijp1;
-                [[fallthrough]];
-            case 1:
-                cij *= alpha;
-                cij += beta * C[j * ldc + i];
-                C[j * ldc + i] = cij;
+                blkr  = 3;
+                bcol0 = B_fix + j * ldb; // third to last column of B
+                bcol1 = bcol0 + ldb; // second to last column of B
+                bcol2 = bcol1 + ldb; // last column of B
+                bcol3 = bcol0;
+            }
+            else
+            {
+                // blkr = 4
+                bcol0 = B_fix + j * ldb; // j-th column of B
+                bcol1 = bcol0 + ldb; // (j+1)-th column of B
+                bcol2 = bcol1 + ldb; // (j+2)-th column of B
+                bcol3 = bcol2 + ldb; // (j+3)-th column of B
+            }
+
+            for(aoclsparse_int i = 0; i < m; i++)
+            {
+                cij    = 0.0f;
+                cijp1  = 0.0f;
+                cijp2  = 0.0f;
+                cijp3  = 0.0f;
+                idxend = csr_row_ptr[i + 1];
+                nnz    = idxend - csr_row_ptr[i];
+                mul    = nnz / psz;
+                rem    = nnz - psz * mul;
+                if(mul)
+                {
+                    cvec0 = kt_setzero_p<SZ, SUF>();
+                    cvec1 = kt_setzero_p<SZ, SUF>();
+                    cvec2 = kt_setzero_p<SZ, SUF>();
+                    cvec3 = kt_setzero_p<SZ, SUF>();
+                    for(aoclsparse_int idx = csr_row_ptr[i]; idx < idxend - rem; idx += psz)
+                    {
+                        // Sequential 4x8 matrix-vector multiplication
+                        avec  = kt_loadu_p<SZ, SUF>(&csr_val_fix[idx]);
+                        bvec0 = kt_set_p<SZ, SUF>(bcol0, &csr_col_ind_fix[idx]);
+                        bvec1 = kt_set_p<SZ, SUF>(bcol1, &csr_col_ind_fix[idx]);
+                        bvec2 = kt_set_p<SZ, SUF>(bcol2, &csr_col_ind_fix[idx]);
+                        bvec3 = kt_set_p<SZ, SUF>(bcol3, &csr_col_ind_fix[idx]);
+                        cvec0 = kt_fmadd_p<SZ, SUF>(avec, bvec0, cvec0);
+                        cvec1 = kt_fmadd_p<SZ, SUF>(avec, bvec1, cvec1);
+                        cvec2 = kt_fmadd_p<SZ, SUF>(avec, bvec2, cvec2);
+                        cvec3 = kt_fmadd_p<SZ, SUF>(avec, bvec3, cvec3);
+                    }
+                    cdot0 = kt_hsum_p<SZ, SUF>(cvec0);
+                    cdot1 = kt_hsum_p<SZ, SUF>(cvec1);
+                    cdot2 = kt_hsum_p<SZ, SUF>(cvec2);
+                    cdot3 = kt_hsum_p<SZ, SUF>(cvec3);
+                    cij += cdot0;
+                    cijp1 += cdot1;
+                    cijp2 += cdot2;
+                    cijp3 += cdot3;
+                }
+                if(rem)
+                {
+                    for(aoclsparse_int idx = idxend - rem; idx < idxend; idx++)
+                    {
+                        cij += csr_val_fix[idx] * bcol0[csr_col_ind_fix[idx]];
+                        cijp1 += csr_val_fix[idx] * bcol1[csr_col_ind_fix[idx]];
+                        cijp2 += csr_val_fix[idx] * bcol2[csr_col_ind_fix[idx]];
+                        cijp3 += csr_val_fix[idx] * bcol3[csr_col_ind_fix[idx]];
+                    }
+                }
+                switch(blkr)
+                {
+                case 4:
+                    cijp3 *= alpha;
+                    C[(j + 3) * ldc + i] = beta * C[(j + 3) * ldc + i] + cijp3;
+                    [[fallthrough]];
+                case 3:
+                    cijp2 *= alpha;
+                    cijp2 += beta * C[(j + 2) * ldc + i];
+                    C[(j + 2) * ldc + i] = cijp2;
+                    [[fallthrough]];
+                case 2:
+                    cijp1 *= alpha;
+                    cijp1 += beta * C[(j + 1) * ldc + i];
+                    C[(j + 1) * ldc + i] = cijp1;
+                    [[fallthrough]];
+                case 1:
+                    cij *= alpha;
+                    cij += beta * C[j * ldc + i];
+                    C[j * ldc + i] = cij;
+                }
             }
         }
     }
@@ -182,133 +204,146 @@ aoclsparse_status aoclsparse::csrmm_row_kt(const SUF                  alpha,
                                            SUF           *C,
                                            aoclsparse_int ldc)
 {
+    using namespace aoclsparse;
     using namespace kernel_templates;
-    const aoclsparse_int psz = tsz_v<SZ, SUF>;
 
+    const aoclsparse_int psz  = tsz_v<SZ, SUF>;
     const aoclsparse_int bblk = 4;
-    aoclsparse_int       blkr = bblk;
 
     aoclsparse_index_base base            = descr->base;
     const aoclsparse_int *csr_col_ind_fix = csr_col_ind - base;
     const SUF            *csr_val_fix     = csr_val - base;
     const SUF            *B_fix           = B - (base * ldb);
-
-    aoclsparse_int       rem, mul;
-    avxvector_t<SZ, SUF> avec, avec1, avec2, avec3, bvec0, bvec1, bvec2, bvec3, cvec0;
-    aoclsparse_int       idx0, idx1, idx2, idx3;
-    aoclsparse_int       start = 0;
-    aoclsparse_int       end   = m;
-    for(aoclsparse_int i = start; i < end; i++)
+#ifdef _OPENMP
+#pragma omp parallel num_threads(context::get_context()->get_num_threads())
+#endif
     {
-        aoclsparse_int idx_C = i * ldc;
-        for(aoclsparse_int j = 0; j < n; j++)
-        {
-            C[idx_C + j] = C[idx_C + j] * beta;
-        }
-        for(aoclsparse_int idx = csr_row_ptr[i]; idx < csr_row_ptr[i + 1]; idx += bblk)
-        {
-            if(idx == csr_row_ptr[i + 1] - 1)
-            {
-                blkr = 1;
-                idx0 = idx; // Last non-zero of the row
-                idx1 = idx0;
-                idx2 = idx0;
-                idx3 = idx0;
-            }
-            else if(idx == csr_row_ptr[i + 1] - 2)
-            {
-                blkr = 2;
-                idx0 = idx; // Last non-zero of the row
-                idx1 = idx0 + 1; // Second last non-zero of the row
-                idx2 = idx0;
-                idx3 = idx0;
-            }
-            else if(idx == csr_row_ptr[i + 1] - 3)
-            {
-                blkr = 3;
-                idx0 = idx; //Last non-zero of the row
-                idx1 = idx0 + 1; // Second last non-zero of the row
-                idx2 = idx1 + 1; // Third last non-zero of the row
-                idx3 = idx0;
-            }
-            else
-            {
-                // Four non-zeros of the row
-                blkr = 4;
-                idx0 = idx;
-                idx1 = idx0 + 1;
-                idx2 = idx1 + 1;
-                idx3 = idx2 + 1;
-            }
-            aoclsparse_int idx_B  = csr_col_ind_fix[idx0] * ldb;
-            aoclsparse_int idx_B1 = csr_col_ind_fix[idx1] * ldb;
-            aoclsparse_int idx_B2 = csr_col_ind_fix[idx2] * ldb;
-            aoclsparse_int idx_B3 = csr_col_ind_fix[idx3] * ldb;
+        aoclsparse_int       rem, mul;
+        avxvector_t<SZ, SUF> avec, avec1, avec2, avec3, bvec0, bvec1, bvec2, bvec3, cvec0;
+        aoclsparse_int       idx0, idx1, idx2, idx3;
+        aoclsparse_int       blkr = bblk;
+#ifdef _OPENMP
+        aoclsparse_int num_threads = omp_get_num_threads();
+        aoclsparse_int thread_num  = omp_get_thread_num();
 
-            // Broadcast four non-zeros into the four vectors
-            avec  = kt_set1_p<SZ, SUF>(alpha * csr_val_fix[idx0]);
-            avec1 = kt_set1_p<SZ, SUF>(alpha * csr_val_fix[idx1]);
-            avec2 = kt_set1_p<SZ, SUF>(alpha * csr_val_fix[idx2]);
-            avec3 = kt_set1_p<SZ, SUF>(alpha * csr_val_fix[idx3]);
-            mul   = n / psz;
-            rem   = n - psz * mul;
-            for(aoclsparse_int j = 0; j < n - rem; j += psz)
+        aoclsparse_int start = m * thread_num / num_threads;
+        aoclsparse_int end   = m * (thread_num + 1) / num_threads;
+#else
+        aoclsparse_int start = 0;
+        aoclsparse_int end   = m;
+#endif
+        for(aoclsparse_int i = start; i < end; i++)
+        {
+            aoclsparse_int idx_C = i * ldc;
+            for(aoclsparse_int j = 0; j < n; j++)
             {
-                cvec0 = kt_loadu_p<SZ, SUF>(&C[idx_C + j]);
-
-                // Load psz elements from rows of B corresponding to the non-zeros in A
-                bvec0 = kt_loadu_p<SZ, SUF>(&B_fix[j + idx_B]);
-                bvec1 = kt_loadu_p<SZ, SUF>(&B_fix[j + idx_B1]);
-                bvec2 = kt_loadu_p<SZ, SUF>(&B_fix[j + idx_B2]);
-                bvec3 = kt_loadu_p<SZ, SUF>(&B_fix[j + idx_B3]);
-                switch(blkr)
+                C[idx_C + j] = C[idx_C + j] * beta;
+            }
+            for(aoclsparse_int idx = csr_row_ptr[i]; idx < csr_row_ptr[i + 1]; idx += bblk)
+            {
+                if(idx == csr_row_ptr[i + 1] - 1)
                 {
-                case 4:
-                    cvec0 = kt_fmadd_p<SZ, SUF>(avec, bvec0, cvec0);
-                    cvec0 = kt_fmadd_p<SZ, SUF>(avec1, bvec1, cvec0);
-                    cvec0 = kt_fmadd_p<SZ, SUF>(avec2, bvec2, cvec0);
-                    cvec0 = kt_fmadd_p<SZ, SUF>(avec3, bvec3, cvec0);
-                    break;
-                case 3:
-                    cvec0 = kt_fmadd_p<SZ, SUF>(avec, bvec0, cvec0);
-                    cvec0 = kt_fmadd_p<SZ, SUF>(avec1, bvec1, cvec0);
-                    cvec0 = kt_fmadd_p<SZ, SUF>(avec2, bvec2, cvec0);
-                    break;
-                case 2:
-                    cvec0 = kt_fmadd_p<SZ, SUF>(avec, bvec0, cvec0);
-                    cvec0 = kt_fmadd_p<SZ, SUF>(avec1, bvec1, cvec0);
-                    break;
-                case 1:
-                    cvec0 = kt_fmadd_p<SZ, SUF>(avec, bvec0, cvec0);
-                    break;
+                    blkr = 1;
+                    idx0 = idx; // Last non-zero of the row
+                    idx1 = idx0;
+                    idx2 = idx0;
+                    idx3 = idx0;
                 }
-                kt_storeu_p<SZ, SUF>(&C[idx_C + j], cvec0);
-            }
-
-            if(rem)
-            {
-                for(aoclsparse_int j = n - rem; j < n; j++)
+                else if(idx == csr_row_ptr[i + 1] - 2)
                 {
+                    blkr = 2;
+                    idx0 = idx; // Last non-zero of the row
+                    idx1 = idx0 + 1; // Second last non-zero of the row
+                    idx2 = idx0;
+                    idx3 = idx0;
+                }
+                else if(idx == csr_row_ptr[i + 1] - 3)
+                {
+                    blkr = 3;
+                    idx0 = idx; //Last non-zero of the row
+                    idx1 = idx0 + 1; // Second last non-zero of the row
+                    idx2 = idx1 + 1; // Third last non-zero of the row
+                    idx3 = idx0;
+                }
+                else
+                {
+                    // Four non-zeros of the row
+                    blkr = 4;
+                    idx0 = idx;
+                    idx1 = idx0 + 1;
+                    idx2 = idx1 + 1;
+                    idx3 = idx2 + 1;
+                }
+                aoclsparse_int idx_B  = csr_col_ind_fix[idx0] * ldb;
+                aoclsparse_int idx_B1 = csr_col_ind_fix[idx1] * ldb;
+                aoclsparse_int idx_B2 = csr_col_ind_fix[idx2] * ldb;
+                aoclsparse_int idx_B3 = csr_col_ind_fix[idx3] * ldb;
+
+                // Broadcast four non-zeros into the four vectors
+                avec  = kt_set1_p<SZ, SUF>(alpha * csr_val_fix[idx0]);
+                avec1 = kt_set1_p<SZ, SUF>(alpha * csr_val_fix[idx1]);
+                avec2 = kt_set1_p<SZ, SUF>(alpha * csr_val_fix[idx2]);
+                avec3 = kt_set1_p<SZ, SUF>(alpha * csr_val_fix[idx3]);
+                mul   = n / psz;
+                rem   = n - psz * mul;
+                for(aoclsparse_int j = 0; j < n - rem; j += psz)
+                {
+                    cvec0 = kt_loadu_p<SZ, SUF>(&C[idx_C + j]);
+
+                    // Load psz elements from rows of B corresponding to the non-zeros in A
+                    bvec0 = kt_loadu_p<SZ, SUF>(&B_fix[j + idx_B]);
+                    bvec1 = kt_loadu_p<SZ, SUF>(&B_fix[j + idx_B1]);
+                    bvec2 = kt_loadu_p<SZ, SUF>(&B_fix[j + idx_B2]);
+                    bvec3 = kt_loadu_p<SZ, SUF>(&B_fix[j + idx_B3]);
                     switch(blkr)
                     {
                     case 4:
-                        C[idx_C + j] += csr_val_fix[idx0] * B_fix[idx_B + j] * alpha;
-                        C[idx_C + j] += csr_val_fix[idx1] * B_fix[idx_B1 + j] * alpha;
-                        C[idx_C + j] += csr_val_fix[idx2] * B_fix[idx_B2 + j] * alpha;
-                        C[idx_C + j] += csr_val_fix[idx3] * B_fix[idx_B3 + j] * alpha;
+                        cvec0 = kt_fmadd_p<SZ, SUF>(avec, bvec0, cvec0);
+                        cvec0 = kt_fmadd_p<SZ, SUF>(avec1, bvec1, cvec0);
+                        cvec0 = kt_fmadd_p<SZ, SUF>(avec2, bvec2, cvec0);
+                        cvec0 = kt_fmadd_p<SZ, SUF>(avec3, bvec3, cvec0);
                         break;
                     case 3:
-                        C[idx_C + j] += csr_val_fix[idx0] * B_fix[idx_B + j] * alpha;
-                        C[idx_C + j] += csr_val_fix[idx1] * B_fix[idx_B1 + j] * alpha;
-                        C[idx_C + j] += csr_val_fix[idx2] * B_fix[idx_B2 + j] * alpha;
+                        cvec0 = kt_fmadd_p<SZ, SUF>(avec, bvec0, cvec0);
+                        cvec0 = kt_fmadd_p<SZ, SUF>(avec1, bvec1, cvec0);
+                        cvec0 = kt_fmadd_p<SZ, SUF>(avec2, bvec2, cvec0);
                         break;
                     case 2:
-                        C[idx_C + j] += csr_val_fix[idx0] * B_fix[idx_B + j] * alpha;
-                        C[idx_C + j] += csr_val_fix[idx1] * B_fix[idx_B1 + j] * alpha;
+                        cvec0 = kt_fmadd_p<SZ, SUF>(avec, bvec0, cvec0);
+                        cvec0 = kt_fmadd_p<SZ, SUF>(avec1, bvec1, cvec0);
                         break;
                     case 1:
-                        C[idx_C + j] += csr_val_fix[idx0] * B_fix[idx_B + j] * alpha;
+                        cvec0 = kt_fmadd_p<SZ, SUF>(avec, bvec0, cvec0);
                         break;
+                    }
+                    kt_storeu_p<SZ, SUF>(&C[idx_C + j], cvec0);
+                }
+
+                if(rem)
+                {
+                    for(aoclsparse_int j = n - rem; j < n; j++)
+                    {
+                        switch(blkr)
+                        {
+                        case 4:
+                            C[idx_C + j] += csr_val_fix[idx0] * B_fix[idx_B + j] * alpha;
+                            C[idx_C + j] += csr_val_fix[idx1] * B_fix[idx_B1 + j] * alpha;
+                            C[idx_C + j] += csr_val_fix[idx2] * B_fix[idx_B2 + j] * alpha;
+                            C[idx_C + j] += csr_val_fix[idx3] * B_fix[idx_B3 + j] * alpha;
+                            break;
+                        case 3:
+                            C[idx_C + j] += csr_val_fix[idx0] * B_fix[idx_B + j] * alpha;
+                            C[idx_C + j] += csr_val_fix[idx1] * B_fix[idx_B1 + j] * alpha;
+                            C[idx_C + j] += csr_val_fix[idx2] * B_fix[idx_B2 + j] * alpha;
+                            break;
+                        case 2:
+                            C[idx_C + j] += csr_val_fix[idx0] * B_fix[idx_B + j] * alpha;
+                            C[idx_C + j] += csr_val_fix[idx1] * B_fix[idx_B1 + j] * alpha;
+                            break;
+                        case 1:
+                            C[idx_C + j] += csr_val_fix[idx0] * B_fix[idx_B + j] * alpha;
+                            break;
+                        }
                     }
                 }
             }
