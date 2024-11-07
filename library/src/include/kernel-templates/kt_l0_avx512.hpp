@@ -426,5 +426,55 @@ namespace kernel_templates
             return res;
         }
     }
+
+    // Vector fused multiply-add of three AVX registers - blocked variant
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, void>
+                    kt_fmadd_B(const avxvector_t<SZ, SUF> a,
+                               const avxvector_t<SZ, SUF> b,
+                               avxvector_t<SZ, SUF> &c,
+                               avxvector_t<SZ, SUF> &d
+                               ) noexcept
+    {
+        if constexpr(std::is_same_v<SUF, double> || std::is_same_v<SUF, float>)
+            c = kt_fmadd_p<SZ, SUF>(a, b, c);
+        else if constexpr(std::is_same_v<SUF, cdouble>)
+        {
+            c = _mm512_fmadd_pd(a, b, c);
+            d = _mm512_fmadd_pd(a, _mm512_permute_pd(b, 0b01010101), d);
+        }
+        else if constexpr(std::is_same_v<SUF, cfloat>)
+        {
+            c = _mm512_fmadd_ps(a, b, c);
+            d = _mm512_fmadd_ps(a, _mm512_permute_ps(b, 0b10110001), d);
+        }
+    }
+
+    // Horizontal sum (reduction) of an AVX register - blocked variant
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, SUF>
+                    kt_hsum_B(const avxvector_t<SZ, SUF> a, const avxvector_t<SZ, SUF> b) noexcept
+    {
+        if constexpr(std::is_same_v<SUF, double> || std::is_same_v<SUF, float>)
+            return kt_hsum_p<SZ, SUF>(a);
+        else if constexpr(std::is_same_v<SUF, cdouble>)
+        {
+            avxvector_t<bsz::b512, double> t;
+            avxvector_t<bsz::b512, double> signs = _mm512_setr_pd(0.f, -0.f, 0.f, -0.f, 0.f, -0.f, 0.f, -0.f);
+            // Real part, alternate signs and sum up
+            t = _mm512_xor_pd(signs, a);
+
+            return SUF(_mm512_reduce_add_pd(t), _mm512_reduce_add_pd(b));
+        }
+        else if constexpr(std::is_same_v<SUF, cfloat>)
+        {
+            avxvector_t<bsz::b512, float> t;
+            avxvector_t<bsz::b512, float> signs = _mm512_setr_ps(0.f, -0.f, 0.f, -0.f, 0.f, -0.f, 0.f, -0.f, 0.f, -0.f, 0.f, -0.f, 0.f, -0.f, 0.f, -0.f);
+            // Real part, alternate signs and sum up
+            t = _mm512_xor_ps(signs, a);
+
+            return SUF(_mm512_reduce_add_ps(t), _mm512_reduce_add_ps(b));
+        }
+    }
 }
 #endif

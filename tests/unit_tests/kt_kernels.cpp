@@ -1187,6 +1187,218 @@ namespace TestsKT
 
         delete[] refc;
     }
+
+    template <bsz SZ>
+    void kt_fmadd_B_test()
+    {
+        size_t                  ns = tsz_v<SZ, float>;
+        size_t                  nd = tsz_v<SZ, double>;
+        avxvector_t<SZ, float>  s, as, bs, s_;
+        avxvector_t<SZ, double> d, ad, bd, d_;
+        float                   refs[ns];
+        std::vector<float>      refs_(ns, -9.0f);
+        double                  refd[nd];
+        std::vector<double>     refd_(ns, -8.0);
+
+        as = kt_loadu_p<SZ, float>(&D.vs[0]);
+        bs = kt_set_p<SZ, float>(D.vs, D.map);
+        s  = kt_set_p<SZ, float>(D.vs, &D.map[4]);
+        s_ = kt_set1_p<SZ, float>(-9.0f);
+        kt_fmadd_B<SZ, float>(as, bs, s, s_);
+        for(size_t i = 0; i < ns; i++)
+        {
+            refs[i] = D.vs[i] * D.vs[D.map[i]] + D.vs[D.map[4 + i]];
+        }
+        EXPECT_FLOAT_EQ_VEC(ns, s, refs);
+        EXPECT_EQ_VEC(ns, s_, refs_.data());
+
+        ad = kt_loadu_p<SZ, double>(&D.vd[0]);
+        bd = kt_set_p<SZ, double>(D.vd, D.map);
+        d  = kt_set_p<SZ, double>(D.vd, &D.map[2]);
+        d_ = kt_set1_p<SZ, double>(-8.0);
+        kt_fmadd_B<SZ, double>(ad, bd, d, d_);
+        for(size_t i = 0; i < nd; i++)
+        {
+            refd[i] = D.vd[i] * D.vd[D.map[i]] + D.vd[D.map[2 + i]];
+        }
+        EXPECT_DOUBLE_EQ_VEC(nd, d, refd);
+        EXPECT_DOUBLE_EQ_VEC(nd, d_, refd_);
+
+        // Complex<float> FMADD ================================================
+        constexpr size_t       nc = tsz_v<SZ, cfloat>;
+        avxvector_t<SZ, float> scr, sci, ac, bc, cc, s1;
+        cfloat                 refc[nc], refsci[nc], refscr[nc];
+        const cfloat          *vc1 = D.vc;
+        const cfloat          *vc2 = D.vc + 1;
+
+        ac  = kt_loadu_p<SZ, cfloat>(&D.vc[2]);
+        bc  = kt_loadu_p<SZ, cfloat>(vc1);
+        cc  = kt_loadu_p<SZ, cfloat>(vc2);
+        s1  = kt_set1_p<SZ, cfloat>({1.0f, 1.0f});
+        scr = kt_setzero_p<SZ, cfloat>();
+        sci = kt_setzero_p<SZ, cfloat>();
+        kt_fmadd_B<SZ, cfloat>(s1, cc, scr, sci);
+        for(size_t i = 0; i < nc; i++)
+        {
+            refc[i] = std::complex(vc2[i].real(), vc2[i].imag());
+        }
+        std::complex<float> *pc = reinterpret_cast<std::complex<float> *>(&scr);
+        EXPECT_COMPLEX_FLOAT_EQ_VEC(nc, pc, refc);
+
+        for(size_t i = 0; i < nc; i++)
+        {
+            refc[i] = std::complex(vc2[i].imag(), vc2[i].real());
+        }
+        pc = reinterpret_cast<std::complex<float> *>(&sci);
+        EXPECT_COMPLEX_FLOAT_EQ_VEC(nc, pc, refc);
+
+        for(size_t i = 0; i < nc; i++)
+        {
+            refscr[i] = {D.vc[2 + i].real() * vc1[i].real() + scr[2 * i],
+                         D.vc[2 + i].imag() * vc1[i].imag() + scr[2 * i + 1]};
+        }
+        for(size_t i = 0; i < nc; i++)
+        {
+            refsci[i] = {D.vc[2 + i].real() * vc1[i].imag() + sci[2 * i],
+                         D.vc[2 + i].imag() * vc1[i].real() + sci[2 * i + 1]};
+        }
+        kt_fmadd_B<SZ, cfloat>(ac, bc, scr, sci);
+        pc = reinterpret_cast<std::complex<float> *>(&scr);
+        EXPECT_COMPLEX_FLOAT_EQ_VEC(nc, pc, refscr);
+        pc = reinterpret_cast<std::complex<float> *>(&sci);
+        EXPECT_COMPLEX_FLOAT_EQ_VEC(nc, pc, refsci);
+
+        // Complex<double> FMADD ===============================================
+        constexpr size_t        nz = tsz_v<SZ, cdouble>;
+        avxvector_t<SZ, double> az, bz, cz, dcr, dci, d1;
+        cdouble                 refz[nz], refdzr[nz], refdzi[nz];
+        const cdouble          *vz1 = D.vz;
+        const cdouble          *vz2 = D.vz + 1;
+
+        az  = kt_loadu_p<SZ, cdouble>(&D.vz[2]);
+        bz  = kt_loadu_p<SZ, cdouble>(vz1);
+        cz  = kt_loadu_p<SZ, cdouble>(vz2);
+        d1  = kt_set1_p<SZ, cdouble>({1.0, 1.0});
+        dcr = kt_setzero_p<SZ, cdouble>();
+        dci = kt_setzero_p<SZ, cdouble>();
+        kt_fmadd_B<SZ, cdouble>(d1, cz, dcr, dci);
+
+        for(size_t i = 0; i < nz; i++)
+        {
+            refz[i] = vz2[i];
+        }
+        std::complex<double> *pz = reinterpret_cast<std::complex<double> *>(&dcr);
+        EXPECT_COMPLEX_DOUBLE_EQ_VEC(nz, pz, refz);
+        for(size_t i = 0; i < nz; i++)
+        {
+            refz[i] = std::complex<double>(vz2[i].imag(), vz2[i].real());
+        }
+        pz = reinterpret_cast<std::complex<double> *>(&dci);
+        EXPECT_COMPLEX_DOUBLE_EQ_VEC(nz, pz, refz);
+
+        for(size_t i = 0; i < nz; i++)
+        {
+            refdzr[i] = {D.vz[2 + i].real() * vz1[i].real() + dcr[2 * i],
+                         D.vz[2 + i].imag() * vz1[i].imag() + dcr[2 * i + 1]};
+        }
+        for(size_t i = 0; i < nz; i++)
+        {
+            refdzi[i] = {D.vz[2 + i].real() * vz1[i].imag() + dci[2 * i],
+                         D.vz[2 + i].imag() * vz1[i].real() + dci[2 * i + 1]};
+        }
+
+        kt_fmadd_B<SZ, cdouble>(az, bz, dcr, dci);
+
+        pz = reinterpret_cast<std::complex<double> *>(&dcr);
+        EXPECT_COMPLEX_DOUBLE_EQ_VEC(nz, pz, refdzr);
+
+        pz = reinterpret_cast<std::complex<double> *>(&dci);
+        EXPECT_COMPLEX_DOUBLE_EQ_VEC(nz, pz, refdzi);
+    }
+
+    template <bsz SZ>
+    void kt_hsum_B_test()
+    {
+        const size_t            ns = tsz_v<SZ, float>;
+        const size_t            nd = tsz_v<SZ, double>;
+        avxvector_t<SZ, float>  as, bs, s, s_;
+        avxvector_t<SZ, double> ad, bd, d, d_;
+        float                   sums, refs = 0.0f;
+        double                  sumd, refd = 0.0;
+
+        // Float ==============================================================
+        as = kt_loadu_p<SZ, float>(D.vs);
+        bs = kt_set_p<SZ, float>(D.vs, &D.map[4]);
+        s  = kt_set1_p<SZ, float>(-3.0f);
+        s_ = kt_setzero_p<SZ, float>();
+        kt_fmadd_B<SZ, float>(as, bs, s, s_);
+        sums = kt_hsum_B<SZ, float>(s, s_);
+        for(size_t i = 0; i < ns; i++)
+        {
+            refs += D.vs[i] * D.vs[D.map[4 + i]] - 3.f;
+        }
+        EXPECT_FLOAT_EQ(sums, refs);
+
+        // Double ==============================================================
+        ad = kt_loadu_p<SZ, double>(D.vd);
+        bd = kt_set_p<SZ, double>(D.vd, &D.map[2]);
+        d  = kt_set1_p<SZ, double>(-5.0);
+        d_ = kt_set1_p<SZ, double>(1.3);
+        kt_fmadd_B<SZ, double>(bd, ad, d, d_);
+        sumd = kt_hsum_B<SZ, double>(d, d_);
+        for(size_t i = 0; i < nd; i++)
+        {
+            refd += D.vd[i] * D.vd[D.map[2 + i]] - 5.0;
+        }
+        EXPECT_DOUBLE_EQ(sumd, refd);
+
+        const size_t             nc = tsz_v<SZ, cfloat>;
+        const size_t             nz = tsz_v<SZ, cdouble>;
+        avxvector_t<SZ, cfloat>  ac, bc, c, c_, qc;
+        avxvector_t<SZ, cdouble> az, bz, z, z_;
+        cfloat                   sumc, refc = {0.0f, 0.0f};
+        cdouble                  sumz, refz = {0.0, 0.0};
+
+        // cdouble ==============================================================
+        az = kt_loadu_p<SZ, cdouble>(D.vz);
+        bz = kt_set_p<SZ, cdouble>(D.vz, &D.map[3]);
+        // auto c1 = std::complex(1.0, 5.0);
+        // auto c0 = std::complex(0.0);
+        // cdouble t1[]{c1, c0, c0, c0};
+        // cdouble t2[]{std::complex(2.0) * c1, c0, c0, c0};
+        // az = kt_loadu_p<SZ, cdouble>(t1);
+        // bz = kt_loadu_p<SZ, cdouble>(t2);
+        z  = kt_setzero_p<SZ, cdouble>();
+        z_ = kt_setzero_p<SZ, cdouble>();
+        // (z, z_) <- az * bz
+        kt_fmadd_B<SZ, cdouble>(bz, az, z, z_);
+        sumz = kt_hsum_B<SZ, cdouble>(z, z_);
+        for(size_t i = 0; i < nz; i++)
+        {
+            // Test also commutativity
+            //      bz                 * az
+            refz += D.vz[D.map[3 + i]] * D.vz[i];
+        }
+        EXPECT_COMPLEX_DOUBLE_EQ(sumz, refz);
+
+        // cfloat ==============================================================
+        ac = kt_loadu_p<SZ, cfloat>(D.vc);
+        bc = kt_set_p<SZ, cfloat>(D.vc, &D.map[2]);
+        qc = kt_set_p<SZ, cfloat>(D.vc, &D.map[5]);
+        c  = kt_setzero_p<SZ, cfloat>();
+        c_ = kt_setzero_p<SZ, cfloat>();
+        kt_fmadd_B<SZ, cfloat>(ac, bc, c, c_);
+        kt_fmadd_B<SZ, cfloat>(qc, bc, c, c_);
+        sumc = kt_hsum_B<SZ, cfloat>(c, c_);
+        for(size_t i = 0; i < nc; i++)
+        {
+            // test also accumulation TODO
+            //      (qc                 + ac      ) * bc
+            refc += (D.vc[D.map[5 + i]] + D.vc[i]) * D.vc[D.map[2 + i]];
+        }
+        EXPECT_COMPLEX_FLOAT_EQ(sumc, refc);
+    }
+
 }
 
 // Instantiation
@@ -1204,3 +1416,5 @@ template void TestsKT::kt_conj_p_test<get_bsz()>();
 template void TestsKT::kt_dot_p_test<get_bsz()>();
 template void TestsKT::kt_cdot_p_test<get_bsz()>();
 template void TestsKT::kt_storeu_p_test<get_bsz()>();
+template void TestsKT::kt_fmadd_B_test<get_bsz()>();
+template void TestsKT::kt_hsum_B_test<get_bsz()>();

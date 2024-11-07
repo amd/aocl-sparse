@@ -393,5 +393,76 @@ namespace kernel_templates
             return res;
         }
     }
+    // blocked kernels, these don't return algebraic objects
+
+    // Vector fused multiply-add of three AVX registers - blocked variant
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b256, void>
+                    kt_fmadd_B(const avxvector_t<SZ, SUF> a,
+                               const avxvector_t<SZ, SUF> b,
+                               avxvector_t<SZ, SUF> &c,
+                               [[maybe_unused]] avxvector_t<SZ, SUF> &d
+                               ) noexcept
+    {
+        if constexpr(std::is_same_v<SUF, double> || std::is_same_v<SUF, float>)
+            c = kt_fmadd_p<SZ, SUF>(a, b, c);
+        else if constexpr(std::is_same_v<SUF, cdouble>)
+        {
+            c = _mm256_fmadd_pd(a, b, c);
+            d = _mm256_fmadd_pd(a, _mm256_permute_pd(b, 0b0101), d);
+        }
+        else if constexpr(std::is_same_v<SUF, cfloat>)
+        {
+            c = _mm256_fmadd_ps(a, b, c);
+            d = _mm256_fmadd_ps(a, _mm256_permute_ps(b, 0b10110001), d);
+        }
+    }
+
+    // Horizontal sum (reduction) of an AVX register - blocked variant
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b256, SUF>
+                    kt_hsum_B(const avxvector_t<SZ, SUF> a, [[maybe_unused]] const avxvector_t<SZ, SUF> b) noexcept
+    {
+        if constexpr(std::is_same_v<SUF, double> || std::is_same_v<SUF, float>)
+            return kt_hsum_p<SZ, SUF>(a);
+        else if constexpr(std::is_same_v<SUF, cdouble>)
+        {
+            avxvector_half_t<bsz::b256, double> l, h, sr, si;
+            avxvector_t<bsz::b256, double> signs = _mm256_setr_pd(0.0, -0.0, 0.0, -0.0);
+            // Real part, alternate signs and sum up
+            avxvector_t<bsz::b256, double> w = _mm256_xor_pd(signs, a);
+            w                                = _mm256_hadd_pd(w, w);
+            l                                = _mm256_castpd256_pd128(w);
+            h                                = _mm256_extractf128_pd(w, 1);
+            sr                               = _mm_add_pd(l, h);
+            // Imaginary part sum up
+            w  = _mm256_hadd_pd(b, b);
+            l  = _mm256_castpd256_pd128(w);
+            h  = _mm256_extractf128_pd(w, 1);
+            si = _mm_add_pd(l, h);
+
+            return SUF(kt_sse_scl(sr), kt_sse_scl(si));
+        }
+        else if constexpr(std::is_same_v<SUF, cfloat>)
+        {
+            avxvector_half_t<bsz::b256, float> l, h, sr, si;
+            avxvector_t<bsz::b256, float> signs = _mm256_setr_ps(0.f, -0.f, 0.f, -0.f, 0.f, -0.f, 0.f, -0.f);
+            // Real part, alternate signs and sum up
+            avxvector_t<bsz::b256, float>      w = _mm256_xor_ps(signs, a);
+            w = _mm256_hadd_ps(w, w);
+            w                                    = _mm256_hadd_ps(w, w); // only required for float
+            l                                    = _mm256_castps256_ps128(w);
+            h                                    = _mm256_extractf128_ps(w, 1);
+            sr                                   = _mm_add_ps(l, h);
+            // Imaginary part sum up
+            w  = _mm256_hadd_ps(b, b);
+            w  = _mm256_hadd_ps(w, w); // only required for float
+            l  = _mm256_castps256_ps128(w);
+            h  = _mm256_extractf128_ps(w, 1);
+            si = _mm_add_ps(l, h);
+
+            return SUF(kt_sse_scl(sr), kt_sse_scl(si));
+        }
+    }
 }
 #endif
