@@ -95,6 +95,12 @@ namespace TestsKT
     void kt_storeu_p_test();
 
     // -------------------------
+    template <bsz SZ>
+    void kt_fmadd_B_test();
+
+    template <bsz SZ>
+    void kt_hsum_B_test();
+    // -------------------------
 
     TEST(KT_L0, KT_BASE_T_CHECK)
     {
@@ -381,6 +387,36 @@ namespace TestsKT
         if(can_exec_avx512_tests())
         {
             kt_storeu_p_test<bsz::b512>();
+        }
+    }
+
+    /*
+     * Test fmadd BLOCK VARIANT for fuse-multiply-add three
+     * 2 (cdouble), 4 (cfloat), 4 (double), 8 (floats) length vectors
+     */
+    TEST(KT_Block_L0, kt_fmadd_B_256)
+    {
+        kt_fmadd_B_test<bsz::b256>();
+    }
+
+    TEST(KT_Block_L0, kt_fmadd_B_512)
+    {
+        if(can_exec_avx512_tests())
+        {
+            kt_fmadd_B_test<bsz::b512>();
+        }
+    }
+
+    TEST(KT_Block_L0, kt_hsum_B_256)
+    {
+        kt_hsum_B_test<bsz::b256>();
+    }
+
+    TEST(KT_Block_L0, kt_hsum_B_512)
+    {
+        if(can_exec_avx512_tests())
+        {
+            kt_hsum_B_test<bsz::b512>();
         }
     }
 }

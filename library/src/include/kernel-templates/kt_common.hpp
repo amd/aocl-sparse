@@ -306,9 +306,9 @@ namespace kernel_templates
 
 // compatibility macro for windows
 #if !defined(__clang__) && (defined(_WIN32) || defined(_WIN64))
-#define kt_sse_scl(kt_v) kt_v.m128d_f64[0];
+#define kt_sse_scl(kt_v) kt_v.m128d_f64[0]
 #else
-#define kt_sse_scl(kt_v) kt_v[0];
+#define kt_sse_scl(kt_v) kt_v[0]
 #endif
 
     /*
