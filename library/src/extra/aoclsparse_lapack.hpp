@@ -30,8 +30,12 @@
 #include <limits>
 
 // clang-format off
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcomment" // for libflame header
+#pragma GCC diagnostic ignored "-Wunused-parameter" // for blis header
 #include "cblas.hh"
 #include "libflame_interface.hh"
+#pragma GCC diagnostic pop
 // clang-format on
 
 /* Check that the size of integers in the used libraries is OK. */

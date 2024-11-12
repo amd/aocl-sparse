@@ -91,23 +91,21 @@ namespace kernel_templates
         }
         else if constexpr(std::is_same<SUF, cdouble>::value)
         {
-            const double *vv = reinterpret_cast<const double *>(v);
-            return _mm512_set_pd(vv[2U * (*(b + 3U)) + 1U], vv[2U * (*(b + 3U)) + 0U],
-                                 vv[2U * (*(b + 2U)) + 1U], vv[2U * (*(b + 2U)) + 0U],
-                                 vv[2U * (*(b + 1U)) + 1U], vv[2U * (*(b + 1U)) + 0U],
-                                 vv[2U * (*(b + 0U)) + 1U], vv[2U * (*(b + 0U)) + 0U]);
+            return _mm512_set_pd(v[(*(b + 3U))].imag(), v[(*(b + 3U))].real(),
+                                 v[(*(b + 2U))].imag(), v[(*(b + 2U))].real(),
+                                 v[(*(b + 1U))].imag(), v[(*(b + 1U))].real(),
+                                 v[(*(b + 0U))].imag(), v[(*(b + 0U))].real());
         }
         else if constexpr(std::is_same<SUF, cfloat>::value)
         {
-            const float *vv = reinterpret_cast<const float *>(v);
-            return _mm512_set_ps(vv[2U * (*(b + 7U)) + 1U], vv[2U * (*(b + 7U)) + 0U],
-                                 vv[2U * (*(b + 6U)) + 1U], vv[2U * (*(b + 6U)) + 0U],
-                                 vv[2U * (*(b + 5U)) + 1U], vv[2U * (*(b + 5U)) + 0U],
-                                 vv[2U * (*(b + 4U)) + 1U], vv[2U * (*(b + 4U)) + 0U],
-                                 vv[2U * (*(b + 3U)) + 1U], vv[2U * (*(b + 3U)) + 0U],
-                                 vv[2U * (*(b + 2U)) + 1U], vv[2U * (*(b + 2U)) + 0U],
-                                 vv[2U * (*(b + 1U)) + 1U], vv[2U * (*(b + 1U)) + 0U],
-                                 vv[2U * (*(b + 0U)) + 1U], vv[2U * (*(b + 0U)) + 0U]);
+            return _mm512_set_ps(v[(*(b + 7U))].imag(), v[(*(b + 7U))].real(),
+                                 v[(*(b + 6U))].imag(), v[(*(b + 6U))].real(),
+                                 v[(*(b + 5U))].imag(), v[(*(b + 5U))].real(),
+                                 v[(*(b + 4U))].imag(), v[(*(b + 4U))].real(),
+                                 v[(*(b + 3U))].imag(), v[(*(b + 3U))].real(),
+                                 v[(*(b + 2U))].imag(), v[(*(b + 2U))].real(),
+                                 v[(*(b + 1U))].imag(), v[(*(b + 1U))].real(),
+                                 v[(*(b + 0U))].imag(), v[(*(b + 0U))].real());
         }
     };
 
@@ -126,13 +124,11 @@ namespace kernel_templates
                 return _mm256_maskz_loadu_ps((1 << L) - 1, &v[b]);
             else if constexpr(std::is_same_v<SUF, cdouble>)
             {
-                const double *vv = reinterpret_cast<const double *>(v);
-                return _mm256_maskz_loadu_pd((1 << (2 * L)) - 1, &vv[2U * b]);
+                return _mm256_maskz_loadu_pd((1 << (2 * L)) - 1, &v[b]);
             }
             else if constexpr(std::is_same_v<SUF, cfloat>)
             {
-                const float *vv = reinterpret_cast<const float *>(v);
-                return _mm256_maskz_loadu_ps((1 << (2 * L)) - 1, &vv[2U * b]);
+                return _mm256_maskz_loadu_ps((1 << (2 * L)) - 1, &v[b]);
             }
         }
         else if(SZ == bsz::b512 && (EXT & kt_avxext::AVX512F))
@@ -143,13 +139,11 @@ namespace kernel_templates
                 return _mm512_maskz_loadu_ps((1 << L) - 1, &v[b]);
             else if constexpr(std::is_same_v<SUF, cdouble>)
             {
-                const double *vv = reinterpret_cast<const double *>(v);
-                return _mm512_maskz_loadu_pd((1 << (2 * L)) - 1, &vv[2U * b]);
+                return _mm512_maskz_loadu_pd((1 << (2 * L)) - 1, &v[b]);
             }
             else if constexpr(std::is_same_v<SUF, cfloat>)
             {
-                const float *vv = reinterpret_cast<const float *>(v);
-                return _mm512_maskz_loadu_ps((1 << (2 * L)) - 1, &vv[2U * b]);
+                return _mm512_maskz_loadu_ps((1 << (2 * L)) - 1, &v[b]);
             }
         }
     };
@@ -162,53 +156,39 @@ namespace kernel_templates
 
         if constexpr(kt_is_same<bsz::b512, SZ, double, SUF>())
         {
-            return _mm512_set_pd(pz<SUF, L - 8>(v[*(b + 7U)]), pz<SUF, L - 7>(v[*(b + 6U)]),
-                                 pz<SUF, L - 6>(v[*(b + 5U)]), pz<SUF, L - 5>(v[*(b + 4U)]),
-                                 pz<SUF, L - 4>(v[*(b + 3U)]), pz<SUF, L - 3>(v[*(b + 2U)]),
-                                 pz<SUF, L - 2>(v[*(b + 1U)]), pz<SUF, L - 1>(v[*(b + 0U)]));
+            return _mm512_set_pd(pz<SUF, L - 8>(v, b, 7), pz<SUF, L - 7>(v, b, 6U),
+                                 pz<SUF, L - 6>(v, b, 5), pz<SUF, L - 5>(v, b, 4U),
+                                 pz<SUF, L - 4>(v, b, 3), pz<SUF, L - 3>(v, b, 2U),
+                                 pz<SUF, L - 2>(v, b, 1), pz<SUF, L - 1>(v, b, 0U));
         }
         else if constexpr(kt_is_same<bsz::b512, SZ, float, SUF>())
         {
-            return _mm512_set_ps(pz<SUF, L - 16>(v[*(b + 15U)]), pz<SUF, L - 15>(v[*(b + 14U)]),
-                                 pz<SUF, L - 14>(v[*(b + 13U)]), pz<SUF, L - 13>(v[*(b + 12U)]),
-                                 pz<SUF, L - 12>(v[*(b + 11U)]), pz<SUF, L - 11>(v[*(b + 10U)]),
-                                 pz<SUF, L - 10>(v[*(b + 9U)]),  pz<SUF, L - 9>(v[*(b + 8U)]),
-                                 pz<SUF, L - 8>(v[*(b + 7U)]),   pz<SUF, L - 7>(v[*(b + 6U)]),
-                                 pz<SUF, L - 6>(v[*(b + 5U)]),   pz<SUF, L - 5>(v[*(b + 4U)]),
-                                 pz<SUF, L - 4>(v[*(b + 3U)]),   pz<SUF, L - 3>(v[*(b + 2U)]),
-                                 pz<SUF, L - 2>(v[*(b + 1U)]),   pz<SUF, L - 1>(v[*(b + 0U)]));
+            return _mm512_set_ps(pz<SUF, L - 16>(v, b, 15), pz<SUF, L - 15>(v, b, 14),
+                                 pz<SUF, L - 14>(v, b, 13), pz<SUF, L - 13>(v, b, 12),
+                                 pz<SUF, L - 12>(v, b, 11), pz<SUF, L - 11>(v, b, 10),
+                                 pz<SUF, L - 10>(v, b, 9),  pz<SUF, L - 9> (v, b, 8),
+                                 pz<SUF, L - 8> (v, b, 7),  pz<SUF, L - 7> (v, b, 6),
+                                 pz<SUF, L - 6> (v, b, 5),  pz<SUF, L - 5> (v, b, 4),
+                                 pz<SUF, L - 4> (v, b, 3),  pz<SUF, L - 3> (v, b, 2),
+                                 pz<SUF, L - 2> (v, b, 1),  pz<SUF, L - 1> (v, b, 0));
         }
         else if constexpr(kt_is_same<bsz::b512, SZ, cdouble, SUF>())
         {
-            const double *vv = reinterpret_cast<const double *>(v);
-            return _mm512_set_pd(pz<double, L - 4>(vv[2U * (*(b + 3U)) + 1U]),
-                                 pz<double, L - 4>(vv[2U * (*(b + 3U)) + 0U]),
-                                 pz<double, L - 3>(vv[2U * (*(b + 2U)) + 1U]),
-                                 pz<double, L - 3>(vv[2U * (*(b + 2U)) + 0U]),
-                                 pz<double, L - 2>(vv[2U * (*(b + 1U)) + 1U]),
-                                 pz<double, L - 2>(vv[2U * (*(b + 1U)) + 0U]),
-                                 pz<double, L - 1>(vv[2U * (*(b + 0U)) + 1U]),
-                                 pz<double, L - 1>(vv[2U * (*(b + 0U)) + 0U]));
+            return _mm512_set_pd(pz<SUF, L - 4, false>(v, b, 3), pz<SUF, L - 4, true> (v, b, 3),
+                                 pz<SUF, L - 3, false>(v, b, 2), pz<SUF, L - 3, true> (v, b, 2),
+                                 pz<SUF, L - 2, false>(v, b, 1), pz<SUF, L - 2, true> (v, b, 1),
+                                 pz<SUF, L - 1, false>(v, b, 0), pz<SUF, L - 1, true> (v, b, 0));
         }
         else if constexpr(kt_is_same<bsz::b512, SZ, cfloat, SUF>())
         {
-            const float *vv = reinterpret_cast<const float *>(v);
-            return _mm512_set_ps(pz<float, L - 8>(vv[2U * (*(b + 7U)) + 1U]),
-                                 pz<float, L - 8>(vv[2U * (*(b + 7U)) + 0U]),
-                                 pz<float, L - 7>(vv[2U * (*(b + 6U)) + 1U]),
-                                 pz<float, L - 7>(vv[2U * (*(b + 6U)) + 0U]),
-                                 pz<float, L - 6>(vv[2U * (*(b + 5U)) + 1U]),
-                                 pz<float, L - 6>(vv[2U * (*(b + 5U)) + 0U]),
-                                 pz<float, L - 5>(vv[2U * (*(b + 4U)) + 1U]),
-                                 pz<float, L - 5>(vv[2U * (*(b + 4U)) + 0U]),
-                                 pz<float, L - 4>(vv[2U * (*(b + 3U)) + 1U]),
-                                 pz<float, L - 4>(vv[2U * (*(b + 3U)) + 0U]),
-                                 pz<float, L - 3>(vv[2U * (*(b + 2U)) + 1U]),
-                                 pz<float, L - 3>(vv[2U * (*(b + 2U)) + 0U]),
-                                 pz<float, L - 2>(vv[2U * (*(b + 1U)) + 1U]),
-                                 pz<float, L - 2>(vv[2U * (*(b + 1U)) + 0U]),
-                                 pz<float, L - 1>(vv[2U * (*(b + 0U)) + 1U]),
-                                 pz<float, L - 1>(vv[2U * (*(b + 0U)) + 0U]));
+            return _mm512_set_ps(pz<SUF, L - 8, false>(v, b, 7), pz<SUF, L - 8, true> (v, b, 7),
+                                 pz<SUF, L - 7, false>(v, b, 6), pz<SUF, L - 7, true> (v, b, 6),
+                                 pz<SUF, L - 6, false>(v, b, 5), pz<SUF, L - 6, true> (v, b, 5),
+                                 pz<SUF, L - 5, false>(v, b, 4), pz<SUF, L - 5, true> (v, b, 4),
+                                 pz<SUF, L - 4, false>(v, b, 3), pz<SUF, L - 4, true> (v, b, 3),
+                                 pz<SUF, L - 3, false>(v, b, 2), pz<SUF, L - 3, true> (v, b, 2),
+                                 pz<SUF, L - 2, false>(v, b, 1), pz<SUF, L - 2, true> (v, b, 1),
+                                 pz<SUF, L - 1, false>(v, b, 0), pz<SUF, L - 1, true> (v, b, 0));
         }
     };
 
@@ -237,16 +217,12 @@ namespace kernel_templates
     // Stores the values in an AVX register to a memory location (Memory does not have to be aligned)
     template <bsz SZ, typename SUF>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, void>
-                    kt_storeu_p(const SUF *a, const avxvector_t<SZ, SUF> v) noexcept
+                    kt_storeu_p(SUF *a, const avxvector_t<SZ, SUF> v) noexcept
     {
-        if constexpr(std::is_same_v<SUF, double>)
-            _mm512_storeu_pd(const_cast<double *>(a), v);
-        else if constexpr(std::is_same_v<SUF, float>)
-            _mm512_storeu_ps(const_cast<float *>(a), v);
-        else if constexpr(std::is_same_v<SUF, cdouble>)
-            _mm512_storeu_pd(const_cast<cdouble *>(a), v);
-        else if constexpr(std::is_same_v<SUF, cfloat>)
-            _mm512_storeu_ps(const_cast<cfloat *>(a), v);
+        if constexpr(kt_is_base_t_double<SUF>())
+            _mm512_storeu_pd(a, v);
+        else
+            _mm512_storeu_ps(a, v);
     }
 
     // Vector addition of two AVX registers.

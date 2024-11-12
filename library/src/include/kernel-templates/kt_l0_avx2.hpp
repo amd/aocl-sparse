@@ -91,17 +91,15 @@ namespace kernel_templates
         }
         else if constexpr(std::is_same<SUF, cdouble>::value)
         {
-            const double *vv = reinterpret_cast<const double *>(v);
-            return _mm256_set_pd(vv[2U * (*(b + 1U)) + 1U], vv[2U * (*(b + 1U)) + 0U],
-                                 vv[2U * (*(b + 0U)) + 1U], vv[2U * (*(b + 0U)) + 0U]);
+            return _mm256_set_pd(v[(*(b + 1U))].imag(), v[(*(b + 1U))].real(),
+                                 v[(*(b + 0U))].imag(), v[(*(b + 0U))].real());
         }
         else if constexpr(std::is_same<SUF, cfloat>::value)
         {
-            const float *vv = reinterpret_cast<const float *>(v);
-            return _mm256_set_ps(vv[2U * (*(b + 3U)) + 1U], vv[2U * (*(b + 3U)) + 0U],
-                                 vv[2U * (*(b + 2U)) + 1U], vv[2U * (*(b + 2U)) + 0U],
-                                 vv[2U * (*(b + 1U)) + 1U], vv[2U * (*(b + 1U)) + 0U],
-                                 vv[2U * (*(b + 0U)) + 1U], vv[2U * (*(b + 0U)) + 0U]);
+            return _mm256_set_ps(v[(*(b + 3U))].imag(), v[(*(b + 3U))].real(),
+                                 v[(*(b + 2U))].imag(), v[(*(b + 2U))].real(),
+                                 v[(*(b + 1U))].imag(), v[(*(b + 1U))].real(),
+                                 v[(*(b + 0U))].imag(), v[(*(b + 0U))].real());
         }
     };
 
@@ -113,31 +111,28 @@ namespace kernel_templates
     {
         if constexpr(kt_is_same<bsz::b256, SZ, double, SUF>())
         {
-            return _mm256_set_pd(pz<SUF, L - 4>(v[b + 3U]), pz<SUF, L - 3>(v[b + 2U]),
-                                 pz<SUF, L - 2>(v[b + 1U]), pz<SUF, L - 1>(v[b + 0U]));
+            return _mm256_set_pd(pz<SUF, L - 4>(v, b + 3), pz<SUF, L - 3>(v, b + 2),
+                                 pz<SUF, L - 2>(v, b + 1), pz<SUF, L - 1>(v, b + 0));
         }
         else if constexpr(kt_is_same<bsz::b256, SZ, float, SUF>())
         {
-            return _mm256_set_ps(pz<SUF, L - 8>(v[b + 7U]), pz<SUF, L - 7>(v[b + 6U]),
-                                 pz<SUF, L - 6>(v[b + 5U]), pz<SUF, L - 5>(v[b + 4U]),
-                                 pz<SUF, L - 4>(v[b + 3U]), pz<SUF, L - 3>(v[b + 2U]),
-                                 pz<SUF, L - 2>(v[b + 1U]), pz<SUF, L - 1>(v[b + 0U]));
+            return _mm256_set_ps(pz<SUF, L - 8>(v, b + 7), pz<SUF, L - 7>(v, b + 6),
+                                 pz<SUF, L - 6>(v, b + 5), pz<SUF, L - 5>(v, b + 4),
+                                 pz<SUF, L - 4>(v, b + 3), pz<SUF, L - 3>(v, b + 2),
+                                 pz<SUF, L - 2>(v, b + 1), pz<SUF, L - 1>(v, b + 0));
         }
         else if constexpr(kt_is_same<bsz::b256, SZ, cdouble, SUF>())
         {
-            const double *vv = reinterpret_cast<const double *>(v);
-            return _mm256_set_pd(pz<double, L - 2>(vv[2U * b + 3U]),
-                                 pz<double, L - 2>(vv[2U * b + 2U]),
-                                 pz<double, L - 1>(vv[2U * b + 1U]),
-                                 pz<double, L - 1>(vv[2U * b + 0U]));
+            return _mm256_set_pd(pz<SUF, L - 2, false>(v, b + 1), pz<SUF, L - 2, true> (v, b + 1),
+                                 pz<SUF, L - 1, false>(v, b + 0), pz<SUF, L - 1, true> (v, b + 0));
         }
         else if constexpr(kt_is_same<bsz::b256, SZ, cfloat, SUF>())
         {
-            const float *vv = reinterpret_cast<const float *>(v);
-            return _mm256_set_ps(pz<float, L - 4>(vv[2 * b + 7U]), pz<float, L - 4>(vv[2 * b + 6U]),
-                                 pz<float, L - 3>(vv[2 * b + 5U]), pz<float, L - 3>(vv[2 * b + 4U]),
-                                 pz<float, L - 2>(vv[2 * b + 3U]), pz<float, L - 2>(vv[2 * b + 2U]),
-                                 pz<float, L - 1>(vv[2 * b + 1U]), pz<float, L - 1>(vv[2 * b + 0U]));
+            return _mm256_set_ps(pz<SUF, L - 4, false>(v, b + 3), pz<SUF, L - 4, true>(v, b + 3),
+                                 pz<SUF, L - 3, false>(v, b + 2), pz<SUF, L - 3, true>(v, b + 2),
+                                 pz<SUF, L - 2, false>(v, b + 1), pz<SUF, L - 2, true>(v, b + 1),
+                                 pz<SUF, L - 1, false>(v, b + 0), pz<SUF, L - 1, true>(v, b + 0));
+
         }
     };
 
@@ -148,35 +143,33 @@ namespace kernel_templates
     {
         if constexpr(kt_is_same<bsz::b256, SZ, double, SUF>())
         {
-            return _mm256_set_pd(pz<SUF, L - 4>(v[*(b + 3U)]), pz<SUF, L - 3>(v[*(b + 2U)]),
-                                 pz<SUF, L - 2>(v[*(b + 1U)]), pz<SUF, L - 1>(v[*(b + 0U)]));
+            return _mm256_set_pd(pz<SUF, L - 4>(v, b, 3), pz<SUF, L - 3>(v, b, 2),
+                                 pz<SUF, L - 2>(v, b, 1), pz<SUF, L - 1>(v, b, 0));
         }
         else if constexpr(kt_is_same<bsz::b256, SZ, float, SUF>())
         {
-            return _mm256_set_ps(pz<SUF, L - 8>(v[*(b + 7U)]), pz<SUF, L - 7>(v[*(b + 6U)]),
-                                 pz<SUF, L - 6>(v[*(b + 5U)]), pz<SUF, L - 5>(v[*(b + 4U)]),
-                                 pz<SUF, L - 4>(v[*(b + 3U)]), pz<SUF, L - 3>(v[*(b + 2U)]),
-                                 pz<SUF, L - 2>(v[*(b + 1U)]), pz<SUF, L - 1>(v[*(b + 0U)]));
+            return _mm256_set_ps(pz<SUF, L - 8>(v, b, 7), pz<SUF, L - 7>(v, b, 6),
+                                 pz<SUF, L - 6>(v, b, 5), pz<SUF, L - 5>(v, b, 4),
+                                 pz<SUF, L - 4>(v, b, 3), pz<SUF, L - 3>(v, b, 2),
+                                 pz<SUF, L - 2>(v, b, 1), pz<SUF, L - 1>(v, b, 0));
         }
         else if constexpr(kt_is_same<bsz::b256, SZ, cdouble, SUF>())
         {
-            const double *vv = reinterpret_cast<const double *>(v);
-            return _mm256_set_pd(pz<double, L - 2>(vv[2U * (*(b + 1U)) + 1U]),
-                                 pz<double, L - 2>(vv[2U * (*(b + 1U)) + 0U]),
-                                 pz<double, L - 1>(vv[2U * (*(b + 0U)) + 1U]),
-                                 pz<double, L - 1>(vv[2U * (*(b + 0U)) + 0U]));
+            return _mm256_set_pd(pz<std::complex<double>, L - 2, false>(v,b,1),
+                                 pz<std::complex<double>, L - 2, true> (v,b,1),
+                                 pz<std::complex<double>, L - 1, false>(v,b,0),
+                                 pz<std::complex<double>, L - 1, true> (v,b,0));
         }
         else if constexpr(kt_is_same<bsz::b256, SZ, cfloat, SUF>())
         {
-            const float *vv = reinterpret_cast<const float *>(v);
-            return _mm256_set_ps(pz<float, L - 4>(vv[2U * (*(b + 3U)) + 1U]),
-                                 pz<float, L - 4>(vv[2U * (*(b + 3U)) + 0U]),
-                                 pz<float, L - 3>(vv[2U * (*(b + 2U)) + 1U]),
-                                 pz<float, L - 3>(vv[2U * (*(b + 2U)) + 0U]),
-                                 pz<float, L - 2>(vv[2U * (*(b + 1U)) + 1U]),
-                                 pz<float, L - 2>(vv[2U * (*(b + 1U)) + 0U]),
-                                 pz<float, L - 1>(vv[2U * (*(b + 0U)) + 1U]),
-                                 pz<float, L - 1>(vv[2U * (*(b + 0U)) + 0U]));
+            return _mm256_set_ps(pz<std::complex<float>, L - 4, false>(v, b, 3),
+                                 pz<std::complex<float>, L - 4, true> (v, b, 3),
+                                 pz<std::complex<float>, L - 3, false>(v, b, 2),
+                                 pz<std::complex<float>, L - 3, true> (v, b, 2),
+                                 pz<std::complex<float>, L - 2, false>(v, b, 1),
+                                 pz<std::complex<float>, L - 2, true> (v, b, 1),
+                                 pz<std::complex<float>, L - 1, false>(v, b, 0),
+                                 pz<std::complex<float>, L - 1, true> (v, b, 0));
         }
     };
 
@@ -205,16 +198,12 @@ namespace kernel_templates
     // Stores the values in an AVX register to a memory location (Memory does not have to be aligned)
     template <bsz SZ, typename SUF>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b256, void>
-                    kt_storeu_p(const SUF *a, const avxvector_t<SZ, SUF> v) noexcept
+                    kt_storeu_p(SUF *a, const avxvector_t<SZ, SUF> v) noexcept
     {
-        if constexpr(std::is_same_v<SUF, double>)
-            _mm256_storeu_pd(const_cast<double *>(a), v);
-        else if constexpr(std::is_same_v<SUF, float>)
-            _mm256_storeu_ps(const_cast<float *>(a), v);
-        else if constexpr(std::is_same_v<SUF, cdouble>)
-            _mm256_storeu_pd(reinterpret_cast<double *>(const_cast<cdouble *>(a)), v);
-        else if constexpr(std::is_same_v<SUF, cfloat>)
-            _mm256_storeu_ps(reinterpret_cast<float *>(const_cast<cfloat *>(a)), v);
+        if constexpr(kt_is_base_t_double<SUF>())
+            _mm256_storeu_pd(reinterpret_cast<double *>(a), v);
+        else
+            _mm256_storeu_ps(reinterpret_cast<float *>(a), v);
     };
 
     // Vector addition of two AVX registers.
