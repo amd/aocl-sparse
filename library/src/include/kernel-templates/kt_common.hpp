@@ -294,15 +294,69 @@ namespace kernel_templates
 #endif
     }
 
-    // Delta function (used for zero-padding)
-    template <typename T, int L>
-    constexpr T pz(const T &x) noexcept
+    // --------------------------------------------------------------------------------------
+    // Delta functions (used for zero-padding)
+    // --------------------------------------------------------------------------------------
+
+    // Specialization for REAL and COMPLEX space PZ with offset
+    template <typename T, int L, bool get_real_part = false>
+    constexpr auto pz(const T *x, const kt_int_t *idx, kt_int_t offset) noexcept
     {
-        if constexpr(L >= 0)
-            return x;
-        else
-            return (T)0.0;
+        if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
+        {
+            if constexpr(L >= 0)
+                return x[*(idx + offset)];
+            else
+                return (T)0.0;
+        }
+        else if constexpr(std::is_same_v<T, std::complex<float>>
+                          || std::is_same_v<T, std::complex<double>>)
+        {
+            if constexpr(L >= 0)
+            {
+                if constexpr(get_real_part == true)
+                    return x[*(idx + offset)].real();
+                else
+                    return x[*(idx + offset)].imag();
+            }
+            else
+            {
+                using U = typename T::value_type;
+                return U(0.0);
+            }
+        }
     };
+
+    // Specialization for REAL and COMPLEX space PZ without offset
+    template <typename T, int L, bool get_real_part = false>
+    constexpr auto pz(const T *x, kt_int_t idx) noexcept
+    {
+        if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
+        {
+            if constexpr(L >= 0)
+                return x[idx];
+            else
+                return (T)0.0;
+        }
+        else if constexpr(std::is_same_v<T, std::complex<float>>
+                          || std::is_same_v<T, std::complex<double>>)
+        {
+            if constexpr(L >= 0)
+            {
+                if constexpr(get_real_part == true)
+                    return x[idx].real();
+                else
+                    return x[idx].imag();
+            }
+            else
+            {
+                using U = typename T::value_type;
+                return U(0.0);
+            }
+        }
+    };
+
+    // --------------------------------------------------------------------------------------
 
 // compatibility macro for windows
 #if !defined(__clang__) && (defined(_WIN32) || defined(_WIN64))

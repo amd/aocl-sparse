@@ -729,7 +729,8 @@ namespace TestsKT
      */
 #define kt_maskz_set_p_param_indir(SZ, SUF, S, EXT, K, B)                            \
     {                                                                                \
-        const size_t         n = tsz_v<SZ, SUF>;                                     \
+        const size_t n = tsz_v<SZ, SUF>;                                             \
+                                                                                     \
         avxvector_t<SZ, SUF> v = kt_maskz_set_p<SZ, SUF, EXT, K>(D.v##S, &D.map[B]); \
         SUF                  ve[n];                                                  \
         SUF                 *pv = nullptr;                                           \
@@ -751,8 +752,32 @@ namespace TestsKT
         }                                                                            \
     }
 
-#ifdef __AVX512F__
+    /*
+     * Test out of bound access in mask indirect access
+     */
+#define kt_maskz_set_p_param_indir_out_of_bound(SZ, SUF, S, EXT)                             \
+    {                                                                                        \
+        const size_t         n        = tsz_v<SZ, SUF>;                                      \
+        size_t               mock_idx = 1000000;                                             \
+        avxvector_t<SZ, SUF> v        = kt_maskz_set_p<SZ, SUF, EXT, -1>(D.v##S, &mock_idx); \
+        SUF                  ve[n];                                                          \
+        SUF                 *pv = nullptr;                                                   \
+        for(size_t i = 0; i < n; i++)                                                        \
+                                                                                             \
+            ve[i] = 0;                                                                       \
+                                                                                             \
+        pv = reinterpret_cast<SUF *>(&v);                                                    \
+        if constexpr(std::is_same_v<SUF, cdouble> || std::is_same_v<SUF, cfloat>)            \
+        {                                                                                    \
+            EXPECT_COMPLEX_EQ_VEC(n, pv, ve);                                                \
+        }                                                                                    \
+        else                                                                                 \
+        {                                                                                    \
+            EXPECT_EQ_VEC(n, v, ve);                                                         \
+        }                                                                                    \
+    }
 
+#ifdef __AVX512F__
     void kt_maskz_set_p_256_AVX512vl()
     {
         kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX512VL, 1, 0);
@@ -858,6 +883,12 @@ namespace TestsKT
         kt_maskz_set_p_param_indir(bsz::b512, cdouble, z, AVX512F, 2, 1);
         kt_maskz_set_p_param_indir(bsz::b512, cdouble, z, AVX512F, 3, 0);
         kt_maskz_set_p_param_indir(bsz::b512, cdouble, z, AVX512F, 4, 3);
+
+        // Out of bound access tests
+        kt_maskz_set_p_param_indir_out_of_bound(bsz::b512, float, s, AVX512F);
+        kt_maskz_set_p_param_indir_out_of_bound(bsz::b512, double, d, AVX512F);
+        kt_maskz_set_p_param_indir_out_of_bound(bsz::b512, cfloat, c, AVX512F);
+        kt_maskz_set_p_param_indir_out_of_bound(bsz::b512, cdouble, z, AVX512F);
     }
 
 #else
@@ -877,6 +908,8 @@ namespace TestsKT
         kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 8, 1);
         // This must trigger a warning under AVX512F (bsz::b256 bit __mask8)
         // kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 9);
+        // Test to ensure the memory is not touched
+        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, -1, 10000000);
 
         // bsz::b256 double -> 4
         kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX, 1, 0);
@@ -885,6 +918,8 @@ namespace TestsKT
         kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX, 4, 2);
         // This also triggers a warning
         // kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX, 5);
+        // Test to ensure the memory is not touched
+        kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX, -1, 10000000);
 
         // bsz::b256 cfloat -> 4
         kt_maskz_set_p_param_dir(bsz::b256, cfloat, c, AVX, 1, 1);
@@ -892,10 +927,16 @@ namespace TestsKT
         kt_maskz_set_p_param_dir(bsz::b256, cfloat, c, AVX, 3, 4);
         kt_maskz_set_p_param_dir(bsz::b256, cfloat, c, AVX, 4, 0);
 
+        // Test to ensure the memory is not touched
+        kt_maskz_set_p_param_dir(bsz::b256, cfloat, c, AVX, -1, 10000000);
+
         // bsz::b256 cdouble -> 2
         kt_maskz_set_p_param_dir(bsz::b256, cdouble, z, AVX, 1, 0);
         kt_maskz_set_p_param_dir(bsz::b256, cdouble, z, AVX, 2, 4);
         kt_maskz_set_p_param_dir(bsz::b256, cdouble, z, AVX, 2, 0);
+
+        // Test to ensure the memory is not touched
+        kt_maskz_set_p_param_dir(bsz::b256, cdouble, z, AVX, -1, 10000000);
 
         // =================================
         // INDIRECT (can have any extension)
@@ -927,6 +968,12 @@ namespace TestsKT
         kt_maskz_set_p_param_indir(bsz::b256, cdouble, z, AVX, 1, 0);
         kt_maskz_set_p_param_indir(bsz::b256, cdouble, z, AVX, 2, 2);
         kt_maskz_set_p_param_indir(bsz::b256, cdouble, z, AVX512DQ, 0, 0);
+
+        // Out of bound access tests
+        kt_maskz_set_p_param_indir_out_of_bound(bsz::b256, float, s, AVX2);
+        kt_maskz_set_p_param_indir_out_of_bound(bsz::b256, double, d, AVX2);
+        kt_maskz_set_p_param_indir_out_of_bound(bsz::b256, cfloat, c, AVX2);
+        kt_maskz_set_p_param_indir_out_of_bound(bsz::b256, cdouble, z, AVX2);
     }
 #endif
 
