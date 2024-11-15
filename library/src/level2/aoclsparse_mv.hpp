@@ -256,12 +256,14 @@ std::enable_if_t<std::is_same_v<T, std::complex<float>> || std::is_same_v<T, std
 
     if((descr->type == aoclsparse_matrix_type_triangular
         || descr->type == aoclsparse_matrix_type_symmetric
-        || descr->type == aoclsparse_matrix_type_hermitian)
-       && !A->opt_csr_ready)
+        || descr->type == aoclsparse_matrix_type_hermitian))
     {
-        status = aoclsparse_csr_optimize<T>(A);
-        if(status)
-            return status;
+        if(!A->opt_csr_ready)
+        {
+            status = aoclsparse_csr_optimize<T>(A);
+            if(status)
+                return status;
+        }
         descr_cpy.base = A->internal_base_index;
     }
 
@@ -648,19 +650,21 @@ std::enable_if_t<std::is_same_v<T, float> || std::is_same_v<T, double>, aoclspar
     aoclsparse_copy_mat_descr(&descr_cpy, descr);
 
     if((descr->type == aoclsparse_matrix_type_triangular
-        || descr->type == aoclsparse_matrix_type_symmetric)
-       && !A->opt_csr_ready)
+        || descr->type == aoclsparse_matrix_type_symmetric))
     {
-        if(A->input_format == aoclsparse_tcsr_mat)
+        if(!A->opt_csr_ready)
         {
-            status = aoclsparse_tcsr_optimize<T>(A);
+            if(A->input_format == aoclsparse_tcsr_mat)
+            {
+                status = aoclsparse_tcsr_optimize<T>(A);
+            }
+            else
+            {
+                status = aoclsparse_csr_optimize<T>(A);
+            }
+            if(status)
+                return status;
         }
-        else
-        {
-            status = aoclsparse_csr_optimize<T>(A);
-        }
-        if(status)
-            return status;
         descr_cpy.base = A->internal_base_index;
     }
 
