@@ -554,7 +554,8 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
         optd->action_optimized = true;
         // Increment the actions counter that are implemented
         if((optd->act == aoclsparse_action_mv || optd->act == aoclsparse_action_dotmv)
-           && optd->trans == aoclsparse_operation_none && A->val_type == aoclsparse_dmat
+           && optd->trans == aoclsparse_operation_none
+           && optd->type == aoclsparse_matrix_type_general && A->val_type == aoclsparse_dmat
            && optd->nop > 0)
             mv_count++;
         else if(optd->act == aoclsparse_action_ilu0 && optd->nop > 0)

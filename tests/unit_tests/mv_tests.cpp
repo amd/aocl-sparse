@@ -716,6 +716,166 @@ namespace
         EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
     }
     template <typename T>
+    void test_mv_symm(std::string testcase, aoclsparse_index_base base)
+    {
+        SCOPED_TRACE(testcase);
+
+        aoclsparse_operation trans;
+        aoclsparse_int       M = 8, N = 8, NNZ = 19;
+        T                    alpha = 1.0;
+        T                    beta  = 0.0;
+        // Initialise vectors
+        T x[8]      = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0};
+        T y[8]      = {0.0};
+        T y_gold[8] = {0.0};
+
+        aoclsparse_mat_descr descr;
+        aoclsparse_matrix    A;
+
+        //symmetric matrix with lower triangle
+        aoclsparse_int csr_row_ptr[] = {0, 1, 2, 6, 7, 9, 12, 16, 19};
+        aoclsparse_int csr_col_ind[] = {0, 1, 0, 3, 2, 1, 3, 1, 4, 0, 4, 5, 0, 3, 4, 6, 2, 5, 7};
+        T              csr_val[] = {19, 10, 1, 13, 11, 13, 8, 2, 11, 2, 1, 9, 7, 9, 5, 12, 5, 5, 9};
+
+        if(base == aoclsparse_index_base_one)
+        {
+            for(aoclsparse_int i = 0; i < M + 1; i++)
+                csr_row_ptr[i] += base;
+            for(aoclsparse_int i = 0; i < NNZ; i++)
+                csr_col_ind[i] += base;
+        }
+
+        trans = aoclsparse_operation_none;
+
+        //assign y[] with NaN value to verify tests with zero beta
+        for(int i = 0; i < M; i++)
+        {
+            y[i] = std::numeric_limits<double>::quiet_NaN();
+        }
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, base), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_symmetric),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_fill_mode(descr, aoclsparse_fill_mode_lower),
+                  aoclsparse_status_success);
+
+        ASSERT_EQ(aoclsparse_create_csr<T>(&A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val),
+                  aoclsparse_status_success);
+
+        ASSERT_EQ(aoclsparse_set_mv_hint(A, trans, descr, 1), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_optimize(A), aoclsparse_status_success);
+
+        EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A, descr, x, &beta, y),
+                  aoclsparse_status_success);
+
+        EXPECT_EQ(ref_csrmvsym(alpha,
+                               M,
+                               csr_val,
+                               csr_col_ind,
+                               csr_row_ptr,
+                               aoclsparse_fill_mode_lower,
+                               aoclsparse_diag_type_non_unit,
+                               base,
+                               x,
+                               beta,
+                               y_gold),
+                  aoclsparse_status_success);
+        EXPECT_ARR_NEAR(M, y, y_gold, expected_precision<T>());
+        EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
+    }
+    template <typename T>
+    void test_mv_symm_complex(std::string testcase, aoclsparse_index_base base)
+    {
+        SCOPED_TRACE(testcase);
+        tolerance_t<T> abserr = sqrt(std::numeric_limits<tolerance_t<T>>::epsilon());
+
+        aoclsparse_int M = 8, N = 8, NNZ = 18;
+        T              alpha = {1.0, 0.0};
+        T              beta  = {0.0, 0.0};
+        // Initialise vectors
+        T x[8]      = {{1.0, 1.0},
+                       {2.0, 1.0},
+                       {3.0, 3.0},
+                       {4.0, 4.0},
+                       {5.0, 5.0},
+                       {6.0, 6.0},
+                       {7.0, 7.0},
+                       {8.0, 8.0}};
+        T y[8]      = {{0, 0}};
+        T y_gold[8] = {{0, 0}};
+
+        aoclsparse_operation trans = aoclsparse_operation_none;
+        aoclsparse_mat_descr descr;
+        aoclsparse_matrix    A;
+
+        //symmetric matrix with lower triangle
+        aoclsparse_int csr_row_ptr[] = {0, 1, 2, 5, 6, 8, 11, 15, 18};
+        aoclsparse_int csr_col_ind[] = {0, 1, 0, 2, 1, 3, 1, 4, 0, 4, 5, 0, 3, 4, 6, 2, 5, 7};
+        T              csr_val[]     = {{19, 19},
+                                        {10, 10},
+                                        {1, 1},
+                                        {11, 11},
+                                        {8, 8},
+                                        {13, 13},
+                                        {2, 2},
+                                        {11, 11},
+                                        {2, 2},
+                                        {1, 1},
+                                        {9, 9},
+                                        {7, 7},
+                                        {9, 9},
+                                        {5, 5},
+                                        {12, 12},
+                                        {5, 5},
+                                        {5, 5},
+                                        {9, 9}};
+
+        if(base == aoclsparse_index_base_one)
+        {
+            for(aoclsparse_int i = 0; i < M + 1; i++)
+                csr_row_ptr[i] += base;
+            for(aoclsparse_int i = 0; i < NNZ; i++)
+                csr_col_ind[i] += base;
+        }
+
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, base), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_symmetric),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_fill_mode(descr, aoclsparse_fill_mode_lower),
+                  aoclsparse_status_success);
+
+        ASSERT_EQ(aoclsparse_create_csr<T>(&A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val),
+                  aoclsparse_status_success);
+
+        ASSERT_EQ(aoclsparse_set_mv_hint(A, trans, descr, 1), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_optimize(A), aoclsparse_status_success);
+
+        EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A, descr, x, &beta, y),
+                  aoclsparse_status_success);
+
+        const std::complex<double> alphap = *reinterpret_cast<const std::complex<double> *>(&alpha);
+        const std::complex<double> betap  = *reinterpret_cast<const std::complex<double> *>(&beta);
+
+        EXPECT_EQ(ref_csrmvsym(alphap,
+                               M,
+                               (std::complex<double> *)csr_val,
+                               csr_col_ind,
+                               csr_row_ptr,
+                               aoclsparse_fill_mode_lower,
+                               aoclsparse_diag_type_non_unit,
+                               base,
+                               (std::complex<double> *)x,
+                               betap,
+                               (std::complex<double> *)y_gold),
+                  aoclsparse_status_success);
+        EXPECT_COMPLEX_ARR_NEAR(
+            M, ((std::complex<double> *)y), ((std::complex<double> *)y_gold), abserr);
+        EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
+    }
+    template <typename T>
     void test_mv_symm_transpose()
     {
         aoclsparse_operation trans;
@@ -1210,6 +1370,23 @@ namespace
     TEST(mv, TriangTransposeFloat)
     {
         test_mv_trianglular_transpose<float>();
+    }
+    TEST(mv, SymmDouble)
+    {
+        test_mv_symm<double>("SuccessSymmetric-Double-ZeroBase", aoclsparse_index_base_zero);
+        test_mv_symm<double>("SuccessSymmetric-Double-OneBase", aoclsparse_index_base_one);
+    }
+    TEST(mv, SymmFloat)
+    {
+        test_mv_symm<float>("SuccessSymmetric-Float-ZeroBase", aoclsparse_index_base_zero);
+        test_mv_symm<float>("SuccessSymmetric-Float-OneBase", aoclsparse_index_base_one);
+    }
+    TEST(mv, SymmComplexDouble)
+    {
+        test_mv_symm_complex<aoclsparse_double_complex>("SuccessSymmetric-ComplexDouble-ZeroBase",
+                                                        aoclsparse_index_base_zero);
+        test_mv_symm_complex<aoclsparse_double_complex>("SuccessSymmetric-ComplexDouble-OneBase",
+                                                        aoclsparse_index_base_one);
     }
     TEST(mv, SymmTransposeDouble)
     {
