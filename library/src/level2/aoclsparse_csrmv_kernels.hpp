@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -177,85 +177,73 @@ aoclsparse_status aoclsparse_csrmv_symm(aoclsparse_index_base base,
  * n & nnz kicked out of the interface as not needed
  */
 template <typename T>
-aoclsparse_status
-    aoclsparse_csrmv_symm_internal(aoclsparse_index_base base,
-                                   T                     alpha,
-                                   aoclsparse_int        m,
-                                   aoclsparse_diag_type  diag_type,
-                                   aoclsparse_fill_mode  fill_mode,
-                                   const T *__restrict__ csr_val,
-                                   const aoclsparse_int *__restrict__ csr_icol,
-                                   const aoclsparse_int *__restrict__ csr_icrow,
-                                   const aoclsparse_int *__restrict__ csr_idiag,
-                                   [[maybe_unused]] const aoclsparse_int *__restrict__ csr_iurow,
-                                   const T *__restrict__ x,
-                                   T beta,
-                                   T *__restrict__ y)
+aoclsparse_status aoclsparse_csrmv_symm_internal(aoclsparse_index_base base,
+                                                 T                     alpha,
+                                                 aoclsparse_int        m,
+                                                 aoclsparse_diag_type  diag_type,
+                                                 aoclsparse_fill_mode  fill_mode,
+                                                 const T *__restrict__ csr_val,
+                                                 const aoclsparse_int *__restrict__ csr_icol,
+                                                 const aoclsparse_int *__restrict__ csr_icrow,
+                                                 const aoclsparse_int *__restrict__ csr_idiag,
+                                                 const aoclsparse_int *__restrict__ csr_iurow,
+                                                 const T *__restrict__ x,
+                                                 T beta,
+                                                 T *__restrict__ y)
 {
-    // TODO test pointers & etc? Perhaps not needed, this will be called above optimized data
-    // so probably just what came from the user, i.e., x & y?
+    const aoclsparse_int *csr_istart, *csr_iend;
+    if(fill_mode == aoclsparse_fill_mode_lower)
+    {
+        csr_istart = csr_icrow;
+        csr_iend   = csr_idiag;
+    }
+    else
+    {
+        csr_istart = csr_iurow;
+        csr_iend   = csr_icrow + 1;
+    }
 
-    aoclsparse_int i, j, idx, idxstart, idxend;
-    T              val;
+    const aoclsparse_int *col_fix = csr_icol - base;
+    const T              *val_fix = csr_val - base;
+    const T              *x_fix   = x - base;
+    T                    *y_fix   = y - base;
 
     // Perform (beta * y)
     if(beta == aoclsparse_numeric::zero<T>())
     {
         // if beta==0 and y contains any NaNs, we can zero y directly
-        for(i = 0; i < m; i++)
+        for(aoclsparse_int i = 0; i < m; i++)
             y[i] = aoclsparse_numeric::zero<T>();
     }
     else if(beta != static_cast<T>(1))
     {
-        for(i = 0; i < m; i++)
+        for(aoclsparse_int i = 0; i < m; i++)
             y[i] = beta * y[i];
     }
 
-    if(fill_mode == aoclsparse_fill_mode_lower)
+    for(aoclsparse_int i = 0; i < m; i++)
     {
-        for(i = 0; i < m; i++)
-        {
-            idxstart = csr_icrow[i] - base;
-            // strictly L elements in each row are icrow[i]..idiag[i]-1
-            idxend = csr_idiag[i] - base;
-            // multiply with all strictly L triangle elements (and their transpose)
-            for(idx = idxstart; idx < idxend; idx++)
-            {
-                val = alpha * csr_val[idx];
-                j   = csr_icol[idx] - base;
-                y[i] += val * x[j];
-                y[j] += val * x[i];
-            }
-            if(diag_type == aoclsparse_diag_type_non_unit)
-                y[i] += alpha * csr_val[idxend] * x[i];
-            else if(diag_type == aoclsparse_diag_type_unit)
-                y[i] += alpha * x[i];
-            //else zero diagonal
-        }
-    }
-    else
-    { // fill_mode==aoclsparse_fill_mode_upper
-        for(i = 0; i < m; i++)
-        {
-            // diag is at csr_idiag[i]
-            idx = csr_idiag[i] - base;
-            if(diag_type == aoclsparse_diag_type_non_unit)
-                y[i] += alpha * csr_val[idx] * x[i];
-            else if(diag_type == aoclsparse_diag_type_unit)
-                y[i] += alpha * x[i];
-            //else zero diagonal
+        // strictly (L/U) elements in each row are idxstart[i]..idxend[i]-1
+        aoclsparse_int idxstart = csr_istart[i];
+        aoclsparse_int idxend   = csr_iend[i];
+        T              x_val    = x[i];
+        T              sum      = aoclsparse_numeric::zero<T>();
 
-            // strictly U elements in each row are idiag[i]+1..icrow[i+1]-1
-            idxend = csr_icrow[i + 1] - base;
-            // multiply with all strictly U triangle elements (and their transpose)
-            for(idx = idx + 1; idx < idxend; idx++)
-            {
-                val = alpha * csr_val[idx];
-                j   = csr_icol[idx] - base;
-                y[i] += val * x[j];
-                y[j] += val * x[i];
-            }
+        // multiply with all strictly (L/U) triangle elements (and their transpose)
+        for(aoclsparse_int j = idxstart; j < idxend; j++)
+        {
+            aoclsparse_int col = col_fix[j];
+            T              val = alpha * val_fix[j];
+            sum += val * x_fix[col];
+            y_fix[col] += val * x_val;
         }
+        // multiply with diagonal
+        if(diag_type == aoclsparse_diag_type_non_unit)
+            sum += alpha * val_fix[csr_idiag[i]] * x_val;
+        else if(diag_type == aoclsparse_diag_type_unit)
+            sum += alpha * x_val;
+        // else zero diagonal
+        y[i] += sum;
     }
     return aoclsparse_status_success;
 }
@@ -302,6 +290,7 @@ aoclsparse_status
     {
         for(i = 0; i < m; i++)
         {
+            T sum    = aoclsparse_numeric::zero<T>();
             idxstart = csr_icrow[i] - base;
             // strictly L elements in each row are icrow[i]..idiag[i]-1
             idxend = csr_idiag[i] - base;
@@ -310,26 +299,28 @@ aoclsparse_status
             {
                 val = alpha * aoclsparse::conj(csr_val[idx]);
                 j   = csr_icol[idx] - base;
-                y[i] += val * x[j];
+                sum += val * x[j];
                 y[j] += val * x[i];
             }
             if(diag_type == aoclsparse_diag_type_non_unit)
-                y[i] += alpha * aoclsparse::conj(csr_val[idxend]) * x[i];
+                sum += alpha * aoclsparse::conj(csr_val[idxend]) * x[i];
             else if(diag_type == aoclsparse_diag_type_unit)
-                y[i] += alpha * x[i];
+                sum += alpha * x[i];
             //else zero diagonal
+            y[i] += sum;
         }
     }
     else
     { // fill_mode==aoclsparse_fill_mode_upper
         for(i = 0; i < m; i++)
         {
+            T sum = aoclsparse_numeric::zero<T>();
             // diag is at csr_idiag[i]
             idx = csr_idiag[i] - base;
             if(diag_type == aoclsparse_diag_type_non_unit)
-                y[i] += alpha * aoclsparse::conj(csr_val[idx]) * x[i];
+                sum += alpha * aoclsparse::conj(csr_val[idx]) * x[i];
             else if(diag_type == aoclsparse_diag_type_unit)
-                y[i] += alpha * x[i];
+                sum += alpha * x[i];
             //else zero diagonal
 
             // strictly U elements in each row are idiag[i]+1..icrow[i+1]-1
@@ -339,9 +330,10 @@ aoclsparse_status
             {
                 val = alpha * aoclsparse::conj(csr_val[idx]);
                 j   = csr_icol[idx] - base;
-                y[i] += val * x[j];
+                sum += val * x[j];
                 y[j] += val * x[i];
             }
+            y[i] += sum;
         }
     }
     return aoclsparse_status_success;
@@ -388,6 +380,7 @@ aoclsparse_status
     {
         for(i = 0; i < m; i++)
         {
+            T sum    = aoclsparse_numeric::zero<T>();
             idxstart = csr_icrow[i] - base;
             // strictly L elements in each row are icrow[i]..idiag[i]-1
             idxend = csr_idiag[i] - base;
@@ -396,14 +389,15 @@ aoclsparse_status
             {
                 val = alpha * csr_val[idx];
                 j   = csr_icol[idx] - base;
-                y[i] += val * x[j];
+                sum += val * x[j];
                 y[j] += alpha * aoclsparse::conj(csr_val[idx]) * x[i];
             }
             if(diag_type == aoclsparse_diag_type_non_unit)
-                y[i] += alpha * csr_val[idxend] * x[i];
+                sum += alpha * csr_val[idxend] * x[i];
             else if(diag_type == aoclsparse_diag_type_unit)
-                y[i] += alpha * x[i];
+                sum += alpha * x[i];
             //else zero diagonal
+            y[i] += sum;
         }
     }
     else
@@ -411,11 +405,12 @@ aoclsparse_status
         for(i = 0; i < m; i++)
         {
             // diag is at csr_idiag[i]
-            idx = csr_idiag[i] - base;
+            T sum = aoclsparse_numeric::zero<T>();
+            idx   = csr_idiag[i] - base;
             if(diag_type == aoclsparse_diag_type_non_unit)
-                y[i] += alpha * csr_val[idx] * x[i];
+                sum += alpha * csr_val[idx] * x[i];
             else if(diag_type == aoclsparse_diag_type_unit)
-                y[i] += alpha * x[i];
+                sum += alpha * x[i];
             //else zero diagonal
 
             // strictly U elements in each row are idiag[i]+1..icrow[i+1]-1
@@ -425,9 +420,10 @@ aoclsparse_status
             {
                 val = alpha * csr_val[idx];
                 j   = csr_icol[idx] - base;
-                y[i] += val * x[j];
+                sum += val * x[j];
                 y[j] += alpha * aoclsparse::conj(csr_val[idx]) * x[i];
             }
+            y[i] += sum;
         }
     }
     return aoclsparse_status_success;

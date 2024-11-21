@@ -58,6 +58,20 @@ namespace aoclsparse
                                 const SUF beta,
                                 SUF *__restrict__ y);
 
+    template <kernel_templates::bsz SZ, typename SUF>
+    aoclsparse_status csrmv_symm_kt(aoclsparse_index_base base,
+                                    const SUF             alpha,
+                                    aoclsparse_int        m,
+                                    aoclsparse_diag_type  diag_type,
+                                    aoclsparse_fill_mode  fill_mode,
+                                    const SUF *__restrict__ aval,
+                                    const aoclsparse_int *__restrict__ icol,
+                                    const aoclsparse_int *__restrict__ icrow,
+                                    const aoclsparse_int *__restrict__ idiag,
+                                    const aoclsparse_int *__restrict__ iurow,
+                                    const SUF *__restrict__ x,
+                                    const SUF beta,
+                                    SUF *__restrict__ y);
 }
 
 template <kernel_templates::bsz SZ, typename SUF, kernel_templates::kt_avxext EXT>

@@ -294,19 +294,25 @@ std::enable_if_t<std::is_same_v<T, std::complex<float>> || std::is_same_v<T, std
     case aoclsparse_operation_none:
         if(descr->type == aoclsparse_matrix_type_symmetric)
         {
-            return aoclsparse_csrmv_symm_internal(descr_cpy.base,
-                                                  *alpha,
-                                                  A->m,
-                                                  descr_cpy.diag_type,
-                                                  descr_cpy.fill_mode,
-                                                  (T *)A->opt_csr_mat.csr_val,
-                                                  A->opt_csr_mat.csr_col_ptr,
-                                                  A->opt_csr_mat.csr_row_ptr,
-                                                  A->idiag,
-                                                  A->iurow,
-                                                  x,
-                                                  *beta,
-                                                  y);
+            using K  = decltype(&aoclsparse::csrmv_symm_kt<kernel_templates::bsz::b256, T>);
+            K kernel = aoclsparse::csrmv_symm_kt<kernel_templates::bsz::b256, T>;
+#ifdef USE_AVX512
+            if(context::get_context()->supports<context_isa_t::AVX512F>())
+                kernel = aoclsparse::csrmv_symm_kt<kernel_templates::bsz::b512, T>;
+#endif
+            return kernel(descr_cpy.base,
+                          *alpha,
+                          A->m,
+                          descr_cpy.diag_type,
+                          descr_cpy.fill_mode,
+                          (T *)A->opt_csr_mat.csr_val,
+                          A->opt_csr_mat.csr_col_ptr,
+                          A->opt_csr_mat.csr_row_ptr,
+                          A->idiag,
+                          A->iurow,
+                          x,
+                          *beta,
+                          y);
         }
         else if(descr->type == aoclsparse_matrix_type_general)
         {
@@ -399,19 +405,25 @@ std::enable_if_t<std::is_same_v<T, std::complex<float>> || std::is_same_v<T, std
     case aoclsparse_operation_transpose:
         if(descr->type == aoclsparse_matrix_type_symmetric)
         {
-            return aoclsparse_csrmv_symm_internal(descr_cpy.base,
-                                                  *alpha,
-                                                  A->m,
-                                                  descr_cpy.diag_type,
-                                                  descr_cpy.fill_mode,
-                                                  (T *)A->opt_csr_mat.csr_val,
-                                                  A->opt_csr_mat.csr_col_ptr,
-                                                  A->opt_csr_mat.csr_row_ptr,
-                                                  A->idiag,
-                                                  A->iurow,
-                                                  x,
-                                                  *beta,
-                                                  y);
+            using K  = decltype(&aoclsparse::csrmv_symm_kt<kernel_templates::bsz::b256, T>);
+            K kernel = aoclsparse::csrmv_symm_kt<kernel_templates::bsz::b256, T>;
+#ifdef USE_AVX512
+            if(context::get_context()->supports<context_isa_t::AVX512F>())
+                kernel = aoclsparse::csrmv_symm_kt<kernel_templates::bsz::b512, T>;
+#endif
+            return kernel(descr_cpy.base,
+                          *alpha,
+                          A->m,
+                          descr_cpy.diag_type,
+                          descr_cpy.fill_mode,
+                          (T *)A->opt_csr_mat.csr_val,
+                          A->opt_csr_mat.csr_col_ptr,
+                          A->opt_csr_mat.csr_row_ptr,
+                          A->idiag,
+                          A->iurow,
+                          x,
+                          *beta,
+                          y);
         }
         else if(descr->type == aoclsparse_matrix_type_general)
         {
@@ -593,6 +605,7 @@ std::enable_if_t<std::is_same_v<T, float> || std::is_same_v<T, double>, aoclspar
                     const T                   *beta,
                     T                         *y)
 {
+    using namespace aoclsparse;
     if(alpha == nullptr || beta == nullptr)
         return aoclsparse_status_invalid_pointer;
 
@@ -825,6 +838,7 @@ std::enable_if_t<std::is_same_v<T, float> || std::is_same_v<T, double>, aoclspar
         T              *csr_val = nullptr;
         aoclsparse_int *csr_col = nullptr, *csr_crow = nullptr, *csr_diag = nullptr,
                        *csr_urow = nullptr;
+
         if(A->mat_type != aoclsparse_tcsr_mat) // CSR Matrix
         {
             csr_val  = (T *)A->opt_csr_mat.csr_val;
@@ -853,19 +867,26 @@ std::enable_if_t<std::is_same_v<T, float> || std::is_same_v<T, double>, aoclspar
                 csr_urow = A->iurow;
             }
         }
-        return aoclsparse_csrmv_symm_internal(descr_cpy.base,
-                                              *alpha,
-                                              A->m,
-                                              descr_cpy.diag_type,
-                                              descr_cpy.fill_mode,
-                                              csr_val,
-                                              csr_col,
-                                              csr_crow,
-                                              csr_diag,
-                                              csr_urow,
-                                              x,
-                                              *beta,
-                                              y);
+
+        using K  = decltype(&aoclsparse::csrmv_symm_kt<kernel_templates::bsz::b256, T>);
+        K kernel = aoclsparse::csrmv_symm_kt<kernel_templates::bsz::b256, T>;
+#ifdef USE_AVX512
+        if(context::get_context()->supports<context_isa_t::AVX512F>())
+            kernel = aoclsparse::csrmv_symm_kt<kernel_templates::bsz::b512, T>;
+#endif
+        return kernel(descr_cpy.base,
+                      *alpha,
+                      A->m,
+                      descr_cpy.diag_type,
+                      descr_cpy.fill_mode,
+                      csr_val,
+                      csr_col,
+                      csr_crow,
+                      csr_diag,
+                      csr_urow,
+                      x,
+                      *beta,
+                      y);
     }
     else if(descr->type == aoclsparse_matrix_type_triangular)
     {
