@@ -1146,12 +1146,12 @@ namespace TestsKT
         float                    vss[ns];
         double                   refd[nd];
         double                   vdd[nd];
-        cfloat                   vcc[nc];
-        cdouble                  refz[nz];
-        cdouble                  vzz[nz];
 
         // Used to dynamic memory allocation to suppress a potential compiler bug
-        cfloat *refc = new cfloat[nc];
+        cfloat  *refc = new cfloat[nc];
+        cfloat  *vcc  = new cfloat[nc];
+        cdouble *refz = new cdouble[nz];
+        cdouble *vzz  = new cdouble[nz];
 
         s = kt_loadu_p<SZ, float>(&D.vs[3]);
         kt_storeu_p<SZ, float>(vss, s);
@@ -1186,6 +1186,9 @@ namespace TestsKT
         EXPECT_EQ_VEC(nz, vzz, refz);
 
         delete[] refc;
+        delete[] refz;
+        delete[] vcc;
+        delete[] vzz;
     }
 
     template <bsz SZ>
