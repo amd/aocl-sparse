@@ -305,23 +305,11 @@ std::enable_if_t<std::is_same_v<T, std::complex<float>> || std::is_same_v<T, std
                                                 *beta,
                                                 y);
             else
+            {
 #ifdef USE_AVX512
                 if(context::get_context()->supports<context_isa_t::AVX512F>())
-            {
-                if constexpr(std::is_same_v<T, std::complex<double>>)
                 {
-                    return aoclsparse_zcsrmv_avx512(descr->base,
-                                                    *alpha,
-                                                    A->m,
-                                                    (T *)A->csr_mat.csr_val,
-                                                    A->csr_mat.csr_col_ptr,
-                                                    A->csr_mat.csr_row_ptr,
-                                                    x,
-                                                    *beta,
-                                                    y);
-                }
-                else
-                {
+
                     return aoclsparse::csrmv_kt<kernel_templates::bsz::b512, T>(
                         descr->base,
                         *alpha,
@@ -333,18 +321,19 @@ std::enable_if_t<std::is_same_v<T, std::complex<float>> || std::is_same_v<T, std
                         *beta,
                         y);
                 }
-            }
-            else
+                else
 #endif
-                return aoclsparse::csrmv_kt<kernel_templates::bsz::b256, T>(descr->base,
-                                                                            *alpha,
-                                                                            A->m,
-                                                                            (T *)A->csr_mat.csr_val,
-                                                                            A->csr_mat.csr_col_ptr,
-                                                                            A->csr_mat.csr_row_ptr,
-                                                                            x,
-                                                                            *beta,
-                                                                            y);
+                    return aoclsparse::csrmv_kt<kernel_templates::bsz::b256, T>(
+                        descr->base,
+                        *alpha,
+                        A->m,
+                        (T *)A->csr_mat.csr_val,
+                        A->csr_mat.csr_col_ptr,
+                        A->csr_mat.csr_row_ptr,
+                        x,
+                        *beta,
+                        y);
+            }
         }
         else if(descr->type == aoclsparse_matrix_type_triangular)
         {

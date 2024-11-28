@@ -39,13 +39,4 @@ aoclsparse_status aoclsparse_csrmv_vectorized_avx512(aoclsparse_index_base base,
                                                      const double *__restrict__ x,
                                                      const double beta,
                                                      double *__restrict__ y);
-aoclsparse_status aoclsparse_zcsrmv_avx512(aoclsparse_index_base      base,
-                                           const std::complex<double> alpha,
-                                           const aoclsparse_int       m,
-                                           const std::complex<double> *__restrict__ aval,
-                                           const aoclsparse_int *__restrict__ icol,
-                                           const aoclsparse_int *__restrict__ row,
-                                           const std::complex<double> *__restrict__ x,
-                                           const std::complex<double> beta,
-                                           std::complex<double> *__restrict__ y);
 #endif

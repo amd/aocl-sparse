@@ -42,7 +42,7 @@ aoclsparse_status aoclsparse::csrmv_kt(aoclsparse_index_base base,
     const aoclsparse_int *icol_fix = icol - base;
     const SUF            *aval_fix = aval - base;
     const SUF            *x_fix    = x - base;
-    avxvector_t<SZ, SUF>  va, vx, vb;
+    avxvector_t<SZ, SUF>  va, vx, vb, vc;
     const size_t          k = tsz_v<SZ, SUF>;
     // Perform (beta * y)
     if(beta == static_cast<SUF>(0))
@@ -67,13 +67,14 @@ aoclsparse_status aoclsparse::csrmv_kt(aoclsparse_index_base base,
                                ? (m / context::get_context()->get_num_threads())
                                : 1;
 #pragma omp parallel for num_threads(context::get_context()->get_num_threads()) \
-    schedule(dynamic, chunk) private(va, vx, vb)
+    schedule(dynamic, chunk) private(va, vx, vb, vc)
 #endif
     for(aoclsparse_int i = 0; i < m; i++)
     {
         aoclsparse_int j;
         SUF            result  = 0.0;
         vb                     = kt_setzero_p<SZ, SUF>();
+        vc                     = kt_setzero_p<SZ, SUF>();
         aoclsparse_int crend   = row[i + 1];
         aoclsparse_int crstart = row[i];
         aoclsparse_int nnz     = crend - crstart;
@@ -85,13 +86,12 @@ aoclsparse_status aoclsparse::csrmv_kt(aoclsparse_index_base base,
         {
             va = kt_loadu_p<SZ, SUF>(&aval_fix[j]);
             vx = kt_set_p<SZ, SUF>(x_fix, &icol_fix[j]);
-            vb = kt_fmadd_p<SZ, SUF>(va, vx, vb);
+            kt_fmadd_B<SZ, SUF>(va, vx, vb, vc);
         }
-        if(k_iter)
-        {
-            // Horizontal addition
-            result = kt_hsum_p<SZ, SUF>(vb);
-        }
+
+        // Horizontal addition
+        result = kt_hsum_B<SZ, SUF>(vb, vc);
+
         //Remainder loop for nnz%k
         for(j = crend - k_rem; j < crend; j++)
         {
