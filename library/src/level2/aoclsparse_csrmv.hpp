@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,6 +25,7 @@
 
 #include "aoclsparse_csrmv_avx512.hpp"
 #include "aoclsparse_csrmv_kernels.hpp"
+#include "aoclsparse_l2_kt.hpp"
 
 template <typename T>
 aoclsparse_status aoclsparse_csrmv_t(aoclsparse_operation       trans,
@@ -40,6 +41,8 @@ aoclsparse_status aoclsparse_csrmv_t(aoclsparse_operation       trans,
                                      const T                   *beta,
                                      T                         *y)
 {
+    using namespace aoclsparse;
+
     if(descr == nullptr)
     {
         return aoclsparse_status_invalid_pointer;
@@ -106,8 +109,16 @@ aoclsparse_status aoclsparse_csrmv_t(aoclsparse_operation       trans,
             }
             else
             {
-                return aoclsparse_csrmvt(
-                    descr->base, *alpha, m, n, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
+#ifdef USE_AVX512
+                if(context::get_context()->supports<context_isa_t::AVX512F>())
+                {
+                    return aoclsparse::csrmvt_kt<kernel_templates::bsz::b512, T>(
+                        descr->base, *alpha, m, n, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
+                }
+                else
+#endif
+                    return aoclsparse::csrmvt_kt<kernel_templates::bsz::b256, T>(
+                        descr->base, *alpha, m, n, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
             }
             break;
 
@@ -173,8 +184,16 @@ aoclsparse_status aoclsparse_csrmv_t(aoclsparse_operation       trans,
             }
             else
             {
-                return aoclsparse_csrmvt(
-                    descr->base, *alpha, m, n, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
+#ifdef USE_AVX512
+                if(context::get_context()->supports<context_isa_t::AVX512F>())
+                {
+                    return aoclsparse::csrmvt_kt<kernel_templates::bsz::b512, T>(
+                        descr->base, *alpha, m, n, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
+                }
+                else
+#endif
+                    return aoclsparse::csrmvt_kt<kernel_templates::bsz::b256, T>(
+                        descr->base, *alpha, m, n, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
             }
             break;
 
