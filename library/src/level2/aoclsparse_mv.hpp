@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -398,16 +398,35 @@ std::enable_if_t<std::is_same_v<T, std::complex<float>> || std::is_same_v<T, std
         }
         else if(descr->type == aoclsparse_matrix_type_general)
         {
-            return aoclsparse_csrmvt(descr->base,
-                                     *alpha,
-                                     m,
-                                     n,
-                                     (T *)A->csr_mat.csr_val,
-                                     A->csr_mat.csr_col_ptr,
-                                     A->csr_mat.csr_row_ptr,
-                                     x,
-                                     *beta,
-                                     y);
+            using namespace aoclsparse;
+#ifdef USE_AVX512
+            if(context::get_context()->supports<context_isa_t::AVX512F>())
+            {
+                return aoclsparse::csrmvt_kt<kernel_templates::bsz::b512, T>(
+                    descr_cpy.base,
+                    *alpha,
+                    A->m,
+                    A->n,
+                    (T *)A->csr_mat.csr_val,
+                    A->csr_mat.csr_col_ptr,
+                    A->csr_mat.csr_row_ptr,
+                    x,
+                    *beta,
+                    y);
+            }
+            else
+#endif
+                return aoclsparse::csrmvt_kt<kernel_templates::bsz::b256, T>(
+                    descr_cpy.base,
+                    *alpha,
+                    A->m,
+                    A->n,
+                    (T *)A->csr_mat.csr_val,
+                    A->csr_mat.csr_col_ptr,
+                    A->csr_mat.csr_row_ptr,
+                    x,
+                    *beta,
+                    y);
         }
         else if(descr->type == aoclsparse_matrix_type_triangular)
         {
