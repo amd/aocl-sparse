@@ -60,7 +60,7 @@ namespace TestsKT
     const KTTCommonData D;
 
     // These functions only need to be defined in AVX2 builds
-#ifndef __AVX512F__
+#ifdef AOCLSPARSE_AVX2_INSTANT
     void kt_base_t_check()
     {
         EXPECT_TRUE(kt_is_base_t_float<float>());
@@ -83,7 +83,7 @@ namespace TestsKT
     }
 #endif
 
-#ifdef __AVX512F__
+#ifndef AOCLSPARSE_AVX2_INSTANT
     void kt_types_512()
     {
         /*
@@ -777,7 +777,7 @@ namespace TestsKT
         }                                                                                    \
     }
 
-#ifdef __AVX512F__
+#ifndef AOCLSPARSE_AVX2_INSTANT
     void kt_maskz_set_p_256_AVX512vl()
     {
         kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX512VL, 1, 0);

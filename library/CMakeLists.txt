@@ -77,6 +77,8 @@ endfunction()
 
 # ----------------- Double compilation files with AVX2 flags -------------------------------
 add_library(DOUBLE_COMPILATION_AVX2 OBJECT ${DOUBLE_COMPILATION})
+target_compile_definitions(DOUBLE_COMPILATION_AVX2 PRIVATE -DAOCLSPARSE_AVX2_INSTANT)
+target_compile_options(DOUBLE_COMPILATION_AVX2 PRIVATE "-mno-avx512f;")
 aoclsparse_add_dependency(DOUBLE_COMPILATION_AVX2)
 # ==========================================================================================
 
