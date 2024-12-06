@@ -146,7 +146,7 @@ namespace kernel_templates
     // with AVX-512 flags else it returns bsz::b256.
     constexpr bsz get_bsz()
     {
-#ifdef __AVX512F__
+#ifndef AOCLSPARSE_AVX2_INSTANT
         return bsz::b512;
 #else
         return bsz::b256;
@@ -287,7 +287,7 @@ namespace kernel_templates
     // be used for a given translation unit
     constexpr kt_avxext get_kt_ext()
     {
-#ifdef __AVX512F__
+#ifndef AOCLSPARSE_AVX2_INSTANT
         return kt_avxext::AVX512F;
 #else
         return kt_avxext::AVX2;

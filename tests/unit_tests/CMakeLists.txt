@@ -262,7 +262,7 @@ if(NOT BUILD_SPARSE_TESTS_OUTOFSRCTREE)
     target_include_directories(KT_KERNELS_AVX512 PUBLIC ${AOCLSPARSE_TEST_HEADER_DEPENDENCIES})
 
     add_library(KT_KERNELS_AVX2 OBJECT ${KT_KERNELS})
-    target_compile_options(KT_KERNELS_AVX2 PUBLIC ${AOCLSPARSE_AVX2_FLAGS})
+    target_compile_options(KT_KERNELS_AVX2 PUBLIC "-mno-avx512f;" -DAOCLSPARSE_AVX2_INSTANT)
     target_link_libraries(KT_KERNELS_AVX2 PUBLIC aoclsparse GTest::gtest_main)
     target_include_directories(KT_KERNELS_AVX2 PUBLIC ${AOCLSPARSE_TEST_HEADER_DEPENDENCIES})
     # -----------------------------------------------------------------------
