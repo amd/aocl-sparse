@@ -185,22 +185,30 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR (CMAKE_CXX_COMPILER_ID STREQUAL "Clan
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CLANG_OPTIONS_STYLE STREQUAL "MSVC")
   # Clang with MSVC style compiler options
   # Common flags
-  set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};/arch:AVX2")
+  set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};/arch:AVX2;")
   # Release flags
-  set(COMPILER_FLAGS_RELEASE "/Ox;/Qpar;/fp:fast")
+  set(COMPILER_FLAGS_RELEASE "/Ox;/Qpar;/fp:fast;")
   # Debug flags
-  set(COMPILER_FLAGS_DEBUG "/Od;/Zi")
+  set(COMPILER_FLAGS_DEBUG "/Od;/Zi;")
 else()
   message(WARNING "Explicit flags for ${CMAKE_CXX_COMPILER_ID} have NOT been set. Update the top-level CMakeList.txt!")
   message(WARNING "Continuing compilation using tentative CXX flags...")
   set(COMPILER_FLAGS_DEBUG "-g")
   set(COMPILER_FLAGS_RELEASE "-O3;-NDEBUG")
-  set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};-mavx2;-mfma")
+  set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};-mavx2;-mfma;")
 endif()
-set(AOCLSPARSE_AVX512_FLAGS "-mavx512f;-mavx512vl;-mavx512dq")
+set(AOCLSPARSE_AVX512_FLAGS "-mavx512f;-mavx512vl;-mavx512dq;")
 
-add_compile_options("$<$<CONFIG:Release>:${COMPILER_FLAGS_COMMON};${COMPILER_FLAGS_RELEASE}>")
-add_compile_options("$<$<CONFIG:Debug>:${COMPILER_FLAGS_COMMON};${COMPILER_FLAGS_DEBUG}>")
+set(AOCLSPARSE_GENERIC_FLAGS_RELEASE "${COMPILER_FLAGS_RELEASE}")
+set(AOCLSPARSE_GENERIC_FLAGS_DEBUG "${COMPILER_FLAGS_DEBUG}")
+
+set(AOCLSPARSE_GENERIC_FLAGS "${COMPILER_FLAGS_COMMON};")
+
+if(CMAKE_BUILD_TYPE MATCHES "Debug")
+  set(AOCLSPARSE_GENERIC_FLAGS "${AOCLSPARSE_GENERIC_FLAGS};${AOCLSPARSE_GENERIC_FLAGS_DEBUG};")
+elseif(CMAKE_BUILD_TYPE MATCHES "Release")
+  set(AOCLSPARSE_GENERIC_FLAGS "${AOCLSPARSE_GENERIC_FLAGS};${AOCLSPARSE_GENERIC_FLAGS_RELEASE};")
+endif()
 
 # this user provided option for AVX512 is used in unit tests and library to enable/disable AVX512 code
 if(USE_AVX512)

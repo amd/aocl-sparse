@@ -29,6 +29,10 @@
 // Set the kt_int
 using kt_int_t = aoclsparse_int;
 
+#ifdef AOCLSPARSE_AVX2_INSTANT
+#define KT_AVX2_BUILD
+#endif
+
 #include "kernel-templates/kernel_templates.hpp"
 
 // Helper functions and macros that assist in instantiation of KT-based functions

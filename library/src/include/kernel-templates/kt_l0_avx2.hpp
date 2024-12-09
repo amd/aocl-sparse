@@ -30,7 +30,7 @@
 
 #ifndef _KT_L0_AVX2_
 #define _KT_L0_AVX2_
-#include "kt_common.hpp"
+#include "kt_common_x86.hpp"
 
 namespace kernel_templates
 {
