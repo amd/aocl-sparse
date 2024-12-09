@@ -243,7 +243,7 @@ if(NOT BUILD_SPARSE_TESTS_OUTOFSRCTREE)
     )
     set(TESTS_COMMON_DIR "${CMAKE_SOURCE_DIR}/tests/common")
     # -----------------------------------------------------------------------
-    # Build KT tests (Note: this section should not be build for out of source)
+    # Build KT tests (Note: this section should not be built for out of source)
     # -----------------------------------------------------------------------
     set(KT_KERNELS
     ${CMAKE_CURRENT_SOURCE_DIR}/kt_kernels.cpp
@@ -257,12 +257,12 @@ if(NOT BUILD_SPARSE_TESTS_OUTOFSRCTREE)
     list(APPEND AOCLSPARSE_TEST_HEADER_DEPENDENCIES ${AOCLSPARSE_INTERNAL_HEADER_DEPENDENCIES})
     # Double compilation of KT test kernels
     add_library(KT_KERNELS_AVX512 OBJECT ${KT_KERNELS})
-    target_compile_options(KT_KERNELS_AVX512 PUBLIC ${AOCLSPARSE_AVX512_FLAGS})
-    target_link_libraries(KT_KERNELS_AVX512 PUBLIC aoclsparse GTest::gtest_main)
-    target_include_directories(KT_KERNELS_AVX512 PUBLIC ${AOCLSPARSE_TEST_HEADER_DEPENDENCIES})
+    target_compile_options(KT_KERNELS_AVX512 PRIVATE ${AOCLSPARSE_AVX512_FLAGS}${AOCLSPARSE_GENERIC_FLAGS})
+    target_link_libraries(KT_KERNELS_AVX512 PRIVATE aoclsparse GTest::gtest_main)
+    target_include_directories(KT_KERNELS_AVX512 PRIVATE ${AOCLSPARSE_TEST_HEADER_DEPENDENCIES})
 
     add_library(KT_KERNELS_AVX2 OBJECT ${KT_KERNELS})
-    target_compile_options(KT_KERNELS_AVX2 PUBLIC "-mno-avx512f;" -DAOCLSPARSE_AVX2_INSTANT)
+    target_compile_options(KT_KERNELS_AVX2 PUBLIC "-mno-avx512f;" -DKT_AVX2_BUILD ${AOCLSPARSE_GENERIC_FLAGS})
     target_link_libraries(KT_KERNELS_AVX2 PUBLIC aoclsparse GTest::gtest_main)
     target_include_directories(KT_KERNELS_AVX2 PUBLIC ${AOCLSPARSE_TEST_HEADER_DEPENDENCIES})
     # -----------------------------------------------------------------------
@@ -287,7 +287,7 @@ target_include_directories(TEST_COMMONS PUBLIC ${AOCLSPARSE_TEST_HEADER_DEPENDEN
 target_compile_definitions(TEST_COMMONS PUBLIC ${AOCLSPARSE_DEFS})
 # Define -Daoclsparse_ILP64 when ILP64 libraries are built. For LP64, this is an empty string.
 target_compile_definitions(TEST_COMMONS PUBLIC ${AOCLSPARSE_ILP64})
-target_compile_options(TEST_COMMONS PUBLIC $<$<CONFIG:Debug>:${COMPILER_FLAGS_DEBUG}>)
+target_compile_options(TEST_COMMONS PUBLIC $<$<CONFIG:Debug>:${COMPILER_FLAGS_DEBUG}> "-mno-avx512f;")
 
 list(APPEND AOCLSPARSE_TEST_DEPENDENCIES $<TARGET_OBJECTS:TEST_COMMONS>)
 
@@ -318,7 +318,7 @@ foreach(TNAME ${GTEST_EXECUTABLES})
     # Define -Daoclsparse_ILP64 when ILP64 libraries are built. For LP64, this is an empty string.
     target_compile_definitions(${TNAME} PUBLIC ${AOCLSPARSE_ILP64})
 
-    target_compile_options(${TNAME} PUBLIC $<$<CONFIG:Debug>:${COMPILER_FLAGS_DEBUG}>)
+    target_compile_options(${TNAME} PUBLIC $<$<CONFIG:Debug>:${COMPILER_FLAGS_DEBUG}> "-mno-avx512f;")
     if(NOT BUILD_SPARSE_TESTS_OUTOFSRCTREE)
         install(FILES ${TNAME}.cpp DESTINATION ${TESTS_INSTALL_DIR})
     endif()

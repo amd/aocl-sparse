@@ -28,7 +28,7 @@
 
 #ifndef _KT_L0_
 #define _KT_L0_
-#include "kt_common.hpp"
+#include "kt_common_x86.hpp"
 
 // Add L0 micro kernels that are architecture independent here
 namespace kernel_templates
@@ -43,5 +43,4 @@ namespace kernel_templates
             v[b[k]] = acast[k];
     }
 }
-
 #endif

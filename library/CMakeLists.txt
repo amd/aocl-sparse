@@ -78,7 +78,7 @@ endfunction()
 # ----------------- Double compilation files with AVX2 flags -------------------------------
 add_library(DOUBLE_COMPILATION_AVX2 OBJECT ${DOUBLE_COMPILATION})
 target_compile_definitions(DOUBLE_COMPILATION_AVX2 PRIVATE -DAOCLSPARSE_AVX2_INSTANT)
-target_compile_options(DOUBLE_COMPILATION_AVX2 PRIVATE "-mno-avx512f;")
+target_compile_options(DOUBLE_COMPILATION_AVX2 PRIVATE "-mno-avx512f;" ${AOCLSPARSE_GENERIC_FLAGS})
 aoclsparse_add_dependency(DOUBLE_COMPILATION_AVX2)
 # ==========================================================================================
 
@@ -88,13 +88,13 @@ set(AOCLSPARSE_TARGETS $<TARGET_OBJECTS:DOUBLE_COMPILATION_AVX2>)
 if(USE_AVX512)
  # ---------------- Double compilation files with AVX 512 flags -----------------------------
  add_library(DOUBLE_COMPILATION_AVX512 OBJECT ${DOUBLE_COMPILATION})
- target_compile_options(DOUBLE_COMPILATION_AVX512 PRIVATE ${AOCLSPARSE_AVX512_FLAGS})
+ target_compile_options(DOUBLE_COMPILATION_AVX512 PRIVATE ${AOCLSPARSE_AVX512_FLAGS}${AOCLSPARSE_GENERIC_FLAGS})
  aoclsparse_add_dependency(DOUBLE_COMPILATION_AVX512)
  # ==========================================================================================
 
  # ---------------- Compile files with AVX512 intrinsics ------------------------------------
  add_library(AVX512_FILES OBJECT ${AVX512_SOURCES})
- target_compile_options(AVX512_FILES PRIVATE ${AOCLSPARSE_AVX512_FLAGS})
+ target_compile_options(AVX512_FILES PRIVATE ${AOCLSPARSE_AVX512_FLAGS}${AOCLSPARSE_GENERIC_FLAGS})
  aoclsparse_add_dependency(AVX512_FILES)
  # ==========================================================================================
 
@@ -104,7 +104,7 @@ if(USE_AVX512)
 endif()
 
 add_library(aoclsparse ${AOCLSPARSE_SOURCES} ${PUBLIC_HEADERS} ${AOCLSPARSE_TARGETS})
-
+target_compile_options(aoclsparse PRIVATE "-mno-avx512f;" ${AOCLSPARSE_GENERIC_FLAGS})
 # TODO plug-ins
 
 add_library(aocl::aoclsparse ALIAS aoclsparse)

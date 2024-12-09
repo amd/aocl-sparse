@@ -127,8 +127,8 @@ foreach( sample_example_source ${SPARSE_SAMPLES})
 
     target_link_libraries(${sample_target} ${SPARSE_LIBRARY} ${LAPACK_LIBRARIES} ${OpenMP_Library})
     #define compile time options explicitly to handle out-of-source tree scenario where options would not be defined by a top-level CMakeLists file
-    target_compile_options(${sample_target} PUBLIC "$<$<CONFIG:Release>:${COMPILER_FLAGS_COMMON};${COMPILER_FLAGS_RELEASE}>")
-    target_compile_options(${sample_target} PUBLIC "$<$<CONFIG:Debug>:${COMPILER_FLAGS_COMMON};${COMPILER_FLAGS_DEBUG}>")
+    target_compile_options(${sample_target} PUBLIC "$<$<CONFIG:Release>:${COMPILER_FLAGS_COMMON};${COMPILER_FLAGS_RELEASE}>;-mno-avx512f;")
+    target_compile_options(${sample_target} PUBLIC "$<$<CONFIG:Debug>:${COMPILER_FLAGS_COMMON};${COMPILER_FLAGS_DEBUG}>;-mno-avx512f;")
 
     if(NOT BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
         install(FILES ${sample_example_source} DESTINATION ${CMAKE_INSTALL_PREFIX}/examples)
@@ -154,8 +154,8 @@ target_include_directories(sample_spmv_c PUBLIC ${SPARSE_INCLUDE_DIR} ${LAPACK_I
 target_link_libraries(sample_spmv_c ${SPARSE_LIBRARY} ${LAPACK_LIBRARIES} ${OpenMP_Library})
 
 #define compile time options explicitly to handle out-of-source tree scenario where options would not be defined by a top-level CMakeLists file
-target_compile_options(sample_spmv_c PUBLIC "${COMPILER_FLAGS_COMMON}")
-target_compile_options(sample_spmv_multi_instance PUBLIC "${COMPILER_FLAGS_COMMON}")
+target_compile_options(sample_spmv_c PUBLIC "${COMPILER_FLAGS_COMMON};-mno-avx512f;")
+target_compile_options(sample_spmv_multi_instance PUBLIC "${COMPILER_FLAGS_COMMON};-mno-avx512f;")
 
 #target_compile_options(sample_spmv_c PUBLIC "$<$<CONFIG:Release>:${COMPILER_FLAGS_COMMON};${COMPILER_FLAGS_RELEASE}>")
 #target_compile_options(sample_spmv_c PUBLIC "$<$<CONFIG:Debug>:${COMPILER_FLAGS_COMMON};${COMPILER_FLAGS_DEBUG}>")

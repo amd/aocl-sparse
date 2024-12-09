@@ -41,6 +41,10 @@
 #ifndef KERNEL_TEMPLATES_T_HPP
 #define KERNEL_TEMPLATES_T_HPP
 
+#include "kt_common.hpp"
+
+// To use the micro kernels of KT, AVX2 compilation is necessary
+#ifdef __AVX2__
 // Generic L0 micro kernels
 #include "kt_l0.hpp"
 
@@ -54,5 +58,6 @@
 
 // L1 micro kernels: these only depend on L0 micro kernels.
 #include "kt_l1.hpp"
+#endif
 
 #endif // KERNEL_TEMPLATES_T_HPP

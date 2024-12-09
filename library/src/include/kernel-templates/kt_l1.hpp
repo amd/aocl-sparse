@@ -27,7 +27,7 @@
 
 #ifndef _KT_L1_
 #define _KT_L1_
-#include "kt_common.hpp"
+#include "kt_common_x86.hpp"
 
 // Level 1 micro kernels
 
@@ -66,5 +66,4 @@ namespace kernel_templates
         }
     };
 }
-
 #endif
