@@ -1,6 +1,5 @@
 # Reusable Kernel Template (KT) Library
 
-<img src="kt_logo_blk.png" width="75" height="75">
 <p align="justify"> Reusable kernel templates is a stand alone library implemented in modern C++ as a header only templated framework. The framework is designed for rapid development of high-performant AVX-vectorized kernels
 specialized on basic mathematical operations. The main purpose of the framework is to allow for a single abstract implementation of a kernel to be instantiated for any datatype and ISA combination. It leverages
 ISA and datatype combination to fully exploit the hardware
