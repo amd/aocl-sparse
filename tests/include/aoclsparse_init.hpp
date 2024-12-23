@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -37,6 +37,7 @@
 #include <iostream>
 #include <numeric>
 #include <vector>
+#define DIAGONAL_SCALER 10
 
 /* ==================================================================================== */
 /*! \brief  matrix/vector initialization: */
@@ -173,12 +174,15 @@ inline void aoclsparse_init_nan(
                 A[i + j * lda + i_batch * stride] = T(aoclsparse_nan_rng());
 }
 /* ==================================================================================== */
-/*! \brief  Generate a random sparse matrix in COO format in the given base and sizes.
+/*! \brief  Generate a random sparse matrix in COO format with custom design choices.
  * If nnz<0, it is interpretted as the desired sparsity percentage (nnz=-3 -> 3% sparsity).
  * if square and full_diag, the resulting matrix will have full diagonal
  * and will be diagonally dominant. If suggested nnz was too small,
  * it will get increased.
- * If is_herm, the diagonal entries will have imag=0. */
+ * If is_herm and square, the diagonals have zero imaginary parts so that the matrix
+ * can be used as Hermition type with either L or U.
+ * If is_triangL, the matrix will be lower-triangular, if also full_diag,
+ * it will be diagonally dominant (even if symmetrized). */
 template <typename T>
 aoclsparse_status aoclsparse_generate_coo_matrix(std::vector<aoclsparse_int> &row_ind,
                                                  std::vector<aoclsparse_int> &col_ind,
@@ -187,36 +191,48 @@ aoclsparse_status aoclsparse_generate_coo_matrix(std::vector<aoclsparse_int> &ro
                                                  aoclsparse_int               N,
                                                  aoclsparse_int              &nnz,
                                                  aoclsparse_index_base        base,
-                                                 bool                         full_diag = false,
-                                                 bool                         is_herm   = false)
+                                                 bool                         full_diag  = false,
+                                                 bool                         is_herm    = false,
+                                                 bool                         is_triangL = false)
 {
+    // Check for valid base
     if(base != aoclsparse_index_base_zero && base != aoclsparse_index_base_one)
         return aoclsparse_status_invalid_value;
 
+    // Check for valid matrix dimensions
     if(M < 0 || N < 0)
         return aoclsparse_status_invalid_size;
 
+    size_t max_nnz  = (size_t)M * (size_t)N;
+    size_t diag_len = M <= N ? M : N;
+    if(is_triangL)
+    {
+        //ensure nnz is considered for a triangle including diagonals
+        max_nnz = (max_nnz - diag_len) / 2 + diag_len;
+    }
+
+    // Handle sparsity percentage
     if(nnz <= -100)
         return aoclsparse_status_invalid_value;
     else if(nnz < 0)
-        nnz = (-nnz / 100.0) * M * N;
+        nnz = (-nnz / 100.0) * max_nnz;
 
-    if((size_t)nnz > (size_t)M * (size_t)N)
+    // Ensure nnz does not exceed matrix size
+    if((size_t)nnz > max_nnz)
         return aoclsparse_status_invalid_value;
 
-    // Increase nnz if too small to be diagonally dominant (if requested)
+    is_herm   = M == N && is_herm;
     full_diag = M == N && full_diag;
-    if(full_diag)
-        if(nnz < M)
-            nnz = M;
+    if(full_diag && (nnz < M))
+    {
+        // Ensure nnz is at least M if full diagonal is requested
+        nnz = M;
+    }
 
-    //allocate coo arrays (row_ind[],  col_ind[], val[]) of sufficient space i.e., nnz
-    if(row_ind.size() != (size_t)nnz)
-        row_ind.resize(nnz);
-    if(col_ind.size() != (size_t)nnz)
-        col_ind.resize(nnz);
-    if(val.size() != (size_t)nnz)
-        val.resize(nnz);
+    // Resize COO arrays
+    row_ind.resize(nnz);
+    col_ind.resize(nnz);
+    val.resize(nnz);
 
     // reserve size not to return NULL pointers with nnz=0
     if(nnz == 0)
@@ -226,13 +242,10 @@ aoclsparse_status aoclsparse_generate_coo_matrix(std::vector<aoclsparse_int> &ro
         val.reserve(1);
     }
 
-    // Add diagonal entry, if full rank is flagged
-    aoclsparse_int i = 0, row_idx = 0;
-
-    // Uniform distributed row indices
-    aoclsparse_int rand_row_ind;
-    //array to store no of nnz entries in each row
+    // Initialize row indices and nnz count per row
+    aoclsparse_int              i = 0, col_idx_limit;
     std::vector<aoclsparse_int> nnzs_row_wise(M, 0);
+
     /*
         if full-diagonal is requested, make sure
             1. row_ind[] which stores row indices (COO) first covers indices for diagonal entries
@@ -240,27 +253,24 @@ aoclsparse_status aoclsparse_generate_coo_matrix(std::vector<aoclsparse_int> &ro
     */
     if(full_diag)
     {
-        //Generate diagonal indices first
         for(; i < M; ++i)
         {
             row_ind[i] = i;
             nnzs_row_wise[i]++;
         }
     }
-    /*
-        if full-diagonal is requested, then use the pre-filled arrays of
-        row_ind[] and nnzs_row_wise[] to pick out indices for the remaning nnz
-        entries
-    */
+    // Generate remaining row indices
+    col_idx_limit = N;
     for(; i < nnz; ++i)
     {
-        //start with same loop index variable 'i' so that nnz counting starts from where it left off
+        aoclsparse_int rand_row_ind;
         do
         {
-            //Generate a random row index between 0 to M-1
+            //Generate a random row index between 0 to M-1 or till the diagonal index if triangle
             rand_row_ind = random_generator<aoclsparse_int>(0, M - 1);
-        } while(nnzs_row_wise[rand_row_ind]
-                >= N); //condition to avoid any row storing more than N nnz entries
+            if(is_triangL)
+                col_idx_limit = rand_row_ind + 1;
+        } while(nnzs_row_wise[rand_row_ind] >= col_idx_limit);
         row_ind[i] = rand_row_ind;
         //accumulate nnz for that specific row
         nnzs_row_wise[rand_row_ind]++;
@@ -268,156 +278,109 @@ aoclsparse_status aoclsparse_generate_coo_matrix(std::vector<aoclsparse_int> &ro
     // Sort row indices
     std::sort(row_ind.begin(), row_ind.end());
 
-    // Sample column indices
+    // Array to mark if we have that element in the row or not
     std::vector<bool> check(N, false);
     /*
-        ri_row_start_idx: indexes to first entry of current row index in row_ind[]
-        ri_row_end_idx: indexes to first entry of next row index in row_ind[]
-        difference gives no of nnz entries for the current row
+        idxstart: index to first entry of current row index in row_ind[]
+        idxend  : index to first entry of next row index in row_ind[]
     */
-    aoclsparse_int ri_row_start_idx, ri_row_end_idx, col_idx;
-    ri_row_end_idx = 0;
-    while(ri_row_end_idx < nnz)
+    aoclsparse_int idx, idxstart, idxend = 0;
+    for(aoclsparse_int row_idx = 0; row_idx < M; row_idx++)
     {
-        ri_row_start_idx = ri_row_end_idx;
-        //count how many row indices of same value exist, which should ideally
-        //give us the no of nnz to be filled in that specific row
-        while(row_ind[ri_row_end_idx] == row_ind[ri_row_start_idx])
+        idxstart = idxend;
+        idx      = idxstart;
+        idxend += nnzs_row_wise[row_idx];
+
+        // if full diag requested, add it (there was space reserved)
+        if(full_diag)
         {
-            ++ri_row_end_idx;
-            if(ri_row_end_idx >= nnz)
-            {
-                break;
-            }
+            check[row_idx] = true;
+            col_ind[idx]   = row_idx;
+            val[idx]       = random_generator_normal<T>();
+            idx++;
         }
 
-        // Sample (ri_row_end_idx - ri_row_start_idx) column indices
-        col_idx = ri_row_start_idx;
-        row_idx = row_ind[ri_row_start_idx];
-        while(col_idx < ri_row_end_idx)
+        // max column index to generate
+        if(is_triangL)
+            col_idx_limit = row_idx - 1;
+        else
+            col_idx_limit = N - 1;
+
+        // add all the other elements
+        while(idx < idxend)
         {
-            //fill the diagonals first
-            if(full_diag && !check[row_idx])
+            //uniform distribution from 0 to N-1 or till the element before diagonal index if L triangle
+            aoclsparse_int rng = random_generator<aoclsparse_int>(0, col_idx_limit);
+            if(!check[rng])
             {
-                check[row_idx]   = true;
-                col_ind[col_idx] = row_idx;
-                col_idx++;
-                continue;
-            }
-            //uniform distribution from 0 to n-1, sample the whole row
-            aoclsparse_int rng = random_generator<aoclsparse_int>(0, N - 1);
-            if(full_diag)
-            {
-                //if full-diagonal, sample entries other than diagonal index since it is already marked
-                if((col_idx != row_idx) && !check[rng])
-                {
-                    check[rng]         = true;
-                    col_ind[col_idx++] = rng;
-                }
-            }
-            else
-            {
-                //for non-full-diagonal cases, sample all the nnzs allocated for this row
-                if(!check[rng])
-                {
-                    check[rng]         = true;
-                    col_ind[col_idx++] = rng;
-                }
+                check[rng]   = true;
+                col_ind[idx] = rng;
+                val[idx]     = random_generator_normal<T>();
+                idx++;
             }
         }
 
         //reset check[] array that indicates all the column index entries for a row
         std::fill(check.begin(), check.end(), false);
         // Partially sort column indices
-        std::sort((&col_ind[0] + ri_row_start_idx), (&col_ind[0] + ri_row_end_idx));
+        std::sort((&col_ind[0] + idxstart), (&col_ind[0] + idxend));
     }
-    // Correct index base accordingly
+
+    if(full_diag)
+    {
+        // ensure diagonal dominance by summing non-diag elements sizes (potentially symmetrizes)
+        std::vector<tolerance_t<T>> row_sums(M, 0.);
+        std::vector<aoclsparse_int> diag_indices(M, 0);
+        for(aoclsparse_int i = 0; i < nnz; ++i)
+        {
+            tolerance_t<T> absval;
+            if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
+                absval = std::abs(val[i]);
+            else
+                absval = sqrt((val[i].real * val[i].real) + (val[i].imag * val[i].imag));
+
+            if(row_ind[i] != col_ind[i])
+            {
+                row_sums[row_ind[i]] += absval;
+                row_sums[col_ind[i]] += absval;
+            }
+            else
+                diag_indices[row_ind[i]] = i; //store diagonal indices for future use
+        }
+        // assign the diagonal elements to be big enough
+        for(aoclsparse_int i = 0; i < M; ++i)
+        {
+            // If the row was empty, row_sums would be 0, update the diag
+            tolerance_t<T> newdiag = row_sums[i] == 0. ? 1. : DIAGONAL_SCALER * row_sums[i];
+            if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
+                val[diag_indices[i]] = newdiag;
+            else
+            {
+                val[diag_indices[i]].real = newdiag;
+                val[diag_indices[i]].imag = 0.0;
+            }
+        }
+    }
+    else if(is_herm)
+    {
+        // find all diagonal elements and make 0 imaginarey part
+        if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
+            ;
+        else
+        {
+            for(aoclsparse_int i = 0; i < nnz; ++i)
+                if(row_ind[i] == col_ind[i])
+                    val[i].imag = 0.;
+        }
+    }
+
+    // Adjust index base
     if(base == aoclsparse_index_base_one)
     {
         for(aoclsparse_int i = 0; i < nnz; ++i)
         {
             ++row_ind[i];
             ++col_ind[i];
-        }
-    }
-    T max_val_entry = random_generator_normal<T>();
-
-    // Sample random off-diagonal values
-    for(aoclsparse_int i = 0; i < nnz; ++i)
-    {
-        val[i] = random_generator_normal<T>();
-        // Sample nnz values, and collect the max nnz entry along the way
-        if constexpr(std::is_same_v<T, aoclsparse_float_complex>
-                     || std::is_same_v<T, aoclsparse_double_complex>)
-        {
-            max_val_entry.real = (std::max)(std::abs(val[i].real), max_val_entry.real);
-            if(!is_herm)
-            {
-                max_val_entry.imag = (std::max)(std::abs(val[i].imag), max_val_entry.imag);
-            }
-            else
-            {
-                max_val_entry.imag = 0.0;
-            }
-        }
-        else
-        {
-            max_val_entry = (std::max)(std::abs(val[i]), max_val_entry);
-        }
-    }
-    if(full_diag)
-    {
-        // choosing a large number to scale the diagonal element, so as to
-        // generate a diagonally dominant matrix with low condition number
-        const double scale = 4. * 10.;
-        for(aoclsparse_int i = 0; i < nnz; ++i)
-        {
-            //scale the diagonal element
-            if(row_ind[i] == col_ind[i])
-            {
-                // rare case of val[i] == zero, in this case replace with 1.
-                if(val[i] == aoclsparse_numeric::zero<T>())
-                {
-                    if constexpr(std::is_same_v<T, aoclsparse_float_complex>
-                                 || std::is_same_v<T, aoclsparse_double_complex>)
-                    {
-                        val[i].real = 1.0;
-                        if(!is_herm)
-                        {
-                            val[i].imag = 1.0;
-                        }
-                        else
-                        {
-                            val[i].imag = 0.0;
-                        }
-                    }
-                    else
-                    {
-                        val[i] = 1.0;
-                    }
-                }
-                else
-                {
-                    //adjust diagonal element to greater than max(0, 10 x abs(L(0..k-1))
-                    if constexpr(std::is_same_v<T, aoclsparse_float_complex>
-                                 || std::is_same_v<T, aoclsparse_double_complex>)
-                    {
-                        val[i].real = scale * max_val_entry.real;
-                        if(!is_herm)
-                        {
-                            val[i].imag = scale * max_val_entry.imag;
-                        }
-                        else
-                        {
-                            val[i].imag = 0.0;
-                        }
-                    }
-                    else
-                    {
-                        val[i] = scale * max_val_entry;
-                    }
-                }
-            }
         }
     }
     return aoclsparse_status_success;
@@ -878,7 +841,8 @@ aoclsparse_status aoclsparse_init_coo_matrix(std::vector<aoclsparse_int> &coo_ro
     //check matrix differentiator
     if(matrix != aoclsparse_matrix_file_mtx && matrix != aoclsparse_matrix_random
        && matrix != aoclsparse_matrix_random_diag_dom
-       && matrix != aoclsparse_matrix_herm_random_diag_dom)
+       && matrix != aoclsparse_matrix_random_herm_diag_dom
+       && matrix != aoclsparse_matrix_random_lower_triangle)
     {
         return aoclsparse_status_invalid_value;
     }
@@ -917,7 +881,7 @@ aoclsparse_status aoclsparse_init_coo_matrix(std::vector<aoclsparse_int> &coo_ro
         status = aoclsparse_generate_coo_matrix(
             coo_row_ind, coo_col_ind, coo_val, M, N, nnz, base, true, false);
     }
-    else if(matrix == aoclsparse_matrix_herm_random_diag_dom)
+    else if(matrix == aoclsparse_matrix_random_herm_diag_dom)
     {
         /*
         generates random complex matrix with real diagonals and since only the triangular portion is
@@ -926,6 +890,14 @@ aoclsparse_status aoclsparse_init_coo_matrix(std::vector<aoclsparse_int> &coo_ro
         */
         status = aoclsparse_generate_coo_matrix(
             coo_row_ind, coo_col_ind, coo_val, M, N, nnz, base, true, true);
+    }
+    else if(matrix == aoclsparse_matrix_random_lower_triangle)
+    {
+        /*
+            Full diagonal in case triangular matrix is requested. Generate a Lower triangle
+        */
+        status = aoclsparse_generate_coo_matrix(
+            coo_row_ind, coo_col_ind, coo_val, M, N, nnz, base, true, true, true /*triangle*/);
     }
 
     if(status != aoclsparse_status_success)
@@ -938,7 +910,6 @@ aoclsparse_status aoclsparse_init_coo_matrix(std::vector<aoclsparse_int> &coo_ro
         aoclsparse_full_shuffle(
             aoclsparse_coo_mat, coo_row_ind, coo_col_ind, coo_val, M, nnz, base);
     }
-
     return status;
 }
 /* ==================================================================================== */
