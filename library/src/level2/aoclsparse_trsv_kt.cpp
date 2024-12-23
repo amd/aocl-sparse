@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,6 +24,7 @@
 #include "aoclsparse.h"
 #include "aoclsparse_kernel_templates.hpp"
 #include "aoclsparse_l2_kt.hpp"
+#include "aoclsparse_utils.hpp"
 
 /*
  * Macro kernel templates for L, L^T, L^H, U, U^T and U^T kernels
@@ -58,8 +59,9 @@ using namespace kernel_templates;
  * - `SZ`  an enum (bsz) representing the length (in bits) of AVX vector, i.e., 256 or 512
  * - `SUF` suffix of working type, i.e., `double` or `float`
  * - `EXP` AVX capability, kt_avxext e.g. `AVX` or `AVX512F`, etc...
+ * - `CONJ` bool for complex conjugation on the matrix entries
  */
-template <bsz SZ, typename SUF, kt_avxext EXT>
+template <bsz SZ, typename SUF, kt_avxext EXT, bool CONJ>
 aoclsparse_status kt_trsv_l(const SUF             alpha,
                             aoclsparse_int        m,
                             aoclsparse_index_base base,
@@ -74,7 +76,7 @@ aoclsparse_status kt_trsv_l(const SUF             alpha,
                             const bool     unit)
 {
     aoclsparse_int       i, idx, idxend;
-    SUF                  xi;
+    SUF                  ad, xi;
     avxvector_t<SZ, SUF> avec, xvec, pvec;
     aoclsparse_int       idxcnt, idxrem;
     // get the vector length (type size)
@@ -98,6 +100,8 @@ aoclsparse_status kt_trsv_l(const SUF             alpha,
                 iidx[jj] = icol_fix[idx + jj] * incx;
 
             avec = kt_loadu_p<SZ, SUF>(&a_fix[idx]);
+            if constexpr(CONJ)
+                avec = kt_conj_p<SZ, SUF>(avec);
             xvec = kt_set_p<SZ, SUF>(x_fix, iidx);
             pvec = kt_fmadd_p<SZ, SUF>(avec, xvec, pvec);
         }
@@ -118,16 +122,27 @@ aoclsparse_status kt_trsv_l(const SUF             alpha,
                 iidx[jj] = icol_fix[idx + jj] * incx;
 
             avec = kt_maskz_set_p<SZ, SUF, EXT, tsz - 1>(a_fix, idx);
+            if constexpr(CONJ)
+                avec = kt_conj_p<SZ, SUF>(avec);
             xvec = kt_maskz_set_p<SZ, SUF, EXT, tsz - 1>(x_fix, iidx);
             xi -= kt_dot_p<SZ, SUF>(avec, xvec);
             break;
         default:
-            for(idx = idxend - idxrem; idx < idxend; idx++)
-                xi -= a_fix[idx] * x_fix[icol_fix[idx] * incx];
+            if constexpr(aoclsparse::is_dt_complex<SUF>() && CONJ)
+                for(idx = idxend - idxrem; idx < idxend; idx++)
+                    xi -= std::conj(a_fix[idx]) * x_fix[icol_fix[idx] * incx];
+            else
+                for(idx = idxend - idxrem; idx < idxend; idx++)
+                    xi -= a_fix[idx] * x_fix[icol_fix[idx] * incx];
         }
         x[i * incx] = xi;
         if(!unit)
-            x[i * incx] /= a_fix[idxend];
+        {
+            ad = a_fix[idxend];
+            if constexpr(aoclsparse::is_dt_complex<SUF>() && CONJ)
+                ad = std::conj(ad);
+            x[i * incx] /= ad;
+        }
     }
     return aoclsparse_status_success;
 }
@@ -160,11 +175,9 @@ aoclsparse_status kt_trsv_l(const SUF             alpha,
  * - `SZ`  an enum (bsz) representing the length (in bits) of AVX vector, i.e., 256 or 512
  * - `SUF` suffix of working type, i.e., `double` or `float`
  * - `EXP` AVX capability, kt_avxext e.g. `AVX` or `AVX512F`, etc...
- * - `OP` trsv_op enum for transposition operation type
- *       trsv_op::tran Real-space transpose, and
- *       trsv_op::herm Complex-space conjugate transpose
+ * - `CONJ` bool for complex conjugation on the matrix entries
  */
-template <bsz SZ, typename SUF, kt_avxext EXT, trsv_op OP>
+template <bsz SZ, typename SUF, kt_avxext EXT, bool CONJ>
 aoclsparse_status kt_trsv_lt(const SUF             alpha,
                              aoclsparse_int        m,
                              aoclsparse_index_base base,
@@ -201,8 +214,7 @@ aoclsparse_status kt_trsv_lt(const SUF             alpha,
         {
 
             ad = a_fix[idiag[i]];
-            if constexpr((std::is_same_v<SUF, std::complex<float>>
-                          || std::is_same_v<SUF, std::complex<double>>)&&(OP == trsv_op::herm))
+            if constexpr(aoclsparse::is_dt_complex<SUF>() && CONJ)
                 ad = std::conj(ad);
             x[i * incx] /= ad;
         }
@@ -217,8 +229,7 @@ aoclsparse_status kt_trsv_lt(const SUF             alpha,
 
             xvec = kt_set_p<SZ, SUF>(x_fix, iidx);
             avec = kt_loadu_p<SZ, SUF>(&a_fix[idx]);
-            if constexpr((std::is_same_v<SUF, std::complex<float>>
-                          || std::is_same_v<SUF, std::complex<double>>)&&(OP == trsv_op::herm))
+            if constexpr(CONJ)
                 avec = kt_conj_p<SZ, SUF>(avec);
             xivec = kt_set1_p<SZ, SUF>(mxi);
             xvec  = kt_fmadd_p<SZ, SUF>(avec, xivec, xvec);
@@ -237,8 +248,7 @@ aoclsparse_status kt_trsv_lt(const SUF             alpha,
 
             xvec = kt_maskz_set_p<SZ, SUF, EXT, tsz - 1>(x_fix, iidx);
             avec = kt_maskz_set_p<SZ, SUF, EXT, tsz - 1>(a_fix, idx);
-            if constexpr((std::is_same_v<SUF, std::complex<float>>
-                          || std::is_same_v<SUF, std::complex<double>>)&&(OP == trsv_op::herm))
+            if constexpr(CONJ)
                 avec = kt_conj_p<SZ, SUF>(avec);
             xivec = kt_set1_p<SZ, SUF>(mxi);
             xvec  = kt_fmadd_p<SZ, SUF>(avec, xivec, xvec);
@@ -246,8 +256,7 @@ aoclsparse_status kt_trsv_lt(const SUF             alpha,
                 x_fix[icol_fix[idx + k] * incx] = xvptr[k];
             break;
         default:
-            if constexpr((std::is_same_v<SUF, std::complex<float>>
-                          || std::is_same_v<SUF, std::complex<double>>)&&(OP == trsv_op::herm))
+            if constexpr(aoclsparse::is_dt_complex<SUF>() && CONJ)
                 for(idx = idxend - idxrem; idx < idxend; idx++)
                     x_fix[icol_fix[idx] * incx] -= std::conj(a_fix[idx]) * xi;
             else
@@ -284,8 +293,9 @@ aoclsparse_status kt_trsv_lt(const SUF             alpha,
  * - `SZ`  an enum (bsz) representing the length (in bits) of AVX vector, i.e., 256 or 512
  * - `SUF` suffix of working type, i.e., `double` or `float`
  * - `EXP` AVX capability, kt_avxext e.g. `AVX` or `AVX512F`, etc...
+ * - `CONJ` bool for complex conjugation on the matrix entries
  */
-template <bsz SZ, typename SUF, kt_avxext EXT>
+template <bsz SZ, typename SUF, kt_avxext EXT, bool CONJ>
 aoclsparse_status kt_trsv_u(const SUF             alpha,
                             aoclsparse_int        m,
                             aoclsparse_index_base base,
@@ -301,7 +311,7 @@ aoclsparse_status kt_trsv_u(const SUF             alpha,
 {
     aoclsparse_int       i, idiag, idx, idxstart, idxend;
     aoclsparse_int       idxcnt, idxrem;
-    SUF                  xi;
+    SUF                  ad, xi;
     avxvector_t<SZ, SUF> avec, xvec, pvec;
     // get the vector length (type size)
     const aoclsparse_int  tsz      = tsz_v<SZ, SUF>;
@@ -327,6 +337,8 @@ aoclsparse_status kt_trsv_u(const SUF             alpha,
 
             xvec = kt_set_p<SZ, SUF>(x_fix, iidx);
             avec = kt_loadu_p<SZ, SUF>(&a_fix[idx]);
+            if constexpr(CONJ)
+                avec = kt_conj_p<SZ, SUF>(avec);
             pvec = kt_fmadd_p<SZ, SUF>(avec, xvec, pvec);
         }
         if(idxcnt - tsz >= 0)
@@ -346,17 +358,26 @@ aoclsparse_status kt_trsv_u(const SUF             alpha,
 
             xvec = kt_maskz_set_p<SZ, SUF, EXT, tsz - 1>(x_fix, iidx);
             avec = kt_maskz_set_p<SZ, SUF, EXT, tsz - 1>(a_fix, idx);
+            if constexpr(CONJ)
+                avec = kt_conj_p<SZ, SUF>(avec);
             xi -= kt_dot_p<SZ, SUF>(avec, xvec);
             break;
         default:
-            for(idx = idxend - idxrem + 1; idx <= idxend; idx++)
-                xi -= a_fix[idx] * x_fix[icol_fix[idx] * incx];
+            if constexpr(aoclsparse::is_dt_complex<SUF>() && CONJ)
+                for(idx = idxend - idxrem + 1; idx <= idxend; idx++)
+                    xi -= std::conj(a_fix[idx]) * x_fix[icol_fix[idx] * incx];
+            else
+                for(idx = idxend - idxrem + 1; idx <= idxend; idx++)
+                    xi -= a_fix[idx] * x_fix[icol_fix[idx] * incx];
         }
         x[i * incx] = xi;
         if(!unit)
         {
             idiag = iurow[i] - 1;
-            x[i * incx] /= a_fix[idiag];
+            ad    = a_fix[idiag];
+            if constexpr(aoclsparse::is_dt_complex<SUF>() && CONJ)
+                ad = std::conj(ad);
+            x[i * incx] /= ad;
         }
     }
     return aoclsparse_status_success;
@@ -389,11 +410,9 @@ aoclsparse_status kt_trsv_u(const SUF             alpha,
  * - `SZ`  an enum (bsz) representing the length (in bits) of AVX vector, i.e., 256 or 512
  * - `SUF` suffix of working type, i.e., `double` or `float`
  * - `EXP` AVX capability, kt_avxext e.g. `AVX` or `AVX512F`, etc...
- * - `OP` trsv_op enum for transposition operation type
- *       trsv_op::tran Real-space transpose, and
- *       trsv_op::herm Complex-spase conjugate transpose
+ * - `CONJ` bool for complex conjugation on the matrix entries
  */
-template <bsz SZ, typename SUF, kt_avxext EXT, trsv_op OP>
+template <bsz SZ, typename SUF, kt_avxext EXT, bool CONJ>
 aoclsparse_status kt_trsv_ut(const SUF             alpha,
                              aoclsparse_int        m,
                              aoclsparse_index_base base,
@@ -431,8 +450,7 @@ aoclsparse_status kt_trsv_ut(const SUF             alpha,
         {
             idiag = iurow[i] - 1;
             ad    = a_fix[idiag];
-            if constexpr((std::is_same_v<SUF, std::complex<float>>
-                          || std::is_same_v<SUF, std::complex<double>>)&&(OP == trsv_op::herm))
+            if constexpr(aoclsparse::is_dt_complex<SUF>() && CONJ)
                 ad = std::conj(ad);
             x[i * incx] = x[i * incx] / ad;
         }
@@ -447,8 +465,7 @@ aoclsparse_status kt_trsv_ut(const SUF             alpha,
 
             xvec = kt_set_p<SZ, SUF>(x_fix, iidx);
             avec = kt_loadu_p<SZ, SUF>(&a_fix[idx]);
-            if constexpr((std::is_same_v<SUF, std::complex<float>>
-                          || std::is_same_v<SUF, std::complex<double>>)&&(OP == trsv_op::herm))
+            if constexpr(CONJ)
                 avec = kt_conj_p<SZ, SUF>(avec);
             xivec = kt_set1_p<SZ, SUF>(mxi);
             xvec  = kt_fmadd_p<SZ, SUF>(avec, xivec, xvec);
@@ -467,8 +484,7 @@ aoclsparse_status kt_trsv_ut(const SUF             alpha,
 
             xvec = kt_maskz_set_p<SZ, SUF, EXT, tsz - 1>(x_fix, iidx);
             avec = kt_maskz_set_p<SZ, SUF, EXT, tsz - 1>(a_fix, idx);
-            if constexpr((std::is_same_v<SUF, std::complex<float>>
-                          || std::is_same_v<SUF, std::complex<double>>)&&(OP == trsv_op::herm))
+            if constexpr(CONJ)
                 avec = kt_conj_p<SZ, SUF>(avec);
             xivec = kt_set1_p<SZ, SUF>(mxi);
             xvec  = kt_fmadd_p<SZ, SUF>(avec, xivec, xvec);
@@ -476,8 +492,7 @@ aoclsparse_status kt_trsv_ut(const SUF             alpha,
                 x_fix[icol_fix[idx + k] * incx] = xvptr[k];
             break;
         default:
-            if constexpr((std::is_same_v<SUF, std::complex<float>>
-                          || std::is_same_v<SUF, std::complex<double>>)&&(OP == trsv_op::herm))
+            if constexpr(aoclsparse::is_dt_complex<SUF>() && CONJ)
                 for(idx = idxend - idxrem + 1; idx <= idxend; idx++)
                     x_fix[icol_fix[idx] * incx] -= std::conj(a_fix[idx]) * xi;
             else
@@ -490,87 +505,93 @@ aoclsparse_status kt_trsv_ut(const SUF             alpha,
 
 // ---- Lower -----
 
-#define TRSV_L_TEMPLATE_DECLARATION(BSZ, SUF)                     \
-    template aoclsparse_status kt_trsv_l<BSZ, SUF, get_kt_ext()>( \
-        const SUF             alpha,                              \
-        aoclsparse_int        m,                                  \
-        aoclsparse_index_base base,                               \
-        const SUF *__restrict__ a,                                \
-        const aoclsparse_int *__restrict__ icol,                  \
-        const aoclsparse_int *__restrict__ ilrow,                 \
-        const aoclsparse_int *__restrict__ idiag,                 \
-        const SUF *__restrict__ b,                                \
-        aoclsparse_int incb,                                      \
-        SUF *__restrict__ x,                                      \
-        aoclsparse_int incx,                                      \
+#define TRSV_L_TEMPLATE_DECLARATION_(BSZ, SUF, CONJ)                    \
+    template aoclsparse_status kt_trsv_l<BSZ, SUF, get_kt_ext(), CONJ>( \
+        const SUF             alpha,                                    \
+        aoclsparse_int        m,                                        \
+        aoclsparse_index_base base,                                     \
+        const SUF *__restrict__ a,                                      \
+        const aoclsparse_int *__restrict__ icol,                        \
+        const aoclsparse_int *__restrict__ ilrow,                       \
+        const aoclsparse_int *__restrict__ idiag,                       \
+        const SUF *__restrict__ b,                                      \
+        aoclsparse_int incb,                                            \
+        SUF *__restrict__ x,                                            \
+        aoclsparse_int incx,                                            \
         const bool     unit);
+
+#define TRSV_L_TEMPLATE_DECLARATION_CONJ(BSZ, SUF) TRSV_L_TEMPLATE_DECLARATION_(BSZ, SUF, true)
+
+#define TRSV_L_TEMPLATE_DECLARATION(BSZ, SUF) TRSV_L_TEMPLATE_DECLARATION_(BSZ, SUF, false)
 
 // ---- Lower transpose -----
 
-#define TRSV_LT_TEMPLATE_DECLARATION(BSZ, SUF, TRANS)                     \
-    template aoclsparse_status kt_trsv_lt<BSZ, SUF, get_kt_ext(), TRANS>( \
-        const SUF             alpha,                                      \
-        aoclsparse_int        m,                                          \
-        aoclsparse_index_base base,                                       \
-        const SUF *__restrict__ a,                                        \
-        const aoclsparse_int *__restrict__ icol,                          \
-        const aoclsparse_int *__restrict__ ilrow,                         \
-        const aoclsparse_int *__restrict__ idiag,                         \
-        const SUF *__restrict__ b,                                        \
-        aoclsparse_int incb,                                              \
-        SUF *__restrict__ x,                                              \
-        aoclsparse_int incx,                                              \
+#define TRSV_LT_TEMPLATE_DECLARATION_(BSZ, SUF, CONJ)                    \
+    template aoclsparse_status kt_trsv_lt<BSZ, SUF, get_kt_ext(), CONJ>( \
+        const SUF             alpha,                                     \
+        aoclsparse_int        m,                                         \
+        aoclsparse_index_base base,                                      \
+        const SUF *__restrict__ a,                                       \
+        const aoclsparse_int *__restrict__ icol,                         \
+        const aoclsparse_int *__restrict__ ilrow,                        \
+        const aoclsparse_int *__restrict__ idiag,                        \
+        const SUF *__restrict__ b,                                       \
+        aoclsparse_int incb,                                             \
+        SUF *__restrict__ x,                                             \
+        aoclsparse_int incx,                                             \
         const bool     unit);
 
-#define TRSV_LT_TEMPLATE_DECLARATION_HERM(BSZ, SUF) \
-    TRSV_LT_TEMPLATE_DECLARATION(BSZ, SUF, trsv_op::herm)
+#define TRSV_LT_TEMPLATE_DECLARATION_CONJ(BSZ, SUF) TRSV_LT_TEMPLATE_DECLARATION_(BSZ, SUF, true)
 
-#define TRSV_LT_TEMPLATE_DECLARATION_TRAN(BSZ, SUF) \
-    TRSV_LT_TEMPLATE_DECLARATION(BSZ, SUF, trsv_op::tran)
+#define TRSV_LT_TEMPLATE_DECLARATION(BSZ, SUF) TRSV_LT_TEMPLATE_DECLARATION_(BSZ, SUF, false)
 
 // ---- Upper -----
 
-#define TRSV_U_TEMPLATE_DECLARATION(BSZ, SUF)                     \
-    template aoclsparse_status kt_trsv_u<BSZ, SUF, get_kt_ext()>( \
-        const SUF             alpha,                              \
-        aoclsparse_int        m,                                  \
-        aoclsparse_index_base base,                               \
-        const SUF *__restrict__ a,                                \
-        const aoclsparse_int *__restrict__ icol,                  \
-        const aoclsparse_int *__restrict__ ilrow,                 \
-        const aoclsparse_int *__restrict__ iurow,                 \
-        const SUF *__restrict__ b,                                \
-        aoclsparse_int incb,                                      \
-        SUF *__restrict__ x,                                      \
-        aoclsparse_int incx,                                      \
+#define TRSV_U_TEMPLATE_DECLARATION_(BSZ, SUF, CONJ)                    \
+    template aoclsparse_status kt_trsv_u<BSZ, SUF, get_kt_ext(), CONJ>( \
+        const SUF             alpha,                                    \
+        aoclsparse_int        m,                                        \
+        aoclsparse_index_base base,                                     \
+        const SUF *__restrict__ a,                                      \
+        const aoclsparse_int *__restrict__ icol,                        \
+        const aoclsparse_int *__restrict__ ilrow,                       \
+        const aoclsparse_int *__restrict__ iurow,                       \
+        const SUF *__restrict__ b,                                      \
+        aoclsparse_int incb,                                            \
+        SUF *__restrict__ x,                                            \
+        aoclsparse_int incx,                                            \
         const bool     unit);
+
+#define TRSV_U_TEMPLATE_DECLARATION_CONJ(BSZ, SUF) TRSV_U_TEMPLATE_DECLARATION_(BSZ, SUF, true)
+
+#define TRSV_U_TEMPLATE_DECLARATION(BSZ, SUF) TRSV_U_TEMPLATE_DECLARATION_(BSZ, SUF, false)
 
 // ---- Upper transpose -----
 
-#define TRSV_UT_TEMPLATE_DECLARATION(BSZ, SUF, TRANS)                     \
-    template aoclsparse_status kt_trsv_ut<BSZ, SUF, get_kt_ext(), TRANS>( \
-        const SUF             alpha,                                      \
-        aoclsparse_int        m,                                          \
-        aoclsparse_index_base base,                                       \
-        const SUF *__restrict__ a,                                        \
-        const aoclsparse_int *__restrict__ icol,                          \
-        const aoclsparse_int *__restrict__ ilrow,                         \
-        const aoclsparse_int *__restrict__ iurow,                         \
-        const SUF *__restrict__ b,                                        \
-        aoclsparse_int incb,                                              \
-        SUF *__restrict__ x,                                              \
-        aoclsparse_int incx,                                              \
+#define TRSV_UT_TEMPLATE_DECLARATION_(BSZ, SUF, CONJ)                    \
+    template aoclsparse_status kt_trsv_ut<BSZ, SUF, get_kt_ext(), CONJ>( \
+        const SUF             alpha,                                     \
+        aoclsparse_int        m,                                         \
+        aoclsparse_index_base base,                                      \
+        const SUF *__restrict__ a,                                       \
+        const aoclsparse_int *__restrict__ icol,                         \
+        const aoclsparse_int *__restrict__ ilrow,                        \
+        const aoclsparse_int *__restrict__ iurow,                        \
+        const SUF *__restrict__ b,                                       \
+        aoclsparse_int incb,                                             \
+        SUF *__restrict__ x,                                             \
+        aoclsparse_int incx,                                             \
         const bool     unit);
 
-#define TRSV_UT_TEMPLATE_DECLARATION_HERM(BSZ, SUF) \
-    TRSV_UT_TEMPLATE_DECLARATION(BSZ, SUF, trsv_op::herm)
+#define TRSV_UT_TEMPLATE_DECLARATION_CONJ(BSZ, SUF) TRSV_UT_TEMPLATE_DECLARATION_(BSZ, SUF, true)
 
-#define TRSV_UT_TEMPLATE_DECLARATION_TRAN(BSZ, SUF) \
-    TRSV_UT_TEMPLATE_DECLARATION(BSZ, SUF, trsv_op::tran)
+#define TRSV_UT_TEMPLATE_DECLARATION(BSZ, SUF) TRSV_UT_TEMPLATE_DECLARATION_(BSZ, SUF, false)
 
+KT_INSTANTIATE(TRSV_L_TEMPLATE_DECLARATION_CONJ, get_bsz());
 KT_INSTANTIATE(TRSV_L_TEMPLATE_DECLARATION, get_bsz());
-KT_INSTANTIATE(TRSV_LT_TEMPLATE_DECLARATION_HERM, get_bsz());
-KT_INSTANTIATE(TRSV_LT_TEMPLATE_DECLARATION_TRAN, get_bsz());
+KT_INSTANTIATE(TRSV_LT_TEMPLATE_DECLARATION_CONJ, get_bsz());
+KT_INSTANTIATE(TRSV_LT_TEMPLATE_DECLARATION, get_bsz());
+KT_INSTANTIATE(TRSV_U_TEMPLATE_DECLARATION_CONJ, get_bsz());
 KT_INSTANTIATE(TRSV_U_TEMPLATE_DECLARATION, get_bsz());
-KT_INSTANTIATE(TRSV_UT_TEMPLATE_DECLARATION_HERM, get_bsz());
-KT_INSTANTIATE(TRSV_UT_TEMPLATE_DECLARATION_TRAN, get_bsz());
+KT_INSTANTIATE(TRSV_UT_TEMPLATE_DECLARATION_CONJ, get_bsz());
+KT_INSTANTIATE(TRSV_UT_TEMPLATE_DECLARATION, get_bsz());

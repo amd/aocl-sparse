@@ -526,26 +526,26 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
     // all actions in the list were already optimized for
     if(optimized)
         return aoclsparse_status_success;
-    // If 'other' hints have been passed, simply optimize the matrix by creating a clean CSR
+    // If 'other' hints have been passed, simply optimize the matrix by creating a clean CSR / clean CSC
     if(other_count || sum == 0)
     {
-        if(A->opt_csr_ready)
+        if(A->opt_csr_ready || A->opt_csc_ready)
             ret = aoclsparse_status_success;
         else
         {
             switch(A->val_type)
             {
             case aoclsparse_dmat:
-                ret = aoclsparse_csr_optimize<double>(A);
+                ret = aoclsparse_csr_csc_optimize<double>(A);
                 break;
             case aoclsparse_smat:
-                ret = aoclsparse_csr_optimize<float>(A);
+                ret = aoclsparse_csr_csc_optimize<float>(A);
                 break;
             case aoclsparse_cmat:
-                ret = aoclsparse_csr_optimize<aoclsparse_float_complex>(A);
+                ret = aoclsparse_csr_csc_optimize<aoclsparse_float_complex>(A);
                 break;
             case aoclsparse_zmat:
-                ret = aoclsparse_csr_optimize<aoclsparse_double_complex>(A);
+                ret = aoclsparse_csr_csc_optimize<aoclsparse_double_complex>(A);
                 break;
             }
         }

@@ -271,12 +271,13 @@ aoclsparse_status aoclsparse_mat_check_internal(aoclsparse_int          maj_dim,
  * Possible fails: invalid_size(m,n<0), invalid_pointer (input),
  *                 invalid_value (duplicate diagonal element)
  */
-aoclsparse_status aoclsparse_csr_check_sort_diag(aoclsparse_int        m,
-                                                 aoclsparse_int        n,
-                                                 aoclsparse_index_base base,
-                                                 const aoclsparse_csr  csr_mat,
-                                                 bool                 &sorted,
-                                                 bool                 &fulldiag)
+aoclsparse_status aoclsparse_csr_csc_check_sort_diag(aoclsparse_int        m,
+                                                     aoclsparse_int        n,
+                                                     aoclsparse_index_base base,
+                                                     const aoclsparse_int *idx_ptr,
+                                                     const aoclsparse_int *indices,
+                                                     bool                 &sorted,
+                                                     bool                 &fulldiag)
 {
 
     sorted   = false;
@@ -284,7 +285,7 @@ aoclsparse_status aoclsparse_csr_check_sort_diag(aoclsparse_int        m,
 
     if(m < 0 || n < 0)
         return aoclsparse_status_invalid_size;
-    if(csr_mat->csr_row_ptr == nullptr || csr_mat->csr_col_ptr == nullptr)
+    if(idx_ptr == nullptr || indices == nullptr)
         return aoclsparse_status_invalid_pointer;
 
     // assume sorting & fulldiag unless proved otherwise
@@ -297,10 +298,10 @@ aoclsparse_status aoclsparse_csr_check_sort_diag(aoclsparse_int        m,
     {
         lower  = true; // assume the data starts with the lower triangular part
         found  = false;
-        idxend = csr_mat->csr_row_ptr[i + 1] - base;
-        for(idx = (csr_mat->csr_row_ptr[i] - base); idx < idxend; idx++)
+        idxend = idx_ptr[i + 1] - base;
+        for(idx = (idx_ptr[i] - base); idx < idxend; idx++)
         {
-            aoclsparse_int j = csr_mat->csr_col_ptr[idx] - base;
+            aoclsparse_int j = indices[idx] - base;
             if(j == i)
             {
                 if(found)
@@ -345,8 +346,7 @@ aoclsparse_status aoclsparse_csr_check_sort_diag(aoclsparse_int        m,
 
     return aoclsparse_status_success;
 }
-
-/* Given a square CSR matrix which is valid and sorted, generate index arrays
+/* Given a square CSR/CSC matrix which is valid and sorted, generate index arrays
  * to position of diagonal and the first strictly upper triangle element,
  * if any of these is missing, the index points to where such an element
  * would be stored. The new index arrays are allocated here via new
@@ -370,12 +370,12 @@ aoclsparse_status aoclsparse_csr_check_sort_diag(aoclsparse_int        m,
  * The matrix is not checked, sorting in row is assumed,
  * at most one diag element per row.
  */
-aoclsparse_status aoclsparse_csr_indices(aoclsparse_int        m,
-                                         aoclsparse_index_base base,
-                                         const aoclsparse_int *icrow,
-                                         const aoclsparse_int *icol,
-                                         aoclsparse_int      **idiag,
-                                         aoclsparse_int      **iurow)
+aoclsparse_status aoclsparse_csr_csc_indices(aoclsparse_int        m,
+                                             aoclsparse_index_base base,
+                                             const aoclsparse_int *icrow,
+                                             const aoclsparse_int *icol,
+                                             aoclsparse_int      **idiag,
+                                             aoclsparse_int      **iurow)
 {
 
     if(m < 0)

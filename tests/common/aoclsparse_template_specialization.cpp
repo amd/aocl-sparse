@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -1520,7 +1520,31 @@ aoclsparse_status aoclsparse_csr2csc(aoclsparse_int                  m,
                                csc_col_ptr,
                                csc_val);
 }
-
+template <>
+aoclsparse_status aoclsparse_csr2csc(aoclsparse_int             m,
+                                     aoclsparse_int             n,
+                                     aoclsparse_int             nnz,
+                                     const aoclsparse_mat_descr descr,
+                                     aoclsparse_index_base      baseCSC,
+                                     const aoclsparse_int      *csr_row_ptr,
+                                     const aoclsparse_int      *csr_col_ind,
+                                     const std::complex<float> *csr_val,
+                                     aoclsparse_int            *csc_row_ind,
+                                     aoclsparse_int            *csc_col_ptr,
+                                     std::complex<float>       *csc_val)
+{
+    return aoclsparse_ccsr2csc(m,
+                               n,
+                               nnz,
+                               descr,
+                               baseCSC,
+                               csr_row_ptr,
+                               csr_col_ind,
+                               reinterpret_cast<const aoclsparse_float_complex *>(csr_val),
+                               csc_row_ind,
+                               csc_col_ptr,
+                               reinterpret_cast<aoclsparse_float_complex *>(csc_val));
+}
 template <>
 aoclsparse_status aoclsparse_csr2csc(aoclsparse_int                   m,
                                      aoclsparse_int                   n,
@@ -1545,6 +1569,31 @@ aoclsparse_status aoclsparse_csr2csc(aoclsparse_int                   m,
                                csc_row_ind,
                                csc_col_ptr,
                                csc_val);
+}
+template <>
+aoclsparse_status aoclsparse_csr2csc(aoclsparse_int              m,
+                                     aoclsparse_int              n,
+                                     aoclsparse_int              nnz,
+                                     const aoclsparse_mat_descr  descr,
+                                     aoclsparse_index_base       baseCSC,
+                                     const aoclsparse_int       *csr_row_ptr,
+                                     const aoclsparse_int       *csr_col_ind,
+                                     const std::complex<double> *csr_val,
+                                     aoclsparse_int             *csc_row_ind,
+                                     aoclsparse_int             *csc_col_ptr,
+                                     std::complex<double>       *csc_val)
+{
+    return aoclsparse_zcsr2csc(m,
+                               n,
+                               nnz,
+                               descr,
+                               baseCSC,
+                               csr_row_ptr,
+                               csr_col_ind,
+                               reinterpret_cast<const aoclsparse_double_complex *>(csr_val),
+                               csc_row_ind,
+                               csc_col_ptr,
+                               reinterpret_cast<aoclsparse_double_complex *>(csc_val));
 }
 
 template <>
@@ -2273,6 +2322,19 @@ aoclsparse_status aoclsparse_create_csc(aoclsparse_matrix        *mat,
     return aoclsparse_create_ccsc(mat, base, M, N, nnz, col_ptr, row_idx, val);
 }
 template <>
+aoclsparse_status aoclsparse_create_csc(aoclsparse_matrix    *mat,
+                                        aoclsparse_index_base base,
+                                        aoclsparse_int        M,
+                                        aoclsparse_int        N,
+                                        aoclsparse_int        nnz,
+                                        aoclsparse_int       *col_ptr,
+                                        aoclsparse_int       *row_idx,
+                                        std::complex<float>  *val)
+{
+    return aoclsparse_create_ccsc(
+        mat, base, M, N, nnz, col_ptr, row_idx, reinterpret_cast<aoclsparse_float_complex *>(val));
+}
+template <>
 aoclsparse_status aoclsparse_create_csc(aoclsparse_matrix         *mat,
                                         aoclsparse_index_base      base,
                                         aoclsparse_int             M,
@@ -2283,6 +2345,19 @@ aoclsparse_status aoclsparse_create_csc(aoclsparse_matrix         *mat,
                                         aoclsparse_double_complex *val)
 {
     return aoclsparse_create_zcsc(mat, base, M, N, nnz, col_ptr, row_idx, val);
+}
+template <>
+aoclsparse_status aoclsparse_create_csc(aoclsparse_matrix    *mat,
+                                        aoclsparse_index_base base,
+                                        aoclsparse_int        M,
+                                        aoclsparse_int        N,
+                                        aoclsparse_int        nnz,
+                                        aoclsparse_int       *col_ptr,
+                                        aoclsparse_int       *row_idx,
+                                        std::complex<double> *val)
+{
+    return aoclsparse_create_zcsc(
+        mat, base, M, N, nnz, col_ptr, row_idx, reinterpret_cast<aoclsparse_double_complex *>(val));
 }
 
 template <>

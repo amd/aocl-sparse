@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -349,7 +349,7 @@ aoclsparse_status aoclsparse_symgs(
     if(!A->opt_csr_ready)
     {
         // user did not check the matrix, call optimize
-        status = aoclsparse_csr_optimize<T>(A);
+        status = aoclsparse_csr_csc_optimize<T>(A);
         if(status != aoclsparse_status_success)
         {
             return status;

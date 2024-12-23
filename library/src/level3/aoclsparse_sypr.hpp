@@ -687,7 +687,7 @@ aoclsparse_status aoclsparse_sypr_t(aoclsparse_operation       opA,
 
     if(!B->opt_csr_ready)
     {
-        status = aoclsparse_csr_optimize<T>(B);
+        status = aoclsparse_csr_csc_optimize<T>(B);
         if(status != aoclsparse_status_success)
             return status;
     }

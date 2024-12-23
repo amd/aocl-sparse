@@ -63,20 +63,76 @@ aoclsparse_status aoclsparse_mat_check_internal(aoclsparse_int          maj_dim,
                                                 bool                   &mat_fulldiag,
                                                 void (*error_handler)(aoclsparse_status status,
                                                                       std::string       message));
-aoclsparse_status aoclsparse_csr_check_sort_diag(aoclsparse_int        m,
-                                                 aoclsparse_int        n,
-                                                 aoclsparse_index_base base,
-                                                 const aoclsparse_csr  csr_mat,
-                                                 bool                 &sorted,
-                                                 bool                 &fulldiag);
+aoclsparse_status aoclsparse_csr_csc_check_sort_diag(aoclsparse_int        m,
+                                                     aoclsparse_int        n,
+                                                     aoclsparse_index_base base,
+                                                     const aoclsparse_int *idx_ptr,
+                                                     const aoclsparse_int *indices,
+                                                     bool                 &sorted,
+                                                     bool                 &fulldiag);
+aoclsparse_status aoclsparse_csr_csc_indices(aoclsparse_int        m,
+                                             aoclsparse_index_base base,
+                                             const aoclsparse_int *icrow,
+                                             const aoclsparse_int *icol,
+                                             aoclsparse_int      **idiag,
+                                             aoclsparse_int      **iurow);
 
-aoclsparse_status aoclsparse_csr_indices(aoclsparse_int        m,
-                                         aoclsparse_index_base base,
-                                         const aoclsparse_int *icrow,
-                                         const aoclsparse_int *icol,
-                                         aoclsparse_int      **idiag,
-                                         aoclsparse_int      **iurow);
+/* Copy an (unpacked) csr/csc matrix. 'base' gives the index base correction.
+ * If the input is 1-base & base = 1, then the dst* arrays would be
+ * base corrected and be 0-base. The function can also
+ * preserve the input base in output arrays with base = 0 (no correction).
+ * dst* arrays will get allocated.
+ * Possible exit: invalid size, invalid pointer, memory alloc
+ */
+template <typename T>
+aoclsparse_status aoclsparse_copy_csr_csc(aoclsparse_int        m,
+                                          aoclsparse_int        nnz,
+                                          aoclsparse_index_base base,
+                                          const aoclsparse_int *idx_ptr,
+                                          const aoclsparse_int *indices,
+                                          const T              *vals,
+                                          aoclsparse_int      **dst_idx_ptr,
+                                          aoclsparse_int      **dst_indices,
+                                          T                   **dst_vals)
+{
+    aoclsparse_int i;
 
+    if((m < 0) || (nnz < 0))
+        return aoclsparse_status_invalid_size;
+    if(!idx_ptr || !indices || !vals)
+        return aoclsparse_status_invalid_pointer;
+    if(!dst_idx_ptr || !dst_indices || !dst_vals)
+        return aoclsparse_status_invalid_pointer;
+
+    *dst_idx_ptr = nullptr;
+    *dst_indices = nullptr;
+    *dst_vals    = nullptr;
+
+    try
+    {
+        *dst_idx_ptr = new aoclsparse_int[m + 1];
+        *dst_indices = new aoclsparse_int[nnz];
+        *dst_vals    = static_cast<T *>(::operator new(nnz * sizeof(T)));
+    }
+    catch(std::bad_alloc &)
+    {
+        delete[] *dst_idx_ptr;
+        delete[] *dst_indices;
+        ::operator delete(*dst_vals);
+        return aoclsparse_status_memory_error;
+    }
+
+    // copy the matrix
+    for(i = 0; i < m + 1; i++)
+        (*dst_idx_ptr)[i] = idx_ptr[i] - base;
+    for(i = 0; i < nnz; i++)
+    {
+        (*dst_indices)[i] = indices[i] - base;
+        (*dst_vals)[i]    = vals[i];
+    }
+
+    return aoclsparse_status_success;
+}
 /* Copy a csr matrix. If the input is 1-base (i.e., base = 1), then the output
  * arrays of As would be base corrected and be 0-base. The function can also
  * preserve the input base in output arrays of As, provided the input base argument
@@ -91,43 +147,18 @@ aoclsparse_status aoclsparse_copy_csr(aoclsparse_int                  m,
                                       const aoclsparse_csr            A,
                                       aoclsparse_csr                  As)
 {
-    aoclsparse_int i;
-    T             *aval, *aval_s;
-
-    if((m < 0) || (nnz < 0))
-        return aoclsparse_status_invalid_size;
     if((A == nullptr) || (As == nullptr))
         return aoclsparse_status_invalid_pointer;
-    if(A->csr_col_ptr == nullptr || A->csr_row_ptr == nullptr || A->csr_val == nullptr)
-        return aoclsparse_status_invalid_pointer;
 
-    try
-    {
-        As->csr_row_ptr = new aoclsparse_int[m + 1];
-        As->csr_col_ptr = new aoclsparse_int[nnz];
-        As->csr_val     = ::operator new(nnz * sizeof(T));
-    }
-    catch(std::bad_alloc &)
-    {
-        delete[] As->csr_row_ptr;
-        delete[] As->csr_col_ptr;
-        ::operator delete(As->csr_val);
-        return aoclsparse_status_memory_error;
-    }
-
-    aval   = static_cast<T *>(A->csr_val);
-    aval_s = static_cast<T *>(As->csr_val);
-
-    // copy the matrix
-    for(i = 0; i < m + 1; i++)
-        As->csr_row_ptr[i] = A->csr_row_ptr[i] - base;
-    for(i = 0; i < nnz; i++)
-    {
-        As->csr_col_ptr[i] = A->csr_col_ptr[i] - base;
-        aval_s[i]          = aval[i];
-    }
-
-    return aoclsparse_status_success;
+    return aoclsparse_copy_csr_csc(m,
+                                   nnz,
+                                   base,
+                                   A->csr_row_ptr,
+                                   A->csr_col_ptr,
+                                   static_cast<T *>(A->csr_val),
+                                   &As->csr_row_ptr,
+                                   &As->csr_col_ptr,
+                                   reinterpret_cast<T **>(&As->csr_val));
 }
 
 /* Function to sort CSR or CSC matrix.
@@ -210,21 +241,29 @@ aoclsparse_status aoclsparse_sort_idx_val(aoclsparse_int                  maj_di
     return aoclsparse_status_success;
 }
 
-/* create some artificial fill-ins with zeros on the diagonal if some elements are missing
+/* create some artificial fill-ins with zeros on the diagonal if some elements
+ * are missing, in such a case the arrays are reallocated.
  * Assumes the rows are sorted */
 template <typename T>
-aoclsparse_status aoclsparse_csr_fill_diag(aoclsparse_int        m,
-                                           aoclsparse_int        n,
-                                           aoclsparse_int        nnz,
-                                           aoclsparse_index_base base,
-                                           aoclsparse_csr        A)
+aoclsparse_status aoclsparse_csr_csc_fill_diag(aoclsparse_int        m,
+                                               aoclsparse_int        n,
+                                               aoclsparse_int        nnz,
+                                               aoclsparse_index_base base,
+                                               aoclsparse_int      **dst_idx_ptr,
+                                               aoclsparse_int      **dst_indices,
+                                               T                   **dst_val)
 {
     aoclsparse_int i, j, count, idx, idxend;
+
+    //validate the input double pointers first before dereferencing them later in try block
+    if(!dst_indices || !dst_idx_ptr || !dst_val)
+        return aoclsparse_status_invalid_pointer;
+
     try
     {
         std::vector<aoclsparse_int> missing_diag(m, -1);
 
-        if(!A->csr_col_ptr || !A->csr_row_ptr || !A->csr_val)
+        if(!(*dst_indices) || !(*dst_idx_ptr) || !(*dst_val))
             return aoclsparse_status_invalid_pointer;
 
         // Check each row for missing element on the diagonal
@@ -233,10 +272,10 @@ aoclsparse_status aoclsparse_csr_fill_diag(aoclsparse_int        m,
         for(i = 0; i < m; i++)
         {
             diag_found = false;
-            idxend     = A->csr_row_ptr[i + 1] - base;
-            for(idx = (A->csr_row_ptr[i] - base); idx < idxend; idx++)
+            idxend     = (*dst_idx_ptr)[i + 1] - base;
+            for(idx = ((*dst_idx_ptr)[i] - base); idx < idxend; idx++)
             {
-                j = A->csr_col_ptr[idx] - base;
+                j = (*dst_indices)[idx] - base;
                 if(i == j)
                 {
                     diag_found = true;
@@ -260,7 +299,7 @@ aoclsparse_status aoclsparse_csr_fill_diag(aoclsparse_int        m,
         void           *aval    = nullptr;
         T              *csr_val = nullptr;
         aoclsparse_int  nnz_new = nnz + count;
-        csr_val                 = static_cast<T *>(A->csr_val);
+        csr_val                 = static_cast<T *>(*dst_val);
 
         try
         {
@@ -278,10 +317,10 @@ aoclsparse_status aoclsparse_csr_fill_diag(aoclsparse_int        m,
         aoclsparse_int n_added = 0, nnz_curr = 0;
         for(i = 0; i < m; i++)
         {
-            idxend   = A->csr_row_ptr[i + 1] - base;
-            icrow[i] = A->csr_row_ptr[i] - base + n_added;
+            idxend   = (*dst_idx_ptr)[i + 1] - base;
+            icrow[i] = (*dst_idx_ptr)[i] - base + n_added;
             // Copy the row into the new matrix
-            for(idx = (A->csr_row_ptr[i] - base); idx < idxend; idx++)
+            for(idx = ((*dst_idx_ptr)[i] - base); idx < idxend; idx++)
             {
                 if(nnz_curr == missing_diag[i])
                 {
@@ -292,7 +331,7 @@ aoclsparse_status aoclsparse_csr_fill_diag(aoclsparse_int        m,
                     nnz_curr++;
                 }
                 static_cast<T *>(aval)[nnz_curr] = csr_val[idx];
-                icol[nnz_curr]                   = A->csr_col_ptr[idx] - base;
+                icol[nnz_curr]                   = (*dst_indices)[idx] - base;
                 nnz_curr++;
             }
             if(nnz_curr == missing_diag[i])
@@ -307,12 +346,12 @@ aoclsparse_status aoclsparse_csr_fill_diag(aoclsparse_int        m,
         icrow[m] = nnz_new;
 
         // replace A vectors by the new filled ones
-        delete[] A->csr_col_ptr;
-        delete[] A->csr_row_ptr;
-        ::operator delete(A->csr_val);
-        A->csr_col_ptr = icol;
-        A->csr_row_ptr = icrow;
-        A->csr_val     = aval;
+        delete[](*dst_indices);
+        delete[](*dst_idx_ptr);
+        ::operator delete((*dst_val));
+        (*dst_indices) = icol;
+        (*dst_idx_ptr) = icrow;
+        (*dst_val)     = static_cast<T *>(aval);
     }
     catch(std::bad_alloc &)
     {
@@ -323,9 +362,10 @@ aoclsparse_status aoclsparse_csr_fill_diag(aoclsparse_int        m,
     return aoclsparse_status_success;
 }
 
-/* Check a CSR matrix inputs and create a clean version */
+/* Given input matrix in CSR/CSC format, check it and create the matching
+ * clean version opt_csr_mat/opt_csc_mat, respectively */
 template <typename T>
-aoclsparse_status aoclsparse_csr_optimize(aoclsparse_matrix A)
+aoclsparse_status aoclsparse_csr_csc_optimize(aoclsparse_matrix A)
 {
     aoclsparse_status status;
 
@@ -342,14 +382,53 @@ aoclsparse_status aoclsparse_csr_optimize(aoclsparse_matrix A)
         return aoclsparse_status_invalid_value;
     }
 
+    aoclsparse_int  *idx_ptr     = nullptr;
+    aoclsparse_int  *indices     = nullptr;
+    T               *val         = nullptr;
+    aoclsparse_int **opt_idx_ptr = nullptr;
+    aoclsparse_int **opt_indices = nullptr;
+    T              **opt_val     = nullptr;
+    aoclsparse_int **mat_idiag   = nullptr;
+    aoclsparse_int **mat_iurow   = nullptr;
+    aoclsparse_int   m_mat, n_mat;
+
+    if(A->input_format == aoclsparse_csr_mat)
+    {
+        idx_ptr = A->csr_mat.csr_row_ptr;
+        indices = A->csr_mat.csr_col_ptr;
+        val     = static_cast<T *>(A->csr_mat.csr_val);
+
+        opt_idx_ptr = &(A->opt_csr_mat.csr_row_ptr);
+        opt_indices = &(A->opt_csr_mat.csr_col_ptr);
+        opt_val     = reinterpret_cast<T **>(&(A->opt_csr_mat.csr_val));
+        mat_idiag   = &(A->idiag);
+        mat_iurow   = &(A->iurow);
+        m_mat       = A->m;
+        n_mat       = A->n;
+    }
+    else if(A->input_format == aoclsparse_csc_mat)
+    {
+        idx_ptr = A->csc_mat.col_ptr;
+        indices = A->csc_mat.row_idx;
+        val     = static_cast<T *>(A->csc_mat.val);
+
+        opt_idx_ptr = &(A->opt_csc_mat.col_ptr);
+        opt_indices = &(A->opt_csc_mat.row_idx);
+        opt_val     = reinterpret_cast<T **>(&(A->opt_csc_mat.val));
+        mat_idiag   = &(A->idiag_csc);
+        mat_iurow   = &(A->iurow_csc);
+        m_mat       = A->n;
+        n_mat       = A->m;
+    }
+
     // Check the user's matrix format
     // First check the matrix is a valid matrix
-    status = aoclsparse_mat_check_internal(A->m,
-                                           A->n,
+    status = aoclsparse_mat_check_internal(m_mat,
+                                           n_mat,
                                            A->nnz,
-                                           A->csr_mat.csr_row_ptr,
-                                           A->csr_mat.csr_col_ptr,
-                                           A->csr_mat.csr_val,
+                                           idx_ptr,
+                                           indices,
+                                           val,
                                            shape_general,
                                            A->base,
                                            A->sort,
@@ -361,7 +440,8 @@ aoclsparse_status aoclsparse_csr_optimize(aoclsparse_matrix A)
 
     // Check if the matrix is sorted with full diag
     bool sorted, fulldiag;
-    status = aoclsparse_csr_check_sort_diag(A->m, A->n, A->base, &A->csr_mat, sorted, fulldiag);
+    status = aoclsparse_csr_csc_check_sort_diag(
+        m_mat, n_mat, A->base, idx_ptr, indices, sorted, fulldiag);
     if(status != aoclsparse_status_success)
         // Shouldn't happen, pointers have already been checked
         return aoclsparse_status_internal_error;
@@ -370,10 +450,20 @@ aoclsparse_status aoclsparse_csr_optimize(aoclsparse_matrix A)
     if(sorted && fulldiag)
     {
         // The matrix is already in the correct format, use directly user's memory
-        A->opt_csr_mat.csr_row_ptr = A->csr_mat.csr_row_ptr;
-        A->opt_csr_mat.csr_col_ptr = A->csr_mat.csr_col_ptr;
-        A->opt_csr_mat.csr_val     = A->csr_mat.csr_val;
-        A->opt_csr_is_users        = true;
+        if(A->input_format == aoclsparse_csr_mat)
+        {
+            *opt_idx_ptr        = A->csr_mat.csr_row_ptr;
+            *opt_indices        = A->csr_mat.csr_col_ptr;
+            *opt_val            = static_cast<T *>(A->csr_mat.csr_val);
+            A->opt_csr_is_users = true;
+        }
+        else if(A->input_format == aoclsparse_csc_mat)
+        {
+            *opt_idx_ptr        = A->csc_mat.col_ptr;
+            *opt_indices        = A->csc_mat.row_idx;
+            *opt_val            = static_cast<T *>(A->csc_mat.val);
+            A->opt_csc_is_users = true;
+        }
         //since user's csr buffers are used for execution kernel, the base-index correction
         //will happen during execution
         A->internal_base_index = A->base;
@@ -381,8 +471,13 @@ aoclsparse_status aoclsparse_csr_optimize(aoclsparse_matrix A)
     else
     {
         // Create a copy of the user's data to be able to manipulate it
-        A->opt_csr_is_users = false;
-        status = aoclsparse_copy_csr<T>(A->m, A->n, A->nnz, A->base, &A->csr_mat, &A->opt_csr_mat);
+        status = aoclsparse_copy_csr_csc(
+            m_mat, A->nnz, A->base, idx_ptr, indices, val, opt_idx_ptr, opt_indices, opt_val);
+        if(A->input_format == aoclsparse_csr_mat)
+            A->opt_csr_is_users = false;
+        else if(A->input_format == aoclsparse_csc_mat)
+            A->opt_csc_is_users = false;
+
         if(status != aoclsparse_status_success)
             return status;
         //since the correction is already performed during above copy, the execution kernel and the
@@ -393,38 +488,40 @@ aoclsparse_status aoclsparse_csr_optimize(aoclsparse_matrix A)
     }
     if(!sorted)
     {
-        aoclsparse_sort_idx_val<T>(A->m,
-                                   A->n,
+        aoclsparse_sort_idx_val<T>(m_mat,
+                                   n_mat,
                                    A->nnz,
                                    A->base,
-                                   A->csr_mat.csr_row_ptr,
-                                   A->csr_mat.csr_col_ptr,
-                                   static_cast<T *>(A->csr_mat.csr_val),
+                                   idx_ptr,
+                                   indices,
+                                   val,
                                    A->internal_base_index,
-                                   A->opt_csr_mat.csr_col_ptr,
-                                   static_cast<T *>(A->opt_csr_mat.csr_val));
+                                   (*opt_indices),
+                                   *opt_val);
         // check again for full diagonal
-        status = aoclsparse_csr_check_sort_diag(
-            A->m, A->n, A->internal_base_index, &A->opt_csr_mat, sorted, fulldiag);
+        status = aoclsparse_csr_csc_check_sort_diag(
+            m_mat, n_mat, A->internal_base_index, *opt_idx_ptr, *opt_indices, sorted, fulldiag);
         if(status != aoclsparse_status_success)
             return status;
     }
     if(!fulldiag)
     {
-        status = aoclsparse_csr_fill_diag<T>(
-            A->m, A->n, A->nnz, A->internal_base_index, &A->opt_csr_mat);
+        status = aoclsparse_csr_csc_fill_diag<T>(
+            m_mat, n_mat, A->nnz, A->internal_base_index, opt_idx_ptr, opt_indices, opt_val);
         if(status != aoclsparse_status_success)
             return status;
     }
-    status = aoclsparse_csr_indices(A->m,
-                                    A->internal_base_index,
-                                    A->opt_csr_mat.csr_row_ptr,
-                                    A->opt_csr_mat.csr_col_ptr,
-                                    &A->idiag,
-                                    &A->iurow);
+    status = aoclsparse_csr_csc_indices(
+        m_mat, A->internal_base_index, *opt_idx_ptr, *opt_indices, mat_idiag, mat_iurow);
     if(status != aoclsparse_status_success)
         return status;
-    A->opt_csr_ready     = true;
+    if(A->input_format == aoclsparse_csc_mat)
+        A->opt_csc_ready = true;
+    else
+        A->opt_csr_ready = true;
+
+    //being full-diagonal is property of the original matrix. So need to
+    //maintain for a CSC copy
     A->opt_csr_full_diag = fulldiag;
     A->optimized         = true;
 

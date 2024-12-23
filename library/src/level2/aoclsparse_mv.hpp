@@ -276,7 +276,7 @@ std::enable_if_t<std::is_same_v<T, std::complex<float>> || std::is_same_v<T, std
     {
         if(!A->opt_csr_ready)
         {
-            status = aoclsparse_csr_optimize<T>(A);
+            status = aoclsparse_csr_csc_optimize<T>(A);
             if(status)
                 return status;
         }
@@ -718,7 +718,7 @@ std::enable_if_t<std::is_same_v<T, float> || std::is_same_v<T, double>, aoclspar
             }
             else
             {
-                status = aoclsparse_csr_optimize<T>(A);
+                status = aoclsparse_csr_csc_optimize<T>(A);
             }
             if(status)
                 return status;
