@@ -1215,6 +1215,28 @@ aoclsparse_status aoclsparse_destroy_csc(aoclsparse_matrix A)
             A->csc_mat.val = NULL;
         }
     }
+    if(!A->opt_csc_is_users)
+    {
+        if(A->opt_csc_mat.col_ptr)
+        {
+            delete[] A->opt_csc_mat.col_ptr;
+            A->opt_csc_mat.col_ptr = NULL;
+        }
+        if(A->opt_csc_mat.row_idx)
+        {
+            delete[] A->opt_csc_mat.row_idx;
+            A->opt_csc_mat.row_idx = NULL;
+        }
+        if(A->opt_csc_mat.val)
+        {
+            ::operator delete(A->opt_csc_mat.val);
+            A->opt_csc_mat.val = NULL;
+        }
+    }
+    if(A->idiag_csc)
+        delete[] A->idiag_csc;
+    if(A->iurow_csc)
+        delete[] A->iurow_csc;
     return aoclsparse_status_success;
 }
 

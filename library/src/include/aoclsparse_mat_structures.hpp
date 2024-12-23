@@ -320,6 +320,20 @@ struct _aoclsparse_matrix
     bool                   csc_mat_is_users = false;
     struct _aoclsparse_csc csc_mat;
 
+    // optimized csc matrix
+    // It is checked, sorted in rows, has a diagonal element in each row,
+    // however, some diagonal elements might have been added as zeros
+    struct _aoclsparse_csc opt_csc_mat;
+    // the matrix has been 'optimized', it can be used
+    bool opt_csc_ready = false;
+    // if true, user's csr_mat was fine to use so opt_csr_mat points
+    // to the same memory. Deallocate only if !opt_csr_is_users
+    bool opt_csc_is_users = false;
+    // position where the diagonal is located in every column
+    aoclsparse_int *idiag_csc = nullptr;
+    // position where the first strictly upper triangle element is/would be located in every column
+    aoclsparse_int *iurow_csc = nullptr;
+
     // used to indicate if any additional memory required further performance optimization purposes
     aoclsparse_memory_usage mem_policy = aoclsparse_memory_usage_unrestricted;
 

@@ -26,13 +26,6 @@
 #include "aoclsparse.h"
 #include "aoclsparse_kernel_templates.hpp"
 
-/* TRSV linear operators over matrix */
-enum trsv_op
-{
-    tran = 0, // alias for aoclsparse_operation_transpose
-    herm = 1 // alias for aoclsparse_operation_conjugate_transpose
-};
-
 namespace aoclsparse
 {
     template <kernel_templates::bsz SZ, typename SUF>
@@ -74,7 +67,10 @@ namespace aoclsparse
                                     SUF *__restrict__ y);
 }
 
-template <kernel_templates::bsz SZ, typename SUF, kernel_templates::kt_avxext EXT>
+template <kernel_templates::bsz SZ,
+          typename SUF,
+          kernel_templates::kt_avxext EXT,
+          bool                        CONJ = false>
 aoclsparse_status kt_trsv_l(const SUF             alpha,
                             aoclsparse_int        m,
                             aoclsparse_index_base base,
@@ -91,7 +87,7 @@ aoclsparse_status kt_trsv_l(const SUF             alpha,
 template <kernel_templates::bsz SZ,
           typename SUF,
           kernel_templates::kt_avxext EXT,
-          trsv_op                     OP = trsv_op::tran>
+          bool                        CONJ = false>
 aoclsparse_status kt_trsv_lt(const SUF             alpha,
                              aoclsparse_int        m,
                              aoclsparse_index_base base,
@@ -105,7 +101,10 @@ aoclsparse_status kt_trsv_lt(const SUF             alpha,
                              aoclsparse_int incx,
                              const bool     unit);
 
-template <kernel_templates::bsz SZ, typename SUF, kernel_templates::kt_avxext EXT>
+template <kernel_templates::bsz SZ,
+          typename SUF,
+          kernel_templates::kt_avxext EXT,
+          bool                        CONJ = false>
 aoclsparse_status kt_trsv_u(const SUF             alpha,
                             aoclsparse_int        m,
                             aoclsparse_index_base base,
@@ -122,7 +121,7 @@ aoclsparse_status kt_trsv_u(const SUF             alpha,
 template <kernel_templates::bsz SZ,
           typename SUF,
           kernel_templates::kt_avxext EXT,
-          trsv_op                     OP = trsv_op::tran>
+          bool                        CONJ = false>
 aoclsparse_status kt_trsv_ut(const SUF             alpha,
                              aoclsparse_int        m,
                              aoclsparse_index_base base,

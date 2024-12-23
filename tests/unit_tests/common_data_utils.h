@@ -39,7 +39,6 @@
 
 //aocl utils
 #include "Au/Cpuid/X86Cpu.hh"
-
 // Utilities to compare complex real scalars and vectors =============================================
 
 #define EXPECT_COMPLEX_EQ_VEC(n, x, y)                                           \
@@ -520,7 +519,13 @@ enum linear_system_id
     EXT_S5_B0,
     EXT_NSYMM_5,
     EXT_H5,
-    EXT_H5_B0
+    EXT_H5_B0,
+    H5_Lx_aB,
+    H5_LTx_aB,
+    H5_LHx_aB,
+    H5_Ux_aB,
+    H5_UTx_aB,
+    H5_UHx_aB
 };
 
 template <typename T>
@@ -4267,6 +4272,155 @@ aoclsparse_status
         if(aoclsparse_create_csr(&A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
            != aoclsparse_status_success)
             return aoclsparse_status_internal_error;
+        break;
+    case H5_Lx_aB:
+    case H5_LTx_aB:
+    case H5_LHx_aB:
+    case H5_Ux_aB:
+    case H5_UTx_aB:
+    case H5_UHx_aB:
+        /*
+            Solve a linear system:Ax = alpha.b, where n=5, nnz=11 and A is Hermitian if data
+            is complex or symmetric if data is real
+            xref = [1.0 2.0 3.0 4.0 5.0]';
+            b = A.xref
+            x = A \ b
+        */
+        title   = "small hermitian matrix of size 5 to test trsv";
+        diag    = aoclsparse_diag_type_non_unit;
+        mattype = aoclsparse_matrix_type_triangular;
+
+        alpha = (T)1.0;
+        n     = 5;
+        nnz   = 11;
+
+        icrowa.resize(n + 1);
+        icola.resize(nnz);
+        aval.resize(nnz);
+
+        switch(id)
+        {
+        case H5_Lx_aB:
+        case H5_LTx_aB:
+        case H5_LHx_aB:
+            /*
+                    Solve H5_L.x = alpha.b, where
+                    H5_L(Hermitian Lower matrix) =
+                    4           0           0           0           0;
+                    2 - 2i      5 + 1i      0           0           0;
+                    0           1 - 2i      3 + 3i      0           0;
+                    0           0           2 - 0.5i    4 + 4i      0;
+                    1 - 2i      3 + 3i      0 + 2i      0           2 + 2i;
+                    validate TRSV operations for CSR and corresponding CSC inputs for following cases
+                        1. Lcsr * x = aB and Ucsc-T * x = aB
+                        2. Ucsr * x = aB and Lcsc-T * x = aB
+                        3. Lcsr-CT * x = aB and Ucsc-C * x = aB
+                        4. Ucsr-CT * x = aB and Lcsc-C * x = aB
+                    Input chosen is a Hermitian matrix.
+                */
+            fill_mode = aoclsparse_fill_mode_lower;
+            icrowa    = {0, 1, 3, 5, 7, 11};
+            icola     = {0, 0, 1, 1, 2, 2, 3, 0, 1, 2, 4};
+            aval      = {bcd((T)4, (T)-0),
+                         bcd((T)2, (T)2),
+                         bcd((T)5, (T)-1),
+                         bcd((T)1, (T)2),
+                         bcd((T)3, (T)-3),
+                         bcd((T)2, (T)0.5),
+                         bcd((T)4, (T)-4),
+                         bcd((T)1, (T)2),
+                         bcd((T)3, (T)-3),
+                         bcd((T)0, (T)-2),
+                         bcd((T)2, (T)-2)};
+            break;
+        case H5_Ux_aB:
+        case H5_UTx_aB:
+        case H5_UHx_aB:
+            /*
+                    Solve H5_U.x = alpha.b, where
+                    H5_L(Hermitian Upper matrix) =
+                    4           2 + 2i      0           0           1 + 2i;
+                    0           5 + 1i      1 + 2i      0           3 - 3i;
+                    0           0           3 + 3i      2 + 0.5i    0 - 2i;
+                    0           0           0           4 + 4i      0     ;
+                    0           0           0           0           2 + 2i;
+                */
+            fill_mode = aoclsparse_fill_mode_upper;
+            icrowa    = {0, 1, 3, 5, 7, 11};
+            icola     = {0, 0, 1, 1, 2, 2, 3, 0, 1, 2, 4};
+            aval      = {bcd((T)4, (T)-0),
+                         bcd((T)2, (T)2),
+                         bcd((T)5, (T)-1),
+                         bcd((T)1, (T)2),
+                         bcd((T)3, (T)-3),
+                         bcd((T)2, (T)0.5),
+                         bcd((T)4, (T)-4),
+                         bcd((T)1, (T)2),
+                         bcd((T)3, (T)-3),
+                         bcd((T)0, (T)-2),
+                         bcd((T)2, (T)-2)};
+            break;
+        default:
+            return aoclsparse_status_internal_error;
+            break;
+        }
+        // update row pointer and column index arrays to reflect values as per base-index
+        // icrowa = icrowa + base;
+        transform(icrowa.begin(), icrowa.end(), icrowa.begin(), [base](aoclsparse_int &d) {
+            return d + base;
+        });
+        // icola = icola + base;
+        transform(icola.begin(), icola.end(), icola.begin(), [base](aoclsparse_int &d) {
+            return d + base;
+        });
+
+        b.resize(n); //reference solution vector in matrix-vector multiplication
+        xref.resize(n); //allocate solution vector for aocl-trsv operation
+        //assign intial values
+        xref = {bc((T)1.0), bc((T)2.0), bc((T)3.0), bc((T)4.0), bc((T)5.0)};
+        x.resize(n); // uknown vector, trsv needs to compute
+
+        if(aoclsparse_create_csr(&A, base, n, n, nnz, &icrowa[0], &icola[0], &aval[0])
+           != aoclsparse_status_success)
+            return aoclsparse_status_internal_error;
+        if(aoclsparse_create_mat_descr(&descr) != aoclsparse_status_success)
+            return aoclsparse_status_internal_error;
+        descr->type      = mattype;
+        descr->fill_mode = fill_mode;
+        descr->diag_type = diag;
+        aoclsparse_set_mat_index_base(descr, base);
+        switch(id)
+        {
+        case H5_Lx_aB:
+        case H5_Ux_aB:
+            trans = aoclsparse_operation_none;
+            break;
+        case H5_LTx_aB:
+        case H5_UTx_aB:
+            trans = aoclsparse_operation_transpose;
+            break;
+        case H5_LHx_aB:
+        case H5_UHx_aB:
+            trans = aoclsparse_operation_conjugate_transpose;
+            break;
+        default:
+            return aoclsparse_status_internal_error;
+            break;
+        }
+        dparm[0] = 0.; //unused
+        ref_csrmvtrg(trans,
+                     alpha,
+                     n,
+                     n,
+                     &aval[0],
+                     &icola[0],
+                     &icrowa[0],
+                     fill_mode,
+                     diag,
+                     base,
+                     &xref[0],
+                     dparm[0],
+                     &b[0]);
         break;
     default:
         // no data with id found
