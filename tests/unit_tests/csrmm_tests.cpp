@@ -2372,7 +2372,7 @@ namespace
             = aoclsparse_matrix_random; // random matrix generation by default
         if(mat_type == aoclsparse_matrix_type_hermitian)
         {
-            mat_init_type = aoclsparse_matrix_herm_random_diag_dom;
+            mat_init_type = aoclsparse_matrix_random_herm_diag_dom;
         }
 
         CBLAS_ORDER blis_layout;

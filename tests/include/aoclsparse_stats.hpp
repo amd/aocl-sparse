@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024 Advanced Micro Devices, Inc.All rights reserved.
+ * Copyright (c) 2024-2025 Advanced Micro Devices, Inc.All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -93,9 +93,14 @@ std::string gen_problem_name(const Arguments &arg, const testdata<T> &td)
         ret += "rnd_diag_dom" + std::to_string(td.m) + "x" + std::to_string(td.n) + "x"
                + std::to_string(td.nnzA);
     }
-    else if(arg.matrix == aoclsparse_matrix_herm_random_diag_dom)
+    else if(arg.matrix == aoclsparse_matrix_random_herm_diag_dom)
     {
         ret += "rnd_herm_diag_dom" + std::to_string(td.m) + "x" + std::to_string(td.n) + "x"
+               + std::to_string(td.nnzA);
+    }
+    else if(arg.matrix == aoclsparse_matrix_random_lower_triangle)
+    {
+        ret += "rnd_low_triang" + std::to_string(td.m) + "x" + std::to_string(td.n) + "x"
                + std::to_string(td.nnzA);
     }
     else

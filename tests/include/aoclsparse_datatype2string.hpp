@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020-2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -46,7 +46,9 @@ typedef enum aoclsparse_matrix_init_
     /**< random matrix with full-diagonal which is diagonally dominant */
     aoclsparse_matrix_random_diag_dom = 3,
     /**< random hermitian matrix with full-diagonal which is diagonally dominant */
-    aoclsparse_matrix_herm_random_diag_dom = 4
+    aoclsparse_matrix_random_herm_diag_dom = 4,
+    /**< Lower Triangle matrix */
+    aoclsparse_matrix_random_lower_triangle = 5
 } aoclsparse_matrix_init;
 
 constexpr auto aoclsparse_matrix2string(aoclsparse_matrix_init matrix)
@@ -61,6 +63,10 @@ constexpr auto aoclsparse_matrix2string(aoclsparse_matrix_init matrix)
         return "csr";
     case aoclsparse_matrix_random_diag_dom:
         return "rand_diagonal_dominant";
+    case aoclsparse_matrix_random_herm_diag_dom:
+        return "rand_herm_diagonal_dominant";
+    case aoclsparse_matrix_random_lower_triangle:
+        return "rand_lower_triangle";
     default:
         return "invalid";
     }

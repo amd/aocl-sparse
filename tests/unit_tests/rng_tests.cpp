@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,6 @@
 #include "gtest/gtest.h"
 #include "aoclsparse.hpp"
 #include "aoclsparse_init.hpp"
-
 namespace
 {
 #define CSR 0
@@ -142,7 +141,7 @@ namespace
                 //check if there exists a non-zero diagonal element
                 if(i == col_idx)
                 {
-                    if(matrix != aoclsparse_matrix_herm_random_diag_dom)
+                    if(matrix != aoclsparse_matrix_random_herm_diag_dom)
                     {
                         if(csr_val[j] != aoclsparse_numeric::zero<T>())
                         {
@@ -188,6 +187,84 @@ namespace
         }
         return fulldiag;
     }
+    // check if the given csr structure is diagonally dominant
+    template <typename T>
+    bool check_csr_for_diagdom(aoclsparse_int       *csr_row_ptr,
+                               aoclsparse_int       *csr_col_ind,
+                               T                    *csr_val,
+                               aoclsparse_int       &m,
+                               aoclsparse_index_base base)
+    {
+        bool diagdom = true; //assume diagonally dominant
+
+        for(aoclsparse_int i = 0; i < m; i++)
+        {
+            aoclsparse_int row_start, row_end;
+            tolerance_t<T> row_sum = 0., diag = 0.;
+            row_start = csr_row_ptr[i] - base;
+            row_end   = csr_row_ptr[i + 1] - base;
+            for(aoclsparse_int j = row_start; j < row_end; j++)
+            {
+                aoclsparse_int col_idx = csr_col_ind[j] - base;
+                if(i == col_idx)
+                {
+                    if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
+                        diag = std::abs(csr_val[j]);
+                    else
+                        diag = sqrt((csr_val[j].real * csr_val[j].real)
+                                    + (csr_val[j].imag * csr_val[j].imag));
+                }
+                else if(i != col_idx)
+                {
+                    if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
+                        row_sum += std::abs(csr_val[j]);
+                    else
+                        row_sum += sqrt((csr_val[j].real * csr_val[j].real)
+                                        + (csr_val[j].imag * csr_val[j].imag));
+                }
+            }
+            //quick exit since a matrix is considered not a diagonally dominant if
+            //at least a single row fails the diagonal-dominance check
+            if(diag < row_sum)
+            {
+                //diagonal not dominant
+                diagdom = false;
+                break;
+            }
+        }
+        return diagdom;
+    }
+    // check if the given csr data corresponds to a triangle matrix and thus can be
+    // treated as a symmetric lower
+    bool check_for_triangle(aoclsparse_int       *csr_row_ptr,
+                            aoclsparse_int       *csr_col_ind,
+                            aoclsparse_int       &m,
+                            aoclsparse_index_base base)
+    {
+        bool is_lower = true; //assume lower
+
+        for(aoclsparse_int i = 0; i < m; i++)
+        {
+            aoclsparse_int row_start, row_end;
+            row_start = csr_row_ptr[i] - base;
+            row_end   = csr_row_ptr[i + 1] - base;
+            for(aoclsparse_int j = row_start; j < row_end; j++)
+            {
+                aoclsparse_int col_idx = csr_col_ind[j] - base;
+                if(col_idx > i)
+                {
+                    is_lower = false;
+                    break;
+                }
+            }
+            //quick exit since a matrix contains upper triangle elements also
+            if(!is_lower)
+            {
+                break;
+            }
+        }
+        return is_lower;
+    }
     /* RNG matrix test driver
 
     * Checks randomly generated matrix (in CSR, COO)
@@ -211,18 +288,18 @@ namespace
                                 bool           fulldiag_exp_status,
                                 bool           sortexp_status)
     {
-        bool                        fulldiag, sorted;
+        bool                        fulldiag, sorted, diagdom, is_trng;
         aoclsparse_status           status;
         bool                        is_symm = false;
         std::vector<T>              csr_val, csc_val, coo_val;
         std::vector<aoclsparse_int> csr_col_ind, csc_row_ind, csr_row_ptr, csc_col_ptr;
         std::vector<aoclsparse_int> coo_row_ind, coo_col_ind;
-        aoclsparse_matrix           src_mat         = nullptr, dest_mat;
-        aoclsparse_int             *coo2csr_row_ptr = nullptr;
-        aoclsparse_int             *coo2csr_col_ind = nullptr;
-        T                          *coo2csr_val     = nullptr;
+        aoclsparse_matrix           src_mat = nullptr, dest_mat;
         aoclsparse_int              coo2csr_n, coo2csr_m, coo2csr_nnz;
         aoclsparse_index_base       coo2csr_base;
+
+        T              *out_csr_val_ptr = nullptr;
+        aoclsparse_int *out_csr_col_ind = nullptr, *out_csr_row_ptr = nullptr;
 
         aoclsparse_index_base  base     = (aoclsparse_index_base)ibase;
         aoclsparse_matrix_init matrix   = (aoclsparse_matrix_init)imatrix;
@@ -268,19 +345,9 @@ namespace
             EXPECT_EQ(status, aoclsparse_status_success)
                 << "Test failed to validate aoclsparse_init_csr_matrix";
 
-            //if generation is successful, validate diagonal and the order of indices
-            if(status == aoclsparse_status_success)
-            {
-                //csr arrays validation
-                fulldiag = check_csr_for_fulldiag(
-                    &csr_row_ptr[0], &csr_col_ind[0], &csr_val[0], m, base, matrix);
-                EXPECT_EQ(fulldiag, fulldiag_exp_status)
-                    << "Test failed to validate full diagonal functionality in initialization "
-                       "of csr matrix";
-                sorted = check_sorting(&csr_row_ptr[0], &csr_col_ind[0], m, base, isort);
-                EXPECT_EQ(sorted, sortexp_status) << "Test failed to validate sort functionality "
-                                                     "in initialization of csr matrix";
-            }
+            out_csr_row_ptr = &csr_row_ptr[0];
+            out_csr_col_ind = &csr_col_ind[0];
+            out_csr_val_ptr = &csr_val[0];
         }
         else if(iformat == COO)
         {
@@ -315,27 +382,57 @@ namespace
                                                 &coo2csr_m,
                                                 &coo2csr_n,
                                                 &coo2csr_nnz,
-                                                &coo2csr_row_ptr,
-                                                &coo2csr_col_ind,
-                                                &coo2csr_val),
+                                                &out_csr_row_ptr,
+                                                &out_csr_col_ind,
+                                                &out_csr_val_ptr),
                           aoclsparse_status_success);
 
                 //coo arrays validation
                 EXPECT_EQ(coo2csr_base, base);
                 EXPECT_EQ(coo2csr_nnz, nnz);
+                EXPECT_EQ(coo2csr_m, m);
+                EXPECT_EQ(coo2csr_n, n);
+            }
+        }
+
+        //if generation is successful, validate diagonal and the order of indices
+        if(status == aoclsparse_status_success)
+        {
+            //csr arrays validation if randomly generated with diagonal dominance request or hermitian or symmetric triangle
+            if(is_random
+               && (matrix == aoclsparse_matrix_random_diag_dom
+                   || matrix == aoclsparse_matrix_random_herm_diag_dom
+                   || matrix == aoclsparse_matrix_random_lower_triangle))
+            {
                 fulldiag = check_csr_for_fulldiag(
-                    coo2csr_row_ptr, coo2csr_col_ind, coo2csr_val, coo2csr_m, coo2csr_base, matrix);
+                    out_csr_row_ptr, out_csr_col_ind, out_csr_val_ptr, m, base, matrix);
                 EXPECT_EQ(fulldiag, fulldiag_exp_status)
                     << "Test failed to validate full diagonal functionality in initialization "
-                       "of coo matrix";
-                sorted = check_sorting(
-                    coo2csr_row_ptr, coo2csr_col_ind, coo2csr_m, coo2csr_base, isort);
-                EXPECT_EQ(sorted, sortexp_status) << "Test failed to validate sort functionality "
-                                                     "in initialization of coo matrix";
+                       "of matrix";
 
-                EXPECT_EQ(aoclsparse_destroy(&dest_mat), aoclsparse_status_success);
-                EXPECT_EQ(aoclsparse_destroy(&src_mat), aoclsparse_status_success);
+                diagdom = check_csr_for_diagdom(
+                    out_csr_row_ptr, out_csr_col_ind, out_csr_val_ptr, m, base);
+                EXPECT_EQ(diagdom, fulldiag_exp_status)
+                    << "Test failed to validate diagonal-dominance feature in the matrix";
             }
+
+            if(is_random && (matrix == aoclsparse_matrix_random_lower_triangle))
+            {
+                is_trng = check_for_triangle(out_csr_row_ptr, out_csr_col_ind, m, base);
+                EXPECT_EQ(is_trng, fulldiag_exp_status)
+                    << "Test failed to validate triangle functionality in initialization "
+                       "of matrix";
+            }
+
+            sorted = check_sorting(out_csr_row_ptr, out_csr_col_ind, m, base, isort);
+            EXPECT_EQ(sorted, sortexp_status) << "Test failed to validate sort functionality "
+                                                 "in initialization of matrix";
+        }
+
+        if(iformat == COO && status == aoclsparse_status_success)
+        {
+            EXPECT_EQ(aoclsparse_destroy(&dest_mat), aoclsparse_status_success);
+            EXPECT_EQ(aoclsparse_destroy(&src_mat), aoclsparse_status_success);
         }
     }
 
@@ -349,6 +446,7 @@ namespace
 #define MTX 1
 #define DIAG_DOM 3
 #define HERM_DIAG_DOM 4
+#define RAND_SYM_LOW 5
 
     typedef struct
     {
@@ -359,8 +457,15 @@ namespace
         aoclsparse_int m;
         aoclsparse_int n;
         aoclsparse_int nnz;
-        aoclsparse_int
-            matrix; //0 - random-default, 1-mtx file as input, 3-random-diagonally dominant, 4 - random hermitian diagonally dominant
+        /*
+        0 - random-default
+        1-  mtx file as input
+        2 - <unused>
+        3-  random-diagonally dominant
+        4 - random hermitian diagonally dominant
+        5 - random symmetric lower matrix
+        */
+        aoclsparse_int matrix;
         aoclsparse_int sort; //0 - unsorted, 1 - partially sorted, 2 - full sorted
         bool           fulldiag_exp_status;
         bool           sort_exp_status;
@@ -395,6 +500,9 @@ namespace
         ADD_TEST(BS0, TRUE, CSR, 1001, 1001, -1, DIAG_DOM, FULL_SORT, TRUE, TRUE),
         //edge case coo: computed nnz greater than matrix dimension
         ADD_TEST(BS1, TRUE, COO, 1001, 1001, -1, DIAG_DOM, FULL_SORT, TRUE, TRUE),
+        //Symmetric matrix
+        ADD_TEST(BS0, TRUE, CSR, 5, 5, 14, RAND_SYM_LOW, FULL_SORT, TRUE, TRUE),
+        ADD_TEST(BS1, TRUE, COO, 21, 21, 79, RAND_SYM_LOW, UNSORTED, TRUE, FALSE),
     };
 
     // It is used to when testing::PrintToString(GetParam()) to generate test name for ctest
@@ -461,7 +569,7 @@ namespace
         col_array.resize(nnz);
         val.resize(nnz);
 
-        //m=0,n=0 quick exit check
+        //negative dimensions quick exit check
         exp_status = aoclsparse_status_invalid_size;
         status     = aoclsparse_init_csr_matrix(
             row_array, col_array, val, neg, n, nnz, base, matrix, nullptr, is_symm, true, sort);
@@ -472,17 +580,17 @@ namespace
         EXPECT_EQ(status, exp_status)
             << "Test failed to validate negative dimensions in aoclsparse_init_coo_matrix";
 
-        //negative dimensions quick exit check
-        exp_status = aoclsparse_status_invalid_size;
-        wrong      = -7;
+        //nnz < -100
+        wrong      = -102;
+        exp_status = aoclsparse_status_invalid_value;
         status     = aoclsparse_init_csr_matrix(
-            row_array, col_array, val, wrong, n, nnz, base, matrix, nullptr, is_symm, true, sort);
+            row_array, col_array, val, m, n, wrong, base, matrix, nullptr, is_symm, true, sort);
         EXPECT_EQ(status, exp_status)
-            << "Test failed to validate negative dimensions in aoclsparse_init_csr_matrix";
+            << "Test failed to validate invalid sparsity percentage in aoclsparse_init_csr_matrix";
         status = aoclsparse_init_coo_matrix(
-            row_array, col_array, val, m, wrong, nnz, base, matrix, nullptr, is_symm, true, sort);
+            row_array, col_array, val, m, n, wrong, base, matrix, nullptr, is_symm, true, sort);
         EXPECT_EQ(status, exp_status)
-            << "Test failed to validate negative dimensions in aoclsparse_init_coo_matrix";
+            << "Test failed to validate invalid sparsity percentage in aoclsparse_init_coo_matrix";
 
         //nnz > m*n check
         wrong      = m * n + 1;
@@ -496,6 +604,38 @@ namespace
         EXPECT_EQ(status, exp_status)
             << "Test failed to validate nnz if greater than m*n in aoclsparse_init_coo_matrix";
 
+        //nnz > nnz_triangL check
+        wrong      = 1 + m + (m * n - m) / 2;
+        exp_status = aoclsparse_status_invalid_value;
+        status     = aoclsparse_init_csr_matrix(row_array,
+                                            col_array,
+                                            val,
+                                            m,
+                                            n,
+                                            wrong,
+                                            base,
+                                            aoclsparse_matrix_random_lower_triangle,
+                                            nullptr,
+                                            is_symm,
+                                            true,
+                                            sort);
+        EXPECT_EQ(status, exp_status) << "Test failed to validate nnz if greater than nnzs allowed "
+                                         "in a triangle in aoclsparse_init_csr_matrix";
+        status = aoclsparse_init_coo_matrix(row_array,
+                                            col_array,
+                                            val,
+                                            m,
+                                            n,
+                                            wrong,
+                                            base,
+                                            aoclsparse_matrix_random_lower_triangle,
+                                            nullptr,
+                                            is_symm,
+                                            true,
+                                            sort);
+        EXPECT_EQ(status, exp_status) << "Test failed to validate nnz if greater than nnzs allowed "
+                                         "in a triangle in aoclsparse_init_coo_matrix";
+
         //invalid matrix differentiator
         exp_status = aoclsparse_status_invalid_value;
         status     = aoclsparse_init_csr_matrix(row_array,
@@ -505,7 +645,7 @@ namespace
                                             n,
                                             nnz,
                                             base,
-                                            (aoclsparse_matrix_init)5,
+                                            (aoclsparse_matrix_init)6,
                                             nullptr,
                                             is_symm,
                                             true,
@@ -519,7 +659,7 @@ namespace
                                             n,
                                             nnz,
                                             base,
-                                            (aoclsparse_matrix_init)5,
+                                            (aoclsparse_matrix_init)6,
                                             nullptr,
                                             is_symm,
                                             true,

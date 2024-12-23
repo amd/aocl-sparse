@@ -1,5 +1,5 @@
 # ########################################################################
-# Copyright (c) 2024 Advanced Micro Devices, Inc.
+# Copyright (c) 2024-2025 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -94,6 +94,15 @@ foreach(FUNCTION "csrmv" "ellmv" "diamv" "optmv") # TODO add back "csrsv", so fa
             add_test(FuncTest.${FUNCTION}-NonFullDiag-Unsorted-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ}xBase-${BASE} ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --indexbaseA=${BASE} --transposeA=T --matrix=R --sort=F --verify=1 --iters=1)
             #Partial Sorted
             add_test(FuncTest.${FUNCTION}-FullDiag-PartialSorted-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ}xBase-${BASE} ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --indexbaseA=${BASE} --transposeA=T --matrix=D --sort=P --verify=1 --iters=1)
+
+            #Symmetric matrix type + Random-Triangle-matrix-DiagDom
+            add_test(FuncTest.${FUNCTION}-TriangL-mtypeS-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ}xBase-${BASE} ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --indexbaseA=${BASE} --transposeA=N --uplo=L --matrix=T --matrixtypeA=S --sort=F --verify=1 --iters=1)
+            #General matrix type + Random-Diagonal Dominance
+            add_test(FuncTest.${FUNCTION}-RandDiagDom-mtypeG-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ}xBase-${BASE} ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --indexbaseA=${BASE} --transposeA=N --uplo=L --matrix=D --matrixtypeA=G --sort=F --verify=1 --iters=1)
+            if(FUNCTION STREQUAL "optmv")
+              #Triangle matrix type + Random-Triangle-matrix-DiagDom
+              add_test(FuncTest.${FUNCTION}-TriangL-mtypeT-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ}xBase-${BASE} ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --indexbaseA=${BASE} --transposeA=N --uplo=L --matrix=T --matrixtypeA=T --sort=F --verify=1 --iters=1)
+            ENDIF()
           ENDIF()
         ENDIF()
 
