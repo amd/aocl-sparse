@@ -1,6 +1,6 @@
 
 /* ************************************************************************
- * Copyright (c) 2021-2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2021-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -146,7 +146,10 @@ aoclsparse_status aoclsparse_csrmm_row_major_ref(T                          alph
     }
     return aoclsparse_status_success;
 }
-template <typename T>
+
+// The parameter HERM specifies if the input csr matrix described by
+// <descr, csr_val, csr_col_ind and csr_row_ptr> is hermitian.
+template <typename T, bool HERM = false>
 aoclsparse_status aoclsparse_csrmm_sym_row_ref(T                          alpha,
                                                const aoclsparse_mat_descr descr,
                                                const T *__restrict__ csr_val,
@@ -207,7 +210,14 @@ aoclsparse_status aoclsparse_csrmm_sym_row_ref(T                          alpha,
                             C[idx_c] += csr_val[k] * B[idx_b] * alpha;
                             idx_b = i * ldb + j;
                             idx_c = (csr_col_ind[k] - base) * ldc + j;
-                            C[idx_c] += aoclsparse::conj(csr_val[k]) * (B[idx_b]) * alpha;
+                            if constexpr(HERM)
+                            {
+                                C[idx_c] += aoclsparse::conj(csr_val[k]) * (B[idx_b]) * alpha;
+                            }
+                            else
+                            {
+                                C[idx_c] += csr_val[k] * (B[idx_b]) * alpha;
+                            }
                         }
                     }
                 }
@@ -225,7 +235,14 @@ aoclsparse_status aoclsparse_csrmm_sym_row_ref(T                          alpha,
                             C[idx_c] += csr_val[k] * B[idx_b] * alpha;
                             idx_b = i * ldb + j;
                             idx_c = (csr_col_ind[k] - base) * ldc + j;
-                            C[idx_c] += aoclsparse::conj(csr_val[k]) * (B[idx_b]) * alpha;
+                            if constexpr(HERM)
+                            {
+                                C[idx_c] += aoclsparse::conj(csr_val[k]) * (B[idx_b]) * alpha;
+                            }
+                            else
+                            {
+                                C[idx_c] += csr_val[k] * (B[idx_b]) * alpha;
+                            }
                         }
                     }
                 }
@@ -234,7 +251,10 @@ aoclsparse_status aoclsparse_csrmm_sym_row_ref(T                          alpha,
     }
     return aoclsparse_status_success;
 }
-template <typename T>
+
+// The parameter HERM specifies if the input csr matrix described by
+// <descr, csr_val, csr_col_ind and csr_row_ptr> is hermitian.
+template <typename T, bool HERM = false>
 aoclsparse_status aoclsparse_csrmm_sym_col_ref(T                          alpha,
                                                const aoclsparse_mat_descr descr,
                                                const T *__restrict__ csr_val,
@@ -295,7 +315,14 @@ aoclsparse_status aoclsparse_csrmm_sym_col_ref(T                          alpha,
                             C[idx_c] += csr_val[k] * B[idx_b] * alpha;
                             idx_b = i + j * ldb;
                             idx_c = (csr_col_ind[k] - base) + j * ldc;
-                            C[idx_c] += aoclsparse::conj(csr_val[k]) * (B[idx_b]) * alpha;
+                            if constexpr(HERM)
+                            {
+                                C[idx_c] += aoclsparse::conj(csr_val[k]) * (B[idx_b]) * alpha;
+                            }
+                            else
+                            {
+                                C[idx_c] += csr_val[k] * (B[idx_b]) * alpha;
+                            }
                         }
                     }
                 }
@@ -313,7 +340,14 @@ aoclsparse_status aoclsparse_csrmm_sym_col_ref(T                          alpha,
                             C[idx_c] += csr_val[k] * B[idx_b] * alpha;
                             idx_b = i + j * ldb;
                             idx_c = (csr_col_ind[k] - base) + j * ldc;
-                            C[idx_c] += aoclsparse::conj(csr_val[k]) * (B[idx_b]) * alpha;
+                            if constexpr(HERM)
+                            {
+                                C[idx_c] += aoclsparse::conj(csr_val[k]) * (B[idx_b]) * alpha;
+                            }
+                            else
+                            {
+                                C[idx_c] += csr_val[k] * (B[idx_b]) * alpha;
+                            }
                         }
                     }
                 }
@@ -531,7 +565,14 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
         T                              *val_A = const_cast<T *>(csr_val);
         if(op == aoclsparse_operation_conjugate_transpose || op == aoclsparse_operation_transpose)
         {
-            csr_val_A.resize(A->nnz);
+            try
+            {
+                csr_val_A.resize(A->nnz);
+            }
+            catch(std::bad_alloc &)
+            {
+                return aoclsparse_status_memory_error;
+            }
             // For symmetric and hermitian matrices, we only use:
             // 1. Orginal row pointers and column indices,
             // 2. Apply conjugate on original value array(non-transposed csr_val), because of the following reasons:
@@ -541,16 +582,43 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
             // using the orignal row pointers and column indices. This is useful only in Hermitian matrices.
             // Apply conjugate on transposed value array.
             for(aoclsparse_int idx = 0; idx < A->nnz; idx++)
-                csr_val_A[idx] = aoclsparse::conj(csr_val[idx]);
+            {
+                if constexpr(std::is_same_v<T, std::complex<double>>
+                             || std::is_same_v<T, std::complex<float>>)
+                {
+                    if((op == aoclsparse_operation_conjugate_transpose
+                        && mat_type == aoclsparse_matrix_type_symmetric)
+                       || (op == aoclsparse_operation_transpose
+                           && mat_type == aoclsparse_matrix_type_hermitian))
+                        csr_val_A[idx] = aoclsparse::conj(csr_val[idx]);
+                    else
+                        csr_val_A[idx] = csr_val[idx];
+                }
+                else
+                {
+                    csr_val_A[idx] = csr_val[idx];
+                }
+            }
             val_A = csr_val_A.data();
         }
-        using K = decltype(&aoclsparse_csrmm_sym_col_ref<T>);
-        K kernel;
-        if(order == aoclsparse_order_column)
-            kernel = aoclsparse_csrmm_sym_col_ref;
-        else // order == aoclsparse_order_row
-            kernel = aoclsparse_csrmm_sym_row_ref;
-        return kernel(alpha, descr, val_A, csr_col_ind, csr_row_ptr, k, B, n, ldb, C, ldc);
+        if(mat_type == aoclsparse_matrix_type_symmetric)
+        {
+            if(order == aoclsparse_order_column)
+                return aoclsparse_csrmm_sym_col_ref<T>(
+                    alpha, descr, val_A, csr_col_ind, csr_row_ptr, k, B, n, ldb, C, ldc);
+            else // order == aoclsparse_order_row
+                return aoclsparse_csrmm_sym_row_ref<T>(
+                    alpha, descr, val_A, csr_col_ind, csr_row_ptr, k, B, n, ldb, C, ldc);
+        }
+        else // mat_type == aoclsparse_matrix_type_hermitian
+        {
+            if(order == aoclsparse_order_column)
+                return aoclsparse_csrmm_sym_col_ref<T, true>(
+                    alpha, descr, val_A, csr_col_ind, csr_row_ptr, k, B, n, ldb, C, ldc);
+            else // order == aoclsparse_order_row
+                return aoclsparse_csrmm_sym_row_ref<T, true>(
+                    alpha, descr, val_A, csr_col_ind, csr_row_ptr, k, B, n, ldb, C, ldc);
+        }
     }
     else // mat_type == aoclsparse_matrix_type_general
     {
@@ -563,9 +631,17 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
         aoclsparse_int              mb        = m;
         if(op == aoclsparse_operation_conjugate_transpose || op == aoclsparse_operation_transpose)
         {
-            csr_col_ind_A.resize(A->nnz);
-            csr_row_ptr_A.resize(A->n + 1);
-            csr_val_A.resize(A->nnz);
+            try
+            {
+                csr_col_ind_A.resize(A->nnz);
+                csr_row_ptr_A.resize(A->n + 1);
+                csr_val_A.resize(A->nnz);
+            }
+            catch(std::bad_alloc &)
+            {
+                return aoclsparse_status_memory_error;
+            }
+
             aoclsparse_status status = aoclsparse_csr2csc_template(A->m,
                                                                    A->n,
                                                                    A->nnz,
