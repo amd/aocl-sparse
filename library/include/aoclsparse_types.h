@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020-2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -197,7 +197,7 @@ typedef enum aoclsparse_matrix_type_
     aoclsparse_matrix_type_triangular = 3 ///< triangular matrix, \f$ A=\text{tril}(A) \f$ or
                                           ///< \f$ A=\text{triu}(A). \f$ Here too, \ref aoclsparse_fill_mode
                                           ///< specifies which triangle is available.
-    // clang-format om
+    // clang-format on
 } aoclsparse_matrix_type;
 
 /*! \ingroup types_module
@@ -221,7 +221,7 @@ typedef enum aoclsparse_ilu_type_
 {
     aoclsparse_ilu0 = 0, /**< Incomplete LU with zero fill-in, ILU(0). */
     aoclsparse_ilup = 1, /**< Incomplete LU with thresholding, ILU(p). */
-                         /**< Not implemented in this release. */
+    /**< Not implemented in this release. */
 } aoclsparse_ilu_type;
 
 /*! \ingroup types_module

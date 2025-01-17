@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,9 +27,11 @@
 #include "aoclsparse.h"
 #include "aoclsparse_context.h"
 #include "aoclsparse_descr.h"
+#include "aoclsparse_cntx_dispatcher.hpp"
 #include "aoclsparse_csr_util.hpp"
-#include "aoclsparse_dispatcher.hpp"
+#include "aoclsparse_l2.hpp"
 #include "aoclsparse_l2_kt.hpp"
+#include "aoclsparse_mtx_dispatcher.hpp"
 
 #include <complex>
 #include <type_traits>
@@ -277,7 +279,7 @@ aoclsparse_status
                     const aoclsparse_int       incb, /* Stride for B */
                     T                         *x, /* solution */
                     const aoclsparse_int       incx, /* Stride for X */
-                    const aoclsparse_int       kid /* user request of Kernel ID (kid) to use */)
+                    aoclsparse_int             kid /* user request of Kernel ID (kid) to use */)
 {
     // Quick initial checks
     if(!A || !x || !b || !descr)
@@ -396,8 +398,7 @@ aoclsparse_status
         iurow = A->iurow;
     }
 
-    const bool            lower = descr->fill_mode == aoclsparse_fill_mode_lower;
-    aoclsparse_index_base base  = A->internal_base_index;
+    aoclsparse_index_base base = A->internal_base_index;
 
     using namespace aoclsparse;
 
@@ -406,32 +407,6 @@ aoclsparse_status
         This check needs to be done only once in a run
     */
     static bool can_exec_avx512 = context::get_context()->supports<context_isa_t::AVX512F>();
-
-    // CPU ID dispatcher sets recommended Kernel ID to use, this can be influenced by
-    // the user-requested "kid" hint
-    // TODO update when libcpuid is merged into aoclsparse
-    aoclsparse_int usekid = 2; // Defaults to 2 (AVX2 256-bits)
-    if(kid >= 0)
-    {
-        switch(kid)
-        {
-        case 0: // reference implementation (no explicit vectorization)
-            usekid = kid;
-            break;
-        case 1:
-        case 2: // AVX2 256b
-            usekid = kid;
-            break;
-        case 3: // AVX-512F 512b
-            if(can_exec_avx512)
-                usekid = kid;
-            // Requested kid not available on host,
-            // stay with kid suggested by CPU ID...
-            break;
-        default: // use kid suggested by CPU ID...
-            break;
-        }
-    }
 
     using namespace kernel_templates;
 
@@ -465,168 +440,146 @@ aoclsparse_status
      *     |                        | bit wide register implementation        |
      * -----------------------+-----------------------------------------------------------------------------
      */
-    if(lower)
+    aoclsparse::doid do_id = aoclsparse::get_doid<T>(descr, transpose);
+
+    using k_l = decltype(&trsv_l_ref_core<T>);
+    using k_u = decltype(&trsv_u_ref_core<T>);
+
+    k_l kr_l;
+    k_u kr_u;
+
+    if(kid == 3 && !can_exec_avx512)
+        kid = 2;
+
+    switch(do_id)
     {
-        switch(transpose)
+    case aoclsparse::doid::tln:
+        switch(kid)
         {
-        case aoclsparse_operation_none:
-            switch(usekid)
-            {
-            case 3: // AVX-512F (Note: if not available then trickle down to next best)
+        case 3:
 #if USE_AVX512
-                return kt_trsv_l<bsz::b512, T, kt_avxext::AVX512F>(
-                    alpha, m, base, a, icol, ilrow, idiag, b, incb, x, incx, unit);
-                break;
-#endif
-            case 2: // AVX2
-            case 1:
-                return kt_trsv_l<bsz::b256, T, kt_avxext::AVX2>(
-                    alpha, m, base, a, icol, ilrow, idiag, b, incb, x, incx, unit);
-                break;
-            default: // Reference implementation
-                return trsv_l_ref_core(
-                    alpha, m, base, a, icol, ilrow, idiag, b, incb, x, incx, unit);
-                break;
-            }
+            kr_l = kt_trsv_l<bsz::b512, T, kt_avxext::AVX512F>;
             break;
-        case aoclsparse_operation_transpose:
-            switch(usekid)
-            {
-            case 3: // AVX-512F (Note: if not available then trickle down to next best)
-#if USE_AVX512
-                return kt_trsv_lt<bsz::b512, T, kt_avxext::AVX512F>(
-                    alpha, m, base, a, icol, ilrow, idiag, b, incb, x, incx, unit);
-                break;
 #endif
-            case 2: // AVX2
-            case 1:
-                return kt_trsv_lt<bsz::b256, T, kt_avxext::AVX2>(
-                    alpha, m, base, a, icol, ilrow, idiag, b, incb, x, incx, unit);
-                break;
-            default: // Reference implementation
-                return trsv_lt_ref_core(
-                    alpha, m, base, a, icol, ilrow, idiag, b, incb, x, incx, unit);
-                break;
-            }
+        case 2:
+        case 1:
+            kr_l = kt_trsv_l<bsz::b256, T, kt_avxext::AVX2>;
             break;
-        case aoclsparse_operation_conjugate_transpose:
-            switch(usekid)
-            {
-            case 3: // AVX-512F (Note: if not available then trickle down to next best)
+        default:
+            kr_l = trsv_l_ref_core;
+        }
+        return kr_l(alpha, m, base, a, icol, ilrow, idiag, b, incb, x, incx, unit);
+    case aoclsparse::doid::tlt:
+        switch(kid)
+        {
+        case 3:
 #if USE_AVX512
-                if constexpr(std::is_same_v<T, std::complex<float>>
-                             || std::is_same_v<T, std::complex<double>>)
-                    return kt_trsv_lt<bsz::b512, T, kt_avxext::AVX512F, trsv_op::herm>(
-                        alpha, m, base, a, icol, ilrow, idiag, b, incb, x, incx, unit);
-                else
-                    return kt_trsv_lt<bsz::b512, T, kt_avxext::AVX512F>(
-                        alpha, m, base, a, icol, ilrow, idiag, b, incb, x, incx, unit);
-                break;
+            kr_l = kt_trsv_lt<bsz::b512, T, kt_avxext::AVX512F>;
+            break;
 #endif
-            case 2: // AVX2
-            case 1: // AVX2
-                if constexpr(std::is_same_v<T, std::complex<float>>
-                             || std::is_same_v<T, std::complex<double>>)
-                    return kt_trsv_lt<bsz::b256, T, kt_avxext::AVX2, trsv_op::herm>(
-                        alpha, m, base, a, icol, ilrow, idiag, b, incb, x, incx, unit);
-                else
-                    return kt_trsv_lt<bsz::b256, T, kt_avxext::AVX2>(
-                        alpha, m, base, a, icol, ilrow, idiag, b, incb, x, incx, unit);
-                break;
-            default: // Reference implementation
-                if constexpr(std::is_same_v<T, std::complex<float>>
-                             || std::is_same_v<T, std::complex<double>>)
-                    return trsv_lh_ref_core<T>(
-                        alpha, m, base, a, icol, ilrow, idiag, b, incb, x, incx, unit);
-                else
-                    return trsv_lt_ref_core(
-                        alpha, m, base, a, icol, ilrow, idiag, b, incb, x, incx, unit);
-                break;
-            }
+        case 2:
+        case 1:
+            kr_l = kt_trsv_lt<bsz::b256, T, kt_avxext::AVX2>;
+            break;
+        default:
+            kr_l = trsv_lt_ref_core;
+        }
+        return kr_l(alpha, m, base, a, icol, ilrow, idiag, b, incb, x, incx, unit);
+    case aoclsparse::doid::tlh:
+        switch(kid)
+        {
+        case 3:
+#if USE_AVX512
+            if constexpr(std::is_same_v<T, std::complex<float>>
+                         || std::is_same_v<T, std::complex<double>>)
+                kr_l = kt_trsv_lt<bsz::b512, T, kt_avxext::AVX512F, trsv_op::herm>;
+            else
+                kr_l = kt_trsv_lt<bsz::b512, T, kt_avxext::AVX512F>;
+            break;
+#endif
+        case 2:
+        case 1:
+            if constexpr(std::is_same_v<T, std::complex<float>>
+                         || std::is_same_v<T, std::complex<double>>)
+                kr_l = kt_trsv_lt<bsz::b256, T, kt_avxext::AVX2, trsv_op::herm>;
+            else
+                kr_l = kt_trsv_lt<bsz::b256, T, kt_avxext::AVX2>;
+            break;
+        default:
+            if constexpr(std::is_same_v<T, std::complex<float>>
+                         || std::is_same_v<T, std::complex<double>>)
+                kr_l = trsv_lh_ref_core<T>;
+            else
+                kr_l = trsv_lt_ref_core;
+        }
+        return kr_l(alpha, m, base, a, icol, ilrow, idiag, b, incb, x, incx, unit);
+        break;
+    case aoclsparse::doid::tun:
+        switch(kid)
+        {
+        case 3:
+#if USE_AVX512
+            kr_u = kt_trsv_u<bsz::b512, T, kt_avxext::AVX512F>;
+            break;
+#endif
+        case 2:
+        case 1:
+            kr_u = kt_trsv_u<bsz::b256, T, kt_avxext::AVX2>;
+            break;
+        default:
+            kr_u = trsv_u_ref_core;
+        }
+        return kr_u(alpha, m, base, a, icol, ilrow, iurow, b, incb, x, incx, unit);
+    case aoclsparse::doid::tut:
+        switch(kid)
+        {
+        case 3:
+#if USE_AVX512
+            kr_u = kt_trsv_ut<bsz::b512, T, kt_avxext::AVX512F>;
+            break;
+#endif
+        case 2:
+        case 1:
+            kr_u = kt_trsv_ut<bsz::b256, T, kt_avxext::AVX2>;
+            break;
+        default:
+            kr_u = trsv_ut_ref_core;
+        }
+        return kr_u(alpha, m, base, a, icol, ilrow, iurow, b, incb, x, incx, unit);
+    case aoclsparse::doid::tuh:
+        switch(kid)
+        {
+        case 3:
+#if USE_AVX512
+            if constexpr(std::is_same_v<T, std::complex<float>>
+                         || std::is_same_v<T, std::complex<double>>)
+                kr_u = kt_trsv_ut<bsz::b512, T, kt_avxext::AVX512F, trsv_op::herm>;
+            else
+                kr_u = kt_trsv_ut<bsz::b512, T, kt_avxext::AVX512F>;
+            break;
+#endif
+        case 2:
+        case 1:
+            if constexpr(std::is_same_v<T, std::complex<float>>
+                         || std::is_same_v<T, std::complex<double>>)
+                kr_u = kt_trsv_ut<bsz::b256, T, kt_avxext::AVX2, trsv_op::herm>;
+            else
+                kr_u = kt_trsv_ut<bsz::b256, T, kt_avxext::AVX2>;
+            break;
+            break;
+        default:
+            if constexpr(std::is_same_v<T, std::complex<float>>
+                         || std::is_same_v<T, std::complex<double>>)
+                kr_u = trsv_uh_ref_core;
+            else
+                kr_u = trsv_ut_ref_core;
             break;
         }
+        return kr_u(alpha, m, base, a, icol, ilrow, iurow, b, incb, x, incx, unit);
+    default:
+        break;
     }
-    else // upper
-    {
-        switch(transpose)
-        {
-        case aoclsparse_operation_none:
-            switch(usekid)
-            {
-            case 3: // AVX-512F (Note: if not available then trickle down to next best)
-#if USE_AVX512
-                return kt_trsv_u<bsz::b512, T, kt_avxext::AVX512F>(
-                    alpha, m, base, a, icol, ilrow, iurow, b, incb, x, incx, unit);
-                break;
-#endif
-            case 2: // AVX2
-            case 1:
-                return kt_trsv_u<bsz::b256, T, kt_avxext::AVX2>(
-                    alpha, m, base, a, icol, ilrow, iurow, b, incb, x, incx, unit);
-                break;
-            default: // Reference implementation
-                return trsv_u_ref_core(
-                    alpha, m, base, a, icol, ilrow, iurow, b, incb, x, incx, unit);
-                break;
-            }
-            break;
-        case aoclsparse_operation_transpose:
-            switch(usekid)
-            {
-            case 3: // AVX-512F (Note: if not available then trickle down to next best)
-#if USE_AVX512
-                return kt_trsv_ut<bsz::b512, T, kt_avxext::AVX512F>(
-                    alpha, m, base, a, icol, ilrow, iurow, b, incb, x, incx, unit);
-                break;
-#endif
-            case 2: // AVX2
-            case 1:
-                return kt_trsv_ut<bsz::b256, T, kt_avxext::AVX2>(
-                    alpha, m, base, a, icol, ilrow, iurow, b, incb, x, incx, unit);
-                break;
-            default: // Reference implementation
-                return trsv_ut_ref_core(
-                    alpha, m, base, a, icol, ilrow, iurow, b, incb, x, incx, unit);
-                break;
-            }
-            break;
-        case aoclsparse_operation_conjugate_transpose:
-            switch(usekid)
-            {
-            case 3: // AVX-512F (Note: if not available then trickle down to next best)
-#if USE_AVX512
-                if constexpr(std::is_same_v<T, std::complex<float>>
-                             || std::is_same_v<T, std::complex<double>>)
-                    return kt_trsv_ut<bsz::b512, T, kt_avxext::AVX512F, trsv_op::herm>(
-                        alpha, m, base, a, icol, ilrow, iurow, b, incb, x, incx, unit);
-                else
-                    return kt_trsv_ut<bsz::b512, T, kt_avxext::AVX512F>(
-                        alpha, m, base, a, icol, ilrow, iurow, b, incb, x, incx, unit);
-                break;
-#endif
-            case 2: // AVX2
-            case 1: // AVX2
-                if constexpr(std::is_same_v<T, std::complex<float>>
-                             || std::is_same_v<T, std::complex<double>>)
-                    return kt_trsv_ut<bsz::b256, T, kt_avxext::AVX2, trsv_op::herm>(
-                        alpha, m, base, a, icol, ilrow, iurow, b, incb, x, incx, unit);
-                else
-                    return kt_trsv_ut<bsz::b256, T, kt_avxext::AVX2>(
-                        alpha, m, base, a, icol, ilrow, iurow, b, incb, x, incx, unit);
-                break;
-            default: // Reference implementation
-                if constexpr(std::is_same_v<T, std::complex<float>>
-                             || std::is_same_v<T, std::complex<double>>)
-                    return trsv_uh_ref_core<T>(
-                        alpha, m, base, a, icol, ilrow, iurow, b, incb, x, incx, unit);
-                else
-                    return trsv_ut_ref_core(
-                        alpha, m, base, a, icol, ilrow, iurow, b, incb, x, incx, unit);
-                break;
-            }
-            break;
-        }
-    }
+
     // It should never be reached...
     return aoclsparse_status_internal_error;
 }
