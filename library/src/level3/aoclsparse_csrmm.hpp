@@ -26,8 +26,8 @@
 #include "aoclsparse.h"
 #include "aoclsparse_context.h"
 #include "aoclsparse_descr.h"
+#include "aoclsparse_cntx_dispatcher.hpp"
 #include "aoclsparse_convert.hpp"
-#include "aoclsparse_dispatcher.hpp"
 #include "aoclsparse_l3_kt.hpp"
 #include "aoclsparse_utils.hpp"
 
