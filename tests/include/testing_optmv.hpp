@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -45,7 +45,11 @@
 #endif
 
 template <typename T>
-int testing_optmv_aocl(const Arguments &arg, testdata<T> &td, double timings[], int hint)
+int testing_optmv_aocl(const Arguments &arg,
+                       testdata<T>     &td,
+                       double           timings[],
+                       aoclsparse_int   hint,
+                       aoclsparse_int   kid)
 {
     int                    status  = 0;
     aoclsparse_int         m       = td.m;
@@ -77,11 +81,15 @@ int testing_optmv_aocl(const Arguments &arg, testdata<T> &td, double timings[], 
                                                             td.csr_col_indA.data(),
                                                             td.csr_valA.data()));
 
+        // Hint & optimize for positive hints
         if(hint > 0)
         {
-            NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mv_hint(A, trans, descr, hint));
+            NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mv_hint_kid(A, trans, descr, hint, kid));
             NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_optimize(A));
         }
+        // or only set kid
+        else if(hint == 0 && kid != -1)
+            NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mv_hint_kid(A, trans, descr, hint, kid));
 
         // Performance run
         int number_hot_calls = arg.iters;
@@ -120,10 +128,14 @@ int testing_optmv(const Arguments &arg)
     // the queue of test functions to run, normally it would be just one API
     // unless more tests are registered via EXT_BENCHMARKING
     std::vector<testsetting<T>> testqueue;
-    testqueue.push_back(
-        {"aocl_optmv_hint", [](const Arguments &arg, testdata<T> &td, double timings[]) {
-             return testing_optmv_aocl<T>(arg, td, timings, /*hint=*/1000);
-         }});
+
+    auto wrapper
+        = [](const Arguments &arg, testdata<T> &td, double timings[], aoclsparse_int kid) -> int {
+        return testing_optmv_aocl<T>(arg, td, timings, /*Hint=*/1000, kid);
+    };
+    using FN = decltype(wrapper);
+    populate_queue_kid<T, FN>(testqueue, arg, wrapper);
+
     register_tests_csrmv(testqueue);
 
     // create relevant test data for this API

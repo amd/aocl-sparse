@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022-2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,6 @@
 
 #include "aoclsparse.h"
 #include "aoclsparse_descr.h"
-#include "aoclsparse_mat_structures.h"
 #include "aoclsparse_solvers.h"
 #include "aoclsparse_auxiliary.hpp"
 #include "aoclsparse_csr_util.hpp"
@@ -35,6 +34,7 @@
 #include "aoclsparse_itsol_options.hpp"
 #include "aoclsparse_l2.hpp"
 #include "aoclsparse_lapack.hpp"
+#include "aoclsparse_mat_structures.hpp"
 #include "aoclsparse_mv.hpp"
 #include "aoclsparse_utils.hpp"
 

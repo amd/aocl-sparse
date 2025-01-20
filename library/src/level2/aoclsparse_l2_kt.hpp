@@ -38,7 +38,7 @@ namespace aoclsparse
     template <kernel_templates::bsz SZ, typename SUF>
     aoclsparse_status csrmv_kt(aoclsparse_index_base base,
                                const SUF             alpha,
-                               const aoclsparse_int  m,
+                               aoclsparse_int        m,
                                const SUF *__restrict__ aval,
                                const aoclsparse_int *__restrict__ icol,
                                const aoclsparse_int *__restrict__ row,

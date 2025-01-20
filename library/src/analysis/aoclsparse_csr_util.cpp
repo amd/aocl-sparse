@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -44,11 +44,13 @@ void aoclsparse_optimize_destroy(aoclsparse_optimize_data *&opt)
 /* Add a new hinted action at the start of an optimize_data linked list
  * Possible exit: memory allocation error
  */
-aoclsparse_status aoclsparse_add_hint(aoclsparse_optimize_data *&list,
-                                      aoclsparse_hinted_action   act,
-                                      aoclsparse_mat_descr       desc,
-                                      aoclsparse_operation       trans,
-                                      aoclsparse_int             nop)
+aoclsparse_status aoclsparse_add_hint(aoclsparse_optimize_data  *&list,
+                                      aoclsparse_hinted_action    act,
+                                      aoclsparse_mat_descr        desc,
+                                      aoclsparse_operation        trans,
+                                      aoclsparse_matrix_data_type dt,
+                                      aoclsparse_int              nop,
+                                      aoclsparse_int              kid)
 {
     aoclsparse_optimize_data *optd;
     try
@@ -60,6 +62,7 @@ aoclsparse_status aoclsparse_add_hint(aoclsparse_optimize_data *&list,
         return aoclsparse_status_memory_error;
     }
     optd->act = act;
+    optd->kid = kid;
 
     // copy the descriptor info
     optd->type      = desc->type;
@@ -67,6 +70,25 @@ aoclsparse_status aoclsparse_add_hint(aoclsparse_optimize_data *&list,
 
     optd->trans = trans;
     optd->nop   = nop;
+
+    switch(dt)
+    {
+    case aoclsparse_dmat:
+        optd->doid = aoclsparse::get_doid<double>(desc, trans);
+        break;
+    case aoclsparse_smat:
+        optd->doid = aoclsparse::get_doid<float>(desc, trans);
+        break;
+    case aoclsparse_zmat:
+        optd->doid = aoclsparse::get_doid<std::complex<double>>(desc, trans);
+        break;
+    case aoclsparse_cmat:
+        optd->doid = aoclsparse::get_doid<std::complex<float>>(desc, trans);
+        break;
+
+    default:
+        break;
+    }
 
     if(list)
         optd->next = list;

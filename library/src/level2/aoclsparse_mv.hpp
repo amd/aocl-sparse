@@ -25,12 +25,12 @@
 
 #include "aoclsparse.h"
 #include "aoclsparse_descr.h"
-#include "aoclsparse_mat_structures.h"
 #include "aoclsparse_blkcsrmv.hpp"
 #include "aoclsparse_csr_util.hpp"
 #include "aoclsparse_csrmv.hpp"
 #include "aoclsparse_ellmv.hpp"
 #include "aoclsparse_l2_kt.hpp"
+#include "aoclsparse_mat_structures.hpp"
 
 #include <complex>
 #include <immintrin.h>
@@ -251,6 +251,22 @@ std::enable_if_t<std::is_same_v<T, std::complex<float>> || std::is_same_v<T, std
 
     aoclsparse_status     status;
     _aoclsparse_mat_descr descr_cpy;
+    aoclsparse_int        kid  = -1;
+    aoclsparse::doid      d_id = aoclsparse::get_doid<T>(descr, op);
+
+    aoclsparse_optimize_data *ptr = A->optim_data;
+
+    while(ptr != nullptr)
+    {
+        // The hint and doid should match
+        if(ptr->act == aoclsparse_action_mv && d_id == ptr->doid)
+        {
+            kid = A->optim_data->kid;
+            break;
+        }
+
+        ptr = ptr->next;
+    }
 
     aoclsparse_copy_mat_descr(&descr_cpy, descr);
 
@@ -294,46 +310,47 @@ std::enable_if_t<std::is_same_v<T, std::complex<float>> || std::is_same_v<T, std
         }
         else if(descr->type == aoclsparse_matrix_type_general)
         {
-            if(A->nnz <= (4 * A->m))
-                return aoclsparse_csrmv_general(descr->base,
-                                                *alpha,
-                                                m,
-                                                (T *)A->csr_mat.csr_val,
-                                                A->csr_mat.csr_col_ptr,
-                                                A->csr_mat.csr_row_ptr,
-                                                x,
-                                                *beta,
-                                                y);
+            using K = decltype(&aoclsparse::csrmv_kt<kernel_templates::bsz::b256, T>);
+
+            // If kid is not set and size range matches, change the kernel
+            if((A->nnz <= (4 * A->m)) && (kid == -1))
+                kid = 0;
             else
+                kid = (kid == -1) ? 1 : kid; // AVX2 default
+
+            [[maybe_unused]] K kernel;
+
+            switch(kid)
             {
+            case 0:
+                kernel = aoclsparse_csrmv_general<T>;
+                break;
+
+            case 1:
+            case 2:
+                kernel = aoclsparse::csrmv_kt<kernel_templates::bsz::b256, T>;
+                break;
+            case 3:
 #ifdef USE_AVX512
                 if(context::get_context()->supports<context_isa_t::AVX512F>())
-                {
-
-                    return aoclsparse::csrmv_kt<kernel_templates::bsz::b512, T>(
-                        descr->base,
-                        *alpha,
-                        A->m,
-                        (T *)A->csr_mat.csr_val,
-                        A->csr_mat.csr_col_ptr,
-                        A->csr_mat.csr_row_ptr,
-                        x,
-                        *beta,
-                        y);
-                }
+                    kernel = aoclsparse::csrmv_kt<kernel_templates::bsz::b512, T>;
                 else
+                    return aoclsparse_status_invalid_kid;
+                break;
 #endif
-                    return aoclsparse::csrmv_kt<kernel_templates::bsz::b256, T>(
-                        descr->base,
-                        *alpha,
-                        A->m,
-                        (T *)A->csr_mat.csr_val,
-                        A->csr_mat.csr_col_ptr,
-                        A->csr_mat.csr_row_ptr,
-                        x,
-                        *beta,
-                        y);
+            default:
+                return aoclsparse_status_invalid_kid;
             }
+
+            return kernel(descr->base,
+                          *alpha,
+                          A->m,
+                          (T *)A->csr_mat.csr_val,
+                          A->csr_mat.csr_col_ptr,
+                          A->csr_mat.csr_row_ptr,
+                          x,
+                          *beta,
+                          y);
         }
         else if(descr->type == aoclsparse_matrix_type_triangular)
         {
@@ -398,35 +415,43 @@ std::enable_if_t<std::is_same_v<T, std::complex<float>> || std::is_same_v<T, std
         }
         else if(descr->type == aoclsparse_matrix_type_general)
         {
-            using namespace aoclsparse;
-#ifdef USE_AVX512
-            if(context::get_context()->supports<context_isa_t::AVX512F>())
+            using K = decltype(&aoclsparse::csrmvt_kt<kernel_templates::bsz::b256, T>);
+
+            [[maybe_unused]] K kernel;
+
+            // AVX2 default
+            kid = (kid == -1) ? 1 : kid;
+
+            switch(kid)
             {
-                return aoclsparse::csrmvt_kt<kernel_templates::bsz::b512, T>(
-                    descr_cpy.base,
-                    *alpha,
-                    A->m,
-                    A->n,
-                    (T *)A->csr_mat.csr_val,
-                    A->csr_mat.csr_col_ptr,
-                    A->csr_mat.csr_row_ptr,
-                    x,
-                    *beta,
-                    y);
-            }
-            else
+            case 0:
+            case 1:
+            case 2:
+                kernel = aoclsparse::csrmvt_kt<kernel_templates::bsz::b256, T>;
+                break;
+            case 3:
+#ifdef USE_AVX512
+                if(context::get_context()->supports<context_isa_t::AVX512F>())
+                    kernel = aoclsparse::csrmvt_kt<kernel_templates::bsz::b512, T>;
+                else
+                    return aoclsparse_status_invalid_kid;
+                break;
 #endif
-                return aoclsparse::csrmvt_kt<kernel_templates::bsz::b256, T>(
-                    descr_cpy.base,
-                    *alpha,
-                    A->m,
-                    A->n,
-                    (T *)A->csr_mat.csr_val,
-                    A->csr_mat.csr_col_ptr,
-                    A->csr_mat.csr_row_ptr,
-                    x,
-                    *beta,
-                    y);
+            // Add your other kernels here
+            default:
+                return aoclsparse_status_invalid_kid;
+            }
+
+            return kernel(descr_cpy.base,
+                          *alpha,
+                          A->m,
+                          A->n,
+                          (T *)A->csr_mat.csr_val,
+                          A->csr_mat.csr_col_ptr,
+                          A->csr_mat.csr_row_ptr,
+                          x,
+                          *beta,
+                          y);
         }
         else if(descr->type == aoclsparse_matrix_type_triangular)
         {

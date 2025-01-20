@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022-2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,7 @@
 #define AOCLSPARSE_MAT_STRUCTS_H
 
 #include "aoclsparse.h"
+#include "aoclsparse_mtx_dispatcher.hpp"
 
 enum aoclsparse_hinted_action
 {
@@ -54,6 +55,9 @@ struct aoclsparse_optimize_data
     aoclsparse_operation     trans = aoclsparse_operation_none;
     aoclsparse_matrix_type   type;
     aoclsparse_fill_mode     fill_mode;
+    aoclsparse_int           kid  = -1; // optimal kid for the optimized data
+    aoclsparse::doid         doid = aoclsparse::doid::len; // Invalid doid
+
     // number of operations estimated
     aoclsparse_int nop = 0;
     // store if the matrix has already been optimized for this specific operation
@@ -63,11 +67,13 @@ struct aoclsparse_optimize_data
 };
 
 /* Add a new optimize hint to the list */
-aoclsparse_status aoclsparse_add_hint(aoclsparse_optimize_data *&list,
-                                      aoclsparse_hinted_action   op,
-                                      aoclsparse_mat_descr       desc,
-                                      aoclsparse_operation       trans,
-                                      aoclsparse_int             nop);
+aoclsparse_status aoclsparse_add_hint(aoclsparse_optimize_data  *&list,
+                                      aoclsparse_hinted_action    op,
+                                      aoclsparse_mat_descr        desc,
+                                      aoclsparse_operation        trans,
+                                      aoclsparse_matrix_data_type dt,
+                                      aoclsparse_int              nop,
+                                      aoclsparse_int              kid);
 
 /* Deallocate the aoclsparse_optimize_data linked list*/
 void aoclsparse_optimize_destroy(aoclsparse_optimize_data *&opt);

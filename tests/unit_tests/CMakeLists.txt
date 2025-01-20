@@ -1,5 +1,5 @@
 # ########################################################################
-# Copyright (c) 2023-2024 Advanced Micro Devices, Inc.
+# Copyright (c) 2023-2025 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -346,7 +346,8 @@ if(NOT BUILD_SPARSE_TESTS_OUTOFSRCTREE)
     install(FILES ../include/aoclsparse_utility.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
     install(FILES ../include/aoclsparse_check.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
     install(FILES ../../library/src/include/aoclsparse_descr.h DESTINATION ${TESTS_INSTALL_DIR}/include)
-    install(FILES ../../library/src/include/aoclsparse_mat_structures.h DESTINATION ${TESTS_INSTALL_DIR}/include)
+    install(FILES ../../library/src/include/aoclsparse_mat_structures.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
+    install(FILES ../../library/src/include/aoclsparse_mtx_dispatcher.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
     install(FILES ../../library/src/extra/aoclsparse_utils.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
     install(FILES ${CMAKE_SOURCE_DIR}/cmake/Dependencies.cmake DESTINATION ${TESTS_INSTALL_DIR})
     install(FILES ${CMAKE_SOURCE_DIR}/cmake/Coverage.cmake DESTINATION ${TESTS_INSTALL_DIR})

@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,9 +22,9 @@
  * ************************************************************************ */
 #include "aoclsparse.h"
 #include "aoclsparse_context.h"
-#include "aoclsparse_mat_structures.h"
 #include "aoclsparse_analysis.hpp"
 #include "aoclsparse_csr_util.hpp"
+#include "aoclsparse_mat_structures.hpp"
 #include "aoclsparse_utils.hpp"
 
 #include <algorithm>
@@ -573,7 +573,8 @@ aoclsparse_status aoclsparse_set_hint(aoclsparse_matrix          mat,
                                       aoclsparse_hinted_action   act,
                                       aoclsparse_operation       trans,
                                       const aoclsparse_mat_descr descr,
-                                      aoclsparse_int             expected_no_of_calls)
+                                      aoclsparse_int             expected_no_of_calls,
+                                      aoclsparse_int             kid = -1)
 {
     // Check matrix and descriptor
     if((mat == nullptr) || (descr == nullptr))
@@ -615,7 +616,7 @@ aoclsparse_status aoclsparse_set_hint(aoclsparse_matrix          mat,
     {
         return aoclsparse_status_invalid_value;
     }
-    if(expected_no_of_calls <= 0)
+    if(expected_no_of_calls < 0 || (expected_no_of_calls == 0 && kid == -1))
     {
         return aoclsparse_status_invalid_value;
     }
@@ -626,14 +627,25 @@ aoclsparse_status aoclsparse_set_hint(aoclsparse_matrix          mat,
         return aoclsparse_status_invalid_operation;
     }
     // Add the hint at the start of the linked list
-    return aoclsparse_add_hint(mat->optim_data, act, descr, trans, expected_no_of_calls);
+    return aoclsparse_add_hint(
+        mat->optim_data, act, descr, trans, mat->val_type, expected_no_of_calls, kid);
 }
+
 aoclsparse_status aoclsparse_set_mv_hint(aoclsparse_matrix          mat,
                                          aoclsparse_operation       trans,
                                          const aoclsparse_mat_descr descr,
                                          aoclsparse_int             expected_no_of_calls)
 {
     return aoclsparse_set_hint(mat, aoclsparse_action_mv, trans, descr, expected_no_of_calls);
+}
+
+aoclsparse_status aoclsparse_set_mv_hint_kid(aoclsparse_matrix          mat,
+                                             aoclsparse_operation       trans,
+                                             const aoclsparse_mat_descr descr,
+                                             aoclsparse_int             expected_no_of_calls,
+                                             aoclsparse_int             kid)
+{
+    return aoclsparse_set_hint(mat, aoclsparse_action_mv, trans, descr, expected_no_of_calls, kid);
 }
 
 aoclsparse_status aoclsparse_set_dotmv_hint(aoclsparse_matrix          mat,
