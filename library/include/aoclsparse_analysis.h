@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -82,6 +82,14 @@ aoclsparse_status aoclsparse_set_mv_hint(aoclsparse_matrix          mat,
                                          aoclsparse_operation       trans,
                                          const aoclsparse_mat_descr descr,
                                          aoclsparse_int             expected_no_of_calls);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_set_mv_hint_kid(aoclsparse_matrix          mat,
+                                             aoclsparse_operation       trans,
+                                             const aoclsparse_mat_descr descr,
+                                             aoclsparse_int             expected_no_of_calls,
+                                             aoclsparse_int             kid);
+
 DLL_PUBLIC
 aoclsparse_status aoclsparse_set_sv_hint(aoclsparse_matrix          mat,
                                          aoclsparse_operation       trans,

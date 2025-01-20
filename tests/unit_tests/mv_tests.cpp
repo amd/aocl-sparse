@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -260,6 +260,44 @@ namespace
         aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_hermitian);
         EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A, descr, x, &beta, y),
                   aoclsparse_status_not_implemented);
+
+        aoclsparse_destroy_mat_descr(descr);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
+    }
+    template <typename T>
+    void test_invalid_kid()
+    {
+        aoclsparse_operation trans = aoclsparse_operation_none;
+
+        aoclsparse_int M = 5, N = 5, NNZ = 8;
+        T              alpha = {1.0, 0.0};
+        T              beta  = {0.0, 0.0};
+        // Initialise vectors
+        T x[5] = {{0, 1}, {2, 1}, {3, 0}, {4, -1}, {5, 2}};
+        T y[M];
+
+        aoclsparse_index_base base = aoclsparse_index_base_zero;
+        aoclsparse_mat_descr  descr;
+        // aoclsparse_create_mat_descr set aoclsparse_matrix_type to aoclsparse_matrix_type_general
+        // and aoclsparse_index_base to aoclsparse_index_base_zero.
+        aoclsparse_create_mat_descr(&descr);
+        aoclsparse_set_mat_index_base(descr, base);
+
+        aoclsparse_int csr_row_ptr[] = {0, 2, 3, 4, 7, 8};
+        aoclsparse_int csr_col_ind[] = {0, 3, 1, 2, 1, 3, 4, 4};
+        T csr_val[] = {{1, 1}, {2, 0}, {2, 2}, {1, -1}, {1, -1}, {2, 0}, {2, 3}, {5, 5}};
+        aoclsparse_matrix A;
+        aoclsparse_create_csr<T>(&A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
+
+        trans = aoclsparse_operation_none;
+        // hint AVX512 kernel, during execution on Zen3 should return error
+        EXPECT_EQ(aoclsparse_set_mv_hint_kid(A, trans, descr, 0 /*calls*/, 3 /*kid AVX512*/),
+                  aoclsparse_status_success);
+        if(!can_exec_avx512_tests())
+        {
+            EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A, descr, x, &beta, y),
+                      aoclsparse_status_invalid_kid);
+        }
 
         aoclsparse_destroy_mat_descr(descr);
         EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
@@ -1344,6 +1382,10 @@ namespace
     TEST(mv, NotImplFloat)
     {
         test_mv_not_implemented<float>();
+    }
+    TEST(mv, InvalidKID)
+    {
+        test_invalid_kid<aoclsparse_double_complex>();
     }
     TEST(mv, DoNothingDouble)
     {

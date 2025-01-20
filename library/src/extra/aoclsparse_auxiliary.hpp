@@ -24,10 +24,10 @@
 #ifndef AOCLSPARSE_AUXILIARY_HPP
 #define AOCLSPARSE_AUXILIARY_HPP
 
-#include "aoclsparse_mat_structures.h"
 #include "aoclsparse_analysis.hpp"
 #include "aoclsparse_cntx_dispatcher.hpp"
 #include "aoclsparse_csr_util.hpp"
+#include "aoclsparse_mat_structures.hpp"
 #include "aoclsparse_utils.hpp"
 
 #include <cmath>
