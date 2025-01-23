@@ -32,6 +32,7 @@
 #include "aoclsparse_l2.hpp"
 #include "aoclsparse_l2_kt.hpp"
 #include "aoclsparse_mtx_dispatcher.hpp"
+#include "aoclsparse_utils.hpp"
 
 #include <complex>
 #include <type_traits>
@@ -71,21 +72,21 @@ static inline aoclsparse_status trsv_l_ref_core(const T               alpha,
 }
 
 /* Core computation of TRSV, assumed A is optimized
- * solves L'*x = alpha*b
+ * solves L^H*x = alpha*b and L'*x = alpha*b
  */
-template <typename T>
-static inline aoclsparse_status trsv_lt_ref_core(const T               alpha,
-                                                 aoclsparse_int        m,
-                                                 aoclsparse_index_base base,
-                                                 const T *__restrict__ a,
-                                                 const aoclsparse_int *__restrict__ icol,
-                                                 const aoclsparse_int *__restrict__ ilrow,
-                                                 const aoclsparse_int *__restrict__ idiag,
-                                                 const T *__restrict__ b,
-                                                 aoclsparse_int incb,
-                                                 T *__restrict__ x,
-                                                 aoclsparse_int incx,
-                                                 const bool     unit)
+template <typename T, trsv_op OP = trsv_op::tran>
+static inline aoclsparse_status trsv_lth_ref_core(const T               alpha,
+                                                  aoclsparse_int        m,
+                                                  aoclsparse_index_base base,
+                                                  const T *__restrict__ a,
+                                                  const aoclsparse_int *__restrict__ icol,
+                                                  const aoclsparse_int *__restrict__ ilrow,
+                                                  const aoclsparse_int *__restrict__ idiag,
+                                                  const T *__restrict__ b,
+                                                  aoclsparse_int incb,
+                                                  T *__restrict__ x,
+                                                  aoclsparse_int incx,
+                                                  const bool     unit)
 {
     aoclsparse_int        i, idx;
     const aoclsparse_int *icol_fix = icol - base;
@@ -97,45 +98,20 @@ static inline aoclsparse_status trsv_lt_ref_core(const T               alpha,
     for(i = m - 1; i >= 0; i--)
     {
         if(!unit)
-            x[i * incx] /= a_fix[idiag[i]];
+        {
+            if constexpr(OP == trsv_op::herm && aoclsparse::is_dt_complex<T>())
+                x[i * incx] /= std::conj(a_fix[idiag[i]]);
+            else
+                x[i * incx] /= a_fix[idiag[i]];
+        }
         // propagate value of x[i * incx] through the column (used to be the row but now is transposed)
         for(idx = ilrow[i]; idx < idiag[i]; idx++)
-            x_fix[icol_fix[idx] * incx] -= a_fix[idx] * x[i * incx];
-    }
-    return aoclsparse_status_success;
-}
-
-/* Core computation of TRSV, assumed A is optimized
- * solves L^H*x = alpha*b
- */
-template <typename T>
-static inline aoclsparse_status trsv_lh_ref_core(const T               alpha,
-                                                 aoclsparse_int        m,
-                                                 aoclsparse_index_base base,
-                                                 const T *__restrict__ a,
-                                                 const aoclsparse_int *__restrict__ icol,
-                                                 const aoclsparse_int *__restrict__ ilrow,
-                                                 const aoclsparse_int *__restrict__ idiag,
-                                                 const T *__restrict__ b,
-                                                 aoclsparse_int incb,
-                                                 T *__restrict__ x,
-                                                 aoclsparse_int incx,
-                                                 const bool     unit)
-{
-    aoclsparse_int        i, idx;
-    const aoclsparse_int *icol_fix = icol - base;
-    const T              *a_fix    = a - base;
-    T                    *x_fix    = x - base * incx;
-
-    for(i = 0; i < m; i++)
-        x[i * incx] = alpha * b[i * incb];
-    for(i = m - 1; i >= 0; i--)
-    {
-        if(!unit)
-            x[i * incx] /= std::conj(a_fix[idiag[i]]);
-        // propagate value of x[i * incx] through the column (used to be the row but now is transposed)
-        for(idx = ilrow[i]; idx < idiag[i]; idx++)
-            x_fix[icol_fix[idx] * incx] -= std::conj(a_fix[idx]) * x[i * incx];
+        {
+            if constexpr(OP == trsv_op::herm && aoclsparse::is_dt_complex<T>())
+                x_fix[icol_fix[idx] * incx] -= std::conj(a_fix[idx]) * x[i * incx];
+            else
+                x_fix[icol_fix[idx] * incx] -= a_fix[idx] * x[i * incx];
+        }
     }
     return aoclsparse_status_success;
 }
@@ -183,21 +159,21 @@ static inline aoclsparse_status trsv_u_ref_core(const T               alpha,
 }
 
 /* Core computation of TRSV, assumed A is optimized
- * solves U'*x = alpha*b
+ * solves U^H*x = alpha*b and U'*x = alpha*b
  */
-template <typename T>
-static inline aoclsparse_status trsv_ut_ref_core(const T               alpha,
-                                                 aoclsparse_int        m,
-                                                 aoclsparse_index_base base,
-                                                 const T *__restrict__ a,
-                                                 const aoclsparse_int *__restrict__ icol,
-                                                 const aoclsparse_int *__restrict__ ilrow,
-                                                 const aoclsparse_int *__restrict__ iurow,
-                                                 const T *__restrict__ b,
-                                                 aoclsparse_int incb,
-                                                 T *__restrict__ x,
-                                                 aoclsparse_int incx,
-                                                 const bool     unit)
+template <typename T, trsv_op OP = trsv_op::tran>
+static inline aoclsparse_status trsv_uth_ref_core(const T               alpha,
+                                                  aoclsparse_int        m,
+                                                  aoclsparse_index_base base,
+                                                  const T *__restrict__ a,
+                                                  const aoclsparse_int *__restrict__ icol,
+                                                  const aoclsparse_int *__restrict__ ilrow,
+                                                  const aoclsparse_int *__restrict__ iurow,
+                                                  const T *__restrict__ b,
+                                                  aoclsparse_int incb,
+                                                  T *__restrict__ x,
+                                                  aoclsparse_int incx,
+                                                  const bool     unit)
 {
     aoclsparse_int        i, idx, idxstart, idxend, idiag;
     const aoclsparse_int *icol_fix = icol - base;
@@ -211,53 +187,21 @@ static inline aoclsparse_status trsv_ut_ref_core(const T               alpha,
         {
             // urow[i]-1 always points to idiag[i]
             idiag = iurow[i] - 1;
-            x[i * incx] /= a_fix[idiag];
+            if constexpr(OP == trsv_op::herm && aoclsparse::is_dt_complex<T>())
+                x[i * incx] /= std::conj(a_fix[idiag]);
+            else
+                x[i * incx] /= a_fix[idiag];
         }
         idxstart = iurow[i];
         // ilrow[i+1]-1 always points to last element of U at row i
         idxend = ilrow[i + 1] - 1;
         for(idx = idxstart; idx <= idxend; idx++)
-            x_fix[icol_fix[idx] * incx] -= a_fix[idx] * x[i * incx];
-    }
-    return aoclsparse_status_success;
-}
-
-/* Core computation of TRSV, assumed A is optimized
- * solves U^H*x = alpha*b
- */
-template <typename T>
-static inline aoclsparse_status trsv_uh_ref_core(const T               alpha,
-                                                 aoclsparse_int        m,
-                                                 aoclsparse_index_base base,
-                                                 const T *__restrict__ a,
-                                                 const aoclsparse_int *__restrict__ icol,
-                                                 const aoclsparse_int *__restrict__ ilrow,
-                                                 const aoclsparse_int *__restrict__ iurow,
-                                                 const T *__restrict__ b,
-                                                 aoclsparse_int incb,
-                                                 T *__restrict__ x,
-                                                 aoclsparse_int incx,
-                                                 const bool     unit)
-{
-    aoclsparse_int        i, idx, idxstart, idxend, idiag;
-    const aoclsparse_int *icol_fix = icol - base;
-    const T              *a_fix    = a - base;
-    T                    *x_fix    = x - base * incx;
-    for(i = 0; i < m; i++)
-        x[i * incx] = alpha * b[i * incb];
-    for(i = 0; i < m; i++)
-    {
-        if(!unit)
         {
-            // urow[i]-1 always points to idiag[i]
-            idiag = iurow[i] - 1;
-            x[i * incx] /= std::conj(a_fix[idiag]);
+            if constexpr(OP == trsv_op::herm && aoclsparse::is_dt_complex<T>())
+                x_fix[icol_fix[idx] * incx] -= std::conj(a_fix[idx]) * x[i * incx];
+            else
+                x_fix[icol_fix[idx] * incx] -= a_fix[idx] * x[i * incx];
         }
-        idxstart = iurow[i];
-        // ilrow[i+1]-1 always points to last element of U at row i
-        idxend = ilrow[i + 1] - 1;
-        for(idx = idxstart; idx <= idxend; idx++)
-            x_fix[icol_fix[idx] * incx] -= std::conj(a_fix[idx]) * x[i * incx];
     }
     return aoclsparse_status_success;
 }
@@ -415,11 +359,9 @@ aoclsparse_status
      * kid | kernel                 | description                             | type support
      * ----+------------------------+-----------------------------------------+------------------------------
      * 0   | trsv_l_ref_core        | reference vanilla for Lx=b              | float/double/cfloat/cdouble
-     * 0   | trsv_lt_ref_core       | reference vanilla for L^T x=b           | float/double/cfloat/cdouble
-     * 0   | trsv_lh_ref_core       | reference vanilla for L^H x=b           |              cfloat/cdouble
+     * 0   | trsv_lth_ref_core      | reference vanilla for L^H x=b & L^T x=b | float/double/cfloat/cdouble
      * 0   | trsv_u_ref_core        | reference vanilla for Ux=b              | float/double/cfloat/cdouble
-     * 0   | trsv_ut_ref_core       | reference vanilla for U^T x=b           | float/double/cfloat/cdouble
-     * 0   | trsv_uh_ref_core       | reference vanilla for U^H x=b           |              cfloat/cdouble
+     * 0   | trsv_uth_ref_core      | reference vanilla for U^T x=b & U^H x=b | float/double/cfloat/cdouble
      * - - - - - - - - - - - -+- - - - - - - - - - - - - - - - - - - - -+- - - - - - - - - - - - - - - - - -
      * 1, 2| kt_trsv_l<256,*,AVX>   | L solver AVX extensions on 256-bit      | float/double/cfloat/cdouble
      *     |                        | wide register implementation            |
@@ -482,7 +424,7 @@ aoclsparse_status
             kr_l = kt_trsv_lt<bsz::b256, T, kt_avxext::AVX2>;
             break;
         default:
-            kr_l = trsv_lt_ref_core;
+            kr_l = trsv_lth_ref_core;
         }
         return kr_l(alpha, m, base, a, icol, ilrow, idiag, b, incb, x, incx, unit);
     case aoclsparse::doid::tlh:
@@ -490,27 +432,15 @@ aoclsparse_status
         {
         case 3:
 #if USE_AVX512
-            if constexpr(std::is_same_v<T, std::complex<float>>
-                         || std::is_same_v<T, std::complex<double>>)
-                kr_l = kt_trsv_lt<bsz::b512, T, kt_avxext::AVX512F, trsv_op::herm>;
-            else
-                kr_l = kt_trsv_lt<bsz::b512, T, kt_avxext::AVX512F>;
+            kr_l = kt_trsv_lt<bsz::b512, T, kt_avxext::AVX512F, trsv_op::herm>;
             break;
 #endif
         case 2:
         case 1:
-            if constexpr(std::is_same_v<T, std::complex<float>>
-                         || std::is_same_v<T, std::complex<double>>)
-                kr_l = kt_trsv_lt<bsz::b256, T, kt_avxext::AVX2, trsv_op::herm>;
-            else
-                kr_l = kt_trsv_lt<bsz::b256, T, kt_avxext::AVX2>;
+            kr_l = kt_trsv_lt<bsz::b256, T, kt_avxext::AVX2, trsv_op::herm>;
             break;
         default:
-            if constexpr(std::is_same_v<T, std::complex<float>>
-                         || std::is_same_v<T, std::complex<double>>)
-                kr_l = trsv_lh_ref_core<T>;
-            else
-                kr_l = trsv_lt_ref_core;
+            kr_l = trsv_lth_ref_core<T, trsv_op::herm>;
         }
         return kr_l(alpha, m, base, a, icol, ilrow, idiag, b, incb, x, incx, unit);
         break;
@@ -543,7 +473,7 @@ aoclsparse_status
             kr_u = kt_trsv_ut<bsz::b256, T, kt_avxext::AVX2>;
             break;
         default:
-            kr_u = trsv_ut_ref_core;
+            kr_u = trsv_uth_ref_core;
         }
         return kr_u(alpha, m, base, a, icol, ilrow, iurow, b, incb, x, incx, unit);
     case aoclsparse::doid::tuh:
@@ -551,28 +481,15 @@ aoclsparse_status
         {
         case 3:
 #if USE_AVX512
-            if constexpr(std::is_same_v<T, std::complex<float>>
-                         || std::is_same_v<T, std::complex<double>>)
-                kr_u = kt_trsv_ut<bsz::b512, T, kt_avxext::AVX512F, trsv_op::herm>;
-            else
-                kr_u = kt_trsv_ut<bsz::b512, T, kt_avxext::AVX512F>;
+            kr_u = kt_trsv_ut<bsz::b512, T, kt_avxext::AVX512F, trsv_op::herm>;
             break;
 #endif
         case 2:
         case 1:
-            if constexpr(std::is_same_v<T, std::complex<float>>
-                         || std::is_same_v<T, std::complex<double>>)
-                kr_u = kt_trsv_ut<bsz::b256, T, kt_avxext::AVX2, trsv_op::herm>;
-            else
-                kr_u = kt_trsv_ut<bsz::b256, T, kt_avxext::AVX2>;
-            break;
+            kr_u = kt_trsv_ut<bsz::b256, T, kt_avxext::AVX2, trsv_op::herm>;
             break;
         default:
-            if constexpr(std::is_same_v<T, std::complex<float>>
-                         || std::is_same_v<T, std::complex<double>>)
-                kr_u = trsv_uh_ref_core;
-            else
-                kr_u = trsv_ut_ref_core;
+            kr_u = trsv_uth_ref_core<T, trsv_op::herm>;
             break;
         }
         return kr_u(alpha, m, base, a, icol, ilrow, iurow, b, incb, x, incx, unit);
