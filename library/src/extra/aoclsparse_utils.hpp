@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024-2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -530,5 +530,22 @@ bool aoclsparse_is_negative_or_nearzero(const T &value, tolerance_t<T> scale = (
     {
         return (std::abs(value) <= safe_macheps);
     }
+}
+
+namespace aoclsparse
+{
+    // Check if the given type is complex
+    template <typename T>
+    struct is_dt_complex
+    {
+        constexpr operator bool() const
+        {
+            if constexpr(std::is_same_v<T, std::complex<double>>
+                         || std::is_same_v<T, std::complex<float>>)
+                return true;
+            else
+                return false;
+        }
+    };
 }
 #endif
