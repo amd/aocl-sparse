@@ -61,15 +61,6 @@ inline aoclsparse_status
     return aoclsparse_status_success;
 }
 
-template <Index::type I>
-constexpr Dispatch::api get_sctr_api()
-{
-    if constexpr(I == Index::type::indexed)
-        return Dispatch::api::sctr;
-    else if constexpr(I == Index::type::strided)
-        return Dispatch::api::sctrs;
-}
-
 /*
  * aoclsparse_scatter dispatcher
  */
@@ -128,8 +119,9 @@ ORL<K>({sctr_kt<bsz::b512, T, I>, context_isa_t::AVX512F, 0U | archs::ALL})
     };
     // clang-format on
 
-    // Inquire with the oracle
-    auto kernel = Oracle<K, get_sctr_api<I>()>(tbl, kid);
+    // Thread local kernel cache
+    thread_local K kache  = nullptr;
+    K              kernel = Oracle<K>(tbl, kache, kid);
 
     if(!kernel)
         return aoclsparse_status_invalid_kid;

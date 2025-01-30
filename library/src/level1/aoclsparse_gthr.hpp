@@ -68,17 +68,6 @@ inline aoclsparse_status
     return aoclsparse_status_success;
 }
 
-template <gather_op OP, Index::type I>
-constexpr Dispatch::api get_gthr_api()
-{
-    if constexpr(OP == gather_op::gather && I == Index::type::indexed)
-        return Dispatch::api::gthr;
-    else if constexpr(OP == gather_op::gatherz && I == Index::type::indexed)
-        return Dispatch::api::gthrz;
-    else if constexpr(OP == gather_op::gather && I == Index::type::strided)
-        return Dispatch::api::gthrs;
-}
-
 /*
  * aoclsparse_gthrs dispatcher with strided or indexed array access
  * handles both cases gather and gatherz
@@ -138,8 +127,9 @@ aoclsparse_status aoclsparse_gthr_t(
     };
     // clang-format on
 
-    // Inquire with the oracle
-    auto kernel = Oracle<K, get_gthr_api<OP, I>()>(tbl, kid);
+    // Thread local kernel cache
+    thread_local K kache  = nullptr;
+    K              kernel = Oracle<K>(tbl, kache, kid);
 
     if(!kernel)
         return aoclsparse_status_invalid_kid;

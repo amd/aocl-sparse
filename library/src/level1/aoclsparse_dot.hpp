@@ -105,8 +105,9 @@ ORL<K>({dotp_kt<bsz::b512, T>, context_isa_t::AVX512F, 0U | archs::ALL})
     };
     // clang-format on
 
-    // Inquire with the oracle
-    auto kernel = Oracle<K, api::doti>(tbl, kid);
+    // Thread local kernel cache
+    thread_local K kache  = nullptr;
+    K              kernel = Oracle<K>(tbl, kache, kid);
 
     if(!kernel)
         return aoclsparse_status_invalid_kid;
