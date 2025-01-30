@@ -382,7 +382,20 @@ aoclsparse_status
      *     |                        | bit wide register implementation        |
      * -----------------------+-----------------------------------------------------------------------------
      */
-    aoclsparse::doid do_id = aoclsparse::get_doid<T>(descr, transpose);
+    aoclsparse::doid doid;
+
+    // When the matrix is symm it can be treated as tri.
+    if(descr->type == aoclsparse_matrix_type_symmetric)
+    {
+        _aoclsparse_mat_descr descr_cpy;
+        aoclsparse_copy_mat_descr(&descr_cpy, descr);
+
+        descr_cpy.type = aoclsparse_matrix_type_triangular;
+
+        doid = aoclsparse::get_doid<T>(&descr_cpy, transpose);
+    }
+    else
+        doid = aoclsparse::get_doid<T>(descr, transpose);
 
     using k_l = decltype(&trsv_l_ref_core<T>);
     using k_u = decltype(&trsv_u_ref_core<T>);
@@ -393,7 +406,7 @@ aoclsparse_status
     if(kid == 3 && !can_exec_avx512)
         kid = 2;
 
-    switch(do_id)
+    switch(doid)
     {
     case aoclsparse::doid::tln:
         switch(kid)
