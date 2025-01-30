@@ -356,7 +356,7 @@ endif()
 
 include(GoogleTest)
 foreach(TNAME ${GTEST_EXECUTABLES})
-  gtest_discover_tests(${TNAME})
+gtest_discover_tests(${TNAME} PROPERTIES TEST_DISCOVERY_TIMEOUT 600)
 endforeach()
 
 if(BUILD_SPARSE_TESTS_OUTOFSRCTREE)
