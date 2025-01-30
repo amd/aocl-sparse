@@ -681,8 +681,9 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
             };
             // clang-format on
 
-            // Inquire with the oracle
-            auto kernel = Oracle<K, Dispatch::api::csrmm>(tbl, kid);
+            // Thread local kernel cache
+            thread_local K kache  = nullptr;
+            K              kernel = Oracle<K>(tbl, kache, kid);
 
             if(!kernel)
                 return aoclsparse_status_invalid_kid;
@@ -705,8 +706,9 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
             };
             // clang-format on
 
-            // Inquire with the oracle
-            auto kernel = Oracle<K, Dispatch::api::csrmm>(tbl, kid);
+            // Thread local kernel cache
+            thread_local K kache  = nullptr;
+            K              kernel = Oracle<K>(tbl, kache, kid);
 
             if(!kernel)
                 return aoclsparse_status_invalid_kid;

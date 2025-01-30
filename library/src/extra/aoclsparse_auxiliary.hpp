@@ -536,7 +536,9 @@ namespace dispatcher_instantiations
         };
         // clang-format on
 
-        auto kernel = Dispatch::Oracle<K, Dispatch::api::reserved0>(tbl, kid);
+        // Thread local kernel cache
+        thread_local K kache  = nullptr;
+        K              kernel = Dispatch::Oracle<K>(tbl, kache, kid);
 
         if(!kernel)
             return aoclsparse_status_invalid_kid;
@@ -564,7 +566,9 @@ namespace dispatcher_instantiations
  ORL<K>({kernel_kt<3, 512, T, ext::RESERVE_2>,context_isa_t::AVX512F, 0|archs::ZEN4|archs::ZEN5})// Zen 4+ AVX512F
         };
         // clang-format on
-        auto kernel = Dispatch::Oracle<K, Dispatch::api::reserved1>(tbl, kid);
+        // Thread local kernel cache
+        thread_local K kache  = nullptr;
+        K              kernel = Dispatch::Oracle<K>(tbl, kache, kid);
 
         if(!kernel)
             return aoclsparse_status_invalid_kid;
@@ -587,7 +591,9 @@ namespace dispatcher_instantiations
                 {kernel_ref<0, T>, context_isa_t::GENERIC, 0 | archs::ALL},
                 {kernel_ref<1, T>, context_isa_t::GENERIC, 0 | archs::ALL},
                 {kernel_ref<2, T>, context_isa_t::GENERIC, 0 | archs::ALL}};
-            auto kernel = Dispatch::Oracle<K, Dispatch::api::reserved2>(tbl, kid);
+            // Thread local kernel cache
+            thread_local K kache  = nullptr;
+            K              kernel = Dispatch::Oracle<K>(tbl, kache, kid);
 
             if(kernel == nullptr)
                 return aoclsparse_status_invalid_kid;
@@ -598,7 +604,9 @@ namespace dispatcher_instantiations
         {
             static constexpr Dispatch::Table<K> tbl[]{
                 {kernel_ref<7, T>, context_isa_t::GENERIC, 0 | archs::ALL}};
-            auto kernel = Dispatch::Oracle<K, Dispatch::api::reserved3>(tbl, kid);
+            // Thread local kernel cache
+            thread_local K kache  = nullptr;
+            K              kernel = Dispatch::Oracle<K>(tbl, kache, kid);
 
             if(kernel == nullptr)
                 return aoclsparse_status_invalid_kid;
@@ -623,7 +631,9 @@ namespace dispatcher_instantiations
         {kernel_ref<2, T>, context_isa_t::GENERIC, 0|archs::ZENS}
         };
         // clang-format on
-        auto kernel = Dispatch::Oracle<K, Dispatch::api::reserved4>(tbl, kid);
+        // Thread local kernel cache
+        thread_local K kache  = nullptr;
+        K              kernel = Dispatch::Oracle<K>(tbl, kache, kid);
 
         if(!kernel)
             return aoclsparse_status_invalid_kid;
@@ -653,7 +663,9 @@ namespace dispatcher_instantiations
         };
         // clang-format on
 
-        auto kernel = Dispatch::Oracle<K, Dispatch::api::reserved5>(tbl, kid);
+        // Thread local kernel cache
+        thread_local K kache  = nullptr;
+        K              kernel = Dispatch::Oracle<K>(tbl, kache, kid);
 
         if(!kernel)
             return aoclsparse_status_invalid_kid;
@@ -678,7 +690,9 @@ namespace dispatcher_instantiations
         {kernel_ref<1, T>, context_isa_t::AVX2, 0|archs::ALL}
         };
         // clang-format on
-        auto kernel = Dispatch::Oracle<K, Dispatch::api::reserved4>(tbl, kid);
+        // Thread local kernel cache
+        thread_local K kache  = nullptr;
+        K              kernel = Dispatch::Oracle<K>(tbl, kache, kid);
 
         if(kernel == nullptr)
             return aoclsparse_status_invalid_kid;
@@ -703,7 +717,9 @@ namespace dispatcher_instantiations
  ORL<K>({kernel_kt<2, 512, T, ext::RESERVE_3>, context_isa_t::AVX512VL, 0|archs::ALL})
         };
         // clang-format on
-        auto kernel = Dispatch::Oracle<K, Dispatch::api::reserved4>(tbl, kid);
+        // Thread local kernel cache
+        thread_local K kache  = nullptr;
+        K              kernel = Oracle<K>(tbl, kache, kid);
         if(kernel == nullptr)
             return aoclsparse_status_invalid_kid;
         auto okid = kernel();

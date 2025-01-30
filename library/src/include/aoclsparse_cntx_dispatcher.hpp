@@ -30,31 +30,6 @@
 
 namespace Dispatch
 {
-
-    // Identifier used to uniquely differentiate the kernel dispachers
-    // when actual kernel signature is undistinguishable
-    enum class api
-    {
-        axpyi,
-        dotci,
-        dotui,
-        doti,
-        sctr,
-        sctrs,
-        roti,
-        gthr,
-        gthrz,
-        gthrs,
-        dense_dot,
-        csrmm,
-        reserved0,
-        reserved1,
-        reserved2,
-        reserved3,
-        reserved4,
-        reserved5
-    };
-
     /***************************************************************************
      * Dispatcher: Kernel Attribute Table (KAT)
      * |--------------------+----------------------+-------------------------|
@@ -87,15 +62,23 @@ namespace Dispatch
     }
 
     /***************************************************************************
-     * Oracle
+     * Oracle - choose the best kernel based on a "Kernel Attribute Table"
+     *          and user preferences.
+     *
+     * Input Parameters
+     * ----------------
+     *
+     * tbl - Kernel Attribute Table (KAT)
+     * best_kernel - Kernel cached in the dispatcher (must be thread_local or static)
+     * kid - kernel ID (Default value = -1 = auto)
+     * begin - Starting index for table search (Default value = 0)
+     * end   - Ending index for table search (Default value = N)
      *
      * Template Parameters
      * -------------------
+     *
      * 1) "typename K" is the type of the kernel's pointer.
-     * 2) "api A" provides means to distinguish between two otherwise undistinguishable
-     *    kernels signature for (typename) K. See enum class api (add new kernels as
-     *    required).
-     * 3) "aoclsparse_int N" is the number of kernels (rows) in the
+     * 2) "aoclsparse_int N" is the number of kernels (rows) in the
      *    "Kernel Attribute Table".
      *
      * Decides the best kernel based on a "Kernel Attribute Table".
@@ -133,6 +116,34 @@ namespace Dispatch
      * Breaking ties: if two or more kernels have the highest score then the
      * last one (top to bottom) in the table is the winner (highest KID)
      *
+     * Reducing search space
+     * ---------------------
+     *
+     * When the user wants to use only a portion of the "Kernel attribute table"
+     * 'begin' and 'end' needs to be passed.
+     *
+     * Example
+     *
+     * In this example, the same table holds the kernels for 2 different
+     * operations (OP1, OP2).
+     *
+     *     {foo_ref<T, OP1>,           context_isa_t::GENERIC, 0U | archs::ALL},
+     *     {foo_kt<bsz::b256, T, OP1>, context_isa_t::AVX2,    0U | archs::ALL},
+     * ORL({foo_kt<bsz::b512, T, OP1>, context_isa_t::AVX512F, 0U | archs::ALL})
+     *     {foo_ref<T, OP2>,           context_isa_t::GENERIC, 0U | archs::ALL},
+     *     {foo_kt<bsz::b256, T, OP2>, context_isa_t::AVX2,    0U | archs::ALL},
+     * ORL({foo_kt<bsz::b512, T, OP2>, context_isa_t::AVX512F, 0U | archs::ALL})
+     *
+     * The same Oracle can be used as follows to look up:
+     *
+     * For OP1,
+     *
+     * kernel = Oracle<K>(tbl, kcache_op1, kid, 0, 3)
+     *
+     * For OP2,
+     *
+     * kernel = Oracle<K>(tbl, kcache_op2, kid, 3, 6)
+     *
      * Notes
      * -----
      *
@@ -163,6 +174,7 @@ namespace Dispatch
      *
      * General case
      * ------------
+     *
      * 80% of the times a vanilla KAT table will suffice, that is, it only
      * defines the default dispatching that caters to the best possible fit,
      * so no hardware IP is taken into account.
@@ -181,6 +193,7 @@ namespace Dispatch
      *
      * General case with kernels using specific CPU extensions
      * -------------------------------------------------------
+     *
      * 20% of cases use kt microkernels that require to specify what AVX extension
      * to exploit, e.g. kt_maskz_set_p<..., EXT>. For these kernel, the KAT will
      * have an extra entry to allow for this. Generally the extensions used are VL or DQ,
@@ -194,6 +207,7 @@ namespace Dispatch
      *
      * Exotic cases
      * ------------
+     *
      * This would represent KAT where IP is taken into account to fireup
      * tuned variants and "extends" the vanilla KAT
      *
@@ -212,8 +226,12 @@ namespace Dispatch
      * architecture matches.
      *
      **************************************************************************/
-    template <typename K, api A, aoclsparse_int N>
-    K Oracle(const Table<K> (&tbl)[N], aoclsparse_int kid = -1)
+    template <typename K, aoclsparse_int N>
+    K Oracle(const Table<K> (&tbl)[N],
+             K              best_kernel,
+             aoclsparse_int kid   = -1,
+             aoclsparse_int begin = 0,
+             aoclsparse_int end   = N)
     {
         using namespace aoclsparse;
 
@@ -221,14 +239,11 @@ namespace Dispatch
         if(kid >= 0)
         {
             // The kid requested is valid and supported by the machine
-            if(kid < N && (context::get_context()->supports(tbl[kid].flag)))
-                return tbl[kid].kernel; // Return the user requested kernel
+            if(kid < N && (context::get_context()->supports(tbl[kid + begin].flag)))
+                return tbl[kid + begin].kernel; // Return the user requested kernel
             else
                 return nullptr; // Needs to be handled by the dispatcher
         }
-
-        // The incumbent kernel
-        thread_local K best_kernel{nullptr};
 
         size_t maxscore{0};
 
@@ -250,7 +265,7 @@ namespace Dispatch
 
             size_t score{0}, multi{0};
 
-            for(aoclsparse_int kcnt = 0; kcnt < N; ++kcnt)
+            for(aoclsparse_int kcnt = begin; kcnt < end; ++kcnt)
             {
                 // If the kernel is supported, score the kernel
                 if(context::get_context()->supports(tbl[kcnt].flag))

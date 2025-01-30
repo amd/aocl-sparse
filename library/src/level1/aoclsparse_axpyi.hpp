@@ -97,8 +97,9 @@ aoclsparse_status aoclsparse_axpyi_t(aoclsparse_int nnz,
     };
     // clang-format on
 
-    // Inquire with the oracle
-    auto kernel = Oracle<K, api::axpyi>(tbl, kid);
+    // Thread local kernel cache
+    thread_local K kache  = nullptr;
+    K              kernel = Oracle<K>(tbl, kache, kid);
 
     if(!kernel)
         return aoclsparse_status_invalid_kid;

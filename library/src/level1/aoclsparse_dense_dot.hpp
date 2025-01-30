@@ -77,15 +77,19 @@ namespace aoclsparse
         };
         // clang-format on
 
-        // Inquire with the oracle
-        K dot_kernel = Oracle<K, api::dense_dot>(tbl, kid);
+        // Thread local kernel cache
+        thread_local K kache  = nullptr;
+        K              kernel = Oracle<K>(tbl, kache, kid);
+
+        if(!kernel)
+            return aoclsparse_status_invalid_kid;
 
         /* Dot product needs x and y of same size but
         * op = non-transpose, size of y=m, x=n
         * op = transpose, size of y=n, x=m
         * hence, taking minimum of m and n
         */
-        return dot_kernel(size, x, y, d);
+        return kernel(size, x, y, d);
     }
 }
 
