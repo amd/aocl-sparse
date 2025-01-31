@@ -78,7 +78,7 @@ namespace aoclsparse
             val  = (T *)mtx->tcsr_mat.val_L;
             col  = mtx->tcsr_mat.col_idx_L;
             crow = mtx->tcsr_mat.row_ptr_L;
-            diag = mtx->idiag;
+            diag = mtx->tcsr_mat.idiag;
             urow = mtx->tcsr_mat.row_ptr_L + 1;
         }
         else if(doid == doid::su || doid == doid::suc || doid == doid::hu || doid == doid::huc)
@@ -87,7 +87,7 @@ namespace aoclsparse
             col  = mtx->tcsr_mat.col_idx_U;
             crow = mtx->tcsr_mat.row_ptr_U;
             diag = mtx->tcsr_mat.row_ptr_U;
-            urow = mtx->iurow;
+            urow = mtx->tcsr_mat.iurow;
         }
 
         // TCSR dispatcher

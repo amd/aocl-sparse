@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -391,8 +391,8 @@ namespace
         ASSERT_EQ(aoclsparse_optimize(A), aoclsparse_status_success);
 
         // Check for idiag and iurow
-        EXPECT_EQ_VEC(M, A->idiag, exp_idiag);
-        EXPECT_EQ_VEC(M, A->iurow, exp_iurow);
+        EXPECT_EQ_VEC(M, A->tcsr_mat.idiag, exp_idiag);
+        EXPECT_EQ_VEC(M, A->tcsr_mat.iurow, exp_iurow);
 
         // Full matrix spmv
         EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A, descr, x.data(), &beta, y.data()),

@@ -35,7 +35,7 @@
 template <typename T>
 aoclsparse_status aoclsparse_csr_check_full_diag(aoclsparse_int        size,
                                                  aoclsparse_index_base base,
-                                                 aoclsparse_csr        csr_mat)
+                                                 aoclsparse::csr      *csr_mat)
 {
     bool            full_diag = false;
     aoclsparse_int  i, j, idxstart, idxend, col;

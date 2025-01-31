@@ -355,7 +355,7 @@ aoclsparse_status
                 a     = (T *)((A->tcsr_mat).val_L);
                 icol  = (A->tcsr_mat).col_idx_L;
                 ilrow = (A->tcsr_mat).row_ptr_L;
-                idiag = A->idiag;
+                idiag = (A->tcsr_mat).idiag;
                 iurow = (A->tcsr_mat).row_ptr_L + 1;
             }
             else
@@ -364,7 +364,7 @@ aoclsparse_status
                 icol  = (A->tcsr_mat).col_idx_U;
                 ilrow = (A->tcsr_mat).row_ptr_U;
                 idiag = (A->tcsr_mat).row_ptr_U;
-                iurow = A->iurow;
+                iurow = (A->tcsr_mat).iurow;
             }
         }
         else
@@ -376,9 +376,9 @@ aoclsparse_status
             ilrow = (A->opt_csr_mat).csr_row_ptr;
 
             // position of the diagonal element (includes zeros) always has min(m,n) elements
-            idiag = A->idiag;
+            idiag = (A->opt_csr_mat).idiag;
             // ending of the row
-            iurow = A->iurow;
+            iurow = (A->opt_csr_mat).iurow;
         }
     }
     else if(A->opt_csc_ready)
@@ -390,9 +390,9 @@ aoclsparse_status
         ilrow = (A->opt_csc_mat).col_ptr;
 
         // position of the diagonal element (includes zeros) always has min(m,n) elements
-        idiag = A->idiag_csc;
+        idiag = (A->opt_csc_mat).idiag;
         // ending of the col
-        iurow = A->iurow_csc;
+        iurow = (A->opt_csc_mat).iurow;
 
         doid = trans_doid(doid);
     }

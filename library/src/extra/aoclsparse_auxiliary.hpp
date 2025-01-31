@@ -278,15 +278,14 @@ aoclsparse_status aoclsparse_update_values_t(aoclsparse_matrix A, aoclsparse_int
 }
 
 template <typename T>
-aoclsparse_status aoclsparse_copy_csc(aoclsparse_int                n,
-                                      aoclsparse_int                nnz,
-                                      const struct _aoclsparse_csc *src,
-                                      struct _aoclsparse_csc       *dest);
+aoclsparse_status aoclsparse_copy_csc(aoclsparse_int         n,
+                                      aoclsparse_int         nnz,
+                                      const aoclsparse::csc *src,
+                                      aoclsparse::csc       *dest);
 
 template <typename T>
-aoclsparse_status aoclsparse_copy_coo(aoclsparse_int                nnz,
-                                      const struct _aoclsparse_coo *src,
-                                      struct _aoclsparse_coo       *dest);
+aoclsparse_status
+    aoclsparse_copy_coo(aoclsparse_int nnz, const aoclsparse::coo *src, aoclsparse::coo *dest);
 
 template <typename T>
 aoclsparse_status aoclsparse_copy_mat(const aoclsparse_matrix src, aoclsparse_matrix dest);

@@ -111,11 +111,7 @@ typedef struct alignas(2 * sizeof(double)) aoclsparse_double_complex_
  *  descriptor object is passed to all subsequent library calls that involve the matrix.
  *  It is destroyed by using \ref aoclsparse_destroy_mat_descr.
  */
-typedef struct _aoclsparse_mat_descr   *aoclsparse_mat_descr;
-typedef struct _aoclsparse_csr         *aoclsparse_csr;
-typedef struct _aoclsparse_csc         *aoclsparse_csc;
-typedef struct _aoclsparse_ell         *aoclsparse_ell;
-typedef struct _aoclsparse_ell_csr_hyb *aoclsparse_ell_csr_hyb;
+typedef struct _aoclsparse_mat_descr *aoclsparse_mat_descr;
 
 /*! \ingroup types_module
  *  \brief Matrix object.

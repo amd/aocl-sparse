@@ -426,7 +426,7 @@ aoclsparse_status
     if(descr->diag_type == aoclsparse_diag_type_non_unit)
     {
         for(i = 0; i < A->m; i++)
-            y[i] *= aval[A->idiag[i]];
+            y[i] *= aval[A->opt_csr_mat.idiag[i]];
     }
 
     // (U+D)z = y

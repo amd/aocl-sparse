@@ -1060,7 +1060,7 @@ aoclsparse_int aoclsparse_debug_dispatcher(const char                  dispatche
 aoclsparse_status aoclsparse_destroy_mv(aoclsparse_matrix A)
 {
 
-    aoclsparse_ell_csr_hyb ell_csr_hyb_mat = &(A->ell_csr_hyb_mat);
+    aoclsparse::ell_csr_hyb *ell_csr_hyb_mat = &(A->ell_csr_hyb_mat);
 
     if(ell_csr_hyb_mat->ell_col_ind != NULL)
     {
@@ -1077,7 +1077,7 @@ aoclsparse_status aoclsparse_destroy_mv(aoclsparse_matrix A)
         delete[] ell_csr_hyb_mat->csr_row_id_map;
         ell_csr_hyb_mat->csr_row_id_map = NULL;
     }
-    aoclsparse_csr csr_mat_br4 = &(A->csr_mat_br4);
+    aoclsparse::csr *csr_mat_br4 = &(A->csr_mat_br4);
 
     if(csr_mat_br4->csr_row_ptr != NULL)
     {
@@ -1095,6 +1095,27 @@ aoclsparse_status aoclsparse_destroy_mv(aoclsparse_matrix A)
         csr_mat_br4->csr_val = NULL;
     }
 
+    aoclsparse::blk_csr *blk_csr_mat = &(A->blk_csr_mat);
+    if(blk_csr_mat->blk_row_ptr != NULL)
+    {
+        delete[] blk_csr_mat->blk_row_ptr;
+        blk_csr_mat->blk_row_ptr = NULL;
+    }
+    if(blk_csr_mat->blk_col_ptr != NULL)
+    {
+        delete[] blk_csr_mat->blk_col_ptr;
+        blk_csr_mat->blk_col_ptr = NULL;
+    }
+    if(A->blk_csr_mat.blk_val != NULL)
+    {
+        ::operator delete(blk_csr_mat->blk_val);
+        blk_csr_mat->blk_val = NULL;
+    }
+    if(blk_csr_mat->masks)
+    {
+        delete[] blk_csr_mat->masks;
+        blk_csr_mat->masks = NULL;
+    }
     return aoclsparse_status_success;
 }
 /********************************************************************************
@@ -1173,25 +1194,31 @@ aoclsparse_status aoclsparse_destroy_opt_csr(aoclsparse_matrix A)
     if(!A->opt_csr_is_users)
     {
         if(A->opt_csr_mat.csr_col_ptr)
+        {
             delete[] A->opt_csr_mat.csr_col_ptr;
+            A->opt_csr_mat.csr_col_ptr = NULL;
+        }
         if(A->opt_csr_mat.csr_row_ptr)
+        {
             delete[] A->opt_csr_mat.csr_row_ptr;
+            A->opt_csr_mat.csr_row_ptr = NULL;
+        }
         if(A->opt_csr_mat.csr_val)
+        {
             ::operator delete(A->opt_csr_mat.csr_val);
+            A->opt_csr_mat.csr_val = NULL;
+        }
     }
-    if(A->idiag)
-        delete[] A->idiag;
-    if(A->iurow)
-        delete[] A->iurow;
-
-    if(A->csr_mat.blk_row_ptr)
-        delete[] A->csr_mat.blk_row_ptr;
-    if(A->csr_mat.blk_col_ptr)
-        delete[] A->csr_mat.blk_col_ptr;
-    if(A->csr_mat.blk_val)
-        ::operator delete(A->csr_mat.blk_val);
-    if(A->csr_mat.masks)
-        delete[] A->csr_mat.masks;
+    if(A->opt_csr_mat.idiag)
+    {
+        delete[] A->opt_csr_mat.idiag;
+        A->opt_csr_mat.idiag = NULL;
+    }
+    if(A->opt_csr_mat.iurow)
+    {
+        delete[] A->opt_csr_mat.iurow;
+        A->opt_csr_mat.iurow = NULL;
+    }
     return aoclsparse_status_success;
 }
 
@@ -1233,10 +1260,10 @@ aoclsparse_status aoclsparse_destroy_csc(aoclsparse_matrix A)
             A->opt_csc_mat.val = NULL;
         }
     }
-    if(A->idiag_csc)
-        delete[] A->idiag_csc;
-    if(A->iurow_csc)
-        delete[] A->iurow_csc;
+    if(A->opt_csc_mat.idiag)
+        delete[] A->opt_csc_mat.idiag;
+    if(A->opt_csc_mat.iurow)
+        delete[] A->opt_csc_mat.iurow;
     return aoclsparse_status_success;
 }
 
@@ -1297,6 +1324,16 @@ aoclsparse_status aoclsparse_destroy_tcsr(aoclsparse_matrix A)
             ::operator delete(A->tcsr_mat.val_U);
             A->tcsr_mat.val_U = NULL;
         }
+    }
+    if(A->tcsr_mat.idiag)
+    {
+        delete[] A->tcsr_mat.idiag;
+        A->tcsr_mat.idiag = NULL;
+    }
+    if(A->tcsr_mat.iurow)
+    {
+        delete[] A->tcsr_mat.iurow;
+        A->tcsr_mat.iurow = NULL;
     }
     return aoclsparse_status_success;
 }
@@ -1430,10 +1467,10 @@ aoclsparse_status aoclsparse_create_coo_t(aoclsparse_matrix          *mat,
  * Possible exit: invalid size, invalid pointer, memory alloc
  */
 template <typename T>
-aoclsparse_status aoclsparse_copy_csc(aoclsparse_int                n,
-                                      aoclsparse_int                nnz,
-                                      const struct _aoclsparse_csc *src,
-                                      struct _aoclsparse_csc       *dest)
+aoclsparse_status aoclsparse_copy_csc(aoclsparse_int         n,
+                                      aoclsparse_int         nnz,
+                                      const aoclsparse::csc *src,
+                                      aoclsparse::csc       *dest)
 {
     if((n < 0) || (nnz < 0))
     {
@@ -1473,9 +1510,8 @@ aoclsparse_status aoclsparse_copy_csc(aoclsparse_int                n,
  * Possible exit: invalid size, invalid pointer, memory alloc
  */
 template <typename T>
-aoclsparse_status aoclsparse_copy_coo(aoclsparse_int                nnz,
-                                      const struct _aoclsparse_coo *src,
-                                      struct _aoclsparse_coo       *dest)
+aoclsparse_status
+    aoclsparse_copy_coo(aoclsparse_int nnz, const aoclsparse::coo *src, aoclsparse::coo *dest)
 {
     if(nnz < 0)
     {

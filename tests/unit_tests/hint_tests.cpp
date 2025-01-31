@@ -173,8 +173,8 @@ namespace
         EXPECT_EQ_VEC(A->opt_csr_mat.csr_row_ptr[A->m], A->opt_csr_mat.csr_col_ptr, sol.icol);
         EXPECT_DOUBLE_EQ_VEC(
             A->opt_csr_mat.csr_row_ptr[A->m], (double *)A->opt_csr_mat.csr_val, sol.aval);
-        EXPECT_EQ_VEC(dim, A->idiag, sol.idiag);
-        EXPECT_EQ_VEC(dim, A->iurow, sol.iurow);
+        EXPECT_EQ_VEC(dim, A->opt_csr_mat.idiag, sol.idiag);
+        EXPECT_EQ_VEC(dim, A->opt_csr_mat.iurow, sol.iurow);
     }
 
     typedef struct
