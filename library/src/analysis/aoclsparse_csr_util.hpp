@@ -144,8 +144,8 @@ aoclsparse_status aoclsparse_copy_csr(aoclsparse_int                  m,
                                       [[maybe_unused]] aoclsparse_int n,
                                       aoclsparse_int                  nnz,
                                       aoclsparse_index_base           base,
-                                      const aoclsparse_csr            A,
-                                      aoclsparse_csr                  As)
+                                      const aoclsparse::csr          *A,
+                                      aoclsparse::csr                *As)
 {
     if((A == nullptr) || (As == nullptr))
         return aoclsparse_status_invalid_pointer;
@@ -167,9 +167,9 @@ aoclsparse_status aoclsparse_copy_csr(aoclsparse_int                  m,
  * min_dim            : minor dimension - col(n) for CSR, row(m) for CSR
  * nnz                : non-zero count
  * src_base/dest_base : 0-base or 1-base
- * src_idx_ptr        : csr_row_ptr from _aoclsparse_csr or col_ptr from _aoclsparse_csc
- * src_idx/dest_idx   : csr_col_ptr from _aoclsparse_csr or row_ind from _aoclsparse_csc
- * src_val/dest/val   : csr_val from _aoclsparse_csr or val from _aoclsparse_csc
+ * src_idx_ptr        : csr_row_ptr from aoclsparse::csr or col_ptr from aoclsparse::csc
+ * src_idx/dest_idx   : csr_col_ptr from aoclsparse::csr or row_ind from aoclsparse::csc
+ * src_val/dest/val   : csr_val from aoclsparse::csr or val from aoclsparse::csc
  *
  * Possible exit: memory alloc, invalid pointer
  *
@@ -401,8 +401,8 @@ aoclsparse_status aoclsparse_csr_csc_optimize(aoclsparse_matrix A)
         opt_idx_ptr = &(A->opt_csr_mat.csr_row_ptr);
         opt_indices = &(A->opt_csr_mat.csr_col_ptr);
         opt_val     = reinterpret_cast<T **>(&(A->opt_csr_mat.csr_val));
-        mat_idiag   = &(A->idiag);
-        mat_iurow   = &(A->iurow);
+        mat_idiag   = &(A->opt_csr_mat.idiag);
+        mat_iurow   = &(A->opt_csr_mat.iurow);
         m_mat       = A->m;
         n_mat       = A->n;
     }
@@ -415,8 +415,8 @@ aoclsparse_status aoclsparse_csr_csc_optimize(aoclsparse_matrix A)
         opt_idx_ptr = &(A->opt_csc_mat.col_ptr);
         opt_indices = &(A->opt_csc_mat.row_idx);
         opt_val     = reinterpret_cast<T **>(&(A->opt_csc_mat.val));
-        mat_idiag   = &(A->idiag_csc);
-        mat_iurow   = &(A->iurow_csc);
+        mat_idiag   = &(A->opt_csc_mat.idiag);
+        mat_iurow   = &(A->opt_csc_mat.iurow);
         m_mat       = A->n;
         n_mat       = A->m;
     }
@@ -543,25 +543,25 @@ aoclsparse_status aoclsparse_tcsr_optimize(aoclsparse_matrix A)
     // Create idiag and iurow
     try
     {
-        A->idiag = new aoclsparse_int[A->m];
-        A->iurow = new aoclsparse_int[A->m];
+        A->tcsr_mat.idiag = new aoclsparse_int[A->m];
+        A->tcsr_mat.iurow = new aoclsparse_int[A->m];
     }
     catch(std::bad_alloc &)
     {
-        delete[] A->idiag;
-        A->idiag = nullptr;
-        delete[] A->iurow;
-        A->iurow = nullptr;
+        delete[] A->tcsr_mat.idiag;
+        A->tcsr_mat.idiag = nullptr;
+        delete[] A->tcsr_mat.iurow;
+        A->tcsr_mat.iurow = nullptr;
         return aoclsparse_status_memory_error;
     }
 
     for(aoclsparse_int i = 0; i < A->m; i++)
     {
         // Diagonal is at the end of the each row in the lower triangular part
-        A->idiag[i] = A->tcsr_mat.row_ptr_L[i + 1] - 1;
+        A->tcsr_mat.idiag[i] = A->tcsr_mat.row_ptr_L[i + 1] - 1;
         // Diagonal is at the beginning of each row in the upper triangular part
         // Increment row_ptr_U to get the position of upper triangle element
-        A->iurow[i] = A->tcsr_mat.row_ptr_U[i] + 1;
+        A->tcsr_mat.iurow[i] = A->tcsr_mat.row_ptr_U[i] + 1;
     }
     A->opt_csr_ready     = true;
     A->opt_csr_full_diag = A->fulldiag;

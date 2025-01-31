@@ -143,24 +143,24 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
                 A->m, A->nnz, A->base, A->csr_mat.csr_row_ptr, A->csr_mat.csr_col_ptr, &total_blks);
             if(nRowsblk != 0)
             {
-                const aoclsparse_int    blk_width = 8;
-                struct _aoclsparse_csr *mat_csr   = nullptr;
-                mat_csr                           = &(A->csr_mat);
+                const aoclsparse_int blk_width  = 8;
+                aoclsparse::blk_csr *mat_blkcsr = nullptr;
+                mat_blkcsr                      = &(A->blk_csr_mat);
 
                 try
                 {
-                    mat_csr->blk_row_ptr = new aoclsparse_int[m + 1];
-                    mat_csr->blk_col_ptr = new aoclsparse_int[nnz];
-                    mat_csr->blk_val
+                    mat_blkcsr->blk_row_ptr = new aoclsparse_int[m + 1];
+                    mat_blkcsr->blk_col_ptr = new aoclsparse_int[nnz];
+                    mat_blkcsr->blk_val
                         = ::operator new((nnz + nRowsblk * blk_width) * sizeof(double));
-                    mat_csr->masks = new uint8_t[total_blks * nRowsblk];
+                    mat_blkcsr->masks = new uint8_t[total_blks * nRowsblk];
                 }
                 catch(std::bad_alloc &)
                 {
-                    delete[] mat_csr->blk_row_ptr;
-                    delete[] mat_csr->blk_col_ptr;
-                    ::operator delete(mat_csr->blk_val);
-                    delete[] mat_csr->masks;
+                    delete[] mat_blkcsr->blk_row_ptr;
+                    delete[] mat_blkcsr->blk_col_ptr;
+                    ::operator delete(mat_blkcsr->blk_val);
+                    delete[] mat_blkcsr->masks;
                     return aoclsparse_status_memory_error;
                 }
                 aoclsparse_csr2blkcsr(A->m,
@@ -169,15 +169,15 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
                                       A->csr_mat.csr_row_ptr,
                                       A->csr_mat.csr_col_ptr,
                                       (double *)A->csr_mat.csr_val,
-                                      mat_csr->blk_row_ptr,
-                                      mat_csr->blk_col_ptr,
-                                      (double *)mat_csr->blk_val,
-                                      mat_csr->masks,
+                                      mat_blkcsr->blk_row_ptr,
+                                      mat_blkcsr->blk_col_ptr,
+                                      (double *)mat_blkcsr->blk_val,
+                                      mat_blkcsr->masks,
                                       nRowsblk,
                                       A->base);
-                A->csr_mat.nRowsblk = nRowsblk;
-                A->blk_optimized    = true;
-                A->mat_type         = aoclsparse_csr_mat;
+                A->blk_csr_mat.nRowsblk = nRowsblk;
+                A->blk_optimized        = true;
+                A->mat_type             = aoclsparse_csr_mat;
             }
         }
     }
@@ -205,9 +205,9 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
     }
     if(A->mat_type == aoclsparse_ellt_csr_hyb_mat)
     {
-        aoclsparse_int                  ell_width;
-        aoclsparse_int                  ell_m;
-        struct _aoclsparse_ell_csr_hyb *ell_csr_hyb_mat = &(A->ell_csr_hyb_mat);
+        aoclsparse_int           ell_width;
+        aoclsparse_int           ell_m;
+        aoclsparse::ell_csr_hyb *ell_csr_hyb_mat = &(A->ell_csr_hyb_mat);
         // get the ell_width
         aoclsparse_csr2ellthyb_width(A->m, A->nnz, A->csr_mat.csr_row_ptr, &ell_m, &ell_width);
         if(ell_width == 0)
@@ -269,8 +269,8 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
         {
             std::vector<aoclsparse_int> row_ptr(A->m);
 
-            aoclsparse_int          row_nnz;
-            struct _aoclsparse_csr *csr_mat_br4 = &(A->csr_mat_br4);
+            aoclsparse_int   row_nnz;
+            aoclsparse::csr *csr_mat_br4 = &(A->csr_mat_br4);
             // populate row_nnz
             aoclsparse_int i;
             aoclsparse_int j;

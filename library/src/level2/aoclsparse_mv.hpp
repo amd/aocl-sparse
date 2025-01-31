@@ -354,8 +354,8 @@ aoclsparse_status aoclsparse_mv_t(aoclsparse_operation       op,
         val   = (T *)A->opt_csr_mat.csr_val;
         col   = A->opt_csr_mat.csr_col_ptr;
         row   = A->opt_csr_mat.csr_row_ptr;
-        idiag = A->idiag;
-        irow  = A->iurow;
+        idiag = A->opt_csr_mat.idiag;
+        irow  = A->opt_csr_mat.iurow;
         aoclsparse_copy_mat_descr(&descr_t, &descr_cpy);
     }
 
@@ -404,15 +404,15 @@ aoclsparse_status aoclsparse_mv_t(aoclsparse_operation       op,
                                                 A->m,
                                                 A->n,
                                                 A->nnz,
-                                                A->csr_mat.masks,
-                                                (T *)A->csr_mat.blk_val,
-                                                A->csr_mat.blk_col_ptr,
-                                                A->csr_mat.blk_row_ptr,
+                                                A->blk_csr_mat.masks,
+                                                (T *)A->blk_csr_mat.blk_val,
+                                                A->blk_csr_mat.blk_col_ptr,
+                                                A->blk_csr_mat.blk_row_ptr,
                                                 descr,
                                                 x,
                                                 beta,
                                                 y,
-                                                A->csr_mat.nRowsblk);
+                                                A->blk_csr_mat.nRowsblk);
         }
         return aoclsparse_status_not_implemented;
     case aoclsparse_ellt_mat:
