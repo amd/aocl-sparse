@@ -25,126 +25,285 @@
 
 #include "aoclsparse_csrmv_avx512.hpp"
 #include "aoclsparse_csrmv_kernels.hpp"
+#include "aoclsparse_error_check.hpp"
 #include "aoclsparse_l2_kt.hpp"
+#include "aoclsparse_mtx_dispatcher.hpp"
 
-template <typename T>
+template <typename T, bool do_check = true>
 aoclsparse_status aoclsparse_csrmv_t(aoclsparse_operation       trans,
                                      const T                   *alpha,
                                      aoclsparse_int             m,
                                      aoclsparse_int             n,
                                      aoclsparse_int             nnz,
-                                     const T                   *csr_val,
-                                     const aoclsparse_int      *csr_col_ind,
-                                     const aoclsparse_int      *csr_row_ptr,
+                                     const T                   *val,
+                                     const aoclsparse_int      *col,
+                                     const aoclsparse_int      *row,
                                      const aoclsparse_mat_descr descr,
                                      const T                   *x,
                                      const T                   *beta,
-                                     T                         *y)
+                                     T                         *y,
+                                     const aoclsparse_int      *idiag = nullptr,
+                                     const aoclsparse_int      *iurow = nullptr,
+                                     aoclsparse::doid           d_id  = aoclsparse::doid::len,
+                                     aoclsparse_int             kid   = -1)
 {
     using namespace aoclsparse;
 
-    if(descr == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
+    doid lcl_doid;
 
-    // Check index base
-    if(descr->base != aoclsparse_index_base_zero && descr->base != aoclsparse_index_base_one)
+    if constexpr(!do_check)
     {
-        return aoclsparse_status_invalid_value;
+        // When the call is from the optmv interface
+        // condition checking is skipped and the doid
+        // from the optmv interface is used
+        lcl_doid = d_id;
     }
-
-    // Support General and symmetric matrices.
-    // Return for any other matrix type
-    if((descr->type != aoclsparse_matrix_type_general)
-       && (descr->type != aoclsparse_matrix_type_symmetric))
+    else
     {
-        // TODO
-        return aoclsparse_status_not_implemented;
-    }
+        if(alpha == nullptr || beta == nullptr)
+            return aoclsparse_status_invalid_pointer;
 
-    // Check sizes
-    if(m < 0 || n < 0 || nnz < 0)
-    {
-        return aoclsparse_status_invalid_size;
-    }
+        if(descr == nullptr)
+            return aoclsparse_status_invalid_pointer;
 
-    // Quick return if possible
-    if(m == 0 || n == 0 || nnz == 0)
-    {
-        return aoclsparse_status_success;
-    }
+        // Check index base
+        if(!is_valid_base(descr->base))
+            return aoclsparse_status_invalid_value;
 
-    // Check pointer arguments
-    if(csr_val == nullptr || csr_row_ptr == nullptr || csr_col_ind == nullptr || x == nullptr
-       || y == nullptr)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
+        if(!is_valid_mtx_t(descr->type))
+            return aoclsparse_status_invalid_value;
 
-    if constexpr(std::is_same_v<T, float>)
-    {
-        switch(trans)
+        if(!is_valid_op(trans))
+            return aoclsparse_status_invalid_value;
+
+        // Support General and symmetric matrices.
+        // Return for any other matrix type
+        if((descr->type != aoclsparse_matrix_type_general)
+           && (descr->type != aoclsparse_matrix_type_symmetric))
         {
-        case aoclsparse_operation_none:
-            if(descr->type == aoclsparse_matrix_type_symmetric)
-            {
-                return aoclsparse_csrmv_symm(
-                    descr->base, *alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
-            }
-            else
-            {
-                return aoclsparse_csrmv_vectorized(
-                    descr->base, *alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
-            }
-            break;
+            // TODO
+            return aoclsparse_status_not_implemented;
+        }
 
-        case aoclsparse_operation_transpose:
-            if(descr->type == aoclsparse_matrix_type_symmetric)
-            {
-                //when a matrix is symmetric, then matrix is equal to its transpose, and thus the matrix product
-                //would also be same
-                return aoclsparse_csrmv_symm(
-                    descr->base, *alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
-            }
+        if((descr->type == aoclsparse_matrix_type_symmetric
+            || descr->type == aoclsparse_matrix_type_hermitian)
+           && m != n)
+            return aoclsparse_status_invalid_size;
+
+        // Check sizes
+        if(m < 0 || n < 0 || nnz < 0)
+            return aoclsparse_status_invalid_size;
+
+        // Check pointer arguments
+        if(val == nullptr || row == nullptr || col == nullptr || x == nullptr || y == nullptr)
+            return aoclsparse_status_invalid_pointer;
+
+        // TODO extend for symmetric when using the new kernels
+        if(descr->type == aoclsparse_matrix_type_triangular && (!idiag || !iurow))
+            return aoclsparse_status_invalid_pointer;
+
+        // When the call is from the public interface of csrmv build your own doid
+        lcl_doid = get_doid<T>(descr, trans);
+    }
+
+    if constexpr(is_dt_complex<T>())
+    {
+        // pointers to start/end of the approriate triangle
+        const aoclsparse_int *lstart = nullptr, *lend = nullptr, *ustart = nullptr, *uend = nullptr;
+        if(lcl_doid == doid::tln || lcl_doid == doid::tlt || lcl_doid == doid::tlh)
+        {
+            lstart = row;
+            lend   = iurow;
+        }
+        else if(lcl_doid == doid::tun || lcl_doid == doid::tut || lcl_doid == doid::tuh)
+        {
+            ustart = idiag;
+            uend   = &row[1];
+        }
+
+        switch(lcl_doid)
+        {
+        case doid::gn:
+        {
+            using K = decltype(&aoclsparse::csrmv_kt<kernel_templates::bsz::b256, T>);
+
+            // If kid is not set and size range matches, change the kernel
+            if((nnz <= (4 * m)) && (kid == -1))
+                kid = 0;
             else
+                kid = (kid == -1) ? 1 : kid; // AVX2 default
+
+            [[maybe_unused]] K kernel;
+
+            switch(kid)
             {
+            case 0:
+                kernel = aoclsparse_csrmv_general<T>;
+                break;
+
+            case 1:
+            case 2:
+                kernel = aoclsparse::csrmv_kt<kernel_templates::bsz::b256, T>;
+                break;
+            case 3:
 #ifdef USE_AVX512
                 if(context::get_context()->supports<context_isa_t::AVX512F>())
-                {
-                    return aoclsparse::csrmvt_kt<kernel_templates::bsz::b512, T>(
-                        descr->base, *alpha, m, n, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
-                }
+                    kernel = aoclsparse::csrmv_kt<kernel_templates::bsz::b512, T>;
                 else
+                    return aoclsparse_status_invalid_kid;
+                break;
 #endif
-                    return aoclsparse::csrmvt_kt<kernel_templates::bsz::b256, T>(
-                        descr->base, *alpha, m, n, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
+            default:
+                return aoclsparse_status_invalid_kid;
             }
-            break;
 
-        case aoclsparse_operation_conjugate_transpose:
-            //TODO
-            return aoclsparse_status_not_implemented;
-            break;
-
-        default:
-            return aoclsparse_status_invalid_value;
-            break;
+            return kernel(descr->base, *alpha, m, val, col, row, x, *beta, y);
         }
-    }
-    else if constexpr(std::is_same_v<T, double>)
-    {
-        using namespace aoclsparse;
-
-        switch(trans)
+        case doid::gt:
         {
-        case aoclsparse_operation_none:
-            if(descr->type == aoclsparse_matrix_type_symmetric)
+            using K = decltype(&aoclsparse::csrmvt_kt<kernel_templates::bsz::b256, T>);
+
+            [[maybe_unused]] K kernel;
+
+            // AVX2 default
+            kid = (kid == -1) ? 1 : kid;
+
+            switch(kid)
             {
-                return aoclsparse_csrmv_symm(
-                    descr->base, *alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
+            case 0:
+            case 1:
+            case 2:
+                kernel = aoclsparse::csrmvt_kt<kernel_templates::bsz::b256, T>;
+                break;
+            case 3:
+#ifdef USE_AVX512
+                if(context::get_context()->supports<context_isa_t::AVX512F>())
+                    kernel = aoclsparse::csrmvt_kt<kernel_templates::bsz::b512, T>;
+                else
+                    return aoclsparse_status_invalid_kid;
+                break;
+#endif
+            // Add your other kernels here
+            default:
+                return aoclsparse_status_invalid_kid;
             }
-            else
+
+            return kernel(descr->base, *alpha, m, n, val, col, row, x, *beta, y);
+        }
+        case doid::gh:
+            return aoclsparse_csrmvh(descr->base, *alpha, m, n, val, col, row, x, *beta, y);
+        case doid::gc:
+            break;
+        case doid::sl: // sl and su map to the same kernel
+        case doid::su:
+        {
+            using K  = decltype(&aoclsparse::csrmv_symm_kt<kernel_templates::bsz::b256, T, false>);
+            K kernel = aoclsparse::csrmv_symm_kt<kernel_templates::bsz::b256, T, false>;
+#ifdef USE_AVX512
+            if(context::get_context()->supports<context_isa_t::AVX512F>())
+                kernel = aoclsparse::csrmv_symm_kt<kernel_templates::bsz::b512, T, false>;
+#endif
+            return kernel(descr->base,
+                          *alpha,
+                          m,
+                          descr->diag_type,
+                          descr->fill_mode,
+                          val,
+                          col,
+                          row,
+                          idiag,
+                          iurow,
+                          x,
+                          *beta,
+                          y);
+        }
+        case doid::slc: // slc and suc map to the same kernel
+        case doid::suc:
+            return aoclsparse_csrmvh_symm_internal(descr->base,
+                                                   *alpha,
+                                                   m,
+                                                   descr->diag_type,
+                                                   descr->fill_mode,
+                                                   val,
+                                                   col,
+                                                   row,
+                                                   idiag,
+                                                   iurow,
+                                                   x,
+                                                   *beta,
+                                                   y);
+        case doid::hl: // hl and hu map to the same kernel
+        case doid::hu:
+        {
+            using K  = decltype(&aoclsparse::csrmv_symm_kt<kernel_templates::bsz::b256, T, true>);
+            K kernel = aoclsparse::csrmv_symm_kt<kernel_templates::bsz::b256, T, true>;
+#ifdef USE_AVX512
+            if(context::get_context()->supports<context_isa_t::AVX512F>())
+                kernel = aoclsparse::csrmv_symm_kt<kernel_templates::bsz::b512, T, true>;
+#endif
+            return kernel(descr->base,
+                          *alpha,
+                          m,
+                          descr->diag_type,
+                          descr->fill_mode,
+                          val,
+                          col,
+                          row,
+                          idiag,
+                          iurow,
+                          x,
+                          *beta,
+                          y);
+        }
+        case doid::hlc: // hlc and huc map to the same kernel
+        case doid::huc:
+            return aoclsparse_csrmv_hermt_internal(descr->base,
+                                                   *alpha,
+                                                   m,
+                                                   descr->diag_type,
+                                                   descr->fill_mode,
+                                                   val,
+                                                   col,
+                                                   row,
+                                                   idiag,
+                                                   iurow,
+                                                   x,
+                                                   *beta,
+                                                   y);
+        case doid::tln:
+            return aoclsparse_csrmv_ref(descr, *alpha, m, n, val, col, lstart, lend, x, *beta, y);
+        case doid::tlt:
+            return aoclsparse_csrmvt_ptr(descr, *alpha, m, n, val, col, lstart, lend, x, *beta, y);
+        case doid::tlh:
+            return aoclsparse_csrmvh_ptr(descr, *alpha, m, n, val, col, lstart, lend, x, *beta, y);
+        case doid::tlc:
+            break;
+        case doid::tun:
+            return aoclsparse_csrmv_ref(descr, *alpha, m, n, val, col, ustart, uend, x, *beta, y);
+        case doid::tut:
+            return aoclsparse_csrmvt_ptr(descr, *alpha, m, n, val, col, ustart, uend, x, *beta, y);
+        case doid::tuh:
+            return aoclsparse_csrmvh_ptr(descr, *alpha, m, n, val, col, ustart, uend, x, *beta, y);
+        case doid::tuc:
+            break;
+        default:
+            return aoclsparse_status_internal_error;
+        }
+
+        return aoclsparse_status_not_implemented;
+    }
+    else // For real datatypes
+    {
+
+        switch(lcl_doid)
+        {
+        case doid::gn:
+            if constexpr(std::is_same_v<T, float>)
+            {
+                return aoclsparse_csrmv_vectorized(
+                    descr->base, *alpha, m, val, col, row, x, *beta, y);
+            }
+            else if constexpr(std::is_same_v<T, double>)
             {
                 using K = decltype(&aoclsparse_csrmv_general<T>);
 
@@ -169,42 +328,24 @@ aoclsparse_status aoclsparse_csrmv_t(aoclsparse_operation       trans,
                 }
 
                 // Invoke the kernel
-                return kernel(
-                    descr->base, *alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
+                return kernel(descr->base, *alpha, m, val, col, row, x, *beta, y);
             }
-            break;
-
-        case aoclsparse_operation_transpose:
-            if(descr->type == aoclsparse_matrix_type_symmetric)
+        case doid::gt:
+#ifdef USE_AVX512
+            if(context::get_context()->supports<context_isa_t::AVX512F>())
             {
-                //when a matrix is symmetric, then matrix is equal to its transpose, and thus the matrix product
-                //would also be same
-                return aoclsparse_csrmv_symm(
-                    descr->base, *alpha, m, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
+                return aoclsparse::csrmvt_kt<kernel_templates::bsz::b512, T>(
+                    descr->base, *alpha, m, n, val, col, row, x, *beta, y);
             }
             else
-            {
-#ifdef USE_AVX512
-                if(context::get_context()->supports<context_isa_t::AVX512F>())
-                {
-                    return aoclsparse::csrmvt_kt<kernel_templates::bsz::b512, T>(
-                        descr->base, *alpha, m, n, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
-                }
-                else
 #endif
-                    return aoclsparse::csrmvt_kt<kernel_templates::bsz::b256, T>(
-                        descr->base, *alpha, m, n, csr_val, csr_col_ind, csr_row_ptr, x, *beta, y);
-            }
-            break;
-
-        case aoclsparse_operation_conjugate_transpose:
-            //TODO
-            return aoclsparse_status_not_implemented;
-            break;
-
+                return aoclsparse::csrmvt_kt<kernel_templates::bsz::b256, T>(
+                    descr->base, *alpha, m, n, val, col, row, x, *beta, y);
+        case doid::sl:
+        case doid::su:
+            return aoclsparse_csrmv_symm(descr->base, *alpha, m, val, col, row, x, *beta, y);
         default:
-            return aoclsparse_status_invalid_value;
-            break;
+            return aoclsparse_status_not_implemented;
         }
     }
 }

@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -357,8 +357,9 @@ namespace
         T                    alpha = 1.0;
         T                    beta  = 0.0;
         // Initialise vectors
-        T x[5] = {1.0, 2.0, 3.0, 4.0, 5.0};
-        T y[5] = {0.0};
+        T x[5]      = {1.0, 2.0, 3.0, 4.0, 5.0};
+        T y[5]      = {0.0};
+        T y_gold[5] = {0.0};
 
         aoclsparse_index_base base = aoclsparse_index_base_zero;
         aoclsparse_mat_descr  descr;
@@ -371,12 +372,16 @@ namespace
         ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_set_mat_index_base(descr, base), aoclsparse_status_success);
 
-        //TODO: conjugate transpose should work without any error, once the support is added.
-        //The expected return code should be aoclsparse_status_success and it should work.
         EXPECT_EQ(
             aoclsparse_csrmv<T>(
                 trans, &alpha, M, N, NNZ, csr_val, csr_col_ind, csr_row_ptr, descr, x, &beta, y),
-            aoclsparse_status_not_implemented);
+            aoclsparse_status_success);
+
+        EXPECT_EQ(ref_csrmvgen(
+                      trans, alpha, M, N, csr_val, csr_col_ind, csr_row_ptr, base, x, beta, y_gold),
+                  aoclsparse_status_success);
+
+        EXPECT_ARR_NEAR(M, y, y_gold, expected_precision<T>());
 
         EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
     }
