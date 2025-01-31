@@ -46,6 +46,8 @@ namespace aoclsparse
         // symmetric matrix: transpose/non-transpose is the same, conjugate transpose not supported
         sl, // symmetric based on L triangle
         su, // symmetix based on U triangle
+        slc, // symmetric conjugate L triangle
+        suc, // symmetric conjugate U triangle
 
         // hermitian matrix
         hl, // hermitian based on L
@@ -87,6 +89,14 @@ namespace aoclsparse
                 mtx_t = aoclsparse_matrix_type_symmetric;
         }
 
+        // Transpose of a symmetric matrix is the orginal matrix
+        if(mtx_t == aoclsparse_matrix_type_symmetric && op_t == aoclsparse_operation_transpose)
+            op_t = aoclsparse_operation_none;
+        // Conjugate transpose of a Hermitian matrix is the orginal matrix
+        else if(mtx_t == aoclsparse_matrix_type_hermitian
+                && op_t == aoclsparse_operation_conjugate_transpose)
+            op_t = aoclsparse_operation_none;
+
         aoclsparse_int op_v = op_t - 111;
 
         switch(mtx_t)
@@ -96,16 +106,17 @@ namespace aoclsparse
             d_id = static_cast<aoclsparse::doid>(op_v);
             break;
         case aoclsparse_matrix_type_symmetric:
-            // d_id [4,5]
-            d_id = static_cast<aoclsparse::doid>(4 + fm);
+            // d_id [4,7]
+            d_id = static_cast<aoclsparse::doid>(4 + fm
+                                                 + op_v); // fm=0 (L) / 1 (U), op_v=0 (N) / 2 (H)
             break;
         case aoclsparse_matrix_type_hermitian:
-            // d_id [6,9]
-            d_id = static_cast<aoclsparse::doid>(6 + (2 * fm));
+            // d_id [8,11]
+            d_id = static_cast<aoclsparse::doid>(8 + (2 * fm) + op_v);
             break;
         case aoclsparse_matrix_type_triangular:
-            // d_id [10,17]
-            d_id = static_cast<aoclsparse::doid>(10 + (4 * fm) + op_v);
+            // d_id [12,19]
+            d_id = static_cast<aoclsparse::doid>(12 + (4 * fm) + op_v);
             break;
         default:
             break;
@@ -129,10 +140,10 @@ namespace aoclsparse
 
         // clang-format off
         static constexpr aoclsparse::doid tr_v[] = {doid::gt,  doid::gn,  doid::gc,  doid::gh,
-                                                    doid::su,  doid::sl,  doid::huc, doid::hu,
-                                                    doid::hlc, doid::hl,  doid::tut, doid::tun,
-                                                    doid::tuc, doid::tuh, doid::tlt, doid::tln,
-                                                    doid::tlc, doid::tlh};
+                                                    doid::su,  doid::sl,  doid::suc, doid::slc,
+                                                    doid::huc, doid::hu,  doid::hlc, doid::hl,
+                                                    doid::tut, doid::tun, doid::tuc, doid::tuh,
+                                                    doid::tlt, doid::tln, doid::tlc, doid::tlh};
         // clang-format on
         return tr_v[dv];
     }
