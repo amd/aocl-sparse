@@ -58,7 +58,7 @@ namespace aoclsparse
                                 const SUF beta,
                                 SUF *__restrict__ y);
 
-    template <kernel_templates::bsz SZ, typename SUF>
+    template <kernel_templates::bsz SZ, typename SUF, bool HERM>
     aoclsparse_status csrmv_symm_kt(aoclsparse_index_base base,
                                     const SUF             alpha,
                                     aoclsparse_int        m,
