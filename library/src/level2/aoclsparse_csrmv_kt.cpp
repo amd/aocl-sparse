@@ -222,7 +222,8 @@ aoclsparse_status aoclsparse::csrmvt_kt(aoclsparse_index_base base,
     return (aoclsparse_status)status;
 }
 
-template <kernel_templates::bsz SZ, typename SUF>
+// The parameter HERM specifies if the input matrix is hermitian.
+template <kernel_templates::bsz SZ, typename SUF, bool HERM = false>
 aoclsparse_status aoclsparse::csrmv_symm_kt(aoclsparse_index_base base,
                                             const SUF             alpha,
                                             aoclsparse_int        m,
@@ -256,7 +257,7 @@ aoclsparse_status aoclsparse::csrmv_symm_kt(aoclsparse_index_base base,
     const SUF            *x_fix    = x - base;
     SUF                  *y_fix    = y - base;
     const size_t          tsz      = tsz_v<SZ, SUF>;
-    avxvector_t<SZ, SUF>  va, vx1, vx2, vy1, vy2;
+    avxvector_t<SZ, SUF>  va, vx1, vx2, vy1, vy2, vytmp;
 
     // Perform (beta * y)
     if(beta == static_cast<SUF>(0))
@@ -278,8 +279,9 @@ aoclsparse_status aoclsparse::csrmv_symm_kt(aoclsparse_index_base base,
         aoclsparse_int idxend   = crend[i];
         SUF            result   = aoclsparse_numeric::zero<SUF>();
 
-        vy1 = kt_setzero_p<SZ, SUF>();
-        vx2 = kt_set1_p<SZ, SUF>(alpha * x[i]);
+        vy1   = kt_setzero_p<SZ, SUF>();
+        vytmp = kt_setzero_p<SZ, SUF>();
+        vx2   = kt_set1_p<SZ, SUF>(alpha * x[i]);
 
         aoclsparse_int j;
         aoclsparse_int nnz   = idxend - idxstart;
@@ -288,25 +290,38 @@ aoclsparse_status aoclsparse::csrmv_symm_kt(aoclsparse_index_base base,
         // multiply with all strictly (L/U) triangle elements (and their transpose)
         for(j = idxstart; j < idxend - k_rem; j += tsz)
         {
-            va                 = kt_loadu_p<SZ, SUF>(aval_fix + j);
-            vx1                = kt_set_p<SZ, SUF>(x_fix, icol_fix + j);
-            vy1                = kt_fmadd_p<SZ, SUF>(va, vx1, vy1);
-            vy2                = kt_mul_p<SZ, SUF>(va, vx2);
+            va = kt_loadu_p<SZ, SUF>(aval_fix + j);
+
+            vx1 = kt_set_p<SZ, SUF>(x_fix, icol_fix + j);
+            kt_fmadd_B<SZ, SUF>(va, vx1, vy1, vytmp);
+            if constexpr(HERM)
+            {
+                va = kt_conj_p<SZ, SUF>(va);
+            }
+            vy2 = kt_mul_p<SZ, SUF>(va, vx2);
+
             const SUF *vy_cast = reinterpret_cast<const SUF *>(&vy2);
             for(size_t k = 0; k < tsz; k++)
             {
-                kt_int_t idx = icol_fix[j + k];
+                aoclsparse_int idx = icol_fix[j + k];
                 y_fix[idx] += vy_cast[k];
             }
         }
 
-        result = kt_hsum_p<SZ, SUF>(vy1);
+        result = kt_hsum_B<SZ, SUF>(vy1, vytmp);
 
         for(j = idxend - k_rem; j < idxend; j++)
         {
             aoclsparse_int idx = icol_fix[j];
             result += aval_fix[j] * x_fix[idx];
-            y_fix[idx] += alpha * aval_fix[j] * x[i];
+            if constexpr(HERM)
+            {
+                y_fix[idx] += alpha * aoclsparse::conj(aval_fix[j]) * x[i];
+            }
+            else
+            {
+                y_fix[idx] += alpha * aval_fix[j] * x[i];
+            }
         }
 
         // multiply with diagonal
@@ -347,22 +362,23 @@ aoclsparse_status aoclsparse::csrmv_symm_kt(aoclsparse_index_base base,
         const SUF beta,                                         \
         SUF *__restrict__ y);
 
-#define CSRMV_SYMM_TEMPLATE_DECLARATION(BSZ, SUF)                   \
-    template aoclsparse_status aoclsparse::csrmv_symm_kt<BSZ, SUF>( \
-        aoclsparse_index_base base,                                 \
-        const SUF             alpha,                                \
-        aoclsparse_int        m,                                    \
-        aoclsparse_diag_type  diag_type,                            \
-        aoclsparse_fill_mode  fill_mode,                            \
-        const SUF *__restrict__ aval,                               \
-        const aoclsparse_int *__restrict__ icol,                    \
-        const aoclsparse_int *__restrict__ icrow,                   \
-        const aoclsparse_int *__restrict__ idiag,                   \
-        const aoclsparse_int *__restrict__ iurow,                   \
-        const SUF *__restrict__ x,                                  \
-        const SUF beta,                                             \
+#define CSRMV_SYMM_TEMPLATE_DECLARATION(BSZ, SUF, HERM)                   \
+    template aoclsparse_status aoclsparse::csrmv_symm_kt<BSZ, SUF, HERM>( \
+        aoclsparse_index_base base,                                       \
+        const SUF             alpha,                                      \
+        aoclsparse_int        m,                                          \
+        aoclsparse_diag_type  diag_type,                                  \
+        aoclsparse_fill_mode  fill_mode,                                  \
+        const SUF *__restrict__ aval,                                     \
+        const aoclsparse_int *__restrict__ icol,                          \
+        const aoclsparse_int *__restrict__ icrow,                         \
+        const aoclsparse_int *__restrict__ idiag,                         \
+        const aoclsparse_int *__restrict__ iurow,                         \
+        const SUF *__restrict__ x,                                        \
+        const SUF beta,                                                   \
         SUF *__restrict__ y);
 
 KT_INSTANTIATE(CSRMV_TEMPLATE_DECLARATION, kernel_templates::get_bsz());
 KT_INSTANTIATE(CSRMVT_TEMPLATE_DECLARATION, kernel_templates::get_bsz());
-KT_INSTANTIATE(CSRMV_SYMM_TEMPLATE_DECLARATION, kernel_templates::get_bsz());
+KT_INSTANTIATE_EXT(CSRMV_SYMM_TEMPLATE_DECLARATION, kernel_templates::get_bsz(), true);
+KT_INSTANTIATE_EXT(CSRMV_SYMM_TEMPLATE_DECLARATION, kernel_templates::get_bsz(), false);
