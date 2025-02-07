@@ -331,6 +331,7 @@ aoclsparse_status aoclsparse_mv_t(aoclsparse_operation       op,
      *  So, the pointers and descriptor passed as parameters to CSRMV interface needs
      *  to be modified accordingly.
      */
+    aoclsparse_int  m = A->m, n = A->n, nnz = A->nnz;
     T              *val;
     aoclsparse_int *col;
     aoclsparse_int *row;
@@ -359,18 +360,52 @@ aoclsparse_status aoclsparse_mv_t(aoclsparse_operation       op,
         aoclsparse_copy_mat_descr(&descr_t, &descr_cpy);
     }
 
-    aoclsparse_matrix_format_type mtx_t;
-
+    // By default we will use our input format
+    // but double and general SPMV might be optimized to a different format
+    aoclsparse_matrix_format_type mtx_t = A->input_format;
     if constexpr(std::is_same_v<T, double>)
     {
-        if(A->mat_type == aoclsparse_csr_mat && A->blk_optimized)
-            mtx_t = aoclsparse_blkcsr_mat;
-        else
-            mtx_t = A->mat_type;
+        if(d_id == doid::gn)
+        {
+            if(A->mat_type == aoclsparse_csr_mat && A->blk_optimized)
+                mtx_t = aoclsparse_blkcsr_mat;
+            else
+                mtx_t = A->mat_type;
+        }
     }
-    else
+
+    // Check if there are any matrix copies matching exactly our descriptor/operation (DOID)
+    // In that case execute csrmv general. This applies only to CSR matrices right now.
+    if(mtx_t == aoclsparse_csr_mat)
     {
-        mtx_t = A->mat_type;
+        for(auto mat : A->mats)
+        {
+            if(mat->doid == d_id)
+            {
+                // extract the matrix
+                val   = (T *)mat->csr_val;
+                col   = mat->csr_col_ptr;
+                row   = mat->csr_row_ptr;
+                idiag = mat->idiag;
+                irow  = mat->iurow;
+                // swap dimension for transposed
+                if(op != aoclsparse_operation_none)
+                {
+                    m = A->n;
+                    n = A->m;
+                }
+                // reset op & descr
+                op                = aoclsparse_operation_none;
+                descr_t.type      = aoclsparse_matrix_type_general;
+                descr_t.fill_mode = aoclsparse_fill_mode_lower;
+                descr_t.diag_type = aoclsparse_diag_type_non_unit;
+                // TODO assuming that all copies got fixed to 0-based
+                descr_t.base = aoclsparse_index_base_zero;
+                // and reset doid
+                d_id = doid::gn;
+                break;
+            }
+        }
     }
 
     switch(mtx_t)
@@ -378,22 +413,8 @@ aoclsparse_status aoclsparse_mv_t(aoclsparse_operation       op,
     case aoclsparse_csr_mat:
     {
         // Invoke CSRMV interface with do_check set to false
-        return aoclsparse_csrmv_t<T, false>(op,
-                                            alpha,
-                                            A->m,
-                                            A->n,
-                                            A->nnz,
-                                            val,
-                                            col,
-                                            row,
-                                            &descr_t,
-                                            x,
-                                            beta,
-                                            y,
-                                            idiag,
-                                            irow,
-                                            d_id,
-                                            kid);
+        return aoclsparse_csrmv_t<T, false>(
+            op, alpha, m, n, nnz, val, col, row, &descr_t, x, beta, y, idiag, irow, d_id, kid);
     }
     case aoclsparse_blkcsr_mat:
         if constexpr(std::is_same_v<T, double>)

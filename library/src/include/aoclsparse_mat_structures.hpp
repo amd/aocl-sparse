@@ -28,6 +28,8 @@
 #include "aoclsparse.h"
 #include "aoclsparse_mtx_dispatcher.hpp"
 
+#include <vector>
+
 enum aoclsparse_hinted_action
 {
     aoclsparse_action_none = 0,
@@ -88,6 +90,9 @@ namespace aoclsparse
      *******************************************************************************/
     class base_mtx
     {
+    public:
+        // Holds the descriptor and operation values of the matrix
+        aoclsparse::doid doid = doid::len; // by default invalid
     };
 
     /********************************************************************************
@@ -315,6 +320,9 @@ struct _aoclsparse_matrix
     // csr matrix
     bool            csr_mat_is_users = false;
     aoclsparse::csr csr_mat;
+    // Stores the CSR matrix copies (excluding opt_csr)
+    // TODO: Holds all matrices, regardless of type, including internally created matrices and copies
+    std::vector<aoclsparse::csr *> mats;
 
     // blk_csr matrix
     aoclsparse::blk_csr blk_csr_mat;
