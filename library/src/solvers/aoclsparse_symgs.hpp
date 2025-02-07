@@ -31,7 +31,6 @@
 #include "aoclsparse_auxiliary.hpp"
 #include "aoclsparse_csr_util.hpp"
 #include "aoclsparse_l2.hpp"
-#include "aoclsparse_mv.hpp"
 #include "aoclsparse_utils.hpp"
 
 #include <immintrin.h>

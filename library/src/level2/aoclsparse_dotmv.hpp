@@ -26,8 +26,8 @@
 #include "aoclsparse.h"
 #include "aoclsparse_descr.h"
 #include "aoclsparse_dense_dot.hpp"
+#include "aoclsparse_l2.hpp"
 #include "aoclsparse_mat_structures.hpp"
-#include "aoclsparse_mv.hpp"
 
 template <typename T>
 aoclsparse_status aoclsparse_dotmv_t(const aoclsparse_operation op,

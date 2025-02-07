@@ -36,4 +36,13 @@ aoclsparse_status aoclsparse_trsv(const aoclsparse_operation transpose,
                                   const aoclsparse_int       incx,
                                   aoclsparse_int             kid = 2);
 
+template <typename T>
+aoclsparse_status aoclsparse_mv_t(aoclsparse_operation       op,
+                                  const T                   *alpha,
+                                  aoclsparse_matrix          A,
+                                  const aoclsparse_mat_descr descr,
+                                  const T                   *x,
+                                  const T                   *beta,
+                                  T                         *y);
+
 #endif
