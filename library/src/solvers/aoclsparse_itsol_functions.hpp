@@ -35,7 +35,6 @@
 #include "aoclsparse_l2.hpp"
 #include "aoclsparse_lapack.hpp"
 #include "aoclsparse_mat_structures.hpp"
-#include "aoclsparse_mv.hpp"
 #include "aoclsparse_utils.hpp"
 
 // Define all entries for rinfo[] array

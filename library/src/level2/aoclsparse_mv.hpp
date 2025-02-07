@@ -32,25 +32,13 @@
 #include "aoclsparse_error_check.hpp"
 #include "aoclsparse_l2_kt.hpp"
 #include "aoclsparse_mat_structures.hpp"
+#include "aoclsparse_tcsr.hpp"
 
 #include <complex>
 #include <immintrin.h>
 
 // Kernels
 // -----------------------------------
-
-aoclsparse_status aoclsparse_dtcsrmv_avx2(const aoclsparse_index_base base,
-                                          const double                alpha,
-                                          aoclsparse_int              m,
-                                          const double *__restrict__ val_L,
-                                          const double *__restrict__ val_U,
-                                          const aoclsparse_int *__restrict__ col_idx_L,
-                                          const aoclsparse_int *__restrict__ col_idx_U,
-                                          const aoclsparse_int *__restrict__ row_ptr_L,
-                                          const aoclsparse_int *__restrict__ row_ptr_U,
-                                          const double *__restrict__ x,
-                                          const double beta,
-                                          double *__restrict__ y);
 template <typename T>
 std::enable_if_t<std::is_same_v<T, double>, aoclsparse_status>
     aoclsparse_dcsr_mat_br4([[maybe_unused]] aoclsparse_operation       op,
@@ -338,41 +326,57 @@ aoclsparse_status aoclsparse_mv_t(aoclsparse_operation       op,
         descr_cpy.base = A->internal_base_index;
     }
 
-    if constexpr(is_dt_complex<T>())
+    /*
+     *  Optimize is called only for triangular, symmetric and Hermitian matrices.
+     *  So, the pointers and descriptor passed as parameters to CSRMV interface needs
+     *  to be modified accordingly.
+     */
+    T              *val;
+    aoclsparse_int *col;
+    aoclsparse_int *row;
+    aoclsparse_int *idiag;
+    aoclsparse_int *irow;
+
+    _aoclsparse_mat_descr descr_t;
+
+    if(d_id == doid::gn || d_id == doid::gt || d_id == doid::gh || d_id == doid::gc)
     {
-        /*
-        *  Optimize is called only for triangular, symmetric and Hermitian matrices.
-        *  So, the pointers and descriptor passed as parameters to CSRMV interface needs
-        *  to be modified accordingly.
-        */
-        T              *val;
-        aoclsparse_int *col;
-        aoclsparse_int *row;
-        aoclsparse_int *idiag;
-        aoclsparse_int *irow;
+        val   = (T *)A->csr_mat.csr_val;
+        col   = A->csr_mat.csr_col_ptr;
+        row   = A->csr_mat.csr_row_ptr;
+        idiag = nullptr;
+        irow  = nullptr;
+        aoclsparse_copy_mat_descr(&descr_t, descr);
+    }
+    else
+    {
+        // everything else uses optimized matrix
+        val   = (T *)A->opt_csr_mat.csr_val;
+        col   = A->opt_csr_mat.csr_col_ptr;
+        row   = A->opt_csr_mat.csr_row_ptr;
+        idiag = A->idiag;
+        irow  = A->iurow;
+        aoclsparse_copy_mat_descr(&descr_t, &descr_cpy);
+    }
 
-        _aoclsparse_mat_descr descr_t;
+    aoclsparse_matrix_format_type mtx_t;
 
-        if(d_id == doid::gn || d_id == doid::gt || d_id == doid::gh || d_id == doid::gc)
-        {
-            val   = (T *)A->csr_mat.csr_val;
-            col   = A->csr_mat.csr_col_ptr;
-            row   = A->csr_mat.csr_row_ptr;
-            idiag = nullptr;
-            irow  = nullptr;
-            aoclsparse_copy_mat_descr(&descr_t, descr);
-        }
+    if constexpr(std::is_same_v<T, double>)
+    {
+        if(A->mat_type == aoclsparse_csr_mat && A->blk_optimized)
+            mtx_t = aoclsparse_blkcsr_mat;
         else
-        {
-            // everything else uses optimized matrix
-            val   = (T *)A->opt_csr_mat.csr_val;
-            col   = A->opt_csr_mat.csr_col_ptr;
-            row   = A->opt_csr_mat.csr_row_ptr;
-            idiag = A->idiag;
-            irow  = A->iurow;
-            aoclsparse_copy_mat_descr(&descr_t, &descr_cpy);
-        }
+            mtx_t = A->mat_type;
+    }
+    else
+    {
+        mtx_t = A->mat_type;
+    }
 
+    switch(mtx_t)
+    {
+    case aoclsparse_csr_mat:
+    {
         // Invoke CSRMV interface with do_check set to false
         return aoclsparse_csrmv_t<T, false>(op,
                                             alpha,
@@ -391,271 +395,63 @@ aoclsparse_status aoclsparse_mv_t(aoclsparse_operation       op,
                                             d_id,
                                             kid);
     }
-    else // Real datatypes
-    {
-        switch(d_id)
+    case aoclsparse_blkcsr_mat:
+        if constexpr(std::is_same_v<T, double>)
         {
-        case doid::gn:
-        case doid::gt:
-        case doid::gh:
-        case doid::gc:
-        {
-            switch(A->mat_type)
-            {
-            case aoclsparse_csr_mat:
-                if constexpr(std::is_same_v<T, double>)
-                {
-                    if(A->blk_optimized)
-                        return aoclsparse_blkcsrmv_t<T>(op,
-                                                        alpha,
-                                                        A->m,
-                                                        A->n,
-                                                        A->nnz,
-                                                        A->csr_mat.masks,
-                                                        (T *)A->csr_mat.blk_val,
-                                                        A->csr_mat.blk_col_ptr,
-                                                        A->csr_mat.blk_row_ptr,
-                                                        descr,
-                                                        x,
-                                                        beta,
-                                                        y,
-                                                        A->csr_mat.nRowsblk);
-                }
-
-                return aoclsparse_csrmv_t<T>(op,
-                                             alpha,
-                                             A->m,
-                                             A->n,
-                                             A->nnz,
-                                             (T *)A->csr_mat.csr_val,
-                                             A->csr_mat.csr_col_ptr,
-                                             A->csr_mat.csr_row_ptr,
-                                             descr,
-                                             x,
-                                             beta,
-                                             y);
-
-            case aoclsparse_ellt_mat:
-            case aoclsparse_ellt_csr_hyb_mat:
-                return (aoclsparse_ellthybmv_t<T>(op,
-                                                  alpha,
-                                                  A->m,
-                                                  A->n,
-                                                  A->nnz,
-                                                  (T *)A->ell_csr_hyb_mat.ell_val,
-                                                  A->ell_csr_hyb_mat.ell_col_ind,
-                                                  A->ell_csr_hyb_mat.ell_width,
-                                                  A->ell_csr_hyb_mat.ell_m,
-                                                  (T *)A->ell_csr_hyb_mat.csr_val,
-                                                  A->csr_mat.csr_row_ptr,
-                                                  A->csr_mat.csr_col_ptr,
-                                                  nullptr,
-                                                  A->ell_csr_hyb_mat.csr_row_id_map,
-                                                  descr,
-                                                  x,
-                                                  beta,
-                                                  y));
-            case aoclsparse_csr_mat_br4:
-                if constexpr(std::is_same_v<T, double>)
-                {
-                    return (aoclsparse_dcsr_mat_br4(op, *alpha, A, descr, x, *beta, y));
-                }
-                else
-                {
-                    return aoclsparse_status_not_implemented;
-                }
-            case aoclsparse_tcsr_mat:
-                if constexpr(std::is_same_v<T, double>)
-                {
-                    if(op == aoclsparse_operation_none)
-                    {
-                        return (aoclsparse_dtcsrmv_avx2(descr->base,
-                                                        *alpha,
-                                                        A->m,
-                                                        (double *)A->tcsr_mat.val_L,
-                                                        (double *)A->tcsr_mat.val_U,
-                                                        A->tcsr_mat.col_idx_L,
-                                                        A->tcsr_mat.col_idx_U,
-                                                        A->tcsr_mat.row_ptr_L,
-                                                        A->tcsr_mat.row_ptr_U,
-                                                        x,
-                                                        *beta,
-                                                        y));
-                    }
-                }
-                return aoclsparse_status_not_implemented;
-            default:
-                return aoclsparse_status_invalid_value;
-            }
-        }
-        case doid::hl: // Hermitian maps to symmetric in case of real datatypes
-        case doid::hu:
-        case doid::hlc:
-        case doid::huc: // but we return early above because tests are written like that
-        case doid::sl: // sl, su, slc and suc map to the same path
-        case doid::su:
-        case doid::slc:
-        case doid::suc:
-        {
-            // can dispatch our data directly
-            // transposed and non-transposed operation
-            // y = alpha A * x + beta y
-
-            T              *csr_val = nullptr;
-            aoclsparse_int *csr_col = nullptr, *csr_crow = nullptr, *csr_diag = nullptr,
-                           *csr_urow = nullptr;
-            if(A->mat_type != aoclsparse_tcsr_mat) // CSR Matrix
-            {
-                csr_val  = (T *)A->opt_csr_mat.csr_val;
-                csr_col  = A->opt_csr_mat.csr_col_ptr;
-                csr_crow = A->opt_csr_mat.csr_row_ptr;
-                csr_diag = A->idiag;
-                csr_urow = A->iurow;
-            }
-            else // TCSR Matrix
-            {
-                if(descr->fill_mode == aoclsparse_fill_mode_lower)
-                {
-                    csr_val  = (T *)A->tcsr_mat.val_L;
-                    csr_col  = A->tcsr_mat.col_idx_L;
-                    csr_crow = A->tcsr_mat.row_ptr_L;
-                    csr_diag = A->idiag;
-                    csr_urow = A->tcsr_mat.row_ptr_L + 1;
-                }
-                // fill mode: upper
-                else
-                {
-                    csr_val  = (T *)A->tcsr_mat.val_U;
-                    csr_col  = A->tcsr_mat.col_idx_U;
-                    csr_crow = A->tcsr_mat.row_ptr_U;
-                    csr_diag = A->tcsr_mat.row_ptr_U;
-                    csr_urow = A->iurow;
-                }
-            }
-            {
-                using K
-                    = decltype(&aoclsparse::csrmv_symm_kt<kernel_templates::bsz::b256, T, true>);
-                K kernel = aoclsparse::csrmv_symm_kt<kernel_templates::bsz::b256, T, true>;
-#ifdef USE_AVX512
-                if(context::get_context()->supports<context_isa_t::AVX512F>())
-                    kernel = aoclsparse::csrmv_symm_kt<kernel_templates::bsz::b512, T, true>;
-#endif
-                return kernel(descr_cpy.base,
-                              *alpha,
-                              A->m,
-                              descr_cpy.diag_type,
-                              descr_cpy.fill_mode,
-                              csr_val,
-                              csr_col,
-                              csr_crow,
-                              csr_diag,
-                              csr_urow,
-                              x,
-                              *beta,
-                              y);
-            }
-        }
-        case doid::tln:
-        case doid::tlt:
-        case doid::tlh:
-        case doid::tlc:
-        case doid::tun:
-        case doid::tut:
-        case doid::tuh:
-        case doid::tuc:
-        {
-            T              *csr_val     = nullptr;
-            aoclsparse_int *csr_col_ind = nullptr, *csr_start = nullptr, *csr_end = nullptr;
-
-            if(A->mat_type != aoclsparse_tcsr_mat) // CSR matrix
-            {
-                csr_val     = (T *)A->opt_csr_mat.csr_val;
-                csr_col_ind = A->opt_csr_mat.csr_col_ptr;
-                if(descr->fill_mode == aoclsparse_fill_mode_lower)
-                {
-                    csr_start = A->opt_csr_mat.csr_row_ptr;
-                    csr_end   = A->iurow;
-                }
-                else
-                {
-                    csr_start = A->idiag;
-                    csr_end   = &A->opt_csr_mat.csr_row_ptr[1];
-                }
-            }
-            else // TCSR matrix
-            {
-                if(descr->fill_mode == aoclsparse_fill_mode_lower)
-                {
-                    csr_val     = (T *)A->tcsr_mat.val_L;
-                    csr_col_ind = A->tcsr_mat.col_idx_L;
-                    csr_start   = A->tcsr_mat.row_ptr_L;
-                    csr_end     = A->tcsr_mat.row_ptr_L + 1;
-                }
-                else
-                {
-                    csr_val     = (T *)A->tcsr_mat.val_U;
-                    csr_col_ind = A->tcsr_mat.col_idx_U;
-                    csr_start   = A->tcsr_mat.row_ptr_U;
-                    csr_end     = A->tcsr_mat.row_ptr_U + 1;
-                }
-            }
-
-            //kernels as per transpose operation
-            if(op == aoclsparse_operation_none)
-            {
-                // Only double kernel is vectorized for this path
-                if constexpr(std::is_same_v<T, double>)
-                {
-                    return aoclsparse_csrmv_vectorized_avx2ptr(&descr_cpy,
-                                                               *alpha,
-                                                               A->m,
-                                                               A->n,
-                                                               A->nnz,
-                                                               csr_val,
-                                                               csr_col_ind,
-                                                               csr_start,
-                                                               csr_end,
-                                                               x,
-                                                               *beta,
-                                                               y);
-                }
-                else
-                {
-                    return aoclsparse_csrmv_ref(&descr_cpy,
-                                                *alpha,
+            if(A->blk_optimized)
+                return aoclsparse_blkcsrmv_t<T>(op,
+                                                alpha,
                                                 A->m,
                                                 A->n,
-                                                csr_val,
-                                                csr_col_ind,
-                                                csr_start,
-                                                csr_end,
+                                                A->nnz,
+                                                A->csr_mat.masks,
+                                                (T *)A->csr_mat.blk_val,
+                                                A->csr_mat.blk_col_ptr,
+                                                A->csr_mat.blk_row_ptr,
+                                                descr,
                                                 x,
-                                                *beta,
-                                                y);
-                }
-            }
-            else if(op == aoclsparse_operation_transpose)
-            {
-                return aoclsparse_csrmvt_ptr(&descr_cpy,
-                                             *alpha,
-                                             A->m,
-                                             A->n,
-                                             csr_val,
-                                             csr_col_ind,
-                                             csr_start,
-                                             csr_end,
-                                             x,
-                                             *beta,
-                                             y);
-            }
+                                                beta,
+                                                y,
+                                                A->csr_mat.nRowsblk);
         }
-        break;
-        default:
-            return aoclsparse_status_internal_error;
+        return aoclsparse_status_not_implemented;
+    case aoclsparse_ellt_mat:
+    case aoclsparse_ellt_csr_hyb_mat:
+        return (aoclsparse_ellthybmv_t<T>(op,
+                                          alpha,
+                                          A->m,
+                                          A->n,
+                                          A->nnz,
+                                          (T *)A->ell_csr_hyb_mat.ell_val,
+                                          A->ell_csr_hyb_mat.ell_col_ind,
+                                          A->ell_csr_hyb_mat.ell_width,
+                                          A->ell_csr_hyb_mat.ell_m,
+                                          (T *)A->ell_csr_hyb_mat.csr_val,
+                                          A->csr_mat.csr_row_ptr,
+                                          A->csr_mat.csr_col_ptr,
+                                          nullptr,
+                                          A->ell_csr_hyb_mat.csr_row_id_map,
+                                          descr,
+                                          x,
+                                          beta,
+                                          y));
+    case aoclsparse_csr_mat_br4:
+        if constexpr(std::is_same_v<T, double>)
+        {
+            return (aoclsparse_dcsr_mat_br4(op, *alpha, A, descr, x, *beta, y));
         }
+        else
+        {
+            return aoclsparse_status_not_implemented;
+        }
+    case aoclsparse_tcsr_mat:
+        return aoclsparse::tcsrmv(&descr_t, alpha, A, x, beta, y, d_id, kid);
 
+    default:
         return aoclsparse_status_not_implemented;
     }
+
+    return aoclsparse_status_not_implemented;
 }
 
 #endif // AOCLSPARSE_OPTMV_HPP

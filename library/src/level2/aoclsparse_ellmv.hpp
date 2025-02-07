@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -793,7 +793,8 @@ aoclsparse_status aoclsparse_ellthybmv_t([[maybe_unused]] aoclsparse_operation t
                                          T                                    *y)
 
 {
-    if constexpr(std::is_same_v<T, float>)
+    // Only double is supported
+    if constexpr(!std::is_same_v<T, double>)
     {
         // ToDo: Need to implement this functionality
         return aoclsparse_status_not_implemented;

@@ -106,21 +106,23 @@ aoclsparse_status aoclsparse_csrmv_t(aoclsparse_operation       trans,
         lcl_doid = get_doid<T>(descr, trans);
     }
 
+    // pointers to start/end of the approriate triangle
+    const aoclsparse_int *rstart = nullptr, *rend = nullptr;
+    if(lcl_doid == doid::tln || lcl_doid == doid::tlt || lcl_doid == doid::tlh
+       || lcl_doid == doid::tlc)
+    {
+        rstart = row;
+        rend   = iurow;
+    }
+    else if(lcl_doid == doid::tun || lcl_doid == doid::tut || lcl_doid == doid::tuh
+            || lcl_doid == doid::tuc)
+    {
+        rstart = idiag;
+        rend   = &row[1];
+    }
+
     if constexpr(is_dt_complex<T>())
     {
-        // pointers to start/end of the approriate triangle
-        const aoclsparse_int *lstart = nullptr, *lend = nullptr, *ustart = nullptr, *uend = nullptr;
-        if(lcl_doid == doid::tln || lcl_doid == doid::tlt || lcl_doid == doid::tlh)
-        {
-            lstart = row;
-            lend   = iurow;
-        }
-        else if(lcl_doid == doid::tun || lcl_doid == doid::tut || lcl_doid == doid::tuh)
-        {
-            ustart = idiag;
-            uend   = &row[1];
-        }
-
         switch(lcl_doid)
         {
         case doid::gn:
@@ -271,19 +273,19 @@ aoclsparse_status aoclsparse_csrmv_t(aoclsparse_operation       trans,
                                                    *beta,
                                                    y);
         case doid::tln:
-            return aoclsparse_csrmv_ref(descr, *alpha, m, n, val, col, lstart, lend, x, *beta, y);
+            return aoclsparse_csrmv_ref(descr, *alpha, m, n, val, col, rstart, rend, x, *beta, y);
         case doid::tlt:
-            return aoclsparse_csrmvt_ptr(descr, *alpha, m, n, val, col, lstart, lend, x, *beta, y);
+            return aoclsparse_csrmvt_ptr(descr, *alpha, m, n, val, col, rstart, rend, x, *beta, y);
         case doid::tlh:
-            return aoclsparse_csrmvh_ptr(descr, *alpha, m, n, val, col, lstart, lend, x, *beta, y);
+            return aoclsparse_csrmvh_ptr(descr, *alpha, m, n, val, col, rstart, rend, x, *beta, y);
         case doid::tlc:
             break;
         case doid::tun:
-            return aoclsparse_csrmv_ref(descr, *alpha, m, n, val, col, ustart, uend, x, *beta, y);
+            return aoclsparse_csrmv_ref(descr, *alpha, m, n, val, col, rstart, rend, x, *beta, y);
         case doid::tut:
-            return aoclsparse_csrmvt_ptr(descr, *alpha, m, n, val, col, ustart, uend, x, *beta, y);
+            return aoclsparse_csrmvt_ptr(descr, *alpha, m, n, val, col, rstart, rend, x, *beta, y);
         case doid::tuh:
-            return aoclsparse_csrmvh_ptr(descr, *alpha, m, n, val, col, ustart, uend, x, *beta, y);
+            return aoclsparse_csrmvh_ptr(descr, *alpha, m, n, val, col, rstart, rend, x, *beta, y);
         case doid::tuc:
             break;
         default:
@@ -341,9 +343,62 @@ aoclsparse_status aoclsparse_csrmv_t(aoclsparse_operation       trans,
 #endif
                 return aoclsparse::csrmvt_kt<kernel_templates::bsz::b256, T>(
                     descr->base, *alpha, m, n, val, col, row, x, *beta, y);
-        case doid::sl:
+        case doid::hl: // Hermitian maps to symmetric in case of real datatypes
+        case doid::hu:
+        case doid::hlc:
+        case doid::huc: // but we return early above because tests are written like that
+        case doid::sl: // sl, su, slct and suct map to the same path
         case doid::su:
-            return aoclsparse_csrmv_symm(descr->base, *alpha, m, val, col, row, x, *beta, y);
+        case doid::slc:
+        case doid::suc:
+            // If the call is not from the MV interface, then the matrix will not be optimized
+            if constexpr(do_check)
+            {
+                return aoclsparse_csrmv_symm(descr->base, *alpha, m, val, col, row, x, *beta, y);
+            }
+            else
+            {
+                using K
+                    = decltype(&aoclsparse::csrmv_symm_kt<kernel_templates::bsz::b256, T, true>);
+                K kernel = aoclsparse::csrmv_symm_kt<kernel_templates::bsz::b256, T, true>;
+#ifdef USE_AVX512
+                if(context::get_context()->supports<context_isa_t::AVX512F>())
+                    kernel = aoclsparse::csrmv_symm_kt<kernel_templates::bsz::b512, T, true>;
+#endif
+                return kernel(descr->base,
+                              *alpha,
+                              m,
+                              descr->diag_type,
+                              descr->fill_mode,
+                              val,
+                              col,
+                              row,
+                              idiag,
+                              iurow,
+                              x,
+                              *beta,
+                              y);
+            }
+        case doid::tln:
+        case doid::tun:
+            if constexpr(std::is_same_v<T, double>)
+            {
+                return aoclsparse_csrmv_vectorized_avx2ptr(
+                    descr, *alpha, m, n, nnz, val, col, rstart, rend, x, *beta, y);
+            }
+            else
+            {
+                return aoclsparse_csrmv_ref(
+                    descr, *alpha, m, n, val, col, rstart, rend, x, *beta, y);
+            }
+        case doid::tlt:
+        case doid::tut:
+            return aoclsparse_csrmvt_ptr(descr, *alpha, m, n, val, col, rstart, rend, x, *beta, y);
+        case doid::tlh:
+        case doid::tlc:
+        case doid::tuh:
+        case doid::tuc:
+
         default:
             return aoclsparse_status_not_implemented;
         }
