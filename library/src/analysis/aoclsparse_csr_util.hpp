@@ -26,6 +26,7 @@
 #include "aoclsparse.h"
 #include "aoclsparse_descr.h"
 #include "aoclsparse_types.h"
+#include "aoclsparse_convert.hpp"
 #include "aoclsparse_mat_structures.hpp"
 #include "aoclsparse_utils.hpp"
 
@@ -362,6 +363,87 @@ aoclsparse_status aoclsparse_csr_csc_fill_diag(aoclsparse_int        m,
     return aoclsparse_status_success;
 }
 
+// Creates matrix copies of CSR
+template <typename T>
+aoclsparse_status aoclsparse_matrix_transform(aoclsparse_matrix A)
+{
+    if(!A)
+        return aoclsparse_status_invalid_pointer;
+    aoclsparse_status status = aoclsparse_status_success;
+    // If the input matrix is in CSR format
+    if(A->input_format == aoclsparse_csr_mat)
+    {
+        aoclsparse_optimize_data *optd = A->optim_data;
+        while(optd)
+        {
+            //if(optd->act == aoclsparse_action_mv)
+            {
+                aoclsparse::doid doid = optd->doid;
+
+                // Check if the matrix copy already exists
+                bool found_mat = false;
+                for(size_t i = 0; i < A->mats.size(); i++)
+                {
+                    if(A->mats[i] && A->mats[i]->doid == doid)
+                    {
+                        found_mat = true;
+                        break;
+                    }
+                }
+
+                // Generate matrix copy
+                if(!found_mat)
+                {
+                    switch(doid)
+                    {
+                    case aoclsparse::doid::gt:
+                        aoclsparse::csr *mat_copy;
+                        try
+                        {
+                            mat_copy              = new aoclsparse::csr();
+                            mat_copy->csr_row_ptr = new aoclsparse_int[A->n + 1];
+                            mat_copy->csr_col_ptr = new aoclsparse_int[A->nnz];
+                            mat_copy->csr_val     = ::operator new(sizeof(T) * A->nnz);
+                        }
+                        catch(std::bad_alloc &)
+                        {
+                            delete[] mat_copy->csr_col_ptr;
+                            delete[] mat_copy->csr_row_ptr;
+                            ::operator delete(mat_copy->csr_val);
+                            delete mat_copy;
+                            mat_copy = nullptr;
+                            return aoclsparse_status_memory_error;
+                        }
+                        // convert to 0-base
+                        status = aoclsparse_csr2csc_template(A->m,
+                                                             A->n,
+                                                             A->nnz,
+                                                             A->base,
+                                                             aoclsparse_index_base_zero,
+                                                             A->csr_mat.csr_row_ptr,
+                                                             A->csr_mat.csr_col_ptr,
+                                                             (T *)A->csr_mat.csr_val,
+                                                             mat_copy->csr_col_ptr,
+                                                             mat_copy->csr_row_ptr,
+                                                             (T *)mat_copy->csr_val);
+
+                        if(status != aoclsparse_status_success)
+                            return status; // TODO free mat_copy
+
+                        mat_copy->doid = doid;
+                        A->mats.push_back(mat_copy);
+                        break;
+                    default:
+                        break;
+                    }
+                }
+            }
+            optd = optd->next;
+        }
+    }
+    return status;
+}
+
 /* Given input matrix in CSR/CSC format, check it and create the matching
  * clean version opt_csr_mat/opt_csc_mat, respectively */
 template <typename T>
@@ -445,6 +527,14 @@ aoclsparse_status aoclsparse_csr_csc_optimize(aoclsparse_matrix A)
     if(status != aoclsparse_status_success)
         // Shouldn't happen, pointers have already been checked
         return aoclsparse_status_internal_error;
+
+    // Create a matrix copy if memory usage is unrestricted
+    /*if(A->mem_policy == aoclsparse_memory_usage_unrestricted)
+    {
+        status = aoclsparse_matrix_transform<T>(A);
+        if(status != aoclsparse_status_success)
+            return status;
+    }*/
 
     // build the clean CSR matrix
     if(sorted && fulldiag)

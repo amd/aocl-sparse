@@ -41,6 +41,7 @@ aoclsparse_status aoclsparse_destroy_opt_csr(aoclsparse_matrix A);
 aoclsparse_status aoclsparse_destroy_csc(aoclsparse_matrix A);
 aoclsparse_status aoclsparse_destroy_coo(aoclsparse_matrix A);
 aoclsparse_status aoclsparse_destroy_tcsr(aoclsparse_matrix A);
+aoclsparse_status aoclsparse_destroy_mats(aoclsparse_matrix A);
 void              set_symgs_matrix_properties(aoclsparse_mat_descr  descr_dest,
                                               aoclsparse_operation *trans_dest,
                                               aoclsparse_fill_mode &fmode,

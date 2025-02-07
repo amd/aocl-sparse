@@ -710,6 +710,7 @@ aoclsparse_status aoclsparse_destroy(aoclsparse_matrix *A)
         aoclsparse_destroy_coo(*A);
         aoclsparse_destroy_tcsr(*A);
         aoclsparse_destroy_symgs(&((*A)->symgs_info));
+        aoclsparse_destroy_mats(*A);
         delete *A;
         *A = NULL;
     }
@@ -1334,6 +1335,26 @@ aoclsparse_status aoclsparse_destroy_tcsr(aoclsparse_matrix A)
     {
         delete[] A->tcsr_mat.iurow;
         A->tcsr_mat.iurow = NULL;
+    }
+    return aoclsparse_status_success;
+}
+
+// Deallocate the copies of the original CSR matrix (excluding opt_csr).
+aoclsparse_status aoclsparse_destroy_mats(aoclsparse_matrix A)
+{
+    // TODO: Verify the matrix type and deallocate the matrix when all
+    // matrix structures are stored in a single container
+    for(auto mat : A->mats)
+    {
+        if(mat)
+        {
+            delete[] mat->csr_col_ptr;
+            delete[] mat->csr_row_ptr;
+            ::operator delete(mat->csr_val);
+            delete[] mat->idiag;
+            delete[] mat->iurow;
+            delete mat;
+        }
     }
     return aoclsparse_status_success;
 }

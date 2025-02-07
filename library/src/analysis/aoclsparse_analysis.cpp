@@ -465,6 +465,30 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
     {
         return aoclsparse_status_invalid_size;
     }
+
+    // Investigate potential optimized copies
+    // if memory usage is unrestricted
+    if(A->mem_policy == aoclsparse_memory_usage_unrestricted)
+    {
+        switch(A->val_type)
+        {
+        case aoclsparse_dmat:
+            ret = aoclsparse_matrix_transform<double>(A);
+            break;
+        case aoclsparse_smat:
+            ret = aoclsparse_matrix_transform<float>(A);
+            break;
+        case aoclsparse_cmat:
+            ret = aoclsparse_matrix_transform<aoclsparse_float_complex>(A);
+            break;
+        case aoclsparse_zmat:
+            ret = aoclsparse_matrix_transform<aoclsparse_double_complex>(A);
+            break;
+        }
+        if(ret != aoclsparse_status_success)
+            return ret;
+    }
+
     // Optimize TCSR matrix
     // Check if the matrix is valid
     // Creates idiag ptr for lower and iurow ptr for upper triangualr matrix
