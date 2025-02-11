@@ -228,10 +228,10 @@ namespace Dispatch
      **************************************************************************/
     template <typename K, aoclsparse_int N>
     K Oracle(const Table<K> (&tbl)[N],
-             K              best_kernel,
-             aoclsparse_int kid   = -1,
-             aoclsparse_int begin = 0,
-             aoclsparse_int end   = N)
+             K                    best_kernel,
+             const aoclsparse_int kid   = -1,
+             const aoclsparse_int begin = 0,
+             const aoclsparse_int end   = N)
     {
         using namespace aoclsparse;
 

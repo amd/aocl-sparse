@@ -301,7 +301,24 @@ namespace
                                         &X[starting_offset_x + 0],
                                         ldx,
                                         kid);
-        ASSERT_EQ(status, aoclsparse_status_success)
+
+        /*+-----+----------------+
+         *| KID |     Kernel     |
+         *+-----+----------------+
+         *|  0  | ref always     |
+         *|  1  | avx2           |
+         *|  2  | avx512 256b    |
+         *|  3  | avx512 512b    |
+         *| > 3 | exotic kernels |
+         *+-----+----------------+
+         * Maximum KID supported on a non-AVX512 machine is 2.
+         * In any machine, maximum kid is 3 when exotic kernels are not present.
+         */
+        exp_status = ((!can_exec_avx512_tests() && (kid > 2)) || (kid > 3))
+                         ? aoclsparse_status_invalid_kid
+                         : aoclsparse_status_success;
+
+        ASSERT_EQ(status, exp_status)
             << "Test failed with unexpected return from aoclsparse_trsm_kid";
         if(status == aoclsparse_status_success)
         {

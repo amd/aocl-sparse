@@ -548,4 +548,11 @@ namespace aoclsparse
         }
     };
 }
+
+// Helper macro to instantiate dispatchers for all 4 datatypes
+#define INSTANTIATE_DISPATCHER(DISPATCHER) \
+    DISPATCHER(float)                      \
+    DISPATCHER(double)                     \
+    DISPATCHER(std::complex<float>)        \
+    DISPATCHER(std::complex<double>)
 #endif

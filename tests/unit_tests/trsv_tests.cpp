@@ -50,9 +50,24 @@ namespace
     void trsv_driver(linear_system_id       id,
                      aoclsparse_int         kid,
                      aoclsparse_int         base_index,
-                     aoclsparse_matrix_type mtx,
-                     aoclsparse_status      trsv_status = aoclsparse_status_success)
+                     aoclsparse_matrix_type mtx)
     {
+        /*+-----+----------------+
+         *| KID |     Kernel     |
+         *+-----+----------------+
+         *|  0  | ref always     |
+         *|  1  | avx2           |
+         *|  2  | avx512 256b    |
+         *|  3  | avx512 512b    |
+         *| > 3 | exotic kernels |
+         *+-----+----------------+
+         * Maximum KID supported on a non-AVX512 machine is 2.
+         * In any machine, maximum kid is 3 when exotic kernels are not present.
+         */
+        aoclsparse_status trsv_status = ((!can_exec_avx512_tests() && (kid > 2)) || (kid > 3))
+                                            ? aoclsparse_status_invalid_kid
+                                            : aoclsparse_status_success;
+
         aoclsparse_status    status;
         std::string          title;
         T                    alpha;
@@ -276,15 +291,15 @@ namespace
     };
     TEST_P(PosDouble, Solver)
     {
-        const linear_system_id       id          = GetParam().id;
-        const aoclsparse_int         kid         = GetParam().kid;
-        const aoclsparse_int         base        = GetParam().base;
-        const aoclsparse_matrix_type mtx_t       = GetParam().mtx;
-        const aoclsparse_status      trsv_status = aoclsparse_status_success;
+        const linear_system_id       id    = GetParam().id;
+        const aoclsparse_int         kid   = GetParam().kid;
+        const aoclsparse_int         base  = GetParam().base;
+        const aoclsparse_matrix_type mtx_t = GetParam().mtx;
+
 #if(VERBOSE > 0)
         std::cout << "Pos/Double/Solver test name: \"" << GetParam().testname << "\"" << std::endl;
 #endif
-        trsv_driver<double>(id, kid, base, mtx_t, trsv_status);
+        trsv_driver<double>(id, kid, base, mtx_t);
     }
     INSTANTIATE_TEST_SUITE_P(TrsvSuite, PosDouble, ::testing::ValuesIn(trsv_list));
 
@@ -293,15 +308,14 @@ namespace
     };
     TEST_P(PosFloat, Solver)
     {
-        const linear_system_id       id          = GetParam().id;
-        const aoclsparse_int         kid         = GetParam().kid;
-        const aoclsparse_int         base        = GetParam().base;
-        const aoclsparse_matrix_type mtx_t       = GetParam().mtx;
-        const aoclsparse_status      trsv_status = aoclsparse_status_success;
+        const linear_system_id       id    = GetParam().id;
+        const aoclsparse_int         kid   = GetParam().kid;
+        const aoclsparse_int         base  = GetParam().base;
+        const aoclsparse_matrix_type mtx_t = GetParam().mtx;
 #if(VERBOSE > 0)
         std::cout << "Pos/Float/Solver test name: \"" << GetParam().testname << "\"" << std::endl;
 #endif
-        trsv_driver<float>(id, kid, base, mtx_t, trsv_status);
+        trsv_driver<float>(id, kid, base, mtx_t);
     }
     INSTANTIATE_TEST_SUITE_P(TrsvSuite, PosFloat, ::testing::ValuesIn(trsv_list));
 
@@ -310,16 +324,15 @@ namespace
     };
     TEST_P(PosCplxDouble, Solver)
     {
-        const linear_system_id       id          = GetParam().id;
-        const aoclsparse_int         kid         = GetParam().kid;
-        const aoclsparse_int         base        = GetParam().base;
-        const aoclsparse_matrix_type mtx_t       = GetParam().mtx;
-        const aoclsparse_status      trsv_status = aoclsparse_status_success;
+        const linear_system_id       id    = GetParam().id;
+        const aoclsparse_int         kid   = GetParam().kid;
+        const aoclsparse_int         base  = GetParam().base;
+        const aoclsparse_matrix_type mtx_t = GetParam().mtx;
 #if(VERBOSE > 0)
         std::cout << "Pos/CplxDouble/Solver test name: \"" << GetParam().testname << "\""
                   << std::endl;
 #endif
-        trsv_driver<std::complex<double>>(id, kid, base, mtx_t, trsv_status);
+        trsv_driver<std::complex<double>>(id, kid, base, mtx_t);
     }
     INSTANTIATE_TEST_SUITE_P(TrsvSuite, PosCplxDouble, ::testing::ValuesIn(trsv_list));
 
@@ -328,16 +341,15 @@ namespace
     };
     TEST_P(PosCplxFloat, Solver)
     {
-        const linear_system_id       id          = GetParam().id;
-        const aoclsparse_int         kid         = GetParam().kid;
-        const aoclsparse_int         base        = GetParam().base;
-        const aoclsparse_matrix_type mtx_t       = GetParam().mtx;
-        const aoclsparse_status      trsv_status = aoclsparse_status_success;
+        const linear_system_id       id    = GetParam().id;
+        const aoclsparse_int         kid   = GetParam().kid;
+        const aoclsparse_int         base  = GetParam().base;
+        const aoclsparse_matrix_type mtx_t = GetParam().mtx;
 #if(VERBOSE > 0)
         std::cout << "Pos/CplxFloat/Solver test name: \"" << GetParam().testname << "\""
                   << std::endl;
 #endif
-        trsv_driver<std::complex<float>>(id, kid, base, mtx_t, trsv_status);
+        trsv_driver<std::complex<float>>(id, kid, base, mtx_t);
     }
     INSTANTIATE_TEST_SUITE_P(TrsvSuite, PosCplxFloat, ::testing::ValuesIn(trsv_list));
 

@@ -24,7 +24,7 @@
 #define AOCLSPARSE_CSRMV_HPP
 
 #include "aoclsparse_csrmv_avx512.hpp"
-#include "aoclsparse_csrmv_kernels.hpp"
+#include "aoclsparse_csrmv_kr.hpp"
 #include "aoclsparse_error_check.hpp"
 #include "aoclsparse_l2_kt.hpp"
 #include "aoclsparse_mtx_dispatcher.hpp"
