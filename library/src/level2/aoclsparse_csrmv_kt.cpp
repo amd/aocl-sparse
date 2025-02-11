@@ -162,7 +162,10 @@ aoclsparse_status aoclsparse::csrmvt_kt(aoclsparse_index_base base,
         std::vector<SUF> y_buf;
         try
         {
-            y_buf.resize(n, 0);
+            //y_buf.resize(n, 0);
+            y_buf.resize(n);
+            for(aoclsparse_int i = 0; i < n; i++)
+                y_buf[i] = 0.;
         }
         catch(std::bad_alloc &)
         {
