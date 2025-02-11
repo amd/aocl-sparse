@@ -113,6 +113,7 @@ int main(int argc, char *argv[])
     int  order     = 1;
     char matrix    = 'R';
     char sort      = 'U';
+    char mem       = 'U';
 
     std::string tmp = "csrmv";
 
@@ -223,6 +224,10 @@ int main(int argc, char *argv[])
             "sorted or fully-sorted"
             "\n\t\tU: Generate unsorted matrix\n\t\tP: Generate partially sorted matrix"
             "\n\t\tF: Generate fully sorted matrix"
+            "\n\t"
+            "--mem=<U/R> \t Indicates whether creating matrix copies is allowed (default: U)"
+            "\n\t\tU: Allowed to create matrix copies (unrestricted memory usage)"
+            "\n\t\tR: Not allowed to create matrix copies (restricted memory usage)"
             "\n",
             argv[0]);
 
@@ -258,6 +263,7 @@ int main(int argc, char *argv[])
     args.aoclsparse_get_cmdline_arguments("kid", arg.kid_list);
     args.aoclsparse_get_cmdline_argument("matrix", matrix);
     args.aoclsparse_get_cmdline_argument("sort", sort);
+    args.aoclsparse_get_cmdline_argument("mem", mem);
 
     if(precision != 's' && precision != 'd' && precision != 'c' && precision != 'z')
     {
@@ -402,6 +408,19 @@ int main(int argc, char *argv[])
     else
     {
         std::cerr << "Invalid value for --sort" << std::endl;
+        return -1;
+    }
+    if(mem == 'U')
+    {
+        arg.mem = aoclsparse_memory_usage_unrestricted;
+    }
+    else if(mem == 'R')
+    {
+        arg.mem = aoclsparse_memory_usage_minimal;
+    }
+    else
+    {
+        std::cerr << "Invalid value for --mem, it can be either 'U' or 'R'" << std::endl;
         return -1;
     }
     /* ============================================================================================

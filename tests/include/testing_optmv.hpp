@@ -84,6 +84,7 @@ int testing_optmv_aocl(const Arguments &arg,
         // Hint & optimize for positive hints
         if(hint > 0)
         {
+            NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_set_memory_hint(A, arg.mem));
             NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mv_hint_kid(A, trans, descr, hint, kid));
             NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_optimize(A));
         }
