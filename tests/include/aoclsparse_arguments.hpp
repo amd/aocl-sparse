@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020-2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -66,10 +66,11 @@ struct Arguments
     aoclsparse_matrix_init matrix;
     aoclsparse_matrix_init matrixB;
 
-    aoclsparse_int         unit_check;
-    aoclsparse_int         timing;
-    aoclsparse_int         iters;
-    aoclsparse_matrix_sort sort;
+    aoclsparse_int          unit_check;
+    aoclsparse_int          timing;
+    aoclsparse_int          iters;
+    aoclsparse_matrix_sort  sort;
+    aoclsparse_memory_usage mem;
 
     std::string filename;
     std::string filenameB;

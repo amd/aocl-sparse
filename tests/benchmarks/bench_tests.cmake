@@ -132,12 +132,14 @@ foreach(FUNCTION "optmv")
         list(GET MATSIZE_LIST 2 SIZENNZ)
 
         add_test(FuncTest.${FUNCTION}-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ}xBase-${BASE} ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --indexbaseA=${BASE} --transposeA=N --verify=1 --iters=1)
+        add_test(FuncTest.${FUNCTION}T-MemR-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ}xBase-${BASE} ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --indexbaseA=${BASE} --transposeA=T --verify=1 --iters=1 --mem=R)
 
       endforeach(MATSIZE)
 
       # Add extra tests to exercise nonstandard multipliers alpha, beta
       add_test(FuncTest.${FUNCTION}-${PREC}-100x99x333-mlt-Base-${BASE} ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench --function=${FUNCTION} --precision=${PREC} --indexbaseA=${BASE} --sizem=100 --sizen=99 --sizennz=333 --alpha=3 --beta=-1.5 --transposeA=N --verify=1 --iters=1)
       add_test(FuncTest.${FUNCTION}-${PREC}-21x49x333-mlt-Base-${BASE} ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench --function=${FUNCTION} --precision=${PREC} --indexbaseA=${BASE} --sizem=21 --sizen=49 --sizennz=333 --alpha=3 --beta=-1.5 --transposeA=N --verify=1 --iters=1)
+      add_test(FuncTest.${FUNCTION}T-MemR-${PREC}-21x49x333-mlt-Base-${BASE} ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench --function=${FUNCTION} --precision=${PREC} --indexbaseA=${BASE} --sizem=21 --sizen=49 --sizennz=333 --alpha=3 --beta=-1.5 --transposeA=T --verify=1 --iters=1 --mem=R)
     endforeach(BASE)
   endforeach(PREC)
 endforeach(FUNCTION)
