@@ -407,9 +407,6 @@ aoclsparse_status aoclsparse_matrix_transform(aoclsparse_matrix A)
                         }
                         catch(std::bad_alloc &)
                         {
-                            delete[] mat_copy->csr_col_ptr;
-                            delete[] mat_copy->csr_row_ptr;
-                            ::operator delete(mat_copy->csr_val);
                             delete mat_copy;
                             return aoclsparse_status_memory_error;
                         }
@@ -428,13 +425,18 @@ aoclsparse_status aoclsparse_matrix_transform(aoclsparse_matrix A)
 
                         if(status != aoclsparse_status_success)
                         {
-                            delete[] mat_copy->csr_col_ptr;
-                            delete[] mat_copy->csr_row_ptr;
-                            ::operator delete(mat_copy->csr_val);
                             delete mat_copy;
                             return status;
                         }
+                        // Interchanged m, n dimensions, after csr to csc conversion
+                        mat_copy->m    = A->n;
+                        mat_copy->n    = A->m;
+                        mat_copy->nnz  = A->nnz;
                         mat_copy->doid = doid;
+                        // TODO: update mat_type to aoclsparse_csc_mat
+                        mat_copy->mat_type    = aoclsparse_csr_mat;
+                        mat_copy->base        = aoclsparse_index_base_zero;
+                        mat_copy->is_internal = true;
                         A->mats.push_back(mat_copy);
                         break;
                     default:
@@ -546,10 +548,10 @@ aoclsparse_status aoclsparse_csr_csc_optimize(aoclsparse_matrix A)
         // The matrix is already in the correct format, use directly user's memory
         if(A->input_format == aoclsparse_csr_mat)
         {
-            *opt_idx_ptr        = A->csr_mat.csr_row_ptr;
-            *opt_indices        = A->csr_mat.csr_col_ptr;
-            *opt_val            = static_cast<T *>(A->csr_mat.csr_val);
-            A->opt_csr_is_users = true;
+            *opt_idx_ptr               = A->csr_mat.csr_row_ptr;
+            *opt_indices               = A->csr_mat.csr_col_ptr;
+            *opt_val                   = static_cast<T *>(A->csr_mat.csr_val);
+            A->opt_csr_mat.is_internal = false;
         }
         else if(A->input_format == aoclsparse_csc_mat)
         {
@@ -568,9 +570,13 @@ aoclsparse_status aoclsparse_csr_csc_optimize(aoclsparse_matrix A)
         status = aoclsparse_copy_csr_csc(
             m_mat, A->nnz, A->base, idx_ptr, indices, val, opt_idx_ptr, opt_indices, opt_val);
         if(A->input_format == aoclsparse_csr_mat)
-            A->opt_csr_is_users = false;
+        {
+            A->opt_csr_mat.is_internal = true;
+        }
         else if(A->input_format == aoclsparse_csc_mat)
+        {
             A->opt_csc_is_users = false;
+        }
 
         if(status != aoclsparse_status_success)
             return status;

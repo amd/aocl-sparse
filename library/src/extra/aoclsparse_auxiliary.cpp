@@ -702,9 +702,7 @@ aoclsparse_status aoclsparse_destroy(aoclsparse_matrix *A)
     if(A && *A)
     {
         aoclsparse_optimize_destroy((*A)->optim_data);
-        aoclsparse_destroy_opt_csr(*A);
         aoclsparse_destroy_mv(*A);
-        aoclsparse_destroy_2m(*A);
         aoclsparse_destroy_ilu(&((*A)->ilu_info));
         aoclsparse_destroy_csc(*A);
         aoclsparse_destroy_coo(*A);
@@ -1078,23 +1076,6 @@ aoclsparse_status aoclsparse_destroy_mv(aoclsparse_matrix A)
         delete[] ell_csr_hyb_mat->csr_row_id_map;
         ell_csr_hyb_mat->csr_row_id_map = NULL;
     }
-    aoclsparse::csr *csr_mat_br4 = &(A->csr_mat_br4);
-
-    if(csr_mat_br4->csr_row_ptr != NULL)
-    {
-        delete[] csr_mat_br4->csr_row_ptr;
-        csr_mat_br4->csr_row_ptr = NULL;
-    }
-    if(csr_mat_br4->csr_col_ptr != NULL)
-    {
-        delete[] csr_mat_br4->csr_col_ptr;
-        csr_mat_br4->csr_col_ptr = NULL;
-    }
-    if(csr_mat_br4->csr_val != NULL)
-    {
-        ::operator delete(csr_mat_br4->csr_val);
-        csr_mat_br4->csr_val = NULL;
-    }
 
     aoclsparse::blk_csr *blk_csr_mat = &(A->blk_csr_mat);
     if(blk_csr_mat->blk_row_ptr != NULL)
@@ -1119,34 +1100,6 @@ aoclsparse_status aoclsparse_destroy_mv(aoclsparse_matrix A)
     }
     return aoclsparse_status_success;
 }
-/********************************************************************************
- * \brief aoclsparse_matrix is a structure holding the sparse matrix A.
- * The working buffers allocated in CSR2M's nnz_count, finalize and final computation phases
- * needs to be deallocated.
- *******************************************************************************/
-aoclsparse_status aoclsparse_destroy_2m(aoclsparse_matrix A)
-{
-    if(!A->csr_mat_is_users)
-    {
-        if(A->csr_mat.csr_row_ptr != NULL)
-        {
-            delete[] A->csr_mat.csr_row_ptr;
-            A->csr_mat.csr_row_ptr = NULL;
-        }
-        if(A->csr_mat.csr_col_ptr != NULL)
-        {
-            delete[] A->csr_mat.csr_col_ptr;
-            A->csr_mat.csr_col_ptr = NULL;
-        }
-        if(A->csr_mat.csr_val != NULL)
-        {
-            ::operator delete(A->csr_mat.csr_val);
-            A->csr_mat.csr_val = NULL;
-        }
-    }
-    return aoclsparse_status_success;
-}
-
 /********************************************************************************
  * \brief _aoclsparse_ilu is a structure holding the ILU related information
  * sparse matrix A. It must be deallocated using aoclsparse_destroy_ilu() which
@@ -1190,25 +1143,23 @@ aoclsparse_status aoclsparse_destroy_symgs(_aoclsparse_symgs *sgs_info)
     }
     return aoclsparse_status_success;
 }
+
 aoclsparse_status aoclsparse_destroy_opt_csr(aoclsparse_matrix A)
 {
-    if(!A->opt_csr_is_users)
+    if(A->opt_csr_mat.csr_col_ptr)
     {
-        if(A->opt_csr_mat.csr_col_ptr)
-        {
-            delete[] A->opt_csr_mat.csr_col_ptr;
-            A->opt_csr_mat.csr_col_ptr = NULL;
-        }
-        if(A->opt_csr_mat.csr_row_ptr)
-        {
-            delete[] A->opt_csr_mat.csr_row_ptr;
-            A->opt_csr_mat.csr_row_ptr = NULL;
-        }
-        if(A->opt_csr_mat.csr_val)
-        {
-            ::operator delete(A->opt_csr_mat.csr_val);
-            A->opt_csr_mat.csr_val = NULL;
-        }
+        delete[] A->opt_csr_mat.csr_col_ptr;
+        A->opt_csr_mat.csr_col_ptr = NULL;
+    }
+    if(A->opt_csr_mat.csr_row_ptr)
+    {
+        delete[] A->opt_csr_mat.csr_row_ptr;
+        A->opt_csr_mat.csr_row_ptr = NULL;
+    }
+    if(A->opt_csr_mat.csr_val)
+    {
+        ::operator delete(A->opt_csr_mat.csr_val);
+        A->opt_csr_mat.csr_val = NULL;
     }
     if(A->opt_csr_mat.idiag)
     {
@@ -1346,13 +1297,8 @@ aoclsparse_status aoclsparse_destroy_mats(aoclsparse_matrix A)
     // matrix structures are stored in a single container
     for(auto mat : A->mats)
     {
-        if(mat)
+        if(mat != nullptr)
         {
-            delete[] mat->csr_col_ptr;
-            delete[] mat->csr_row_ptr;
-            ::operator delete(mat->csr_val);
-            delete[] mat->idiag;
-            delete[] mat->iurow;
             delete mat;
         }
     }
@@ -1575,12 +1521,13 @@ aoclsparse_status aoclsparse_copy_mat(const aoclsparse_matrix src, aoclsparse_ma
     aoclsparse_status status = aoclsparse_status_success;
     if(src->input_format == aoclsparse_csr_mat)
     {
-        status = aoclsparse_copy_csr<T>(src->m,
+        status                    = aoclsparse_copy_csr<T>(src->m,
                                         src->n,
                                         src->nnz,
                                         aoclsparse_index_base_zero,
                                         &(src->csr_mat),
                                         &(dest->csr_mat));
+        dest->csr_mat.is_internal = true;
     }
     else if(src->input_format == aoclsparse_csc_mat)
     {

@@ -169,6 +169,7 @@ aoclsparse_status aoclsparse_syrk_t(const aoclsparse_operation      op,
         aoclsparse_destroy(C);
         return aoclsparse_status_memory_error;
     }
+    (*C)->csr_mat.is_internal = true;
     // Quick return for a 0-sized matrix
     if((A->m == 0) || (A->n == 0) || (A->nnz == 0))
     {

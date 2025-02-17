@@ -144,6 +144,61 @@ namespace
 
     INSTANTIATE_TEST_SUITE_P(SetValueTestSuite, RndOK, testing::ValuesIn(SetValuesCases));
 
+    TEST(SetValueInvalidMatrix, InvalidateOptCSR)
+    {
+        aoclsparse_matrix src_mat = nullptr;
+        aoclsparse_seedrand();
+
+        // Matrix setup
+        aoclsparse_int              M = 10, N = 10, NNZ = 20;
+        std::vector<aoclsparse_int> csr_row, csr_col, ptr;
+        std::vector<double>         val;
+        aoclsparse_mat_descr        descr;
+
+        EXPECT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_symmetric),
+                  aoclsparse_status_success);
+
+        EXPECT_EQ(aoclsparse_init_matrix_random<double>(aoclsparse_index_base_zero,
+                                                        M,
+                                                        N,
+                                                        NNZ,
+                                                        aoclsparse_csr_mat,
+                                                        csr_row,
+                                                        csr_col,
+                                                        val,
+                                                        ptr,
+                                                        src_mat),
+                  aoclsparse_status_success);
+
+        // Modify a random entry
+        aoclsparse_int ridx = random_generator<aoclsparse_int>(0, NNZ - 1);
+        aoclsparse_int row = csr_row[ridx], col = csr_col[ridx];
+        double         new_val = random_generator_normal<double>();
+
+        // Optimize and check allocation
+        EXPECT_EQ(aoclsparse_set_mv_hint(src_mat, aoclsparse_operation_none, descr, 1),
+                  aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_optimize(src_mat), aoclsparse_status_success);
+        EXPECT_NE(src_mat->opt_csr_mat.csr_row_ptr, nullptr);
+        EXPECT_NE(src_mat->opt_csr_mat.csr_col_ptr, nullptr);
+        EXPECT_NE(src_mat->opt_csr_mat.csr_val, nullptr);
+        EXPECT_NE(src_mat->opt_csr_mat.idiag, nullptr);
+        EXPECT_NE(src_mat->opt_csr_mat.iurow, nullptr);
+
+        // Set value, expect optimization invalidated
+        ASSERT_EQ(aoclsparse_set_value(src_mat, row, col, new_val), aoclsparse_status_success);
+        ASSERT_EQ(src_mat->opt_csr_mat.csr_row_ptr, nullptr);
+        ASSERT_EQ(src_mat->opt_csr_mat.csr_col_ptr, nullptr);
+        ASSERT_EQ(src_mat->opt_csr_mat.csr_val, nullptr);
+        ASSERT_EQ(src_mat->opt_csr_mat.idiag, nullptr);
+        ASSERT_EQ(src_mat->opt_csr_mat.iurow, nullptr);
+
+        // Cleanup
+        EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&src_mat), aoclsparse_status_success);
+    }
+
     TEST(SetValueErrorSuite, UinitializedMatrix)
     {
         aoclsparse_matrix src_mat = nullptr;

@@ -34,7 +34,6 @@
 #include <limits>
 
 aoclsparse_status aoclsparse_destroy_mv(aoclsparse_matrix A);
-aoclsparse_status aoclsparse_destroy_2m(aoclsparse_matrix A);
 aoclsparse_status aoclsparse_destroy_ilu(_aoclsparse_ilu *ilu_info);
 aoclsparse_status aoclsparse_destroy_symgs(_aoclsparse_symgs *sgs_info);
 aoclsparse_status aoclsparse_destroy_opt_csr(aoclsparse_matrix A);
@@ -93,10 +92,15 @@ aoclsparse_status aoclsparse_create_csr_t(aoclsparse_matrix    *mat,
     aoclsparse_init_mat(*mat, base, M, N, nnz, aoclsparse_csr_mat);
     (*mat)->val_type            = get_data_type<T>();
     (*mat)->mat_type            = aoclsparse_csr_mat;
+    (*mat)->csr_mat.m           = M;
+    (*mat)->csr_mat.n           = N;
+    (*mat)->csr_mat.nnz         = nnz;
+    (*mat)->csr_mat.mat_type    = aoclsparse_csr_mat;
+    (*mat)->csr_mat.base        = base;
     (*mat)->csr_mat.csr_row_ptr = row_ptr;
     (*mat)->csr_mat.csr_col_ptr = col_idx;
     (*mat)->csr_mat.csr_val     = val;
-    (*mat)->csr_mat_is_users    = true;
+    (*mat)->csr_mat.is_internal = false;
     (*mat)->sort                = mat_sort;
     (*mat)->fulldiag            = mat_fulldiag;
 
@@ -460,11 +464,17 @@ aoclsparse_status aoclsparse_set_value_t(aoclsparse_matrix A,
                                           row_idx,
                                           col_idx,
                                           val);
+        // destroy the previously optimized data
+        if(status == aoclsparse_status_success)
+            status = aoclsparse_destroy_opt_csr(A);
         break;
     case aoclsparse_csc_mat:
         val_ptr = reinterpret_cast<T *>(A->csc_mat.val);
         status  = aoclsparse_set_csr_value(
             A->base, A->csc_mat.col_ptr, A->csc_mat.row_idx, val_ptr, col_idx, row_idx, val);
+        // destroy the previously optimized data
+        if(status == aoclsparse_status_success)
+            status = aoclsparse_destroy_csc(A);
         break;
     case aoclsparse_coo_mat:
         status = aoclsparse_set_coo_value(A, row_idx, col_idx, val);
@@ -475,8 +485,15 @@ aoclsparse_status aoclsparse_set_value_t(aoclsparse_matrix A,
     if(status != aoclsparse_status_success)
         return status;
 
-    // destroy the previously optimized data
-    return aoclsparse_destroy_opt_csr(A);
+    // destroy the previously created matrix copy data
+    for(auto mat : A->mats)
+    {
+        if(mat != nullptr && mat->is_internal)
+        {
+            delete mat;
+        }
+    }
+    return aoclsparse_status_success;
 }
 
 // This is library-side instantiations of "internal" dispatchers

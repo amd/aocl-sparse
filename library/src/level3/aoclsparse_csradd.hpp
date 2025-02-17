@@ -414,6 +414,6 @@ aoclsparse_status aoclsparse_add_t(const aoclsparse_operation op,
     (*C)->csr_mat.csr_row_ptr = C_row_ptr;
     (*C)->csr_mat.csr_col_ptr = C_col_ptr;
     (*C)->csr_mat.csr_val     = C_val;
-    (*C)->csr_mat_is_users    = false;
+    (*C)->csr_mat.is_internal = true;
     return aoclsparse_status_success;
 }

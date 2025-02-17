@@ -252,6 +252,7 @@ aoclsparse_status aoclsparse_csr2m_nnz_count(aoclsparse_int             m,
             (*C)->csr_mat.csr_col_ptr = csr_col_ind_C;
             (*C)->csr_mat.csr_val     = csr_val_C;
         }
+        (*C)->csr_mat.is_internal = true;
     }
     else
     {
@@ -605,7 +606,8 @@ aoclsparse_status aoclsparse_csr2m_t(aoclsparse_operation       opA,
                 return aoclsparse_status_memory_error;
             }
             aoclsparse_init_mat(*C, aoclsparse_index_base_zero, m_a, n_b, 0, aoclsparse_csr_mat);
-            (*C)->val_type = get_data_type<T>();
+            (*C)->val_type            = get_data_type<T>();
+            (*C)->csr_mat.is_internal = true;
         }
         return aoclsparse_status_success;
     }

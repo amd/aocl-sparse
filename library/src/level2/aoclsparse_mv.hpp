@@ -192,7 +192,7 @@ bool is_mtx_frmt_supported_mv(aoclsparse_matrix_format_type mtx_t)
     return true;
 }
 
-/* templated SpMV for complex types - can be extended for floats and doubles*/
+/* templated SpMV */
 template <typename T>
 aoclsparse_status aoclsparse_mv_t(aoclsparse_operation       op,
                                   const T                   *alpha,
@@ -376,35 +376,29 @@ aoclsparse_status aoclsparse_mv_t(aoclsparse_operation       op,
 
     // Check if there are any matrix copies matching exactly our descriptor/operation (DOID)
     // In that case execute csrmv general. This applies only to CSR matrices right now.
-    if(mtx_t == aoclsparse_csr_mat)
+    for(auto mat : A->mats)
     {
-        for(auto mat : A->mats)
+        aoclsparse::csr *csr_m = dynamic_cast<aoclsparse::csr *>(mat);
+
+        if(csr_m != nullptr && mat->mat_type == aoclsparse_csr_mat && mat->doid == d_id)
         {
-            if(mat->doid == d_id)
-            {
-                // extract the matrix
-                val   = (T *)mat->csr_val;
-                col   = mat->csr_col_ptr;
-                row   = mat->csr_row_ptr;
-                idiag = mat->idiag;
-                irow  = mat->iurow;
-                // swap dimension for transposed
-                if(op != aoclsparse_operation_none)
-                {
-                    m = A->n;
-                    n = A->m;
-                }
-                // reset op & descr
-                op                = aoclsparse_operation_none;
-                descr_t.type      = aoclsparse_matrix_type_general;
-                descr_t.fill_mode = aoclsparse_fill_mode_lower;
-                descr_t.diag_type = aoclsparse_diag_type_non_unit;
-                // TODO assuming that all copies got fixed to 0-based
-                descr_t.base = aoclsparse_index_base_zero;
-                // and reset doid
-                d_id = doid::gn;
-                break;
-            }
+            // extract the matrix
+            val   = (T *)csr_m->csr_val;
+            col   = csr_m->csr_col_ptr;
+            row   = csr_m->csr_row_ptr;
+            idiag = csr_m->idiag;
+            irow  = csr_m->iurow;
+            m     = csr_m->m;
+            n     = csr_m->n;
+            // reset op & descr
+            op                = aoclsparse_operation_none;
+            descr_t.type      = aoclsparse_matrix_type_general;
+            descr_t.fill_mode = aoclsparse_fill_mode_lower;
+            descr_t.diag_type = aoclsparse_diag_type_non_unit;
+            descr_t.base      = csr_m->base;
+            // and reset doid
+            d_id = doid::gn;
+            break;
         }
     }
 
@@ -467,7 +461,6 @@ aoclsparse_status aoclsparse_mv_t(aoclsparse_operation       op,
         }
     case aoclsparse_tcsr_mat:
         return aoclsparse::tcsrmv(&descr_t, alpha, A, x, beta, y, d_id, kid);
-
     default:
         return aoclsparse_status_not_implemented;
     }

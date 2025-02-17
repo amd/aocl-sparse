@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -1106,7 +1106,7 @@ aoclsparse_status aoclsparse_convert_csr_t(const aoclsparse_matrix    src_mat,
     (*dest_mat)->csr_mat.csr_col_ptr = col_ind;
     (*dest_mat)->csr_mat.csr_val     = val;
     (*dest_mat)->val_type            = get_data_type<T>();
-    (*dest_mat)->csr_mat_is_users    = false;
+    (*dest_mat)->csr_mat.is_internal = true;
     return status;
 }
 

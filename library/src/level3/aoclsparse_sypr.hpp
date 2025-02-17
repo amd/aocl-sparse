@@ -621,7 +621,8 @@ aoclsparse_status aoclsparse_sypr_t(aoclsparse_operation       opA,
                 return aoclsparse_status_memory_error;
             }
             aoclsparse_init_mat(*C, aoclsparse_index_base_zero, n, n, 0, aoclsparse_csr_mat);
-            (*C)->val_type = get_data_type<T>();
+            (*C)->val_type            = get_data_type<T>();
+            (*C)->csr_mat.is_internal = true;
         }
         return aoclsparse_status_success;
     }
@@ -819,7 +820,8 @@ aoclsparse_status aoclsparse_sypr_t(aoclsparse_operation       opA,
             return aoclsparse_status_memory_error;
         }
         aoclsparse_init_mat(*C, aoclsparse_index_base_zero, n, n, nnzC, aoclsparse_csr_mat);
-        (*C)->val_type = get_data_type<T>();
+        (*C)->val_type            = get_data_type<T>();
+        (*C)->csr_mat.is_internal = true;
     }
 
     if(request == aoclsparse_stage_full_computation || request == aoclsparse_stage_finalize)

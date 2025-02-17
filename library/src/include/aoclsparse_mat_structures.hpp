@@ -91,8 +91,18 @@ namespace aoclsparse
     class base_mtx
     {
     public:
+        virtual ~base_mtx() = default;
+        aoclsparse_int m;
+        aoclsparse_int n;
+        aoclsparse_int nnz;
         // Holds the descriptor and operation values of the matrix
-        aoclsparse::doid doid = doid::len; // by default invalid
+        aoclsparse::doid              doid = doid::len; // by default invalid
+        aoclsparse_matrix_format_type mat_type;
+        aoclsparse_index_base         base;
+        // flag to indicate if the matrix is internally created, not user provided. This is used to
+        // determine if the matrix should be destroyed at the end of the optimization process. This flag is set
+        // to true for all internally created matrices.
+        bool is_internal = true;
     };
 
     /********************************************************************************
@@ -113,6 +123,19 @@ namespace aoclsparse
         aoclsparse_int *idiag = nullptr;
         // position where the first strictly upper triangle element is/would be located in every row
         aoclsparse_int *iurow = nullptr;
+        virtual ~csr()
+        {
+            // Free the memory allocated if the matrix was internally allocated (is_internal = true)
+            if(is_internal)
+            {
+                delete[] csr_row_ptr;
+                delete[] csr_col_ptr;
+                ::operator delete(csr_val);
+            }
+            // idiag and iurow are always deleted, as they may be allocated for optimized matrices
+            delete[] idiag;
+            delete[] iurow;
+        }
     };
 
     /********************************************************************************
@@ -318,11 +341,10 @@ struct _aoclsparse_matrix
     aoclsparse_optimize_data *optim_data = nullptr;
 
     // csr matrix
-    bool            csr_mat_is_users = false;
     aoclsparse::csr csr_mat;
     // Stores the CSR matrix copies (excluding opt_csr)
     // TODO: Holds all matrices, regardless of type, including internally created matrices and copies
-    std::vector<aoclsparse::csr *> mats;
+    std::vector<aoclsparse::base_mtx *> mats;
 
     // blk_csr matrix
     aoclsparse::blk_csr blk_csr_mat;
@@ -356,9 +378,6 @@ struct _aoclsparse_matrix
     aoclsparse::csr opt_csr_mat;
     // the matrix has been 'optimized', it can be used
     bool opt_csr_ready = false;
-    // if true, user's csr_mat was fine to use so opt_csr_mat points
-    // to the same memory. Deallocate only if !opt_csr_is_users
-    bool opt_csr_is_users = false;
     // the original matrix had full (nonzero) diagonal, so the matrix
     // is safe for TRSVs
     bool opt_csr_full_diag = false;
