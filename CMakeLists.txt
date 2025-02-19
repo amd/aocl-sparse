@@ -1,5 +1,5 @@
 # ########################################################################
-# Copyright (c) 2020-2024 Advanced Micro Devices, Inc.
+# Copyright (c) 2020-2025 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -48,7 +48,8 @@ set(VERS_DEF -DAOCLSPARSE_VERSION_STRING="${AOCLSPARSE_VERSION_STR}")
 # build aoclsparse.
 list(APPEND AOCLSPARSE_DEFS ${VERS_DEF})
 # Export Release Information automatically
-# This tells cmake to create a compile_commands.json file that can be used with clang tooling or vim
+
+# Create compile_commands.json file
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Required for Windows shared library build
@@ -78,7 +79,6 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build." FORCE)
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "" "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
 endif()
-# set(CMAKE_VERBOSE_MAKEFILE "True" CACHE STRING "" FORCE)
 
 # Honor per-config flags in try_compile() source-file signature. cmake v3.7 and up
 if(POLICY CMP0066)
@@ -106,13 +106,9 @@ option(COVERAGE "Do source code coverage (only GCC/Debug build)" OFF)
 option(ASAN "Enable Address SANitizer (only Debug/Linux build)" OFF)
 option(VALGRIND "Enable Valgrind checks (only Debug. Incompatible with ASAN=ON)" OFF)
 option(EXTERNAL_BENCHMARKING "Enable external benchmarking to be included to aoclsparse-bench" OFF)
-# Set paths to AOCLUTILS, BLAS and LAPACK installations.
-set(CMAKE_AOCL_ROOT
-    $ENV{AOCL_ROOT}
-    CACHE
-      STRING
-      "AOCL_ROOT directory to be used to find BLAS/LAPACK/AOCLUTILS libraries")
 option(SUPPORT_OMP "Compile with OpenMP support." ON)
+# Set paths to AOCLUTILS, BLAS and LAPACK installations.
+set(CMAKE_AOCL_ROOT $ENV{AOCL_ROOT} CACHE STRING "AOCL_ROOT directory to be used to find BLAS/LAPACK/AOCLUTILS libraries")
 set(USE_EXTERNAL_OMP_LIB OFF CACHE BOOL "Use OpenMP target generated from find_package(OpenMP) by default")
 set(EXTERNAL_OMP_LIBRARY "" CACHE STRING "Provide external OMP library")
 
@@ -135,8 +131,8 @@ if (${VALGRIND} AND CMAKE_BUILD_TYPE MATCHES "Debug")
     # To run all registered tests with valgrind use "ctest -T memcheck"
   endif()
 endif()
-# Add empty "cleanall" target
-# for other targets to add dependencies to it
+
+# Add empty "cleanall" target for other targets to add dependencies to it
 add_custom_target( cleanall
   COMMAND ${CMAKE_MAKE_PROGRAM} clean
 )
@@ -155,8 +151,8 @@ include(cmake/Dependencies.cmake)
 
 # Set explicit compiler flags
 set(CMAKE_CXX_FLAGS_RELEASE "")
-
 set(CMAKE_CXX_FLAGS_DEBUG "")
+
 # Check for CL compatibility layer of clang
 get_filename_component(COMPILER_BASENAME "${CMAKE_CXX_COMPILER}" NAME)
 if(COMPILER_BASENAME MATCHES "^(.+-)?(clang-cl)(-[0-9]+(\\.[0-9]+)*)?(-[^.]+)?(\\.exe)?$")
@@ -164,11 +160,12 @@ if(COMPILER_BASENAME MATCHES "^(.+-)?(clang-cl)(-[0-9]+(\\.[0-9]+)*)?(-[^.]+)?(\
 else()
   set(CLANG_OPTIONS_STYLE "GNU")
 endif()
+
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CLANG_OPTIONS_STYLE STREQUAL "GNU"))
   # Common flags
-  set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};-mavx2;-mfma")
+  set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};-march=znver2;")
   # Release flags
-  set(COMPILER_FLAGS_RELEASE "-DNDEBUG;-O3;-ftree-vectorize;-ffp-contract=fast")
+  set(COMPILER_FLAGS_RELEASE "-DNDEBUG;-O3;-ftree-vectorize;-ffp-contract=fast;")
   # Debug flags
   set(COMPILER_FLAGS_DEBUG "-O0;-gdwarf-5;-g3;-Wall;-Wextra;")
   if(ASAN)
@@ -210,7 +207,7 @@ elseif(CMAKE_BUILD_TYPE MATCHES "Release")
   set(AOCLSPARSE_GENERIC_FLAGS "${AOCLSPARSE_GENERIC_FLAGS};${AOCLSPARSE_GENERIC_FLAGS_RELEASE};")
 endif()
 
-# this user provided option for AVX512 is used in unit tests and library to enable/disable AVX512 code
+# Enable/disable AVX512 code paths
 if(USE_AVX512)
   add_compile_definitions(USE_AVX512)
 endif(USE_AVX512)
@@ -243,6 +240,10 @@ if(CMAKE_BUILD_TYPE MATCHES "Debug")
 elseif(CMAKE_BUILD_TYPE MATCHES "Release")
   message(STATUS "  CXX Compiler flags (Release).....................${COMPILER_FLAGS_COMMON};${COMPILER_FLAGS_RELEASE}")
 endif()
+message (STATUS "  Use AVX512 instructions <USE_AVX512>.............${USE_AVX512}")
+if(USE_AVX512)
+  message(STATUS "  CXX Compiler flags AVX512 code-paths............${AOCLSPARSE_AVX512_FLAGS}")
+endif()
 message (STATUS "  Current Generator <CMAKE_GENERATOR>..............${CMAKE_GENERATOR}")
 message (STATUS "  Install Prefix <CMAKE_INSTALL_PREFIX>............${CMAKE_INSTALL_PREFIX}")
 if(CMAKE_BUILD_TYPE MATCHES "Debug")
@@ -255,7 +256,6 @@ message (STATUS "  AOCL-Sparse Version .............................${AOCLSPARSE
 message (STATUS "  Static/Dynamic Build <BUILD_SHARED_LIBS>.........${BUILD_SHARED_LIBS}")
 message (STATUS "  ILP64 Build Type <BUILD_ILP64>...................${BUILD_ILP64}")
 message (STATUS "  Multi-Threading using OpenMP <SUPPORT_OMP>.......${SUPPORT_OMP}")
-message (STATUS "  Use AVX512 instructions <USE_AVX512>.............${USE_AVX512}")
 message (STATUS "  Examples <BUILD_CLIENTS_SAMPLES>.................${BUILD_CLIENTS_SAMPLES}")
 message (STATUS "  Unit tests <BUILD_UNIT_TESTS>....................${BUILD_UNIT_TESTS}")
 message (STATUS "  Performance benchmark <BUILD_CLIENTS_BENCHMARKS>.${BUILD_CLIENTS_BENCHMARKS}")
