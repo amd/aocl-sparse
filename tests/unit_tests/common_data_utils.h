@@ -983,11 +983,11 @@ aoclsparse_status create_matrix(matrix_id                    mid,
     This is used in overflow and underflow testing
 */
 template <typename T>
-void compute_exponents(aoclsparse_int &op1_exp,
-                       aoclsparse_int &op2_exp,
-                       bool            is_underflow = false,
-                       bool            is_negative  = false,
-                       aoclsparse_int  ou_range     = 0)
+aoclsparse_status compute_exponents(aoclsparse_int &op1_exp,
+                                    aoclsparse_int &op2_exp,
+                                    bool            is_underflow = false,
+                                    bool            is_negative  = false,
+                                    aoclsparse_int  ou_range     = 0)
 {
     /*
         FLT_MAX (maximum 32 bit value for double data type) = 3.402823e+38
@@ -1012,10 +1012,10 @@ void compute_exponents(aoclsparse_int &op1_exp,
         exp = exponents[1];
     }
     /*
-        [overflow=0/underflow=1][sign=0/1][within-bound=0/out-of-range=1]
+        [1 BIT: overflow=0/underflow=1][1 BIT: sign=0/1][1 BIT: within-bound=0/out-of-range=1]
     */
-    ouf_sn_rng_id = (((aoclsparse_int)is_underflow & 0x1) << 3)
-                    | (((aoclsparse_int)is_negative & 0x1) << 2) | (ou_range & 0x1);
+    ouf_sn_rng_id = (((aoclsparse_int)is_underflow & 0x1) << 2)
+                    | (((aoclsparse_int)is_negative & 0x1) << 1) | (ou_range & 0x1);
     /*
         EG:
         FLT_MAX = 3.402823e+38
@@ -1032,57 +1032,59 @@ void compute_exponents(aoclsparse_int &op1_exp,
         op2_exp            = expected_exp_range - op1_exp;
         break;
     //0 0 1
-    case 2:
+    case 1:
         //positive, overflow, outof-bound
         expected_exp_range = exp - 11;
         op1_exp            = expected_exp_range / 2;
         op2_exp            = expected_exp_range - op1_exp;
         break;
     //0 1 0
-    case 4:
+    case 2:
         //negative, overflow, edge-within-bound
         expected_exp_range = exp + 2;
         op1_exp            = expected_exp_range / 2;
         op2_exp            = expected_exp_range - op1_exp;
         break;
     //0 1 1
-    case 6:
+    case 3:
         //negative, overflow, outof-bound
         expected_exp_range = exp - 11;
         op1_exp            = expected_exp_range / 2;
         op2_exp            = expected_exp_range - op1_exp;
         break;
     //1 0 0
-    case 8:
+    case 4:
         //positive, underflow, edge-within-bound
         expected_exp_range = exp + 1;
         op1_exp            = expected_exp_range / 2;
         op2_exp            = expected_exp_range - op1_exp;
         break;
     //1 0 1
-    case 10:
+    case 5:
         //positive, underflow, outof-bound
         expected_exp_range = exp - distance - 11;
         op1_exp            = expected_exp_range / 2;
         op2_exp            = expected_exp_range - op1_exp;
         break;
     //1 1 0
-    case 12:
+    case 6:
         //negative, underflow, edge-within-bound
         expected_exp_range = exp + 1;
         op1_exp            = expected_exp_range / 2;
         op2_exp            = expected_exp_range - op1_exp;
         break;
     //1 1 1
-    case 14:
+    case 7:
         //negative, underflow, outof-bound
         expected_exp_range = exp - distance - 11;
         op1_exp            = expected_exp_range / 2;
         op2_exp            = expected_exp_range - op1_exp;
         break;
     default:
-        break;
+        std::cerr << "Invalid overflow/underflow test case" << std::endl;
+        return aoclsparse_status_internal_error;
     }
+    return aoclsparse_status_success;
 }
 /*
     Based on whether csrv_val(operand 1) or x[](operand 2), the value and
@@ -1093,13 +1095,13 @@ void compute_exponents(aoclsparse_int &op1_exp,
         2. well outside boundary. product is either infinity or zero
 */
 template <typename T>
-void lookup_special_value(T              &operand,
-                          aoclsparse_int &id,
-                          aoclsparse_int  which_operand = 0,
-                          aoclsparse_int  ou_range      = 0)
+aoclsparse_status lookup_special_value(T              &operand,
+                                       aoclsparse_int &id,
+                                       aoclsparse_int  which_operand = 0,
+                                       aoclsparse_int  ou_range      = 0)
 {
     tolerance_t<T> temp;
-    aoclsparse_int op1_exponent, op2_exponent;
+    aoclsparse_int op1_exponent = 0, op2_exponent = 0; //initialize
     switch(id)
     {
     case ET_ZERO:
@@ -1110,6 +1112,10 @@ void lookup_special_value(T              &operand,
         break;
     case ET_INF:
         operand = aoclsparse_numeric::infinity<T>();
+        break;
+    case ET_NUM:
+        //do nothing. Since it is a number, no special value like
+        // (Inf, NaN, Zero) to assign
         break;
     case ET_POVRFLOW:
         temp = aoclsparse_numeric::maximum<tolerance_t<T>>();
@@ -1196,8 +1202,10 @@ void lookup_special_value(T              &operand,
         }
         break;
     default:
-        break;
+        std::cerr << "Invalid Special case id" << std::endl;
+        return aoclsparse_status_internal_error;
     }
+    return aoclsparse_status_success;
 }
 /*
     based on input value enums, the operands are assigned to csr_val[] and x[]buffers
@@ -1205,20 +1213,35 @@ void lookup_special_value(T              &operand,
     appropriate operands for multiplication
 */
 template <typename T>
-void assign_special_values(T              &op1_csr_val,
-                           T              &op2_x_vec,
-                           aoclsparse_int &spl_op_csrval, //input
-                           aoclsparse_int &spl_op_x, //input
-                           aoclsparse_int &ou_range) //range
+aoclsparse_status assign_special_values(T              &op1_csr_val,
+                                        T              &op2_x_vec,
+                                        aoclsparse_int &spl_op_csrval, //input
+                                        aoclsparse_int &spl_op_x, //input
+                                        aoclsparse_int &ou_range) //range
 {
-    if((spl_op_csrval == ET_POVRFLOW && spl_op_x == ET_POVRFLOW)
+    /*
+        assign special values to operands for NaN*Num=NaN, Inf*Num=Inf, Inf*Zero=NaN
+        and for Real Positive/negative overflow/underflow cases
+    */
+    if((spl_op_csrval == ET_NAN && spl_op_x == ET_NUM) //NaN*Num=NaN
+       || (spl_op_csrval == ET_INF && spl_op_x == ET_NUM) //Inf*Num=Inf
+       || (spl_op_csrval == ET_INF && spl_op_x == ET_ZERO) //Inf*Zero=NaN
+       || (spl_op_csrval == ET_POVRFLOW && spl_op_x == ET_POVRFLOW)
        || (spl_op_csrval == ET_NOVRFLOW && spl_op_x == ET_NOVRFLOW)
        || (spl_op_csrval == ET_PUNDRFLOW && spl_op_x == ET_PUNDRFLOW)
        || (spl_op_csrval == ET_NUNDRFLOW && spl_op_x == ET_NUNDRFLOW))
     {
-        lookup_special_value(op1_csr_val, spl_op_csrval, 1, ou_range);
-        lookup_special_value(op2_x_vec, spl_op_x, 2, ou_range);
+        if(lookup_special_value(op1_csr_val, spl_op_csrval, 1, ou_range)
+           != aoclsparse_status_success)
+        {
+            return aoclsparse_status_internal_error;
+        }
+        if(lookup_special_value(op2_x_vec, spl_op_x, 2, ou_range) != aoclsparse_status_success)
+        {
+            return aoclsparse_status_internal_error;
+        }
     }
+    return aoclsparse_status_success;
 }
 /*
  * Database to create linear systems
@@ -3974,11 +3997,13 @@ aoclsparse_status
             return aoclsparse_status_internal_error;
             break;
         }
-        assign_special_values(aval[csr_value_offset] /*nnz in 3rd row*/,
-                              x[x_offset] /*5th entry in input vector x*/,
-                              iparm[4], //op1 csr_val[]
-                              iparm[5], //op1 x[]
-                              iparm[9]); // range of overflow/underflow input
+        if(assign_special_values(aval[csr_value_offset] /*nnz in 3rd row*/,
+                                 x[x_offset] /*5th entry in input vector x*/,
+                                 iparm[4], //op1 csr_val[]
+                                 iparm[5], //op1 x[]
+                                 iparm[9]) // range of overflow/underflow input
+           != aoclsparse_status_success)
+            return aoclsparse_status_internal_error;
 
         if((id == EXT_S5 || id == EXT_S5_B0) && (mattype == aoclsparse_matrix_type_symmetric)
            && (iparm[5] == ET_ZERO))
@@ -4132,11 +4157,13 @@ aoclsparse_status
             return aoclsparse_status_internal_error;
             break;
         }
-        assign_special_values(aval[csr_value_offset] /*nnz in 3rd row*/,
-                              x[x_offset] /*5th entry in input vector x*/,
-                              iparm[4], //op1 csr_val[]
-                              iparm[5], //op1 x[]
-                              iparm[9]); // range of overflow/underflow input
+        if(assign_special_values(aval[csr_value_offset] /*nnz in 3rd row*/,
+                                 x[x_offset] /*5th entry in input vector x*/,
+                                 iparm[4], //op1 csr_val[]
+                                 iparm[5], //op1 x[]
+                                 iparm[9]) // range of overflow/underflow input
+           != aoclsparse_status_success)
+            return aoclsparse_status_internal_error;
 
         if((id == EXT_H5 || id == EXT_H5_B0) && (mattype == aoclsparse_matrix_type_symmetric)
            && (iparm[5] == ET_ZERO))
@@ -4249,11 +4276,13 @@ aoclsparse_status
             x_offset         = 4; //access 5th element from x[]   x[4] = 5
         }
         //initialize to default
-        assign_special_values(aval[csr_value_offset] /*nnz in 3rd row*/,
-                              x[x_offset] /*5th entry in input vector x*/,
-                              iparm[4], //op1 csr_val[]
-                              iparm[5], //op1 x[]
-                              iparm[9]); // range of overflow/underflow input
+        if(assign_special_values(aval[csr_value_offset] /*nnz in 3rd row*/,
+                                 x[x_offset] /*5th entry in input vector x*/,
+                                 iparm[4], //op1 csr_val[]
+                                 iparm[5], //op1 x[]
+                                 iparm[9]) // range of overflow/underflow input
+           != aoclsparse_status_success)
+            return aoclsparse_status_internal_error;
         //Generate 'b' for known xref[]
         ref_csrmv(trans,
                   alpha,

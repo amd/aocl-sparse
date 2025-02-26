@@ -2094,19 +2094,20 @@ namespace
                   << std::endl;
 #endif
         /*
-            exclude complex-double cases of overflow and underflow
+            exclude complex-double cases of Inf*number, overflow and underflow
             Reason: The order of multiplication of spmv between reference and library kernel matters to decide
             whether the result is (inf + i . NaN) or (inf + i . inf)
         */
-        if((op1 != ET_POVRFLOW && op1 != ET_PUNDRFLOW)
-           && (op1 != ET_NOVRFLOW && op1 != ET_NUNDRFLOW))
+        if(op1 != ET_INF && op1 != ET_POVRFLOW && op1 != ET_PUNDRFLOW && op1 != ET_NOVRFLOW
+           && op1 != ET_NUNDRFLOW)
         {
             mv_extreme_test_driver<std::complex<double>>(
                 id, mtype, fmode, transp, op1, op2, ou_range, spmv_ext_status);
         }
         else
         {
-            std::cout << "complex cases of overflow and underflow are disabled due to varying spmv "
+            std::cout << "complex cases of Inf*number, overflow and underflow are disabled due to "
+                         "varying spmv "
                          "result involving infinity and a complex number.\n";
         }
     }
@@ -2148,19 +2149,20 @@ namespace
                   << std::endl;
 #endif
         /*
-            exclude complex-float cases of overflow and underflow
+            exclude complex-float cases of Inf*number, overflow and underflow
             Reason: The order of multiplication of spmv between reference and library kernel matters to decide
             whether the result is (inf + i . NaN) or (inf + i . inf)
         */
-        if((op1 != ET_POVRFLOW && op1 != ET_PUNDRFLOW)
-           && (op1 != ET_NOVRFLOW && op1 != ET_NUNDRFLOW))
+        if(op1 != ET_INF && op1 != ET_POVRFLOW && op1 != ET_PUNDRFLOW && op1 != ET_NOVRFLOW
+           && op1 != ET_NUNDRFLOW)
         {
             mv_extreme_test_driver<std::complex<float>>(
                 id, mtype, fmode, transp, op1, op2, ou_range, spmv_ext_status);
         }
         else
         {
-            std::cout << "complex cases of overflow and underflow are disabled due to varying spmv "
+            std::cout << "complex cases of Inf*number, overflow and underflow are disabled due to "
+                         "varying spmv "
                          "result involving infinity and a complex number.\n";
         }
     }
