@@ -411,7 +411,6 @@ aoclsparse_status aoclsparse_matrix_transform(aoclsparse_matrix A)
                             delete[] mat_copy->csr_row_ptr;
                             ::operator delete(mat_copy->csr_val);
                             delete mat_copy;
-                            mat_copy = nullptr;
                             return aoclsparse_status_memory_error;
                         }
                         // convert to 0-base
@@ -428,8 +427,13 @@ aoclsparse_status aoclsparse_matrix_transform(aoclsparse_matrix A)
                                                              (T *)mat_copy->csr_val);
 
                         if(status != aoclsparse_status_success)
-                            return status; // TODO free mat_copy
-
+                        {
+                            delete[] mat_copy->csr_col_ptr;
+                            delete[] mat_copy->csr_row_ptr;
+                            ::operator delete(mat_copy->csr_val);
+                            delete mat_copy;
+                            return status;
+                        }
                         mat_copy->doid = doid;
                         A->mats.push_back(mat_copy);
                         break;
