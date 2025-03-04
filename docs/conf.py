@@ -1,5 +1,5 @@
 # ##############################################################################
-# Copyright (c) 2023-2024 Advanced Micro Devices, Inc.
+# Copyright (c) 2023-2025 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,7 @@
 
 # -- Project information -----------------------------------------------------
 project = 'AOCL-Sparse'
-copyright = '2020-2024, Advanced Micro Devices, Inc'
+copyright = '2020-2025, Advanced Micro Devices, Inc'
 author = 'Advanced Micro Devices, Inc'
 version = ''
 release ='5.0.1'
@@ -34,7 +34,6 @@ release ='5.0.1'
 extensions = ['sphinxcontrib.bibtex', 'breathe', 'sphinx_collapse']
 bibtex_bibfiles = ['refs.bib']
 bibtex_reference_style = 'author_year'
-breathe_default_project = 'aocl-sparse'
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_template']

@@ -1,5 +1,5 @@
 ..
-   Copyright (c) 2023-2024 Advanced Micro Devices, Inc.
+   Copyright (c) 2023-2025 Advanced Micro Devices, Inc.
 ..
    Permission is hereby granted, free of charge, to any person obtaining a copy
    of this software and associated documentation files (the "Software"), to deal
@@ -105,99 +105,133 @@ aoclsparse_itsol_rci_job
 ------------------------
 
 .. doxygenenum:: aoclsparse_itsol_rci_job
+   :project: sparse
 
 aoclsparse_itsol\_?_init()
 ---------------------------
 
 .. doxygenfunction:: aoclsparse_itsol_s_init
+    :project: sparse
     :outline:
 .. doxygenfunction:: aoclsparse_itsol_d_init
+    :project: sparse
     :outline:
 .. doxygenfunction:: aoclsparse_itsol_c_init
+    :project: sparse
     :outline:
 .. doxygenfunction:: aoclsparse_itsol_z_init
+   :project: sparse
 
 aoclsparse_itsol_destroy()
 --------------------------
 
 .. doxygenfunction:: aoclsparse_itsol_destroy
+   :project: sparse
 
 aoclsparse_itsol\_?_solve()
 ----------------------------
 
 .. doxygenfunction:: aoclsparse_itsol_s_solve
+    :project: sparse
     :outline:
 .. doxygenfunction:: aoclsparse_itsol_d_solve
+    :project: sparse
     :outline:
 .. doxygenfunction:: aoclsparse_itsol_c_solve
+    :project: sparse
     :outline:
 .. doxygenfunction:: aoclsparse_itsol_z_solve
+   :project: sparse
 
 aoclsparse_itsol_option_set()
 -----------------------------
 
 .. doxygenfunction:: aoclsparse_itsol_option_set
+   :project: sparse
 
 
 aoclsparse_itsol_handle_prn_options()
 -------------------------------------
 
 .. doxygenfunction:: aoclsparse_itsol_handle_prn_options
+   :project: sparse
 
 aoclsparse_itsol\_?_rci_input()
 --------------------------------
 
 .. doxygenfunction:: aoclsparse_itsol_s_rci_input
+    :project: sparse
     :outline:
 .. doxygenfunction:: aoclsparse_itsol_d_rci_input
+    :project: sparse
     :outline:
 .. doxygenfunction:: aoclsparse_itsol_c_rci_input
+    :project: sparse
     :outline:
 .. doxygenfunction:: aoclsparse_itsol_z_rci_input
+   :project: sparse
 
 aoclsparse_itsol\_?_rci_solve()
 --------------------------------
 
 .. doxygenfunction:: aoclsparse_itsol_s_rci_solve
+    :project: sparse
     :outline:
 .. doxygenfunction:: aoclsparse_itsol_d_rci_solve
+    :project: sparse
     :outline:
 .. doxygenfunction:: aoclsparse_itsol_c_rci_solve
+    :project: sparse
     :outline:
 .. doxygenfunction:: aoclsparse_itsol_z_rci_solve
+   :project: sparse
 
 aoclsparse\_?symgs()
 --------------------------------
 
 .. doxygenfunction:: aoclsparse_ssymgs
+    :project: sparse
     :outline:
 .. doxygenfunction:: aoclsparse_dsymgs
+    :project: sparse
     :outline:
 .. doxygenfunction:: aoclsparse_csymgs
+    :project: sparse
     :outline:
 .. doxygenfunction:: aoclsparse_zsymgs
+   :project: sparse
 
 .. doxygenfunction:: aoclsparse_ssymgs_mv
+    :project: sparse
     :outline:
 .. doxygenfunction:: aoclsparse_dsymgs_mv
+    :project: sparse
     :outline:
 .. doxygenfunction:: aoclsparse_csymgs_mv
+    :project: sparse
     :outline:
 .. doxygenfunction:: aoclsparse_zsymgs_mv
+   :project: sparse
 
 aoclsparse\_?sorv()
 -------------------
 .. doxygenfunction:: aoclsparse_ssorv
+   :project: sparse
    :outline:
 .. doxygenfunction:: aoclsparse_dsorv
+   :project: sparse
 
 aoclsparse_ilu\_?smoother()
 ---------------------------
 
 .. doxygenfunction:: aoclsparse_silu_smoother
+    :project: sparse
     :outline:
 .. doxygenfunction:: aoclsparse_dilu_smoother
+    :project: sparse
     :outline:
 .. doxygenfunction:: aoclsparse_cilu_smoother
+    :project: sparse
     :outline:
 .. doxygenfunction:: aoclsparse_zilu_smoother
+   :project: sparse

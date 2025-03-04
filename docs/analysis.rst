@@ -1,5 +1,5 @@
 ..
-   Copyright (c) 2023-2024 Advanced Micro Devices, Inc.
+   Copyright (c) 2023-2025 Advanced Micro Devices, Inc.
 ..
    Permission is hereby granted, free of charge, to any person obtaining a copy
    of this software and associated documentation files (the "Software"), to deal
@@ -27,6 +27,7 @@ aoclsparse_optimize()
 ---------------------
 
 .. doxygenfunction:: aoclsparse_optimize
+   :project: sparse
 
 aoclsparse_set_*_hint()
 -----------------------
@@ -35,54 +36,64 @@ aoclsparse_set_*_hint()
 .. ------------------------
 
 .. doxygenfunction:: aoclsparse_set_mv_hint
+   :project: sparse
    :outline:
 
 .. aoclsparse_set_sv_hint()
 .. ------------------------
 
 .. doxygenfunction:: aoclsparse_set_sv_hint
+   :project: sparse
    :outline:
 
 .. aoclsparse_set_mm_hint()
 .. ------------------------
 
 .. doxygenfunction:: aoclsparse_set_mm_hint
+   :project: sparse
    :outline:
 
 .. aoclsparse_set_2m_hint()
 .. ------------------------
 
 .. doxygenfunction:: aoclsparse_set_2m_hint
+   :project: sparse
 
 .. aoclsparse_set_lu_smoother_hint()
 .. ---------------------------------
 
 .. doxygenfunction:: aoclsparse_set_lu_smoother_hint
+   :project: sparse
    :outline:
 
 .. aoclsparse_set_symgs_hint()
 .. ---------------------------
 
 .. doxygenfunction:: aoclsparse_set_symgs_hint
+   :project: sparse
    :outline:
 
 .. aoclsparse_set_dotmv_hint()
 .. ---------------------------
 
 .. doxygenfunction:: aoclsparse_set_dotmv_hint
+   :project: sparse
 
 
 .. aoclsparse_set_sm_hint()
 .. ------------------------
 
 .. doxygenfunction:: aoclsparse_set_sm_hint
+   :project: sparse
 
 .. aoclsparse_set_sorv_hint()
 .. --------------------------
 
 .. doxygenfunction:: aoclsparse_set_sorv_hint
+   :project: sparse
 
 .. aoclsparse_set_memory_hint()
 .. -----------------------------
 
 .. doxygenfunction:: aoclsparse_set_memory_hint
+   :project: sparse
