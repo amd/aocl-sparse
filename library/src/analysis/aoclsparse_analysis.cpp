@@ -479,10 +479,10 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
             ret = aoclsparse_matrix_transform<float>(A);
             break;
         case aoclsparse_cmat:
-            ret = aoclsparse_matrix_transform<aoclsparse_float_complex>(A);
+            ret = aoclsparse_matrix_transform<std::complex<float>>(A);
             break;
         case aoclsparse_zmat:
-            ret = aoclsparse_matrix_transform<aoclsparse_double_complex>(A);
+            ret = aoclsparse_matrix_transform<std::complex<double>>(A);
             break;
         }
         if(ret != aoclsparse_status_success)
@@ -507,10 +507,10 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
                 ret = aoclsparse_tcsr_optimize<float>(A);
                 break;
             case aoclsparse_cmat:
-                ret = aoclsparse_tcsr_optimize<aoclsparse_float_complex>(A);
+                ret = aoclsparse_tcsr_optimize<std::complex<float>>(A);
                 break;
             case aoclsparse_zmat:
-                ret = aoclsparse_tcsr_optimize<aoclsparse_double_complex>(A);
+                ret = aoclsparse_tcsr_optimize<std::complex<double>>(A);
                 break;
             }
         }
@@ -566,10 +566,10 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
                 ret = aoclsparse_csr_csc_optimize<float>(A);
                 break;
             case aoclsparse_cmat:
-                ret = aoclsparse_csr_csc_optimize<aoclsparse_float_complex>(A);
+                ret = aoclsparse_csr_csc_optimize<std::complex<float>>(A);
                 break;
             case aoclsparse_zmat:
-                ret = aoclsparse_csr_csc_optimize<aoclsparse_double_complex>(A);
+                ret = aoclsparse_csr_csc_optimize<std::complex<double>>(A);
                 break;
             }
         }
