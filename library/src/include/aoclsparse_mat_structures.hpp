@@ -91,7 +91,6 @@ namespace aoclsparse
     class base_mtx
     {
     public:
-        virtual ~base_mtx() = default;
         aoclsparse_int m;
         aoclsparse_int n;
         aoclsparse_int nnz;
@@ -99,10 +98,35 @@ namespace aoclsparse
         aoclsparse::doid              doid = doid::len; // by default invalid
         aoclsparse_matrix_format_type mat_type;
         aoclsparse_index_base         base;
+        aoclsparse_matrix_data_type   val_type;
         // flag to indicate if the matrix is internally created, not user provided. This is used to
         // determine if the matrix should be destroyed at the end of the optimization process. This flag is set
         // to true for all internally created matrices.
         bool is_internal = true;
+
+        // default constructor
+        base_mtx() = default;
+
+        // constructor to initialize the base matrix with given parameters
+        base_mtx(aoclsparse_int                m,
+                 aoclsparse_int                n,
+                 aoclsparse_int                nnz,
+                 aoclsparse_matrix_format_type mat_type,
+                 aoclsparse_index_base         base,
+                 aoclsparse_matrix_data_type   val_type,
+                 bool                          is_internal)
+            : m(m) // Initialize member variables with constructor parameters
+            , n(n)
+            , nnz(nnz)
+            , mat_type(mat_type)
+            , base(base)
+            , val_type(val_type)
+            , is_internal(is_internal)
+        {
+        }
+
+        // default destructor
+        virtual ~base_mtx() = default;
     };
 
     /********************************************************************************
@@ -123,6 +147,70 @@ namespace aoclsparse
         aoclsparse_int *idiag = nullptr;
         // position where the first strictly upper triangle element is/would be located in every row
         aoclsparse_int *iurow = nullptr;
+        // if optimized, set true
+        bool is_optimized = false;
+
+        // Default constructor
+        csr() = default;
+        /* Parameterized constructor:
+        Initializes the matrix with the specified parameters and allocates memory for the CSR data arrays.
+        If nnz<0, only csr_row_ptr is allocated to support the first stage of nnz computation.
+        This constructor is used when the matrix is created internally.
+        */
+        csr(aoclsparse_int                m,
+            aoclsparse_int                n,
+            aoclsparse_int                nnz,
+            aoclsparse_matrix_format_type mat_type,
+            aoclsparse_index_base         base,
+            aoclsparse_matrix_data_type   val_type)
+            : base_mtx(m, n, nnz, mat_type, base, val_type, true)
+        {
+            try
+            {
+                // csr_row_ptr can be allocated regardless of nnz value.
+                // This enables array creation when matrix dimensions are known but nnz is not yet set.
+                csr_row_ptr = new aoclsparse_int[m + 1];
+                // Only allocate memory if nnz is valid (non-negative)
+                if(nnz >= 0)
+                {
+                    // Allocate index array:
+                    // For CSR, stores column indices
+                    csr_col_ptr = new aoclsparse_int[nnz];
+                    // Allocate value array for matrix entries
+                    csr_val = ::operator new(data_size[val_type] * nnz);
+                }
+            }
+            catch(...)
+            {
+                // Clean up any allocated memory on failure
+                delete[] csr_row_ptr;
+                delete[] csr_col_ptr;
+                ::operator delete(csr_val);
+                throw;
+            }
+        }
+        // Parameterized constructor that sets up the matrix using user-provided, pre-allocated data arrays.
+        csr(aoclsparse_int                m,
+            aoclsparse_int                n,
+            aoclsparse_int                nnz,
+            aoclsparse_matrix_format_type mat_type,
+            aoclsparse_index_base         base,
+            aoclsparse_matrix_data_type   val_type,
+            aoclsparse_int               *row_ptr,
+            aoclsparse_int               *col_ptr,
+            void                         *val,
+            aoclsparse_int               *diag = nullptr,
+            aoclsparse_int               *urow = nullptr)
+            : base_mtx(m, n, nnz, mat_type, base, val_type, false)
+            , csr_row_ptr(row_ptr)
+            , csr_col_ptr(col_ptr)
+            , csr_val(val)
+            , idiag(diag)
+            , iurow(urow)
+        {
+        }
+
+        // destructor
         virtual ~csr()
         {
             // Free the memory allocated if the matrix was internally allocated (is_internal = true)

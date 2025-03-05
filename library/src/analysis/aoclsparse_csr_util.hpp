@@ -397,17 +397,22 @@ aoclsparse_status aoclsparse_matrix_transform(aoclsparse_matrix A)
                     switch(doid)
                     {
                     case aoclsparse::doid::gt:
-                        aoclsparse::csr *mat_copy;
+                    {
+                        // TODO: Create a CSC mat copy when CSC support for mv is implemented
+                        aoclsparse::csr *mat_copy = nullptr;
                         try
                         {
-                            mat_copy              = new aoclsparse::csr();
-                            mat_copy->csr_row_ptr = new aoclsparse_int[A->n + 1];
-                            mat_copy->csr_col_ptr = new aoclsparse_int[A->nnz];
-                            mat_copy->csr_val     = ::operator new(sizeof(T) * A->nnz);
+                            // Create a matrix copy
+                            // Interchanged m, n dimensions, for the csc conversion
+                            mat_copy = new aoclsparse::csr(A->n,
+                                                           A->m,
+                                                           A->nnz,
+                                                           aoclsparse_csr_mat,
+                                                           aoclsparse_index_base_zero,
+                                                           A->csr_mat.val_type);
                         }
                         catch(std::bad_alloc &)
                         {
-                            delete mat_copy;
                             return aoclsparse_status_memory_error;
                         }
                         // convert to 0-base
@@ -428,17 +433,10 @@ aoclsparse_status aoclsparse_matrix_transform(aoclsparse_matrix A)
                             delete mat_copy;
                             return status;
                         }
-                        // Interchanged m, n dimensions, after csr to csc conversion
-                        mat_copy->m    = A->n;
-                        mat_copy->n    = A->m;
-                        mat_copy->nnz  = A->nnz;
                         mat_copy->doid = doid;
-                        // TODO: update mat_type to aoclsparse_csc_mat
-                        mat_copy->mat_type    = aoclsparse_csr_mat;
-                        mat_copy->base        = aoclsparse_index_base_zero;
-                        mat_copy->is_internal = true;
                         A->mats.push_back(mat_copy);
                         break;
+                    }
                     default:
                         break;
                     }
@@ -552,6 +550,7 @@ aoclsparse_status aoclsparse_csr_csc_optimize(aoclsparse_matrix A)
             *opt_indices               = A->csr_mat.csr_col_ptr;
             *opt_val                   = static_cast<T *>(A->csr_mat.csr_val);
             A->opt_csr_mat.is_internal = false;
+            A->opt_csr_mat.base        = A->base;
         }
         else if(A->input_format == aoclsparse_csc_mat)
         {
@@ -572,6 +571,7 @@ aoclsparse_status aoclsparse_csr_csc_optimize(aoclsparse_matrix A)
         if(A->input_format == aoclsparse_csr_mat)
         {
             A->opt_csr_mat.is_internal = true;
+            A->opt_csr_mat.base        = aoclsparse_index_base_zero;
         }
         else if(A->input_format == aoclsparse_csc_mat)
         {
@@ -618,7 +618,12 @@ aoclsparse_status aoclsparse_csr_csc_optimize(aoclsparse_matrix A)
     if(A->input_format == aoclsparse_csc_mat)
         A->opt_csc_ready = true;
     else
-        A->opt_csr_ready = true;
+    {
+        A->opt_csr_mat.m   = A->m;
+        A->opt_csr_mat.n   = A->n;
+        A->opt_csr_mat.nnz = A->opt_csr_mat.csr_row_ptr[A->m];
+        A->opt_csr_ready   = true;
+    }
 
     //being full-diagonal is property of the original matrix. So need to
     //maintain for a CSC copy

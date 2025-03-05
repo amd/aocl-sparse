@@ -25,7 +25,6 @@
 #include "aoclsparse_analysis.hpp"
 #include "aoclsparse_csr_util.hpp"
 #include "aoclsparse_mat_structures.hpp"
-#include "aoclsparse_utils.hpp"
 
 #include <algorithm>
 /*

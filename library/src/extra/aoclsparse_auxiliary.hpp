@@ -72,6 +72,8 @@ aoclsparse_status aoclsparse_create_csr_t(aoclsparse_matrix    *mat,
     if(!mat)
         return aoclsparse_status_invalid_pointer;
     *mat = nullptr;
+    // Temporary pointer to an instance of the CSR matrix class.
+    aoclsparse::csr *csr_mat = nullptr;
     // Validate the input parameters
     aoclsparse_matrix_sort mat_sort;
     bool                   mat_fulldiag;
@@ -83,27 +85,26 @@ aoclsparse_status aoclsparse_create_csr_t(aoclsparse_matrix    *mat,
     }
     try
     {
-        *mat = new _aoclsparse_matrix;
+        *mat    = new _aoclsparse_matrix;
+        csr_mat = new aoclsparse::csr(
+            M, N, nnz, aoclsparse_csr_mat, base, get_data_type<T>(), row_ptr, col_idx, val);
     }
     catch(std::bad_alloc &)
     {
+        delete *mat;
+        delete csr_mat;
+        *mat = nullptr;
         return aoclsparse_status_memory_error;
     }
     aoclsparse_init_mat(*mat, base, M, N, nnz, aoclsparse_csr_mat);
-    (*mat)->val_type            = get_data_type<T>();
-    (*mat)->mat_type            = aoclsparse_csr_mat;
-    (*mat)->csr_mat.m           = M;
-    (*mat)->csr_mat.n           = N;
-    (*mat)->csr_mat.nnz         = nnz;
-    (*mat)->csr_mat.mat_type    = aoclsparse_csr_mat;
-    (*mat)->csr_mat.base        = base;
-    (*mat)->csr_mat.csr_row_ptr = row_ptr;
-    (*mat)->csr_mat.csr_col_ptr = col_idx;
-    (*mat)->csr_mat.csr_val     = val;
-    (*mat)->csr_mat.is_internal = false;
-    (*mat)->sort                = mat_sort;
-    (*mat)->fulldiag            = mat_fulldiag;
-
+    (*mat)->val_type = get_data_type<T>();
+    // Assign the temporary CSR matrix to the matrix structure
+    (*mat)->csr_mat  = *csr_mat;
+    (*mat)->sort     = mat_sort;
+    (*mat)->fulldiag = mat_fulldiag;
+    (*mat)->mat_type = aoclsparse_csr_mat;
+    // delete temporary CSR matrix pointer
+    delete csr_mat;
     return aoclsparse_status_success;
 }
 

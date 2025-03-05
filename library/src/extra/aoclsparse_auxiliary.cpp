@@ -1305,6 +1305,7 @@ aoclsparse_status aoclsparse_destroy_mats(aoclsparse_matrix A)
     return aoclsparse_status_success;
 }
 
+// TODO: Can be removed, information stored in the base_mtx.
 void aoclsparse_init_mat(aoclsparse_matrix             A,
                          aoclsparse_index_base         base,
                          aoclsparse_int                M,

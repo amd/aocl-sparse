@@ -42,8 +42,6 @@
 #define POPCOUNT(x) __builtin_popcount(x)
 #endif
 
-extern const size_t data_size[];
-
 /* Conjugate functionality the returns both complex and real types */
 /* The standard std::conj return only complex types */
 namespace aoclsparse
