@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -1318,9 +1318,9 @@ aoclsparse_status aoclsparse_scsrsv(aoclsparse_operation       trans,
  *
  *  <b>Notes</b>
  *
- * 1. This routine supports only sparse matrices in CSR format.
+ * 1. This routine supports sparse matrices in CSR and CSC formats.
  *
- * 2. If the matrix descriptor \p descr specifies that the matrix \f$A\f$ is to be regarded has
+ * 2. If the matrix descriptor \p descr specifies that the matrix \f$A\f$ is to be regarded as
  *    having a unitary diagonal, then the main diagonal entries of matrix \f$A\f$ are not accessed and
  *    are all considered to be unitary.
  *
@@ -2298,22 +2298,23 @@ aoclsparse_status aoclsparse_sypr(aoclsparse_operation       opA,
  *  @param[in]
  *  order       \ref aoclsparse_order_row / \ref aoclsparse_order_column for dense matrix
  *  @param[in]
- *  B           Array of dimension \f$ldb \times n\f$ or
- *              \f$ldb \times k\f$ .
+ *  B           Array of dimension \f$ldb \times n\f$ for \ref aoclsparse_order_column.
+ *              For \ref aoclsparse_order_row, the dimension is
+ *              \f$(number of columns in A) \times ldb\f$ if \f$op(A) = A\f$,
+ *              or \f$(number of rows in A) \times ldb\f$ if \f$op(A) = A^T\f$.
  *  @param[in]
- *  n           Number of columns of the dense matrix \f$B\f$ and \f$C\f$.
+ *  n           Number of columns of the dense matrix \f$C\f$.
  *  @param[in]
- *  ldb         Leading dimension of \f$B\f$, must be at least \f$\max{(1, k)}\f$
- *              for \f$op(A) = A\f$, or \f$\max{(1, m)}\f$  when \f$op(A) = A^T\f$ or
- *              \f$op(A) = A^H\f$.
+ *  ldb         Leading dimension of \f$B\f$.
  *  @param[in]
  *  beta        Scalar \f$\beta\f$.
  *  @param[inout]
- *  C           Array of dimension \f$ldc \times n\f$.
+ *  C           Array of dimension \f$ldc \times n\f$ for \ref aoclsparse_order_column.
+ *              For \ref aoclsparse_order_row, the dimension is
+ *              \f$(number of rows in A) \times ldc\f$ if \f$op(A) = A\f$,
+ *              or \f$(number of columns in A) \times ldc\f$ if \f$op(A) = A^T\f$.
  *  @param[in]
- *  ldc         Leading dimension of \f$C\f$, must be at least \f$\max{(1, m)}\f$
- *              for \f$op(A) = A\f$, or \f$\max{(1, k)}\f$ when \f$op(A) = A^T\f$ or
- *              \f$op(A) = A^H\f$.
+ *  ldc         Leading dimension of \f$C\f$.
  *
  *  \retval     aoclsparse_status_success The operation completed successfully.
  *  \retval     aoclsparse_status_invalid_size The value of \p m, \p n, \p k, \p nnz, \p ldb or \p ldc
