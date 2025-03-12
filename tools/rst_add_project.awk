@@ -24,9 +24,14 @@
 # with :project: directive including the project name
 # This is useful when multiple API docs from different projects
 # get merged into a single documentation.
+#
+# Usage: ./rst_add_project.awk old.rst > new.rst
+# Or use tools/rst_add_project_all.sh docs/*.rst
+# To change the default project name: ./rst_add_project.awk -v project_name=da old.rst
 
 BEGIN {
-    project_name = "sparse"
+    if (project_name == "")
+        project_name = "sparse"
     indent = 0
 }
 
@@ -38,8 +43,9 @@ BEGIN {
             # indentation block of the same directive, match the indentation
             indent = loc_indent
         }
-        # print project directive
-        printf "%*s:project: %s\n", indent, "", project_name
+        # print project directive if not yet present
+        if (index($0,":project:") == 0)
+            printf "%*s:project: %s\n", indent, "", project_name
         indent = 0
     }
     print
