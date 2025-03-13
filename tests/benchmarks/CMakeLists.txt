@@ -1,5 +1,5 @@
 # ########################################################################
-# Copyright (c) 2020-2024 Advanced Micro Devices, Inc.
+# Copyright (c) 2020-2025 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -98,6 +98,7 @@ target_compile_definitions(aoclsparse-bench PRIVATE CID=${COMPILER_ID} HASH=${HI
 target_compile_definitions(aoclsparse-bench PRIVATE ${AOCLSPARSE_DEFS})
 # Define -Daoclsparse_ILP64 when ILP64 libraries are built. For LP64, this is an empty string.
 target_compile_definitions(aoclsparse-bench PRIVATE ${AOCLSPARSE_ILP64})
+target_compile_options(aoclsparse-bench PRIVATE ${AOCLSPARSE_GENERIC_FLAGS})
 
 # Add aoclsparse target
 if(NOT TARGET aoclsparse)
