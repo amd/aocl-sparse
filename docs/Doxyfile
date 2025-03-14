@@ -1,5 +1,5 @@
 # ##############################################################################
-# Copyright (c) 2021-2024 Advanced Micro Devices, Inc.
+# Copyright (c) 2021-2025 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -71,7 +71,7 @@ PROJECT_NAME           = "AMD AOCL-Sparse API Guide"
 # could be handy for archiving the generated documentation or if some version
 # control system is used.
 
-PROJECT_NUMBER         = "Release 5.0.1"
+PROJECT_NUMBER         = "Release 5.1.0"
 
 # Using the PROJECT_BRIEF tag one can provide an optional one line description
 # for a project that appears at the top of each page and should give viewer a

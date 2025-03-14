@@ -1,5 +1,5 @@
 # ########################################################################
-# Copyright (c) 2020-2024 Advanced Micro Devices, Inc.
+# Copyright (c) 2020-2025 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,7 @@ if(NOT DEFINED AOCLSPARSE_VERSION_MAJOR)
   set(AOCLSPARSE_VERSION_MAJOR 5)
 endif()
 if(NOT DEFINED AOCLSPARSE_VERSION_MINOR)
-  set(AOCLSPARSE_VERSION_MINOR 0)
+  set(AOCLSPARSE_VERSION_MINOR 1)
 endif()
 if(NOT DEFINED AOCLSPARSE_VERSION_PATCH)
   set(AOCLSPARSE_VERSION_PATCH 0)
