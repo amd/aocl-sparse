@@ -64,7 +64,7 @@ namespace
          * Maximum KID supported on a non-AVX512 machine is 2.
          * In any machine, maximum kid is 3 when exotic kernels are not present.
          */
-        aoclsparse_status trsv_status = ((!can_exec_avx512_tests() && (kid > 2)) || (kid > 3))
+        aoclsparse_status trsv_status = ((!can_exec_avx512_tests() && (kid > 1)) || (kid > 3))
                                             ? aoclsparse_status_invalid_kid
                                             : aoclsparse_status_success;
 

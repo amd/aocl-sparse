@@ -231,9 +231,9 @@ aoclsparse_status
      * Kernel types
      * ------------
      * Ref         - Plain c++ code
-     * KT AVX2     - KT-based kernel that use 256-bit AVX2 registers
-     * KT AVX512VL - KT-based kernel that use 256-bit AVX512 registers
-     * KT AVX512F  - KT-based kernel that use 512-bit AVX512 registers
+     * KT AVX2     - KT-based kernel 256-bit vectors with AVX2 ISA
+     * KT AVX512VL - KT-based kernel 256-bit vectors with AVX512 ISA
+     * KT AVX512F  - KT-based kernel 512-bit vectors with AVX512 ISA
      *
      * tbl offset - Offset in the Oracle table
      *
@@ -245,19 +245,21 @@ aoclsparse_status
      * kid | Kernel Name                  | Kernel Type  | SUF | tbl offset
      * ----+------------------------------+--------------+-----+------------
      *  0  | ref_trsv_l<SUF, false>       | Ref          | ALL |    0
-     *  1,2| kt_trsv_l<b256, SUF, false>  | KT AVX2      | ALL |    1,2
+     *  1  | kt_trsv_l<b256, SUF, false>  | KT AVX2      | ALL |    1
+     *  2  | kt_trsv_l<b256, SUF, false>  | KT AVX512VL  | ALL |    2
      *  3  | kt_trsv_l<b512, SUF, false>  | KT AVX512    | ALL |    3
      * ----+------------------------------+--------------+-----+------------
      *
      * =====================================================================
      * Equation - L^T * x = alpha * b      || DOID = 13
-     * ----+-------------------------------+--------------+-----+------------
-     * kid | Kernel Name                   | Kernel Type  | SUF | tbl offset
-     * ----+-------------------------------+--------------+-----+------------
-     *  0  | ref_trsv_lth<SUF, false>      | Ref          | ALL |    4
-     *  1,2| kt_trsv_lth<b256, SUF, false> | KT AVX2      | ALL |    5,6
-     *  3  | kt_trsv_lth<b512, SUF, false> | KT AVX512    | ALL |    7
-     * ----+-------------------------------+--------------+-----+------------
+     * ----+------------------------------+--------------+-----+------------
+     * kid | Kernel Name                  | Kernel Type  | SUF | tbl offset
+     * ----+------------------------------+--------------+-----+------------
+     *  0  | ref_trsv_lth<SUF, false>     | Ref          | ALL |    4
+     *  1  | kt_trsv_lth<b256, SUF, false>| KT AVX2      | ALL |    5
+     *  2  | kt_trsv_lth<b256, SUF, false>| KT AVX512VL  | ALL |    6
+     *  3  | kt_trsv_lth<b512, SUF, false>| KT AVX512    | ALL |    7
+     * ----+------------------------------+--------------+-----+------------
      *
      * =====================================================================
      * Equation - L^H * x = alpha * b     || DOID = 14
@@ -265,7 +267,8 @@ aoclsparse_status
      * kid | Kernel Name                  | Kernel Type  | SUF | tbl offset
      * ----+------------------------------+--------------+-----+------------
      *  0  | ref_trsv_lth<SUF, true>      | Ref          | ALL |    8
-     *  1,2| kt_trsv_lth<b256, SUF, true> | KT AVX2      | ALL |    9,10
+     *  1  | kt_trsv_lth<b256, SUF, true> | KT AVX2      | ALL |    9
+     *  2  | kt_trsv_lth<b256, SUF, true> | KT AVX512VL  | ALL |    10
      *  3  | kt_trsv_lth<b512, SUF, true> | KT AVX512    | ALL |    11
      * ----+------------------------------+--------------+-----+------------
      *
@@ -275,7 +278,8 @@ aoclsparse_status
      * kid | Kernel Name                  | Kernel Type  | SUF | tbl offset
      * ----+------------------------------+--------------+-----+------------
      *  0  | ref_trsv_l<SUF, true>        | Ref          | ALL |    12
-     *  1,2| kt_trsv_l<b256, SUF, true>   | KT AVX2      | ALL |    13,14
+     *  1  | kt_trsv_l<b256, SUF, true>   | KT AVX2      | ALL |    13
+     *  2  | kt_trsv_l<b256, SUF, true>   | KT AVX512VL  | ALL |    14
      *  3  | kt_trsv_l<b512, SUF, true>   | KT AVX512    | ALL |    15
      * ----+------------------------------+--------------+-----+------------
      *
@@ -285,19 +289,21 @@ aoclsparse_status
      * kid | Kernel Name                  | Kernel Type  | SUF | tbl offset
      * ----+------------------------------+--------------+-----+------------
      *  0  | ref_trsv_u<SUF, false>       | Ref          | ALL |    16
-     *  1,2| kt_trsv_u<b256, SUF, false>  | KT AVX2      | ALL |    17,18
+     *  1  | kt_trsv_u<b256, SUF, false>  | KT AVX2      | ALL |    17
+     *  2  | kt_trsv_u<b256, SUF, false>  | KT AVX512VL  | ALL |    18
      *  3  | kt_trsv_u<b512, SUF, false>  | KT AVX512    | ALL |    19
      * ----+------------------------------+--------------+-----+------------
      *
      * =====================================================================
      * Equation - U^T * x = alpha * b      || DOID = 17
-     * ----+-------------------------------+--------------+-----+------------
-     * kid | Kernel Name                   | Kernel Type  | SUF | tbl offset
-     * ----+-------------------------------+--------------+-----+------------
-     *  0  | ref_trsv_uth<SUF, false>      | Ref          | ALL |    20
-     *  1,2| kt_trsv_uth<b256, SUF, false> | KT AVX2      | ALL |    21,22
-     *  3  | kt_trsv_uth<b512, SUF, false> | KT AVX512    | ALL |    23
-     * ----+-------------------------------+--------------+-----+------------
+     * ----+------------------------------+--------------+-----+------------
+     * kid | Kernel Name                  | Kernel Type  | SUF | tbl offset
+     * ----+------------------------------+--------------+-----+------------
+     *  0  | ref_trsv_uth<SUF, false>     | Ref          | ALL |    20
+     *  1  | kt_trsv_uth<b256, SUF, false>| KT AVX2      | ALL |    21
+     *  2  | kt_trsv_uth<b256, SUF, false>| KT AVX512VL  | ALL |    22
+     *  3  | kt_trsv_uth<b512, SUF, false>| KT AVX512    | ALL |    23
+     * ----+------------------------------+--------------+-----+------------
      *
      * =====================================================================
      * Equation - U^H * x = alpha * b      || DOID = 18
@@ -305,9 +311,10 @@ aoclsparse_status
      * kid | Kernel Name                  | Kernel Type  | SUF | tbl offset
      * ----+------------------------------+--------------+-----+------------
      *  0  | ref_trsv_uth<SUF, true>      | Ref          | ALL |    24
-     *  1,2| kt_trsv_uth<b256, SUF, true> | KT AVX2      | ALL |    25,26
+     *  1  | kt_trsv_uth<b256, SUF, true> | KT AVX2      | ALL |    25
+     *  2  | kt_trsv_uth<b256, SUF, true> | KT AVX512VL  | ALL |    26
      *  3  | kt_trsv_uth<b512, SUF, true> | KT AVX512    | ALL |    27
-     * ----+-------------------------------+-------------+-----+------------
+     * ----+------------------------------+--------------+-----+------------
      *
      * =====================================================================
      * Equation - conj(U) * x = alpha * b  || DOID = 19
@@ -315,7 +322,8 @@ aoclsparse_status
      * kid | Kernel Name                  | Kernel Type  | SUF | tbl offset
      * ----+------------------------------+--------------+-----+------------
      *  0  | ref_trsv_u<SUF, true>        | Ref          | ALL |    28
-     *  1,2| kt_trsv_u<b256, SUF, true>   | KT AVX2      | ALL |    29,30
+     *  1  | kt_trsv_u<b256, SUF, true>   | KT AVX2      | ALL |    29
+     *  2  | kt_trsv_u<b256, SUF, true>   | KT AVX512VL  | ALL |    30
      *  3  | kt_trsv_u<b512, SUF, true>   | KT AVX512    | ALL |    31
      * ----+------------------------------+--------------+-----+------------
      */
@@ -324,45 +332,45 @@ aoclsparse_status
     // clang-format off
      static constexpr Dispatch::Table<K> tbl[]{
      // Lower
-     {ref_trsv_l<T>, context_isa_t::GENERIC, 0U | archs::ALL},
-     {kt_trsv_l<bsz::b256, T, kt_avxext::AVX2>, context_isa_t::AVX2, 0U | archs::ALL},
-     {kt_trsv_l<bsz::b256, T, kt_avxext::AVX2>, context_isa_t::AVX2, 0U | archs::ALL},
-     Dispatch::ORL<K>({kt_trsv_l<bsz::b512, T, kt_avxext::AVX512F>, context_isa_t::AVX512F, 0U | archs::ALL}),
+                      {ref_trsv_l<T>,                                       context_isa_t::GENERIC,  0U | archs::ALL},
+                      {kt_trsv_l<bsz::b256, T, kt_avxext::AVX2>,            context_isa_t::AVX2,     0U | archs::ALL},
+     Dispatch::ORL<K>({kt_trsv_l<bsz::b256, T, kt_avxext::AVX512VL>,        context_isa_t::AVX512VL, 0U | archs::ALL}),
+     Dispatch::ORL<K>({kt_trsv_l<bsz::b512, T, kt_avxext::AVX512F>,         context_isa_t::AVX512F,  0U | archs::ALL}),
      // Lower transpose
-     {ref_trsv_lth<T>, context_isa_t::GENERIC, 0U | archs::ALL},
-     {kt_trsv_lt<bsz::b256, T, kt_avxext::AVX2>, context_isa_t::AVX2, 0U | archs::ALL},
-     {kt_trsv_lt<bsz::b256, T, kt_avxext::AVX2>, context_isa_t::AVX2, 0U | archs::ALL},
-     Dispatch::ORL<K>({kt_trsv_lt<bsz::b512, T, kt_avxext::AVX512F>, context_isa_t::AVX512F, 0U | archs::ALL}),
+                      {ref_trsv_lth<T>,                                     context_isa_t::GENERIC,  0U | archs::ALL},
+                      {kt_trsv_lt<bsz::b256, T, kt_avxext::AVX2>,           context_isa_t::AVX2,     0U | archs::ALL},
+     Dispatch::ORL<K>({kt_trsv_lt<bsz::b256, T, kt_avxext::AVX512VL>,       context_isa_t::AVX512VL, 0U | archs::ALL}),
+     Dispatch::ORL<K>({kt_trsv_lt<bsz::b512, T, kt_avxext::AVX512F>,        context_isa_t::AVX512F,  0U | archs::ALL}),
      // Lower Hermitian transpose
-     {ref_trsv_lth<T, true>, context_isa_t::GENERIC, 0U | archs::ALL},
-     {kt_trsv_lt<bsz::b256, T, kt_avxext::AVX2, true>, context_isa_t::AVX2, 0U | archs::ALL},
-     {kt_trsv_lt<bsz::b256, T, kt_avxext::AVX2, true>, context_isa_t::AVX2, 0U | archs::ALL},
-     Dispatch::ORL<K>({kt_trsv_lt<bsz::b512, T, kt_avxext::AVX512F, true>, context_isa_t::AVX512F, 0U | archs::ALL}),
+                      {ref_trsv_lth<T, true>,                               context_isa_t::GENERIC,  0U | archs::ALL},
+                      {kt_trsv_lt<bsz::b256, T, kt_avxext::AVX2, true>,     context_isa_t::AVX2,     0U | archs::ALL},
+     Dispatch::ORL<K>({kt_trsv_lt<bsz::b256, T, kt_avxext::AVX512VL, true>, context_isa_t::AVX512VL, 0U | archs::ALL}),
+     Dispatch::ORL<K>({kt_trsv_lt<bsz::b512, T, kt_avxext::AVX512F, true>,  context_isa_t::AVX512F,  0U | archs::ALL}),
      // Lower conjugate
-     {ref_trsv_l<T, true>, context_isa_t::GENERIC, 0U | archs::ALL},
-     {kt_trsv_l<bsz::b256, T, kt_avxext::AVX2, true>, context_isa_t::AVX2, 0U | archs::ALL},
-     {kt_trsv_l<bsz::b256, T, kt_avxext::AVX2, true>, context_isa_t::AVX2, 0U | archs::ALL},
-     Dispatch::ORL<K>({kt_trsv_l<bsz::b512, T, kt_avxext::AVX512F, true>, context_isa_t::AVX512F, 0U | archs::ALL}),
+                      {ref_trsv_l<T, true>,                                 context_isa_t::GENERIC,  0U | archs::ALL},
+                      {kt_trsv_l<bsz::b256, T, kt_avxext::AVX2, true>,      context_isa_t::AVX2,     0U | archs::ALL},
+     Dispatch::ORL<K>({kt_trsv_l<bsz::b256, T, kt_avxext::AVX512VL, true>,  context_isa_t::AVX512VL, 0U | archs::ALL}),
+     Dispatch::ORL<K>({kt_trsv_l<bsz::b512, T, kt_avxext::AVX512F, true>,   context_isa_t::AVX512F,  0U | archs::ALL}),
      // Upper
-     {ref_trsv_u<T>, context_isa_t::GENERIC, 0U | archs::ALL},
-     {kt_trsv_u<bsz::b256, T, kt_avxext::AVX2>, context_isa_t::AVX2, 0U | archs::ALL},
-     {kt_trsv_u<bsz::b256, T, kt_avxext::AVX2>, context_isa_t::AVX2, 0U | archs::ALL},
-     Dispatch::ORL<K>({kt_trsv_u<bsz::b512, T, kt_avxext::AVX512F>, context_isa_t::AVX512F, 0U | archs::ALL}),
+                      {ref_trsv_u<T>,                                       context_isa_t::GENERIC,  0U | archs::ALL},
+                      {kt_trsv_u<bsz::b256, T, kt_avxext::AVX2>,            context_isa_t::AVX2,     0U | archs::ALL},
+     Dispatch::ORL<K>({kt_trsv_u<bsz::b256, T, kt_avxext::AVX512VL>,        context_isa_t::AVX512VL, 0U | archs::ALL}),
+     Dispatch::ORL<K>({kt_trsv_u<bsz::b512, T, kt_avxext::AVX512F>,         context_isa_t::AVX512F,  0U | archs::ALL}),
      // Upper transpose
-     {ref_trsv_uth<T>, context_isa_t::GENERIC, 0U | archs::ALL},
-     {kt_trsv_ut<bsz::b256, T, kt_avxext::AVX2>, context_isa_t::AVX2, 0U | archs::ALL},
-     {kt_trsv_ut<bsz::b256, T, kt_avxext::AVX2>, context_isa_t::AVX2, 0U | archs::ALL},
-     Dispatch::ORL<K>({kt_trsv_ut<bsz::b512, T, kt_avxext::AVX512F>, context_isa_t::AVX512F, 0U | archs::ALL}),
+                      {ref_trsv_uth<T>,                                     context_isa_t::GENERIC,  0U | archs::ALL},
+                      {kt_trsv_ut<bsz::b256, T, kt_avxext::AVX2>,           context_isa_t::AVX2,     0U | archs::ALL},
+     Dispatch::ORL<K>({kt_trsv_ut<bsz::b256, T, kt_avxext::AVX512VL>,       context_isa_t::AVX512VL, 0U | archs::ALL}),
+     Dispatch::ORL<K>({kt_trsv_ut<bsz::b512, T, kt_avxext::AVX512F>,        context_isa_t::AVX512F,  0U | archs::ALL}),
      // Upper Hermitian transpose
-     {ref_trsv_uth<T, true>, context_isa_t::GENERIC, 0U | archs::ALL},
-     {kt_trsv_ut<bsz::b256, T, kt_avxext::AVX2, true>, context_isa_t::AVX2, 0U | archs::ALL},
-     {kt_trsv_ut<bsz::b256, T, kt_avxext::AVX2, true>, context_isa_t::AVX2, 0U | archs::ALL},
-     Dispatch::ORL<K>({kt_trsv_ut<bsz::b512, T, kt_avxext::AVX512F, true>, context_isa_t::AVX512F, 0U | archs::ALL}),
+                      {ref_trsv_uth<T, true>,                               context_isa_t::GENERIC,  0U | archs::ALL},
+                      {kt_trsv_ut<bsz::b256, T, kt_avxext::AVX2, true>,     context_isa_t::AVX2,     0U | archs::ALL},
+     Dispatch::ORL<K>({kt_trsv_ut<bsz::b256, T, kt_avxext::AVX512VL, true>, context_isa_t::AVX512VL, 0U | archs::ALL}),
+     Dispatch::ORL<K>({kt_trsv_ut<bsz::b512, T, kt_avxext::AVX512F, true>,  context_isa_t::AVX512F,  0U | archs::ALL}),
      // Upper conjugate
-     {ref_trsv_u<T, true>, context_isa_t::GENERIC, 0U | archs::ALL},
-     {kt_trsv_u<bsz::b256, T, kt_avxext::AVX2, true>, context_isa_t::AVX2, 0U | archs::ALL},
-     {kt_trsv_u<bsz::b256, T, kt_avxext::AVX2, true>, context_isa_t::AVX2, 0U | archs::ALL},
-     Dispatch::ORL<K>({kt_trsv_u<bsz::b512, T, kt_avxext::AVX512F, true>, context_isa_t::AVX512F, 0U | archs::ALL}),
+                      {ref_trsv_u<T, true>,                                 context_isa_t::GENERIC,  0U | archs::ALL},
+                      {kt_trsv_u<bsz::b256, T, kt_avxext::AVX2, true>,      context_isa_t::AVX2,     0U | archs::ALL},
+     Dispatch::ORL<K>({kt_trsv_u<bsz::b256, T, kt_avxext::AVX512VL, true>,  context_isa_t::AVX512VL, 0U | archs::ALL}),
+     Dispatch::ORL<K>({kt_trsv_u<bsz::b512, T, kt_avxext::AVX512F, true>,   context_isa_t::AVX512F,  0U | archs::ALL}),
      };
     // clang-format on
 
