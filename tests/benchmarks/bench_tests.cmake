@@ -71,7 +71,7 @@ set(ADDMATRIXSIZES
 message(STATUS "Dependencies of bench-tests (libraries and binary)")
 message(STATUS "  \$Path to Sparse executable = ${AOCLSPARSE_BENCH_PATH}")
 
-foreach(FUNCTION "csrmv" "ellmv" "diamv" "optmv") # TODO add back "csrsv", so far failing the tests
+foreach(FUNCTION "csrmv" "ellmv" "diamv") # TODO add back "csrsv", so far failing the tests
   foreach(PREC "d" "s")
     foreach(BASE "0" "1")      #test for base-0 and base-1
 
@@ -83,7 +83,7 @@ foreach(FUNCTION "csrmv" "ellmv" "diamv" "optmv") # TODO add back "csrsv", so fa
         list(GET MATSIZE_LIST 2 SIZENNZ)
 
         add_test(FuncTest.${FUNCTION}-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ}xBase-${BASE} ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --indexbaseA=${BASE} --transposeA=N --verify=1 --iters=1)
-        if(FUNCTION STREQUAL "csrmv" OR FUNCTION STREQUAL "optmv")
+        if(FUNCTION STREQUAL "csrmv")
           # Add transpose tests
           add_test(FuncTest.${FUNCTION}T-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ}xBase-${BASE} ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --indexbaseA=${BASE} --transposeA=T --verify=1 --iters=1)
 
@@ -99,10 +99,6 @@ foreach(FUNCTION "csrmv" "ellmv" "diamv" "optmv") # TODO add back "csrsv", so fa
             add_test(FuncTest.${FUNCTION}-TriangL-mtypeS-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ}xBase-${BASE} ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --indexbaseA=${BASE} --transposeA=N --uplo=L --matrix=T --matrixtypeA=S --sort=F --verify=1 --iters=1)
             #General matrix type + Random-Diagonal Dominance
             add_test(FuncTest.${FUNCTION}-RandDiagDom-mtypeG-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ}xBase-${BASE} ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --indexbaseA=${BASE} --transposeA=N --uplo=L --matrix=D --matrixtypeA=G --sort=F --verify=1 --iters=1)
-            if(FUNCTION STREQUAL "optmv")
-              #Triangle matrix type + Random-Triangle-matrix-DiagDom
-              add_test(FuncTest.${FUNCTION}-TriangL-mtypeT-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ}xBase-${BASE} ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --indexbaseA=${BASE} --transposeA=N --uplo=L --matrix=T --matrixtypeA=T --sort=F --verify=1 --iters=1)
-            ENDIF()
           ENDIF()
         ENDIF()
 
@@ -111,7 +107,7 @@ foreach(FUNCTION "csrmv" "ellmv" "diamv" "optmv") # TODO add back "csrsv", so fa
       # Add extra tests to exercise nonstandard multipliers alpha, beta
       add_test(FuncTest.${FUNCTION}-${PREC}-100x99x333-mlt-Base-${BASE} ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench --function=${FUNCTION} --precision=${PREC} --indexbaseA=${BASE} --sizem=100 --sizen=99 --sizennz=333 --alpha=3 --beta=-1.5 --transposeA=N --verify=1 --iters=1)
       add_test(FuncTest.${FUNCTION}-${PREC}-21x49x333-mlt-Base-${BASE} ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench --function=${FUNCTION} --precision=${PREC} --indexbaseA=${BASE} --sizem=21 --sizen=49 --sizennz=333 --alpha=3 --beta=-1.5 --transposeA=N --verify=1 --iters=1)
-      if(FUNCTION STREQUAL "csrmv" OR FUNCTION STREQUAL "optmv")
+      if(FUNCTION STREQUAL "csrmv")
         # Add transpose tests
         add_test(FuncTest.${FUNCTION}T-${PREC}-100x99x333-mlt-Base-${BASE} ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench --function=${FUNCTION} --precision=${PREC} --indexbaseA=${BASE} --sizem=100 --sizen=99 --sizennz=333 --alpha=3 --beta=-1.5 --transposeA=T  --verify=1 --iters=1)
         add_test(FuncTest.${FUNCTION}T-${PREC}-21x49x333-mlt-Base-${BASE} ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench --function=${FUNCTION} --precision=${PREC} --indexbaseA=${BASE} --sizem=21 --sizen=49 --sizennz=333 --alpha=3 --beta=-1.5 --transposeA=T  --verify=1 --iters=1)
@@ -121,26 +117,75 @@ foreach(FUNCTION "csrmv" "ellmv" "diamv" "optmv") # TODO add back "csrsv", so fa
 endforeach(FUNCTION)
 
 foreach(FUNCTION "optmv")
-  foreach(PREC "c" "z")
-    foreach(BASE "0" "1")      #test for base-0 and base-1
+  foreach(PREC "s" "d" "c" "z")
+    foreach(MATSIZE ${SQMATRIXSIZES} ${RCTMATRIXSIZES})
 
-      foreach(MATSIZE ${SQMATRIXSIZES} ${RCTMATRIXSIZES})
-        # split MATSIZE string to individual tokens
-        string(REGEX MATCHALL "[0-9]+" MATSIZE_LIST ${MATSIZE})
-        list(GET MATSIZE_LIST 0 SIZEM)
-        list(GET MATSIZE_LIST 1 SIZEN)
-        list(GET MATSIZE_LIST 2 SIZENNZ)
+      # split MATSIZE string to individual tokens
+      string(REGEX MATCHALL "[0-9]+" MATSIZE_LIST ${MATSIZE})
+      list(GET MATSIZE_LIST 0 SIZEM)
+      list(GET MATSIZE_LIST 1 SIZEN)
+      list(GET MATSIZE_LIST 2 SIZENNZ)
 
-        add_test(FuncTest.${FUNCTION}-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ}xBase-${BASE} ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --indexbaseA=${BASE} --transposeA=N --verify=1 --iters=1)
-        add_test(FuncTest.${FUNCTION}T-MemR-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ}xBase-${BASE} ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --indexbaseA=${BASE} --transposeA=T --verify=1 --iters=1 --mem=R)
+      foreach(TRANSPOSE "N" "T" "H")
+        # General matrix type
+        add_test(FuncTest.${FUNCTION}${TRANSPOSE}-General-Unsorted-Matrix-R-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ}xalpha-1xbeta-0xBase-0 ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --alpha=1 --beta=0 --indexbaseA=0 --transposeA=${TRANSPOSE} --matrix=R --sort=U --verify=1 --iters=1 --mem=U)
+        # if Transpose then check for memory type R
+        if(TRANSPOSE STREQUAL "T")
+          add_test(FuncTest.${FUNCTION}${TRANSPOSE}-General-Unsorted-Matrix-R-MemR-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ}xalpha-1xbeta-0xBase-0 ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --alpha=1 --beta=0 --indexbaseA=0 --transposeA=${TRANSPOSE} --matrix=R --sort=U --verify=1 --iters=1 --mem=R)
+        endif()
+        # Square matrix
+        if(SIZEM STREQUAL SIZEN)
+          # Triangular matrix type
+          add_test(FuncTest.${FUNCTION}${TRANSPOSE}-Triangular-UnSorted-Matrix-T-Uplo-L-NonZeroDiag-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ}xalpha-1xbeta-0xBase-0 ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --alpha=1 --beta=0 --indexbaseA=0 --transposeA=${TRANSPOSE} --uplo=L --matrixtypeA=T --matrix=T --sort=U --diag=N --verify=1 --iters=1)
+          # Symmetric matrix type
+          add_test(FuncTest.${FUNCTION}${TRANSPOSE}-Symmetric-UnSorted-Matrix-R-Uplo-L-NonZeroDiag-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ}xalpha-1xbeta-0xBase-0 ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --alpha=1 --beta=0 --indexbaseA=0 --transposeA=${TRANSPOSE} --uplo=L --matrixtypeA=S --matrix=R --sort=U --diag=N --verify=1 --iters=1)
+          # Hermitian matrix type
+          IF(PREC STREQUAL "c" OR PREC STREQUAL "z")
+            add_test(FuncTest.${FUNCTION}${TRANSPOSE}-Hermitian-UnSorted-Matrix-R-Uplo-L-NonZeroDiag-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ}xalpha-1xbeta-0xBase-0 ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --alpha=1 --beta=0 --indexbaseA=0 --transposeA=${TRANSPOSE} --uplo=L --matrixtypeA=H --matrix=R --sort=U --diag=N --verify=1 --iters=1)
+          ENDIF()
+        endif()
+      endforeach(TRANSPOSE)
+    endforeach(MATSIZE)
 
-      endforeach(MATSIZE)
+    # More tests: Base = 1, (alpha, beta) = (3, -1.5)
 
-      # Add extra tests to exercise nonstandard multipliers alpha, beta
-      add_test(FuncTest.${FUNCTION}-${PREC}-100x99x333-mlt-Base-${BASE} ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench --function=${FUNCTION} --precision=${PREC} --indexbaseA=${BASE} --sizem=100 --sizen=99 --sizennz=333 --alpha=3 --beta=-1.5 --transposeA=N --verify=1 --iters=1)
-      add_test(FuncTest.${FUNCTION}-${PREC}-21x49x333-mlt-Base-${BASE} ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench --function=${FUNCTION} --precision=${PREC} --indexbaseA=${BASE} --sizem=21 --sizen=49 --sizennz=333 --alpha=3 --beta=-1.5 --transposeA=N --verify=1 --iters=1)
-      add_test(FuncTest.${FUNCTION}T-MemR-${PREC}-21x49x333-mlt-Base-${BASE} ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench --function=${FUNCTION} --precision=${PREC} --indexbaseA=${BASE} --sizem=21 --sizen=49 --sizennz=333 --alpha=3 --beta=-1.5 --transposeA=T --verify=1 --iters=1 --mem=R)
-    endforeach(BASE)
+    # General Mattype
+    # Square matrix: Matrix = D, Sort = P
+    add_test(FuncTest.${FUNCTION}-General-PartiallySorted-Matrix-D-${PREC}-100x100x500xalpha-3xbeta--1.5xBase-1 ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=100 --sizen=100 --sizennz=500 --alpha=3 --beta=-1.5 --indexbaseA=1 --transposeA=N --matrix=D --sort=P --verify=1 --iters=1 --mem=U)
+    add_test(FuncTest.${FUNCTION}T-General-PartiallySorted-Matrix-D-${PREC}-100x100x500xalpha-3xbeta--1.5xBase-1 ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=100 --sizen=100 --sizennz=500 --alpha=3 --beta=-1.5 --indexbaseA=1 --transposeA=T --matrix=D --sort=P --verify=1 --iters=1 --mem=U)
+    add_test(FuncTest.${FUNCTION}T-General-PartiallySorted-Matrix-D-MemR-${PREC}-100x100x500xalpha-3xbeta--1.5xBase-1 ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=100 --sizen=100 --sizennz=500 --alpha=3 --beta=-1.5 --indexbaseA=1 --transposeA=T --matrix=D --sort=P --verify=1 --iters=1 --mem=R)
+    IF(PREC STREQUAL "c" OR PREC STREQUAL "z")
+      add_test(FuncTest.${FUNCTION}H-General-PartiallySorted-Matrix-D-${PREC}-100x100x500xalpha-3xbeta--1.5xBase-1 ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=100 --sizen=100 --sizennz=500 --alpha=3 --beta=-1.5 --indexbaseA=1 --transposeA=H --matrix=D --sort=P --verify=1 --iters=1 --mem=U)
+    ENDIF()
+    # Rectangular matrix: Matrix = D, Sort = F
+    add_test(FuncTest.${FUNCTION}-General-FullySorted-Matrix-D-${PREC}-29x47x500xalpha-3xbeta--1.5xBase-1 ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=29 --sizen=47 --sizennz=500 --alpha=3 --beta=-1.5 --indexbaseA=1 --transposeA=N --matrix=D --sort=F --verify=1 --iters=1 --mem=U)
+    add_test(FuncTest.${FUNCTION}T-General-FullySorted-Matrix-D-${PREC}-29x47x500xalpha-3xbeta--1.5xBase-1 ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=29 --sizen=47 --sizennz=500 --alpha=3 --beta=-1.5 --indexbaseA=1 --transposeA=T --matrix=D --sort=F --verify=1 --iters=1 --mem=U)
+    add_test(FuncTest.${FUNCTION}T-General-FullySorted-Matrix-D-MemR-${PREC}-29x47x500xalpha-3xbeta--1.5xBase-1 ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=29 --sizen=47 --sizennz=500 --alpha=3 --beta=-1.5 --indexbaseA=1 --transposeA=T --matrix=D --sort=F --verify=1 --iters=1 --mem=R)
+
+    # Symmetric Mattype
+    # Uplo=U, Matrix=D, Sort=P, DiagType=Unit
+    add_test(FuncTest.${FUNCTION}-Symmetric-PartiallySorted-Matrix-D-Uplo-U-UnitDiag-${PREC}-100x100x500xalpha-3xbeta--1.5xBase-1 ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=100 --sizen=100 --sizennz=500 --alpha=3 --beta=-1.5 --indexbaseA=1 --matrixtypeA=S --transposeA=N --matrix=D --sort=P --uplo=U --diag=U --verify=1 --iters=1)
+    add_test(FuncTest.${FUNCTION}H-Symmetric-PartiallySorted-Matrix-D-Uplo-U-UnitDiag-${PREC}-100x100x500xalpha-3xbeta--1.5xBase-1 ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=100 --sizen=100 --sizennz=500 --alpha=3 --beta=-1.5 --indexbaseA=1 --matrixtypeA=S --transposeA=H --matrix=D --sort=P --uplo=U --diag=U --verify=1 --iters=1)
+    # Uplo=U, Matrix=D, Sort=F, DiagType=Zero
+   add_test(FuncTest.${FUNCTION}-Symmetric-FullySorted-Matrix-D-Uplo-U-ZeroDiag-${PREC}-100x100x500xalpha-3xbeta--1.5xBase-1 ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=100 --sizen=100 --sizennz=500 --alpha=3 --beta=-1.5 --indexbaseA=1 --matrixtypeA=S --transposeA=N --matrix=D --sort=F --uplo=U --diag=Z --verify=1 --iters=1)
+   add_test(FuncTest.${FUNCTION}H-Symmetric-FullySorted-Matrix-D-Uplo-U-ZeroDiag-${PREC}-100x100x500xalpha-3xbeta--1.5xBase-1 ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=100 --sizen=100 --sizennz=500 --alpha=3 --beta=-1.5 --indexbaseA=1 --matrixtypeA=S --transposeA=H --matrix=D --sort=F --uplo=U --diag=Z --verify=1 --iters=1)
+
+    # Triangular matrix type
+    # Uplo=U, Sort=F, DiagType=unit
+    add_test(FuncTest.${FUNCTION}-Triangular-FullySorted-Matrix-T-Uplo-U-UnitDiag-${PREC}-100x100x500xalpha-3xbeta--1.5xBase-1 ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC}  --sizem=100 --sizen=100 --sizennz=500 --alpha=3 --beta=-1.5 --indexbaseA=1 --matrixtypeA=T --transposeA=N --uplo=U --matrix=T --sort=F --diag=U --verify=1 --iters=1)
+    # Uplo=U, Sort=P, DiagType=Zero
+    add_test(FuncTest.${FUNCTION}-Triangular-PartiallySorted-Matrix-T-Uplo-U-ZeroDiag-${PREC}-100x100x500xalpha-3xbeta--1.5xBase-1 ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC}  --sizem=100 --sizen=100 --sizennz=500 --alpha=3 --beta=-1.5 --indexbaseA=1 --matrixtypeA=T --transposeA=N --uplo=U --matrix=T --sort=P --diag=Z --verify=1 --iters=1)
+
+    # Hermitian matrix type
+    IF(PREC STREQUAL "c" OR PREC STREQUAL "z")
+      # Uplo=U, Matrix=D, Sort=P, DiagType=Unit
+      add_test(FuncTest.${FUNCTION}-Hermitian-PartiallySorted-Matrix-D-Uplo-U-UnitDiag-${PREC}-100x100x500xalpha-3xbeta--1.5xBase-1 ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=100 --sizen=100 --sizennz=500 --alpha=3 --beta=-1.5 --indexbaseA=1 --matrixtypeA=H --transposeA=N --matrix=D --sort=P --uplo=U --diag=U --verify=1 --iters=1)
+      add_test(FuncTest.${FUNCTION}T-Hermitian-PartiallySorted-Matrix-D-Uplo-U-UnitDiag-${PREC}-100x100x500xalpha-3xbeta--1.5xBase-1 ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=100 --sizen=100 --sizennz=500 --alpha=3 --beta=-1.5 --indexbaseA=1 --matrixtypeA=H --transposeA=T --matrix=D --sort=P --uplo=U --diag=U --verify=1 --iters=1)
+      # Uplo=U, Matrix=D, Sort=F, DiagType=Zero
+      add_test(FuncTest.${FUNCTION}-Hermitian-FullySorted-Matrix-D-Uplo-U-ZeroDiag-${PREC}-100x100x500xalpha-3xbeta--1.5xBase-1 ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=100 --sizen=100 --sizennz=500 --alpha=3 --beta=-1.5 --indexbaseA=1 --matrixtypeA=H --transposeA=N --matrix=D --sort=F --uplo=U --diag=Z --verify=1 --iters=1)
+      add_test(FuncTest.${FUNCTION}T-Hermitian-FullySorted-Matrix-D-Uplo-U-ZeroDiag-${PREC}-100x100x500xalpha-3xbeta--1.5xBase-1 ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=100 --sizen=100 --sizennz=500 --alpha=3 --beta=-1.5 --indexbaseA=1 --matrixtypeA=H --transposeA=T --matrix=D --sort=F --uplo=U --diag=Z --verify=1 --iters=1)
+    ENDIF()
+
   endforeach(PREC)
 endforeach(FUNCTION)
 

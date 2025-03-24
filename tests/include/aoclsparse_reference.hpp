@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -89,12 +89,14 @@ inline aoclsparse_status ref_csr2csc(aoclsparse_index_base base,
  * - zero/one-based indexing
  * - L/U triangle
  * - non-unit/unit diagonal/zero diagonal
+ * - conjugate transpose operation
  * CSR doesn't need to be sorted in rows and doesn't need to contain only
  * the given triangle, the unuseful parts (and out of bounds indices)
  * are ignored. Duplicate entries are summed.
  */
 template <typename T>
-aoclsparse_status ref_csrmvsym(T                     alpha,
+aoclsparse_status ref_csrmvsym(aoclsparse_operation  op,
+                               T                     alpha,
                                aoclsparse_int        m,
                                const T              *csr_val,
                                const aoclsparse_int *csr_col_ind,
@@ -134,9 +136,10 @@ aoclsparse_status ref_csrmvsym(T                     alpha,
         if(csr_row_ptr[i] > csr_row_ptr[i + 1])
             return aoclsparse_status_invalid_value;
 
-    bool is_lower  = fill == aoclsparse_fill_mode_lower;
-    bool keep_diag = diag == aoclsparse_diag_type_non_unit;
-    bool unit_diag = diag == aoclsparse_diag_type_unit;
+    bool is_lower     = fill == aoclsparse_fill_mode_lower;
+    bool keep_diag    = diag == aoclsparse_diag_type_non_unit;
+    bool unit_diag    = diag == aoclsparse_diag_type_unit;
+    bool is_conjugate = op == aoclsparse_operation_conjugate_transpose;
 
     if(beta == aoclsparse_numeric::zero<T>())
         for(aoclsparse_int i = 0; i < m; i++)
@@ -151,26 +154,31 @@ aoclsparse_status ref_csrmvsym(T                     alpha,
         for(aoclsparse_int idx = csr_row_ptr[i] - base; idx < idxend; idx++)
         {
             // valid indices given the specified triangle
-            aoclsparse_int j = csr_col_ind[idx] - base;
+            aoclsparse_int j   = csr_col_ind[idx] - base;
+            T              val = csr_val[idx];
+            if(is_conjugate)
+            {
+                val = aoclsparse::conj(csr_val[idx]);
+            }
             if(j >= 0 && j < i)
             {
                 if(is_lower)
                 {
-                    y[i] += alpha * csr_val[idx] * x[j];
-                    y[j] += alpha * csr_val[idx] * x[i];
+                    y[i] += alpha * val * x[j];
+                    y[j] += alpha * val * x[i];
                 }
             }
             else if(j == i)
             {
                 if(keep_diag)
-                    y[i] += alpha * csr_val[idx] * x[i];
+                    y[i] += alpha * val * x[i];
             }
             else if(j > i && j < m)
             {
                 if(!is_lower)
                 {
-                    y[i] += alpha * csr_val[idx] * x[j];
-                    y[j] += alpha * csr_val[idx] * x[i];
+                    y[i] += alpha * val * x[j];
+                    y[j] += alpha * val * x[i];
                 }
             }
         }
@@ -393,12 +401,14 @@ aoclsparse_status ref_csrmvgen(aoclsparse_operation  op,
  * - zero/one-based indexing
  * - L/U triangle
  * - non-unit/unit diagonal/zero diagonal
+ * - transpose operation
  * CSR doesn't need to be sorted in rows and doesn't need to contain only
  * the given triangle, the unuseful parts (and out of bounds indices)
  * are ignored. Duplicate entries are summed.
  */
 template <typename T>
-aoclsparse_status ref_csrmvher(T                     alpha,
+aoclsparse_status ref_csrmvher(aoclsparse_operation  op,
+                               T                     alpha,
                                aoclsparse_int        m,
                                const T              *csr_val,
                                const aoclsparse_int *csr_col_ind,
@@ -438,9 +448,10 @@ aoclsparse_status ref_csrmvher(T                     alpha,
         if(csr_row_ptr[i] > csr_row_ptr[i + 1])
             return aoclsparse_status_invalid_value;
 
-    bool is_lower  = fill == aoclsparse_fill_mode_lower;
-    bool keep_diag = diag == aoclsparse_diag_type_non_unit;
-    bool unit_diag = diag == aoclsparse_diag_type_unit;
+    bool is_lower     = fill == aoclsparse_fill_mode_lower;
+    bool keep_diag    = diag == aoclsparse_diag_type_non_unit;
+    bool unit_diag    = diag == aoclsparse_diag_type_unit;
+    bool is_transpose = op == aoclsparse_operation_transpose;
 
     if(beta == aoclsparse_numeric::zero<T>())
         for(aoclsparse_int i = 0; i < m; i++)
@@ -455,13 +466,18 @@ aoclsparse_status ref_csrmvher(T                     alpha,
         for(aoclsparse_int idx = csr_row_ptr[i] - base; idx < idxend; idx++)
         {
             // valid indices given the specified triangle
-            aoclsparse_int j = csr_col_ind[idx] - base;
+            aoclsparse_int j   = csr_col_ind[idx] - base;
+            T              val = csr_val[idx];
+            if(is_transpose)
+            {
+                val = aoclsparse::conj(csr_val[idx]);
+            }
             if(j >= 0 && j < i)
             {
                 if(is_lower)
                 {
-                    y[i] += alpha * csr_val[idx] * x[j];
-                    y[j] += alpha * aoclsparse::conj(csr_val[idx]) * x[i];
+                    y[i] += alpha * val * x[j];
+                    y[j] += alpha * aoclsparse::conj(val) * x[i];
                 }
             }
             else if(j == i)
@@ -474,8 +490,8 @@ aoclsparse_status ref_csrmvher(T                     alpha,
             {
                 if(!is_lower)
                 {
-                    y[i] += alpha * csr_val[idx] * x[j];
-                    y[j] += alpha * aoclsparse::conj(csr_val[idx]) * x[i];
+                    y[i] += alpha * val * x[j];
+                    y[j] += alpha * aoclsparse::conj(val) * x[i];
                 }
             }
         }
@@ -526,15 +542,11 @@ aoclsparse_status ref_csrmv(aoclsparse_operation   op,
         return ref_csrmvgen(op, alpha, m, n, csr_val, csr_col_ind, csr_row_ptr, base, x, beta, y);
     else if(mattype == aoclsparse_matrix_type_symmetric)
     {
-        // conjugate_transpose would require conjugate kernel which is
-        // probably not needed
-        if(op == aoclsparse_operation_conjugate_transpose)
-            return aoclsparse_status_not_implemented;
         if(m != n)
             return aoclsparse_status_invalid_value;
 
         return ref_csrmvsym(
-            alpha, m, csr_val, csr_col_ind, csr_row_ptr, fill, diag, base, x, beta, y);
+            op, alpha, m, csr_val, csr_col_ind, csr_row_ptr, fill, diag, base, x, beta, y);
     }
     else if(mattype == aoclsparse_matrix_type_triangular)
     {
@@ -543,15 +555,11 @@ aoclsparse_status ref_csrmv(aoclsparse_operation   op,
     }
     else if(mattype == aoclsparse_matrix_type_hermitian)
     {
-        // transpose on hermitian matrix would require conjugate kernel which
-        // is probably not needed
-        if(op == aoclsparse_operation_transpose)
-            return aoclsparse_status_not_implemented;
         if(m != n)
             return aoclsparse_status_invalid_value;
 
         return ref_csrmvher(
-            alpha, m, csr_val, csr_col_ind, csr_row_ptr, fill, diag, base, x, beta, y);
+            op, alpha, m, csr_val, csr_col_ind, csr_row_ptr, fill, diag, base, x, beta, y);
     }
     else
         return aoclsparse_status_invalid_value;

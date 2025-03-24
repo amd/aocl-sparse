@@ -167,7 +167,8 @@ int main(int argc, char *argv[])
             "\n\t"
             "--beta=<scalar beta> \t Specifies the scalar beta (default: 0.0)"
             "\n\t"
-            "--transposeA=<N/T> \t N = no transpose, T = transpose (default: N)"
+            "--transposeA=<N/T/H> \t N = no transpose, T = transpose, H = conjugate transpose "
+            "(default: N)"
             "\n\t"
             "--transposeB=<N/T> \t N = no transpose, T = transpose (default: N)"
             "\n\t"
@@ -183,7 +184,8 @@ int main(int argc, char *argv[])
             "\n\t"
             "--indexbaseB=<0/1> \t 0 = zero-based indexing, 1 = one-based indexing (default: 0)"
             "\n\t"
-            "--diag=<N/U> \t N = non-unit diagonal, U = unit diagonal (default = N)"
+            "--diag=<N/U/Z> \t N = non-unit diagonal, U = unit diagonal, Z = zero diagonal "
+            "(default = N)"
             "\n\t"
             "--uplo=<L/U> \t L = lower fill, U = upper fill (default = L)"
             "\n\t"
@@ -339,9 +341,26 @@ int main(int argc, char *argv[])
 
     arg.baseA = (baseA == 0) ? aoclsparse_index_base_zero : aoclsparse_index_base_one;
     arg.baseB = (baseB == 0) ? aoclsparse_index_base_zero : aoclsparse_index_base_one;
-    arg.diag  = (diag == 'N') ? aoclsparse_diag_type_non_unit : aoclsparse_diag_type_unit;
     arg.uplo  = (uplo == 'L') ? aoclsparse_fill_mode_lower : aoclsparse_fill_mode_upper;
     arg.order = (order == 1) ? aoclsparse_order_column : aoclsparse_order_row;
+
+    if(diag == 'N')
+    {
+        arg.diag = aoclsparse_diag_type_non_unit;
+    }
+    else if(diag == 'U')
+    {
+        arg.diag = aoclsparse_diag_type_unit;
+    }
+    else if(diag == 'Z')
+    {
+        arg.diag = aoclsparse_diag_type_zero;
+    }
+    else
+    {
+        std::cerr << "Invalid value for --diag" << std::endl;
+        return -1;
+    }
 
     if(arg.filename != "")
     {

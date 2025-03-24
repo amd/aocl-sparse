@@ -806,7 +806,8 @@ namespace
         EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A, descr, x, &beta, y),
                   aoclsparse_status_success);
 
-        EXPECT_EQ(ref_csrmvsym(alpha,
+        EXPECT_EQ(ref_csrmvsym(trans,
+                               alpha,
                                M,
                                csr_val,
                                csr_col_ind,
@@ -896,7 +897,8 @@ namespace
         const std::complex<double> alphap = *reinterpret_cast<const std::complex<double> *>(&alpha);
         const std::complex<double> betap  = *reinterpret_cast<const std::complex<double> *>(&beta);
 
-        EXPECT_EQ(ref_csrmvsym(alphap,
+        EXPECT_EQ(ref_csrmvsym(trans,
+                               alphap,
                                M,
                                (std::complex<double> *)csr_val,
                                csr_col_ind,
@@ -959,7 +961,8 @@ namespace
         EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A, descr, x, &beta, y),
                   aoclsparse_status_success);
 
-        EXPECT_EQ(ref_csrmvsym(alpha,
+        EXPECT_EQ(ref_csrmvsym(trans,
+                               alpha,
                                M,
                                csc_val,
                                csc_row_ind,
