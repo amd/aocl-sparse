@@ -55,6 +55,6 @@ mydir=$(dirname "$0")
 for f in "$@"; do
   echo Working on $f ...
   mv $f $f~
-  "$mydir/rst_add_project.awk" -v project_name=$project_name $f~ > $f
+  gawk -f "$mydir/rst_add_project.awk" -v project_name=$project_name $f~ > $f
 done
 
