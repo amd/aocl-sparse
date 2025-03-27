@@ -21,7 +21,7 @@
 
 .. AOCL-Sparse documentation master file
 
-AMD AOCL-Sparse Library Documentation
+AOCL-Sparse
 *************************************
 
 .. _MainIntro:
