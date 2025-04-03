@@ -61,6 +61,18 @@ namespace aoclsparse
                                  bool                  fast_chck = false);
 
     template <typename T>
+    aoclsparse_status create_bsr(aoclsparse_matrix          *mat,
+                                 const aoclsparse_index_base base,
+                                 const aoclsparse_order      order,
+                                 const aoclsparse_int        bM,
+                                 const aoclsparse_int        bN,
+                                 const aoclsparse_int        block_dim,
+                                 aoclsparse_int             *row_ptr,
+                                 aoclsparse_int             *col_idx,
+                                 T                          *val,
+                                 bool                        fast_chck = false);
+
+    template <typename T>
     aoclsparse_status sp2m(aoclsparse_operation       opA,
                            const aoclsparse_mat_descr descrA,
                            const aoclsparse_matrix    A,
@@ -81,4 +93,5 @@ namespace aoclsparse
                                   aoclsparse_int end   = 0);
     } // namespace test_wrapper
 } // namespace aoclsparse
+
 #endif

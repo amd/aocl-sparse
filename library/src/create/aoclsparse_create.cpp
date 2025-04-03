@@ -108,3 +108,96 @@ aoclsparse_status aoclsparse::create_csr(aoclsparse_matrix    *mat,
                                                                  bool check_matrix);
 
 INSTANTIATE_FOR_ALL_TYPES(CRTE_CSR);
+
+/********************************************************************************
+ * \brief aoclsparse::create_bsr sets the sparse matrix in the BSR format
+ * for any data type
+ ********************************************************************************/
+template <typename T>
+aoclsparse_status aoclsparse::create_bsr(aoclsparse_matrix          *mat,
+                                         const aoclsparse_index_base base,
+                                         const aoclsparse_order      order,
+                                         const aoclsparse_int        bM,
+                                         const aoclsparse_int        bN,
+                                         const aoclsparse_int        block_dim,
+                                         aoclsparse_int             *row_ptr,
+                                         aoclsparse_int             *col_idx,
+                                         T                          *val,
+                                         bool                        fast_chck)
+{
+    aoclsparse_status status;
+    if(!mat || !row_ptr)
+        return aoclsparse_status_invalid_pointer;
+    *mat = nullptr;
+    if(block_dim <= 0)
+        return aoclsparse_status_invalid_value;
+    if(bM < 0)
+        return aoclsparse_status_invalid_size;
+
+    // Temporary pointer to an instance of the BSR matrix class.
+    aoclsparse::bsr       *bsr_mat = nullptr;
+    aoclsparse_matrix_sort mat_sort;
+    bool                   mat_fulldiag;
+    aoclsparse_int         bnnz = row_ptr[bM] - base;
+    // Validate other input parameters
+    if((status = aoclsparse_mat_check_internal(bM,
+                                               bN,
+                                               bnnz,
+                                               row_ptr,
+                                               col_idx,
+                                               val,
+                                               shape_general,
+                                               base,
+                                               mat_sort,
+                                               mat_fulldiag,
+                                               nullptr,
+                                               fast_chck))
+       != aoclsparse_status_success)
+    {
+        return status;
+    }
+
+    try
+    {
+        *mat    = new _aoclsparse_matrix;
+        bsr_mat = new aoclsparse::bsr(bM,
+                                      bN,
+                                      bnnz,
+                                      aoclsparse_bsr_mat,
+                                      base,
+                                      get_data_type<T>(),
+                                      block_dim,
+                                      order,
+                                      row_ptr,
+                                      col_idx,
+                                      val);
+        (*mat)->mats.push_back(bsr_mat);
+    }
+    catch(std::bad_alloc &)
+    {
+        delete bsr_mat;
+        delete *mat;
+        *mat = nullptr;
+        return aoclsparse_status_memory_error;
+    }
+    aoclsparse_init_mat(
+        *mat, bM * block_dim, bN * block_dim, bnnz * block_dim * block_dim, aoclsparse_bsr_mat);
+    (*mat)->val_type = get_data_type<T>();
+    (*mat)->mat_type = aoclsparse_bsr_mat;
+    (*mat)->sort     = mat_sort;
+    (*mat)->fulldiag = false;
+    return aoclsparse_status_success;
+}
+
+#define CRTE_BSR(SUF)                                                                               \
+    template DLL_PUBLIC aoclsparse_status aoclsparse::create_bsr(aoclsparse_matrix          *mat,   \
+                                                                 const aoclsparse_index_base base,  \
+                                                                 const aoclsparse_order      order, \
+                                                                 const aoclsparse_int        bM,    \
+                                                                 const aoclsparse_int        bN,    \
+                                                                 const aoclsparse_int block_dim,    \
+                                                                 aoclsparse_int      *row_ptr,      \
+                                                                 aoclsparse_int      *col_idx,      \
+                                                                 SUF                 *val,          \
+                                                                 bool                 check_matrix);
+INSTANTIATE_FOR_ALL_TYPES(CRTE_BSR);

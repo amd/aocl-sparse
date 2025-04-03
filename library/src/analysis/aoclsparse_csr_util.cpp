@@ -161,7 +161,7 @@ aoclsparse_status aoclsparse_mat_check_internal(aoclsparse_int          maj_dim,
         status = aoclsparse_status_invalid_value;
         if(error_handler)
         {
-            buffer << "Wrong csr_row_ptr[0] or csc.col_ptr[0]";
+            buffer << "Wrong ptr[0], ptr[0] must be equal to base.";
             error_handler(status, buffer.str());
         }
         return status;
@@ -171,7 +171,7 @@ aoclsparse_status aoclsparse_mat_check_internal(aoclsparse_int          maj_dim,
         status = aoclsparse_status_invalid_value;
         if(error_handler)
         {
-            buffer << "Wrong csr_row_ptr[m]!=nnz or csc.col_ptr[n]!=nnz";
+            buffer << "Wrong! ptr[m] != nnz+base";
             error_handler(status, buffer.str());
         }
         return status;
@@ -194,7 +194,7 @@ aoclsparse_status aoclsparse_mat_check_internal(aoclsparse_int          maj_dim,
             status = aoclsparse_status_invalid_value;
             if(error_handler)
             {
-                buffer << "Wrong csr_row_ptr/csc.col_ptr - not nondecreasing";
+                buffer << "Wrong ptr - not nondecreasing";
                 error_handler(status, buffer.str());
             }
             return status;

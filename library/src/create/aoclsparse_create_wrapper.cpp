@@ -49,3 +49,36 @@
     }
 
 INSTANTIATE_FOR_ALL_TYPES_SUFFIX(DEFINE_CREATE_CSR_FUNC);
+
+/********************************************************************************
+ * \brief aoclsparse_create_bsr sets the sparse matrix in the BSR format for
+ * the appropriate data type (float, double, float complex, double complex).
+ ********************************************************************************/
+// Macro to generate aoclsparse_create_*bsr functions for each type
+#define DEFINE_CREATE_BSR_FUNC(PREFIX, SUF)                                                        \
+    extern "C" aoclsparse_status aoclsparse_create_##PREFIX##bsr(aoclsparse_matrix     *mat,       \
+                                                                 aoclsparse_index_base  base,      \
+                                                                 const aoclsparse_order order,     \
+                                                                 const aoclsparse_int   bM,        \
+                                                                 const aoclsparse_int   bN,        \
+                                                                 const aoclsparse_int   block_dim, \
+                                                                 aoclsparse_int        *row_ptr,   \
+                                                                 aoclsparse_int        *col_idx,   \
+                                                                 SUF                   *val,       \
+                                                                 bool fast_chck = false)           \
+    {                                                                                              \
+        /* In-case of complex types, the val pointer is cast to std::complex<T> internally */      \
+        using internal_type = typename get_data_type<SUF>::type;                                   \
+        return aoclsparse::create_bsr(mat,                                                         \
+                                      base,                                                        \
+                                      order,                                                       \
+                                      bM,                                                          \
+                                      bN,                                                          \
+                                      block_dim,                                                   \
+                                      row_ptr,                                                     \
+                                      col_idx,                                                     \
+                                      reinterpret_cast<internal_type *>(val),                      \
+                                      fast_chck);                                                  \
+    }
+
+INSTANTIATE_FOR_ALL_TYPES_SUFFIX(DEFINE_CREATE_BSR_FUNC);

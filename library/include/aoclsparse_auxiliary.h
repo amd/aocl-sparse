@@ -416,6 +416,100 @@ aoclsparse_status aoclsparse_create_zcsr(aoclsparse_matrix         *mat,
 /**@}*/
 
 /*! \ingroup aux_module
+ *  \brief Creates a new \ref aoclsparse_matrix based on BSR (Block-compressed Sparse Row) format.
+ *
+ *  \details
+ *  \P{aoclsparse_create_?bsr} creates \ref aoclsparse_matrix in BSR format and initializes it with
+ *  input parameters passed. In BSR format, the matrix is split into a rectangular grid of square blocks of size
+ *  \p block_dim, having \p bM blocks per row and \p bN blocks per column. Each block containing at least one non-zero
+ *  is stored as a dense subblock, padded with zeros for the missing elements in the block.  All such blocks are
+ *  stored in the similar fashion to CSR where each element is a block. The elements inside each non-zero
+ *  block are either stored in row-major or column-major order based on the \p order parameter.
+ *  The input arrays are not modified by the library.
+ *
+ *  @param[out]
+ *  mat the pointer to the BSR matrix allocated in the API.
+ *  @param[in]
+ *  base    \ref aoclsparse_index_base_zero or \ref aoclsparse_index_base_one.
+ *  @param[in]
+ *  order    storage order of dense blocks. Possible options are
+ *           \ref aoclsparse_order_row and \ref aoclsparse_order_column.
+ *  @param[in]
+ *  bM           number of block rows of the BSR matrix.
+ *  @param[in]
+ *  bN           number of block columns of the BSR matrix.
+ *  @param[in]
+ *  block_dim size of the non-zero blocks of the BSR matrix.
+ *  @param[in]
+ *  row_ptr array of \p bM+1 elements that point to the start
+ *              of every row block of the BSR matrix.
+ *  @param[in]
+ *  col_idx array of elements containing the column block indices of the BSR matrix.
+ *  @param[in]
+ *  val     array containing the non-zero elements of the BSR matrix. The length of val array must be equal to the
+ *              length of \p col_idx multiplied by \p block_dim*block_dim.
+ *  @param[in]
+ *  fast_chck  flag to perform a minimal and faster validation on the input matrix. If it is set to true, it skips the
+ *              checks on diagonals/indices/sorting of the matrix.
+ *
+ *  \retval aoclsparse_status_success the operation completed successfully.
+ *  \retval aoclsparse_status_invalid_pointer at least one of \p mat, \p row_ptr, \p col_idx or \p val pointer is NULL.
+ *  \retval aoclsparse_status_invalid_size    at least one  of \p bM or \p bN has an invalid size.
+ *  \retval aoclsparse_status_invalid_value   if \p block_dim has an invalid value.
+ *  \retval aoclsparse_status_invalid_index_value  either \p col_idx or \p row_ptr value is invalid.
+ *  \retval aoclsparse_status_memory_error         memory allocation for matrix failed.
+ */
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_create_sbsr(aoclsparse_matrix          *mat,
+                                         const aoclsparse_index_base base,
+                                         const aoclsparse_order      order,
+                                         const aoclsparse_int        bM,
+                                         const aoclsparse_int        bN,
+                                         const aoclsparse_int        block_dim,
+                                         aoclsparse_int             *row_ptr,
+                                         aoclsparse_int             *col_idx,
+                                         float                      *val,
+                                         bool                        fast_chck);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_create_dbsr(aoclsparse_matrix          *mat,
+                                         const aoclsparse_index_base base,
+                                         const aoclsparse_order      order,
+                                         const aoclsparse_int        bM,
+                                         const aoclsparse_int        bN,
+                                         const aoclsparse_int        block_dim,
+                                         aoclsparse_int             *row_ptr,
+                                         aoclsparse_int             *col_idx,
+                                         double                     *val,
+                                         bool                        fast_chck);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_create_cbsr(aoclsparse_matrix          *mat,
+                                         const aoclsparse_index_base base,
+                                         const aoclsparse_order      order,
+                                         const aoclsparse_int        bM,
+                                         const aoclsparse_int        bN,
+                                         const aoclsparse_int        block_dim,
+                                         aoclsparse_int             *row_ptr,
+                                         aoclsparse_int             *col_idx,
+                                         aoclsparse_float_complex   *val,
+                                         bool                        fast_chck);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_create_zbsr(aoclsparse_matrix          *mat,
+                                         const aoclsparse_index_base base,
+                                         const aoclsparse_order      order,
+                                         const aoclsparse_int        bM,
+                                         const aoclsparse_int        bN,
+                                         const aoclsparse_int        block_dim,
+                                         aoclsparse_int             *row_ptr,
+                                         aoclsparse_int             *col_idx,
+                                         aoclsparse_double_complex  *val,
+                                         bool                        fast_chck);
+/**@}*/
+
+/*! \ingroup aux_module
  *  \brief Creates a new \ref aoclsparse_matrix based on TCSR (Triangular Compressed Sparse Row) format.
  *
  *  \details

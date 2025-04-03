@@ -3033,3 +3033,21 @@ aoclsparse_status aoclsparse_itsol_rci_solve(aoclsparse_itsol_handle   handle,
     aoclsparse_float_complex  *px = reinterpret_cast<aoclsparse_float_complex *>(x);
     return aoclsparse_itsol_c_rci_solve(handle, ircomm, pu, pv, px, rinfo);
 }
+
+#define AOCLSPARSE_CREATE_BSR(PREFIX, SUF)                                          \
+    template <>                                                                     \
+    aoclsparse_status aoclsparse_create_bsr(aoclsparse_matrix          *mat,        \
+                                            const aoclsparse_index_base base,       \
+                                            const aoclsparse_order      order,      \
+                                            const aoclsparse_int        bM,         \
+                                            const aoclsparse_int        bN,         \
+                                            const aoclsparse_int        block_dim,  \
+                                            aoclsparse_int             *row_ptr,    \
+                                            aoclsparse_int             *col_idx,    \
+                                            SUF                        *val,        \
+                                            bool                        fast_chck)  \
+    {                                                                               \
+        return aoclsparse_create_##PREFIX##bsr(                                     \
+            mat, base, order, bM, bN, block_dim, row_ptr, col_idx, val, fast_chck); \
+    }
+INSTANTIATE_FOR_ALL_TYPES_SUFFIX(AOCLSPARSE_CREATE_BSR);

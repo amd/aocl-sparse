@@ -139,7 +139,7 @@ namespace aoclsparse
     * and CSC matrices using aoclsparse_create_(s/d/c/z)csc().
     * The returned handle must be used in all subsequent library function calls
     * involving the matrix. Destroy the matrix at the end using
-    * aoclsparse_destroy_mat_structs().
+    * aoclsparse_destroy().
      *******************************************************************************/
     class csr : public base_mtx
     {
@@ -244,10 +244,79 @@ namespace aoclsparse
     };
 
     /********************************************************************************
+     * \brief bsr is a class holding the aoclsparse matrix
+     * in bsr format. It must be initialized using aoclsparse_create_(s/d/c/z)bsr()
+     * and the returned handle must be passed to all subsequent library function
+     * calls that involve the matrix.
+     * It should be destroyed at the end using aoclsparse_destroy().
+     *******************************************************************************/
+    class bsr : public base_mtx
+    {
+        // BSR matrix part
+    public:
+        // Specifies the block dimension in the matrix
+        aoclsparse_int block_dim;
+        // Specifies the storage format of the blocks. It can be row or column major ordering
+        aoclsparse_order order;
+        // BSR row pointer points to the beginning of every row block
+        aoclsparse_int *ptr = nullptr;
+        // Column pointer contains column block indices of the BSR matrix
+        aoclsparse_int *ind = nullptr;
+        // Value array containing the non-zero elements of the BSR matrix
+        void *val = nullptr;
+        // Number of block rows, block columns, and total number of non-zero blocks
+        aoclsparse_int bm, bn, bnnz;
+
+        // Default constructor
+        bsr() = default;
+        // Parameterized constructor that sets up the matrix using user-provided, pre-allocated data arrays.
+        bsr(aoclsparse_int                bm,
+            aoclsparse_int                bn,
+            aoclsparse_int                bnnz,
+            aoclsparse_matrix_format_type mat_type,
+            aoclsparse_index_base         base,
+            aoclsparse_matrix_data_type   val_type,
+            aoclsparse_int                block_dim,
+            aoclsparse_order              order,
+            aoclsparse_int               *ptr,
+            aoclsparse_int               *ind,
+            void                         *val)
+            : base_mtx(bm * block_dim,
+                       bn * block_dim,
+                       bnnz * block_dim * block_dim,
+                       mat_type,
+                       base,
+                       val_type,
+                       false)
+            , block_dim(block_dim)
+            , order(order)
+            , ptr(ptr)
+            , ind(ind)
+            , val(val)
+            , bm(bm)
+            , bn(bn)
+            , bnnz(bnnz)
+        {
+        }
+
+        // destructor
+        virtual ~bsr()
+        {
+            // Free the memory allocated if the matrix was internally allocated (is_internal = true)
+            if(is_internal)
+            {
+                delete[] ptr;
+                delete[] ind;
+                ::operator delete(val);
+            }
+        }
+    };
+
+    /********************************************************************************
      * \brief blk_csr is a class holding the aoclsparse matrix
      * in Block CSR (Compressed Sparse Row) format. It is used internally during the
      * optimization process. It should be destroyed at the end using
-     * aoclsparse_destroy_mat_structs().
+     * aoclsparse_destroy().
      *******************************************************************************/
     class blk_csr : public base_mtx
     {
@@ -455,7 +524,7 @@ namespace aoclsparse
     /********************************************************************************
      * \brief ell is a class holding the aoclsparse matrix
      * in ELL format. It is used internally during the optimization process.
-     * It should be destroyed at the end using aoclsparse_destroy_mat_structs().
+     * It should be destroyed at the end using aoclsparse_destroy().
      *******************************************************************************/
     class ell : public base_mtx
     {
@@ -495,7 +564,7 @@ namespace aoclsparse
     /********************************************************************************
      * \brief ell_csr_hyb is a class holding the aoclsparse matrix
      * in ELL-CSR hybrid format. It is used internally during the optimization process.
-     * It should be destroyed at the end using aoclsparse_destroy_mat_structs().
+     * It should be destroyed at the end using aoclsparse_destroy().
      *******************************************************************************/
     class ell_csr_hyb : public base_mtx
     {
@@ -581,7 +650,7 @@ namespace aoclsparse
     /********************************************************************************
      * \brief coo is a class holding the aoclsparse matrix
      * in COO format. It is used internally during the optimization process.
-     * It should be destroyed at the end using aoclsparse_destroy_mat_structs().
+     * It should be destroyed at the end using aoclsparse_destroy().
      *******************************************************************************/
     class coo : public base_mtx
     {
@@ -649,7 +718,7 @@ namespace aoclsparse
 /********************************************************************************
  * \brief _aoclsparse_ilu is a structure holding data members for ILU operation.
  * It is used internally during the optimization process which includes ILU factorization.
- * It should be destroyed at the end using aoclsparse_destroy_mat_structs().
+ * It should be destroyed at the end using aoclsparse_destroy().
  *******************************************************************************/
 struct _aoclsparse_ilu
 {
@@ -677,7 +746,7 @@ struct _aoclsparse_symgs
 /********************************************************************************
  * \brief _aoclsparse_matrix is a structure holding generic aoclsparse matrices.
  * It should be used by all the sparse routines to initialize the sparse matrices.
- * It should be destroyed at the end using aoclsparse_destroy_mat_structs().
+ * It should be destroyed at the end using aoclsparse_destroy().
  *******************************************************************************/
 struct _aoclsparse_matrix
 {

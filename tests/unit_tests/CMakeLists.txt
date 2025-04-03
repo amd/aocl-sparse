@@ -218,6 +218,7 @@ set(GTEST_EXECUTABLES
     extreme_value_tests
     createtcsr_tests
     tcsrmv_tests
+    createbsr_tests
 )
 
 set(AOCLSPARSE_TEST_DEPENDENCIES
