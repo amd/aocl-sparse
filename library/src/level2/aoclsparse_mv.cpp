@@ -148,7 +148,7 @@ aoclsparse_status aoclsparse::mv(aoclsparse_operation       op,
      */
     if(descr->type != aoclsparse_matrix_type_general)
     {
-        if(!A->opt_csr_ready)
+        if(!(A->opt_csr_mat.is_optimized || A->tcsr_mat.is_optimized))
         {
             if constexpr(!aoclsparse::is_dt_complex<T>())
             {
@@ -232,9 +232,9 @@ aoclsparse_status aoclsparse::mv(aoclsparse_operation       op,
                                             csr_mat->m,
                                             csr_mat->n,
                                             csr_mat->nnz,
-                                            (T *)csr_mat->csr_val,
-                                            csr_mat->csr_col_ptr,
-                                            csr_mat->csr_row_ptr,
+                                            (T *)csr_mat->val,
+                                            csr_mat->ind,
+                                            csr_mat->ptr,
                                             &descr_t,
                                             x,
                                             beta,
@@ -276,8 +276,8 @@ aoclsparse_status aoclsparse::mv(aoclsparse_operation       op,
                                           A->ell_csr_hyb_mat.ell_width,
                                           A->ell_csr_hyb_mat.ell_m,
                                           (T *)A->ell_csr_hyb_mat.csr_val,
-                                          A->csr_mat.csr_row_ptr,
-                                          A->csr_mat.csr_col_ptr,
+                                          A->csr_mat.ptr,
+                                          A->csr_mat.ind,
                                           nullptr,
                                           A->ell_csr_hyb_mat.csr_row_id_map,
                                           descr,

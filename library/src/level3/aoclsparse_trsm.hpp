@@ -108,7 +108,7 @@ aoclsparse_status
         return aoclsparse_status_not_implemented;
 
     // Unpack A and check
-    if(!A->opt_csr_ready)
+    if(!A->opt_csr_mat.is_optimized)
     {
         // user did not check the matrix, call optimize
         aoclsparse_status status = aoclsparse_csr_csc_optimize<T>(A);

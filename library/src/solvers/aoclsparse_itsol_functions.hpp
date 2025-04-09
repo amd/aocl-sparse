@@ -386,7 +386,7 @@ aoclsparse_status
     T                     alpha = 1.0;
     aoclsparse_int        avxversion, i;
     aoclsparse_status     status;
-    T                    *aval = static_cast<T *>(A->opt_csr_mat.csr_val);
+    T                    *aval = static_cast<T *>(A->opt_csr_mat.val);
     aoclsparse_operation  trans;
 
     if(descr->type != aoclsparse_matrix_type_general
@@ -558,7 +558,7 @@ aoclsparse_status aoclsparse_itsol_solve(
     if(status != aoclsparse_status_success)
         return status;
 
-    if(!mat->opt_csr_ready)
+    if(!mat->opt_csr_mat.is_optimized)
     {
         // CG needs opt_csr to run
         status = aoclsparse_csr_csc_optimize<T>(mat);

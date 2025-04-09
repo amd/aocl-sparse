@@ -316,8 +316,8 @@ aoclsparse_status aoclsparse_add_t(const aoclsparse_operation op,
 
     aoclsparse_int *C_row_ptr = nullptr, *C_col_ptr = nullptr, C_nnz = 0;
     T              *C_val = nullptr;
-    T              *A_val = reinterpret_cast<T *>(A->csr_mat.csr_val);
-    T              *B_val = reinterpret_cast<T *>(B->csr_mat.csr_val);
+    T              *A_val = reinterpret_cast<T *>(A->csr_mat.val);
+    T              *B_val = reinterpret_cast<T *>(B->csr_mat.val);
 
     aoclsparse_status status = aoclsparse_status_success;
 
@@ -330,12 +330,12 @@ aoclsparse_status aoclsparse_add_t(const aoclsparse_operation op,
                                             A->nnz,
                                             B->nnz,
                                             C_nnz,
-                                            A->csr_mat.csr_row_ptr,
-                                            A->csr_mat.csr_col_ptr,
+                                            A->csr_mat.ptr,
+                                            A->csr_mat.ind,
                                             A_val,
                                             alpha,
-                                            B->csr_mat.csr_row_ptr,
-                                            B->csr_mat.csr_col_ptr,
+                                            B->csr_mat.ptr,
+                                            B->csr_mat.ind,
                                             B_val,
                                             C_row_ptr,
                                             C_col_ptr,
@@ -362,8 +362,8 @@ aoclsparse_status aoclsparse_add_t(const aoclsparse_operation op,
                                                  A->nnz,
                                                  A->base,
                                                  A->base,
-                                                 A->csr_mat.csr_row_ptr,
-                                                 A->csr_mat.csr_col_ptr,
+                                                 A->csr_mat.ptr,
+                                                 A->csr_mat.ind,
                                                  A_val,
                                                  temp_col_ptr.data(),
                                                  temp_row_ptr.data(),
@@ -391,8 +391,8 @@ aoclsparse_status aoclsparse_add_t(const aoclsparse_operation op,
                                             temp_col_ptr.data(),
                                             temp_val.data(),
                                             alpha,
-                                            B->csr_mat.csr_row_ptr,
-                                            B->csr_mat.csr_col_ptr,
+                                            B->csr_mat.ptr,
+                                            B->csr_mat.ind,
                                             B_val,
                                             C_row_ptr,
                                             C_col_ptr,
@@ -411,9 +411,9 @@ aoclsparse_status aoclsparse_add_t(const aoclsparse_operation op,
 
     aoclsparse_init_mat(*C, A->base, B->m, B->n, C_nnz, aoclsparse_csr_mat);
     (*C)->val_type            = get_data_type<T>();
-    (*C)->csr_mat.csr_row_ptr = C_row_ptr;
-    (*C)->csr_mat.csr_col_ptr = C_col_ptr;
-    (*C)->csr_mat.csr_val     = C_val;
+    (*C)->csr_mat.ptr         = C_row_ptr;
+    (*C)->csr_mat.ind         = C_col_ptr;
+    (*C)->csr_mat.val         = C_val;
     (*C)->csr_mat.is_internal = true;
     return aoclsparse_status_success;
 }

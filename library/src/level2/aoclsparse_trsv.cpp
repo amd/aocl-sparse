@@ -108,7 +108,7 @@ aoclsparse_status
         return aoclsparse_status_not_implemented;
 
     // Unpack A and check
-    if(!(A->opt_csr_ready || A->opt_csc_ready))
+    if(!(A->opt_csr_mat.is_optimized || A->opt_csc_mat.is_optimized || A->tcsr_mat.is_optimized))
     {
         // user did not check the matrix, call optimize
         aoclsparse_status status;
@@ -153,7 +153,7 @@ aoclsparse_status
     else
         doid = aoclsparse::get_doid<T>(descr, transpose);
 
-    if(A->opt_csr_ready)
+    if(A->opt_csr_mat.is_optimized || A->tcsr_mat.is_optimized)
     {
         if(A->input_format == aoclsparse_tcsr_mat)
         {
@@ -177,10 +177,10 @@ aoclsparse_status
         else
         {
             //CSR
-            a    = (T *)((A->opt_csr_mat).csr_val);
-            icol = (A->opt_csr_mat).csr_col_ptr;
+            a    = (T *)((A->opt_csr_mat).val);
+            icol = (A->opt_csr_mat).ind;
             // beginning of the row
-            ilrow = (A->opt_csr_mat).csr_row_ptr;
+            ilrow = (A->opt_csr_mat).ptr;
 
             // position of the diagonal element (includes zeros) always has min(m,n) elements
             idiag = (A->opt_csr_mat).idiag;
@@ -188,13 +188,13 @@ aoclsparse_status
             iurow = (A->opt_csr_mat).iurow;
         }
     }
-    else if(A->opt_csc_ready)
+    else if(A->opt_csc_mat.is_optimized)
     {
         //CSC
         a    = (T *)((A->opt_csc_mat).val);
-        icol = (A->opt_csc_mat).row_idx;
+        icol = (A->opt_csc_mat).ind;
         // beginning of the col
-        ilrow = (A->opt_csc_mat).col_ptr;
+        ilrow = (A->opt_csc_mat).ptr;
 
         // position of the diagonal element (includes zeros) always has min(m,n) elements
         idiag = (A->opt_csc_mat).idiag;

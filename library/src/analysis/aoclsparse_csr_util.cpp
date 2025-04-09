@@ -104,7 +104,7 @@ aoclsparse_status aoclsparse_add_hint(aoclsparse_optimize_data  *&list,
  * min_dim      : N (cols) for CSC and M (rows) for CSR
  * nnz          : number of non-zeros
  * idx_ptr      : csr_row_ptr[M+1] for CSR and csc_mat_col_ptr[N+1] for CSC
- * indices      : csr_col_ptr[nnz] for CSR and csc_mat.row_idx[nnz] for CSC
+ * indices      : csr_col_ptr[nnz] for CSR and csc_mat.ind[nnz] for CSC
  * val          : csr_val[nnz] for CSR and csc_mat.val[nnz] for CSC
  * shape        : expecting lower/upper triangular matrix or general?
  * base         : aoclsparse_index_base_zero or aoclsparse_index_base_one

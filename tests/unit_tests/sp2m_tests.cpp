@@ -897,9 +897,9 @@ namespace
 
         // Modify the values of A and B matix value arrays.
         for(aoclsparse_int i = 0; i < A->nnz; i++)
-            ((T *)A->csr_mat.csr_val)[i] = random_generator_normal<T>();
+            ((T *)A->csr_mat.val)[i] = random_generator_normal<T>();
         for(aoclsparse_int i = 0; i < B->nnz; i++)
-            ((T *)B->csr_mat.csr_val)[i] = random_generator_normal<T>();
+            ((T *)B->csr_mat.val)[i] = random_generator_normal<T>();
 
         // Invoke sp2m with finalize stage alone.
         // Expect success as C matrix created in previous invocation

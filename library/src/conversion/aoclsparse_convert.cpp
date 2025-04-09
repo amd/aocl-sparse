@@ -1027,12 +1027,11 @@ aoclsparse_status aoclsparse_convert_csr_t(const aoclsparse_matrix    src_mat,
 
     case aoclsparse_csr_mat:
 
-        src_val = reinterpret_cast<T *>(src_mat->csr_mat.csr_val);
+        src_val = reinterpret_cast<T *>(src_mat->csr_mat.val);
         if(op == aoclsparse_operation_none)
         {
-            memcpy(
-                row_ptr, src_mat->csr_mat.csr_row_ptr, (src_mat->m + 1) * sizeof(aoclsparse_int));
-            memcpy(col_ind, src_mat->csr_mat.csr_col_ptr, src_mat->nnz * sizeof(aoclsparse_int));
+            memcpy(row_ptr, src_mat->csr_mat.ptr, (src_mat->m + 1) * sizeof(aoclsparse_int));
+            memcpy(col_ind, src_mat->csr_mat.ind, src_mat->nnz * sizeof(aoclsparse_int));
             memcpy(val, src_val, src_mat->nnz * sizeof(T));
         }
         else
@@ -1042,8 +1041,8 @@ aoclsparse_status aoclsparse_convert_csr_t(const aoclsparse_matrix    src_mat,
                                                  src_mat->nnz,
                                                  src_mat->base,
                                                  src_mat->base,
-                                                 src_mat->csr_mat.csr_row_ptr,
-                                                 src_mat->csr_mat.csr_col_ptr,
+                                                 src_mat->csr_mat.ptr,
+                                                 src_mat->csr_mat.ind,
                                                  src_val,
                                                  col_ind,
                                                  row_ptr,
@@ -1061,8 +1060,8 @@ aoclsparse_status aoclsparse_convert_csr_t(const aoclsparse_matrix    src_mat,
                                                  src_mat->nnz,
                                                  src_mat->base,
                                                  src_mat->base,
-                                                 src_mat->csc_mat.col_ptr,
-                                                 src_mat->csc_mat.row_idx,
+                                                 src_mat->csc_mat.ptr,
+                                                 src_mat->csc_mat.ind,
                                                  src_val,
                                                  col_ind,
                                                  row_ptr,
@@ -1070,8 +1069,8 @@ aoclsparse_status aoclsparse_convert_csr_t(const aoclsparse_matrix    src_mat,
         }
         else
         {
-            memcpy(row_ptr, src_mat->csc_mat.col_ptr, (src_mat->n + 1) * sizeof(aoclsparse_int));
-            memcpy(col_ind, src_mat->csc_mat.row_idx, src_mat->nnz * sizeof(aoclsparse_int));
+            memcpy(row_ptr, src_mat->csc_mat.ptr, (src_mat->n + 1) * sizeof(aoclsparse_int));
+            memcpy(col_ind, src_mat->csc_mat.ind, src_mat->nnz * sizeof(aoclsparse_int));
             memcpy(val, src_val, src_mat->nnz * sizeof(T));
         }
         break;
@@ -1102,9 +1101,9 @@ aoclsparse_status aoclsparse_convert_csr_t(const aoclsparse_matrix    src_mat,
 
     // creation of destination matrix depending on type of operation
     aoclsparse_init_mat(*dest_mat, src_mat->base, m_dest, n_dest, src_mat->nnz, aoclsparse_csr_mat);
-    (*dest_mat)->csr_mat.csr_row_ptr = row_ptr;
-    (*dest_mat)->csr_mat.csr_col_ptr = col_ind;
-    (*dest_mat)->csr_mat.csr_val     = val;
+    (*dest_mat)->csr_mat.ptr         = row_ptr;
+    (*dest_mat)->csr_mat.ind         = col_ind;
+    (*dest_mat)->csr_mat.val         = val;
     (*dest_mat)->val_type            = get_data_type<T>();
     (*dest_mat)->csr_mat.is_internal = true;
     return status;

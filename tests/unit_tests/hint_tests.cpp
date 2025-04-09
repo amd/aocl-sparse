@@ -169,10 +169,9 @@ namespace
     {
         aoclsparse_int dim = (std::min)(A->n, A->m);
         ASSERT_EQ(A->opt_csr_mat.is_internal, sol.opt_csr_is_internal);
-        EXPECT_EQ_VEC(A->m + 1, A->opt_csr_mat.csr_row_ptr, sol.icrow);
-        EXPECT_EQ_VEC(A->opt_csr_mat.csr_row_ptr[A->m], A->opt_csr_mat.csr_col_ptr, sol.icol);
-        EXPECT_DOUBLE_EQ_VEC(
-            A->opt_csr_mat.csr_row_ptr[A->m], (double *)A->opt_csr_mat.csr_val, sol.aval);
+        EXPECT_EQ_VEC(A->m + 1, A->opt_csr_mat.ptr, sol.icrow);
+        EXPECT_EQ_VEC(A->opt_csr_mat.ptr[A->m], A->opt_csr_mat.ind, sol.icol);
+        EXPECT_DOUBLE_EQ_VEC(A->opt_csr_mat.ptr[A->m], (double *)A->opt_csr_mat.val, sol.aval);
         EXPECT_EQ_VEC(dim, A->opt_csr_mat.idiag, sol.idiag);
         EXPECT_EQ_VEC(dim, A->opt_csr_mat.iurow, sol.iurow);
     }

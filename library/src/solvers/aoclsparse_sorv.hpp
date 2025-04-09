@@ -39,9 +39,9 @@ aoclsparse_status aoclsparse_csr_check_full_diag(aoclsparse_int        size,
 {
     bool            full_diag = false;
     aoclsparse_int  i, j, idxstart, idxend, col;
-    aoclsparse_int *row_ptr = csr_mat->csr_row_ptr;
-    aoclsparse_int *col_idx = csr_mat->csr_col_ptr - base;
-    T              *csr_val = (T *)csr_mat->csr_val - base;
+    aoclsparse_int *row_ptr = csr_mat->ptr;
+    aoclsparse_int *col_idx = csr_mat->ind - base;
+    T              *csr_val = (T *)csr_mat->val - base;
     T               zero    = 0;
 
     // check for non-zero full diagonal
@@ -83,9 +83,9 @@ aoclsparse_status aoclsparse_sor_forward_sol(
     const aoclsparse_matrix A, const aoclsparse_mat_descr descr, T omega, T *x, const T *b)
 {
     aoclsparse_int  i, j, idxstart, idxend;
-    aoclsparse_int *row_ptr = A->csr_mat.csr_row_ptr;
-    aoclsparse_int *col_idx = A->csr_mat.csr_col_ptr - descr->base;
-    T              *csr_val = (T *)A->csr_mat.csr_val - descr->base;
+    aoclsparse_int *row_ptr = A->csr_mat.ptr;
+    aoclsparse_int *col_idx = A->csr_mat.ind - descr->base;
+    T              *csr_val = (T *)A->csr_mat.val - descr->base;
     T               axi;
     T               diag_ele;
     aoclsparse_int  col;
@@ -205,7 +205,7 @@ aoclsparse_status aoclsparse_sorv_t(aoclsparse_sor_type        sor_type,
             return status;
         }
         // this will not interfere with other APIs as they call aoclsparse_csr_optimize() based on
-        // opt_csr_ready before checking opt_csr_full_diag
+        // opt_csr_mat.is_optimized before checking opt_csr_full_diag
         A->opt_csr_full_diag = true;
     }
     // normalize or set x with alpha

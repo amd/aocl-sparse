@@ -39,15 +39,15 @@ namespace
 
         if(src->input_format == aoclsparse_csr_mat)
         {
-            EXPECT_EQ_VEC(src->m + 1, src->csr_mat.csr_row_ptr, dest->csr_mat.csr_row_ptr);
-            EXPECT_EQ_VEC(src->nnz, src->csr_mat.csr_col_ptr, dest->csr_mat.csr_col_ptr);
-            src_val  = src->csr_mat.csr_val;
-            dest_val = dest->csr_mat.csr_val;
+            EXPECT_EQ_VEC(src->m + 1, src->csr_mat.ptr, dest->csr_mat.ptr);
+            EXPECT_EQ_VEC(src->nnz, src->csr_mat.ind, dest->csr_mat.ind);
+            src_val  = src->csr_mat.val;
+            dest_val = dest->csr_mat.val;
         }
         else if(src->input_format == aoclsparse_csc_mat)
         {
-            EXPECT_EQ_VEC(src->nnz, src->csc_mat.row_idx, dest->csc_mat.row_idx);
-            EXPECT_EQ_VEC(src->n + 1, src->csc_mat.col_ptr, dest->csc_mat.col_ptr);
+            EXPECT_EQ_VEC(src->nnz, src->csc_mat.ind, dest->csc_mat.ind);
+            EXPECT_EQ_VEC(src->n + 1, src->csc_mat.ptr, dest->csc_mat.ptr);
             src_val  = src->csc_mat.val;
             dest_val = dest->csc_mat.val;
         }
@@ -303,8 +303,8 @@ namespace
         EXPECT_EQ(aoclsparse_copy(src, descr, &dest), aoclsparse_status_invalid_size);
 
         // val array is NULL
-        src->m               = m;
-        src->csr_mat.csr_val = NULL;
+        src->m           = m;
+        src->csr_mat.val = NULL;
         EXPECT_EQ(aoclsparse_copy(src, descr, &dest), aoclsparse_status_invalid_pointer);
         aoclsparse_destroy(&src);
         aoclsparse_destroy(&dest);
@@ -346,18 +346,18 @@ namespace
         EXPECT_EQ(aoclsparse_copy(src, descr, &dest), aoclsparse_status_invalid_size);
 
         // col_ptr array is NULL
-        src->n               = n;
-        src->csc_mat.col_ptr = NULL;
+        src->n           = n;
+        src->csc_mat.ptr = NULL;
         EXPECT_EQ(aoclsparse_copy(src, descr, &dest), aoclsparse_status_invalid_pointer);
 
         // row_idx array is NULL
-        src->csc_mat.col_ptr = col_ptr;
-        src->csc_mat.row_idx = NULL;
+        src->csc_mat.ptr = col_ptr;
+        src->csc_mat.ind = NULL;
         EXPECT_EQ(aoclsparse_copy(src, descr, &dest), aoclsparse_status_invalid_pointer);
 
         // val array is NULL
-        src->csc_mat.row_idx = row_idx;
-        src->csc_mat.val     = NULL;
+        src->csc_mat.ind = row_idx;
+        src->csc_mat.val = NULL;
         EXPECT_EQ(aoclsparse_copy(src, descr, &dest), aoclsparse_status_invalid_pointer);
         aoclsparse_destroy(&src);
         aoclsparse_destroy(&dest);

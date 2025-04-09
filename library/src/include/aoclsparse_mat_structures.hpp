@@ -130,19 +130,25 @@ namespace aoclsparse
     };
 
     /********************************************************************************
-     * \brief csr is a class holding the aoclsparse matrix
-     * in csr format. It must be initialized using aoclsparse_create_(s/d)csr()
-     * and the returned handle must be passed to all subsequent library function
-     * calls that involve the matrix.
-     * It should be destroyed at the end using aoclsparse_destroy_mat_structs().
+     * \brief csr is a class for storing AOCL Sparse matrices in CSR or CSC format.
+    * CSR matrices should be initialized using aoclsparse_create_(s/d/c/z)csr(),
+    * and CSC matrices using aoclsparse_create_(s/d/c/z)csc().
+    * The returned handle must be used in all subsequent library function calls
+    * involving the matrix. Destroy the matrix at the end using
+    * aoclsparse_destroy_mat_structs().
      *******************************************************************************/
     class csr : public base_mtx
     {
-        // CSR matrix part
+        // CSR/CSC matrix part
     public:
-        aoclsparse_int *csr_row_ptr = nullptr;
-        aoclsparse_int *csr_col_ptr = nullptr;
-        void           *csr_val     = nullptr;
+        // For CSR matrix format, 'ptr' points to csr_row_ptr
+        // For CSC matrix format, 'ptr' points to csc_col_ptr
+        aoclsparse_int *ptr = nullptr;
+        // For CSR format, 'ind' stores column indices (csr_col_ind)
+        // For CSC format, 'ind' stores row indices (csc_row_ind)
+        aoclsparse_int *ind = nullptr;
+        // 'val' stores the values of CSR/CSC matrix
+        void *val = nullptr;
         // position where the diagonal is located in every row
         aoclsparse_int *idiag = nullptr;
         // position where the first strictly upper triangle element is/would be located in every row
@@ -167,25 +173,30 @@ namespace aoclsparse
         {
             try
             {
-                // csr_row_ptr can be allocated regardless of nnz value.
-                // This enables array creation when matrix dimensions are known but nnz is not yet set.
-                csr_row_ptr = new aoclsparse_int[m + 1];
+                // row/column pointer array can be allocated regardless of nnz value
+                // This enables array creation when matrix dimensions are known but nnz is not yet set
+                // For CSC format, allocate n+1 (columns + 1) for csc_col_ptr
+                // For CSR format, allocate m+1 (rows + 1) for csr_row_ptr
+                if(mat_type == aoclsparse_csc_mat)
+                    ptr = new aoclsparse_int[n + 1];
+                else
+                    ptr = new aoclsparse_int[m + 1];
                 // Only allocate memory if nnz is valid (non-negative)
                 if(nnz >= 0)
                 {
                     // Allocate index array:
-                    // For CSR, stores column indices
-                    csr_col_ptr = new aoclsparse_int[nnz];
+                    // For CSR, stores column indices; for CSC, stores row indices
+                    ind = new aoclsparse_int[nnz];
                     // Allocate value array for matrix entries
-                    csr_val = ::operator new(data_size[val_type] * nnz);
+                    val = ::operator new(data_size[val_type] * nnz);
                 }
             }
             catch(...)
             {
                 // Clean up any allocated memory on failure
-                delete[] csr_row_ptr;
-                delete[] csr_col_ptr;
-                ::operator delete(csr_val);
+                delete[] ptr;
+                delete[] ind;
+                ::operator delete(val);
                 throw;
             }
         }
@@ -196,15 +207,15 @@ namespace aoclsparse
             aoclsparse_matrix_format_type mat_type,
             aoclsparse_index_base         base,
             aoclsparse_matrix_data_type   val_type,
-            aoclsparse_int               *row_ptr,
-            aoclsparse_int               *col_ptr,
+            aoclsparse_int               *ptr,
+            aoclsparse_int               *ind,
             void                         *val,
             aoclsparse_int               *diag = nullptr,
             aoclsparse_int               *urow = nullptr)
             : base_mtx(m, n, nnz, mat_type, base, val_type, false)
-            , csr_row_ptr(row_ptr)
-            , csr_col_ptr(col_ptr)
-            , csr_val(val)
+            , ptr(ptr)
+            , ind(ind)
+            , val(val)
             , idiag(diag)
             , iurow(urow)
         {
@@ -216,9 +227,9 @@ namespace aoclsparse
             // Free the memory allocated if the matrix was internally allocated (is_internal = true)
             if(is_internal)
             {
-                delete[] csr_row_ptr;
-                delete[] csr_col_ptr;
-                ::operator delete(csr_val);
+                delete[] ptr;
+                delete[] ind;
+                ::operator delete(val);
             }
             // idiag and iurow are always deleted, as they may be allocated for optimized matrices
             delete[] idiag;
@@ -290,6 +301,8 @@ namespace aoclsparse
         aoclsparse_int *idiag = nullptr;
         // For TCSR matrix, iurow points to the position of upper triangle element in the upper triangular part of the matrix.
         aoclsparse_int *iurow = nullptr;
+        // if optimized, set true
+        bool is_optimized = false;
     };
 
     /********************************************************************************
@@ -339,26 +352,6 @@ namespace aoclsparse
         aoclsparse_int *row_ind = nullptr;
         aoclsparse_int *col_ind = nullptr;
         void           *val     = nullptr;
-    };
-
-    /********************************************************************************
-     * \brief csc is a class holding the aoclsparse matrix
-     * in csc format. It must be initialized using aoclsparse_create_(s/d/c/z)csc()
-     * and the retured handle must be passed to all subsequent library function
-     * calls that involve the matrix.
-     * It should be destroyed at the end using aoclsparse_destroy_mat_structs().
-     *******************************************************************************/
-    class csc : public base_mtx
-    {
-        // CSC matrix part
-    public:
-        aoclsparse_int *col_ptr = nullptr;
-        aoclsparse_int *row_idx = nullptr;
-        void           *val     = nullptr;
-        // position where the diagonal is located in every column
-        aoclsparse_int *idiag = nullptr;
-        // position where the first element of the other triangle element is/would be located in every column
-        aoclsparse_int *iurow = nullptr;
     };
 }
 
@@ -464,8 +457,6 @@ struct _aoclsparse_matrix
     // It is checked, sorted in rows, has a diagonal element in each row,
     // however, some diagonal elements might have been added as zeros
     aoclsparse::csr opt_csr_mat;
-    // the matrix has been 'optimized', it can be used
-    bool opt_csr_ready = false;
     // the original matrix had full (nonzero) diagonal, so the matrix
     // is safe for TRSVs
     bool opt_csr_full_diag = false;
@@ -473,18 +464,12 @@ struct _aoclsparse_matrix
     bool blk_optimized = false;
 
     // csc matrix
-    bool            csc_mat_is_users = false;
-    aoclsparse::csc csc_mat;
+    aoclsparse::csr csc_mat;
 
     // optimized csc matrix
     // It is checked, sorted in rows, has a diagonal element in each row,
     // however, some diagonal elements might have been added as zeros
-    aoclsparse::csc opt_csc_mat;
-    // the matrix has been 'optimized', it can be used
-    bool opt_csc_ready = false;
-    // if true, user's csr_mat was fine to use so opt_csr_mat points
-    // to the same memory. Deallocate only if !opt_csr_is_users
-    bool opt_csc_is_users = false;
+    aoclsparse::csr opt_csc_mat;
 
     // used to indicate if any additional memory required further performance optimization purposes
     aoclsparse_memory_usage mem_policy = aoclsparse_memory_usage_unrestricted;

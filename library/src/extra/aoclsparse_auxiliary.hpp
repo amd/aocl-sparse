@@ -265,7 +265,7 @@ aoclsparse_status aoclsparse_update_values_t(aoclsparse_matrix A, aoclsparse_int
     switch(A->input_format)
     {
     case aoclsparse_csr_mat:
-        A_val = reinterpret_cast<T *>(A->csr_mat.csr_val);
+        A_val = reinterpret_cast<T *>(A->csr_mat.val);
         memcpy(A_val, val, len * sizeof(T));
         break;
     case aoclsparse_csc_mat:
@@ -286,8 +286,8 @@ aoclsparse_status aoclsparse_update_values_t(aoclsparse_matrix A, aoclsparse_int
 template <typename T>
 aoclsparse_status aoclsparse_copy_csc(aoclsparse_int         n,
                                       aoclsparse_int         nnz,
-                                      const aoclsparse::csc *src,
-                                      aoclsparse::csc       *dest);
+                                      const aoclsparse::csr *csc_src,
+                                      aoclsparse::csr       *csc_dest);
 
 template <typename T>
 aoclsparse_status
@@ -457,14 +457,9 @@ aoclsparse_status aoclsparse_set_value_t(aoclsparse_matrix A,
     switch(A->input_format)
     {
     case aoclsparse_csr_mat:
-        val_ptr = reinterpret_cast<T *>(A->csr_mat.csr_val);
-        status  = aoclsparse_set_csr_value(A->base,
-                                          A->csr_mat.csr_row_ptr,
-                                          A->csr_mat.csr_col_ptr,
-                                          val_ptr,
-                                          row_idx,
-                                          col_idx,
-                                          val);
+        val_ptr = reinterpret_cast<T *>(A->csr_mat.val);
+        status  = aoclsparse_set_csr_value(
+            A->base, A->csr_mat.ptr, A->csr_mat.ind, val_ptr, row_idx, col_idx, val);
         // destroy the previously optimized data
         if(status == aoclsparse_status_success)
             status = aoclsparse_destroy_opt_csr(A);
@@ -472,7 +467,7 @@ aoclsparse_status aoclsparse_set_value_t(aoclsparse_matrix A,
     case aoclsparse_csc_mat:
         val_ptr = reinterpret_cast<T *>(A->csc_mat.val);
         status  = aoclsparse_set_csr_value(
-            A->base, A->csc_mat.col_ptr, A->csc_mat.row_idx, val_ptr, col_idx, row_idx, val);
+            A->base, A->csc_mat.ptr, A->csc_mat.ind, val_ptr, col_idx, row_idx, val);
         // destroy the previously optimized data
         if(status == aoclsparse_status_success)
             status = aoclsparse_destroy_csc(A);

@@ -180,17 +180,17 @@ namespace
         EXPECT_EQ(aoclsparse_set_mv_hint(src_mat, aoclsparse_operation_none, descr, 1),
                   aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_optimize(src_mat), aoclsparse_status_success);
-        EXPECT_NE(src_mat->opt_csr_mat.csr_row_ptr, nullptr);
-        EXPECT_NE(src_mat->opt_csr_mat.csr_col_ptr, nullptr);
-        EXPECT_NE(src_mat->opt_csr_mat.csr_val, nullptr);
+        EXPECT_NE(src_mat->opt_csr_mat.ptr, nullptr);
+        EXPECT_NE(src_mat->opt_csr_mat.ind, nullptr);
+        EXPECT_NE(src_mat->opt_csr_mat.val, nullptr);
         EXPECT_NE(src_mat->opt_csr_mat.idiag, nullptr);
         EXPECT_NE(src_mat->opt_csr_mat.iurow, nullptr);
 
         // Set value, expect optimization invalidated
         ASSERT_EQ(aoclsparse_set_value(src_mat, row, col, new_val), aoclsparse_status_success);
-        ASSERT_EQ(src_mat->opt_csr_mat.csr_row_ptr, nullptr);
-        ASSERT_EQ(src_mat->opt_csr_mat.csr_col_ptr, nullptr);
-        ASSERT_EQ(src_mat->opt_csr_mat.csr_val, nullptr);
+        ASSERT_EQ(src_mat->opt_csr_mat.ptr, nullptr);
+        ASSERT_EQ(src_mat->opt_csr_mat.ind, nullptr);
+        ASSERT_EQ(src_mat->opt_csr_mat.val, nullptr);
         ASSERT_EQ(src_mat->opt_csr_mat.idiag, nullptr);
         ASSERT_EQ(src_mat->opt_csr_mat.iurow, nullptr);
 

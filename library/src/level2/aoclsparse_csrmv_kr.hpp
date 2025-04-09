@@ -1071,10 +1071,10 @@ std::enable_if_t<std::is_same_v<T, double>, aoclsparse_status>
     vb  = _mm256_set1_pd(beta);
     res = _mm256_setzero_pd();
 
-    aoclsparse_int                 *tcptr = A->csr_mat_br4.csr_col_ptr;
-    aoclsparse_int                 *rptr  = A->csr_mat_br4.csr_row_ptr;
+    aoclsparse_int                 *tcptr = A->csr_mat_br4.ind;
+    aoclsparse_int                 *rptr  = A->csr_mat_br4.ptr;
     aoclsparse_int                 *cptr;
-    double                         *tvptr = (double *)A->csr_mat_br4.csr_val;
+    double                         *tvptr = (double *)A->csr_mat_br4.val;
     const double                   *vptr;
     aoclsparse_int                  blk = 4;
     [[maybe_unused]] aoclsparse_int chunk_size
@@ -1133,19 +1133,18 @@ std::enable_if_t<std::is_same_v<T, double>, aoclsparse_status>
     {
         double result = 0;
         /*
-	   aoclsparse_int nnz = A->csr_mat_br4.csr_row_ptr[k];
+	   aoclsparse_int nnz = A->csr_mat_br4.ptr[k];
 	   for(j = 0; j < nnz; ++j)
 	   {
-	   result += ((double *)A->csr_mat_br4.csr_val)[tc] * x[A->csr_mat_br4.csr_col_ptr[tc]];
+	   result += ((double *)A->csr_mat_br4.val)[tc] * x[A->csr_mat_br4.ind[tc]];
 	   tc++;;
 	   }
 	   */
-        for(aoclsparse_int j = (A->csr_mat_br4.csr_row_ptr[k] - base);
-            j < (A->csr_mat_br4.csr_row_ptr[k + 1] - base);
+        for(aoclsparse_int j = (A->csr_mat_br4.ptr[k] - base);
+            j < (A->csr_mat_br4.ptr[k + 1] - base);
             ++j)
         {
-            result
-                += ((double *)A->csr_mat_br4.csr_val)[j] * x[A->csr_mat_br4.csr_col_ptr[j] - base];
+            result += ((double *)A->csr_mat_br4.val)[j] * x[A->csr_mat_br4.ind[j] - base];
         }
 
         if(alpha != static_cast<double>(1))

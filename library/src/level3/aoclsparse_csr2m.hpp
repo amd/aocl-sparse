@@ -225,15 +225,15 @@ aoclsparse_status aoclsparse_csr2m_nnz_count(aoclsparse_int             m,
             aoclsparse_init_mat(*C, aoclsparse_index_base_zero, n, m, nnz_C, aoclsparse_csc_mat);
             (*C)->val_type = get_data_type<T>();
             // Assign the resultant C matrix arrays to CSC format
-            (*C)->csc_mat.col_ptr = csr_row_ptr_C;
-            (*C)->csc_mat.row_idx = csr_col_ind_C;
-            (*C)->csc_mat.val     = csr_val_C;
+            (*C)->csc_mat.ptr = csr_row_ptr_C;
+            (*C)->csc_mat.ind = csr_col_ind_C;
+            (*C)->csc_mat.val = csr_val_C;
             // Allocate memory for CSR arrays here
             try
             {
-                (*C)->csr_mat.csr_row_ptr = new aoclsparse_int[n + 1];
-                (*C)->csr_mat.csr_col_ptr = new aoclsparse_int[nnz_C];
-                (*C)->csr_mat.csr_val     = ::operator new(nnz_C * sizeof(T));
+                (*C)->csr_mat.ptr = new aoclsparse_int[n + 1];
+                (*C)->csr_mat.ind = new aoclsparse_int[nnz_C];
+                (*C)->csr_mat.val = ::operator new(nnz_C * sizeof(T));
             }
             catch(std::bad_alloc &)
             {
@@ -246,11 +246,11 @@ aoclsparse_status aoclsparse_csr2m_nnz_count(aoclsparse_int             m,
         else
         {
             aoclsparse_init_mat(*C, aoclsparse_index_base_zero, m, n, nnz_C, aoclsparse_csr_mat);
-            (*C)->input_format        = aoclsparse_csr_mat;
-            (*C)->val_type            = get_data_type<T>();
-            (*C)->csr_mat.csr_row_ptr = csr_row_ptr_C;
-            (*C)->csr_mat.csr_col_ptr = csr_col_ind_C;
-            (*C)->csr_mat.csr_val     = csr_val_C;
+            (*C)->input_format = aoclsparse_csr_mat;
+            (*C)->val_type     = get_data_type<T>();
+            (*C)->csr_mat.ptr  = csr_row_ptr_C;
+            (*C)->csr_mat.ind  = csr_col_ind_C;
+            (*C)->csr_mat.val  = csr_val_C;
         }
         (*C)->csr_mat.is_internal = true;
     }
@@ -294,8 +294,8 @@ aoclsparse_status aoclsparse_csr2m_finalize(aoclsparse_int             m_a,
         return aoclsparse_status_invalid_pointer;
     }
 
-    if(((*C)->csr_mat.csr_row_ptr == nullptr) || ((*C)->csr_mat.csr_col_ptr == nullptr)
-       || ((*C)->csr_mat.csr_val == nullptr))
+    if(((*C)->csr_mat.ptr == nullptr) || ((*C)->csr_mat.ind == nullptr)
+       || ((*C)->csr_mat.val == nullptr))
     {
         return aoclsparse_status_invalid_pointer;
     }
@@ -314,11 +314,11 @@ aoclsparse_status aoclsparse_csr2m_finalize(aoclsparse_int             m_a,
     {
         m = (*C)->n;
         n = (*C)->m;
-        if(((*C)->csc_mat.col_ptr == nullptr) || ((*C)->csc_mat.row_idx == nullptr)
+        if(((*C)->csc_mat.ptr == nullptr) || ((*C)->csc_mat.ind == nullptr)
            || ((*C)->csc_mat.val == nullptr))
             return aoclsparse_status_invalid_pointer;
-        csr_row_ptr_C = (*C)->csc_mat.col_ptr;
-        csr_col_ind_C = (*C)->csc_mat.row_idx;
+        csr_row_ptr_C = (*C)->csc_mat.ptr;
+        csr_col_ind_C = (*C)->csc_mat.ind;
         csr_val_C     = (T *)(*C)->csc_mat.val;
     }
     // For A*B, At*B and A*Bt, Check for valid CSR arrays pointers
@@ -327,9 +327,9 @@ aoclsparse_status aoclsparse_csr2m_finalize(aoclsparse_int             m_a,
     {
         m             = (*C)->m;
         n             = (*C)->n;
-        csr_row_ptr_C = (*C)->csr_mat.csr_row_ptr;
-        csr_col_ind_C = (*C)->csr_mat.csr_col_ptr;
-        csr_val_C     = (T *)(*C)->csr_mat.csr_val;
+        csr_row_ptr_C = (*C)->csr_mat.ptr;
+        csr_col_ind_C = (*C)->csr_mat.ind;
+        csr_val_C     = (T *)(*C)->csr_mat.val;
     }
 
     // Check if C matrix sizes retrieved from matrix structure is valid
@@ -445,9 +445,9 @@ aoclsparse_status aoclsparse_csr2m_finalize(aoclsparse_int             m_a,
                                                  csr_row_ptr_C,
                                                  csr_col_ind_C,
                                                  csr_val_C,
-                                                 (*C)->csr_mat.csr_col_ptr,
-                                                 (*C)->csr_mat.csr_row_ptr,
-                                                 (T *)(*C)->csr_mat.csr_val);
+                                                 (*C)->csr_mat.ind,
+                                                 (*C)->csr_mat.ptr,
+                                                 (T *)(*C)->csr_mat.val);
             if(status != aoclsparse_status_success)
                 status = aoclsparse_status_internal_error;
             else
@@ -594,10 +594,10 @@ aoclsparse_status aoclsparse_csr2m_t(aoclsparse_operation       opA,
         {
             try
             {
-                *C                        = new _aoclsparse_matrix;
-                (*C)->csr_mat.csr_row_ptr = new aoclsparse_int[m_a + 1]();
-                (*C)->csr_mat.csr_col_ptr = new aoclsparse_int[0];
-                (*C)->csr_mat.csr_val     = ::operator new(0);
+                *C                = new _aoclsparse_matrix;
+                (*C)->csr_mat.ptr = new aoclsparse_int[m_a + 1]();
+                (*C)->csr_mat.ind = new aoclsparse_int[0];
+                (*C)->csr_mat.val = ::operator new(0);
             }
             catch(std::bad_alloc &)
             {
@@ -624,12 +624,12 @@ aoclsparse_status aoclsparse_csr2m_t(aoclsparse_operation       opA,
     // A * B , Retrieve A and B CSR arrays
     if(opflag == 0)
     {
-        csr_row_ptr_A = A->csr_mat.csr_row_ptr;
-        csr_col_ind_A = A->csr_mat.csr_col_ptr;
-        csr_val_A     = (T *)A->csr_mat.csr_val;
-        csr_row_ptr_B = B->csr_mat.csr_row_ptr;
-        csr_col_ind_B = B->csr_mat.csr_col_ptr;
-        csr_val_B     = (T *)B->csr_mat.csr_val;
+        csr_row_ptr_A = A->csr_mat.ptr;
+        csr_col_ind_A = A->csr_mat.ind;
+        csr_val_A     = (T *)A->csr_mat.val;
+        csr_row_ptr_B = B->csr_mat.ptr;
+        csr_col_ind_B = B->csr_mat.ind;
+        csr_val_B     = (T *)B->csr_mat.val;
     }
     // At * B , Transpose A CSR arrays
     // Retrieve B CSR arrays
@@ -655,9 +655,9 @@ aoclsparse_status aoclsparse_csr2m_t(aoclsparse_operation       opA,
                                                                A->nnz,
                                                                A->base,
                                                                A->base,
-                                                               A->csr_mat.csr_row_ptr,
-                                                               A->csr_mat.csr_col_ptr,
-                                                               (const T *)A->csr_mat.csr_val,
+                                                               A->csr_mat.ptr,
+                                                               A->csr_mat.ind,
+                                                               (const T *)A->csr_mat.val,
                                                                csr_col_ind_A,
                                                                csr_row_ptr_A,
                                                                csr_val_A);
@@ -668,17 +668,17 @@ aoclsparse_status aoclsparse_csr2m_t(aoclsparse_operation       opA,
             delete[] csr_val_A;
             return aoclsparse_status_memory_error;
         }
-        csr_row_ptr_B = B->csr_mat.csr_row_ptr;
-        csr_col_ind_B = B->csr_mat.csr_col_ptr;
-        csr_val_B     = (T *)B->csr_mat.csr_val;
+        csr_row_ptr_B = B->csr_mat.ptr;
+        csr_col_ind_B = B->csr_mat.ind;
+        csr_val_B     = (T *)B->csr_mat.val;
     }
     // A * Bt , Transpose B CSR arrays
     // Retrieve A CSR arrays
     else if(opflag == 2)
     {
-        csr_row_ptr_A = A->csr_mat.csr_row_ptr;
-        csr_col_ind_A = A->csr_mat.csr_col_ptr;
-        csr_val_A     = (T *)A->csr_mat.csr_val;
+        csr_row_ptr_A = A->csr_mat.ptr;
+        csr_col_ind_A = A->csr_mat.ind;
+        csr_val_A     = (T *)A->csr_mat.val;
         try
         {
             csr_row_ptr_B = new aoclsparse_int[B->n + 1];
@@ -699,9 +699,9 @@ aoclsparse_status aoclsparse_csr2m_t(aoclsparse_operation       opA,
                                                                B->nnz,
                                                                B->base,
                                                                B->base,
-                                                               B->csr_mat.csr_row_ptr,
-                                                               B->csr_mat.csr_col_ptr,
-                                                               (const T *)B->csr_mat.csr_val,
+                                                               B->csr_mat.ptr,
+                                                               B->csr_mat.ind,
+                                                               (const T *)B->csr_mat.val,
                                                                csr_col_ind_B,
                                                                csr_row_ptr_B,
                                                                csr_val_B);
@@ -717,12 +717,12 @@ aoclsparse_status aoclsparse_csr2m_t(aoclsparse_operation       opA,
     // Swap descriptors and operations of A and B
     else if(opflag == 3)
     {
-        csr_row_ptr_A = B->csr_mat.csr_row_ptr;
-        csr_col_ind_A = B->csr_mat.csr_col_ptr;
-        csr_val_A     = (T *)B->csr_mat.csr_val;
-        csr_row_ptr_B = A->csr_mat.csr_row_ptr;
-        csr_col_ind_B = A->csr_mat.csr_col_ptr;
-        csr_val_B     = (T *)A->csr_mat.csr_val;
+        csr_row_ptr_A = B->csr_mat.ptr;
+        csr_col_ind_A = B->csr_mat.ind;
+        csr_val_A     = (T *)B->csr_mat.val;
+        csr_row_ptr_B = A->csr_mat.ptr;
+        csr_col_ind_B = A->csr_mat.ind;
+        csr_val_B     = (T *)A->csr_mat.val;
         _aoclsparse_mat_descr tmp;
         tmp                       = descrA_t;
         descrA_t                  = descrB_t;

@@ -60,12 +60,12 @@ inline aoclsparse_status
     aoclsparse_int        base_b = B->base;
     const T              *val_a, *val_b;
     m_a      = A->m;
-    rowp_a   = A->csr_mat.csr_row_ptr;
-    colidx_a = A->csr_mat.csr_col_ptr - base_a;
-    rowp_b   = B->csr_mat.csr_row_ptr;
-    colidx_b = B->csr_mat.csr_col_ptr - base_b;
-    val_a    = (T *)A->csr_mat.csr_val - base_a;
-    val_b    = (T *)B->csr_mat.csr_val - base_b;
+    rowp_a   = A->csr_mat.ptr;
+    colidx_a = A->csr_mat.ind - base_a;
+    rowp_b   = B->csr_mat.ptr;
+    colidx_b = B->csr_mat.ind - base_b;
+    val_a    = (T *)A->csr_mat.val - base_a;
+    val_b    = (T *)B->csr_mat.val - base_b;
 
     aoclsparse_int i, j, k;
     aoclsparse_int ci;
@@ -141,12 +141,12 @@ inline aoclsparse_status
     aoclsparse_int        base_b = B->base;
     const T              *val_a, *val_b;
     m_a      = A->m;
-    rowp_a   = A->csr_mat.csr_row_ptr;
-    colidx_a = A->csr_mat.csr_col_ptr - base_a;
-    rowp_b   = B->csr_mat.csr_row_ptr;
-    colidx_b = B->csr_mat.csr_col_ptr - base_b;
-    val_a    = (T *)A->csr_mat.csr_val - base_a;
-    val_b    = (T *)B->csr_mat.csr_val - base_b;
+    rowp_a   = A->csr_mat.ptr;
+    colidx_a = A->csr_mat.ind - base_a;
+    rowp_b   = B->csr_mat.ptr;
+    colidx_b = B->csr_mat.ind - base_b;
+    val_a    = (T *)A->csr_mat.val - base_a;
+    val_b    = (T *)B->csr_mat.val - base_b;
 
     aoclsparse_int i, j, k;
     aoclsparse_int ci;
@@ -339,9 +339,9 @@ inline aoclsparse_status aoclsparse_sp2md_t(const aoclsparse_operation      opA,
                                              B->nnz,
                                              descrB->base,
                                              descrB->base,
-                                             B->csr_mat.csr_row_ptr,
-                                             B->csr_mat.csr_col_ptr,
-                                             static_cast<T *>(B->csr_mat.csr_val),
+                                             B->csr_mat.ptr,
+                                             B->csr_mat.ind,
+                                             static_cast<T *>(B->csr_mat.val),
                                              csr_col_ind_B_op.data(),
                                              csr_row_ptr_B_op.data(),
                                              csr_val_B_op.data());
