@@ -157,6 +157,8 @@ foreach(FUNCTION "optmv")
     IF(PREC STREQUAL "c" OR PREC STREQUAL "z")
       add_test(FuncTest.${FUNCTION}H-General-PartiallySorted-Matrix-D-${PREC}-100x100x500xalpha-3xbeta--1.5xBase-1 ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=100 --sizen=100 --sizennz=500 --alpha=3 --beta=-1.5 --indexbaseA=1 --transposeA=H --matrix=D --sort=P --verify=1 --iters=1 --mem=U)
     ENDIF()
+    # Matrix = R, Sort = P
+    add_test(FuncTest.${FUNCTION}-General-PartiallySorted-Matrix-R-${PREC}-100x100x500xalpha-3xbeta--1.5xBase-1 ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=47 --sizen=47 --sizennz=513 --alpha=3 --beta=-1.5 --indexbaseA=1 --transposeA=N --matrix=R --sort=P --verify=1 --iters=1 --mem=U)
     # Rectangular matrix: Matrix = D, Sort = F
     add_test(FuncTest.${FUNCTION}-General-FullySorted-Matrix-D-${PREC}-29x47x500xalpha-3xbeta--1.5xBase-1 ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=29 --sizen=47 --sizennz=500 --alpha=3 --beta=-1.5 --indexbaseA=1 --transposeA=N --matrix=D --sort=F --verify=1 --iters=1 --mem=U)
     add_test(FuncTest.${FUNCTION}T-General-FullySorted-Matrix-D-${PREC}-29x47x500xalpha-3xbeta--1.5xBase-1 ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=29 --sizen=47 --sizennz=500 --alpha=3 --beta=-1.5 --indexbaseA=1 --transposeA=T --matrix=D --sort=F --verify=1 --iters=1 --mem=U)

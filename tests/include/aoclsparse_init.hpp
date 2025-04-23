@@ -721,7 +721,7 @@ inline void aoclsparse_shuffle_core(aoclsparse_int  start_idx,
                                     = nullptr) //optional: csr does not need it
 {
     aoclsparse_int nnzs_in_triang = end_idx - start_idx;
-    if(nnzs_in_triang < 2)
+    if(start_idx < 0 || nnzs_in_triang < 2)
     {
         //quick exit
         return;
