@@ -32,7 +32,7 @@ cmake -S . -B <build_directory> -T clangcl -G "Visual Studio 17 2022" -DCMAKE_CX
 #   BUILD_UNIT_TESTS      	 - build unit tests (Default: OFF)
 #   BUILD_CLIENTS_BENCHMARKS - build benchmarks (Default: OFF)
 #   BUILD_DOCS               - build the PDF documentation (Default: OFF)
-#   USE_AVX512               - AVX512 Support (Default: OFF)
+#   USE_AVX512               - AVX512 Support (Default: ON)
 ```
 6. Export the paths for AOCL-BLAS, AOCL-LAPACK and AOCL-UTILS libraries.
 ```
@@ -167,6 +167,10 @@ The updated documentation can be found under the `aocl-sparse/docs/sphinx` direc
 **Note** Sphinx based document generation is supported only on Linux
 **Note** The document generation process requires a recent copy of `Doxygen`, a
 LaTeX distribution with `pdflatex`,`sed`, python with `rocm-docs-core`, `breathe`, `sphinx` and `sphinxcontrib.bibtex`
+
+## Minimum architecture support
+
+This library requires a minimum of x86 architecture with AVX2 extensions.
 
 ## License
 The [license](LICENSE.md) file can be found in the main `aocl-sparse` directory.
