@@ -23,8 +23,8 @@
 #include "aoclsparse.h"
 #include "common_data_utils.h"
 #include "gtest/gtest.h"
-#include "aoclsparse.hpp"
 #include "aoclsparse_init.hpp"
+#include "aoclsparse_interface.hpp"
 namespace
 {
 #define CSR 0

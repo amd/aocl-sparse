@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,12 +26,12 @@
 #define TESTING_ELLMV_HPP
 
 #include "aoclsparse_convert.h"
-#include "aoclsparse.hpp"
 #include "aoclsparse_arguments.hpp"
 #include "aoclsparse_check.hpp"
 #include "aoclsparse_flops.hpp"
 #include "aoclsparse_gbyte.hpp"
 #include "aoclsparse_init.hpp"
+#include "aoclsparse_interface.hpp"
 #include "aoclsparse_random.hpp"
 #include "aoclsparse_test.hpp"
 #include "aoclsparse_utility.hpp"

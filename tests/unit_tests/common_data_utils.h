@@ -23,7 +23,7 @@
 #include "aoclsparse.h"
 #include "aoclsparse_descr.h"
 #include "gtest/gtest.h"
-#include "aoclsparse.hpp"
+#include "aoclsparse_interface.hpp"
 #include "aoclsparse_mat_structures.hpp" // FIXME: library internal header used for testing
 #include "aoclsparse_reference.hpp"
 

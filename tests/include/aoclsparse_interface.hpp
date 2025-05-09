@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020-2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,13 +22,13 @@
  * ************************************************************************ */
 
 /*! \file
- *  \brief aoclsparse.hpp exposes C++ templated Sparse Linear Algebra interface
+ *  \brief aoclsparse_interface.hpp exposes C++ templated Sparse Linear Algebra interface
  *  with only the precision templated.
  */
 
 #pragma once
-#ifndef AOCLSPARSE_HPP
-#define AOCLSPARSE_HPP
+#ifndef AOCLSPARSE_INTERFACE_HPP
+#define AOCLSPARSE_INTERFACE_HPP
 
 #include "aoclsparse.h"
 #include "aoclsparse_utils.hpp"
@@ -571,4 +571,4 @@ aoclsparse_status aoclsparse_itsol_rci_solve(aoclsparse_itsol_handle   handle,
                                              T                        *x,
                                              tolerance_t<T>            rinfo[100]);
 
-#endif /*AOCLSPARSE_HPP*/
+#endif /*AOCLSPARSE_INTERFACE_HPP*/

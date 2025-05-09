@@ -22,7 +22,7 @@
  * ************************************************************************ */
 
 #include "aoclsparse.h"
-#include "aoclsparse.hpp"
+#include "aoclsparse_interface.hpp"
 
 #include <complex>
 template <>
