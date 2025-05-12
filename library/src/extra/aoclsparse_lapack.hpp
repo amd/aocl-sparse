@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024-2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,6 +33,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcomment" // for libflame header
 #pragma GCC diagnostic ignored "-Wunused-parameter" // for blis header
+#pragma GCC diagnostic ignored "-Wtype-limits" // for blis header
 #include "cblas.hh"
 #include "libflame_interface.hh"
 #pragma GCC diagnostic pop

@@ -79,7 +79,10 @@
 #include "testing_complex_mtx_load.hpp"
 
 //aocl utils
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wignored-qualifiers"
 #include "Au/Cpuid/X86Cpu.hh"
+#pragma GCC diagnostic pop
 
 int main(int argc, char *argv[])
 {

@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,18 +20,23 @@
  * THE SOFTWARE.
  *
  * ************************************************************************ */
-#ifndef AOCLSPARSE_L2_HPP
-#define AOCLSPARSE_L2_HPP
+#ifndef AOCLSPARSE_HPP
+#define AOCLSPARSE_HPP
+#pragma once
 #include "aoclsparse.h"
 
-// Extern declaration of L2 dispatcher(s)
-template <typename T>
-aoclsparse_status aoclsparse_mv_t(aoclsparse_operation       op,
-                                  const T                   *alpha,
-                                  aoclsparse_matrix          A,
-                                  const aoclsparse_mat_descr descr,
-                                  const T                   *x,
-                                  const T                   *beta,
-                                  T                         *y);
-
+namespace aoclsparse
+{
+    // Extern declaration of L2 dispatcher(s)
+    template <typename T>
+    aoclsparse_status trsv(const aoclsparse_operation transpose,
+                           const T                    alpha,
+                           aoclsparse_matrix          A,
+                           const aoclsparse_mat_descr descr,
+                           const T                   *b,
+                           const aoclsparse_int       incb,
+                           T                         *x,
+                           const aoclsparse_int       incx,
+                           aoclsparse_int             kid = -1);
+}
 #endif

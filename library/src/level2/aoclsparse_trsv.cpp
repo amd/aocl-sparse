@@ -21,9 +21,9 @@
  *
  * ************************************************************************ */
 
-#include "aoclsparse.h"
 #include "aoclsparse_context.h"
 #include "aoclsparse_descr.h"
+#include "aoclsparse.hpp"
 #include "aoclsparse_cntx_dispatcher.hpp"
 #include "aoclsparse_csr_util.hpp"
 #include "aoclsparse_l2.hpp"
@@ -36,23 +36,23 @@
 #include <type_traits>
 
 /* Triangular Solver (TRSV) dispatcher
-  * ============================
-  * TRSV dispatcher and various templated and vectorized triangular solve kernels
-  * Solves A*x = alpha*b or A'*x = alpha*b with A lower (L) or upper (U) triangular.
-  * Optimized version, requires A to have been previously "optimized". If A is not
-  * optimized previously by user, it is optimized on the fly.
-  */
+ * ===================================
+ * TRSV dispatcher and various templated and vectorized triangular solve kernels
+ * Solves A*x = alpha*b or A'*x = alpha*b with A lower (L) or upper (U) triangular.
+ * Optimized version, requires A to have been previously "optimized". If A is not
+ * optimized previously by user, it is optimized on the fly.
+ */
 template <typename T>
 aoclsparse_status
-    aoclsparse_trsv(const aoclsparse_operation transpose, /* matrix operation */
-                    const T                    alpha, /* scalar for rescaling RHS */
-                    aoclsparse_matrix          A, /* matrix data */
-                    const aoclsparse_mat_descr descr, /* matrix type, fill_mode, diag type, base */
-                    const T                   *b, /* RHS */
-                    const aoclsparse_int       incb, /* Stride for B */
-                    T                         *x, /* solution */
-                    const aoclsparse_int       incx, /* Stride for X */
-                    aoclsparse_int             kid /* user request of Kernel ID (kid) to use */)
+    aoclsparse::trsv(const aoclsparse_operation transpose, /* matrix operation */
+                     const T                    alpha, /* scalar for rescaling RHS */
+                     aoclsparse_matrix          A, /* matrix data */
+                     const aoclsparse_mat_descr descr, /* matrix type, fill_mode, diag type, base */
+                     const T                   *b, /* RHS */
+                     const aoclsparse_int       incb, /* Stride for B */
+                     T                         *x, /* solution */
+                     const aoclsparse_int       incx, /* Stride for X */
+                     aoclsparse_int             kid /* user request of Kernel ID (kid) to use */)
 {
     // Quick initial checks
     if(!A || !x || !b || !descr)
@@ -415,16 +415,17 @@ aoclsparse_status
     return kernel(alpha, m, base, a, icol, ilrow, ilend, b, incb, x, incx, unit);
 }
 
-#define TRSV_DISPATCHER(SUF)                                                              \
-    template aoclsparse_status aoclsparse_trsv<SUF>(const aoclsparse_operation transpose, \
-                                                    const SUF                  alpha,     \
-                                                    aoclsparse_matrix          A,         \
-                                                    const aoclsparse_mat_descr descr,     \
-                                                    const SUF                 *b,         \
-                                                    const aoclsparse_int       incb,      \
-                                                    SUF                       *x,         \
-                                                    const aoclsparse_int       incx,      \
-                                                    aoclsparse_int             kid);
+#define TRSV_DISPATCHER(SUF)                                     \
+    template DLL_PUBLIC aoclsparse_status aoclsparse::trsv<SUF>( \
+        const aoclsparse_operation transpose,                    \
+        const SUF                  alpha,                        \
+        aoclsparse_matrix          A,                            \
+        const aoclsparse_mat_descr descr,                        \
+        const SUF                 *b,                            \
+        const aoclsparse_int       incb,                         \
+        SUF                       *x,                            \
+        const aoclsparse_int       incx,                         \
+        aoclsparse_int             kid);
 
 INSTANTIATE_DISPATCHER(TRSV_DISPATCHER);
 
@@ -444,7 +445,7 @@ extern "C" aoclsparse_status aoclsparse_strsv(aoclsparse_operation       trans,
     const aoclsparse_int kid  = -1; /* auto */
     const aoclsparse_int incb = 1, incx = 1;
 
-    return aoclsparse_trsv(trans, alpha, A, descr, b, incb, x, incx, kid);
+    return aoclsparse::trsv(trans, alpha, A, descr, b, incb, x, incx, kid);
 }
 
 extern "C" aoclsparse_status aoclsparse_dtrsv(aoclsparse_operation       trans,
@@ -457,7 +458,7 @@ extern "C" aoclsparse_status aoclsparse_dtrsv(aoclsparse_operation       trans,
     const aoclsparse_int kid  = -1; /* auto */
     const aoclsparse_int incb = 1, incx = 1;
 
-    return aoclsparse_trsv(trans, alpha, A, descr, b, incb, x, incx, kid);
+    return aoclsparse::trsv(trans, alpha, A, descr, b, incb, x, incx, kid);
 }
 
 extern "C" aoclsparse_status aoclsparse_ctrsv(aoclsparse_operation            trans,
@@ -473,7 +474,7 @@ extern "C" aoclsparse_status aoclsparse_ctrsv(aoclsparse_operation            tr
     std::complex<float>       *xp     = reinterpret_cast<std::complex<float> *>(x);
     const aoclsparse_int       incb = 1, incx = 1;
 
-    return aoclsparse_trsv(trans, *alphap, A, descr, bp, incb, xp, incx, kid);
+    return aoclsparse::trsv(trans, *alphap, A, descr, bp, incb, xp, incx, kid);
 }
 
 extern "C" aoclsparse_status aoclsparse_ztrsv(aoclsparse_operation             trans,
@@ -489,7 +490,7 @@ extern "C" aoclsparse_status aoclsparse_ztrsv(aoclsparse_operation             t
     std::complex<double>       *xp     = reinterpret_cast<std::complex<double> *>(x);
     const aoclsparse_int        incb = 1, incx = 1;
 
-    return aoclsparse_trsv(trans, *alphap, A, descr, bp, incb, xp, incx, kid);
+    return aoclsparse::trsv(trans, *alphap, A, descr, bp, incb, xp, incx, kid);
 }
 
 extern "C" aoclsparse_status aoclsparse_strsv_strided(aoclsparse_operation       trans,
@@ -503,7 +504,7 @@ extern "C" aoclsparse_status aoclsparse_strsv_strided(aoclsparse_operation      
 {
     const aoclsparse_int kid = -1; /* auto */
 
-    return aoclsparse_trsv(trans, alpha, A, descr, b, incb, x, incx, kid);
+    return aoclsparse::trsv(trans, alpha, A, descr, b, incb, x, incx, kid);
 }
 
 extern "C" aoclsparse_status aoclsparse_dtrsv_strided(aoclsparse_operation       trans,
@@ -517,7 +518,7 @@ extern "C" aoclsparse_status aoclsparse_dtrsv_strided(aoclsparse_operation      
 {
     const aoclsparse_int kid = -1; /* auto */
 
-    return aoclsparse_trsv(trans, alpha, A, descr, b, incb, x, incx, kid);
+    return aoclsparse::trsv(trans, alpha, A, descr, b, incb, x, incx, kid);
 }
 
 extern "C" aoclsparse_status aoclsparse_ctrsv_strided(aoclsparse_operation            trans,
@@ -534,7 +535,7 @@ extern "C" aoclsparse_status aoclsparse_ctrsv_strided(aoclsparse_operation      
     const std::complex<float> *bp     = reinterpret_cast<const std::complex<float> *>(b);
     std::complex<float>       *xp     = reinterpret_cast<std::complex<float> *>(x);
 
-    return aoclsparse_trsv(trans, *alphap, A, descr, bp, incb, xp, incx, kid);
+    return aoclsparse::trsv(trans, *alphap, A, descr, bp, incb, xp, incx, kid);
 }
 
 extern "C" aoclsparse_status aoclsparse_ztrsv_strided(aoclsparse_operation             trans,
@@ -551,7 +552,7 @@ extern "C" aoclsparse_status aoclsparse_ztrsv_strided(aoclsparse_operation      
     const std::complex<double> *bp     = reinterpret_cast<const std::complex<double> *>(b);
     std::complex<double>       *xp     = reinterpret_cast<std::complex<double> *>(x);
 
-    return aoclsparse_trsv(trans, *alphap, A, descr, bp, incb, xp, incx, kid);
+    return aoclsparse::trsv(trans, *alphap, A, descr, bp, incb, xp, incx, kid);
 }
 
 extern "C" aoclsparse_status aoclsparse_strsv_kid(aoclsparse_operation       trans,
@@ -564,7 +565,7 @@ extern "C" aoclsparse_status aoclsparse_strsv_kid(aoclsparse_operation       tra
 {
     const aoclsparse_int incb = 1, incx = 1;
 
-    return aoclsparse_trsv(trans, alpha, A, descr, b, incb, x, incx, kid);
+    return aoclsparse::trsv(trans, alpha, A, descr, b, incb, x, incx, kid);
 }
 
 extern "C" aoclsparse_status aoclsparse_dtrsv_kid(aoclsparse_operation       trans,
@@ -577,7 +578,7 @@ extern "C" aoclsparse_status aoclsparse_dtrsv_kid(aoclsparse_operation       tra
 {
     const aoclsparse_int incb = 1, incx = 1;
 
-    return aoclsparse_trsv(trans, alpha, A, descr, b, incb, x, incx, kid);
+    return aoclsparse::trsv(trans, alpha, A, descr, b, incb, x, incx, kid);
 }
 
 extern "C" aoclsparse_status aoclsparse_ctrsv_kid(aoclsparse_operation            trans,
@@ -593,7 +594,7 @@ extern "C" aoclsparse_status aoclsparse_ctrsv_kid(aoclsparse_operation          
     std::complex<float>       *xp     = reinterpret_cast<std::complex<float> *>(x);
     const aoclsparse_int       incb = 1, incx = 1;
 
-    return aoclsparse_trsv(trans, *alphap, A, descr, bp, incb, xp, incx, kid);
+    return aoclsparse::trsv(trans, *alphap, A, descr, bp, incb, xp, incx, kid);
 }
 
 extern "C" aoclsparse_status aoclsparse_ztrsv_kid(aoclsparse_operation             trans,
@@ -609,5 +610,5 @@ extern "C" aoclsparse_status aoclsparse_ztrsv_kid(aoclsparse_operation          
     std::complex<double>       *xp     = reinterpret_cast<std::complex<double> *>(x);
     const aoclsparse_int        incb = 1, incx = 1;
 
-    return aoclsparse_trsv(trans, *alphap, A, descr, bp, incb, xp, incx, kid);
+    return aoclsparse::trsv(trans, *alphap, A, descr, bp, incb, xp, incx, kid);
 }

@@ -24,9 +24,9 @@
 #ifndef AOCLSPARSE_SM_HPP
 #define AOCLSPARSE_SM_HPP
 
-#include "aoclsparse.h"
 #include "aoclsparse_context.h"
 #include "aoclsparse_descr.h"
+#include "aoclsparse.hpp"
 #include "aoclsparse_auxiliary.hpp"
 #include "aoclsparse_csr_util.hpp"
 #include "aoclsparse_l2.hpp"
@@ -149,7 +149,7 @@ aoclsparse_status
 #endif
     for(aoclsparse_int ld = 0; ld < n; ++ld)
     {
-        status = aoclsparse_trsv<T>(
+        status = aoclsparse::trsv<T>(
             transpose, alpha, A, descr, &B[ld * b_offset], incb, &X[ld * x_offset], incx, kid);
     }
 

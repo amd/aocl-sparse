@@ -38,7 +38,10 @@
 #include <vector>
 
 //aocl utils
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wignored-qualifiers"
 #include "Au/Cpuid/X86Cpu.hh"
+#pragma GCC diagnostic pop
 // Utilities to compare complex real scalars and vectors =============================================
 
 #define EXPECT_COMPLEX_EQ_VEC(n, x, y)                                           \

@@ -26,6 +26,7 @@
 #include "aoclsparse.h"
 #include "aoclsparse_descr.h"
 #include "aoclsparse_solvers.h"
+#include "aoclsparse.hpp"
 #include "aoclsparse_auxiliary.hpp"
 #include "aoclsparse_csr_util.hpp"
 #include "aoclsparse_ilu.hpp"
@@ -418,7 +419,7 @@ aoclsparse_status
         aoclsparse_set_mat_fill_mode(&descr_cpy, aoclsparse_fill_mode_upper);
         trans = aoclsparse_operation_transpose;
     }
-    status = aoclsparse_trsv(trans, alpha, A, &descr_cpy, r, 1, y, 1, avxversion);
+    status = aoclsparse::trsv(trans, alpha, A, &descr_cpy, r, 1, y, 1, avxversion);
     if(status != aoclsparse_status_success)
         return status;
 
@@ -443,7 +444,7 @@ aoclsparse_status
         aoclsparse_set_mat_fill_mode(&descr_cpy, aoclsparse_fill_mode_lower);
         trans = aoclsparse_operation_transpose;
     }
-    status = aoclsparse_trsv(trans, alpha, A, &descr_cpy, y, 1, z, 1, avxversion);
+    status = aoclsparse::trsv(trans, alpha, A, &descr_cpy, y, 1, z, 1, avxversion);
     if(status != aoclsparse_status_success)
         return status;
 

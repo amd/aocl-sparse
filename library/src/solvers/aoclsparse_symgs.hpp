@@ -24,9 +24,9 @@
 #ifndef AOCLSPARSE_SYMGS_HPP
 #define AOCLSPARSE_SYMGS_HPP
 
-#include "aoclsparse.h"
 #include "aoclsparse_context.h"
 #include "aoclsparse_descr.h"
+#include "aoclsparse.hpp"
 #include "aoclsparse_analysis.hpp"
 #include "aoclsparse_auxiliary.hpp"
 #include "aoclsparse_csr_util.hpp"
@@ -123,7 +123,7 @@ aoclsparse_status symgs_ref(aoclsparse_operation       trans,
             1. if Lower triangle only, solve (L + D)*x = b;
             2. if Upper triangle only, solve (U + D)*x = b;
         */
-        status = aoclsparse_trsv(trans, alpha_one, A, descr, b, 1, x, 1, avxversion);
+        status = aoclsparse::trsv(trans, alpha_one, A, descr, b, 1, x, 1, avxversion);
         if(status != aoclsparse_status_success)
             return status;
 
@@ -204,7 +204,7 @@ aoclsparse_status symgs_ref(aoclsparse_operation       trans,
                 (L+D)q = r
     */
     set_symgs_matrix_properties(&descr_cpy, &trans_cpy, l_fmode, dtype, l_trans);
-    status = aoclsparse_trsv(trans_cpy, alpha_one, A, &descr_cpy, r, 1, q, 1, avxversion);
+    status = aoclsparse::trsv(trans_cpy, alpha_one, A, &descr_cpy, r, 1, q, 1, avxversion);
     if(status != aoclsparse_status_success)
         return status;
     /*
@@ -231,7 +231,7 @@ aoclsparse_status symgs_ref(aoclsparse_operation       trans,
 
     set_symgs_matrix_properties(&descr_cpy, &trans_cpy, u_fmode, dtype, u_trans);
     //Step 2.3: (U + D).x = q
-    status = aoclsparse_trsv(trans_cpy, alpha_one, A, &descr_cpy, q, 1, x, 1, avxversion);
+    status = aoclsparse::trsv(trans_cpy, alpha_one, A, &descr_cpy, q, 1, x, 1, avxversion);
     if(status != aoclsparse_status_success)
         return status;
 

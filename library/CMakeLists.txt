@@ -1,5 +1,5 @@
 # ########################################################################
-# Copyright (c) 2020-2024 Advanced Micro Devices, Inc.
+# Copyright (c) 2020-2025 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -35,6 +35,7 @@ set(PUBLIC_HEADERS
     include/aoclsparse_auxiliary.h
     include/aoclsparse_solvers.h
     include/aoclsparse.h
+    include/aoclsparse.hpp
     ${PROJECT_BINARY_DIR}/include/aoclsparse_version.h
 )
 
