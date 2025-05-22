@@ -26,7 +26,6 @@
 #include "aoclsparse.hpp"
 #include "aoclsparse_cntx_dispatcher.hpp"
 #include "aoclsparse_csr_util.hpp"
-#include "aoclsparse_l2.hpp"
 #include "aoclsparse_l2_kt.hpp"
 #include "aoclsparse_mtx_dispatcher.hpp"
 #include "aoclsparse_trsv_kr.hpp"

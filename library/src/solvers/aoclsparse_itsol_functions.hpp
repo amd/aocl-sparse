@@ -33,7 +33,6 @@
 #include "aoclsparse_itsol_data.hpp"
 #include "aoclsparse_itsol_list_options.hpp"
 #include "aoclsparse_itsol_options.hpp"
-#include "aoclsparse_l2.hpp"
 #include "aoclsparse_lapack.hpp"
 #include "aoclsparse_mat_structures.hpp"
 #include "aoclsparse_utils.hpp"
@@ -1413,7 +1412,7 @@ aoclsparse_status aoclsparse_cg_solve(
         {
         case aoclsparse_rci_mv:
             // Compute v = Au
-            status = aoclsparse_mv_t<T>(aoclsparse_operation_none, &alpha, mat, descr, u, &beta, v);
+            status = aoclsparse::mv<T>(aoclsparse_operation_none, &alpha, mat, descr, u, &beta, v);
             if(status != aoclsparse_status_success)
                 // Shouldn't happen, invalid pointer/value/not implemented should be checked before
                 return aoclsparse_status_internal_error;
@@ -1532,8 +1531,8 @@ aoclsparse_status aoclsparse_gmres_solve(
         {
         case aoclsparse_rci_mv:
             // Compute v = Au
-            status = aoclsparse_mv_t<T>(
-                aoclsparse_operation_none, &alpha, mat, descr, io1, &beta, io2);
+            status
+                = aoclsparse::mv<T>(aoclsparse_operation_none, &alpha, mat, descr, io1, &beta, io2);
             if(status != aoclsparse_status_success)
                 // Shouldn't happen, invalid pointer/value/not implemented should be checked before
                 return aoclsparse_status_internal_error;

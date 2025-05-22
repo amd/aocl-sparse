@@ -23,10 +23,9 @@
 #ifndef AOCLSPARSE_DOTMV_HPP
 #define AOCLSPARSE_DOTMV_HPP
 
-#include "aoclsparse.h"
 #include "aoclsparse_descr.h"
+#include "aoclsparse.hpp"
 #include "aoclsparse_dense_dot.hpp"
-#include "aoclsparse_l2.hpp"
 #include "aoclsparse_mat_structures.hpp"
 
 template <typename T>
@@ -46,7 +45,7 @@ aoclsparse_status aoclsparse_dotmv_t(const aoclsparse_operation op,
         return aoclsparse_status_invalid_pointer;
     }
 
-    aoclsparse_status status = aoclsparse_mv_t(op, &alpha, A, descr, x, &beta, y);
+    aoclsparse_status status = aoclsparse::mv(op, &alpha, A, descr, x, &beta, y);
 
     if(status)
     {

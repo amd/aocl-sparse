@@ -38,5 +38,14 @@ namespace aoclsparse
                            T                         *x,
                            const aoclsparse_int       incx,
                            aoclsparse_int             kid = -1);
+
+    template <typename T>
+    aoclsparse_status mv(aoclsparse_operation       op,
+                         const T                   *alpha,
+                         aoclsparse_matrix          A,
+                         const aoclsparse_mat_descr descr,
+                         const T                   *x,
+                         const T                   *beta,
+                         T                         *y);
 }
 #endif

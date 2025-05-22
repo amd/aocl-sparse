@@ -26,6 +26,7 @@
 #include "aoclsparse.h"
 #include "aoclsparse_context.h"
 #include "aoclsparse_descr.h"
+#include "aoclsparse_mat_structures.hpp"
 #include "aoclsparse_utils.hpp"
 
 #include <immintrin.h>
@@ -1165,4 +1166,118 @@ std::enable_if_t<std::is_same_v<T, double>, aoclsparse_status>
     }
     return aoclsparse_status_success;
 }
+
+// Kernels for csr_mat_br4
+// -----------------------------------
+template <typename T>
+std::enable_if_t<std::is_same_v<T, double>, aoclsparse_status>
+    aoclsparse_dcsr_mat_br4([[maybe_unused]] aoclsparse_operation       op,
+                            const T                                     alpha,
+                            aoclsparse_matrix                           A,
+                            [[maybe_unused]] const aoclsparse_mat_descr descr,
+                            const T                                    *x,
+                            const T                                     beta,
+                            T                                          *y)
+{
+    using namespace aoclsparse;
+
+    __m256d               res, vvals, vx, vy, va, vb;
+    aoclsparse_index_base base = A->base;
+
+    va  = _mm256_set1_pd(alpha);
+    vb  = _mm256_set1_pd(beta);
+    res = _mm256_setzero_pd();
+
+    aoclsparse_int                 *tcptr = A->csr_mat_br4.csr_col_ptr;
+    aoclsparse_int                 *rptr  = A->csr_mat_br4.csr_row_ptr;
+    aoclsparse_int                 *cptr;
+    double                         *tvptr = (double *)A->csr_mat_br4.csr_val;
+    const double                   *vptr;
+    aoclsparse_int                  blk = 4;
+    [[maybe_unused]] aoclsparse_int chunk_size
+        = (A->m) / (blk * context::get_context()->get_num_threads());
+
+#ifdef _OPENMP
+    chunk_size = chunk_size ? chunk_size : 1;
+#pragma omp parallel for num_threads(context::get_context()->get_num_threads()) \
+    schedule(dynamic, chunk_size) private(res, vvals, vx, vy, vptr, cptr)
+#endif
+    for(aoclsparse_int i = 0; i < (A->m) / blk; i++)
+    {
+
+        aoclsparse_int r = rptr[i * blk];
+        vptr             = tvptr + r - base;
+        cptr             = tcptr + r - base;
+
+        res = _mm256_setzero_pd();
+        // aoclsparse_int nnz = rptr[i*blk];
+        aoclsparse_int nnz = rptr[i * blk + 1] - r;
+        for(aoclsparse_int j = 0; j < nnz; ++j)
+        {
+            aoclsparse_int off = j * blk;
+            vvals              = _mm256_loadu_pd((double const *)(vptr + off));
+
+            vx = _mm256_set_pd(x[*(cptr + off + 3) - base],
+                               x[*(cptr + off + 2) - base],
+                               x[*(cptr + off + 1) - base],
+                               x[*(cptr + off) - base]);
+
+            res = _mm256_fmadd_pd(vvals, vx, res);
+        }
+        /*
+	   tc += blk*nnz;
+	   vptr += blk*nnz;
+	   cptr += blk*nnz;
+	   */
+
+        if(alpha != static_cast<double>(1))
+        {
+            res = _mm256_mul_pd(va, res);
+        }
+
+        if(beta != static_cast<double>(0))
+        {
+            vy  = _mm256_loadu_pd(&y[i * blk]);
+            res = _mm256_fmadd_pd(vb, vy, res);
+        }
+        _mm256_storeu_pd(&y[i * blk], res);
+    }
+
+#ifdef _OPENMP
+#pragma omp parallel for num_threads(aoclsparse::context::get_context()->get_num_threads())
+#endif
+    for(aoclsparse_int k = ((A->m) / blk) * blk; k < A->m; ++k)
+    {
+        double result = 0;
+        /*
+	   aoclsparse_int nnz = A->csr_mat_br4.csr_row_ptr[k];
+	   for(j = 0; j < nnz; ++j)
+	   {
+	   result += ((double *)A->csr_mat_br4.csr_val)[tc] * x[A->csr_mat_br4.csr_col_ptr[tc]];
+	   tc++;;
+	   }
+	   */
+        for(aoclsparse_int j = (A->csr_mat_br4.csr_row_ptr[k] - base);
+            j < (A->csr_mat_br4.csr_row_ptr[k + 1] - base);
+            ++j)
+        {
+            result
+                += ((double *)A->csr_mat_br4.csr_val)[j] * x[A->csr_mat_br4.csr_col_ptr[j] - base];
+        }
+
+        if(alpha != static_cast<double>(1))
+        {
+            result = alpha * result;
+        }
+
+        if(beta != static_cast<double>(0))
+        {
+            result += beta * y[k];
+        }
+        y[k] = result;
+    }
+
+    return aoclsparse_status_success;
+}
+
 #endif
