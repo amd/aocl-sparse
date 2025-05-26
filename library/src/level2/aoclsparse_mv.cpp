@@ -30,50 +30,8 @@
 #include "aoclsparse_error_check.hpp"
 #include "aoclsparse_l2_kt.hpp"
 #include "aoclsparse_mat_structures.hpp"
+#include "aoclsparse_mv_helpers.hpp"
 #include "aoclsparse_tcsr.hpp"
-
-// Kernel to scale vectors
-template <typename T>
-aoclsparse_status vscale(T *v, T c, aoclsparse_int sz)
-{
-    T zero = 0;
-
-    if(!v)
-        return aoclsparse_status_invalid_pointer;
-
-    if(c != zero)
-    {
-        for(aoclsparse_int i = 0; i < sz; i++)
-            v[i] = c * v[i];
-    }
-    else
-    {
-        for(aoclsparse_int i = 0; i < sz; i++)
-            v[i] = zero;
-    }
-
-    return aoclsparse_status_success;
-}
-
-// Function checks the formats supported
-template <typename T>
-inline bool is_mtx_frmt_supported_mv(aoclsparse_matrix_format_type mtx_t)
-{
-    if constexpr(aoclsparse::is_dt_complex<T>())
-    {
-        // Only CSR is supported for complex types
-        if(mtx_t != aoclsparse_csr_mat)
-            return false;
-    }
-    else
-    {
-        // Only CSR and TCSR input format supported
-        if(mtx_t != aoclsparse_csr_mat && mtx_t != aoclsparse_tcsr_mat)
-            return false;
-    }
-
-    return true;
-}
 
 /* templated SpMV for complex types - can be extended for floats and doubles*/
 template <typename T>

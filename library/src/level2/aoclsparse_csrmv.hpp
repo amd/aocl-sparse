@@ -23,6 +23,7 @@
 #ifndef AOCLSPARSE_CSRMV_HPP
 #define AOCLSPARSE_CSRMV_HPP
 
+#include "aoclsparse_cntx_dispatcher.hpp"
 #include "aoclsparse_csrmv_avx512.hpp"
 #include "aoclsparse_csrmv_kr.hpp"
 #include "aoclsparse_error_check.hpp"
@@ -48,6 +49,8 @@ aoclsparse_status aoclsparse_csrmv_t(aoclsparse_operation       trans,
                                      aoclsparse_int             kid   = -1)
 {
     using namespace aoclsparse;
+    using namespace Dispatch;
+    using namespace kernel_templates;
 
     doid lcl_doid;
 
@@ -129,35 +132,29 @@ aoclsparse_status aoclsparse_csrmv_t(aoclsparse_operation       trans,
         {
             using K = decltype(&aoclsparse::csrmv_kt<kernel_templates::bsz::b256, T>);
 
+            // Move to magic box
             // If kid is not set and size range matches, change the kernel
             if((nnz <= (4 * m)) && (kid == -1))
                 kid = 0;
             else
                 kid = (kid == -1) ? 1 : kid; // AVX2 default
 
-            [[maybe_unused]] K kernel;
+            // clang-format off
+            // Table of available kernels
+            static constexpr Table<K> tbl[]{
+                {aoclsparse_csrmv_general<T>,           context_isa_t::GENERIC, 0U | archs::ALL},
+                {aoclsparse::csrmv_kt<bsz::b256, T>,    context_isa_t::AVX2,    0U | archs::ALL},
+                {aoclsparse::csrmv_kt<bsz::b256, T>,    context_isa_t::AVX2,    0U | archs::ALL}, // alias
+            ORL<K>({aoclsparse::csrmv_kt<bsz::b512, T>, context_isa_t::AVX512F, 0U | archs::ALL})
+            };
+            //clang-format on
 
-            switch(kid)
-            {
-            case 0:
-                kernel = aoclsparse_csrmv_general<T>;
-                break;
+            // Thread local kernel cache
+            thread_local K kache  = nullptr;
+            K              kernel = Oracle<K>(tbl, kache, kid);
 
-            case 1:
-            case 2:
-                kernel = aoclsparse::csrmv_kt<kernel_templates::bsz::b256, T>;
-                break;
-            case 3:
-#ifdef USE_AVX512
-                if(context::get_context()->supports<context_isa_t::AVX512F>())
-                    kernel = aoclsparse::csrmv_kt<kernel_templates::bsz::b512, T>;
-                else
-                    return aoclsparse_status_invalid_kid;
-                break;
-#endif
-            default:
+            if(!kernel)
                 return aoclsparse_status_invalid_kid;
-            }
 
             return kernel(descr->base, *alpha, m, val, col, row, x, *beta, y);
         }
@@ -165,30 +162,25 @@ aoclsparse_status aoclsparse_csrmv_t(aoclsparse_operation       trans,
         {
             using K = decltype(&aoclsparse::csrmvt_kt<kernel_templates::bsz::b256, T>);
 
-            [[maybe_unused]] K kernel;
-
             // AVX2 default
             kid = (kid == -1) ? 1 : kid;
 
-            switch(kid)
-            {
-            case 0:
-            case 1:
-            case 2:
-                kernel = aoclsparse::csrmvt_kt<kernel_templates::bsz::b256, T>;
-                break;
-            case 3:
-#ifdef USE_AVX512
-                if(context::get_context()->supports<context_isa_t::AVX512F>())
-                    kernel = aoclsparse::csrmvt_kt<kernel_templates::bsz::b512, T>;
-                else
-                    return aoclsparse_status_invalid_kid;
-                break;
-#endif
-            // Add your other kernels here
-            default:
+            // clang-format off
+            // Table of available kernels
+            static constexpr Table<K> tbl[]{
+                {aoclsparse::csrmvt_kt<bsz::b256, T>,    context_isa_t::GENERIC, 0U | archs::ALL}, // Replace with reference
+                {aoclsparse::csrmvt_kt<bsz::b256, T>,    context_isa_t::AVX2,    0U | archs::ALL},
+                {aoclsparse::csrmvt_kt<bsz::b256, T>,    context_isa_t::AVX2,    0U | archs::ALL}, // alias
+            ORL<K>({aoclsparse::csrmvt_kt<bsz::b512, T>, context_isa_t::AVX512F, 0U | archs::ALL})
+            };
+            //clang-format on
+
+            // Thread local kernel cache
+            thread_local K kache  = nullptr;
+            K              kernel = Oracle<K>(tbl, kache, kid);
+
+            if(!kernel)
                 return aoclsparse_status_invalid_kid;
-            }
 
             return kernel(descr->base, *alpha, m, n, val, col, row, x, *beta, y);
         }
@@ -200,11 +192,24 @@ aoclsparse_status aoclsparse_csrmv_t(aoclsparse_operation       trans,
         case doid::su:
         {
             using K  = decltype(&aoclsparse::csrmv_symm_kt<kernel_templates::bsz::b256, T, false>);
-            K kernel = aoclsparse::csrmv_symm_kt<kernel_templates::bsz::b256, T, false>;
-#ifdef USE_AVX512
-            if(context::get_context()->supports<context_isa_t::AVX512F>())
-                kernel = aoclsparse::csrmv_symm_kt<kernel_templates::bsz::b512, T, false>;
-#endif
+
+            // clang-format off
+            // Table of available kernels
+            static constexpr Table<K> tbl[]{
+                {aoclsparse::csrmv_symm_kt<bsz::b256, T, false>,    context_isa_t::GENERIC, 0U | archs::ALL}, // Replace with reference
+                {aoclsparse::csrmv_symm_kt<bsz::b256, T, false>,    context_isa_t::AVX2,    0U | archs::ALL},
+                {aoclsparse::csrmv_symm_kt<bsz::b256, T, false>,    context_isa_t::AVX2,    0U | archs::ALL}, // alias
+            ORL<K>({aoclsparse::csrmv_symm_kt<bsz::b512, T, false>, context_isa_t::AVX512F, 0U | archs::ALL})
+            };
+            //clang-format on
+
+            // Thread local kernel cache
+            thread_local K kache  = nullptr;
+            K              kernel = Oracle<K>(tbl, kache, kid);
+
+            if(!kernel)
+                return aoclsparse_status_invalid_kid;
+
             return kernel(descr->base,
                           *alpha,
                           m,
@@ -238,24 +243,37 @@ aoclsparse_status aoclsparse_csrmv_t(aoclsparse_operation       trans,
         case doid::hu:
         {
             using K  = decltype(&aoclsparse::csrmv_symm_kt<kernel_templates::bsz::b256, T, true>);
-            K kernel = aoclsparse::csrmv_symm_kt<kernel_templates::bsz::b256, T, true>;
-#ifdef USE_AVX512
-            if(context::get_context()->supports<context_isa_t::AVX512F>())
-                kernel = aoclsparse::csrmv_symm_kt<kernel_templates::bsz::b512, T, true>;
-#endif
+
+            // clang-format off
+            // Table of available kernels
+            static constexpr Table<K> tbl[]{
+                {aoclsparse::csrmv_symm_kt<bsz::b256, T, true>,    context_isa_t::GENERIC, 0U | archs::ALL}, // Replace with reference
+                {aoclsparse::csrmv_symm_kt<bsz::b256, T, true>,    context_isa_t::AVX2,    0U | archs::ALL},
+                {aoclsparse::csrmv_symm_kt<bsz::b256, T, true>,    context_isa_t::AVX2,    0U | archs::ALL}, // alias
+            ORL<K>({aoclsparse::csrmv_symm_kt<bsz::b512, T, true>, context_isa_t::AVX512F, 0U | archs::ALL})
+            };
+            //clang-format on
+
+            // Thread local kernel cache
+            thread_local K kache  = nullptr;
+            K              kernel = Oracle<K>(tbl, kache, kid);
+
+            if(!kernel)
+                return aoclsparse_status_invalid_kid;
+
             return kernel(descr->base,
-                          *alpha,
-                          m,
-                          descr->diag_type,
-                          descr->fill_mode,
-                          val,
-                          col,
-                          row,
-                          idiag,
-                          iurow,
-                          x,
-                          *beta,
-                          y);
+                        *alpha,
+                        m,
+                        descr->diag_type,
+                        descr->fill_mode,
+                        val,
+                        col,
+                        row,
+                        idiag,
+                        iurow,
+                        x,
+                        *beta,
+                        y);
         }
         case doid::hlc: // hlc and huc map to the same kernel
         case doid::huc:
@@ -309,8 +327,6 @@ aoclsparse_status aoclsparse_csrmv_t(aoclsparse_operation       trans,
             {
                 using K = decltype(&aoclsparse_csrmv_general<T>);
 
-                K kernel;
-
                 // Sparse matrices with Mean nnz = nnz/m <10 have very few non-zeroes in most of the rows
                 // and few unevenly long rows . Loop unrolling and vectorization doesnt optimise performance
                 // for this category of matrices . Hence , we invoke the generic dcsrmv kernel without
@@ -318,31 +334,52 @@ aoclsparse_status aoclsparse_csrmv_t(aoclsparse_operation       trans,
                 // (Mean nnz > 10) , we continue to invoke the vectorised version of csrmv , since
                 // it improves performance.
                 if(nnz <= (10 * m))
-                    kernel = aoclsparse_csrmv_general;
-                else
-                {
-#ifdef USE_AVX512
-                    if(context::get_context()->get_isa_hint() == context_isa_t::AVX512F)
-                        kernel = aoclsparse_csrmv_vectorized_avx512;
-                    else
-#endif
-                        kernel = aoclsparse_csrmv_vectorized_avx2;
-                }
+                    kid = 0;
+
+
+                // clang-format off
+                // Table of available kernels
+                static constexpr Table<K> tbl[]{
+                    {aoclsparse_csrmv_general,             context_isa_t::GENERIC, 0U | archs::ALL},
+                    {aoclsparse_csrmv_vectorized_avx2,     context_isa_t::AVX2,    0U | archs::ALL},
+                    {aoclsparse_csrmv_vectorized_avx2,     context_isa_t::AVX2,    0U | archs::ALL}, // alias
+                ORL<K>({aoclsparse_csrmv_vectorized_avx512, context_isa_t::AVX512F, 0U | archs::ALL})
+                };
+                //clang-format on
+
+                // Thread local kernel cache
+                thread_local K kache  = nullptr;
+                K              kernel = Oracle<K>(tbl, kache, kid);
+
+                if(!kernel)
+                    return aoclsparse_status_invalid_kid;
 
                 // Invoke the kernel
                 return kernel(descr->base, *alpha, m, val, col, row, x, *beta, y);
             }
         case doid::gt:
-#ifdef USE_AVX512
-            if(context::get_context()->supports<context_isa_t::AVX512F>())
-            {
-                return aoclsparse::csrmvt_kt<kernel_templates::bsz::b512, T>(
-                    descr->base, *alpha, m, n, val, col, row, x, *beta, y);
-            }
-            else
-#endif
-                return aoclsparse::csrmvt_kt<kernel_templates::bsz::b256, T>(
-                    descr->base, *alpha, m, n, val, col, row, x, *beta, y);
+        {
+            using K = decltype(&aoclsparse::csrmvt_kt<kernel_templates::bsz::b256, T>);
+
+            // clang-format off
+            // Table of available kernels
+            static constexpr Table<K> tbl[]{
+                {aoclsparse::csrmvt_kt<bsz::b256, T>,    context_isa_t::GENERIC, 0U | archs::ALL}, // Replace with reference
+                {aoclsparse::csrmvt_kt<bsz::b256, T>,    context_isa_t::AVX2,    0U | archs::ALL},
+                {aoclsparse::csrmvt_kt<bsz::b256, T>,    context_isa_t::AVX2,    0U | archs::ALL}, // alias
+            ORL<K>({aoclsparse::csrmvt_kt<bsz::b512, T>, context_isa_t::AVX512F, 0U | archs::ALL})
+            };
+            //clang-format on
+
+            // Thread local kernel cache
+            thread_local K kache  = nullptr;
+            K              kernel = Oracle<K>(tbl, kache, kid);
+
+            if(!kernel)
+                return aoclsparse_status_invalid_kid;
+
+            return kernel(descr->base, *alpha, m, n, val, col, row, x, *beta, y);
+        }
         case doid::hl: // Hermitian maps to symmetric in case of real datatypes
         case doid::hu:
         case doid::hlc:
@@ -358,26 +395,38 @@ aoclsparse_status aoclsparse_csrmv_t(aoclsparse_operation       trans,
             }
             else
             {
-                using K
-                    = decltype(&aoclsparse::csrmv_symm_kt<kernel_templates::bsz::b256, T, true>);
-                K kernel = aoclsparse::csrmv_symm_kt<kernel_templates::bsz::b256, T, true>;
-#ifdef USE_AVX512
-                if(context::get_context()->supports<context_isa_t::AVX512F>())
-                    kernel = aoclsparse::csrmv_symm_kt<kernel_templates::bsz::b512, T, true>;
-#endif
-                return kernel(descr->base,
-                              *alpha,
-                              m,
-                              descr->diag_type,
-                              descr->fill_mode,
-                              val,
-                              col,
-                              row,
-                              idiag,
-                              iurow,
-                              x,
-                              *beta,
-                              y);
+                using K  = decltype(&aoclsparse::csrmv_symm_kt<kernel_templates::bsz::b256, T, true>);
+
+            // clang-format off
+            // Table of available kernels
+            static constexpr Table<K> tbl[]{
+                {aoclsparse::csrmv_symm_kt<bsz::b256, T, true>,    context_isa_t::GENERIC, 0U | archs::ALL}, // Replace with reference
+                {aoclsparse::csrmv_symm_kt<bsz::b256, T, true>,    context_isa_t::AVX2,    0U | archs::ALL},
+                {aoclsparse::csrmv_symm_kt<bsz::b256, T, true>,    context_isa_t::AVX2,    0U | archs::ALL}, // alias
+            ORL<K>({aoclsparse::csrmv_symm_kt<bsz::b512, T, true>, context_isa_t::AVX512F, 0U | archs::ALL})
+            };
+            //clang-format on
+
+            // Thread local kernel cache
+            thread_local K kache  = nullptr;
+            K              kernel = Oracle<K>(tbl, kache, kid);
+
+            if(!kernel)
+                return aoclsparse_status_invalid_kid;
+
+            return kernel(descr->base,
+                            *alpha,
+                            m,
+                            descr->diag_type,
+                            descr->fill_mode,
+                            val,
+                            col,
+                            row,
+                            idiag,
+                            iurow,
+                            x,
+                            *beta,
+                            y);
             }
         case doid::tln:
         case doid::tun:
