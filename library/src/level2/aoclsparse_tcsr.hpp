@@ -165,12 +165,12 @@ namespace aoclsparse
             }
             else
             {
-                return aoclsparse_csrmv_ref(
+                return ref_csrmv_tri(
                     descr, *alpha, mtx->m, mtx->n, val, col, rstart, rend, x, *beta, y);
             }
         case doid::tlt:
         case doid::tut:
-            return aoclsparse_csrmvt_ptr(
+            return ref_csrmv_tri_th(
                 descr, *alpha, mtx->m, mtx->n, val, col, rstart, rend, x, *beta, y);
         case doid::tlh:
         case doid::tlc:

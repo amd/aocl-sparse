@@ -142,7 +142,7 @@ aoclsparse_status aoclsparse_csrmv_t(aoclsparse_operation       trans,
             // clang-format off
             // Table of available kernels
             static constexpr Table<K> tbl[]{
-                {aoclsparse_csrmv_general<T>,           context_isa_t::GENERIC, 0U | archs::ALL},
+                {ref_csrmv_gn<T>,           context_isa_t::GENERIC, 0U | archs::ALL},
                 {aoclsparse::csrmv_kt<bsz::b256, T>,    context_isa_t::AVX2,    0U | archs::ALL},
                 {aoclsparse::csrmv_kt<bsz::b256, T>,    context_isa_t::AVX2,    0U | archs::ALL}, // alias
             ORL<K>({aoclsparse::csrmv_kt<bsz::b512, T>, context_isa_t::AVX512F, 0U | archs::ALL})
@@ -185,7 +185,7 @@ aoclsparse_status aoclsparse_csrmv_t(aoclsparse_operation       trans,
             return kernel(descr->base, *alpha, m, n, val, col, row, x, *beta, y);
         }
         case doid::gh:
-            return aoclsparse_csrmvh(descr->base, *alpha, m, n, val, col, row, x, *beta, y);
+            return ref_csrmv_th<T, true>(descr->base, *alpha, m, n, val, col, row, x, *beta, y);
         case doid::gc:
             break;
         case doid::sl: // sl and su map to the same kernel
@@ -291,19 +291,16 @@ aoclsparse_status aoclsparse_csrmv_t(aoclsparse_operation       trans,
                                                    *beta,
                                                    y);
         case doid::tln:
-            return aoclsparse_csrmv_ref(descr, *alpha, m, n, val, col, rstart, rend, x, *beta, y);
-        case doid::tlt:
-            return aoclsparse_csrmvt_ptr(descr, *alpha, m, n, val, col, rstart, rend, x, *beta, y);
-        case doid::tlh:
-            return aoclsparse_csrmvh_ptr(descr, *alpha, m, n, val, col, rstart, rend, x, *beta, y);
-        case doid::tlc:
-            break;
         case doid::tun:
-            return aoclsparse_csrmv_ref(descr, *alpha, m, n, val, col, rstart, rend, x, *beta, y);
+            return ref_csrmv_tri(descr, *alpha, m, n, val, col, rstart, rend, x, *beta, y);
+        case doid::tlt:
         case doid::tut:
-            return aoclsparse_csrmvt_ptr(descr, *alpha, m, n, val, col, rstart, rend, x, *beta, y);
+            return ref_csrmv_tri_th(descr, *alpha, m, n, val, col, rstart, rend, x, *beta, y);
+        case doid::tlh:
         case doid::tuh:
-            return aoclsparse_csrmvh_ptr(descr, *alpha, m, n, val, col, rstart, rend, x, *beta, y);
+            return ref_csrmv_tri_th<T, true>(
+                descr, *alpha, m, n, val, col, rstart, rend, x, *beta, y);
+        case doid::tlc:
         case doid::tuc:
             break;
         default:
@@ -325,7 +322,7 @@ aoclsparse_status aoclsparse_csrmv_t(aoclsparse_operation       trans,
             }
             else if constexpr(std::is_same_v<T, double>)
             {
-                using K = decltype(&aoclsparse_csrmv_general<T>);
+                using K = decltype(&aoclsparse::ref_csrmv_gn<T>);
 
                 // Sparse matrices with Mean nnz = nnz/m <10 have very few non-zeroes in most of the rows
                 // and few unevenly long rows . Loop unrolling and vectorization doesnt optimise performance
@@ -340,7 +337,7 @@ aoclsparse_status aoclsparse_csrmv_t(aoclsparse_operation       trans,
                 // clang-format off
                 // Table of available kernels
                 static constexpr Table<K> tbl[]{
-                    {aoclsparse_csrmv_general,             context_isa_t::GENERIC, 0U | archs::ALL},
+                    {ref_csrmv_gn,             context_isa_t::GENERIC, 0U | archs::ALL},
                     {aoclsparse_csrmv_vectorized_avx2,     context_isa_t::AVX2,    0U | archs::ALL},
                     {aoclsparse_csrmv_vectorized_avx2,     context_isa_t::AVX2,    0U | archs::ALL}, // alias
                 ORL<K>({aoclsparse_csrmv_vectorized_avx512, context_isa_t::AVX512F, 0U | archs::ALL})
@@ -437,12 +434,11 @@ aoclsparse_status aoclsparse_csrmv_t(aoclsparse_operation       trans,
             }
             else
             {
-                return aoclsparse_csrmv_ref(
-                    descr, *alpha, m, n, val, col, rstart, rend, x, *beta, y);
+                return ref_csrmv_tri(descr, *alpha, m, n, val, col, rstart, rend, x, *beta, y);
             }
         case doid::tlt:
         case doid::tut:
-            return aoclsparse_csrmvt_ptr(descr, *alpha, m, n, val, col, rstart, rend, x, *beta, y);
+            return ref_csrmv_tri_th(descr, *alpha, m, n, val, col, rstart, rend, x, *beta, y);
         case doid::tlh:
         case doid::tlc:
         case doid::tuh:

@@ -40,77 +40,6 @@
 // =================
 
 template <typename T>
-aoclsparse_status aoclsparse_csrmv_general(aoclsparse_index_base base,
-                                           const T               alpha,
-                                           aoclsparse_int        m,
-                                           const T *__restrict__ csr_val,
-                                           const aoclsparse_int *__restrict__ csr_col_ind,
-                                           const aoclsparse_int *__restrict__ csr_row_ptr,
-                                           const T *__restrict__ x,
-                                           const T beta,
-                                           T *__restrict__ y)
-{
-    using namespace aoclsparse;
-
-    const aoclsparse_int *csr_col_ind_fix = csr_col_ind - base;
-    const T              *csr_val_fix     = csr_val - base;
-    const T              *x_fix           = x - base;
-    /*
-        to avoid base correction logic inside core time-sensitive loops, the base addresses of column index,
-        csr values and x vector are corrected in advance as per base. Then the correction will not be needed
-        inside the core loops.
-        Notice, the j-loop which runs for row pointers, has no corrections wrt base.
-        In case of one-based indexed array, the loop runs from 1 to nnz+1.
-        So the accesses made by csr_col_ind, csr_val and x need to be carefully adjusted.
-        The above hack takes care of this by indexing into correct values.
-
-        eg:
-        csr_col_ind[j] - base
-        is same as
-
-        *(csr_col_ind + j) - base
-        which is equal to
-        *(csr_col_ind - base) + j
-        which is equal to
-        csr_col_ind_fix[j] (assuming, csr_col_ind_fix = csr_col_ind - base and j >=1 if base = 1)
-    */
-#ifdef _OPENMP
-    aoclsparse_int chunk = (m / context::get_context()->get_num_threads())
-                               ? (m / context::get_context()->get_num_threads())
-                               : 1;
-#pragma omp parallel for num_threads(context::get_context()->get_num_threads()) \
-    schedule(dynamic, chunk)
-#endif
-    // Iterate over each row of the input matrix and
-    // Perform matrix-vector product for each non-zero of the ith row
-    for(aoclsparse_int i = 0; i < m; i++)
-    {
-        T result = 0.0;
-
-        for(aoclsparse_int j = csr_row_ptr[i]; j < csr_row_ptr[i + 1]; j++)
-        {
-            result += csr_val_fix[j] * x_fix[csr_col_ind_fix[j]];
-        }
-
-        // Perform alpha * A * x
-        if(alpha != static_cast<T>(1))
-        {
-            result = alpha * result;
-        }
-
-        // Perform (beta * y) + (alpha * A * x)
-        if(beta != static_cast<T>(0))
-        {
-            result += beta * y[i];
-        }
-
-        y[i] = result;
-    }
-
-    return aoclsparse_status_success;
-}
-
-template <typename T>
 aoclsparse_status aoclsparse_csrmv_symm(aoclsparse_index_base base,
                                         const T               alpha,
                                         aoclsparse_int        m,
@@ -515,273 +444,145 @@ aoclsparse_status
     return aoclsparse_status_success;
 }
 
-/* Transposed SPMV
- * ============================
- * Performs SPMV operation on the transposed CSR sparse matrix and
- * x-vector.
- */
-template <typename T>
-aoclsparse_status aoclsparse_csrmvt(aoclsparse_index_base base,
-                                    const T               alpha,
-                                    aoclsparse_int        m,
-                                    aoclsparse_int        n,
-                                    const T *__restrict__ csr_val,
-                                    const aoclsparse_int *__restrict__ csr_col_ind,
-                                    const aoclsparse_int *__restrict__ csr_row_ptr,
-                                    const T *__restrict__ x,
-                                    const T beta,
-                                    T *__restrict__ y)
+namespace aoclsparse
 {
-    const aoclsparse_int *csr_col_ind_fix = csr_col_ind - base;
-    const T              *csr_val_fix     = csr_val - base;
-    T                    *y_fix           = y - base;
-    if(beta == static_cast<T>(0))
+    template <typename T>
+    aoclsparse_status ref_csrmv_gn(aoclsparse_index_base base,
+                                   const T               alpha,
+                                   aoclsparse_int        m,
+                                   const T *__restrict__ csr_val,
+                                   const aoclsparse_int *__restrict__ csr_col_ind,
+                                   const aoclsparse_int *__restrict__ csr_row_ptr,
+                                   const T *__restrict__ x,
+                                   const T beta,
+                                   T *__restrict__ y)
     {
-        // if beta==0 and y contains any NaNs, we can zero y directly
-        for(aoclsparse_int i = 0; i < n; i++)
-        {
-            y[i] = 0.0;
-        }
-    }
-    else if(beta != static_cast<T>(1))
-    {
-        for(aoclsparse_int i = 0; i < n; i++)
-        {
-            y[i] = beta * y[i];
-        }
-    }
-    // Iterate over each row of the input matrix and
-    // Perform matrix-vector product for each non-zero of the ith row
-    for(aoclsparse_int i = 0; i < m; i++)
-    {
-        aoclsparse_int row_start = csr_row_ptr[i];
-        aoclsparse_int row_end   = csr_row_ptr[i + 1];
-        T              axi       = alpha * x[i];
-        for(aoclsparse_int j = row_start; j < row_end; j++)
-        {
-            aoclsparse_int col_idx = csr_col_ind_fix[j];
-            y_fix[col_idx] += csr_val_fix[j] * axi;
-        }
-    }
-    return aoclsparse_status_success;
-}
+        using namespace aoclsparse;
 
-/* Conjugate Transposed SPMV
- * ============================
- * Performs SPMV operation on the conjugate transposed CSR sparse matrix
- * and x-vector.
- */
-template <typename T>
-aoclsparse_status aoclsparse_csrmvh(aoclsparse_index_base base,
-                                    const T               alpha,
-                                    aoclsparse_int        m,
-                                    aoclsparse_int        n,
-                                    const T *__restrict__ csr_val,
-                                    const aoclsparse_int *__restrict__ csr_col_ind,
-                                    const aoclsparse_int *__restrict__ csr_row_ptr,
-                                    const T *__restrict__ x,
-                                    const T beta,
-                                    T *__restrict__ y)
-{
-    const aoclsparse_int *csr_col_ind_fix = csr_col_ind - base;
-    const T              *csr_val_fix     = csr_val - base;
-    T                    *y_fix           = y - base;
-    if(beta == static_cast<T>(0))
-    {
-        // if beta==0 and y contains any NaNs, we can zero y directly
-        for(aoclsparse_int i = 0; i < n; i++)
-        {
-            y[i] = 0.0;
-        }
-    }
-    else if(beta != static_cast<T>(1))
-    {
-        for(aoclsparse_int i = 0; i < n; i++)
-        {
-            y[i] = beta * y[i];
-        }
-    }
-    // Iterate over each row of the input matrix and
-    // Perform matrix-vector product for each non-zero of the ith row
-    for(aoclsparse_int i = 0; i < m; i++)
-    {
-        aoclsparse_int row_start = csr_row_ptr[i];
-        aoclsparse_int row_end   = csr_row_ptr[i + 1];
-        T              axi       = alpha * x[i];
-        for(aoclsparse_int j = row_start; j < row_end; j++)
-        {
-            aoclsparse_int col_idx = csr_col_ind_fix[j];
-            y_fix[col_idx] += aoclsparse::conj(csr_val_fix[j]) * axi;
-        }
-    }
-    return aoclsparse_status_success;
-}
+        const aoclsparse_int *csr_col_ind_fix = csr_col_ind - base;
+        const T              *csr_val_fix     = csr_val - base;
+        const T              *x_fix           = x - base;
+        /*
+        to avoid base correction logic inside core time-sensitive loops, the base addresses of column index,
+        csr values and x vector are corrected in advance as per base. Then the correction will not be needed
+        inside the core loops.
+        Notice, the j-loop which runs for row pointers, has no corrections wrt base.
+        In case of one-based indexed array, the loop runs from 1 to nnz+1.
+        So the accesses made by csr_col_ind, csr_val and x need to be carefully adjusted.
+        The above hack takes care of this by indexing into correct values.
 
-/* Transposed SPMV
- * ============================
- * Performs SPMV operation on the transposed CSR sparse matrix and
- * x-vector, where rows of the matrix are given by the start and end
- * pointer (useful when a specific triangle part of the matrix is provided)
- */
-template <typename T>
-aoclsparse_status aoclsparse_csrmvt_ptr(const aoclsparse_mat_descr      descr,
-                                        const T                         alpha,
-                                        aoclsparse_int                  m,
-                                        [[maybe_unused]] aoclsparse_int n,
-                                        const T *__restrict__ csr_val,
-                                        const aoclsparse_int *__restrict__ csr_col_ind,
-                                        const aoclsparse_int *__restrict__ crstart,
-                                        const aoclsparse_int *__restrict__ crend,
-                                        const T *__restrict__ x,
-                                        const T beta,
-                                        T *__restrict__ y)
-{
-    aoclsparse_index_base base            = descr->base;
-    const aoclsparse_int *csr_col_ind_fix = csr_col_ind - base;
-    const T              *csr_val_fix     = csr_val - base;
-    T                    *y_fix           = y - base;
-    aoclsparse_int        start_offset = 0, end_offset = 0;
+        eg:
+        csr_col_ind[j] - base
+        is same as
 
-    // if the matrix is triangular without explicit diagonal,
-    // compute corrections for start and end pointers
-    if((descr->type != aoclsparse_matrix_type_general)
-       && (descr->diag_type == aoclsparse_diag_type_unit
-           || descr->diag_type == aoclsparse_diag_type_zero))
-    {
-        if(descr->fill_mode == aoclsparse_fill_mode_lower) /* L triangle */
-            end_offset = -1;
-        else /*U triangle*/
-            start_offset = 1;
-    }
-    bool diag_first = start_offset && descr->diag_type == aoclsparse_diag_type_unit;
-    bool diag_last  = end_offset && descr->diag_type == aoclsparse_diag_type_unit;
-
-    if(beta == static_cast<T>(0))
-    {
-        // if beta==0 and y contains any NaNs, we can zero y directly
-        for(aoclsparse_int i = 0; i < n; i++)
+        *(csr_col_ind + j) - base
+        which is equal to
+        *(csr_col_ind - base) + j
+        which is equal to
+        csr_col_ind_fix[j] (assuming, csr_col_ind_fix = csr_col_ind - base and j >=1 if base = 1)
+    */
+#ifdef _OPENMP
+        aoclsparse_int chunk = (m / context::get_context()->get_num_threads())
+                                   ? (m / context::get_context()->get_num_threads())
+                                   : 1;
+#pragma omp parallel for num_threads(context::get_context()->get_num_threads()) \
+    schedule(dynamic, chunk)
+#endif
+        // Iterate over each row of the input matrix and
+        // Perform matrix-vector product for each non-zero of the ith row
+        for(aoclsparse_int i = 0; i < m; i++)
         {
-            y[i] = 0.0;
-        }
-    }
-    else if(beta != static_cast<T>(1))
-    {
-        for(aoclsparse_int i = 0; i < n; i++)
-        {
-            y[i] = beta * y[i];
-        }
-    }
+            T result = 0.0;
 
-    // Iterate over each row of the input matrix and
-    // Perform matrix-vector product for each non-zero of the ith row
-    for(aoclsparse_int i = 0; i < m; i++)
-    {
-        aoclsparse_int rstart = crstart[i] + start_offset;
-        aoclsparse_int rend   = crend[i] + end_offset;
+            for(aoclsparse_int j = csr_row_ptr[i]; j < csr_row_ptr[i + 1]; j++)
+            {
+                result += csr_val_fix[j] * x_fix[csr_col_ind_fix[j]];
+            }
 
-        T axi = alpha * x[i];
-        if(diag_first)
-            y_fix[i + base] += axi;
-        for(aoclsparse_int j = rstart; j < rend; j++)
-        {
-            aoclsparse_int col_idx = csr_col_ind_fix[j];
-            y_fix[col_idx] += csr_val_fix[j] * axi;
+            // Perform alpha * A * x
+            if(alpha != static_cast<T>(1))
+            {
+                result = alpha * result;
+            }
+
+            // Perform (beta * y) + (alpha * A * x)
+            if(beta != static_cast<T>(0))
+            {
+                result += beta * y[i];
+            }
+
+            y[i] = result;
         }
 
-        if(diag_last)
-            y_fix[i + base] += axi;
+        return aoclsparse_status_success;
     }
-    return aoclsparse_status_success;
-}
 
-/* Conjugate Transposed SPMV
- * ============================
- * Performs SPMV operation on the conjugated transposed CSR sparse matrix
- * and x-vector, where rows of the matrix are given by the start and end
- * pointer (useful when a specific triangle part of the matrix is provided)
- */
-template <typename T>
-aoclsparse_status aoclsparse_csrmvh_ptr(const aoclsparse_mat_descr descr,
-                                        const T                    alpha,
-                                        aoclsparse_int             m,
-                                        aoclsparse_int             n,
-                                        const T *__restrict__ csr_val,
-                                        const aoclsparse_int *__restrict__ csr_col_ind,
-                                        const aoclsparse_int *__restrict__ crstart,
-                                        const aoclsparse_int *__restrict__ crend,
-                                        const T *__restrict__ x,
-                                        const T beta,
-                                        T *__restrict__ y)
-{
-    aoclsparse_index_base base            = descr->base;
-    const aoclsparse_int *csr_col_ind_fix = csr_col_ind - base;
-    const T              *csr_val_fix     = csr_val - base;
-    T                    *y_fix           = y - base;
-    aoclsparse_int        start_offset = 0, end_offset = 0;
-
-    // if the matrix is triangular without explicit diagonal,
-    // compute corrections for start and end pointers
-    if((descr->type != aoclsparse_matrix_type_general)
-       && (descr->diag_type == aoclsparse_diag_type_unit
-           || descr->diag_type == aoclsparse_diag_type_zero))
+    /* Transposed and conjugate transposed SPMV
+     * ========================================
+     * Performs SPMV operation on the conjugate transposed CSR sparse matrix
+     * and x-vector.
+     */
+    template <typename T, bool is_herm = false>
+    aoclsparse_status ref_csrmv_th(aoclsparse_index_base base,
+                                   const T               alpha,
+                                   aoclsparse_int        m,
+                                   aoclsparse_int        n,
+                                   const T *__restrict__ csr_val,
+                                   const aoclsparse_int *__restrict__ csr_col_ind,
+                                   const aoclsparse_int *__restrict__ csr_row_ptr,
+                                   const T *__restrict__ x,
+                                   const T beta,
+                                   T *__restrict__ y)
     {
-        if(descr->fill_mode == aoclsparse_fill_mode_lower) /* L triangle */
-            end_offset = -1;
-        else /*U triangle*/
-            start_offset = 1;
-    }
-    bool diag_first = start_offset && descr->diag_type == aoclsparse_diag_type_unit;
-    bool diag_last  = end_offset && descr->diag_type == aoclsparse_diag_type_unit;
-
-    if(beta == static_cast<T>(0))
-    {
-        // if beta==0 and y contains any NaNs, we can zero y directly
-        for(aoclsparse_int i = 0; i < n; i++)
+        const aoclsparse_int *csr_col_ind_fix = csr_col_ind - base;
+        const T              *csr_val_fix     = csr_val - base;
+        T                    *y_fix           = y - base;
+        if(beta == static_cast<T>(0))
         {
-            y[i] = 0.0;
+            // if beta==0 and y contains any NaNs, we can zero y directly
+            for(aoclsparse_int i = 0; i < n; i++)
+            {
+                y[i] = 0.0;
+            }
         }
-    }
-    else if(beta != static_cast<T>(1))
-    {
-        for(aoclsparse_int i = 0; i < n; i++)
+        else if(beta != static_cast<T>(1))
         {
-            y[i] = beta * y[i];
+            for(aoclsparse_int i = 0; i < n; i++)
+            {
+                y[i] = beta * y[i];
+            }
         }
-    }
-
-    // Iterate over each row of the input matrix and
-    // Perform matrix-vector product for each non-zero of the ith row
-    for(aoclsparse_int i = 0; i < m; i++)
-    {
-        aoclsparse_int rstart = crstart[i] + start_offset;
-        aoclsparse_int rend   = crend[i] + end_offset;
-
-        T axi = alpha * x[i];
-        if(diag_first)
-            y_fix[i + base] += axi;
-        for(aoclsparse_int j = rstart; j < rend; j++)
+        // Iterate over each row of the input matrix and
+        // Perform matrix-vector product for each non-zero of the ith row
+        for(aoclsparse_int i = 0; i < m; i++)
         {
-            aoclsparse_int col_idx = csr_col_ind_fix[j];
-            y_fix[col_idx] += aoclsparse::conj(csr_val_fix[j]) * axi;
+            aoclsparse_int row_start = csr_row_ptr[i];
+            aoclsparse_int row_end   = csr_row_ptr[i + 1];
+            T              axi       = alpha * x[i];
+            for(aoclsparse_int j = row_start; j < row_end; j++)
+            {
+                aoclsparse_int col_idx = csr_col_ind_fix[j];
+                if constexpr(is_herm)
+                    y_fix[col_idx] += aoclsparse::conj(csr_val_fix[j]) * axi;
+                else
+                    y_fix[col_idx] += csr_val_fix[j] * axi;
+            }
         }
-
-        if(diag_last)
-            y_fix[i + base] += axi;
+        return aoclsparse_status_success;
     }
-    return aoclsparse_status_success;
-}
 
-/* SPMV Reference kernel
- * ============================
- * Performs SPMV operation on the CSR sparse matrix and
- * x-vector, where rows of the matrix are given by the start and end
- * pointer (useful when a specific triangle part of the matrix is provided)
- */
-template <typename T>
-aoclsparse_status aoclsparse_csrmv_ref(aoclsparse_mat_descr            descr,
-                                       const T                         alpha,
-                                       aoclsparse_int                  m,
-                                       [[maybe_unused]] aoclsparse_int n,
+    /* Transposed and conjugate transposed SPMV for triangular matrices
+     * ================================================================
+     * Performs SPMV operation on the transposed and conjugate transposed CSR
+     * sparse matrix and x-vector, where rows of the matrix are given by the
+     * start and end pointer (useful when a specific triangle part of the
+     * matrix is provided)
+     */
+    template <typename T, bool is_herm = false>
+    aoclsparse_status ref_csrmv_tri_th(const aoclsparse_mat_descr descr,
+                                       const T                    alpha,
+                                       aoclsparse_int             m,
+                                       aoclsparse_int             n,
                                        const T *__restrict__ csr_val,
                                        const aoclsparse_int *__restrict__ csr_col_ind,
                                        const aoclsparse_int *__restrict__ crstart,
@@ -789,65 +590,147 @@ aoclsparse_status aoclsparse_csrmv_ref(aoclsparse_mat_descr            descr,
                                        const T *__restrict__ x,
                                        const T beta,
                                        T *__restrict__ y)
-{
-    aoclsparse_index_base base            = descr->base;
-    const aoclsparse_int *csr_col_ind_fix = csr_col_ind - base;
-    const T              *csr_val_fix     = csr_val - base;
-    const T              *x_fix           = x - base;
-    T                     one             = 1;
-    T                     zero            = 0;
-    aoclsparse_int        start_offset = 0, end_offset = 0;
-
-    // if the matrix is triangular without explicit diagonal,
-    // compute corrections for start and end pointers
-    if((descr->type != aoclsparse_matrix_type_general)
-       && (descr->diag_type == aoclsparse_diag_type_unit
-           || descr->diag_type == aoclsparse_diag_type_zero))
     {
-        if(descr->fill_mode == aoclsparse_fill_mode_lower) /* L triangle */
-            end_offset = -1;
-        else /*U triangle*/
-            start_offset = 1;
-    }
-    bool diag_first = start_offset && descr->diag_type == aoclsparse_diag_type_unit;
-    bool diag_last  = end_offset && descr->diag_type == aoclsparse_diag_type_unit;
+        aoclsparse_index_base base            = descr->base;
+        const aoclsparse_int *csr_col_ind_fix = csr_col_ind - base;
+        const T              *csr_val_fix     = csr_val - base;
+        T                    *y_fix           = y - base;
+        aoclsparse_int        start_offset = 0, end_offset = 0;
 
-    if(beta == zero)
-    {
-        // if beta==0 and y contains any NaNs, we can zero y directly
+        // if the matrix is triangular without explicit diagonal,
+        // compute corrections for start and end pointers
+        if((descr->type != aoclsparse_matrix_type_general)
+           && (descr->diag_type == aoclsparse_diag_type_unit
+               || descr->diag_type == aoclsparse_diag_type_zero))
+        {
+            if(descr->fill_mode == aoclsparse_fill_mode_lower) /* L triangle */
+                end_offset = -1;
+            else /*U triangle*/
+                start_offset = 1;
+        }
+        bool diag_first = start_offset && descr->diag_type == aoclsparse_diag_type_unit;
+        bool diag_last  = end_offset && descr->diag_type == aoclsparse_diag_type_unit;
+
+        if(beta == static_cast<T>(0))
+        {
+            // if beta==0 and y contains any NaNs, we can zero y directly
+            for(aoclsparse_int i = 0; i < n; i++)
+            {
+                y[i] = 0.0;
+            }
+        }
+        else if(beta != static_cast<T>(1))
+        {
+            for(aoclsparse_int i = 0; i < n; i++)
+            {
+                y[i] = beta * y[i];
+            }
+        }
+
+        // Iterate over each row of the input matrix and
+        // Perform matrix-vector product for each non-zero of the ith row
         for(aoclsparse_int i = 0; i < m; i++)
         {
-            y[i] = 0.0;
+            aoclsparse_int rstart = crstart[i] + start_offset;
+            aoclsparse_int rend   = crend[i] + end_offset;
+
+            T axi = alpha * x[i];
+            if(diag_first)
+                y_fix[i + base] += axi;
+            for(aoclsparse_int j = rstart; j < rend; j++)
+            {
+                aoclsparse_int col_idx = csr_col_ind_fix[j];
+
+                if constexpr(is_herm)
+                    y_fix[col_idx] += aoclsparse::conj(csr_val_fix[j]) * axi;
+                else
+                    y_fix[col_idx] += csr_val_fix[j] * axi;
+            }
+
+            if(diag_last)
+                y_fix[i + base] += axi;
         }
+        return aoclsparse_status_success;
     }
-    else if(beta != one)
+
+    /* SPMV Reference kernel
+     * ============================
+     * Performs SPMV operation on the CSR sparse matrix and
+     * x-vector, where rows of the matrix are given by the start and end
+     * pointer (useful when a specific triangle part of the matrix is provided)
+     */
+    template <typename T>
+    aoclsparse_status ref_csrmv_tri(aoclsparse_mat_descr            descr,
+                                    const T                         alpha,
+                                    aoclsparse_int                  m,
+                                    [[maybe_unused]] aoclsparse_int n,
+                                    const T *__restrict__ csr_val,
+                                    const aoclsparse_int *__restrict__ csr_col_ind,
+                                    const aoclsparse_int *__restrict__ crstart,
+                                    const aoclsparse_int *__restrict__ crend,
+                                    const T *__restrict__ x,
+                                    const T beta,
+                                    T *__restrict__ y)
     {
+        aoclsparse_index_base base            = descr->base;
+        const aoclsparse_int *csr_col_ind_fix = csr_col_ind - base;
+        const T              *csr_val_fix     = csr_val - base;
+        const T              *x_fix           = x - base;
+        T                     one             = 1;
+        T                     zero            = 0;
+        aoclsparse_int        start_offset = 0, end_offset = 0;
+
+        // if the matrix is triangular without explicit diagonal,
+        // compute corrections for start and end pointers
+        if((descr->type != aoclsparse_matrix_type_general)
+           && (descr->diag_type == aoclsparse_diag_type_unit
+               || descr->diag_type == aoclsparse_diag_type_zero))
+        {
+            if(descr->fill_mode == aoclsparse_fill_mode_lower) /* L triangle */
+                end_offset = -1;
+            else /*U triangle*/
+                start_offset = 1;
+        }
+        bool diag_first = start_offset && descr->diag_type == aoclsparse_diag_type_unit;
+        bool diag_last  = end_offset && descr->diag_type == aoclsparse_diag_type_unit;
+
+        if(beta == zero)
+        {
+            // if beta==0 and y contains any NaNs, we can zero y directly
+            for(aoclsparse_int i = 0; i < m; i++)
+            {
+                y[i] = 0.0;
+            }
+        }
+        else if(beta != one)
+        {
+            for(aoclsparse_int i = 0; i < m; i++)
+            {
+                y[i] = beta * y[i];
+            }
+        }
+        // Iterate over each row of the input matrix and
+        // Perform matrix-vector product for each non-zero of the ith row
         for(aoclsparse_int i = 0; i < m; i++)
         {
-            y[i] = beta * y[i];
+            aoclsparse_int rstart = crstart[i] + start_offset;
+            aoclsparse_int rend   = crend[i] + end_offset;
+
+            T result = 0.0;
+            if(diag_first)
+                result += x_fix[i + base];
+
+            for(aoclsparse_int j = rstart; j < rend; j++)
+            {
+                result += csr_val_fix[j] * x_fix[csr_col_ind_fix[j]];
+            }
+            if(diag_last)
+                result += x_fix[i + base];
+
+            y[i] += alpha * result;
         }
+        return aoclsparse_status_success;
     }
-    // Iterate over each row of the input matrix and
-    // Perform matrix-vector product for each non-zero of the ith row
-    for(aoclsparse_int i = 0; i < m; i++)
-    {
-        aoclsparse_int rstart = crstart[i] + start_offset;
-        aoclsparse_int rend   = crend[i] + end_offset;
-
-        T result = 0.0;
-        if(diag_first)
-            result += x_fix[i + base];
-
-        for(aoclsparse_int j = rstart; j < rend; j++)
-        {
-            result += csr_val_fix[j] * x_fix[csr_col_ind_fix[j]];
-        }
-        if(diag_last)
-            result += x_fix[i + base];
-
-        y[i] += alpha * result;
-    }
-    return aoclsparse_status_success;
 }
 
 // AVX2 kernels
