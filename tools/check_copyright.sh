@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
+# Copyright (c) 2023-2025 Advanced Micro Devices, Inc. All rights reserved.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,7 @@
 # in the form: 'Copyright (c) 2020-2024' or 'Copyright (c) 2024'
 
 # Whitelist of files which are considered always OK
-whitelist=(README.md tests/examples/README.md docs/Doxyfile docs/AOCL-Sparse_API_Guide.pdf LICENSE.md NOTICES CMakePresets.json cmake/presets/README.MD cmake/presets/base.json cmake/presets/linux-make.json cmake/presets/linux-ninja.json cmake/presets/win-msvc.json cmake/presets/win-ninja.json tests/unit_tests/README.md library/src/include/kernel-templates/README.md library/src/include/kernel-templates/kt_logo_blk.png)
+whitelist=(README.md tests/examples/README.md docs/Doxyfile docs/AOCL-Sparse_API_Guide.pdf LICENSE.md NOTICES CMakePresets.json cmake/presets/README.MD cmake/presets/base.json cmake/presets/linux-make.json cmake/presets/linux-ninja.json cmake/presets/win-msvc.json cmake/presets/win-ninja.json tests/unit_tests/README.md library/src/include/kernel-templates/README.md library/src/include/kernel-templates/kt_logo_blk.png .github/workflows/branch-name-check.yml)
 
 print_help() {
   echo $0 [-p] [file1 [file2 ...]]
