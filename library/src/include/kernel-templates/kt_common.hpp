@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -136,8 +136,9 @@ namespace kernel_templates
     // Enum class that represents the vector lengths
     enum class bsz
     {
-        b256 = supported_base_t * 1,
-        b512 = supported_base_t * 2
+        b128 = supported_base_t * 1,
+        b256 = supported_base_t * 2,
+        b512 = supported_base_t * 3
     };
 
     // For a given translation unit that includes this header,

@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -78,10 +78,12 @@ namespace kernel_templates
 #pragma GCC diagnostic ignored "-Wignored-attributes"
         // clang-format off
         // mm instrinsic database storing all mm types used by AVXVECTOR
-        // Note on adding new types, refer to guide at top of file!
+        // Note on adding new types, refer to guide in kt_common.hpp!
+        // __m64 is used for 64-bit vectors irrespective of the base type. Operation on __m64 is not
+        // facilitated by the AVXVECTOR struct, but it is used for half vectors.
         template <bsz SZ, typename SUF, bool HALF>
-        // index_t                                             float   double   float   double
-        using get_vec_t = type_switch<index<SZ, SUF, HALF>(), __m128, __m128d, __m256, __m256d
+        // index_t                                            float  double  float   double   float  double
+        using get_vec_t = type_switch<index<SZ, SUF, HALF>(), __m64, __m64,  __m128, __m128d, __m256, __m256d
         #ifdef __AVX512F__
         //                         float   double
                                 , __m512, __m512d

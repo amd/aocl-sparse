@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023-2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023-2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -81,92 +81,89 @@ namespace TestsKT
         EXPECT_FALSE((kt_is_same<bsz::b256, bsz::b512, double, double>()));
         EXPECT_FALSE((kt_is_same<bsz::b256, bsz::b512, float, cfloat>()));
     }
-#endif
 
-#ifndef KT_AVX2_BUILD
-    void kt_types_512()
+    void kt_types_128()
     {
         /*
-         * These bsz::b512 bit tests check that the correct data type
+         * These bsz::b128 bit tests check that the correct data type
          * and packed sizes are "returned".
          */
-        // bsz::b512 float
-        EXPECT_EQ(typeid(avxvector<bsz::b512, float>::type), typeid(__m512));
-        EXPECT_EQ(typeid(avxvector<bsz::b512, float>::half_type), typeid(__m256));
-        EXPECT_EQ((avxvector<bsz::b512, float>::p_size), 16U);
-        EXPECT_EQ((avxvector<bsz::b512, float>()), 16U);
-        EXPECT_EQ((avxvector<bsz::b512, float>::hp_size), 8U);
-        EXPECT_EQ((avxvector<bsz::b512, float>::tsz), 16U);
+        // bsz::b128 float
+        EXPECT_EQ(typeid(avxvector<bsz::b128, float>::type), typeid(__m128));
+        EXPECT_EQ(typeid(avxvector<bsz::b128, float>::half_type), typeid(__m64));
+        EXPECT_EQ((avxvector<bsz::b128, float>::p_size), 4U);
+        EXPECT_EQ((avxvector<bsz::b128, float>()), 4U);
+        EXPECT_EQ((avxvector<bsz::b128, float>::hp_size), 2U);
+        EXPECT_EQ((avxvector<bsz::b128, float>::tsz), 4U);
 
         // helpers
-        EXPECT_EQ(typeid(avxvector_t<bsz::b512, float>), typeid(__m512));
-        EXPECT_EQ(typeid(avxvector_half_t<bsz::b512, float>), typeid(__m256));
-        EXPECT_EQ((avxvector_v<bsz::b512, float>), 16U);
-        EXPECT_EQ((avxvector<bsz::b512, float>()), 16U);
-        EXPECT_EQ((avxvector_half_v<bsz::b512, float>), 8U);
-        EXPECT_EQ((hsz_v<bsz::b512, float>), 8U);
-        EXPECT_EQ((tsz_v<bsz::b512, float>), 16U);
+        EXPECT_EQ(typeid(avxvector_t<bsz::b128, float>), typeid(__m128));
+        EXPECT_EQ(typeid(avxvector_half_t<bsz::b128, float>), typeid(__m64));
+        EXPECT_EQ((avxvector_v<bsz::b128, float>), 4U);
+        EXPECT_EQ((avxvector<bsz::b128, float>()), 4U);
+        EXPECT_EQ((avxvector_half_v<bsz::b128, float>), 2U);
+        EXPECT_EQ((hsz_v<bsz::b128, float>), 2U);
+        EXPECT_EQ((tsz_v<bsz::b128, float>), 4U);
 
-        // bsz::b512 double
-        EXPECT_EQ(typeid(avxvector<bsz::b512, double>::type), typeid(__m512d));
-        EXPECT_EQ(typeid(avxvector<bsz::b512, double>::half_type), typeid(__m256d));
-        EXPECT_EQ((avxvector<bsz::b512, double>::p_size), 8U);
-        EXPECT_EQ((avxvector<bsz::b512, double>()), 8U);
-        EXPECT_EQ((avxvector<bsz::b512, double>::hp_size), 4U);
-        EXPECT_EQ((avxvector<bsz::b512, double>::tsz), 8U);
+        // bsz::b128 double
+        EXPECT_EQ(typeid(avxvector<bsz::b128, double>::type), typeid(__m128d));
+        EXPECT_EQ(typeid(avxvector<bsz::b128, double>::half_type), typeid(__m64));
+        EXPECT_EQ((avxvector<bsz::b128, double>::p_size), 2U);
+        EXPECT_EQ((avxvector<bsz::b128, double>()), 2U);
+        EXPECT_EQ((avxvector<bsz::b128, double>::hp_size), 1U);
+        EXPECT_EQ((avxvector<bsz::b128, double>::tsz), 2U);
 
         // helpers
-        EXPECT_EQ(typeid(avxvector_t<bsz::b512, double>), typeid(__m512d));
-        EXPECT_EQ(typeid(avxvector_half_t<bsz::b512, double>), typeid(__m256d));
-        EXPECT_EQ((avxvector_v<bsz::b512, double>), 8U);
-        EXPECT_EQ((avxvector<bsz::b512, double>()), 8U);
-        EXPECT_EQ((avxvector_half_v<bsz::b512, double>), 4U);
-        EXPECT_EQ((hsz_v<bsz::b512, double>), 4U);
-        EXPECT_EQ((tsz_v<bsz::b512, double>), 8U);
+        EXPECT_EQ(typeid(avxvector_t<bsz::b128, double>), typeid(__m128d));
+        EXPECT_EQ(typeid(avxvector_half_t<bsz::b128, double>), typeid(__m64));
+        EXPECT_EQ((avxvector_v<bsz::b128, double>), 2U);
+        EXPECT_EQ((avxvector<bsz::b128, double>()), 2U);
+        EXPECT_EQ((avxvector_half_v<bsz::b128, double>), 1U);
+        EXPECT_EQ((hsz_v<bsz::b128, double>), 1U);
+        EXPECT_EQ((tsz_v<bsz::b128, double>), 2U);
     }
 
-    void kt_ctypes_512()
+    void kt_ctypes_128()
     {
         /*
-        * These bsz::b512 bit tests check that the correct complex data type
-        * and packed sizes are "returned".
-        */
-        // bsz::b512 cfloat
-        EXPECT_EQ(typeid(avxvector<bsz::b512, cfloat>::type), typeid(__m512));
-        EXPECT_EQ(typeid(avxvector<bsz::b512, cfloat>::half_type), typeid(__m256));
-        EXPECT_EQ((avxvector<bsz::b512, cfloat>::p_size), 16U);
-        EXPECT_EQ((avxvector<bsz::b512, cfloat>()), 16U);
-        EXPECT_EQ((avxvector<bsz::b512, cfloat>::hp_size), 8U);
-        EXPECT_EQ((avxvector<bsz::b512, cfloat>::tsz), 8U);
+         * These bsz::b128 bit tests check that the correct complex data type
+         * and packed sizes are "returned".
+         */
+        // bsz::b128 cfloat
+        EXPECT_EQ(typeid(avxvector<bsz::b128, cfloat>::type), typeid(__m128));
+        EXPECT_EQ(typeid(avxvector<bsz::b128, cfloat>::half_type), typeid(__m64));
+        EXPECT_EQ((avxvector<bsz::b128, cfloat>::p_size), 4U);
+        EXPECT_EQ((avxvector<bsz::b128, cfloat>()), 4U);
+        EXPECT_EQ((avxvector<bsz::b128, cfloat>::hp_size), 2U);
+        EXPECT_EQ((avxvector<bsz::b128, cfloat>::tsz), 2U);
 
         // helpers
-        EXPECT_EQ(typeid(avxvector_t<bsz::b512, cfloat>), typeid(__m512));
-        EXPECT_EQ(typeid(avxvector_half_t<bsz::b512, cfloat>), typeid(__m256));
-        EXPECT_EQ((avxvector_v<bsz::b512, cfloat>), 16U);
-        EXPECT_EQ((avxvector<bsz::b512, cfloat>()), 16U);
-        EXPECT_EQ((avxvector_half_v<bsz::b512, cfloat>), 8U);
-        EXPECT_EQ((hsz_v<bsz::b512, cfloat>), 8U);
-        EXPECT_EQ((tsz_v<bsz::b512, cfloat>), 8U);
+        EXPECT_EQ(typeid(avxvector_t<bsz::b128, cfloat>), typeid(__m128));
+        EXPECT_EQ(typeid(avxvector_half_t<bsz::b128, cfloat>), typeid(__m64));
+        EXPECT_EQ((avxvector_v<bsz::b128, cfloat>), 4U);
+        EXPECT_EQ((avxvector<bsz::b128, cfloat>()), 4U);
+        EXPECT_EQ((avxvector_half_v<bsz::b128, cfloat>), 2U);
+        EXPECT_EQ((hsz_v<bsz::b128, cfloat>), 2U);
+        EXPECT_EQ((tsz_v<bsz::b128, cfloat>), 2U);
 
-        // bsz::b512 cdouble
-        EXPECT_EQ(typeid(avxvector<bsz::b512, cdouble>::type), typeid(__m512d));
-        EXPECT_EQ(typeid(avxvector<bsz::b512, cdouble>::half_type), typeid(__m256d));
-        EXPECT_EQ((avxvector<bsz::b512, cdouble>::p_size), 8U);
-        EXPECT_EQ((avxvector<bsz::b512, cdouble>()), 8U);
-        EXPECT_EQ((avxvector<bsz::b512, cdouble>::hp_size), 4U);
-        EXPECT_EQ((avxvector<bsz::b512, cdouble>::tsz), 4U);
+        // bsz::b128 cdouble
+        EXPECT_EQ(typeid(avxvector<bsz::b128, cdouble>::type), typeid(__m128d));
+        EXPECT_EQ(typeid(avxvector<bsz::b128, cdouble>::half_type), typeid(__m64));
+        EXPECT_EQ((avxvector<bsz::b128, cdouble>::p_size), 2U);
+        EXPECT_EQ((avxvector<bsz::b128, cdouble>()), 2U);
+        EXPECT_EQ((avxvector<bsz::b128, cdouble>::hp_size), 0U);
+        EXPECT_EQ((avxvector<bsz::b128, cdouble>::tsz), 1U);
 
         // helpers
-        EXPECT_EQ(typeid(avxvector_t<bsz::b512, cdouble>), typeid(__m512d));
-        EXPECT_EQ(typeid(avxvector_half_t<bsz::b512, cdouble>), typeid(__m256d));
-        EXPECT_EQ((avxvector_v<bsz::b512, cdouble>), 8U);
-        EXPECT_EQ((avxvector<bsz::b512, cdouble>()), 8U);
-        EXPECT_EQ((avxvector_half_v<bsz::b512, cdouble>), 4U);
-        EXPECT_EQ((hsz_v<bsz::b512, cdouble>), 4U);
-        EXPECT_EQ((tsz_v<bsz::b512, cdouble>), 4U);
+        EXPECT_EQ(typeid(avxvector_t<bsz::b128, cdouble>), typeid(__m128d));
+        EXPECT_EQ(typeid(avxvector_half_t<bsz::b128, cdouble>), typeid(__m64));
+        EXPECT_EQ((avxvector_v<bsz::b128, cdouble>), 2U);
+        EXPECT_EQ((avxvector<bsz::b128, cdouble>()), 2U);
+        EXPECT_EQ((avxvector_half_v<bsz::b128, cdouble>), 0U);
+        EXPECT_EQ((hsz_v<bsz::b128, cdouble>), 0U);
+        EXPECT_EQ((tsz_v<bsz::b128, cdouble>), 1U);
     }
 
-#else
     void kt_types_256()
     {
         /*
@@ -247,6 +244,88 @@ namespace TestsKT
         EXPECT_EQ((avxvector_half_v<bsz::b256, cdouble>), 2U);
         EXPECT_EQ((hsz_v<bsz::b256, cdouble>), 2U);
         EXPECT_EQ((tsz_v<bsz::b256, cdouble>), 2U);
+    }
+#else
+    void kt_types_512()
+    {
+        /*
+         * These bsz::b512 bit tests check that the correct data type
+         * and packed sizes are "returned".
+         */
+        // bsz::b512 float
+        EXPECT_EQ(typeid(avxvector<bsz::b512, float>::type), typeid(__m512));
+        EXPECT_EQ(typeid(avxvector<bsz::b512, float>::half_type), typeid(__m256));
+        EXPECT_EQ((avxvector<bsz::b512, float>::p_size), 16U);
+        EXPECT_EQ((avxvector<bsz::b512, float>()), 16U);
+        EXPECT_EQ((avxvector<bsz::b512, float>::hp_size), 8U);
+        EXPECT_EQ((avxvector<bsz::b512, float>::tsz), 16U);
+
+        // helpers
+        EXPECT_EQ(typeid(avxvector_t<bsz::b512, float>), typeid(__m512));
+        EXPECT_EQ(typeid(avxvector_half_t<bsz::b512, float>), typeid(__m256));
+        EXPECT_EQ((avxvector_v<bsz::b512, float>), 16U);
+        EXPECT_EQ((avxvector<bsz::b512, float>()), 16U);
+        EXPECT_EQ((avxvector_half_v<bsz::b512, float>), 8U);
+        EXPECT_EQ((hsz_v<bsz::b512, float>), 8U);
+        EXPECT_EQ((tsz_v<bsz::b512, float>), 16U);
+
+        // bsz::b512 double
+        EXPECT_EQ(typeid(avxvector<bsz::b512, double>::type), typeid(__m512d));
+        EXPECT_EQ(typeid(avxvector<bsz::b512, double>::half_type), typeid(__m256d));
+        EXPECT_EQ((avxvector<bsz::b512, double>::p_size), 8U);
+        EXPECT_EQ((avxvector<bsz::b512, double>()), 8U);
+        EXPECT_EQ((avxvector<bsz::b512, double>::hp_size), 4U);
+        EXPECT_EQ((avxvector<bsz::b512, double>::tsz), 8U);
+
+        // helpers
+        EXPECT_EQ(typeid(avxvector_t<bsz::b512, double>), typeid(__m512d));
+        EXPECT_EQ(typeid(avxvector_half_t<bsz::b512, double>), typeid(__m256d));
+        EXPECT_EQ((avxvector_v<bsz::b512, double>), 8U);
+        EXPECT_EQ((avxvector<bsz::b512, double>()), 8U);
+        EXPECT_EQ((avxvector_half_v<bsz::b512, double>), 4U);
+        EXPECT_EQ((hsz_v<bsz::b512, double>), 4U);
+        EXPECT_EQ((tsz_v<bsz::b512, double>), 8U);
+    }
+
+    void kt_ctypes_512()
+    {
+        /*
+        * These bsz::b512 bit tests check that the correct complex data type
+        * and packed sizes are "returned".
+        */
+        // bsz::b512 cfloat
+        EXPECT_EQ(typeid(avxvector<bsz::b512, cfloat>::type), typeid(__m512));
+        EXPECT_EQ(typeid(avxvector<bsz::b512, cfloat>::half_type), typeid(__m256));
+        EXPECT_EQ((avxvector<bsz::b512, cfloat>::p_size), 16U);
+        EXPECT_EQ((avxvector<bsz::b512, cfloat>()), 16U);
+        EXPECT_EQ((avxvector<bsz::b512, cfloat>::hp_size), 8U);
+        EXPECT_EQ((avxvector<bsz::b512, cfloat>::tsz), 8U);
+
+        // helpers
+        EXPECT_EQ(typeid(avxvector_t<bsz::b512, cfloat>), typeid(__m512));
+        EXPECT_EQ(typeid(avxvector_half_t<bsz::b512, cfloat>), typeid(__m256));
+        EXPECT_EQ((avxvector_v<bsz::b512, cfloat>), 16U);
+        EXPECT_EQ((avxvector<bsz::b512, cfloat>()), 16U);
+        EXPECT_EQ((avxvector_half_v<bsz::b512, cfloat>), 8U);
+        EXPECT_EQ((hsz_v<bsz::b512, cfloat>), 8U);
+        EXPECT_EQ((tsz_v<bsz::b512, cfloat>), 8U);
+
+        // bsz::b512 cdouble
+        EXPECT_EQ(typeid(avxvector<bsz::b512, cdouble>::type), typeid(__m512d));
+        EXPECT_EQ(typeid(avxvector<bsz::b512, cdouble>::half_type), typeid(__m256d));
+        EXPECT_EQ((avxvector<bsz::b512, cdouble>::p_size), 8U);
+        EXPECT_EQ((avxvector<bsz::b512, cdouble>()), 8U);
+        EXPECT_EQ((avxvector<bsz::b512, cdouble>::hp_size), 4U);
+        EXPECT_EQ((avxvector<bsz::b512, cdouble>::tsz), 4U);
+
+        // helpers
+        EXPECT_EQ(typeid(avxvector_t<bsz::b512, cdouble>), typeid(__m512d));
+        EXPECT_EQ(typeid(avxvector_half_t<bsz::b512, cdouble>), typeid(__m256d));
+        EXPECT_EQ((avxvector_v<bsz::b512, cdouble>), 8U);
+        EXPECT_EQ((avxvector<bsz::b512, cdouble>()), 8U);
+        EXPECT_EQ((avxvector_half_v<bsz::b512, cdouble>), 4U);
+        EXPECT_EQ((hsz_v<bsz::b512, cdouble>), 4U);
+        EXPECT_EQ((tsz_v<bsz::b512, cdouble>), 4U);
     }
 #endif
 
@@ -777,7 +856,91 @@ namespace TestsKT
         }                                                                                    \
     }
 
-#ifndef KT_AVX2_BUILD
+#ifdef KT_AVX2_BUILD
+    void kt_maskz_set_p_256_avx()
+    {
+        // ===============
+        // DIRECT
+        //================
+        // bsz::b256/float -> 8
+        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 1, 1);
+        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 2, 0);
+        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 3, 2);
+        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 4, 1);
+        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 5, 0);
+        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 6, 1);
+        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 7, 0);
+        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 8, 1);
+        // This must trigger a warning under AVX512F (bsz::b256 bit __mask8)
+        // kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 9);
+        // Test to ensure the memory is not touched
+        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, -1, 10000000);
+
+        // bsz::b256 double -> 4
+        kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX, 1, 0);
+        kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX, 2, 1);
+        kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX, 3, 3);
+        kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX, 4, 2);
+        // This also triggers a warning
+        // kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX, 5);
+        // Test to ensure the memory is not touched
+        kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX, -1, 10000000);
+
+        // bsz::b256 cfloat -> 4
+        kt_maskz_set_p_param_dir(bsz::b256, cfloat, c, AVX, 1, 1);
+        kt_maskz_set_p_param_dir(bsz::b256, cfloat, c, AVX, 2, 0);
+        kt_maskz_set_p_param_dir(bsz::b256, cfloat, c, AVX, 3, 4);
+        kt_maskz_set_p_param_dir(bsz::b256, cfloat, c, AVX, 4, 0);
+
+        // Test to ensure the memory is not touched
+        kt_maskz_set_p_param_dir(bsz::b256, cfloat, c, AVX, -1, 10000000);
+
+        // bsz::b256 cdouble -> 2
+        kt_maskz_set_p_param_dir(bsz::b256, cdouble, z, AVX, 1, 0);
+        kt_maskz_set_p_param_dir(bsz::b256, cdouble, z, AVX, 2, 4);
+        kt_maskz_set_p_param_dir(bsz::b256, cdouble, z, AVX, 2, 0);
+
+        // Test to ensure the memory is not touched
+        kt_maskz_set_p_param_dir(bsz::b256, cdouble, z, AVX, -1, 10000000);
+
+        // =================================
+        // INDIRECT (can have any extension)
+        // =================================
+        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX, 1, 0);
+        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX512F, 2, 1);
+        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX512VL, 3, 0);
+        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX, 4, 1);
+        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX, 5, 0);
+        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX, 6, 2);
+        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX, 7, 0);
+        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX, 8, 0);
+        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX, 9, 0);
+
+        kt_maskz_set_p_param_indir(bsz::b256, double, d, AVX, 1, 0);
+        kt_maskz_set_p_param_indir(bsz::b256, double, d, AVX512DQ, 0, 1);
+        kt_maskz_set_p_param_indir(bsz::b256, double, d, AVX, 3, 0);
+        kt_maskz_set_p_param_indir(bsz::b256, double, d, AVX, 4, 3);
+        kt_maskz_set_p_param_indir(bsz::b256, double, d, AVX, 5, 0);
+
+        kt_maskz_set_p_param_indir(bsz::b256, cfloat, c, AVX, 1, 0);
+        kt_maskz_set_p_param_indir(bsz::b256, cfloat, c, AVX512F, 2, 1);
+        kt_maskz_set_p_param_indir(bsz::b256, cfloat, c, AVX512VL, 0, 0);
+        kt_maskz_set_p_param_indir(bsz::b256, cfloat, c, AVX, 4, 1);
+        kt_maskz_set_p_param_indir(bsz::b256, cfloat, c, AVX, 3, 3);
+
+        kt_maskz_set_p_param_indir(bsz::b256, cdouble, z, AVX, 1, 1);
+        kt_maskz_set_p_param_indir(bsz::b256, cdouble, z, AVX512DQ, 2, 0);
+        kt_maskz_set_p_param_indir(bsz::b256, cdouble, z, AVX, 1, 0);
+        kt_maskz_set_p_param_indir(bsz::b256, cdouble, z, AVX, 2, 2);
+        kt_maskz_set_p_param_indir(bsz::b256, cdouble, z, AVX512DQ, 0, 0);
+
+        // Out of bound access tests
+        kt_maskz_set_p_param_indir_out_of_bound(bsz::b256, float, s, AVX2);
+        kt_maskz_set_p_param_indir_out_of_bound(bsz::b256, double, d, AVX2);
+        kt_maskz_set_p_param_indir_out_of_bound(bsz::b256, cfloat, c, AVX2);
+        kt_maskz_set_p_param_indir_out_of_bound(bsz::b256, cdouble, z, AVX2);
+    }
+#else
     void kt_maskz_set_p_256_AVX512vl()
     {
         kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX512VL, 1, 0);
@@ -889,91 +1052,6 @@ namespace TestsKT
         kt_maskz_set_p_param_indir_out_of_bound(bsz::b512, double, d, AVX512F);
         kt_maskz_set_p_param_indir_out_of_bound(bsz::b512, cfloat, c, AVX512F);
         kt_maskz_set_p_param_indir_out_of_bound(bsz::b512, cdouble, z, AVX512F);
-    }
-
-#else
-    void kt_maskz_set_p_256_avx()
-    {
-        // ===============
-        // DIRECT
-        //================
-        // bsz::b256/float -> 8
-        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 1, 1);
-        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 2, 0);
-        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 3, 2);
-        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 4, 1);
-        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 5, 0);
-        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 6, 1);
-        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 7, 0);
-        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 8, 1);
-        // This must trigger a warning under AVX512F (bsz::b256 bit __mask8)
-        // kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 9);
-        // Test to ensure the memory is not touched
-        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, -1, 10000000);
-
-        // bsz::b256 double -> 4
-        kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX, 1, 0);
-        kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX, 2, 1);
-        kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX, 3, 3);
-        kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX, 4, 2);
-        // This also triggers a warning
-        // kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX, 5);
-        // Test to ensure the memory is not touched
-        kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX, -1, 10000000);
-
-        // bsz::b256 cfloat -> 4
-        kt_maskz_set_p_param_dir(bsz::b256, cfloat, c, AVX, 1, 1);
-        kt_maskz_set_p_param_dir(bsz::b256, cfloat, c, AVX, 2, 0);
-        kt_maskz_set_p_param_dir(bsz::b256, cfloat, c, AVX, 3, 4);
-        kt_maskz_set_p_param_dir(bsz::b256, cfloat, c, AVX, 4, 0);
-
-        // Test to ensure the memory is not touched
-        kt_maskz_set_p_param_dir(bsz::b256, cfloat, c, AVX, -1, 10000000);
-
-        // bsz::b256 cdouble -> 2
-        kt_maskz_set_p_param_dir(bsz::b256, cdouble, z, AVX, 1, 0);
-        kt_maskz_set_p_param_dir(bsz::b256, cdouble, z, AVX, 2, 4);
-        kt_maskz_set_p_param_dir(bsz::b256, cdouble, z, AVX, 2, 0);
-
-        // Test to ensure the memory is not touched
-        kt_maskz_set_p_param_dir(bsz::b256, cdouble, z, AVX, -1, 10000000);
-
-        // =================================
-        // INDIRECT (can have any extension)
-        // =================================
-        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX, 1, 0);
-        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX512F, 2, 1);
-        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX512VL, 3, 0);
-        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX, 4, 1);
-        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX, 5, 0);
-        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX, 6, 2);
-        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX, 7, 0);
-        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX, 8, 0);
-        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX, 9, 0);
-
-        kt_maskz_set_p_param_indir(bsz::b256, double, d, AVX, 1, 0);
-        kt_maskz_set_p_param_indir(bsz::b256, double, d, AVX512DQ, 0, 1);
-        kt_maskz_set_p_param_indir(bsz::b256, double, d, AVX, 3, 0);
-        kt_maskz_set_p_param_indir(bsz::b256, double, d, AVX, 4, 3);
-        kt_maskz_set_p_param_indir(bsz::b256, double, d, AVX, 5, 0);
-
-        kt_maskz_set_p_param_indir(bsz::b256, cfloat, c, AVX, 1, 0);
-        kt_maskz_set_p_param_indir(bsz::b256, cfloat, c, AVX512F, 2, 1);
-        kt_maskz_set_p_param_indir(bsz::b256, cfloat, c, AVX512VL, 0, 0);
-        kt_maskz_set_p_param_indir(bsz::b256, cfloat, c, AVX, 4, 1);
-        kt_maskz_set_p_param_indir(bsz::b256, cfloat, c, AVX, 3, 3);
-
-        kt_maskz_set_p_param_indir(bsz::b256, cdouble, z, AVX, 1, 1);
-        kt_maskz_set_p_param_indir(bsz::b256, cdouble, z, AVX512DQ, 2, 0);
-        kt_maskz_set_p_param_indir(bsz::b256, cdouble, z, AVX, 1, 0);
-        kt_maskz_set_p_param_indir(bsz::b256, cdouble, z, AVX, 2, 2);
-        kt_maskz_set_p_param_indir(bsz::b256, cdouble, z, AVX512DQ, 0, 0);
-
-        // Out of bound access tests
-        kt_maskz_set_p_param_indir_out_of_bound(bsz::b256, float, s, AVX2);
-        kt_maskz_set_p_param_indir_out_of_bound(bsz::b256, double, d, AVX2);
-        kt_maskz_set_p_param_indir_out_of_bound(bsz::b256, cfloat, c, AVX2);
-        kt_maskz_set_p_param_indir_out_of_bound(bsz::b256, cdouble, z, AVX2);
     }
 #endif
 
@@ -1468,3 +1546,26 @@ template void TestsKT::kt_cdot_p_test<get_bsz()>();
 template void TestsKT::kt_storeu_p_test<get_bsz()>();
 template void TestsKT::kt_fmadd_B_test<get_bsz()>();
 template void TestsKT::kt_hsum_B_test<get_bsz()>();
+
+// Instantiate SSE tests only in AVX2 build
+#ifdef KT_AVX2_BUILD
+// SSE instantiation
+// Operations that have not been supported in SSE
+// are commented out
+template void TestsKT::kt_loadu_p_test<bsz::b128>();
+template void TestsKT::kt_setzero_p_test<bsz::b128>();
+template void TestsKT::kt_set1_p_test<bsz::b128>();
+template void TestsKT::kt_add_p_test<bsz::b128>();
+template void TestsKT::kt_sub_p_test<bsz::b128>();
+template void TestsKT::kt_mul_p_test<bsz::b128>();
+template void TestsKT::kt_fmadd_p_test<bsz::b128>();
+template void TestsKT::kt_fmsub_p_test<bsz::b128>();
+template void TestsKT::kt_set_p_test<bsz::b128>();
+// template void TestsKT::kt_hsum_p_test<bsz::b128>();
+template void TestsKT::kt_conj_p_test<bsz::b128>();
+// template void TestsKT::kt_dot_p_test<bsz::b128>();
+// template void TestsKT::kt_cdot_p_test<bsz::b128>();
+template void TestsKT::kt_storeu_p_test<bsz::b128>();
+// template void TestsKT::kt_fmadd_B_test<bsz::b128>();
+// template void TestsKT::kt_hsum_B_test<bsz::b128>();
+#endif
