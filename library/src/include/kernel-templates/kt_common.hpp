@@ -173,6 +173,16 @@ namespace kernel_templates
         }
     };
 
+    // Checks if the base type is real - true for float and double
+    template <typename T>
+    struct kt_is_base_t_real
+    {
+        constexpr operator bool() const noexcept
+        {
+            return std::is_same<T, double>::value || std::is_same<T, float>::value;
+        }
+    };
+
     // Checks if both the vector length and datatype are the same
     template <bsz SZA, bsz SZB, typename SUFA, typename SUFB>
     struct kt_is_same

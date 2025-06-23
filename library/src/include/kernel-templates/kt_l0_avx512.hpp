@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -450,6 +450,22 @@ namespace kernel_templates
             t = _mm512_xor_ps(signs, a);
 
             return SUF(_mm512_reduce_add_ps(t), _mm512_reduce_add_ps(b));
+        }
+    }
+
+    // Compare packed SUF elements in a and b, and returns packed maximum values.
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE
+        std::enable_if_t<SZ == bsz::b512 && kt_is_base_t_real<SUF>(), avxvector_t<SZ, SUF>>
+        kt_max_p(const avxvector_t<SZ, SUF> a, const avxvector_t<SZ, SUF> b) noexcept
+    {
+        if constexpr(std::is_same_v<SUF, double>)
+        {
+            return _mm512_max_pd(a, b);
+        }
+        else if constexpr(std::is_same_v<SUF, float>)
+        {
+            return _mm512_max_ps(a, b);
         }
     }
 }

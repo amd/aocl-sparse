@@ -857,6 +857,66 @@ namespace TestsKT
     }
 
 #ifdef KT_AVX2_BUILD
+    void kt_maskz_set_p_128_avx()
+    {
+        // ===================================================
+        // DIRECT (can have any extension other than AVX512VL)
+        //====================================================
+        // bsz::b128/float -> 4
+        kt_maskz_set_p_param_dir(bsz::b128, float, s, AVX, 1, 1);
+        kt_maskz_set_p_param_dir(bsz::b128, float, s, AVX2, 2, 0);
+        kt_maskz_set_p_param_dir(bsz::b128, float, s, AVX512F, 3, 2);
+        kt_maskz_set_p_param_dir(bsz::b128, float, s, AVX, 4, 1);
+
+        // This must trigger a warning under AVX512F (bsz::b128 bit __mask8)
+        // kt_maskz_set_p_param_dir(bsz::b128, float, s, AVX, 9);
+        // Test to ensure the memory is not touched
+        kt_maskz_set_p_param_dir(bsz::b128, float, s, AVX, -1, 10000000);
+
+        // bsz::b128 double -> 2
+        kt_maskz_set_p_param_dir(bsz::b128, double, d, AVX512DQ, 1, 0);
+        kt_maskz_set_p_param_dir(bsz::b128, double, d, AVX512F, 2, 1);
+        // This also triggers a warning
+        // kt_maskz_set_p_param_dir(bsz::b128, double, d, AVX, 5);
+        // Test to ensure the memory is not touched
+        kt_maskz_set_p_param_dir(bsz::b128, double, d, AVX, -1, 10000000);
+
+        // bsz::b128 cfloat -> 2
+        kt_maskz_set_p_param_dir(bsz::b128, cfloat, c, AVX2, 1, 1);
+        kt_maskz_set_p_param_dir(bsz::b128, cfloat, c, AVX, 2, 0);
+
+        // Test to ensure the memory is not touched
+        kt_maskz_set_p_param_dir(bsz::b128, cfloat, c, AVX512F, -1, 10000000);
+
+        // bsz::b128 cdouble -> 1
+        kt_maskz_set_p_param_dir(bsz::b128, cdouble, z, AVX, 1, 0);
+
+        // Test to ensure the memory is not touched
+        kt_maskz_set_p_param_dir(bsz::b128, cdouble, z, AVX2, -1, 10000000);
+
+        // =================================
+        // INDIRECT (can have any extension)
+        // =================================
+        kt_maskz_set_p_param_indir(bsz::b128, float, s, AVX, 1, 0);
+        kt_maskz_set_p_param_indir(bsz::b128, float, s, AVX512F, 2, 1);
+        kt_maskz_set_p_param_indir(bsz::b128, float, s, AVX512VL, 3, 0);
+        kt_maskz_set_p_param_indir(bsz::b128, float, s, AVX, 4, 1);
+
+        kt_maskz_set_p_param_indir(bsz::b128, double, d, AVX, 1, 0);
+        kt_maskz_set_p_param_indir(bsz::b128, double, d, AVX512DQ, 2, 1);
+
+        kt_maskz_set_p_param_indir(bsz::b128, cfloat, c, AVX, 1, 0);
+        kt_maskz_set_p_param_indir(bsz::b128, cfloat, c, AVX512F, 2, 1);
+
+        kt_maskz_set_p_param_indir(bsz::b128, cdouble, z, AVX, 1, 1);
+
+        // Out of bound access tests
+        kt_maskz_set_p_param_indir_out_of_bound(bsz::b128, float, s, AVX);
+        kt_maskz_set_p_param_indir_out_of_bound(bsz::b128, double, d, AVX);
+        kt_maskz_set_p_param_indir_out_of_bound(bsz::b128, cfloat, c, AVX);
+        kt_maskz_set_p_param_indir_out_of_bound(bsz::b128, cdouble, z, AVX);
+    }
+
     void kt_maskz_set_p_256_avx()
     {
         // ===============
@@ -1352,6 +1412,13 @@ namespace TestsKT
         EXPECT_DOUBLE_EQ_VEC(nd, d, refd);
         EXPECT_DOUBLE_EQ_VEC(nd, d_, refd_);
 
+        // In case of b128, we use the kt_fmadd_p_test
+        // to test the kt_fmadd_B, because the latter is not implemented
+        if(SZ == bsz::b128)
+        {
+            return kt_fmadd_p_test<SZ>();
+        }
+
         // Complex<float> FMADD ================================================
         constexpr size_t       nc = tsz_v<SZ, cfloat>;
         avxvector_t<SZ, float> scr, sci, ac, bc, cc, s1;
@@ -1487,6 +1554,13 @@ namespace TestsKT
         cfloat                   sumc, refc = {0.0f, 0.0f};
         cdouble                  sumz, refz = {0.0, 0.0};
 
+        // In case of b128, we use the kt_hsum_p_test
+        // to test the kt_hsum_B, because the latter is not implemented
+        if(SZ == bsz::b128)
+        {
+            return kt_hsum_p_test<SZ>();
+        }
+
         // cdouble ==============================================================
         az = kt_loadu_p<SZ, cdouble>(D.vz);
         bz = kt_set_p<SZ, cdouble>(D.vz, &D.map[3]);
@@ -1527,6 +1601,36 @@ namespace TestsKT
         EXPECT_COMPLEX_FLOAT_EQ(sumc, refc);
     }
 
+    template <bsz SZ>
+    void kt_max_p_test()
+    {
+        size_t ns = tsz_v<SZ, float>;
+        size_t nd = tsz_v<SZ, double>;
+
+        avxvector_t<SZ, float> s1 = kt_loadu_p<SZ, float>(&D.vs[0]);
+        avxvector_t<SZ, float> s2 = kt_loadu_p<SZ, float>(&D.vs[1]);
+
+        avxvector_t<SZ, double> d1 = kt_loadu_p<SZ, double>(&D.vd[2]);
+        avxvector_t<SZ, double> d2 = kt_loadu_p<SZ, double>(&D.vd[0]);
+
+        float  ref_ress[ns];
+        double ref_resd[nd];
+
+        avxvector_t<SZ, float> ress = kt_max_p<SZ, float>(s1, s2);
+
+        for(size_t i = 0; i < ns; i++)
+        {
+            ref_ress[i] = (std::max)(D.vs[0 + i], D.vs[1 + i]);
+        }
+        EXPECT_FLOAT_EQ_VEC(ns, ref_ress, ress);
+
+        avxvector_t<SZ, double> resd = kt_max_p<SZ, double>(d1, d2);
+        for(size_t i = 0; i < nd; i++)
+        {
+            ref_resd[i] = (std::max)(D.vd[2 + i], D.vd[0 + i]);
+        }
+        EXPECT_DOUBLE_EQ_VEC(nd, ref_resd, resd);
+    }
 }
 
 // Instantiation
@@ -1546,6 +1650,7 @@ template void TestsKT::kt_cdot_p_test<get_bsz()>();
 template void TestsKT::kt_storeu_p_test<get_bsz()>();
 template void TestsKT::kt_fmadd_B_test<get_bsz()>();
 template void TestsKT::kt_hsum_B_test<get_bsz()>();
+template void TestsKT::kt_max_p_test<get_bsz()>();
 
 // Instantiate SSE tests only in AVX2 build
 #ifdef KT_AVX2_BUILD
@@ -1561,11 +1666,12 @@ template void TestsKT::kt_mul_p_test<bsz::b128>();
 template void TestsKT::kt_fmadd_p_test<bsz::b128>();
 template void TestsKT::kt_fmsub_p_test<bsz::b128>();
 template void TestsKT::kt_set_p_test<bsz::b128>();
-// template void TestsKT::kt_hsum_p_test<bsz::b128>();
+template void TestsKT::kt_hsum_p_test<bsz::b128>();
 template void TestsKT::kt_conj_p_test<bsz::b128>();
-// template void TestsKT::kt_dot_p_test<bsz::b128>();
-// template void TestsKT::kt_cdot_p_test<bsz::b128>();
+template void TestsKT::kt_dot_p_test<bsz::b128>();
+template void TestsKT::kt_cdot_p_test<bsz::b128>();
 template void TestsKT::kt_storeu_p_test<bsz::b128>();
-// template void TestsKT::kt_fmadd_B_test<bsz::b128>();
-// template void TestsKT::kt_hsum_B_test<bsz::b128>();
+template void TestsKT::kt_fmadd_B_test<bsz::b128>();
+template void TestsKT::kt_hsum_B_test<bsz::b128>();
+template void TestsKT::kt_max_p_test<bsz::b128>();
 #endif

@@ -5,7 +5,7 @@ specialized on basic mathematical operations. The main purpose of the framework 
 ISA and datatype combination to fully exploit the hardware
 resources. KT support 4 different datatypes
 (<code>float</code>, <code>double</code>, <code>std::complex&lt;float&gt;</code> and <code>std::complex&lt;double&gt;</code>) for
-2 different ISAs (AVX2 and AVX512)</p>
+3 different ISAs (SSE, AVX2 and AVX512)</p>
 
 ## Purpose
 
@@ -50,6 +50,7 @@ Table Reusable Kernel Templates μkernels list.
 |0	|kt_fmsub_p|	Vector fused multiply-subtract|
 |0	|kt_hsum_p|	Horizontal sum (reduction)|
 |0	|kt_conj_p|	Conjugate the contents register|
+|0	|kt_max_p|	Maximum element in a vector per index |
 |1	|kt_dot_p|	Dot-product of two vectors|
 |1	|kt_cdot_p|	Conjugate dot-product|
 
@@ -102,6 +103,13 @@ void axpyi_kt(int64_t nnz,
 }
 
 #ifdef KT_AVX2_BUILD
+// Instantiate for double and 128-bit vector
+template void axpyi_kt<bsz::b128, double>(int64_t nnz,
+                                          double a,
+                                          const double * x,
+                                          const int64_t *indx,
+                                          double *y);
+
 // Instantiate for double and 256-bit vector
 template void axpyi_kt<bsz::b256, double>(int64_t nnz,
                                           double a,
@@ -120,7 +128,7 @@ template void axpyi_kt<bsz::b512, double>(int64_t nnz,
 
 The above `#ifdef` can be removed by using the auxiliary function
 `get_bsz()` that return the `bsz::b*` based on the presence of `KT_AVX2_BUILD`
-so a single declaration can be used:
+so a single declaration can be used for AVX2 and AVX512 kernels. While SSE will require its own declaration. This declaration can be mitigated by a triple compilation.
 ```cpp
 // Instantiate for double and ISA is based on compilation flags
 template void axpyi_kt<get_bsz(), double>(int64_t nnz,
@@ -128,26 +136,36 @@ template void axpyi_kt<get_bsz(), double>(int64_t nnz,
                                           const double * x,
                                           const int64_t *indx,
                                           double *y);
+#ifdef KT_AVX2_BUILD
+// Instantiate for double and 128-bit vector
+template void axpyi_kt<bsz::b128, double>(int64_t nnz,
+                                          double a,
+                                          const double * x,
+                                          const int64_t *indx,
+                                          double *y);
+#endif
 ```
 
 ### Compiling the source file
 
-<p align="justify">To generate KT-based kernels for N ISAs, the source needs to be compiled N times. AVX2 and AVX512 variants of the above `axpyi` kernel can be generated as follows:</p>
+<p align="justify">To generate KT-based kernels for N ISAs, the source needs to be compiled N times. AVX2 and AVX512 variants of the above <code>axpyi</code> kernel can be generated as follows:</p>
 
 #### AVX2 object
 Compile with AVX2 flags and defile the macro `KT_AVX2_BUILD` (to indicate that the source is for AVX2 ISA). Optionally, to ensure that no AVX512 intrinsics are allowed, add `-mno-avx512f`. This will produce the AVX2 version of kernel. Using GCC on Linux:
 ```bash
+# Generates the AVX2 and SSE versions of the kernel
 g++ -mavx2 -mfma -mno-avx512f -DKT_AVX2_BUILD -c kt_example_axpyi.cpp -o kt_axpyi_avx2.o # Compile the source with AVX2 flag(s)
 ```
 
 #### AVX512 object
 Compile with AVX512 flags This will produce an object file with AVX512 version of KT-based kernel.
 ```bash
+# Generates the AVX512 version of the kernel
 g++ -mavx512f -mavx512vl -mavx512dq -c kt_example_axpyi.cpp -o kt_axpyi_avx512.o # Compile the source with AVX512
 ```
 
 #### Example driver
-This small example illustrates how to call the AVX2 and AVX512 variants of the kernels.
+This small example illustrates how to call the AVX, AVX2 and AVX512 variants of the kernels.
 
 #### Header containing the kernel's declaration
 ```cpp
@@ -172,8 +190,8 @@ void axpyi_kt(int64_t nnz,
 #include <cstdlib>
 #include "kt_axpyi.hpp"
 
-// This application calls AVX2 and AVX512 KT-based kernels for axpyi
-// and checks if both kernels return the same result
+// This application calls AVX, AVX2 and AVX512 KT-based kernels for axpyi API
+// and checks that all three kernels return the same result
 int main()
 {
     using namespace kernel_templates;
@@ -184,7 +202,7 @@ int main()
 
     int64_t index[10] = {2, 9, 1, 16, 4, 3, 10, 8, 12, 14};
 
-    double y1[17], y2[17], x[10];
+    double y1[17], y2[17], y3[17], x[10];
 
     for(int i = 0; i < nnz; ++i)
     {
@@ -194,15 +212,18 @@ int main()
 
     for(int i = 0; i < 17; ++i)
     {
-        y2[i] = y1[i];
+        y3[i] = y2[i] = y1[i];
     }
 
     axpyi_kt<bsz::b512, double>(nnz, alpha, x, index, y1);
     axpyi_kt<bsz::b256, double>(nnz, alpha, x, index, y2);
+    axpyi_kt<bsz::b128, double>(nnz, alpha, x, index, y3);
 
     for(int i = 0; i < 17; ++i)
     {
-        if(y2[i] != y1[i])
+        if(y2[i] == y1[i] && y3[i] == y1[i])
+            continue;
+        else
         {
             is_equal = false;
             break;

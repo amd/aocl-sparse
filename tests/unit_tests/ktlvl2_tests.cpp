@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023-2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023-2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -347,6 +347,14 @@ namespace TestsKT
 
         tolerance_t<T> abserr = sqrt(std::numeric_limits<tolerance_t<T>>::epsilon());
         EXPECT_COMPLEX_ARR_NEAR(m, b, bref, abserr);
+    }
+
+    TEST(KT_L2, kt_spmb128)
+    {
+        driver_spmv<bsz::b128, float>();
+        driver_spmv<bsz::b128, std::complex<float>>();
+        driver_spmv<bsz::b128, double>();
+        driver_spmv<bsz::b128, std::complex<double>>();
     }
 
     TEST(KT_L2, kt_spmb256)

@@ -32,7 +32,7 @@
 
 namespace kernel_templates
 {
-    // Zero out an AVX register
+    // Zero out an SSE register
     template <bsz SZ, typename SUF>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b128, avxvector_t<SZ, SUF>>
                     kt_setzero_p(void) noexcept
@@ -73,7 +73,7 @@ namespace kernel_templates
         }
     };
 
-    // Unaligned set (load) to AVX register with indirect memory access
+    // Unaligned set (load) to SSE register with indirect memory access
     template <bsz SZ, typename SUF>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b128, avxvector_t<SZ, SUF>>
                     kt_set_p(const SUF *v, const kt_int_t *b) noexcept
@@ -99,7 +99,66 @@ namespace kernel_templates
         }
     };
 
-    // Dense direct aligned load to AVX register
+    // Unaligned load to SSE register with zero mask direct memory model.
+    template <bsz SZ, typename SUF, kt_avxext, int L>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b128, avxvector_t<SZ, SUF>>
+                    kt_maskz_set_p(const SUF *v, const kt_int_t b) noexcept
+    {
+        if constexpr(kt_is_same<bsz::b128, SZ, double, SUF>())
+        {
+            return _mm_set_pd(pz<SUF, L - 2>(v, b + 1), pz<SUF, L - 1>(v, b + 0));
+        }
+        else if constexpr(kt_is_same<bsz::b128, SZ, float, SUF>())
+        {
+            return _mm_set_ps(pz<SUF, L - 4>(v, b + 3),
+                              pz<SUF, L - 3>(v, b + 2),
+                              pz<SUF, L - 2>(v, b + 1),
+                              pz<SUF, L - 1>(v, b + 0));
+        }
+        else if constexpr(kt_is_same<bsz::b128, SZ, cdouble, SUF>())
+        {
+            return _mm_set_pd(pz<SUF, L - 1, false>(v, b + 0), pz<SUF, L - 1, true>(v, b + 0));
+        }
+        else if constexpr(kt_is_same<bsz::b128, SZ, cfloat, SUF>())
+        {
+            return _mm_set_ps(pz<SUF, L - 2, false>(v, b + 1),
+                              pz<SUF, L - 2, true>(v, b + 1),
+                              pz<SUF, L - 1, false>(v, b + 0),
+                              pz<SUF, L - 1, true>(v, b + 0));
+        }
+    };
+
+    // Unaligned load to SSE register with zero mask indirect memory model.
+    template <bsz SZ, typename SUF, kt_avxext, int L>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b128, avxvector_t<SZ, SUF>>
+                    kt_maskz_set_p(const SUF *v, const kt_int_t *b) noexcept
+    {
+        if constexpr(kt_is_same<bsz::b128, SZ, double, SUF>())
+        {
+            return _mm_set_pd(pz<SUF, L - 2>(v, b, 1), pz<SUF, L - 1>(v, b, 0));
+        }
+        else if constexpr(kt_is_same<bsz::b128, SZ, float, SUF>())
+        {
+            return _mm_set_ps(pz<SUF, L - 4>(v, b, 3),
+                              pz<SUF, L - 3>(v, b, 2),
+                              pz<SUF, L - 2>(v, b, 1),
+                              pz<SUF, L - 1>(v, b, 0));
+        }
+        else if constexpr(kt_is_same<bsz::b128, SZ, cdouble, SUF>())
+        {
+            return _mm_set_pd(pz<std::complex<double>, L - 1, false>(v, b, 0),
+                              pz<std::complex<double>, L - 1, true>(v, b, 0));
+        }
+        else if constexpr(kt_is_same<bsz::b128, SZ, cfloat, SUF>())
+        {
+            return _mm_set_ps(pz<std::complex<float>, L - 2, false>(v, b, 1),
+                              pz<std::complex<float>, L - 2, true>(v, b, 1),
+                              pz<std::complex<float>, L - 1, false>(v, b, 0),
+                              pz<std::complex<float>, L - 1, true>(v, b, 0));
+        }
+    };
+
+    // Dense direct aligned load to SSE register
     template <bsz SZ, typename SUF>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b128, avxvector_t<SZ, SUF>>
                     kt_load_p(const SUF *a) noexcept
@@ -110,7 +169,7 @@ namespace kernel_templates
             return _mm_load_pd(reinterpret_cast<const double *>(a));
     };
 
-    // Dense direct (un)aligned load to AVX register
+    // Dense direct (un)aligned load to SSE register
     template <bsz SZ, typename SUF>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b128, avxvector_t<SZ, SUF>>
                     kt_loadu_p(const SUF *a) noexcept
@@ -121,7 +180,7 @@ namespace kernel_templates
             return _mm_loadu_pd(reinterpret_cast<const double *>(a));
     };
 
-    // Stores the values in an AVX register to a memory location (Memory does not have to be aligned)
+    // Stores the values in an SSE register to a memory location (Memory does not have to be aligned)
     template <bsz SZ, typename SUF>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b128, void>
                     kt_storeu_p(SUF *a, const avxvector_t<SZ, SUF> v) noexcept
@@ -132,7 +191,7 @@ namespace kernel_templates
             _mm_storeu_ps(reinterpret_cast<float *>(a), v);
     };
 
-    // Vector addition of two AVX registers.
+    // Vector addition of two SSE registers.
     template <bsz SZ, typename SUF>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b128, avxvector_t<SZ, SUF>>
                     kt_add_p(const avxvector_t<SZ, SUF> a, const avxvector_t<SZ, SUF> b) noexcept
@@ -143,7 +202,7 @@ namespace kernel_templates
             return _mm_add_pd(a, b);
     }
 
-    // Vector subtraction of two AVX registers.
+    // Vector subtraction of two SSE registers.
     // Note that sub_ps takes care of types float and complex float, same for double variant.
     template <bsz SZ, typename SUF>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b128, avxvector_t<SZ, SUF>>
@@ -155,7 +214,7 @@ namespace kernel_templates
             return _mm_sub_pd(a, b);
     }
 
-    // Vector product of two AVX registers.
+    // Vector product of two SSE registers.
     template <bsz SZ, typename SUF>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b128, avxvector_t<SZ, SUF>>
                     kt_mul_p(const avxvector_t<SZ, SUF> a, const avxvector_t<SZ, SUF> b) noexcept
@@ -204,7 +263,7 @@ namespace kernel_templates
         }
     }
 
-    // Vector fused multiply-add of three AVX registers.
+    // Vector fused multiply-add of three SSE registers.
     template <bsz SZ, typename SUF>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b128, avxvector_t<SZ, SUF>>
                     kt_fmadd_p(const avxvector_t<SZ, SUF> a,
@@ -221,7 +280,7 @@ namespace kernel_templates
             return kt_add_p<bsz::b128, cfloat>(kt_mul_p<bsz::b128, cfloat>(a, b), c);
     }
 
-    // Vector fused multiply-subtract of three AVX registers.
+    // Vector fused multiply-subtract of three SSE registers.
     template <bsz SZ, typename SUF>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b128, avxvector_t<SZ, SUF>>
                     kt_fmsub_p(const avxvector_t<SZ, SUF> a,
@@ -258,6 +317,86 @@ namespace kernel_templates
             avxvector_t<SZ, SUF> mask = _mm_setr_pd(0.0, -0.0);
             avxvector_t<SZ, SUF> res  = _mm_xor_pd(mask, a);
             return res;
+        }
+    }
+
+    // Horizontal sum (reduction) of an SSE register
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b128, SUF>
+                    kt_hsum_p(avxvector_t<SZ, SUF> const v) noexcept
+    {
+        // To-Do: Implement horizontal sum for bsz::b128 and benchmark
+        if constexpr(std::is_same_v<SUF, double>)
+        {
+            return v[0] + v[1]; // 2 elements
+        }
+        else if constexpr(std::is_same_v<SUF, float>)
+        {
+            return v[0] + v[1] + v[2] + v[3]; // 4 elements
+        }
+        else if constexpr(std::is_same_v<SUF, cdouble>)
+        {
+            return cdouble(v[0], v[1]); // no sum to process
+        }
+        else if constexpr(std::is_same_v<SUF, cfloat>)
+        {
+            return cfloat(v[0] + v[2], v[1] + v[3]); // 2 elements (cfloat)
+        }
+    }
+
+    // Vector fused multiply-add of three SSE registers - blocked variant
+    // In case of b128, kt_fmadd_B is the same as kt_fmadd_p.
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b128, void>
+                    kt_fmadd_B(const avxvector_t<SZ, SUF>             a,
+                               const avxvector_t<SZ, SUF>             b,
+                               avxvector_t<SZ, SUF>                  &c,
+                               [[maybe_unused]] avxvector_t<SZ, SUF> &d) noexcept
+    {
+        c = kt_fmadd_p<SZ, SUF>(a, b, c);
+        /*
+            Note: The following code is commented out because it hsum_B
+            is not implemented for complex types in bsz::b128. This will
+            be enabled when kt_hsum_B is implemented for bsz::b128.
+
+            if constexpr(std::is_same_v<SUF, double> || std::is_same_v<SUF, float>)
+                c = kt_fmadd_p<SZ, SUF>(a, b, c);
+            else if constexpr(std::is_same_v<SUF, cdouble>)
+            {
+                c = _mm_fmadd_pd(a, b, c);
+                d = _mm_fmadd_pd(a, _mm_permute_pd(b, 0b01), d);
+            }
+            else if constexpr(std::is_same_v<SUF, cfloat>)
+            {
+                c = _mm_fmadd_ps(a, b, c);
+                d = _mm_fmadd_ps(a, _mm_permute_ps(b, 0b10110001), d);
+            }
+        */
+    }
+
+    // Horizontal sum (reduction) of an SSE register - blocked variant
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b128, SUF>
+                    kt_hsum_B(const avxvector_t<SZ, SUF>                  a,
+                              [[maybe_unused]] const avxvector_t<SZ, SUF> b) noexcept
+    {
+        // To-Do: Implement blocked horizontal sum for bsz::b128 and benchmark
+        return kt_hsum_p<SZ, SUF>(a);
+    }
+
+    // Compare packed SUF elements in a and b, and returns packed maximum values.
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE
+        std::enable_if_t<SZ == bsz::b128 && kt_is_base_t_real<SUF>(), avxvector_t<SZ, SUF>>
+        kt_max_p(const avxvector_t<SZ, SUF> a, const avxvector_t<SZ, SUF> b) noexcept
+    {
+        if constexpr(std::is_same_v<SUF, double>)
+        {
+            return _mm_max_pd(a, b);
+        }
+        else if constexpr(std::is_same_v<SUF, float>)
+        {
+            return _mm_max_ps(a, b);
         }
     }
 }
