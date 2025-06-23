@@ -1,7 +1,7 @@
 Peer Review Checklist for Pull-Request (PRPR)
 =============================================
 
-*Revision 7/5/2025*
+*Revision 19/6/2025*
 
 See Appendix for the *Peer Review Guide*.
 
@@ -75,9 +75,9 @@ problems get resolved.
 <td>3</td>
 <td>
 
-Is the PR from a branch branched off `amd-dev` and is the name prefixed with `dev-`?
+Is the PR from a branch branched off `amd-main` and follows the required convention  `u/<ntid>/PR/<branch name>`?
 
- * Are there any conflicts to be resolved? Rebase and resolve as required.
+ * Are there any conflicts to be resolved? Merge/Rebase and resolve as required.
  * Are all the automatic builds of the branch successful? Fix/update as required.
 
 </td>
@@ -96,8 +96,7 @@ Is the PR from a branch branched off `amd-dev` and is the name prefixed with `de
 <td>4</td>
 <td>
 
-Is the code polished (e.g., `clang-format` style format for C/C++, etc)<br>
-Are all `da_status enum` variables that store return status of an internal function appropriately called `status`?
+Is the code polished with `clang-format`?<br>
 
 </td>
 </tr>
@@ -152,12 +151,12 @@ Does the **full-debug build** complete successfully without any "legit" warnings
 </td>
 <td>7</td>
 <td>
-Has the C API been sufficiently unit-tested?<br>
+Has the C and C++ API been sufficiently unit-tested?<br>
 
  * Code coverage (lines of code)
  * Algorithmic paths coverage (refinement of a solution under bad problem conditioning)
  * Ideally at least one unit-test for each error returned by the API
- * Tests for both row-major and column-major data if appropriate
+ * Tests for both row-major and column-major, CSR, CSC, ... data if appropriate
 
 </td>
 </tr>
@@ -203,7 +202,7 @@ Has the C API been sufficiently unit-tested?<br>
 <td>10</td>
 <td>
 
-Are all array (vectors, etc) that are allocated (resized) ringfenced with `try-catch` and return `da_status_memory_error`?
+Are all array (vectors, etc) that are allocated (resized) ringfenced with `try-catch` and return memory error code if fail?
 
 </td>
 </tr>
@@ -221,7 +220,7 @@ Are all array (vectors, etc) that are allocated (resized) ringfenced with `try-c
 <td>11</td>
 <td>
 
-For all public APIs that have a handle (i.e., `handle` or `store`), do they call `handle->clear()` at entry in the appropriate place?
+For all public APIs are the unit-test exercising the interface?
 
 </td>
 </tr>
@@ -237,7 +236,7 @@ For all public APIs that have a handle (i.e., `handle` or `store`), do they call
 
 </td>
 <td>12</td>
-<td>Have additional APIs been written e.g. C++ overloads in <code>aoclda_cpp_overloads.hpp</code>, Python API and Scikit-learn patch? Do these APIs have tests and examples where appropriate?</td>
+<td>Have additional APIs been written e.g. C++ interface or overloads? Are these in the correct place? Do these APIs have tests and examples where appropriate?</td>
 </tr>
 </table>
 
@@ -271,7 +270,7 @@ Does the documentation correctly describe the API?
  * A high-level description of the implemented algorithm is provided at the top of the API (i.e., comments used for Doxygen) or where applicable; if applicable, include the maximum expected error or tolerance
  * All inputs and output are sufficiently explained and marked as `in`/`out`
  * List and explain all returned errors (if advice how to rectify the error is available, include it in the description)
- * If there are example sources, refer/link/include these, using the code snippet in `utils.rst`
+ * If there are example sources, refer/link/include these in the documentation
 
 </td>
 </tr>
@@ -303,7 +302,7 @@ Does the documentation correctly describe the API?
 <td>15</td>
 <td>
 Are all references to groups of implementations for the same API using <code>\p api_name_?</code>?<br>
-e.g. <code>da_nlls_fit_d</code> (and <code>da_nlls_fit_s</code>) should be referenced <code>\p da_nlls_fit_?</code>
+e.g. <code>aoclsparse_api_d</code> (and <code>aoclsparse_api_s</code>) should be referenced <code>\p aoclsparse_api_fit_?</code>
 </td>
 </tr>
 <tr>
@@ -607,7 +606,7 @@ Also, if there are changes to `CMakeList.txt` files, are these polished?</td>
 <td>
 
 Are all code files correctly placed (i.e., in the
-`source/` or `include/` directories)?</td>
+`src/` or `include/` directories)?</td>
 </tr>
 <tr>
 <td>
@@ -621,7 +620,7 @@ Are all code files correctly placed (i.e., in the
 
 </td>
 <td>34</td>
-<td>Have all necessary additional APIs been written e.g. Python, C++ overloads and Scikit-learn patch?</td>
+<td>Have all necessary additional APIs been written? e.g. C++ interfaces or overloads</td>
 </tr>
 <tr>
 <td>
@@ -707,7 +706,7 @@ Are all code files correctly placed (i.e., in the
 <td>40</td>
 <td>
 
-Are all array-type objects (vectors, etc) that are dynamically allocated (new, resized, etc) properly ringfenced with `try`-`catch` and return on error `da_status_memory_error`? Also, are all `new` instances `delete`d? Are all `new[]` objects properly `delete[]`d?</td>
+Are all array-type objects (vectors, etc) that are dynamically allocated (new, resized, etc) properly ringfenced with `try`-`catch` and return memory error on failure? Also, are all `new` instances `delete`d? Are all `new[]` objects properly `delete[]`d?</td>
 </tr>
 </table>
 
@@ -790,24 +789,6 @@ For example, on non-successful status return, identify if the API still returns 
 
 Also, when printing a solution, print also a message that the result is within the tolerance, where appropriate.</td>
 </tr>
-<tr>
-<td>
-
-- [ ] &nbsp;
-
-</td>
-<td>
-
-- [ ] &nbsp;
-
-</td>
-<td>46</td>
-<td>
-
-If appropriate, has a Python example been written? Does it `sys.exit(1)` on failure? Does it use if `__name__ == "__main__"`: then call the example in a separate function?
-
-</td>
-</tr>
 </table>
 
 ## Unit testing
@@ -833,7 +814,7 @@ If appropriate, has a Python example been written? Does it `sys.exit(1)` on fail
 - [ ] &nbsp;
 
 </td>
-<td>47</td>
+<td>46</td>
 <td>
 
 Are there tests checking that invalid input is correctly handled by the API returning expected error status? (e.g., negative dimension, `nullptr` or `NULL`  pointer)</td>
@@ -849,7 +830,7 @@ Are there tests checking that invalid input is correctly handled by the API retu
 - [ ] &nbsp;
 
 </td>
-<td>48</td>
+<td>47</td>
 <td>Are edge cases tested (e.g., dimension is 1)?</td>
 </tr>
 <tr>
@@ -863,7 +844,7 @@ Are there tests checking that invalid input is correctly handled by the API retu
 - [ ] &nbsp;
 
 </td>
-<td>49</td>
+<td>48</td>
 <td>Are trivial cases tested (e.g., when providing the solution as input)?</td>
 </tr>
 <tr>
@@ -877,7 +858,7 @@ Are there tests checking that invalid input is correctly handled by the API retu
 - [ ] &nbsp;
 
 </td>
-<td>50</td>
+<td>49</td>
 <td>
 
 Are all *reasonable* algorithmic failures tested where possible? (e.g., factorizing singular matrix)</td>
@@ -894,7 +875,7 @@ Are all *reasonable* algorithmic failures tested where possible? (e.g., factoriz
 
 </td>
 
-<td>51</td>
+<td>50</td>
 <td>Do the unit tests cover a range of realistic problems?</td>
 </tr>
 <tr>
@@ -908,7 +889,7 @@ Are all *reasonable* algorithmic failures tested where possible? (e.g., factoriz
 - [ ] &nbsp;
 
 </td>
-<td>52</td>
+<td>51</td>
 <td>Is the code coverage by the unit tests sufficient? Particularly, are all possible code paths and functionality use cases exercised? (e.g., different AVX extensions, types of matrices, row-major and column-major data)</td>
 </tr>
 <tr>
@@ -922,7 +903,7 @@ Are all *reasonable* algorithmic failures tested where possible? (e.g., factoriz
 - [ ] &nbsp;
 
 </td>
-<td>53</td>
+<td>52</td>
 <td>Is it easy to understand what is being tested from the source and comments?</td>
 </tr>
 <tr>
@@ -936,7 +917,7 @@ Are all *reasonable* algorithmic failures tested where possible? (e.g., factoriz
 - [ ] &nbsp;
 
 </td>
-<td>54</td>
+<td>53</td>
 <td>Do the automatic Linux/Windows builds build successfully without failing? Are all unit tests passing?</td>
 </tr>
 <tr>
@@ -950,7 +931,7 @@ Are all *reasonable* algorithmic failures tested where possible? (e.g., factoriz
 - [ ] &nbsp;
 
 </td>
-<td>55</td>
+<td>54</td>
 <td>
 
 Optional, are precision-related tolerances defined relative to the type (`float`/`double`) using scaling on `epsilon` (machine precision, taken from the appropriate header file) and not hard-coded constants?</td>
@@ -966,30 +947,12 @@ Optional, are precision-related tolerances defined relative to the type (`float`
 - [ ] &nbsp;
 
 </td>
-<td>56</td>
-<td>
-
-If the API uses and internal `handle` (e.g. PCA, Linear Models) are there tests to check that the same handle can be reused multiple times successfully? Does it test for the cycle: setup, set options, calculate, setup, set options, ...?
-
-Also, are the errors cleared between public API calls?</td>
-</tr>
-<tr>
-<td>
-
-- [ ] &nbsp;
-
-</td>
-<td>
-
-- [ ] &nbsp;
-
-</td>
-<td>57</td>
+<td>55</td>
 <td>Have the Python and Scikit-learn APIs been tested appropriately, with double/single precision tests where needed, C/Fortran Numpy array order and tests for Scikit-learn functionality that is not implemented?</td>
 </tr>
 </table>
 
-# Appendix A - Quick guide
+# Appendix - Quick guide
 
 <details>
     <summary>Click to expand</summary>#
@@ -1062,37 +1025,4 @@ report and compile the documentation.
 
 **Unit-tests** refers to all test source codes related to the project.
 These may be a suite in Google Tests/CTests.
-</details>
-
-# Appendix B - Table of `da_status` error messages
-
-<details>
-    <summary>Click to expand</summary>
-
-As part of the PR code review make sure the use of `da_status` error
-messages are used consistently. This table is a general guidance for you
-on which enumeration should be used in which cases. Make sure the error
-description associated with it is verbose enough for the user to
-understand any corrective actions to be taken. Only the general-purpose
-enumerations are presented.
-
-| **Enum** | **Use** |
-|----------|---------|
-| `da_status_success` | Only use when operation was completed successfully |
-| `da_status_internal_error` | Only use on unexpected internal error state |
-| `da_status_memory_error` | Use when try-catch bad_alloc exception occurs |
-| `da_status_invalid_pointer` | Use on input validation specifically for pointer |
-| `da_status_invalid_input` | Use on input validation on any other type |
-| `da_status_not_implemented` | Indicates a feature is not implemented |
-| `da_status_wrong_type` | Only use in public API entry to check that handle and API have the same type<br><br>This status should be returned after a statement similar to<br><br>`if (handle->precision != da_double)` |
-| `da_status_overflow` | Numerical overflow detected |
-| `da_status_invalid_handle_type` | Only use in public API entry to check that handle type and API are compatible<br><br>This status should be returned after a statement similar to<br><br>In a linear model type double API: `if (handle->linreg_d == nullptr)`, that is, it checks that the appropriated chapter pointer is valid. |
-| `da_status_handle_not_initialized` | Indicates that the handle was not previously initialized with a chapter<br><br>This status should be returned after the statement `if (!handle)` or `if(!store)` |
-| `da_status_store_not_initialized` | Indicates that the handle was not previously initialized with a tag |
-| `da_status_invalid_option` | Setter/getter: the option is not part of the initialized handle chapter |
-| `da_status_incompatible_options` | Indicates that two or more options clash and cannot continue |
-| `da_status_invalid_leading_dimension` | No handle error code |
-| `da_status_negative_data` | No handle error code |
-| `da_status_invalid_array_dimension` | No handle error code |
-| `da_status_unknown_query` | Only use to indicate that the API did not satisfy the query, either because data is not yet available or because the queried object cannot be satisfied by the previously called calculation API. |
 </details>
