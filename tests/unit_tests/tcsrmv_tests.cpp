@@ -391,8 +391,8 @@ namespace
         ASSERT_EQ(aoclsparse_optimize(A), aoclsparse_status_success);
 
         // Check for idiag and iurow
-        EXPECT_EQ_VEC(M, A->tcsr_mat.idiag, exp_idiag);
-        EXPECT_EQ_VEC(M, A->tcsr_mat.iurow, exp_iurow);
+        EXPECT_EQ_VEC(M, A->tcsr_mat->idiag, exp_idiag);
+        EXPECT_EQ_VEC(M, A->tcsr_mat->iurow, exp_iurow);
 
         // Full matrix spmv
         EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A, descr, x.data(), &beta, y.data()),

@@ -144,19 +144,23 @@ namespace
 
     INSTANTIATE_TEST_SUITE_P(SetValueTestSuite, RndOK, testing::ValuesIn(SetValuesCases));
 
-    TEST(SetValueInvalidMatrix, InvalidateOptCSR)
+    TEST(SetValueMatsCopies, MultipleMatrixCopies)
     {
         aoclsparse_matrix src_mat = nullptr;
         aoclsparse_seedrand();
 
         // Matrix setup
-        aoclsparse_int              M = 10, N = 10, NNZ = 20;
+        aoclsparse_int              M = 4, N = 4, NNZ = 8;
+        double                      alpha = 1.0;
+        double                      beta  = 0.0;
+        double                      x[]   = {1.0, 2.0, 3.0, 4.0};
+        double                      y[M];
         std::vector<aoclsparse_int> csr_row, csr_col, ptr;
         std::vector<double>         val;
         aoclsparse_mat_descr        descr;
 
         EXPECT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_symmetric),
+        EXPECT_EQ(aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_general),
                   aoclsparse_status_success);
 
         EXPECT_EQ(aoclsparse_init_matrix_random<double>(aoclsparse_index_base_zero,
@@ -171,28 +175,54 @@ namespace
                                                         src_mat),
                   aoclsparse_status_success);
 
-        // Modify a random entry
-        aoclsparse_int ridx = random_generator<aoclsparse_int>(0, NNZ - 1);
-        aoclsparse_int row = csr_row[ridx], col = csr_col[ridx];
-        double         new_val = random_generator_normal<double>();
-
-        // Optimize and check allocation
+        // Create multiple optimization hints to potentially create multiple matrix copies
         EXPECT_EQ(aoclsparse_set_mv_hint(src_mat, aoclsparse_operation_none, descr, 1),
                   aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_optimize(src_mat), aoclsparse_status_success);
-        EXPECT_NE(src_mat->opt_csr_mat.ptr, nullptr);
-        EXPECT_NE(src_mat->opt_csr_mat.ind, nullptr);
-        EXPECT_NE(src_mat->opt_csr_mat.val, nullptr);
-        EXPECT_NE(src_mat->opt_csr_mat.idiag, nullptr);
-        EXPECT_NE(src_mat->opt_csr_mat.iurow, nullptr);
+        EXPECT_EQ(aoclsparse_set_mv_hint(src_mat, aoclsparse_operation_transpose, descr, 1),
+                  aoclsparse_status_success);
 
-        // Set value, expect optimization invalidated
-        ASSERT_EQ(aoclsparse_set_value(src_mat, row, col, new_val), aoclsparse_status_success);
-        ASSERT_EQ(src_mat->opt_csr_mat.ptr, nullptr);
-        ASSERT_EQ(src_mat->opt_csr_mat.ind, nullptr);
-        ASSERT_EQ(src_mat->opt_csr_mat.val, nullptr);
-        ASSERT_EQ(src_mat->opt_csr_mat.idiag, nullptr);
-        ASSERT_EQ(src_mat->opt_csr_mat.iurow, nullptr);
+        EXPECT_EQ(aoclsparse_optimize(src_mat), aoclsparse_status_success);
+
+        // Perform operations that might create matrix copies
+        EXPECT_EQ(
+            aoclsparse_mv<double>(aoclsparse_operation_none, &alpha, src_mat, descr, x, &beta, y),
+            aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_mv<double>(
+                      aoclsparse_operation_transpose, &alpha, src_mat, descr, x, &beta, y),
+                  aoclsparse_status_success);
+
+        // Check for the optimized CSR matrix
+        EXPECT_NE(src_mat->opt_csr_mat, nullptr);
+        // Count non-null matrix copies
+        size_t valid_copies = 0;
+        for(const auto &mat : src_mat->mats)
+        {
+            if(mat != nullptr && mat->is_internal)
+            {
+                valid_copies++;
+            }
+        }
+        // Should have at least one matrix copy
+        EXPECT_GT(valid_copies, 0);
+
+        // Modify a value - should clean up all internal matrices
+        aoclsparse_int ridx    = random_generator<aoclsparse_int>(0, NNZ - 1);
+        double         new_val = random_generator_normal<double>();
+        // Set a new value in the sparse matrix
+        EXPECT_EQ(aoclsparse_set_value(src_mat, csr_row[ridx], csr_col[ridx], new_val),
+                  aoclsparse_status_success);
+
+        // Check if the optimized CSR matrix is cleaned up
+        EXPECT_EQ(src_mat->opt_csr_mat, nullptr);
+        // All internal matrices should now be nullptr
+        for(const auto &mat : src_mat->mats)
+        {
+            if(mat != nullptr)
+            {
+                EXPECT_EQ(mat->is_internal, false);
+            }
+            EXPECT_EQ(mat, nullptr);
+        }
 
         // Cleanup
         EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);

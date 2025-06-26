@@ -61,17 +61,16 @@ aoclsparse_status aoclsparse_aat_dense_row(aoclsparse_int        m,
     if(csr_row_ptr_A == nullptr || csr_col_ind_A == nullptr || csr_val_A == nullptr)
         return aoclsparse_status_invalid_pointer;
 
-    if(C == nullptr || C->csr_mat.ptr == nullptr || C->csr_mat.ind == nullptr
-       || C->csr_mat.val == nullptr)
+    if(!C || !C->csr_mat || !C->csr_mat->ptr || !C->csr_mat->ind || !C->csr_mat->val)
         return aoclsparse_status_invalid_pointer;
 
     T zero        = aoclsparse_numeric::zero<T>();
     csr_col_ind_A = csr_col_ind_A - base;
     csr_val_A     = csr_val_A - base;
 
-    aoclsparse_int *csr_row_ptr_C = C->csr_mat.ptr;
-    aoclsparse_int *csr_col_ind_C = C->csr_mat.ind;
-    T              *csr_val_C     = (T *)C->csr_mat.val;
+    aoclsparse_int *csr_row_ptr_C = C->csr_mat->ptr;
+    aoclsparse_int *csr_col_ind_C = C->csr_mat->ind;
+    T              *csr_val_C     = (T *)C->csr_mat->val;
     aoclsparse_int  i, j, k;
 
     std::vector<T> trow; // dense representation of row A_i*
@@ -147,9 +146,9 @@ aoclsparse_status aoclsparse_syrk_t(const aoclsparse_operation      op,
     aoclsparse_int    m = A->m, n = A->n;
     aoclsparse_status status;
 
-    aoclsparse_int *icrowA = A->csr_mat.ptr;
-    aoclsparse_int *icolA  = A->csr_mat.ind;
-    T              *valA   = (T *)A->csr_mat.val;
+    aoclsparse_int *icrowA = A->csr_mat->ptr;
+    aoclsparse_int *icolA  = A->csr_mat->ind;
+    T              *valA   = (T *)A->csr_mat->val;
 
     // overestimate size of the output and allocate the memory
     aoclsparse_int nnz_C;
@@ -159,23 +158,21 @@ aoclsparse_status aoclsparse_syrk_t(const aoclsparse_operation      op,
     aoclsparse_int m_C = op == aoclsparse_operation_none ? m : n;
     try
     {
-        *C                = new _aoclsparse_matrix;
-        (*C)->csr_mat.ptr = new aoclsparse_int[m_C + 1];
-        (*C)->csr_mat.ind = new aoclsparse_int[nnz_C];
-        (*C)->csr_mat.val = ::operator new(nnz_C * sizeof(T));
+        *C = new _aoclsparse_matrix;
+        (*C)->csr_mat
+            = new aoclsparse::csr(m_C, m_C, nnz_C, aoclsparse_csr_mat, A->base, get_data_type<T>());
     }
     catch(std::bad_alloc &)
     {
         aoclsparse_destroy(C);
         return aoclsparse_status_memory_error;
     }
-    (*C)->csr_mat.is_internal = true;
     // Quick return for a 0-sized matrix
     if((A->m == 0) || (A->n == 0) || (A->nnz == 0))
     {
         // preserve base of A in C
         for(aoclsparse_int i = 0; i <= m_C; ++i)
-            (*C)->csr_mat.ptr[i] = A->base;
+            (*C)->csr_mat->ptr[i] = A->base;
         aoclsparse_init_mat(*C, A->base, m_C, m_C, 0, aoclsparse_csr_mat);
         (*C)->val_type = get_data_type<T>();
         return aoclsparse_status_success;
@@ -239,9 +236,9 @@ aoclsparse_status aoclsparse_syrk_t(const aoclsparse_operation      op,
                 icolAt.data(),
                 valAt.data(),
                 A->base,
-                (*C)->csr_mat.ptr,
-                (*C)->csr_mat.ind,
-                (T *)(*C)->csr_mat.val,
+                (*C)->csr_mat->ptr,
+                (*C)->csr_mat->ind,
+                (T *)(*C)->csr_mat->val,
                 &nnz_C);
         }
     }
@@ -260,9 +257,9 @@ aoclsparse_status aoclsparse_syrk_t(const aoclsparse_operation      op,
             icolA,
             valA,
             A->base,
-            (*C)->csr_mat.ptr,
-            (*C)->csr_mat.ind,
-            (T *)(*C)->csr_mat.val,
+            (*C)->csr_mat->ptr,
+            (*C)->csr_mat->ind,
+            (T *)(*C)->csr_mat->val,
             &nnz_C);
     }
     if(status != aoclsparse_status_success)

@@ -148,7 +148,8 @@ aoclsparse_status aoclsparse::mv(aoclsparse_operation       op,
      */
     if(descr->type != aoclsparse_matrix_type_general)
     {
-        if(!(A->opt_csr_mat.is_optimized || A->tcsr_mat.is_optimized))
+        if(!((A->opt_csr_mat && A->opt_csr_mat->is_optimized)
+             || (A->tcsr_mat && A->tcsr_mat->is_optimized)))
         {
             if constexpr(!aoclsparse::is_dt_complex<T>())
             {
@@ -199,9 +200,9 @@ aoclsparse_status aoclsparse::mv(aoclsparse_operation       op,
         *  Note: This logic will go away when opt csr becomes a part of the matrix list
         */
         if(d_id == doid::gn || d_id == doid::gt || d_id == doid::gh || d_id == doid::gc)
-            csr_mat = &(A->csr_mat);
+            csr_mat = A->csr_mat;
         else
-            csr_mat = &(A->opt_csr_mat);
+            csr_mat = A->opt_csr_mat;
 
         if(csr_mat == nullptr)
             return aoclsparse_status_invalid_pointer;
@@ -253,15 +254,15 @@ aoclsparse_status aoclsparse::mv(aoclsparse_operation       op,
                                                 A->m,
                                                 A->n,
                                                 A->nnz,
-                                                A->blk_csr_mat.masks,
-                                                (T *)A->blk_csr_mat.blk_val,
-                                                A->blk_csr_mat.blk_col_ptr,
-                                                A->blk_csr_mat.blk_row_ptr,
+                                                A->blk_csr_mat->masks,
+                                                (T *)A->blk_csr_mat->blk_val,
+                                                A->blk_csr_mat->blk_col_ptr,
+                                                A->blk_csr_mat->blk_row_ptr,
                                                 descr,
                                                 x,
                                                 beta,
                                                 y,
-                                                A->blk_csr_mat.nRowsblk);
+                                                A->blk_csr_mat->nRowsblk);
         }
         return aoclsparse_status_not_implemented;
     case aoclsparse_ellt_mat:
@@ -271,15 +272,15 @@ aoclsparse_status aoclsparse::mv(aoclsparse_operation       op,
                                           A->m,
                                           A->n,
                                           A->nnz,
-                                          (T *)A->ell_csr_hyb_mat.ell_val,
-                                          A->ell_csr_hyb_mat.ell_col_ind,
-                                          A->ell_csr_hyb_mat.ell_width,
-                                          A->ell_csr_hyb_mat.ell_m,
-                                          (T *)A->ell_csr_hyb_mat.csr_val,
-                                          A->csr_mat.ptr,
-                                          A->csr_mat.ind,
+                                          (T *)A->ell_csr_hyb_mat->ell_val,
+                                          A->ell_csr_hyb_mat->ell_col_ind,
+                                          A->ell_csr_hyb_mat->ell_width,
+                                          A->ell_csr_hyb_mat->ell_m,
+                                          (T *)A->ell_csr_hyb_mat->csr_val,
+                                          A->csr_mat->ptr,
+                                          A->csr_mat->ind,
                                           nullptr,
-                                          A->ell_csr_hyb_mat.csr_row_id_map,
+                                          A->ell_csr_hyb_mat->csr_row_id_map,
                                           descr,
                                           x,
                                           beta,

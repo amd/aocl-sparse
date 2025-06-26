@@ -344,7 +344,7 @@ aoclsparse_status aoclsparse_symgs(
         return aoclsparse_status_wrong_type;
     }
     // Unpack A and check
-    if(!A->opt_csr_mat.is_optimized)
+    if(!(A->opt_csr_mat && A->opt_csr_mat->is_optimized))
     {
         // user did not check the matrix, call optimize
         status = aoclsparse_csr_csc_optimize<T>(A);

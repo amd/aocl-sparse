@@ -422,30 +422,30 @@ struct _aoclsparse_matrix
     aoclsparse_optimize_data *optim_data = nullptr;
 
     // csr matrix
-    aoclsparse::csr csr_mat;
+    aoclsparse::csr *csr_mat = nullptr;
     // Stores the CSR matrix copies (excluding opt_csr)
     // TODO: Holds all matrices, regardless of type, including internally created matrices and copies
     std::vector<aoclsparse::base_mtx *> mats;
 
     // blk_csr matrix
-    aoclsparse::blk_csr blk_csr_mat;
+    aoclsparse::blk_csr *blk_csr_mat = nullptr;
 
     // csr matrix for avx2
-    aoclsparse::csr csr_mat_br4;
+    aoclsparse::csr *csr_mat_br4 = nullptr;
 
     //tcsr matrix
-    bool             tcsr_mat_is_users = false;
-    aoclsparse::tcsr tcsr_mat;
+    bool              tcsr_mat_is_users = false;
+    aoclsparse::tcsr *tcsr_mat          = nullptr;
 
     // ellt matrix
-    aoclsparse::ell ell_mat;
+    aoclsparse::ell *ell_mat = nullptr;
 
     // ell-csr-hyb matrix
-    aoclsparse::ell_csr_hyb ell_csr_hyb_mat;
+    aoclsparse::ell_csr_hyb *ell_csr_hyb_mat = nullptr;
 
     // coo matrix
-    bool            coo_mat_is_users = false;
-    aoclsparse::coo coo_mat;
+    bool             coo_mat_is_users = false;
+    aoclsparse::coo *coo_mat          = nullptr;
 
     //ilu members
     struct _aoclsparse_ilu ilu_info;
@@ -456,7 +456,7 @@ struct _aoclsparse_matrix
     // optimized csr matrix
     // It is checked, sorted in rows, has a diagonal element in each row,
     // however, some diagonal elements might have been added as zeros
-    aoclsparse::csr opt_csr_mat;
+    aoclsparse::csr *opt_csr_mat = nullptr;
     // the original matrix had full (nonzero) diagonal, so the matrix
     // is safe for TRSVs
     bool opt_csr_full_diag = false;
@@ -464,12 +464,12 @@ struct _aoclsparse_matrix
     bool blk_optimized = false;
 
     // csc matrix
-    aoclsparse::csr csc_mat;
+    aoclsparse::csr *csc_mat = nullptr;
 
     // optimized csc matrix
     // It is checked, sorted in rows, has a diagonal element in each row,
     // however, some diagonal elements might have been added as zeros
-    aoclsparse::csr opt_csc_mat;
+    aoclsparse::csr *opt_csc_mat = nullptr;
 
     // used to indicate if any additional memory required further performance optimization purposes
     aoclsparse_memory_usage mem_policy = aoclsparse_memory_usage_unrestricted;

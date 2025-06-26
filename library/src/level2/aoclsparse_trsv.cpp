@@ -108,7 +108,9 @@ aoclsparse_status
         return aoclsparse_status_not_implemented;
 
     // Unpack A and check
-    if(!(A->opt_csr_mat.is_optimized || A->opt_csc_mat.is_optimized || A->tcsr_mat.is_optimized))
+    if(!((A->opt_csr_mat && A->opt_csr_mat->is_optimized)
+         || (A->opt_csc_mat && A->opt_csc_mat->is_optimized)
+         || (A->tcsr_mat && A->tcsr_mat->is_optimized)))
     {
         // user did not check the matrix, call optimize
         aoclsparse_status status;
@@ -153,53 +155,54 @@ aoclsparse_status
     else
         doid = aoclsparse::get_doid<T>(descr, transpose);
 
-    if(A->opt_csr_mat.is_optimized || A->tcsr_mat.is_optimized)
+    if((A->opt_csr_mat && A->opt_csr_mat->is_optimized)
+       || (A->tcsr_mat && A->tcsr_mat->is_optimized))
     {
         if(A->input_format == aoclsparse_tcsr_mat)
         {
             if(descr->fill_mode == aoclsparse_fill_mode_lower)
             {
-                a     = (T *)((A->tcsr_mat).val_L);
-                icol  = (A->tcsr_mat).col_idx_L;
-                ilrow = (A->tcsr_mat).row_ptr_L;
-                idiag = (A->tcsr_mat).idiag;
-                iurow = (A->tcsr_mat).row_ptr_L + 1;
+                a     = (T *)((A->tcsr_mat)->val_L);
+                icol  = (A->tcsr_mat)->col_idx_L;
+                ilrow = (A->tcsr_mat)->row_ptr_L;
+                idiag = (A->tcsr_mat)->idiag;
+                iurow = (A->tcsr_mat)->row_ptr_L + 1;
             }
             else
             {
-                a     = (T *)((A->tcsr_mat).val_U);
-                icol  = (A->tcsr_mat).col_idx_U;
-                ilrow = (A->tcsr_mat).row_ptr_U;
-                idiag = (A->tcsr_mat).row_ptr_U;
-                iurow = (A->tcsr_mat).iurow;
+                a     = (T *)((A->tcsr_mat)->val_U);
+                icol  = (A->tcsr_mat)->col_idx_U;
+                ilrow = (A->tcsr_mat)->row_ptr_U;
+                idiag = (A->tcsr_mat)->row_ptr_U;
+                iurow = (A->tcsr_mat)->iurow;
             }
         }
         else
         {
             //CSR
-            a    = (T *)((A->opt_csr_mat).val);
-            icol = (A->opt_csr_mat).ind;
+            a    = (T *)((A->opt_csr_mat)->val);
+            icol = (A->opt_csr_mat)->ind;
             // beginning of the row
-            ilrow = (A->opt_csr_mat).ptr;
+            ilrow = (A->opt_csr_mat)->ptr;
 
             // position of the diagonal element (includes zeros) always has min(m,n) elements
-            idiag = (A->opt_csr_mat).idiag;
+            idiag = (A->opt_csr_mat)->idiag;
             // ending of the row
-            iurow = (A->opt_csr_mat).iurow;
+            iurow = (A->opt_csr_mat)->iurow;
         }
     }
-    else if(A->opt_csc_mat.is_optimized)
+    else if(A->opt_csc_mat && A->opt_csc_mat->is_optimized)
     {
         //CSC
-        a    = (T *)((A->opt_csc_mat).val);
-        icol = (A->opt_csc_mat).ind;
+        a    = (T *)((A->opt_csc_mat)->val);
+        icol = (A->opt_csc_mat)->ind;
         // beginning of the col
-        ilrow = (A->opt_csc_mat).ptr;
+        ilrow = (A->opt_csc_mat)->ptr;
 
         // position of the diagonal element (includes zeros) always has min(m,n) elements
-        idiag = (A->opt_csc_mat).idiag;
+        idiag = (A->opt_csc_mat)->idiag;
         // ending of the col
-        iurow = (A->opt_csc_mat).iurow;
+        iurow = (A->opt_csc_mat)->iurow;
 
         doid = trans_doid(doid);
     }

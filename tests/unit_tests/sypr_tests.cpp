@@ -936,7 +936,7 @@ namespace
 
             // Modify the values of A matix value arrays.
             for(aoclsparse_int i = 0; i < A->nnz; i++)
-                ((T *)A->csr_mat.val)[i] = random_generator_normal<T>();
+                ((T *)A->csr_mat->val)[i] = random_generator_normal<T>();
 
             // Invoke sypr with finalize stage alone.
             // Expect success as C matrix created in previous invocation

@@ -41,17 +41,17 @@ namespace
             aoclsparse_status_success);
 
         // NULL CSR row pointers
-        A->csr_mat.ptr = nullptr;
+        A->csr_mat->ptr = nullptr;
         EXPECT_EQ(aoclsparse_optimize(A), aoclsparse_status_invalid_pointer);
 
         // NULL CSR col pointers
-        A->csr_mat.ptr = row_ptr;
-        A->csr_mat.ind = nullptr;
+        A->csr_mat->ptr = row_ptr;
+        A->csr_mat->ind = nullptr;
         EXPECT_EQ(aoclsparse_optimize(A), aoclsparse_status_invalid_pointer);
 
         // NULL CSR val pointers
-        A->csr_mat.ind = col_idx;
-        A->csr_mat.val = nullptr;
+        A->csr_mat->ind = col_idx;
+        A->csr_mat->val = nullptr;
         EXPECT_EQ(aoclsparse_optimize(A), aoclsparse_status_invalid_pointer);
 
         aoclsparse_destroy(&A);
@@ -91,19 +91,19 @@ namespace
 
         // a) row_ptr[0] is invalid
         aoclsparse_int row_ptr0[] = {1, 1, 3};
-        A->csr_mat.ptr            = row_ptr0;
+        A->csr_mat->ptr           = row_ptr0;
         EXPECT_EQ(aoclsparse_optimize(A), aoclsparse_status_invalid_value);
 
         // b) row_ptr[nnz] is invalid. nnz=3
         aoclsparse_int row_ptr1[] = {0, 1, 2};
-        A->csr_mat.ptr            = row_ptr1;
+        A->csr_mat->ptr           = row_ptr1;
         ASSERT_EQ(aoclsparse_set_sv_hint(A, aoclsparse_operation_none, descr, 1),
                   aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_optimize(A), aoclsparse_status_invalid_value);
 
         // c) last 2 row_ptr values are not okay
         aoclsparse_int row_ptr2[] = {0, 4, 3};
-        A->csr_mat.ptr            = row_ptr2;
+        A->csr_mat->ptr           = row_ptr2;
         ASSERT_EQ(aoclsparse_set_sv_hint(A, aoclsparse_operation_none, descr, 1),
                   aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_optimize(A), aoclsparse_status_invalid_value);

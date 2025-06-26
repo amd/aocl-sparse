@@ -36,13 +36,13 @@ namespace
 
         if(mat->input_format == aoclsparse_csr_mat)
         {
-            idx = mat->csr_mat.ind;
-            val = static_cast<T *>(mat->csr_mat.val);
+            idx = mat->csr_mat->ind;
+            val = static_cast<T *>(mat->csr_mat->val);
         }
         else
         {
-            idx = mat->csc_mat.ind;
-            val = static_cast<T *>(mat->csc_mat.val);
+            idx = mat->csc_mat->ind;
+            val = static_cast<T *>(mat->csc_mat->val);
         }
         EXPECT_EQ_VEC(mat->nnz, idx, idx_exp);
         if constexpr(std::is_same_v<T, aoclsparse_float_complex>)
@@ -97,17 +97,17 @@ namespace
                   aoclsparse_status_success);
 
         // a) csr_row_ptr is NULL
-        mat->csr_mat.ptr = NULL;
+        mat->csr_mat->ptr = NULL;
         EXPECT_EQ(aoclsparse_order_mat(mat), aoclsparse_status_invalid_pointer);
 
         // b) csr_col_idx is NULL
-        mat->csr_mat.ptr = row_ptr;
-        mat->csr_mat.ind = NULL;
+        mat->csr_mat->ptr = row_ptr;
+        mat->csr_mat->ind = NULL;
         EXPECT_EQ(aoclsparse_order_mat(mat), aoclsparse_status_invalid_pointer);
 
         // c) csr_val is NULL
-        mat->csr_mat.ind = col_idx;
-        mat->csr_mat.val = NULL;
+        mat->csr_mat->ind = col_idx;
+        mat->csr_mat->val = NULL;
         EXPECT_EQ(aoclsparse_order_mat(mat), aoclsparse_status_invalid_pointer);
         aoclsparse_destroy(&mat);
 
@@ -119,17 +119,17 @@ namespace
                   aoclsparse_status_success);
 
         // a) col_ptr is NULL
-        mat->csc_mat.ptr = NULL;
+        mat->csc_mat->ptr = NULL;
         EXPECT_EQ(aoclsparse_order_mat(mat), aoclsparse_status_invalid_pointer);
 
         // b) row_idx is NULL
-        mat->csc_mat.ptr = col_ptr;
-        mat->csc_mat.ind = NULL;
+        mat->csc_mat->ptr = col_ptr;
+        mat->csc_mat->ind = NULL;
         EXPECT_EQ(aoclsparse_order_mat(mat), aoclsparse_status_invalid_pointer);
 
         // c) val is NULL
-        mat->csc_mat.ind = row_idx;
-        mat->csc_mat.val = NULL;
+        mat->csc_mat->ind = row_idx;
+        mat->csc_mat->val = NULL;
         EXPECT_EQ(aoclsparse_order_mat(mat), aoclsparse_status_invalid_pointer);
         aoclsparse_destroy(&mat);
     }

@@ -221,9 +221,9 @@ aoclsparse_status aoclsparse_syprd(aoclsparse_operation            op,
     aoclsparse_int        m           = A->m;
     aoclsparse_int        k           = A->n;
     aoclsparse_index_base base        = A->base;
-    const aoclsparse_int *csr_col_ind = A->csr_mat.ind;
-    const aoclsparse_int *csr_row_ptr = A->csr_mat.ptr;
-    const T              *csr_val     = static_cast<T *>(A->csr_mat.val);
+    const aoclsparse_int *csr_col_ind = A->csr_mat->ind;
+    const aoclsparse_int *csr_row_ptr = A->csr_mat->ptr;
+    const T              *csr_val     = static_cast<T *>(A->csr_mat->val);
 
     T zero = 0.0;
     T one  = 1.0;

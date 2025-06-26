@@ -68,10 +68,10 @@ namespace
         aoclsparse_int lnnz = row_ptr_L[m] - base; // (L + D)nnz
         aoclsparse_int unnz = row_ptr_U[m] - base; // (D + U)nnz
 
-        EXPECT_EQ_VEC(m + 1, row_ptr_L, A->tcsr_mat.row_ptr_L);
-        EXPECT_EQ_VEC(m + 1, row_ptr_U, A->tcsr_mat.row_ptr_U);
-        EXPECT_EQ_VEC(lnnz, col_idx_L, A->tcsr_mat.col_idx_L);
-        EXPECT_EQ_VEC(unnz, col_idx_U, A->tcsr_mat.col_idx_U);
+        EXPECT_EQ_VEC(m + 1, row_ptr_L, A->tcsr_mat->row_ptr_L);
+        EXPECT_EQ_VEC(m + 1, row_ptr_U, A->tcsr_mat->row_ptr_U);
+        EXPECT_EQ_VEC(lnnz, col_idx_L, A->tcsr_mat->col_idx_L);
+        EXPECT_EQ_VEC(unnz, col_idx_U, A->tcsr_mat->col_idx_U);
 
         EXPECT_EQ(m, A->m);
         EXPECT_EQ(n, A->n);
