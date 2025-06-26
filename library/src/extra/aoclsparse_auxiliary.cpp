@@ -21,10 +21,10 @@
  *
  * ************************************************************************ */
 
-#include "aoclsparse.h"
 #include "aoclsparse_context.h"
 #include "aoclsparse_descr.h"
 #include "aoclsparse_types.h"
+#include "aoclsparse.hpp"
 #include "aoclsparse_auxiliary.hpp"
 #include "aoclsparse_mat_structures.hpp"
 
@@ -357,57 +357,6 @@ aoclsparse_diag_type aoclsparse_get_mat_diag_type(const aoclsparse_mat_descr des
         return aoclsparse_diag_type_non_unit;
     }
     return descr->diag_type;
-}
-
-/********************************************************************************
- * \brief aoclsparse_create_csr sets the sparse matrix in the CSR format for
- * the appropriate data type (float, double, float complex, double complex).
- ********************************************************************************/
-aoclsparse_status aoclsparse_create_scsr(aoclsparse_matrix    *mat,
-                                         aoclsparse_index_base base,
-                                         aoclsparse_int        M,
-                                         aoclsparse_int        N,
-                                         aoclsparse_int        nnz,
-                                         aoclsparse_int       *row_ptr,
-                                         aoclsparse_int       *col_idx,
-                                         float                *val)
-{
-    return aoclsparse_create_csr_t(mat, base, M, N, nnz, row_ptr, col_idx, val);
-}
-
-aoclsparse_status aoclsparse_create_dcsr(aoclsparse_matrix    *mat,
-                                         aoclsparse_index_base base,
-                                         aoclsparse_int        M,
-                                         aoclsparse_int        N,
-                                         aoclsparse_int        nnz,
-                                         aoclsparse_int       *row_ptr,
-                                         aoclsparse_int       *col_idx,
-                                         double               *val)
-{
-    return aoclsparse_create_csr_t(mat, base, M, N, nnz, row_ptr, col_idx, val);
-}
-aoclsparse_status aoclsparse_create_ccsr(aoclsparse_matrix        *mat,
-                                         aoclsparse_index_base     base,
-                                         aoclsparse_int            M,
-                                         aoclsparse_int            N,
-                                         aoclsparse_int            nnz,
-                                         aoclsparse_int           *row_ptr,
-                                         aoclsparse_int           *col_idx,
-                                         aoclsparse_float_complex *val)
-{
-    return aoclsparse_create_csr_t(mat, base, M, N, nnz, row_ptr, col_idx, val);
-}
-
-aoclsparse_status aoclsparse_create_zcsr(aoclsparse_matrix         *mat,
-                                         aoclsparse_index_base      base,
-                                         aoclsparse_int             M,
-                                         aoclsparse_int             N,
-                                         aoclsparse_int             nnz,
-                                         aoclsparse_int            *row_ptr,
-                                         aoclsparse_int            *col_idx,
-                                         aoclsparse_double_complex *val)
-{
-    return aoclsparse_create_csr_t(mat, base, M, N, nnz, row_ptr, col_idx, val);
 }
 
 /********************************************************************************

@@ -115,6 +115,11 @@ aoclsparse_status aoclsparse_add_hint(aoclsparse_optimize_data  *&list,
  * if defined, it gets the status and a string describing the probelm on its interface
  *
  * Possible erros: invalid_pointer, invalid_size, invalid_index, invalid_value
+ *
+ * Behavior with fast_chck == true:
+ * - no checks on indices
+ * - mat_fulldiag is set to false
+ * - mat_sort is not set aoclsparse_unknown_sort
  */
 aoclsparse_status aoclsparse_mat_check_internal(aoclsparse_int          maj_dim,
                                                 aoclsparse_int          min_dim,
@@ -127,7 +132,8 @@ aoclsparse_status aoclsparse_mat_check_internal(aoclsparse_int          maj_dim,
                                                 aoclsparse_matrix_sort &mat_sort,
                                                 bool                   &mat_fulldiag,
                                                 void (*error_handler)(aoclsparse_status status,
-                                                                      std::string       message))
+                                                                      std::string       message),
+                                                bool fast_chck)
 {
 
     std::ostringstream buffer;
@@ -169,6 +175,16 @@ aoclsparse_status aoclsparse_mat_check_internal(aoclsparse_int          maj_dim,
             error_handler(status, buffer.str());
         }
         return status;
+    }
+
+    // Return success if fast check is requested
+    if(fast_chck)
+    {
+        mat_fulldiag = false; // no diagonal check
+        mat_sort     = aoclsparse_unknown_sort; // no sorting check
+
+        // no need to check indices, just return success
+        return aoclsparse_status_success;
     }
 
     for(aoclsparse_int i = 1; i <= maj_dim; i++)

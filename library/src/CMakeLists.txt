@@ -1,5 +1,5 @@
 # ########################################################################
-# Copyright (c) 2020-2024 Advanced Micro Devices, Inc.
+# Copyright (c) 2020-2025 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -61,6 +61,10 @@ set(AOCLSPARSE_SOURCES
   src/solvers/aoclsparse_sorv.cpp
   src/solvers/aoclsparse_itsol_functions.cpp
   src/solvers/aoclsparse_symgs.cpp
+
+# Create
+  src/create/aoclsparse_create.cpp
+  src/create/aoclsparse_create_wrapper.cpp
 
 # Conversion
   src/conversion/aoclsparse_convert.cpp

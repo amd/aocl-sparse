@@ -25,8 +25,8 @@
 #define AOCLSPARSE_SP2MD_HPP
 #endif
 
-#include "aoclsparse.h"
 #include "aoclsparse_descr.h"
+#include "aoclsparse.hpp"
 #include "aoclsparse_auxiliary.hpp"
 #include "aoclsparse_convert.hpp"
 #include "aoclsparse_mat_structures.hpp"
@@ -358,14 +358,14 @@ inline aoclsparse_status aoclsparse_sp2md_t(const aoclsparse_operation      opA,
                 csr_val_B_op[i] = aoclsparse::conj(csr_val_B_op[i]);
             }
         }
-        status = aoclsparse_create_csr_t(&B_op,
-                                         descrB->base,
-                                         B->n,
-                                         B->m,
-                                         B->nnz,
-                                         csr_row_ptr_B_op.data(),
-                                         csr_col_ind_B_op.data(),
-                                         (T *)csr_val_B_op.data());
+        status = aoclsparse::create_csr(&B_op,
+                                        descrB->base,
+                                        B->n,
+                                        B->m,
+                                        B->nnz,
+                                        csr_row_ptr_B_op.data(),
+                                        csr_col_ind_B_op.data(),
+                                        (T *)csr_val_B_op.data());
         if(status != aoclsparse_status_success)
         {
             return status;

@@ -429,7 +429,7 @@ aoclsparse_status
         const aoclsparse_int       incx,                         \
         aoclsparse_int             kid);
 
-INSTANTIATE_DISPATCHER(TRSV_DISPATCHER);
+INSTANTIATE_FOR_ALL_TYPES(TRSV_DISPATCHER);
 
 /*
  *===========================================================================

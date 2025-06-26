@@ -312,7 +312,7 @@ aoclsparse_status aoclsparse::mv(aoclsparse_operation       op,
                                                               const SUF                 *beta,  \
                                                               SUF                       *y);
 
-INSTANTIATE_DISPATCHER(MV_DISPATCHER);
+INSTANTIATE_FOR_ALL_TYPES(MV_DISPATCHER);
 
 /*
  *===========================================================================

@@ -47,5 +47,16 @@ namespace aoclsparse
                          const T                   *x,
                          const T                   *beta,
                          T                         *y);
+
+    template <typename T>
+    aoclsparse_status create_csr(aoclsparse_matrix    *mat,
+                                 aoclsparse_index_base base,
+                                 aoclsparse_int        M,
+                                 aoclsparse_int        N,
+                                 aoclsparse_int        nnz,
+                                 aoclsparse_int       *row_ptr,
+                                 aoclsparse_int       *col_idx,
+                                 T                    *val,
+                                 bool                  fast_chck = false);
 }
 #endif

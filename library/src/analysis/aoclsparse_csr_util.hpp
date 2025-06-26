@@ -63,7 +63,9 @@ aoclsparse_status aoclsparse_mat_check_internal(aoclsparse_int          maj_dim,
                                                 aoclsparse_matrix_sort &mat_sort,
                                                 bool                   &mat_fulldiag,
                                                 void (*error_handler)(aoclsparse_status status,
-                                                                      std::string       message));
+                                                                      std::string       message),
+                                                bool fast_chck = false);
+
 aoclsparse_status aoclsparse_csr_csc_check_sort_diag(aoclsparse_int        m,
                                                      aoclsparse_int        n,
                                                      aoclsparse_index_base base,

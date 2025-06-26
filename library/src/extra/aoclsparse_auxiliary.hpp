@@ -53,56 +53,6 @@ void aoclsparse_init_mat(aoclsparse_matrix             A,
                          aoclsparse_matrix_format_type matrix_type);
 
 /********************************************************************************
- * \brief aoclsparse_create_csr_t sets the sparse matrix in the CSR format
- * for any data type
- ********************************************************************************/
-template <typename T>
-aoclsparse_status aoclsparse_create_csr_t(aoclsparse_matrix    *mat,
-                                          aoclsparse_index_base base,
-                                          aoclsparse_int        M,
-                                          aoclsparse_int        N,
-                                          aoclsparse_int        nnz,
-                                          aoclsparse_int       *row_ptr,
-                                          aoclsparse_int       *col_idx,
-                                          T                    *val)
-{
-    aoclsparse_status status;
-    if(!mat)
-        return aoclsparse_status_invalid_pointer;
-    *mat = nullptr;
-    // Validate the input parameters
-    aoclsparse_matrix_sort mat_sort;
-    bool                   mat_fulldiag;
-    if((status = aoclsparse_mat_check_internal(
-            M, N, nnz, row_ptr, col_idx, val, shape_general, base, mat_sort, mat_fulldiag, nullptr))
-       != aoclsparse_status_success)
-    {
-        return status;
-    }
-    try
-    {
-        *mat            = new _aoclsparse_matrix;
-        (*mat)->csr_mat = new aoclsparse::csr(
-            M, N, nnz, aoclsparse_csr_mat, base, get_data_type<T>(), row_ptr, col_idx, val);
-    }
-    catch(std::bad_alloc &)
-    {
-        if(*mat)
-        {
-            delete *mat;
-            *mat = nullptr;
-        }
-        return aoclsparse_status_memory_error;
-    }
-    aoclsparse_init_mat(*mat, base, M, N, nnz, aoclsparse_csr_mat);
-    (*mat)->val_type = get_data_type<T>();
-    (*mat)->sort     = mat_sort;
-    (*mat)->fulldiag = mat_fulldiag;
-    (*mat)->mat_type = aoclsparse_csr_mat;
-    return aoclsparse_status_success;
-}
-
-/********************************************************************************
  * \brief aoclsparse_create_tcsr_t sets the sparse matrix in the TCSR format
  * \brief aoclsparse_create_tcsr sets the sparse matrix in the TCSR format
  * for any data type
@@ -746,5 +696,4 @@ namespace dispatcher_instantiations
     }
 
 }
-
 #endif

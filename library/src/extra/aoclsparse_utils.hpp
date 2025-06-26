@@ -548,9 +548,16 @@ namespace aoclsparse
 }
 
 // Helper macro to instantiate dispatchers for all 4 datatypes
-#define INSTANTIATE_DISPATCHER(DISPATCHER) \
-    DISPATCHER(float)                      \
-    DISPATCHER(double)                     \
-    DISPATCHER(std::complex<float>)        \
-    DISPATCHER(std::complex<double>)
+#define INSTANTIATE_FOR_ALL_TYPES(FNCTN) \
+    FNCTN(float)                         \
+    FNCTN(double)                        \
+    FNCTN(std::complex<float>)           \
+    FNCTN(std::complex<double>)
+
+// Generate all four versions
+#define INSTANTIATE_FOR_ALL_TYPES_SUFFIX(FUNC) \
+    FUNC(s, float)                             \
+    FUNC(d, double)                            \
+    FUNC(c, aoclsparse_float_complex)          \
+    FUNC(z, aoclsparse_double_complex)
 #endif
