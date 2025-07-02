@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020-2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,14 +20,15 @@
  * THE SOFTWARE.
  *
  * ************************************************************************ */
-
-#include "aoclsparse.h"
+/*
+    Description: In this example, we create a sparse matrix in CSR format
+                 and perform a matrix-vector multiplication (SpMV) using the
+                 C++ interface of aoclsparse.
+*/
+#include "aoclsparse.hpp"
 
 #include <iostream>
-
-#define M 5
-#define N 5
-#define NNZ 8
+#include <vector>
 
 int main(void)
 {
@@ -35,6 +36,10 @@ int main(void)
 
     double alpha = 1.0;
     double beta  = 0.0;
+
+    const aoclsparse_int m   = 5; // Number of rows
+    const aoclsparse_int n   = 5; // Number of columns
+    const aoclsparse_int nnz = 8; // Number of non-zero elements
 
     // Print aoclsparse version
     std::cout << aoclsparse_get_version() << std::endl;
@@ -53,15 +58,22 @@ int main(void)
     //  0  0  4  0  0
     //  0  5  0  6  7
     //  0  0  0  0  8
-    aoclsparse_int    csr_row_ptr[M + 1] = {0, 2, 3, 4, 7, 8};
-    aoclsparse_int    csr_col_ind[NNZ]   = {0, 3, 1, 2, 1, 3, 4, 4};
-    double            csr_val[NNZ]       = {1, 2, 3, 4, 5, 6, 7, 8};
-    aoclsparse_matrix A;
-    aoclsparse_create_dcsr(&A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
+    std::vector<aoclsparse_int> csr_row     = {0, 2, 3, 4, 7, 8};
+    std::vector<aoclsparse_int> csr_col_ind = {0, 3, 1, 2, 1, 3, 4, 4};
+    std::vector<double>         csr_val     = {1, 2, 3, 4, 5, 6, 7, 8};
+    aoclsparse_matrix           A;
+    auto                        status = aoclsparse::create_csr(
+        &A, base, m, n, nnz, csr_row.data(), csr_col_ind.data(), csr_val.data());
+
+    if(status != aoclsparse_status_success)
+    {
+        std::cout << "Error creating the matrix, status = " << status << std::endl;
+        return 1;
+    }
 
     // Initialise vectors
-    double x[N] = {1.0, 2.0, 3.0, 4.0, 5.0};
-    double y[M];
+    std::vector<double> x = {1.0, 2.0, 3.0, 4.0, 5.0};
+    std::vector<double> y(m, 0.0); // Output vector initialized to zero
 
     //to identify hint id(which routine is to be executed, destroyed later)
     aoclsparse_set_mv_hint(A, trans, descr, 1);
@@ -71,10 +83,12 @@ int main(void)
 
     std::cout << "Invoking aoclsparse_dmv..";
     //Invoke SPMV API (double precision)
-    aoclsparse_dmv(trans, &alpha, A, descr, x, &beta, y);
+    aoclsparse::mv(trans, &alpha, A, descr, x.data(), &beta, y.data());
+
     std::cout << "Done." << std::endl;
+
     std::cout << "Output Vector:" << std::endl;
-    for(aoclsparse_int i = 0; i < M; i++)
+    for(aoclsparse_int i = 0; i < m; i++)
         std::cout << y[i] << std::endl;
 
     aoclsparse_destroy_mat_descr(descr);
