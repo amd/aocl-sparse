@@ -34,12 +34,7 @@
 #include <algorithm>
 #include <cmath>
 #include <complex>
-#include <immintrin.h>
 #include <vector>
-#if defined(_WIN32) || defined(_WIN64)
-//Windows equivalent of gcc c99 type qualifier __restrict__
-#define __restrict__ __restrict
-#endif
 
 template <typename T>
 aoclsparse_status aoclsparse_csrmm_col_major_ref(T                          alpha,

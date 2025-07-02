@@ -219,6 +219,7 @@ set(EXAMPLE_EXECUTABLES
     # CPP examples
     sample_mv_cpp
     sample_trsv_cpp
+    sample_csr2m_cpp
 )
 # Take all sample executables also as test targets
 foreach(SNAME ${EXAMPLE_EXECUTABLES})

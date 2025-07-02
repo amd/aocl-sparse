@@ -58,5 +58,15 @@ namespace aoclsparse
                                  aoclsparse_int       *col_idx,
                                  T                    *val,
                                  bool                  fast_chck = false);
+
+    template <typename T>
+    aoclsparse_status sp2m(aoclsparse_operation       opA,
+                           const aoclsparse_mat_descr descrA,
+                           const aoclsparse_matrix    A,
+                           aoclsparse_operation       opB,
+                           const aoclsparse_mat_descr descrB,
+                           const aoclsparse_matrix    B,
+                           aoclsparse_request         request,
+                           aoclsparse_matrix         *C);
 }
 #endif

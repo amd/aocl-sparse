@@ -165,7 +165,10 @@ aoclsparse_int trsv_driver()
     aoclsparse_destroy_mat_descr(descr_a);
     aoclsparse_destroy(&A);
 
-    return ok;
+    if(ok)
+        return 0;
+    else
+        return 1;
 }
 
 int main()
@@ -179,10 +182,16 @@ int main()
     aoclsparse_int ztrsv_err = trsv_driver<std::complex<double>>();
 
     if(ctrsv_err != 0)
+    {
         std::cerr << "CTRSV driver failed with error code: " << ctrsv_err << std::endl;
+        exit(ctrsv_err);
+    }
 
     if(ztrsv_err != 0)
+    {
         std::cerr << "ZTRSV driver failed with error code: " << ztrsv_err << std::endl;
+        exit(ztrsv_err);
+    }
 
     return 0;
 }

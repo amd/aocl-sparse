@@ -46,6 +46,7 @@ set(AOCLSPARSE_SOURCES
   src/level2/aoclsparse_tcsrmv.cpp
   src/level3/aoclsparse_csrmm.cpp
   src/level3/aoclsparse_csr2m.cpp
+  src/level3/aoclsparse_csr2m_wrapper.cpp
   src/level3/aoclsparse_sp2m.cpp
   src/level3/aoclsparse_spmm.cpp
   src/level3/aoclsparse_spmmd.cpp
