@@ -61,6 +61,12 @@ namespace Dispatch
 #endif
     }
 
+    inline bool in_range(aoclsparse_int n, aoclsparse_int lower, aoclsparse_int upper)
+    {
+        // returns true if lower <= n <= upper
+        return (lower <= n && n <= upper);
+    }
+
     /***************************************************************************
      * Oracle - choose the best kernel based on a "Kernel Attribute Table"
      *          and user preferences.
@@ -73,6 +79,15 @@ namespace Dispatch
      * kid - kernel ID (default value = -1 = auto)
      * begin - Starting index for table search (default value = 0)
      * end   - Ending index for table search (default value = N)
+     *
+     * Usage of begin, end parameters
+     * ------------------------------
+     *
+     * Example -
+     * begin=3, end=5
+     * Upper bound for valid kids is 2 (5 - 3), so there are only 2 valid KIDs which start counting
+     * from zero .i.e. kid = 0, kid = 1 are the ONLY valid values.
+     *
      *
      * Template Parameters
      * -------------------
@@ -155,7 +170,12 @@ namespace Dispatch
      *    case it returns a null pointer.
      * 3. The oracle expects that ALL inputs are valid, i.e., no checks are
      *    done except for KID.
-     *
+     * 4. Begin and end parameters are used to reduce the search space in the
+     *    table, i.e., the oracle will only search for kernels in the range. Other
+     *    conventions apply:
+     *    a) The range is valid if 0 <= begin < end <= N, where N is the number of
+     *       kernels in the table.
+     *    b) valid kid must be in the range [0, end - begin).
      *
      * Conventions
      * -----------
@@ -244,9 +264,24 @@ namespace Dispatch
         // Check if user requested kid is NOT auto
         if(kid >= 0)
         {
+            // Invalid kid requested
+            if(kid >= (end - begin) || begin >= end || !in_range(begin, 0, N - 1)
+               || !in_range(end, 0, N))
+            {
+                /*
+                    Conditions for invalid kid:
+                    1. kid >= end - begin: requested KID is out of range .i.e. KID range [begin, end)
+                    2. begin >= end: invalid range
+                    3. begin is not in the range [0, N): range start is out of bounds
+                    4. end is not in the range [0, N]: range end is out of bounds
+                */
+
+                return nullptr; // Needs to be handled by the dispatcher
+            }
+
             // The kid requested is valid and supported by the machine
-            if(kid < N && (context::get_context()->supports(tbl[kid + begin].flag)))
-                return tbl[kid + begin].kernel; // Return the user requested kernel
+            if(context::get_context()->supports(tbl[begin + kid].flag))
+                return tbl[begin + kid].kernel; // Return the user requested kernel
             else
                 return nullptr; // Needs to be handled by the dispatcher
         }

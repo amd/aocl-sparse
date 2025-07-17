@@ -612,8 +612,9 @@ namespace dispatcher_instantiations
     }
 
     // high complexity dispatcher to test corner cases
-    template <typename T>
-    aoclsparse_int dispatch(aoclsparse_int kid = -1)
+    template <typename T, bool range_enabled = false>
+    aoclsparse_int
+        dispatch(aoclsparse_int begin = 0, aoclsparse_int end = 0, aoclsparse_int kid = -1)
     {
         using K = decltype(&kernel_ref<0, T>);
         using namespace aoclsparse;
@@ -633,8 +634,15 @@ namespace dispatcher_instantiations
         // clang-format on
 
         // Thread local kernel cache
-        thread_local K kache  = nullptr;
-        K              kernel = Dispatch::Oracle<K>(tbl, kache, kid);
+        thread_local K kache = nullptr;
+        K              kernel;
+
+        if constexpr(range_enabled)
+            // In this case, KID cannot be greater than end
+            // Auto is permitted to be used i.e. kid = -1
+            kernel = Dispatch::Oracle<K>(tbl, kache, kid, begin, end); // Range enabled
+        else
+            kernel = Dispatch::Oracle<K>(tbl, kache, kid);
 
         if(!kernel)
             return aoclsparse_status_invalid_kid;
@@ -694,6 +702,5 @@ namespace dispatcher_instantiations
         auto okid = kernel();
         return 4000 + okid;
     }
-
 }
 #endif

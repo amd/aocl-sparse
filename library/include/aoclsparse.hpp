@@ -25,6 +25,7 @@
 #pragma once
 #include "aoclsparse.h"
 
+#include <string>
 namespace aoclsparse
 {
     // Extern declaration of L2 dispatcher(s)
@@ -68,5 +69,16 @@ namespace aoclsparse
                            const aoclsparse_matrix    B,
                            aoclsparse_request         request,
                            aoclsparse_matrix         *C);
-}
+
+    // Test wrappers for unit tests
+    // All test wrappers will be prefixed with "t_"
+    namespace test
+    {
+        template <typename T>
+        aoclsparse_int dispatcher(std::string    dispatch,
+                                  aoclsparse_int kid   = -1,
+                                  aoclsparse_int begin = 0,
+                                  aoclsparse_int end   = 0);
+    } // namespace test_wrapper
+} // namespace aoclsparse
 #endif

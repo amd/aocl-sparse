@@ -942,71 +942,19 @@ aoclsparse_int aoclsparse_debug_dispatcher(const char                  dispatche
 
     if(dt == aoclsparse_dmat)
     {
-        if(dispatch.compare("dispatch_only_ref") == 0)
-            return dispatcher_instantiations::dispatch_only_ref<double>(kid);
-        else if(dispatch.compare("dispatch_l1") == 0)
-            return dispatcher_instantiations::dispatch_l1<double>(kid);
-        else if(dispatch.compare("dispatch_multi") == 0)
-            return dispatcher_instantiations::dispatch_multi<double>(kid);
-        else if(dispatch.compare("dispatch_noexact") == 0)
-            return dispatcher_instantiations::dispatch_noexact<double>(kid);
-        else if(dispatch.compare("dispatch") == 0)
-            return dispatcher_instantiations::dispatch<double>(kid);
-        else if(dispatch.compare("dispatch_isa") == 0)
-            return dispatcher_instantiations::dispatch_isa<double>(kid);
-        else if(dispatch.compare("dispatch_AVX512VL") == 0)
-            return dispatcher_instantiations::dispatch_AVX512VL<double>(kid);
+        return aoclsparse::test::dispatcher<double>(dispatch, kid);
     }
     else if(dt == aoclsparse_smat)
     {
-        if(dispatch.compare("dispatch_only_ref") == 0)
-            return dispatcher_instantiations::dispatch_only_ref<float>(kid);
-        else if(dispatch.compare("dispatch_l1") == 0)
-            return dispatcher_instantiations::dispatch_l1<float>(kid);
-        else if(dispatch.compare("dispatch_multi") == 0)
-            return dispatcher_instantiations::dispatch_multi<float>(kid);
-        else if(dispatch.compare("dispatch_noexact") == 0)
-            return dispatcher_instantiations::dispatch_noexact<float>(kid);
-        else if(dispatch.compare("dispatch") == 0)
-            return dispatcher_instantiations::dispatch<float>(kid);
-        else if(dispatch.compare("dispatch_isa") == 0)
-            return dispatcher_instantiations::dispatch_isa<float>(kid);
-        else if(dispatch.compare("dispatch_AVX512VL") == 0)
-            return dispatcher_instantiations::dispatch_AVX512VL<float>(kid);
+        return aoclsparse::test::dispatcher<float>(dispatch, kid);
     }
     else if(dt == aoclsparse_zmat)
     {
-        if(dispatch.compare("dispatch_only_ref") == 0)
-            return dispatcher_instantiations::dispatch_only_ref<std::complex<double>>(kid);
-        else if(dispatch.compare("dispatch_l1") == 0)
-            return dispatcher_instantiations::dispatch_l1<std::complex<double>>(kid);
-        else if(dispatch.compare("dispatch_multi") == 0)
-            return dispatcher_instantiations::dispatch_multi<std::complex<double>>(kid);
-        else if(dispatch.compare("dispatch_noexact") == 0)
-            return dispatcher_instantiations::dispatch_noexact<std::complex<double>>(kid);
-        else if(dispatch.compare("dispatch") == 0)
-            return dispatcher_instantiations::dispatch<std::complex<double>>(kid);
-        else if(dispatch.compare("dispatch_isa") == 0)
-            return dispatcher_instantiations::dispatch_isa<std::complex<double>>(kid);
-        else if(dispatch.compare("dispatch_AVX512VL") == 0)
-            return dispatcher_instantiations::dispatch_AVX512VL<std::complex<double>>(kid);
+        return aoclsparse::test::dispatcher<std::complex<double>>(dispatch, kid);
     }
     else if(dt == aoclsparse_cmat)
     {
-        if(dispatch.compare("dispatch_only_ref") == 0)
-            return dispatcher_instantiations::dispatch_only_ref<std::complex<float>>(kid);
-        else if(dispatch.compare("dispatch_l1") == 0)
-            return dispatcher_instantiations::dispatch_l1<std::complex<float>>(kid);
-        else if(dispatch.compare("dispatch_multi") == 0)
-            return dispatcher_instantiations::dispatch_multi<std::complex<float>>(kid);
-        else if(dispatch.compare("dispatch_noexact") == 0)
-            return dispatcher_instantiations::dispatch_noexact<std::complex<float>>(kid);
-        else if(dispatch.compare("dispatch") == 0)
-            return dispatcher_instantiations::dispatch<std::complex<float>>(kid);
-        else if(dispatch.compare("dispatch_isa") == 0)
-            return dispatcher_instantiations::dispatch_isa<std::complex<float>>(kid);
-        else if(dispatch.compare("dispatch_AVX512VL") == 0)
-            return dispatcher_instantiations::dispatch_AVX512VL<std::complex<float>>(kid);
+        return aoclsparse::test::dispatcher<std::complex<float>>(dispatch, kid);
     }
 
     return -1000;
@@ -1673,3 +1621,38 @@ aoclsparse_int aoclsparse_is_avx512_build()
     return 0;
 #endif
 }
+
+template <typename T>
+aoclsparse_int aoclsparse::test::dispatcher(std::string    t_name,
+                                            aoclsparse_int kid,
+                                            aoclsparse_int begin,
+                                            aoclsparse_int end)
+{
+    using namespace dispatcher_instantiations;
+
+    if(t_name.compare("dispatch_only_ref") == 0)
+        return dispatch_only_ref<T>(kid);
+    else if(t_name.compare("dispatch_l1") == 0)
+        return dispatch_l1<T>(kid);
+    else if(t_name.compare("dispatch_multi") == 0)
+        return dispatch_multi<T>(kid);
+    else if(t_name.compare("dispatch_noexact") == 0)
+        return dispatch_noexact<T>(kid);
+    else if(t_name.compare("dispatch") == 0)
+        return dispatch<T>(kid);
+    else if(t_name.compare("dispatch_isa") == 0)
+        return dispatch_isa<T>(kid);
+    else if(t_name.compare("dispatch_AVX512VL") == 0)
+        return dispatch_AVX512VL<T>(kid);
+    else if(t_name.compare("dispatch_range") == 0)
+        return dispatch<T, true>(begin, end, kid);
+
+    return -1000; // Invalid dispatcher name
+}
+
+// Instantiate the dispatcher test wrapper for all data types
+#define AOCLSPARSE_DISPATCHER(SUF)                                        \
+    template DLL_PUBLIC aoclsparse_int aoclsparse::test::dispatcher<SUF>( \
+        std::string dispatch, aoclsparse_int kid, aoclsparse_int begin, aoclsparse_int end);
+
+INSTANTIATE_FOR_ALL_TYPES(AOCLSPARSE_DISPATCHER);
