@@ -107,8 +107,17 @@ aoclsparse_status
        && descr->fill_mode != aoclsparse_fill_mode_upper)
         return aoclsparse_status_not_implemented;
 
+    bool is_optimized = false;
+    for(auto *mat : A->mats)
+    {
+        if(auto *csr = dynamic_cast<aoclsparse::csr *>(mat); csr && csr->is_optimized)
+        {
+            is_optimized = true;
+            break;
+        }
+    }
     // Unpack A and check
-    if(!(A->opt_csr_mat && A->opt_csr_mat->is_optimized))
+    if(!is_optimized)
     {
         // user did not check the matrix, call optimize
         aoclsparse_status status = aoclsparse_csr_csc_optimize<T>(A);

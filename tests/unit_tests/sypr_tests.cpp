@@ -935,8 +935,10 @@ namespace
             EXPECT_EQ(aoclsparse_sypr(op_a, A, B, descrB, &C, request), aoclsparse_status_success);
 
             // Modify the values of A matix value arrays.
+            aoclsparse::csr *csr_mat = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
+            EXPECT_NE(csr_mat, nullptr);
             for(aoclsparse_int i = 0; i < A->nnz; i++)
-                ((T *)A->csr_mat->val)[i] = random_generator_normal<T>();
+                ((T *)csr_mat->val)[i] = random_generator_normal<T>();
 
             // Invoke sypr with finalize stage alone.
             // Expect success as C matrix created in previous invocation

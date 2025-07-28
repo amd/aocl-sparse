@@ -167,13 +167,22 @@ namespace
 
     void check_opt_csr(aoclsparse_matrix &A, sol_opt_csr &sol)
     {
+        aoclsparse::csr *opt_csr_mat = nullptr;
+        for(auto *mat : A->mats)
+        {
+            if(auto *csr = dynamic_cast<aoclsparse::csr *>(mat); csr && csr->is_optimized)
+            {
+                opt_csr_mat = csr;
+                break;
+            }
+        }
         aoclsparse_int dim = (std::min)(A->n, A->m);
-        ASSERT_EQ(A->opt_csr_mat->is_internal, sol.opt_csr_is_internal);
-        EXPECT_EQ_VEC(A->m + 1, A->opt_csr_mat->ptr, sol.icrow);
-        EXPECT_EQ_VEC(A->opt_csr_mat->ptr[A->m], A->opt_csr_mat->ind, sol.icol);
-        EXPECT_DOUBLE_EQ_VEC(A->opt_csr_mat->ptr[A->m], (double *)A->opt_csr_mat->val, sol.aval);
-        EXPECT_EQ_VEC(dim, A->opt_csr_mat->idiag, sol.idiag);
-        EXPECT_EQ_VEC(dim, A->opt_csr_mat->iurow, sol.iurow);
+        ASSERT_EQ(opt_csr_mat->is_internal, sol.opt_csr_is_internal);
+        EXPECT_EQ_VEC(A->m + 1, opt_csr_mat->ptr, sol.icrow);
+        EXPECT_EQ_VEC(opt_csr_mat->ptr[A->m], opt_csr_mat->ind, sol.icol);
+        EXPECT_DOUBLE_EQ_VEC(opt_csr_mat->ptr[A->m], (double *)opt_csr_mat->val, sol.aval);
+        EXPECT_EQ_VEC(dim, opt_csr_mat->idiag, sol.idiag);
+        EXPECT_EQ_VEC(dim, opt_csr_mat->iurow, sol.iurow);
     }
 
     typedef struct

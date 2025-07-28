@@ -158,6 +158,7 @@ namespace
         std::vector<aoclsparse_int> csr_row, csr_col, ptr;
         std::vector<double>         val;
         aoclsparse_mat_descr        descr;
+        aoclsparse_int              nmat = 0, nmat_after_set = 0;
 
         EXPECT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_general),
@@ -191,19 +192,17 @@ namespace
                       aoclsparse_operation_transpose, &alpha, src_mat, descr, x, &beta, y),
                   aoclsparse_status_success);
 
-        // Check for the optimized CSR matrix
-        EXPECT_NE(src_mat->opt_csr_mat, nullptr);
-        // Count non-null matrix copies
-        size_t valid_copies = 0;
-        for(const auto &mat : src_mat->mats)
+        // src_mat->mats may contain optimized CSR copies, such as opt_csr and transposed mv copies
+        // Count internally created non-null matrices
+        for(auto *mat : src_mat->mats)
         {
-            if(mat != nullptr && mat->is_internal)
+            if(mat && mat->is_internal)
             {
-                valid_copies++;
+                nmat++;
             }
         }
-        // Should have at least one matrix copy
-        EXPECT_GT(valid_copies, 0);
+        // At this point, we should have at least one internal matrix (the input matrix)
+        ASSERT_GT(nmat, 0);
 
         // Modify a value - should clean up all internal matrices
         aoclsparse_int ridx    = random_generator<aoclsparse_int>(0, NNZ - 1);
@@ -213,16 +212,16 @@ namespace
                   aoclsparse_status_success);
 
         // Check if the optimized CSR matrix is cleaned up
-        EXPECT_EQ(src_mat->opt_csr_mat, nullptr);
         // All internal matrices should now be nullptr
         for(const auto &mat : src_mat->mats)
         {
-            if(mat != nullptr)
+            if(mat && mat->is_internal)
             {
-                EXPECT_EQ(mat->is_internal, false);
+                nmat_after_set++;
             }
-            EXPECT_EQ(mat, nullptr);
         }
+        // Should have one valid matrix (input matrix)
+        EXPECT_EQ(nmat_after_set, 0);
 
         // Cleanup
         EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);

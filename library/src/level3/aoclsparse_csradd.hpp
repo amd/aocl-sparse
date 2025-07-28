@@ -149,16 +149,12 @@ aoclsparse_status aoclsparse_add_csr_ref(const aoclsparse_int        M,
     {
         try
         {
+            // Constructor handles row pointer initialization for empty matrix
             *C = new aoclsparse::csr(M, N, 0, aoclsparse_csr_mat, base_A, get_data_type<T>());
         }
         catch(std::bad_alloc &)
         {
             return aoclsparse_status_memory_error;
-        }
-        // Initialize row pointer array for empty matrix
-        for(int i = 0; i < M + 1; i++)
-        {
-            (*C)->ptr[i] = base_A;
         }
         C_nnz = 0;
         return aoclsparse_status_success;
@@ -324,6 +320,11 @@ aoclsparse_status aoclsparse_add_t(const aoclsparse_operation op,
         return aoclsparse_status_invalid_pointer;
     }
 
+    if(A->mats.empty() || B->mats.empty())
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+
     if(A->input_format != aoclsparse_csr_mat || B->input_format != aoclsparse_csr_mat)
         return aoclsparse_status_not_implemented;
 
@@ -342,8 +343,15 @@ aoclsparse_status aoclsparse_add_t(const aoclsparse_operation op,
     }
 
     aoclsparse_int C_nnz = 0;
-    T             *A_val = reinterpret_cast<T *>(A->csr_mat->val);
-    T             *B_val = reinterpret_cast<T *>(B->csr_mat->val);
+
+    aoclsparse::csr *A_csr = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
+    aoclsparse::csr *B_csr = dynamic_cast<aoclsparse::csr *>(B->mats[0]);
+
+    if(!A_csr || !B_csr)
+        return aoclsparse_status_not_implemented;
+
+    T *A_val = reinterpret_cast<T *>(A_csr->val);
+    T *B_val = reinterpret_cast<T *>(B_csr->val);
 
     aoclsparse_status status = aoclsparse_status_success;
     aoclsparse::csr  *C_csr  = nullptr;
@@ -357,12 +365,12 @@ aoclsparse_status aoclsparse_add_t(const aoclsparse_operation op,
                                         A->nnz,
                                         B->nnz,
                                         C_nnz,
-                                        A->csr_mat->ptr,
-                                        A->csr_mat->ind,
+                                        A_csr->ptr,
+                                        A_csr->ind,
                                         A_val,
                                         alpha,
-                                        B->csr_mat->ptr,
-                                        B->csr_mat->ind,
+                                        B_csr->ptr,
+                                        B_csr->ind,
                                         B_val,
                                         &C_csr);
     }
@@ -385,8 +393,8 @@ aoclsparse_status aoclsparse_add_t(const aoclsparse_operation op,
                                              A->nnz,
                                              A->base,
                                              A->base,
-                                             A->csr_mat->ptr,
-                                             A->csr_mat->ind,
+                                             A_csr->ptr,
+                                             A_csr->ind,
                                              A_val,
                                              temp_col_ptr.data(),
                                              temp_row_ptr.data(),
@@ -414,8 +422,8 @@ aoclsparse_status aoclsparse_add_t(const aoclsparse_operation op,
                                             temp_col_ptr.data(),
                                             temp_val.data(),
                                             alpha,
-                                            B->csr_mat->ptr,
-                                            B->csr_mat->ind,
+                                            B_csr->ptr,
+                                            B_csr->ind,
                                             B_val,
                                             &C_csr);
         }
@@ -426,12 +434,20 @@ aoclsparse_status aoclsparse_add_t(const aoclsparse_operation op,
     {
         try
         {
-            *C            = new _aoclsparse_matrix;
-            (*C)->csr_mat = C_csr;
+            *C = new _aoclsparse_matrix;
+            (*C)->mats.push_back(C_csr);
         }
         catch(std::bad_alloc &)
         {
-            delete C_csr; // Clean up the CSR matrix if main matrix allocation fails
+            if(C_csr)
+            {
+                delete C_csr;
+            }
+            if(*C)
+            {
+                delete *C;
+                *C = nullptr;
+            }
             return aoclsparse_status_memory_error;
         }
         aoclsparse_init_mat(*C, A->base, B->m, B->n, C_nnz, aoclsparse_csr_mat);

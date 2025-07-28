@@ -36,13 +36,17 @@ namespace
 
         if(mat->input_format == aoclsparse_csr_mat)
         {
-            idx = mat->csr_mat->ind;
-            val = static_cast<T *>(mat->csr_mat->val);
+            aoclsparse::csr *csr_mat = dynamic_cast<aoclsparse::csr *>(mat->mats[0]);
+            EXPECT_NE(csr_mat, nullptr);
+            idx = csr_mat->ind;
+            val = static_cast<T *>(csr_mat->val);
         }
         else
         {
-            idx = mat->csc_mat->ind;
-            val = static_cast<T *>(mat->csc_mat->val);
+            aoclsparse::csr *csc_mat = dynamic_cast<aoclsparse::csr *>(mat->mats[0]);
+            EXPECT_NE(csc_mat, nullptr);
+            idx = csc_mat->ind;
+            val = static_cast<T *>(csc_mat->val);
         }
         EXPECT_EQ_VEC(mat->nnz, idx, idx_exp);
         if constexpr(std::is_same_v<T, aoclsparse_float_complex>)
@@ -95,19 +99,20 @@ namespace
         ASSERT_EQ(aoclsparse_create_csr(
                       &mat, aoclsparse_index_base_zero, 5, 4, 4, row_ptr, col_idx, vald),
                   aoclsparse_status_success);
-
+        aoclsparse::csr *csr_mat = dynamic_cast<aoclsparse::csr *>(mat->mats[0]);
+        EXPECT_NE(csr_mat, nullptr);
         // a) csr_row_ptr is NULL
-        mat->csr_mat->ptr = NULL;
+        csr_mat->ptr = NULL;
         EXPECT_EQ(aoclsparse_order_mat(mat), aoclsparse_status_invalid_pointer);
 
         // b) csr_col_idx is NULL
-        mat->csr_mat->ptr = row_ptr;
-        mat->csr_mat->ind = NULL;
+        csr_mat->ptr = row_ptr;
+        csr_mat->ind = NULL;
         EXPECT_EQ(aoclsparse_order_mat(mat), aoclsparse_status_invalid_pointer);
 
         // c) csr_val is NULL
-        mat->csr_mat->ind = col_idx;
-        mat->csr_mat->val = NULL;
+        csr_mat->ind = col_idx;
+        csr_mat->val = NULL;
         EXPECT_EQ(aoclsparse_order_mat(mat), aoclsparse_status_invalid_pointer);
         aoclsparse_destroy(&mat);
 
@@ -117,19 +122,20 @@ namespace
         ASSERT_EQ(aoclsparse_create_csc(
                       &mat, aoclsparse_index_base_zero, 4, 5, 4, col_ptr, row_idx, vald),
                   aoclsparse_status_success);
-
+        aoclsparse::csr *csc_mat = dynamic_cast<aoclsparse::csr *>(mat->mats[0]);
+        EXPECT_NE(csc_mat, nullptr);
         // a) col_ptr is NULL
-        mat->csc_mat->ptr = NULL;
+        csc_mat->ptr = NULL;
         EXPECT_EQ(aoclsparse_order_mat(mat), aoclsparse_status_invalid_pointer);
 
         // b) row_idx is NULL
-        mat->csc_mat->ptr = col_ptr;
-        mat->csc_mat->ind = NULL;
+        csc_mat->ptr = col_ptr;
+        csc_mat->ind = NULL;
         EXPECT_EQ(aoclsparse_order_mat(mat), aoclsparse_status_invalid_pointer);
 
         // c) val is NULL
-        mat->csc_mat->ind = row_idx;
-        mat->csc_mat->val = NULL;
+        csc_mat->ind = row_idx;
+        csc_mat->val = NULL;
         EXPECT_EQ(aoclsparse_order_mat(mat), aoclsparse_status_invalid_pointer);
         aoclsparse_destroy(&mat);
     }

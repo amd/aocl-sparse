@@ -218,12 +218,15 @@ aoclsparse_status aoclsparse_syprd(aoclsparse_operation            op,
                                    aoclsparse_int                  ldc,
                                    [[maybe_unused]] aoclsparse_int kid)
 {
-    aoclsparse_int        m           = A->m;
-    aoclsparse_int        k           = A->n;
-    aoclsparse_index_base base        = A->base;
-    const aoclsparse_int *csr_col_ind = A->csr_mat->ind;
-    const aoclsparse_int *csr_row_ptr = A->csr_mat->ptr;
-    const T              *csr_val     = static_cast<T *>(A->csr_mat->val);
+    aoclsparse_int        m     = A->m;
+    aoclsparse_int        k     = A->n;
+    aoclsparse_index_base base  = A->base;
+    aoclsparse::csr      *A_csr = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
+    if(!A_csr)
+        return aoclsparse_status_not_implemented;
+    const aoclsparse_int *csr_col_ind = A_csr->ind;
+    const aoclsparse_int *csr_row_ptr = A_csr->ptr;
+    const T              *csr_val     = static_cast<T *>(A_csr->val);
 
     T zero = 0.0;
     T one  = 1.0;

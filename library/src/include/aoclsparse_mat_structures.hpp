@@ -123,6 +123,8 @@ namespace aoclsparse
             , val_type(val_type)
             , is_internal(is_internal)
         {
+            if(m < 0 || n < 0)
+                throw std::bad_array_new_length();
         }
 
         // default destructor
@@ -177,10 +179,13 @@ namespace aoclsparse
                 // This enables array creation when matrix dimensions are known but nnz is not yet set
                 // For CSC format, allocate n+1 (columns + 1) for csc_col_ptr
                 // For CSR format, allocate m+1 (rows + 1) for csr_row_ptr
-                if(mat_type == aoclsparse_csc_mat)
-                    ptr = new aoclsparse_int[n + 1];
-                else
-                    ptr = new aoclsparse_int[m + 1];
+                aoclsparse_int len = (mat_type == aoclsparse_csc_mat) ? (n + 1) : (m + 1);
+                ptr                = new aoclsparse_int[len];
+                if(nnz == 0)
+                {
+                    // For empty matrices, set all row/column pointers to the base index
+                    std::fill(ptr, ptr + len, base);
+                }
                 // Only allocate memory if nnz is valid (non-negative)
                 if(nnz >= 0)
                 {
@@ -220,7 +225,6 @@ namespace aoclsparse
             , iurow(urow)
         {
         }
-
         // destructor
         virtual ~csr()
         {
@@ -251,6 +255,73 @@ namespace aoclsparse
         void           *blk_val     = nullptr;
         uint8_t        *masks       = nullptr;
         aoclsparse_int  nRowsblk    = 0;
+
+        /* Parameterized constructor:
+        Initializes the matrix with the specified parameters and allocates memory for the Block CSR data arrays.
+        This constructor is used when the matrix is created internally.
+        */
+        blk_csr(aoclsparse_int              m,
+                aoclsparse_int              n,
+                aoclsparse_int              nnz,
+                aoclsparse_int              nRowsblk,
+                aoclsparse_index_base       base,
+                aoclsparse_matrix_data_type val_type,
+                aoclsparse_int              blk_width,
+                aoclsparse_int              total_blks)
+            : base_mtx(m, n, nnz, aoclsparse_blkcsr_mat, base, val_type, true)
+            , nRowsblk(nRowsblk)
+        {
+            // Validate dimensions before allocation
+            if(nnz < 0 || nRowsblk < 0 || blk_width < 0 || total_blks < 0)
+                throw std::bad_array_new_length();
+            try
+            {
+                blk_row_ptr = new aoclsparse_int[m + 1];
+                masks       = new uint8_t[total_blks * nRowsblk];
+                blk_col_ptr = new aoclsparse_int[nnz];
+                blk_val     = ::operator new((nnz + nRowsblk * blk_width) * sizeof(double));
+            }
+            catch(...)
+            {
+                delete[] blk_row_ptr;
+                delete[] blk_col_ptr;
+                ::operator delete(blk_val);
+                delete[] masks;
+                throw;
+            }
+        }
+
+        // Parameterized constructor that sets up the matrix using user-provided, pre-allocated data arrays.
+        blk_csr(aoclsparse_int              m,
+                aoclsparse_int              n,
+                aoclsparse_int              nnz,
+                aoclsparse_int              nRowsblk,
+                aoclsparse_index_base       base,
+                aoclsparse_matrix_data_type val_type,
+                aoclsparse_int             *blk_row_ptr,
+                aoclsparse_int             *blk_col_ptr,
+                void                       *blk_val,
+                uint8_t                    *masks)
+            : base_mtx(m, n, nnz, aoclsparse_blkcsr_mat, base, val_type, false)
+            , blk_row_ptr(blk_row_ptr)
+            , blk_col_ptr(blk_col_ptr)
+            , blk_val(blk_val)
+            , masks(masks)
+            , nRowsblk(nRowsblk)
+        {
+        }
+        // Destructor
+        virtual ~blk_csr()
+        {
+            // Free the memory allocated if the matrix was internally allocated (is_internal = true)
+            if(is_internal)
+            {
+                delete[] blk_row_ptr;
+                delete[] blk_col_ptr;
+                ::operator delete(blk_val);
+                delete[] masks;
+            }
+        }
     };
 
     /********************************************************************************
@@ -303,6 +374,80 @@ namespace aoclsparse
         aoclsparse_int *iurow = nullptr;
         // if optimized, set true
         bool is_optimized = false;
+
+        /* Parameterized constructor:
+        Initializes the matrix with the specified parameters and allocates memory for the Block CSR data arrays.
+        This constructor is used when the matrix is created internally.
+        */
+        tcsr(aoclsparse_int              m,
+             aoclsparse_int              n,
+             aoclsparse_int              nnz,
+             aoclsparse_index_base       base,
+             aoclsparse_matrix_data_type val_type)
+            : base_mtx(m, n, nnz, aoclsparse_tcsr_mat, base, val_type, true)
+        {
+            if(nnz < 0)
+                throw std::bad_array_new_length();
+            try
+            {
+                row_ptr_L = new aoclsparse_int[m + 1];
+                row_ptr_U = new aoclsparse_int[m + 1];
+                col_idx_L = new aoclsparse_int[nnz];
+                col_idx_U = new aoclsparse_int[nnz];
+                val_L     = ::operator new[](nnz *data_size[val_type]);
+                val_U     = ::operator new[](nnz *data_size[val_type]);
+            }
+            catch(...)
+            {
+                // Clean up any allocated memory on failure
+                delete[] row_ptr_L;
+                delete[] row_ptr_U;
+                delete[] col_idx_L;
+                delete[] col_idx_U;
+                ::operator delete(val_L);
+                ::operator delete(val_U);
+                throw;
+            }
+        }
+
+        // Parameterized constructor
+        tcsr(aoclsparse_int              m,
+             aoclsparse_int              n,
+             aoclsparse_int              nnz,
+             aoclsparse_index_base       base,
+             aoclsparse_matrix_data_type val_type,
+             aoclsparse_int             *row_ptr_L,
+             aoclsparse_int             *row_ptr_U,
+             aoclsparse_int             *col_idx_L,
+             aoclsparse_int             *col_idx_U,
+             void                       *val_L,
+             void                       *val_U)
+            : base_mtx(m, n, nnz, aoclsparse_tcsr_mat, base, val_type, false)
+            , row_ptr_L(row_ptr_L)
+            , row_ptr_U(row_ptr_U)
+            , col_idx_L(col_idx_L)
+            , col_idx_U(col_idx_U)
+            , val_L(val_L)
+            , val_U(val_U)
+        {
+        }
+
+        // Destructor
+        ~tcsr()
+        {
+            // Free the memory allocated if the matrix was internally allocated (is_internal = true)
+            if(is_internal)
+            {
+                delete[] row_ptr_L;
+                delete[] row_ptr_U;
+                delete[] col_idx_L;
+                delete[] col_idx_U;
+                ::operator delete(val_L);
+                ::operator delete(val_U);
+            }
+            delete[] idiag;
+            delete[] iurow;
+        }
     };
 
     /********************************************************************************
@@ -317,6 +462,32 @@ namespace aoclsparse
         aoclsparse_int  ell_width   = 0;
         aoclsparse_int *ell_col_ind = nullptr;
         void           *ell_val     = nullptr;
+
+        // Parameterized constructor that sets up the matrix using user-provided, pre-allocated data arrays.
+        ell(aoclsparse_int              m,
+            aoclsparse_int              n,
+            aoclsparse_int              nnz,
+            aoclsparse_index_base       base,
+            aoclsparse_matrix_data_type val_type,
+            aoclsparse_int              ell_width,
+            aoclsparse_int             *ell_col_ind,
+            void                       *ell_val)
+            : base_mtx(m, n, nnz, aoclsparse_ell_mat, base, val_type, false)
+            , ell_width(ell_width)
+            , ell_col_ind(ell_col_ind)
+            , ell_val(ell_val)
+        {
+        }
+
+        // Destructor
+        ~ell()
+        {
+            if(is_internal)
+            {
+                delete[] ell_col_ind;
+                ::operator delete(ell_val);
+            }
+        }
     };
 
     /********************************************************************************
@@ -338,6 +509,71 @@ namespace aoclsparse
         //   aoclsparse_int* row_id_map =  nullptr;
         aoclsparse_int *csr_col_ptr = nullptr; // points to the corresponding CSR pointer
         void           *csr_val     = nullptr; // points to the corresponding CSR pointer
+
+        // Parameterized constructor
+        ell_csr_hyb(aoclsparse_int              m,
+                    aoclsparse_int              n,
+                    aoclsparse_int              nnz,
+                    aoclsparse_index_base       base,
+                    aoclsparse_matrix_data_type val_type,
+                    aoclsparse_int              ell_width,
+                    aoclsparse_int              ell_m)
+            : base_mtx(m, n, nnz, aoclsparse_ellt_csr_hyb_mat, base, val_type, true)
+            , ell_width(ell_width)
+            , ell_m(ell_m)
+        {
+            // Validate dimensions before allocation
+            if(m < ell_m || ell_width < 0)
+                throw std::bad_array_new_length();
+            try
+            {
+                ell_col_ind    = new aoclsparse_int[ell_width * m];
+                csr_row_id_map = new aoclsparse_int[m - ell_m];
+                ell_val        = ::operator new(data_size[val_type] * ell_width * m);
+            }
+            catch(...)
+            {
+                delete[] ell_col_ind;
+                delete[] csr_row_id_map;
+                ::operator delete(ell_val);
+                throw;
+            }
+        }
+
+        // Parameterized constructor that sets up the matrix using user-provided, pre-allocated data arrays.
+        ell_csr_hyb(aoclsparse_int              m,
+                    aoclsparse_int              n,
+                    aoclsparse_int              nnz,
+                    aoclsparse_index_base       base,
+                    aoclsparse_matrix_data_type val_type,
+                    aoclsparse_int              ell_width,
+                    aoclsparse_int              ell_m,
+                    aoclsparse_int             *ell_col_ind,
+                    void                       *ell_val,
+                    aoclsparse_int             *csr_row_id_map,
+                    aoclsparse_int             *csr_col_ptr,
+                    void                       *csr_val)
+            : base_mtx(m, n, nnz, aoclsparse_ellt_csr_hyb_mat, base, val_type, false)
+            , ell_width(ell_width)
+            , ell_m(ell_m)
+            , ell_col_ind(ell_col_ind)
+            , ell_val(ell_val)
+            , csr_row_id_map(csr_row_id_map)
+            , csr_col_ptr(csr_col_ptr)
+            , csr_val(csr_val)
+        {
+        }
+        // Destructor
+        ~ell_csr_hyb()
+        {
+            // Free the memory allocated if the matrix was internally allocated (is_internal = true)
+            if(is_internal)
+            {
+                delete[] ell_col_ind;
+                delete[] csr_row_id_map;
+                ::operator delete(ell_val);
+            }
+        }
     };
 
     /********************************************************************************
@@ -352,6 +588,59 @@ namespace aoclsparse
         aoclsparse_int *row_ind = nullptr;
         aoclsparse_int *col_ind = nullptr;
         void           *val     = nullptr;
+
+        // Parameterized constructor
+        coo(aoclsparse_int              m,
+            aoclsparse_int              n,
+            aoclsparse_int              nnz,
+            aoclsparse_index_base       base,
+            aoclsparse_matrix_data_type val_type)
+            : base_mtx(m, n, nnz, aoclsparse_coo_mat, base, val_type, true)
+        {
+            // Validate dimensions before allocation
+            if(nnz < 0)
+                throw std::bad_array_new_length();
+            try
+            {
+                row_ind = new aoclsparse_int[nnz];
+                col_ind = new aoclsparse_int[nnz];
+                val     = ::operator new(data_size[val_type] * nnz);
+            }
+            catch(...)
+            {
+                delete[] row_ind;
+                delete[] col_ind;
+                ::operator delete(val);
+                throw;
+            }
+        }
+
+        // Parameterized constructor that sets up the matrix using user-provided, pre-allocated data arrays.
+        coo(aoclsparse_int              m,
+            aoclsparse_int              n,
+            aoclsparse_int              nnz,
+            aoclsparse_index_base       base,
+            aoclsparse_matrix_data_type val_type,
+            aoclsparse_int             *row_ind,
+            aoclsparse_int             *col_ind,
+            void                       *val)
+            : base_mtx(m, n, nnz, aoclsparse_coo_mat, base, val_type, false)
+            , row_ind(row_ind)
+            , col_ind(col_ind)
+            , val(val)
+        {
+        }
+
+        // Destructor
+        ~coo()
+        {
+            if(is_internal)
+            {
+                delete[] row_ind;
+                delete[] col_ind;
+                ::operator delete(val);
+            }
+        }
     };
 }
 
@@ -421,31 +710,8 @@ struct _aoclsparse_matrix
     // Optimization hints linked list
     aoclsparse_optimize_data *optim_data = nullptr;
 
-    // csr matrix
-    aoclsparse::csr *csr_mat = nullptr;
-    // Stores the CSR matrix copies (excluding opt_csr)
-    // TODO: Holds all matrices, regardless of type, including internally created matrices and copies
+    // Holds all matrices, regardless of type, including internally created matrices and copies
     std::vector<aoclsparse::base_mtx *> mats;
-
-    // blk_csr matrix
-    aoclsparse::blk_csr *blk_csr_mat = nullptr;
-
-    // csr matrix for avx2
-    aoclsparse::csr *csr_mat_br4 = nullptr;
-
-    //tcsr matrix
-    bool              tcsr_mat_is_users = false;
-    aoclsparse::tcsr *tcsr_mat          = nullptr;
-
-    // ellt matrix
-    aoclsparse::ell *ell_mat = nullptr;
-
-    // ell-csr-hyb matrix
-    aoclsparse::ell_csr_hyb *ell_csr_hyb_mat = nullptr;
-
-    // coo matrix
-    bool             coo_mat_is_users = false;
-    aoclsparse::coo *coo_mat          = nullptr;
 
     //ilu members
     struct _aoclsparse_ilu ilu_info;
@@ -453,23 +719,11 @@ struct _aoclsparse_matrix
     //symgs
     struct _aoclsparse_symgs symgs_info;
 
-    // optimized csr matrix
-    // It is checked, sorted in rows, has a diagonal element in each row,
-    // however, some diagonal elements might have been added as zeros
-    aoclsparse::csr *opt_csr_mat = nullptr;
     // the original matrix had full (nonzero) diagonal, so the matrix
     // is safe for TRSVs
     bool opt_csr_full_diag = false;
     // store if the matrix has already been optimized for this blocked SpMV
     bool blk_optimized = false;
-
-    // csc matrix
-    aoclsparse::csr *csc_mat = nullptr;
-
-    // optimized csc matrix
-    // It is checked, sorted in rows, has a diagonal element in each row,
-    // however, some diagonal elements might have been added as zeros
-    aoclsparse::csr *opt_csc_mat = nullptr;
 
     // used to indicate if any additional memory required further performance optimization purposes
     aoclsparse_memory_usage mem_policy = aoclsparse_memory_usage_unrestricted;

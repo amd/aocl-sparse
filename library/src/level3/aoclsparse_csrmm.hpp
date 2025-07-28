@@ -440,7 +440,7 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
     using namespace kernel_templates;
 
     // Check for valid matrix, descriptor
-    if(A == nullptr || B == nullptr || C == nullptr || descr == nullptr)
+    if(A == nullptr || A->mats.empty() || B == nullptr || C == nullptr || descr == nullptr)
     {
         return aoclsparse_status_invalid_pointer;
     }
@@ -476,9 +476,12 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
     aoclsparse_int k = A->n;
     aoclsparse_int m_c{0}, n_c{0};
 
-    const aoclsparse_int *csr_col_ind = A->csr_mat->ind;
-    const aoclsparse_int *csr_row_ptr = A->csr_mat->ptr;
-    const T              *csr_val     = static_cast<T *>(A->csr_mat->val);
+    aoclsparse::csr *csr_mat = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
+    if(!csr_mat)
+        return aoclsparse_status_not_implemented;
+    const aoclsparse_int *csr_col_ind = csr_mat->ind;
+    const aoclsparse_int *csr_row_ptr = csr_mat->ptr;
+    const T              *csr_val     = static_cast<T *>(csr_mat->val);
 
     // Variables to identify the type of the matrix
     const aoclsparse_matrix_type mat_type = descr->type;

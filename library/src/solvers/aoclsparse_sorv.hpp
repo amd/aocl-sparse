@@ -82,10 +82,13 @@ template <typename T>
 aoclsparse_status aoclsparse_sor_forward_sol(
     const aoclsparse_matrix A, const aoclsparse_mat_descr descr, T omega, T *x, const T *b)
 {
-    aoclsparse_int  i, j, idxstart, idxend;
-    aoclsparse_int *row_ptr = A->csr_mat->ptr;
-    aoclsparse_int *col_idx = A->csr_mat->ind - descr->base;
-    T              *csr_val = (T *)A->csr_mat->val - descr->base;
+    aoclsparse_int   i, j, idxstart, idxend;
+    aoclsparse::csr *csr_mat = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
+    if(!csr_mat)
+        return aoclsparse_status_not_implemented;
+    aoclsparse_int *row_ptr = csr_mat->ptr;
+    aoclsparse_int *col_idx = csr_mat->ind - descr->base;
+    T              *csr_val = (T *)csr_mat->val - descr->base;
     T               axi;
     T               diag_ele;
     aoclsparse_int  col;
@@ -198,7 +201,10 @@ aoclsparse_status aoclsparse_sorv_t(aoclsparse_sor_type        sor_type,
     // Check if all diagonal elements present and are non-zero
     if(!A->opt_csr_full_diag)
     {
-        aoclsparse_status status = aoclsparse_csr_check_full_diag<T>(A->m, descr->base, A->csr_mat);
+        aoclsparse::csr *csr_mat = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
+        if(!csr_mat)
+            return aoclsparse_status_not_implemented;
+        aoclsparse_status status = aoclsparse_csr_check_full_diag<T>(A->m, descr->base, csr_mat);
         if(status != aoclsparse_status_success)
         {
             return status;

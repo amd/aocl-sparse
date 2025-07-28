@@ -195,9 +195,13 @@ inline aoclsparse_status aoclsparse_syrkd_t(const aoclsparse_operation      op,
     aoclsparse_int    m = A->m, n = A->n;
     aoclsparse_status status;
 
-    aoclsparse_int        *csr_row_ptr_A = A->csr_mat->ptr;
-    aoclsparse_int        *csr_col_ind_A = A->csr_mat->ind;
-    T                     *csr_val_A     = (T *)A->csr_mat->val;
+    aoclsparse::csr *csr_mat = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
+    if(!csr_mat)
+        return aoclsparse_status_not_implemented;
+
+    aoclsparse_int        *csr_row_ptr_A = csr_mat->ptr;
+    aoclsparse_int        *csr_col_ind_A = csr_mat->ind;
+    T                     *csr_val_A     = (T *)csr_mat->val;
     T                      zero          = aoclsparse_numeric::zero<T>();
     struct syrkd_params<T> params;
     params.alpha_p  = alpha;
