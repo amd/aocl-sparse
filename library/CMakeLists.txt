@@ -142,3 +142,8 @@ set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION "\${CPACK_PACKAGING_INSTALL_PR
 set(package_name aoclsparse)
 
 set(AOCLSPARSE_CONFIG_DIR "\${CPACK_PACKAGING_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}" CACHE PATH "Path placed into ldconfig file")
+
+# Install the kernel-templates directory
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/include/kernel-templates/
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/include/kernel-templates
+        FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h")
