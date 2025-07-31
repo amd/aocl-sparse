@@ -30,6 +30,21 @@ using kt_int_t = size_t;
 
 using namespace kernel_templates;
 
+// Macro to invoke test functions for real types
+#define CALL_FOR_REAL_TYPES(func, SZ) \
+    func<SZ, float>();                \
+    func<SZ, double>();
+
+// Macro to invoke test functions for complex types
+#define CALL_FOR_COMPLEX_TYPES(func, SZ) \
+    func<SZ, cfloat>();                  \
+    func<SZ, cdouble>();
+
+// Macro to invoke test functions for all supported types
+#define CALL_FOR_ALL_TYPES(func, SZ) \
+    CALL_FOR_REAL_TYPES(func, SZ)    \
+    CALL_FOR_COMPLEX_TYPES(func, SZ);
+
 namespace TestsKT
 {
     // Test function declaration
@@ -50,31 +65,31 @@ namespace TestsKT
 
     void kt_ctypes_512();
 
-    template <bsz SZ>
+    template <bsz SZ, typename SUF>
     void kt_loadu_p_test();
 
-    template <bsz SZ>
+    template <bsz SZ, typename SUF>
     void kt_setzero_p_test();
 
-    template <bsz SZ>
+    template <bsz SZ, typename SUF>
     void kt_set1_p_test();
 
-    template <bsz SZ>
+    template <bsz SZ, typename SUF>
     void kt_add_p_test();
 
-    template <bsz SZ>
+    template <bsz SZ, typename SUF>
     void kt_sub_p_test();
 
-    template <bsz SZ>
+    template <bsz SZ, typename SUF>
     void kt_mul_p_test();
 
-    template <bsz SZ>
+    template <bsz SZ, typename SUF>
     void kt_fmadd_p_test();
 
-    template <bsz SZ>
+    template <bsz SZ, typename SUF>
     void kt_fmsub_p_test();
 
-    template <bsz SZ>
+    template <bsz SZ, typename SUF>
     void kt_set_p_test();
 
     void kt_maskz_set_p_128_avx();
@@ -85,28 +100,28 @@ namespace TestsKT
 
     void kt_maskz_set_p_512_AVX512f();
 
-    template <bsz SZ>
+    template <bsz SZ, typename SUF>
     void kt_hsum_p_test();
 
-    template <bsz SZ>
+    template <bsz SZ, typename SUF>
     void kt_conj_p_test();
 
-    template <bsz SZ>
+    template <bsz SZ, typename SUF>
     void kt_dot_p_test();
 
-    template <bsz SZ>
+    template <bsz SZ, typename SUF>
     void kt_cdot_p_test();
 
-    template <bsz SZ>
+    template <bsz SZ, typename SUF>
     void kt_storeu_p_test();
 
-    template <bsz SZ>
+    template <bsz SZ, typename SUF>
     void kt_fmadd_B_test();
 
-    template <bsz SZ>
+    template <bsz SZ, typename SUF>
     void kt_hsum_B_test();
 
-    template <bsz SZ>
+    template <bsz SZ, typename SUF>
     void kt_max_p_test();
     // -------------------------
 
@@ -161,19 +176,19 @@ namespace TestsKT
      */
     TEST(KT_L0, kt_loadu_p_128)
     {
-        kt_loadu_p_test<bsz::b128>();
+        CALL_FOR_ALL_TYPES(kt_loadu_p_test, bsz::b128);
     }
 
     TEST(KT_L0, kt_loadu_p_256)
     {
-        kt_loadu_p_test<bsz::b256>();
+        CALL_FOR_ALL_TYPES(kt_loadu_p_test, bsz::b256);
     }
 
     TEST(KT_L0, kt_loadu_p_512)
     {
         if(can_exec_avx512_tests())
         {
-            kt_loadu_p_test<bsz::b512>();
+            CALL_FOR_ALL_TYPES(kt_loadu_p_test, bsz::b512);
         }
     }
 
@@ -182,19 +197,19 @@ namespace TestsKT
      */
     TEST(KT_L0, kt_setzero_p_128)
     {
-        kt_setzero_p_test<bsz::b128>();
+        CALL_FOR_ALL_TYPES(kt_setzero_p_test, bsz::b128);
     }
 
     TEST(KT_L0, kt_setzero_p_256)
     {
-        kt_setzero_p_test<bsz::b256>();
+        CALL_FOR_ALL_TYPES(kt_setzero_p_test, bsz::b256);
     }
 
     TEST(KT_L0, kt_setzero_p_512)
     {
         if(can_exec_avx512_tests())
         {
-            kt_setzero_p_test<bsz::b512>();
+            CALL_FOR_ALL_TYPES(kt_setzero_p_test, bsz::b512);
         }
     }
 
@@ -203,19 +218,19 @@ namespace TestsKT
      */
     TEST(KT_L0, kt_set1_p_128)
     {
-        kt_set1_p_test<bsz::b128>();
+        CALL_FOR_ALL_TYPES(kt_set1_p_test, bsz::b128);
     }
 
     TEST(KT_L0, kt_set1_p_256)
     {
-        kt_set1_p_test<bsz::b256>();
+        CALL_FOR_ALL_TYPES(kt_set1_p_test, bsz::b256);
     }
 
     TEST(KT_L0, kt_set1_p_512)
     {
         if(can_exec_avx512_tests())
         {
-            kt_set1_p_test<bsz::b512>();
+            CALL_FOR_ALL_TYPES(kt_set1_p_test, bsz::b512);
         }
     }
 
@@ -224,19 +239,19 @@ namespace TestsKT
      */
     TEST(KT_L0, kt_add_p_128)
     {
-        kt_add_p_test<bsz::b128>();
+        CALL_FOR_ALL_TYPES(kt_add_p_test, bsz::b128);
     }
 
     TEST(KT_L0, kt_add_p_256)
     {
-        kt_add_p_test<bsz::b256>();
+        CALL_FOR_ALL_TYPES(kt_add_p_test, bsz::b256);
     }
 
     TEST(KT_L0, kt_add_p_512)
     {
         if(can_exec_avx512_tests())
         {
-            kt_add_p_test<bsz::b512>();
+            CALL_FOR_ALL_TYPES(kt_add_p_test, bsz::b512);
         }
     }
 
@@ -245,19 +260,19 @@ namespace TestsKT
      */
     TEST(KT_L0, kt_sub_p_128)
     {
-        kt_sub_p_test<bsz::b128>();
+        CALL_FOR_ALL_TYPES(kt_sub_p_test, bsz::b128);
     }
 
     TEST(KT_L0, kt_sub_p_256)
     {
-        kt_sub_p_test<bsz::b256>();
+        CALL_FOR_ALL_TYPES(kt_sub_p_test, bsz::b256);
     }
 
     TEST(KT_L0, kt_sub_p_512)
     {
         if(can_exec_avx512_tests())
         {
-            kt_sub_p_test<bsz::b512>();
+            CALL_FOR_ALL_TYPES(kt_sub_p_test, bsz::b512);
         }
     }
 
@@ -266,19 +281,19 @@ namespace TestsKT
      */
     TEST(KT_L0, kt_mul_p_128)
     {
-        kt_mul_p_test<bsz::b128>();
+        CALL_FOR_ALL_TYPES(kt_mul_p_test, bsz::b128);
     }
 
     TEST(KT_L0, kt_mul_p_256)
     {
-        kt_mul_p_test<bsz::b256>();
+        CALL_FOR_ALL_TYPES(kt_mul_p_test, bsz::b256);
     }
 
     TEST(KT_L0, kt_mul_p_512)
     {
         if(can_exec_avx512_tests())
         {
-            kt_mul_p_test<bsz::b512>();
+            CALL_FOR_ALL_TYPES(kt_mul_p_test, bsz::b512);
         }
     }
 
@@ -288,19 +303,19 @@ namespace TestsKT
      */
     TEST(KT_L0, kt_fmadd_p_128)
     {
-        kt_fmadd_p_test<bsz::b128>();
+        CALL_FOR_ALL_TYPES(kt_fmadd_p_test, bsz::b128);
     }
 
     TEST(KT_L0, kt_fmadd_p_256)
     {
-        kt_fmadd_p_test<bsz::b256>();
+        CALL_FOR_ALL_TYPES(kt_fmadd_p_test, bsz::b256);
     }
 
     TEST(KT_L0, kt_fmadd_p_512)
     {
         if(can_exec_avx512_tests())
         {
-            kt_fmadd_p_test<bsz::b512>();
+            CALL_FOR_ALL_TYPES(kt_fmadd_p_test, bsz::b512);
         }
     }
 
@@ -310,19 +325,19 @@ namespace TestsKT
      */
     TEST(KT_L0, kt_fmsub_p_128)
     {
-        kt_fmsub_p_test<bsz::b128>();
+        CALL_FOR_ALL_TYPES(kt_fmsub_p_test, bsz::b128);
     }
 
     TEST(KT_L0, kt_fmsub_p_256)
     {
-        kt_fmsub_p_test<bsz::b256>();
+        CALL_FOR_ALL_TYPES(kt_fmsub_p_test, bsz::b256);
     }
 
     TEST(KT_L0, kt_fmsub_p_512)
     {
         if(can_exec_avx512_tests())
         {
-            kt_fmsub_p_test<bsz::b512>();
+            CALL_FOR_ALL_TYPES(kt_fmsub_p_test, bsz::b512);
         }
     }
 
@@ -332,19 +347,19 @@ namespace TestsKT
      */
     TEST(KT_L0, kt_set_p_128)
     {
-        kt_set_p_test<bsz::b128>();
+        CALL_FOR_ALL_TYPES(kt_set_p_test, bsz::b128);
     }
 
     TEST(KT_L0, kt_set_p_256)
     {
-        kt_set_p_test<bsz::b256>();
+        CALL_FOR_ALL_TYPES(kt_set_p_test, bsz::b256);
     }
 
     TEST(KT_L0, kt_set_p_512)
     {
         if(can_exec_avx512_tests())
         {
-            kt_set_p_test<bsz::b512>();
+            CALL_FOR_ALL_TYPES(kt_set_p_test, bsz::b512);
         }
     }
 
@@ -380,19 +395,19 @@ namespace TestsKT
      */
     TEST(KT_L0, kt_hsum_p_128)
     {
-        kt_hsum_p_test<bsz::b128>();
+        CALL_FOR_ALL_TYPES(kt_hsum_p_test, bsz::b128);
     }
 
     TEST(KT_L0, kt_hsum_p_256)
     {
-        kt_hsum_p_test<bsz::b256>();
+        CALL_FOR_ALL_TYPES(kt_hsum_p_test, bsz::b256);
     }
 
     TEST(KT_L0, kt_hsum_p_512)
     {
         if(can_exec_avx512_tests())
         {
-            kt_hsum_p_test<bsz::b512>();
+            CALL_FOR_ALL_TYPES(kt_hsum_p_test, bsz::b512);
         }
     }
 
@@ -402,19 +417,19 @@ namespace TestsKT
      */
     TEST(KT_L0, kt_conj_p_128)
     {
-        kt_conj_p_test<bsz::b128>();
+        CALL_FOR_ALL_TYPES(kt_conj_p_test, bsz::b128);
     }
 
     TEST(KT_L0, kt_conj_p_256)
     {
-        kt_conj_p_test<bsz::b256>();
+        CALL_FOR_ALL_TYPES(kt_conj_p_test, bsz::b256);
     }
 
     TEST(KT_L0, kt_conj_p_512)
     {
         if(can_exec_avx512_tests())
         {
-            kt_conj_p_test<bsz::b512>();
+            CALL_FOR_ALL_TYPES(kt_conj_p_test, bsz::b512);
         }
     }
 
@@ -424,19 +439,19 @@ namespace TestsKT
      */
     TEST(KT_L1, kt_dot_p_128)
     {
-        kt_dot_p_test<bsz::b128>();
+        CALL_FOR_ALL_TYPES(kt_dot_p_test, bsz::b128);
     }
 
     TEST(KT_L1, kt_dot_p_256)
     {
-        kt_dot_p_test<bsz::b256>();
+        CALL_FOR_ALL_TYPES(kt_dot_p_test, bsz::b256);
     }
 
     TEST(KT_L1, kt_dot_p_512)
     {
         if(can_exec_avx512_tests())
         {
-            kt_dot_p_test<bsz::b512>();
+            CALL_FOR_ALL_TYPES(kt_dot_p_test, bsz::b512);
         }
     }
 
@@ -446,19 +461,19 @@ namespace TestsKT
      */
     TEST(KT_L1, kt_cdot_p_128)
     {
-        kt_cdot_p_test<bsz::b128>();
+        CALL_FOR_ALL_TYPES(kt_cdot_p_test, bsz::b128);
     }
 
     TEST(KT_L1, kt_cdot_p_256)
     {
-        kt_cdot_p_test<bsz::b256>();
+        CALL_FOR_ALL_TYPES(kt_cdot_p_test, bsz::b256);
     }
 
     TEST(KT_L1, kt_cdot_p_512)
     {
         if(can_exec_avx512_tests())
         {
-            kt_cdot_p_test<bsz::b512>();
+            CALL_FOR_ALL_TYPES(kt_cdot_p_test, bsz::b512);
         }
     }
 
@@ -467,19 +482,19 @@ namespace TestsKT
     */
     TEST(KT_L0, kt_storeu_p_128)
     {
-        kt_storeu_p_test<bsz::b128>();
+        CALL_FOR_ALL_TYPES(kt_storeu_p_test, bsz::b128);
     }
 
     TEST(KT_L0, kt_storeu_p_256)
     {
-        kt_storeu_p_test<bsz::b256>();
+        CALL_FOR_ALL_TYPES(kt_storeu_p_test, bsz::b256);
     }
 
     TEST(KT_L0, kt_storeu_p_512)
     {
         if(can_exec_avx512_tests())
         {
-            kt_storeu_p_test<bsz::b512>();
+            CALL_FOR_ALL_TYPES(kt_storeu_p_test, bsz::b512);
         }
     }
 
@@ -489,19 +504,19 @@ namespace TestsKT
      */
     TEST(KT_Block_L0, kt_fmadd_B_128)
     {
-        kt_fmadd_B_test<bsz::b128>();
+        CALL_FOR_ALL_TYPES(kt_fmadd_B_test, bsz::b128);
     }
 
     TEST(KT_Block_L0, kt_fmadd_B_256)
     {
-        kt_fmadd_B_test<bsz::b256>();
+        CALL_FOR_ALL_TYPES(kt_fmadd_B_test, bsz::b256);
     }
 
     TEST(KT_Block_L0, kt_fmadd_B_512)
     {
         if(can_exec_avx512_tests())
         {
-            kt_fmadd_B_test<bsz::b512>();
+            CALL_FOR_ALL_TYPES(kt_fmadd_B_test, bsz::b512);
         }
     }
 
@@ -510,19 +525,19 @@ namespace TestsKT
     */
     TEST(KT_Block_L0, kt_hsum_B_128)
     {
-        kt_hsum_B_test<bsz::b128>();
+        CALL_FOR_ALL_TYPES(kt_hsum_B_test, bsz::b128);
     }
 
     TEST(KT_Block_L0, kt_hsum_B_256)
     {
-        kt_hsum_B_test<bsz::b256>();
+        CALL_FOR_ALL_TYPES(kt_hsum_B_test, bsz::b256);
     }
 
     TEST(KT_Block_L0, kt_hsum_B_512)
     {
         if(can_exec_avx512_tests())
         {
-            kt_hsum_B_test<bsz::b512>();
+            CALL_FOR_ALL_TYPES(kt_hsum_B_test, bsz::b512);
         }
     }
 
@@ -532,19 +547,19 @@ namespace TestsKT
     */
     TEST(KT_L0, kt_max_p_128)
     {
-        kt_max_p_test<bsz::b128>();
+        CALL_FOR_REAL_TYPES(kt_max_p_test, bsz::b128);
     }
 
     TEST(KT_L0, kt_max_p_256)
     {
-        kt_max_p_test<bsz::b256>();
+        CALL_FOR_REAL_TYPES(kt_max_p_test, bsz::b256);
     }
 
     TEST(KT_L0, kt_max_p_512)
     {
         if(can_exec_avx512_tests())
         {
-            kt_max_p_test<bsz::b512>();
+            CALL_FOR_REAL_TYPES(kt_max_p_test, bsz::b512);
         }
     }
 }

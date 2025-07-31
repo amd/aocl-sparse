@@ -54,8 +54,10 @@ namespace kernel_templates
                 return 0;
             else if constexpr(kt_is_base_t_double<T>())
                 return 1;
+            else if constexpr(kt_is_base_t_int<T>())
+                return 2;
             // else if constexpr(...<T>)
-            // return 2;
+            // return 3;
         }
 
         /*
@@ -82,11 +84,11 @@ namespace kernel_templates
         // __m64 is used for 64-bit vectors irrespective of the base type. Operation on __m64 is not
         // facilitated by the AVXVECTOR struct, but it is used for half vectors.
         template <bsz SZ, typename SUF, bool HALF>
-        // index_t                                            float  double  float   double   float  double
-        using get_vec_t = type_switch<index<SZ, SUF, HALF>(), __m64, __m64,  __m128, __m128d, __m256, __m256d
+        // index_t                                            float  double   int    float   double      int   float   double     int
+        using get_vec_t = type_switch<index<SZ, SUF, HALF>(), __m64, __m64, __m64,  __m128, __m128d, __m128i, __m256, __m256d, __m256i
         #ifdef __AVX512F__
-        //                         float   double
-                                , __m512, __m512d
+        //                                float   double      int
+                                       , __m512, __m512d, __m512i
         #endif
         >;
 #pragma GCC diagnostic pop
@@ -100,7 +102,8 @@ namespace kernel_templates
         constexpr int get_sz_v()
         {
             // For non-complex types: pack and type sizes always match
-            if constexpr(std::is_floating_point<SUF>::value || isTSZ == true)
+            if constexpr(std::is_floating_point<SUF>::value || isTSZ == true
+                         || kt_is_base_t_int<SUF>())
                 return sizeof(T) / sizeof(SUF);
             else // For complex types: pack size is twice of type size (real, imag)
                 return ((sizeof(T) / sizeof(SUF)) * 2);

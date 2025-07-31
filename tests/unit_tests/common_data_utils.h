@@ -147,7 +147,7 @@ void expect_eq(T res, T ref)
 
 // Template function to compare a vector irrespective of type =================================
 template <typename T>
-void expect_eq_vec(aoclsparse_int n, T *res, T *ref)
+inline void expect_eq_vec(aoclsparse_int n, T *res, T *ref)
 {
     if constexpr(std::is_same_v<T, double>)
     {
