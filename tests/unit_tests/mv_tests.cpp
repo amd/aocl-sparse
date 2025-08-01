@@ -1303,8 +1303,8 @@ namespace
             A->input_format = aoclsparse_ell_mat;
             EXPECT_EQ(aoclsparse_mv<T>(op_a, &alpha, A, descrA, x.data(), &beta, y.data()),
                       aoclsparse_status_not_implemented);
-            A->input_format = aoclsparse_csr_mat;
-            A->base         = (aoclsparse_index_base)2;
+            A->input_format  = aoclsparse_csr_mat;
+            A->mats[0]->base = (aoclsparse_index_base)2;
             EXPECT_EQ(aoclsparse_mv<T>(op_a, &alpha, A, descrA, x.data(), &beta, y.data()),
                       aoclsparse_status_invalid_value);
 

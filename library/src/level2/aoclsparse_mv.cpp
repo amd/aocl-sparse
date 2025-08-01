@@ -51,7 +51,7 @@ aoclsparse_status aoclsparse::mv(aoclsparse_operation       op,
     if(alpha == nullptr || beta == nullptr)
         return aoclsparse_status_invalid_pointer;
 
-    if(A == nullptr || A->mats.empty())
+    if(A == nullptr || A->mats.empty() || !A->mats[0])
         return aoclsparse_status_invalid_pointer;
 
     if(descr == nullptr)
@@ -62,13 +62,13 @@ aoclsparse_status aoclsparse::mv(aoclsparse_operation       op,
         return aoclsparse_status_invalid_pointer;
 
     // Validate descriptor's and matrix' index base
-    if(!is_valid_base(descr->base) || !is_valid_base(A->base))
+    if(!is_valid_base(descr->base) || !is_valid_base(A->mats[0]->base))
     {
         return aoclsparse_status_invalid_value;
     }
 
     // Make sure the base index of descriptor and aoclsparse matrix are the same
-    if(A->base != descr->base)
+    if(A->mats[0]->base != descr->base)
     {
         return aoclsparse_status_invalid_value;
     }

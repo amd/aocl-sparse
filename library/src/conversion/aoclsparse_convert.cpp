@@ -957,7 +957,7 @@ aoclsparse_status aoclsparse_convert_csr_t(const aoclsparse_matrix    src_mat,
         return aoclsparse_status_invalid_pointer;
     }
     *dest_mat = nullptr;
-    if(src_mat->mats.empty())
+    if(src_mat->mats.empty() || !src_mat->mats[0])
         return aoclsparse_status_invalid_pointer;
 
     aoclsparse_status status = aoclsparse_status_success;
@@ -979,8 +979,12 @@ aoclsparse_status aoclsparse_convert_csr_t(const aoclsparse_matrix    src_mat,
     try
     {
         *dest_mat = new _aoclsparse_matrix;
-        dest_csr  = new aoclsparse::csr(
-            m_dest, n_dest, src_mat->nnz, aoclsparse_csr_mat, src_mat->base, get_data_type<T>());
+        dest_csr  = new aoclsparse::csr(m_dest,
+                                       n_dest,
+                                       src_mat->nnz,
+                                       aoclsparse_csr_mat,
+                                       src_mat->mats[0]->base,
+                                       get_data_type<T>());
         (*dest_mat)->mats.push_back(dest_csr);
     }
     catch(std::bad_alloc &)
@@ -1008,7 +1012,7 @@ aoclsparse_status aoclsparse_convert_csr_t(const aoclsparse_matrix    src_mat,
             status = aoclsparse_coo2csr_template(src_mat->m,
                                                  src_mat->n,
                                                  src_mat->nnz,
-                                                 src_mat->base,
+                                                 coo_mat->base,
                                                  coo_mat->row_ind,
                                                  coo_mat->col_ind,
                                                  src_val,
@@ -1021,7 +1025,7 @@ aoclsparse_status aoclsparse_convert_csr_t(const aoclsparse_matrix    src_mat,
             status = aoclsparse_coo2csr_template(src_mat->n,
                                                  src_mat->m,
                                                  src_mat->nnz,
-                                                 src_mat->base,
+                                                 coo_mat->base,
                                                  coo_mat->col_ind,
                                                  coo_mat->row_ind,
                                                  src_val,
@@ -1052,8 +1056,8 @@ aoclsparse_status aoclsparse_convert_csr_t(const aoclsparse_matrix    src_mat,
             status = aoclsparse_csr2csc_template(src_mat->m,
                                                  src_mat->n,
                                                  src_mat->nnz,
-                                                 src_mat->base,
-                                                 src_mat->base,
+                                                 csr_mat->base,
+                                                 csr_mat->base,
                                                  csr_mat->ptr,
                                                  csr_mat->ind,
                                                  src_val,
@@ -1078,8 +1082,8 @@ aoclsparse_status aoclsparse_convert_csr_t(const aoclsparse_matrix    src_mat,
             status = aoclsparse_csr2csc_template(src_mat->n,
                                                  src_mat->m,
                                                  src_mat->nnz,
-                                                 src_mat->base,
-                                                 src_mat->base,
+                                                 csc_mat->base,
+                                                 csc_mat->base,
                                                  csc_mat->ptr,
                                                  csc_mat->ind,
                                                  src_val,
@@ -1116,7 +1120,7 @@ aoclsparse_status aoclsparse_convert_csr_t(const aoclsparse_matrix    src_mat,
     }
 
     // creation of destination matrix depending on type of operation
-    aoclsparse_init_mat(*dest_mat, src_mat->base, m_dest, n_dest, src_mat->nnz, aoclsparse_csr_mat);
+    aoclsparse_init_mat(*dest_mat, m_dest, n_dest, src_mat->nnz, aoclsparse_csr_mat);
     (*dest_mat)->val_type = get_data_type<T>();
     return status;
 }

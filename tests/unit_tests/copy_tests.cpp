@@ -33,7 +33,7 @@ namespace
         EXPECT_EQ(src->m, dest->m);
         EXPECT_EQ(src->n, dest->n);
         EXPECT_EQ(src->nnz, dest->nnz);
-        EXPECT_EQ(src->base, dest->base);
+        EXPECT_EQ(src->mats[0]->base, dest->mats[0]->base);
         EXPECT_EQ(src->input_format, dest->input_format);
         EXPECT_EQ(src->val_type, dest->val_type);
 

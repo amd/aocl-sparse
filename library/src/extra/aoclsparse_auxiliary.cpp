@@ -451,7 +451,7 @@ aoclsparse_status aoclsparse_create_ell_csr_hyb(aoclsparse_matrix mat,
         ell_csr_hyb_mat = new aoclsparse::ell_csr_hyb(mat->m,
                                                       mat->n,
                                                       mat->nnz,
-                                                      mat->base,
+                                                      csr_mat->base,
                                                       mat->val_type,
                                                       ell_width,
                                                       ell_m,
@@ -799,7 +799,7 @@ aoclsparse_status aoclsparse_copy(const aoclsparse_matrix                     sr
     {
         return aoclsparse_status_memory_error;
     }
-    aoclsparse_init_mat(*dest, src->base, src->m, src->n, src->nnz, src->input_format);
+    aoclsparse_init_mat(*dest, src->m, src->n, src->nnz, src->input_format);
     (*dest)->val_type = src->val_type;
 
     if(src->val_type == aoclsparse_smat)
@@ -1012,7 +1012,6 @@ aoclsparse_status aoclsparse_destroy_mats(aoclsparse_matrix A)
 
 // TODO: Can be removed, information stored in the base_mtx.
 void aoclsparse_init_mat(aoclsparse_matrix             A,
-                         aoclsparse_index_base         base,
                          aoclsparse_int                M,
                          aoclsparse_int                N,
                          aoclsparse_int                nnz,
@@ -1022,12 +1021,10 @@ void aoclsparse_init_mat(aoclsparse_matrix             A,
     if(!A)
         return;
 
-    A->m                   = M;
-    A->n                   = N;
-    A->nnz                 = nnz;
-    A->base                = base;
-    A->internal_base_index = base;
-    A->input_format        = matrix_type;
+    A->m            = M;
+    A->n            = N;
+    A->nnz          = nnz;
+    A->input_format = matrix_type;
 }
 
 /********************************************************************************
@@ -1077,7 +1074,7 @@ aoclsparse_status aoclsparse_create_csc_t(aoclsparse_matrix    *mat,
         }
         return aoclsparse_status_memory_error;
     }
-    aoclsparse_init_mat(*mat, base, M, N, nnz, aoclsparse_csc_mat);
+    aoclsparse_init_mat(*mat, M, N, nnz, aoclsparse_csc_mat);
     (*mat)->val_type = get_data_type<T>();
     // Assign the temporary CSCmatrix to the matrix structure
     (*mat)->sort     = mat_sort;
@@ -1140,7 +1137,7 @@ aoclsparse_status aoclsparse_create_coo_t(aoclsparse_matrix          *mat,
         }
         return aoclsparse_status_memory_error;
     }
-    aoclsparse_init_mat(*mat, base, M, N, nnz, aoclsparse_coo_mat);
+    aoclsparse_init_mat(*mat, M, N, nnz, aoclsparse_coo_mat);
     (*mat)->val_type = get_data_type<T>();
     (*mat)->mat_type = aoclsparse_coo_mat;
 
@@ -1282,11 +1279,11 @@ aoclsparse_status aoclsparse_sort_mat(aoclsparse_matrix mat)
     status = aoclsparse_sort_idx_val<T>(mat->m,
                                         mat->n,
                                         mat->nnz,
-                                        mat->base,
+                                        src_mat->base,
                                         src_mat->ptr,
                                         temp_idx.data(),
                                         temp_val.data(),
-                                        mat->base,
+                                        src_mat->base,
                                         src_mat->ind,
                                         static_cast<T *>(src_mat->val));
 
@@ -1392,7 +1389,7 @@ aoclsparse_status aoclsparse_export_csc_t(const aoclsparse_matrix mat,
     *m       = mat->m;
     *n       = mat->n;
     *nnz     = mat->nnz;
-    *base    = mat->base;
+    *base    = csc_mat->base;
     return aoclsparse_status_success;
 }
 

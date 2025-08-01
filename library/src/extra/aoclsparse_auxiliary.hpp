@@ -43,7 +43,6 @@ void              set_symgs_matrix_properties(aoclsparse_mat_descr  descr_dest,
                                               aoclsparse_operation &trans);
 
 void aoclsparse_init_mat(aoclsparse_matrix             A,
-                         aoclsparse_index_base         base,
                          aoclsparse_int                M,
                          aoclsparse_int                N,
                          aoclsparse_int                nnz,
@@ -172,7 +171,7 @@ aoclsparse_status aoclsparse_create_tcsr_t(aoclsparse_matrix          *mat,
         return aoclsparse_status_memory_error;
     }
 
-    aoclsparse_init_mat(*mat, base, M, N, nnz, aoclsparse_tcsr_mat);
+    aoclsparse_init_mat(*mat, M, N, nnz, aoclsparse_tcsr_mat);
     (*mat)->val_type = get_data_type<T>();
     (*mat)->fulldiag = true;
     (*mat)->mat_type = aoclsparse_tcsr_mat; // Used to identify the matrix type in the mv dispatcher
@@ -336,7 +335,7 @@ aoclsparse_status aoclsparse_export_coo_t(const aoclsparse_matrix mat,
     *m       = mat->m;
     *n       = mat->n;
     *nnz     = mat->nnz;
-    *base    = mat->base;
+    *base    = coo_mat->base;
     return aoclsparse_status_success;
 }
 
@@ -409,8 +408,8 @@ aoclsparse_status aoclsparse_set_value_t(aoclsparse_matrix A,
         return aoclsparse_status_invalid_pointer;
 
     // check if coordinate given by user is within matrix bounds
-    if((A->m + A->base <= row_idx || row_idx < A->base)
-       || (A->n + A->base <= col_idx || col_idx < A->base))
+    aoclsparse_index_base base = A->mats[0]->base;
+    if((A->m + base <= row_idx || row_idx < base) || (A->n + base <= col_idx || col_idx < base))
         return aoclsparse_status_invalid_value;
 
     // if matrix type is same as T

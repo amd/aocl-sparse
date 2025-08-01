@@ -2321,7 +2321,7 @@ aoclsparse_status aoclsparse_sypr(aoclsparse_operation       opA,
  *              is invalid.
  *  \retval     aoclsparse_status_invalid_pointer The pointer \p descr, \p A, \p B, or \p C
  *              is invalid.
- *  \retval     aoclsparse_status_invalid_value The values of \p descr->base and \p A->base do not coincide.
+ *  \retval     aoclsparse_status_invalid_value The values of \p descr->base and \p A->mats[0]->base do not coincide.
  *  \retval     aoclsparse_status_not_implemented
  *              \ref aoclsparse_matrix_type is not one of these: \ref aoclsparse_matrix_type_general,
  *              \ref aoclsparse_matrix_type_symmetric, \ref aoclsparse_matrix_type_hermitian  or

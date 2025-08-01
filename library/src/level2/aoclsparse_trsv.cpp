@@ -54,7 +54,7 @@ aoclsparse_status
                      aoclsparse_int             kid /* user request of Kernel ID (kid) to use */)
 {
     // Quick initial checks
-    if(!A || !x || !b || !descr)
+    if(!A || A->mats.empty() || !A->mats[0] || !x || !b || !descr)
         return aoclsparse_status_invalid_pointer;
 
     // Only CSR, CSC and TCSR input format supported
@@ -78,7 +78,7 @@ aoclsparse_status
     // Check for base index incompatibility
     // There is an issue that zero-based indexing is defined in two separate places and
     // can lead to ambiguity, we check that both are consistent.
-    if(A->base != descr->base)
+    if(A->mats[0]->base != descr->base)
     {
         return aoclsparse_status_invalid_value;
     }
@@ -122,8 +122,6 @@ aoclsparse_status
     }
     if(status != aoclsparse_status_success)
         return status; // LCOV_EXCL_LINE
-    if(!opt_mat && !tcsr_mat)
-        return aoclsparse_status_internal_error;
 
     // Make sure we have the right type before casting
     if(A->val_type != get_data_type<T>())
@@ -152,7 +150,9 @@ aoclsparse_status
     else
         doid = aoclsparse::get_doid<T>(descr, transpose);
 
-    if(A->input_format == aoclsparse_tcsr_mat && tcsr_mat)
+    aoclsparse_index_base base;
+
+    if(tcsr_mat)
     {
         if(descr->fill_mode == aoclsparse_fill_mode_lower)
         {
@@ -170,8 +170,9 @@ aoclsparse_status
             idiag = tcsr_mat->row_ptr_U;
             iurow = tcsr_mat->iurow;
         }
+        base = tcsr_mat->base;
     }
-    else
+    else if(opt_mat)
     {
         //CSR
         a    = (T *)((opt_mat)->val);
@@ -186,11 +187,13 @@ aoclsparse_status
 
         if(opt_mat->mat_type == aoclsparse_csc_mat)
             doid = trans_doid(doid);
+
+        base = opt_mat->base;
     }
+    else
+        return aoclsparse_status_internal_error;
     using namespace aoclsparse;
     using namespace kernel_templates;
-
-    aoclsparse_index_base base = A->internal_base_index;
 
     /* Kernels table
      * =============

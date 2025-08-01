@@ -304,7 +304,7 @@ namespace
                   aoclsparse_status_success);
 
         // Invalid base for A matrix
-        A->base = (aoclsparse_index_base)3;
+        A->mats[0]->base = (aoclsparse_index_base)3;
         if(stage == 0)
         {
             request = aoclsparse_stage_full_computation;
@@ -323,8 +323,8 @@ namespace
         aoclsparse_destroy(&C);
 
         // Invalid base for B matrix
-        A->base      = b_a;
-        descrB->base = (aoclsparse_index_base)3;
+        A->mats[0]->base = b_a;
+        descrB->base     = (aoclsparse_index_base)3;
         if(stage == 0)
         {
             request = aoclsparse_stage_full_computation;

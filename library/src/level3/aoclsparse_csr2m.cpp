@@ -217,7 +217,7 @@ aoclsparse_status aoclsparse_csr2m_nnz_count(aoclsparse_int             m,
         // It should be transposed back to CSR representation after finalize stage.
         if(opflag == 3)
         {
-            aoclsparse_init_mat(*C, aoclsparse_index_base_zero, n, m, nnz_C, aoclsparse_csc_mat);
+            aoclsparse_init_mat(*C, n, m, nnz_C, aoclsparse_csc_mat);
             (*C)->val_type = get_data_type<T>();
             // Assign the resultant C matrix arrays to CSC format
             csr_C->mat_type = aoclsparse_csc_mat;
@@ -245,7 +245,7 @@ aoclsparse_status aoclsparse_csr2m_nnz_count(aoclsparse_int             m,
         // Assign the resultant C matrix arrays to CSR format
         else
         {
-            aoclsparse_init_mat(*C, aoclsparse_index_base_zero, m, n, nnz_C, aoclsparse_csr_mat);
+            aoclsparse_init_mat(*C, m, n, nnz_C, aoclsparse_csr_mat);
             (*C)->input_format = aoclsparse_csr_mat;
             (*C)->val_type     = get_data_type<T>();
         }
@@ -455,8 +455,8 @@ aoclsparse_status aoclsparse_csr2m_finalize(aoclsparse_int             m_a,
             status = aoclsparse_csr2csc_template(m,
                                                  n,
                                                  nnz_C,
-                                                 (*C)->base,
-                                                 (*C)->base,
+                                                 csc_mat->base,
+                                                 csc_mat->base,
                                                  csr_row_ptr_C,
                                                  csr_col_ind_C,
                                                  csr_val_C,
@@ -493,6 +493,8 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
     {
         return aoclsparse_status_invalid_pointer;
     }
+    if(A->mats.empty() || !A->mats[0] || B->mats.empty() || !B->mats[0])
+        return aoclsparse_status_invalid_pointer;
     // Initialise *C to nullptr for full_computation & first stage
     if(request != aoclsparse_stage_finalize)
     {
@@ -523,10 +525,10 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
         return aoclsparse_status_invalid_value;
     }
 
-    if(A->base != descrA->base)
+    if(A->mats[0]->base != descrA->base)
         return aoclsparse_status_invalid_value;
 
-    if(B->base != descrB->base)
+    if(B->mats[0]->base != descrB->base)
         return aoclsparse_status_invalid_value;
 
     if((descrA->type != aoclsparse_matrix_type_general)
@@ -629,7 +631,7 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
                 aoclsparse_destroy(C);
                 return aoclsparse_status_memory_error;
             }
-            aoclsparse_init_mat(*C, aoclsparse_index_base_zero, m_a, n_b, 0, aoclsparse_csr_mat);
+            aoclsparse_init_mat(*C, m_a, n_b, 0, aoclsparse_csr_mat);
             (*C)->val_type = get_data_type<T>();
         }
         return aoclsparse_status_success;
@@ -692,8 +694,8 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
         aoclsparse_status status = aoclsparse_csr2csc_template(A->m,
                                                                A->n,
                                                                A->nnz,
-                                                               A->base,
-                                                               A->base,
+                                                               csr_src_A->base,
+                                                               csr_src_A->base,
                                                                csr_src_A->ptr,
                                                                csr_src_A->ind,
                                                                (const T *)csr_src_A->val,
@@ -730,8 +732,8 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
         aoclsparse_status status = aoclsparse_csr2csc_template(B->m,
                                                                B->n,
                                                                B->nnz,
-                                                               B->base,
-                                                               B->base,
+                                                               csr_src_B->base,
+                                                               csr_src_B->base,
                                                                csr_src_B->ptr,
                                                                csr_src_B->ind,
                                                                (const T *)csr_src_B->val,

@@ -360,8 +360,8 @@ aoclsparse_status aoclsparse_add_t(const aoclsparse_operation op,
     {
         status = aoclsparse_add_csr_ref(A->m,
                                         A->n,
-                                        A->base,
-                                        B->base,
+                                        A_csr->base,
+                                        B_csr->base,
                                         A->nnz,
                                         B->nnz,
                                         C_nnz,
@@ -391,8 +391,8 @@ aoclsparse_status aoclsparse_add_t(const aoclsparse_operation op,
         status = aoclsparse_csr2csc_template(A->m,
                                              A->n,
                                              A->nnz,
-                                             A->base,
-                                             A->base,
+                                             A_csr->base,
+                                             A_csr->base,
                                              A_csr->ptr,
                                              A_csr->ind,
                                              A_val,
@@ -413,8 +413,8 @@ aoclsparse_status aoclsparse_add_t(const aoclsparse_operation op,
             }
             status = aoclsparse_add_csr_ref(A->n,
                                             A->m,
-                                            A->base,
-                                            B->base,
+                                            A_csr->base,
+                                            B_csr->base,
                                             A->nnz,
                                             B->nnz,
                                             C_nnz,
@@ -450,7 +450,7 @@ aoclsparse_status aoclsparse_add_t(const aoclsparse_operation op,
             }
             return aoclsparse_status_memory_error;
         }
-        aoclsparse_init_mat(*C, A->base, B->m, B->n, C_nnz, aoclsparse_csr_mat);
+        aoclsparse_init_mat(*C, B->m, B->n, C_nnz, aoclsparse_csr_mat);
         (*C)->val_type = get_data_type<T>();
         return aoclsparse_status_success;
     }

@@ -135,7 +135,7 @@ aoclsparse_status aoclsparse_sort_idx_val(aoclsparse_int                  maj_di
     for(i = 0; i < maj_dim; i++)
     {
         // sort each row according to its column indices
-        //TODO: In case input base is one-base, base-index for matrix "A" should be A->base
+        //TODO: In case input base is one-base, base-index for matrix "A" should be A->mats[0]->base
         //      and inner loop lines which overwrite csr_col_ptr/aval_s (of matrix "As")
         //      should have base correction since RHS is input matrix "A" that is of one-base.
         //      Add unit test to catch this error, assuming the following input conditions:
@@ -344,7 +344,7 @@ aoclsparse_status aoclsparse_matrix_transform(aoclsparse_matrix A)
                         status = aoclsparse_csr2csc_template(A->m,
                                                              A->n,
                                                              A->nnz,
-                                                             A->base,
+                                                             csr_mat->base,
                                                              aoclsparse_index_base_zero,
                                                              csr_mat->ptr,
                                                              csr_mat->ind,
@@ -396,12 +396,6 @@ aoclsparse_status aoclsparse_csr_csc_optimize(aoclsparse_matrix A, aoclsparse::c
     if(A->val_type != get_data_type<T>())
         return aoclsparse_status_wrong_type;
 
-    //Make sure base-index is the correct value
-    if(A->base != aoclsparse_index_base_zero && A->base != aoclsparse_index_base_one)
-    {
-        return aoclsparse_status_invalid_value;
-    }
-
     // Stores optimized csr ptr
     *opt_csr_mat = nullptr;
 
@@ -411,6 +405,9 @@ aoclsparse_status aoclsparse_csr_csc_optimize(aoclsparse_matrix A, aoclsparse::c
         return aoclsparse_status_not_implemented;
     if(!src_mat->ptr || !src_mat->ind || !src_mat->val)
         return aoclsparse_status_invalid_pointer;
+    //Make sure base-index is the correct value
+    if(src_mat->base != aoclsparse_index_base_zero && src_mat->base != aoclsparse_index_base_one)
+        return aoclsparse_status_invalid_value;
     // Quick exit if the matrix is already optimized
     if(src_mat->is_optimized)
     {
@@ -442,7 +439,7 @@ aoclsparse_status aoclsparse_csr_csc_optimize(aoclsparse_matrix A, aoclsparse::c
                                            src_mat->ind,
                                            src_val,
                                            shape_general,
-                                           A->base,
+                                           src_mat->base,
                                            A->sort,
                                            A->fulldiag,
                                            nullptr);
@@ -454,7 +451,7 @@ aoclsparse_status aoclsparse_csr_csc_optimize(aoclsparse_matrix A, aoclsparse::c
     // Check if the matrix is sorted with full diag
     bool sorted, fulldiag;
     status = aoclsparse_csr_csc_check_sort_diag(
-        m_mat, n_mat, A->base, src_mat->ptr, src_mat->ind, sorted, fulldiag);
+        m_mat, n_mat, src_mat->base, src_mat->ptr, src_mat->ind, sorted, fulldiag);
     if(status != aoclsparse_status_success)
     {
         // Shouldn't happen, pointers have already been checked
@@ -465,12 +462,8 @@ aoclsparse_status aoclsparse_csr_csc_optimize(aoclsparse_matrix A, aoclsparse::c
     {
         // The matrix is already in the correct format, use directly user's memory
         // Set idiag and iurow pointers
-        status = aoclsparse_csr_csc_indices(m_mat,
-                                            A->internal_base_index,
-                                            src_mat->ptr,
-                                            src_mat->ind,
-                                            &(src_mat->idiag),
-                                            &(src_mat->iurow));
+        status = aoclsparse_csr_csc_indices(
+            m_mat, src_mat->base, src_mat->ptr, src_mat->ind, &(src_mat->idiag), &(src_mat->iurow));
         if(status != aoclsparse_status_success)
         {
             return status;
@@ -508,27 +501,21 @@ aoclsparse_status aoclsparse_csr_csc_optimize(aoclsparse_matrix A, aoclsparse::c
             opt_val[i]      = src_val[i];
         }
 
-        //since the correction is already performed during above copy, the execution kernel and the
-        //subsequent calls to sort, diagonal fill and idiag/iurow compute can
-        //treat storage buffers in opt_csr_mat as zero-based indexing and need not perform
-        //double correction
-        A->internal_base_index = aoclsparse_index_base_zero;
-
         if(!sorted)
         {
             aoclsparse_sort_idx_val<T>(m_mat,
                                        n_mat,
                                        A->nnz,
-                                       A->base,
+                                       src_mat->base,
                                        src_mat->ptr,
                                        src_mat->ind,
                                        src_val,
-                                       A->internal_base_index,
+                                       opt_mat->base,
                                        opt_mat->ind,
                                        opt_val);
             // check again for full diagonal
             status = aoclsparse_csr_csc_check_sort_diag(
-                m_mat, n_mat, A->internal_base_index, opt_mat->ptr, opt_mat->ind, sorted, fulldiag);
+                m_mat, n_mat, opt_mat->base, opt_mat->ptr, opt_mat->ind, sorted, fulldiag);
             if(status != aoclsparse_status_success)
             {
                 delete opt_mat;
@@ -540,7 +527,7 @@ aoclsparse_status aoclsparse_csr_csc_optimize(aoclsparse_matrix A, aoclsparse::c
             status = aoclsparse_csr_csc_fill_diag<T>(m_mat,
                                                      n_mat,
                                                      A->nnz,
-                                                     A->internal_base_index,
+                                                     opt_mat->base,
                                                      &(opt_mat->ptr),
                                                      &(opt_mat->ind),
                                                      reinterpret_cast<T **>(&(opt_mat->val)));
@@ -552,12 +539,8 @@ aoclsparse_status aoclsparse_csr_csc_optimize(aoclsparse_matrix A, aoclsparse::c
         }
 
         // mat_idiag and mat_iurow ptrs are set
-        status = aoclsparse_csr_csc_indices(m_mat,
-                                            A->internal_base_index,
-                                            opt_mat->ptr,
-                                            opt_mat->ind,
-                                            &(opt_mat->idiag),
-                                            &(opt_mat->iurow));
+        status = aoclsparse_csr_csc_indices(
+            m_mat, opt_mat->base, opt_mat->ptr, opt_mat->ind, &(opt_mat->idiag), &(opt_mat->iurow));
         if(status != aoclsparse_status_success)
         {
             delete opt_mat;
@@ -613,6 +596,8 @@ aoclsparse_status aoclsparse_tcsr_optimize(aoclsparse_matrix A, aoclsparse::tcsr
     if(A->val_type != get_data_type<T>())
         return aoclsparse_status_wrong_type;
 
+    // Stores optimized csr ptr
+    *opt_tcsr_mat = nullptr;
     // Create idiag and iurow
     try
     {

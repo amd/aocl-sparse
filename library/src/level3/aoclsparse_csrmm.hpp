@@ -495,7 +495,7 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
         return aoclsparse_status_invalid_value;
     }
     // Check for base index incompatibility
-    if(A->base != descr->base)
+    if(csr_mat->base != descr->base)
     {
         return aoclsparse_status_invalid_value;
     }

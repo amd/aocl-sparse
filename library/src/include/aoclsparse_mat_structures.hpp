@@ -341,11 +341,11 @@ namespace aoclsparse
      * Both the lower and upper triangular parts are stored and work as a normal CSR:
      * The lower triangular part:
      *   - row pointers: row_ptr_L[0] ... row_ptr_L[m],
-     *   - column indices: col_idx_L[0] ... col_idx_L[row_ptr_L[m]-1-A->base]
+     *   - column indices: col_idx_L[0] ... col_idx_L[row_ptr_L[m]-1-A->mats[0]->base]
      *   - values: with same indices for val_L as for col_idx_L
      * The upper triangular part:
      *   - row pointers: row_ptr_U[0] ... row_ptr_U[m],
-     *   - column indices: col_idx_U[0], ... col_idx_U[row_ptr_U[m]-1-A->base]
+     *   - column indices: col_idx_U[0], ... col_idx_U[row_ptr_U[m]-1-A->mats[0]->base]
      *   - values: with same indices for val_U as for col_idx_U
      *
      * It must be initialized using aoclsparse_create_(s/d/c/z)tcsr()
@@ -682,27 +682,10 @@ struct _aoclsparse_symgs
 struct _aoclsparse_matrix
 {
     // generic sparse matrix properties
-    aoclsparse_int m;
-    aoclsparse_int n;
-    aoclsparse_int nnz;
-    bool           optimized = false;
-    //index-base provided by user, read-only!
-    aoclsparse_index_base base = aoclsparse_index_base_zero;
-    /*
-        internal base-index after correction, for consumption in execution kernels
-        1. the internal base index applies to the clean csr structure opt_csr_mat, in which
-            all the pointers (row_ptr, col_ind, idiag, iurow) are either in
-                    1.  base-0: if user provides a csr matrix which is unsorted or without
-                        full-diag, then csr cleanup and base correction is performed
-                    2.  base-1: if user provides a clean sorted csr matrix with full-diag in 1-base,
-                         then opt_csr_mat just points to this input matrix without copy or
-                         base-correction.
-        2. All the conversion routines and internal spmv storage formats such as ell, ellt, ellt-hyb,
-            dia, bsr, blkcsr and br4 preserve the base-index as was provided by user in his input
-            csr matrix. Therefore, the final execution kernels also will use the original input
-            base-index.
-    */
-    aoclsparse_index_base       internal_base_index;
+    aoclsparse_int              m;
+    aoclsparse_int              n;
+    aoclsparse_int              nnz;
+    bool                        optimized = false;
     aoclsparse_matrix_data_type val_type;
 
     // indicates internal matrix representation

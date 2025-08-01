@@ -525,7 +525,7 @@ aoclsparse_status aoclsparse_sypr_t(aoclsparse_operation       opA,
     {
         return aoclsparse_status_invalid_pointer;
     }
-    if(A->mats.empty() || B->mats.empty())
+    if(A->mats.empty() || B->mats.empty() || !B->mats[0])
     {
         return aoclsparse_status_invalid_pointer;
     }
@@ -546,16 +546,11 @@ aoclsparse_status aoclsparse_sypr_t(aoclsparse_operation       opA,
     {
         return aoclsparse_status_wrong_type;
     }
-    // Check index base
-    if(A->base != aoclsparse_index_base_zero && A->base != aoclsparse_index_base_one)
-    {
-        return aoclsparse_status_invalid_value;
-    }
     if(descrB->base != aoclsparse_index_base_zero && descrB->base != aoclsparse_index_base_one)
     {
         return aoclsparse_status_invalid_value;
     }
-    if(B->base != descrB->base)
+    if(B->mats[0]->base != descrB->base)
         return aoclsparse_status_invalid_value;
     if constexpr(std::is_same_v<T, double> || std::is_same_v<T, float>)
     {
@@ -601,6 +596,11 @@ aoclsparse_status aoclsparse_sypr_t(aoclsparse_operation       opA,
     A_csr = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
     if(!A_csr)
         return aoclsparse_status_not_implemented;
+    // Check index base
+    if(A_csr->base != aoclsparse_index_base_zero && A_csr->base != aoclsparse_index_base_one)
+    {
+        return aoclsparse_status_invalid_value;
+    }
     if((*C) && !(*C)->mats.empty())
     {
         C_csr = dynamic_cast<aoclsparse::csr *>((*C)->mats[0]);
@@ -638,7 +638,7 @@ aoclsparse_status aoclsparse_sypr_t(aoclsparse_operation       opA,
                 }
                 return aoclsparse_status_memory_error;
             }
-            aoclsparse_init_mat(*C, aoclsparse_index_base_zero, n, n, 0, aoclsparse_csr_mat);
+            aoclsparse_init_mat(*C, n, n, 0, aoclsparse_csr_mat);
             (*C)->val_type = get_data_type<T>();
         }
         return aoclsparse_status_success;
@@ -687,8 +687,8 @@ aoclsparse_status aoclsparse_sypr_t(aoclsparse_operation       opA,
         status = aoclsparse_csr2csc_template(A->m,
                                              A->n,
                                              A->nnz,
-                                             A->base,
-                                             A->base,
+                                             A_csr->base,
+                                             A_csr->base,
                                              A_csr->ptr,
                                              A_csr->ind,
                                              (const T *)A_csr->val,
@@ -708,8 +708,8 @@ aoclsparse_status aoclsparse_sypr_t(aoclsparse_operation       opA,
         return status;
     if(!B_opt_csr)
         return aoclsparse_status_internal_error;
-    aoclsparse_index_base baseA = A->base;
-    aoclsparse_index_base baseB = B->internal_base_index;
+    aoclsparse_index_base baseA = A_csr->base;
+    aoclsparse_index_base baseB = B_opt_csr->base;
     // Retrieve CSR arrays of matrix B from optimised CSR.
     icrowB = B_opt_csr->ptr;
     icolB  = B_opt_csr->ind;
@@ -841,7 +841,7 @@ aoclsparse_status aoclsparse_sypr_t(aoclsparse_operation       opA,
             aoclsparse_destroy(C); // C is incomplete, so destroy it
             return aoclsparse_status_memory_error;
         }
-        aoclsparse_init_mat(*C, aoclsparse_index_base_zero, n, n, nnzC, aoclsparse_csr_mat);
+        aoclsparse_init_mat(*C, n, n, nnzC, aoclsparse_csr_mat);
         (*C)->val_type = get_data_type<T>();
     }
 

@@ -51,6 +51,8 @@ aoclsparse_status aoclsparse_ilu_template(aoclsparse_operation       op,
     {
         return aoclsparse_status_invalid_pointer;
     }
+    if(A->mats.empty() || !A->mats[0])
+        return aoclsparse_status_invalid_pointer;
 
     if(op != aoclsparse_operation_none)
     {
@@ -76,11 +78,12 @@ aoclsparse_status aoclsparse_ilu_template(aoclsparse_operation       op,
     {
         return aoclsparse_status_wrong_type;
     }
-    if((A->base != aoclsparse_index_base_zero) && (A->base != aoclsparse_index_base_one))
+    if((A->mats[0]->base != aoclsparse_index_base_zero)
+       && (A->mats[0]->base != aoclsparse_index_base_one))
     {
         return aoclsparse_status_invalid_value;
     }
-    if(A->base != descr->base)
+    if(A->mats[0]->base != descr->base)
     {
         return aoclsparse_status_invalid_value;
     }
@@ -122,7 +125,7 @@ aoclsparse_status aoclsparse_ilu_template(aoclsparse_operation       op,
                                           (T *)A->ilu_info.precond_csr_val,
                                           csr_mat->ptr,
                                           csr_mat->ind,
-                                          A->base,
+                                          csr_mat->base,
                                           precond_csr_val,
                                           x,
                                           b);

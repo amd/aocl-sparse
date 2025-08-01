@@ -324,7 +324,7 @@ inline aoclsparse_status aoclsparse_sp2md_t(const aoclsparse_operation      opA,
     }
 
     // Check if base index is consistent
-    if((A->base != descrA->base) || (B->base != descrB->base))
+    if((A_csr->base != descrA->base) || (B_csr->base != descrB->base))
     {
         return aoclsparse_status_invalid_value;
     }

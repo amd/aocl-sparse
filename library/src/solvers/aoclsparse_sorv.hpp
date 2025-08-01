@@ -135,6 +135,8 @@ aoclsparse_status aoclsparse_sorv_t(aoclsparse_sor_type        sor_type,
     {
         return aoclsparse_status_invalid_pointer;
     }
+    if(A->mats.empty() || !A->mats[0])
+        return aoclsparse_status_invalid_pointer;
     if(A->m != A->n) // Matrix not square
     {
         return aoclsparse_status_invalid_size;
@@ -179,7 +181,7 @@ aoclsparse_status aoclsparse_sorv_t(aoclsparse_sor_type        sor_type,
     {
         return aoclsparse_status_invalid_value;
     }
-    if(A->base != descr->base)
+    if(A->mats[0]->base != descr->base)
     {
         return aoclsparse_status_invalid_value;
     }

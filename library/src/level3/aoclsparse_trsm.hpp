@@ -56,6 +56,8 @@ aoclsparse_status
     // Quick initial checks
     if(!A || !X || !B || !descr)
         return aoclsparse_status_invalid_pointer;
+    if(A->mats.empty() || !A->mats[0])
+        return aoclsparse_status_invalid_pointer;
 
     // Only CSR input format supported
     if(A->input_format != aoclsparse_csr_mat)
@@ -85,7 +87,7 @@ aoclsparse_status
     // Check for base index incompatibility
     // There is an issue that zero-based indexing is defined in two separate places and
     // can lead to ambiguity, we check that both are consistent.
-    if(A->base != descr->base)
+    if(A->mats[0]->base != descr->base)
     {
         return aoclsparse_status_invalid_value;
     }

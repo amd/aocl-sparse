@@ -129,23 +129,23 @@ namespace
             beta  = -2.0;
         }
 
-        op_a    = op_n;
-        op_b    = op_n;
-        A->m    = 5;
-        A->n    = 3;
-        B->m    = 3;
-        B->n    = 3;
-        A->base = one;
+        op_a             = op_n;
+        op_b             = op_n;
+        A->m             = 5;
+        A->n             = 3;
+        B->m             = 3;
+        B->n             = 3;
+        A->mats[0]->base = one;
         EXPECT_EQ(aoclsparse_sp2md(
                       op_a, descrA, A, op_b, descrB, B, alpha, beta, dense_c.data(), row, B->n, -1),
                   aoclsparse_status_invalid_value);
-        A->base = zero;
-        B->base = one;
+        A->mats[0]->base = zero;
+        B->mats[0]->base = one;
         EXPECT_EQ(aoclsparse_sp2md(
                       op_a, descrA, A, op_b, descrB, B, alpha, beta, dense_c.data(), col, A->m, -1),
                   aoclsparse_status_invalid_value);
-        A->base = zero;
-        B->base = zero;
+        A->mats[0]->base = zero;
+        B->mats[0]->base = zero;
         EXPECT_EQ(aoclsparse_sp2md(op_a,
                                    descrA,
                                    A,

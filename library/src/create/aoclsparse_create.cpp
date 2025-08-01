@@ -88,7 +88,7 @@ aoclsparse_status aoclsparse::create_csr(aoclsparse_matrix    *mat,
         }
         return aoclsparse_status_memory_error;
     }
-    aoclsparse_init_mat(*mat, base, M, N, nnz, aoclsparse_csr_mat);
+    aoclsparse_init_mat(*mat, M, N, nnz, aoclsparse_csr_mat);
     (*mat)->val_type = get_data_type<T>();
     (*mat)->sort     = mat_sort;
     (*mat)->fulldiag = mat_fulldiag;

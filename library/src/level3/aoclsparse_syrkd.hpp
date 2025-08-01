@@ -289,8 +289,8 @@ inline aoclsparse_status aoclsparse_syrkd_t(const aoclsparse_operation      op,
         status = aoclsparse_csr2csc_template(m,
                                              n,
                                              A->nnz,
-                                             A->base,
-                                             A->base,
+                                             csr_mat->base,
+                                             csr_mat->base,
                                              csr_row_ptr_A,
                                              csr_col_ind_A,
                                              csr_val_A,
@@ -306,14 +306,20 @@ inline aoclsparse_status aoclsparse_syrkd_t(const aoclsparse_operation      op,
         for(aoclsparse_int idx = 0; idx < A->nnz; idx++)
             csc_val_A[idx] = aoclsparse::conj(csc_val_A[idx]);
 
-        status = aoclsparse_syrkd_online_atb(
-            n, m, A->base, csc_col_ptr_A.data(), csc_row_ind_A.data(), csc_val_A.data(), params, C);
+        status = aoclsparse_syrkd_online_atb(n,
+                                             m,
+                                             csr_mat->base,
+                                             csc_col_ptr_A.data(),
+                                             csc_row_ind_A.data(),
+                                             csc_val_A.data(),
+                                             params,
+                                             C);
     }
     else
     {
         // As the matrix with op is already in CSC, we can call ref directtly by interchaning m and n
         status = aoclsparse_syrkd_online_atb(
-            m, n, A->base, csr_row_ptr_A, csr_col_ind_A, csr_val_A, params, C);
+            m, n, csr_mat->base, csr_row_ptr_A, csr_col_ind_A, csr_val_A, params, C);
     }
     return status;
 }

@@ -280,6 +280,8 @@ aoclsparse_status aoclsparse_symgs(
     {
         return aoclsparse_status_invalid_pointer;
     }
+    if(A->mats.empty() || !A->mats[0])
+        return aoclsparse_status_invalid_pointer;
 
     //Only CSR format is supported for SYMGS
     if(A->input_format != aoclsparse_csr_mat)
@@ -295,7 +297,7 @@ aoclsparse_status aoclsparse_symgs(
     }
     // There is an issue that zero-based indexing is defined in two separate places and
     // can lead to ambiguity, we check that both are consistent.
-    if(A->base != descr->base)
+    if(A->mats[0]->base != descr->base)
     {
         return aoclsparse_status_invalid_value;
     }

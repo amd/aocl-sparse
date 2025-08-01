@@ -1064,8 +1064,7 @@ std::enable_if_t<std::is_same_v<T, double>, aoclsparse_status>
 {
     using namespace aoclsparse;
 
-    __m256d               res, vvals, vx, vy, va, vb;
-    aoclsparse_index_base base = A->base;
+    __m256d res, vvals, vx, vy, va, vb;
 
     va  = _mm256_set1_pd(alpha);
     vb  = _mm256_set1_pd(beta);
@@ -1084,6 +1083,7 @@ std::enable_if_t<std::is_same_v<T, double>, aoclsparse_status>
     if(!csr_mat_br4)
         return aoclsparse_status_invalid_pointer;
 
+    aoclsparse_index_base           base  = csr_mat_br4->base;
     aoclsparse_int                 *tcptr = csr_mat_br4->ind;
     aoclsparse_int                 *rptr  = csr_mat_br4->ptr;
     aoclsparse_int                 *cptr;
