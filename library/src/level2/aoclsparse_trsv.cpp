@@ -108,56 +108,22 @@ aoclsparse_status
         return aoclsparse_status_not_implemented;
 
     // Unpack A and check
-    bool              is_optimized = false;
-    aoclsparse::tcsr *tcsr_mat     = nullptr;
-    aoclsparse::csr  *opt_mat      = nullptr;
-    for(auto *mat : A->mats)
+    aoclsparse::tcsr *tcsr_mat = nullptr;
+    aoclsparse::csr  *opt_mat  = nullptr;
+    // user did not check the matrix, call optimize
+    aoclsparse_status status;
+    // Optimize TCSR matrix
+    if(A->input_format == aoclsparse_tcsr_mat)
+        status = aoclsparse_tcsr_optimize<T>(A, &tcsr_mat);
+    else
     {
-        if(auto *tcsr = dynamic_cast<aoclsparse::tcsr *>(mat); tcsr && tcsr->is_optimized)
-        {
-            tcsr_mat     = tcsr;
-            is_optimized = true;
-            break;
-        }
-        else if(auto *csr = dynamic_cast<aoclsparse::csr *>(mat); csr && csr->is_optimized)
-        {
-            opt_mat      = csr;
-            is_optimized = true;
-            break;
-        }
+        // Optimize CSR/CSC matrix
+        status = aoclsparse_csr_csc_optimize<T>(A, &opt_mat);
     }
-    if(!is_optimized)
-    {
-        // user did not check the matrix, call optimize
-        aoclsparse_status status;
-        // Optimize TCSR matrix
-        if(A->input_format == aoclsparse_tcsr_mat)
-            status = aoclsparse_tcsr_optimize<T>(A);
-        else
-        {
-            // Optimize CSR/CSC matrix
-            status = aoclsparse_csr_csc_optimize<T>(A);
-        }
-        if(status != aoclsparse_status_success)
-            return status; // LCOV_EXCL_LINE
-
-        // After optimization, search again for the optimized matrix
-        for(auto *mat : A->mats)
-        {
-            if(auto *tcsr = dynamic_cast<aoclsparse::tcsr *>(mat); tcsr && tcsr->is_optimized)
-            {
-                tcsr_mat     = tcsr;
-                is_optimized = true;
-                break;
-            }
-            else if(auto *csr = dynamic_cast<aoclsparse::csr *>(mat); csr && csr->is_optimized)
-            {
-                opt_mat      = csr;
-                is_optimized = true;
-                break;
-            }
-        }
-    }
+    if(status != aoclsparse_status_success)
+        return status; // LCOV_EXCL_LINE
+    if(!opt_mat && !tcsr_mat)
+        return aoclsparse_status_internal_error;
 
     // Make sure we have the right type before casting
     if(A->val_type != get_data_type<T>())
@@ -186,48 +152,40 @@ aoclsparse_status
     else
         doid = aoclsparse::get_doid<T>(descr, transpose);
 
-    if(is_optimized)
+    if(A->input_format == aoclsparse_tcsr_mat && tcsr_mat)
     {
-        if(A->input_format == aoclsparse_tcsr_mat && tcsr_mat)
+        if(descr->fill_mode == aoclsparse_fill_mode_lower)
         {
-            if(descr->fill_mode == aoclsparse_fill_mode_lower)
-            {
-                a     = (T *)(tcsr_mat->val_L);
-                icol  = tcsr_mat->col_idx_L;
-                ilrow = tcsr_mat->row_ptr_L;
-                idiag = tcsr_mat->idiag;
-                iurow = tcsr_mat->row_ptr_L + 1;
-            }
-            else
-            {
-                a     = (T *)(tcsr_mat->val_U);
-                icol  = tcsr_mat->col_idx_U;
-                ilrow = tcsr_mat->row_ptr_U;
-                idiag = tcsr_mat->row_ptr_U;
-                iurow = tcsr_mat->iurow;
-            }
+            a     = (T *)(tcsr_mat->val_L);
+            icol  = tcsr_mat->col_idx_L;
+            ilrow = tcsr_mat->row_ptr_L;
+            idiag = tcsr_mat->idiag;
+            iurow = tcsr_mat->row_ptr_L + 1;
         }
         else
         {
-            //CSR
-            a    = (T *)((opt_mat)->val);
-            icol = (opt_mat)->ind;
-            // beginning of the row
-            ilrow = (opt_mat)->ptr;
-
-            // position of the diagonal element (includes zeros) always has min(m,n) elements
-            idiag = (opt_mat)->idiag;
-            // ending of the row
-            iurow = (opt_mat)->iurow;
-
-            if(opt_mat->mat_type == aoclsparse_csc_mat)
-                doid = trans_doid(doid);
+            a     = (T *)(tcsr_mat->val_U);
+            icol  = tcsr_mat->col_idx_U;
+            ilrow = tcsr_mat->row_ptr_U;
+            idiag = tcsr_mat->row_ptr_U;
+            iurow = tcsr_mat->iurow;
         }
     }
     else
     {
-        // It should never be reached,unless there is something wrong in logic
-        return aoclsparse_status_internal_error;
+        //CSR
+        a    = (T *)((opt_mat)->val);
+        icol = (opt_mat)->ind;
+        // beginning of the row
+        ilrow = (opt_mat)->ptr;
+
+        // position of the diagonal element (includes zeros) always has min(m,n) elements
+        idiag = (opt_mat)->idiag;
+        // ending of the row
+        iurow = (opt_mat)->iurow;
+
+        if(opt_mat->mat_type == aoclsparse_csc_mat)
+            doid = trans_doid(doid);
     }
     using namespace aoclsparse;
     using namespace kernel_templates;

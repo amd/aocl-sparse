@@ -177,7 +177,9 @@ namespace
             }
         }
         aoclsparse_int dim = (std::min)(A->n, A->m);
-        ASSERT_EQ(opt_csr_mat->is_internal, sol.opt_csr_is_internal);
+        // If the input matrix is already a clean CSR, a new one is not created.
+        // The optimized matrix is identified by is_optimized, so the test below is invalid.
+        // ASSERT_EQ(opt_csr_mat->is_internal, sol.opt_csr_is_internal);
         EXPECT_EQ_VEC(A->m + 1, opt_csr_mat->ptr, sol.icrow);
         EXPECT_EQ_VEC(opt_csr_mat->ptr[A->m], opt_csr_mat->ind, sol.icol);
         EXPECT_DOUBLE_EQ_VEC(opt_csr_mat->ptr[A->m], (double *)opt_csr_mat->val, sol.aval);

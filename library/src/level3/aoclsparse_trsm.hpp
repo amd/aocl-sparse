@@ -107,23 +107,13 @@ aoclsparse_status
        && descr->fill_mode != aoclsparse_fill_mode_upper)
         return aoclsparse_status_not_implemented;
 
-    bool is_optimized = false;
-    for(auto *mat : A->mats)
-    {
-        if(auto *csr = dynamic_cast<aoclsparse::csr *>(mat); csr && csr->is_optimized)
-        {
-            is_optimized = true;
-            break;
-        }
-    }
-    // Unpack A and check
-    if(!is_optimized)
-    {
-        // user did not check the matrix, call optimize
-        aoclsparse_status status = aoclsparse_csr_csc_optimize<T>(A);
-        if(status != aoclsparse_status_success)
-            return status;
-    }
+    aoclsparse::csr *A_opt_csr = nullptr;
+    // call optimize
+    status = aoclsparse_csr_csc_optimize<T>(A, &A_opt_csr);
+    if(status != aoclsparse_status_success)
+        return status;
+    if(!A_opt_csr)
+        return aoclsparse_status_internal_error;
 
     aoclsparse_int incb, incx, b_offset, x_offset;
 

@@ -90,6 +90,12 @@ namespace aoclsparse
      *******************************************************************************/
     class base_mtx
     {
+    protected:
+        // flag to indicate if the matrix is internally created, not user provided. This is used to
+        // determine if the matrix should be destroyed at the end of the optimization process. This flag is set
+        // to true for all internally created matrices.
+        bool is_internal = true;
+
     public:
         aoclsparse_int m;
         aoclsparse_int n;
@@ -99,10 +105,6 @@ namespace aoclsparse
         aoclsparse_matrix_format_type mat_type;
         aoclsparse_index_base         base;
         aoclsparse_matrix_data_type   val_type;
-        // flag to indicate if the matrix is internally created, not user provided. This is used to
-        // determine if the matrix should be destroyed at the end of the optimization process. This flag is set
-        // to true for all internally created matrices.
-        bool is_internal = true;
 
         // default constructor
         base_mtx() = default;
@@ -115,13 +117,13 @@ namespace aoclsparse
                  aoclsparse_index_base         base,
                  aoclsparse_matrix_data_type   val_type,
                  bool                          is_internal)
-            : m(m) // Initialize member variables with constructor parameters
+            : is_internal(is_internal) // Initialize member variables with constructor parameters
+            , m(m)
             , n(n)
             , nnz(nnz)
             , mat_type(mat_type)
             , base(base)
             , val_type(val_type)
-            , is_internal(is_internal)
         {
             if(m < 0 || n < 0)
                 throw std::bad_array_new_length();

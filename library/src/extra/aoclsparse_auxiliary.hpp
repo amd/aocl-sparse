@@ -247,7 +247,7 @@ aoclsparse_status aoclsparse_update_values_t(aoclsparse_matrix A, aoclsparse_int
     // destroy the previously created matrix copy data
     for(size_t i = 1; i < A->mats.size(); i++)
     {
-        if(A->mats[i] && A->mats[i]->is_internal)
+        if(A->mats[i])
         {
             delete A->mats[i];
             A->mats[i] = nullptr;
@@ -443,7 +443,7 @@ aoclsparse_status aoclsparse_set_value_t(aoclsparse_matrix A,
     // Invalidate the internally created matrix copies
     for(size_t i = 1; i < A->mats.size(); i++)
     {
-        if(A->mats[i] && A->mats[i]->is_internal)
+        if(A->mats[i])
         {
             delete A->mats[i];
             A->mats[i] = nullptr;

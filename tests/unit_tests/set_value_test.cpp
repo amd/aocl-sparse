@@ -193,16 +193,16 @@ namespace
                   aoclsparse_status_success);
 
         // src_mat->mats may contain optimized CSR copies, such as opt_csr and transposed mv copies
-        // Count internally created non-null matrices
+        // Count non-null matrices
         for(auto *mat : src_mat->mats)
         {
-            if(mat && mat->is_internal)
+            if(mat)
             {
                 nmat++;
             }
         }
         // At this point, we should have at least one internal matrix (the input matrix)
-        ASSERT_GT(nmat, 0);
+        ASSERT_GT(nmat, 1);
 
         // Modify a value - should clean up all internal matrices
         aoclsparse_int ridx    = random_generator<aoclsparse_int>(0, NNZ - 1);
@@ -215,13 +215,13 @@ namespace
         // All internal matrices should now be nullptr
         for(const auto &mat : src_mat->mats)
         {
-            if(mat && mat->is_internal)
+            if(mat)
             {
                 nmat_after_set++;
             }
         }
         // Should have one valid matrix (input matrix)
-        EXPECT_EQ(nmat_after_set, 0);
+        EXPECT_EQ(nmat_after_set, 1);
 
         // Cleanup
         EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);

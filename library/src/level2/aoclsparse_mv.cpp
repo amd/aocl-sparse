@@ -143,38 +143,22 @@ aoclsparse_status aoclsparse::mv(aoclsparse_operation       op,
      *  Optimize is called only for triangular,
      *  symmetric and Hermitian matrices.
      */
-    bool is_optimized = false;
-    for(auto mat : A->mats)
-    {
-        if(auto csr = dynamic_cast<aoclsparse::csr *>(mat); csr && csr->is_optimized)
-        {
-            is_optimized = true;
-            break;
-        }
-        else if(auto tcsr = dynamic_cast<aoclsparse::tcsr *>(mat); tcsr && tcsr->is_optimized)
-        {
-            is_optimized = true;
-            break;
-        }
-    }
+    aoclsparse::csr  *opt_csr  = nullptr;
+    aoclsparse::tcsr *opt_tcsr = nullptr;
     if(descr->type != aoclsparse_matrix_type_general)
     {
-        if(!is_optimized)
+        if(A->input_format == aoclsparse_tcsr_mat && !aoclsparse::is_dt_complex<T>())
         {
-            if constexpr(!aoclsparse::is_dt_complex<T>())
-            {
-                if(A->input_format == aoclsparse_tcsr_mat)
-                    status = aoclsparse_tcsr_optimize<T>(A);
-                else
-                    status = aoclsparse_csr_csc_optimize<T>(A);
-            }
-            else
-            {
-                status = aoclsparse_csr_csc_optimize<T>(A);
-            }
-            if(status)
-                return status;
+            status = aoclsparse_tcsr_optimize<T>(A, &opt_tcsr);
         }
+        else
+        {
+            status = aoclsparse_csr_csc_optimize<T>(A, &(opt_csr));
+        }
+        if(status != aoclsparse_status_success)
+            return status;
+        if(!opt_csr && !opt_tcsr)
+            return aoclsparse_status_internal_error;
     }
 
     // By default we will use our input format
@@ -200,7 +184,6 @@ aoclsparse_status aoclsparse::mv(aoclsparse_operation       op,
             return aoclsparse_status_not_implemented;
 
         aoclsparse::csr *copy_csr = nullptr;
-        aoclsparse::csr *opt_csr  = nullptr;
 
         // Search for a matrix copy matching our descriptor/operation (DOID)
         for(size_t i = 1; i < A->mats.size(); i++)
@@ -212,10 +195,6 @@ aoclsparse_status aoclsparse::mv(aoclsparse_operation       op,
                 {
                     copy_csr = csr_m;
                     break;
-                }
-                else if(csr_m->is_optimized)
-                {
-                    opt_csr = csr_m;
                 }
             }
         }

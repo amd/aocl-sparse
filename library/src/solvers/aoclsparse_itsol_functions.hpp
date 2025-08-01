@@ -572,23 +572,14 @@ aoclsparse_status aoclsparse_itsol_solve(
     if(status != aoclsparse_status_success)
         return status;
 
-    aoclsparse::csr *opt_csr_mat = nullptr;
-    // Search for an optimized CSR matrix
-    for(auto *m : mat->mats)
-    {
-        if(auto *csr = dynamic_cast<aoclsparse::csr *>(m); csr && csr->is_optimized)
-        {
-            opt_csr_mat = csr;
-            break;
-        }
-    }
-    if(!opt_csr_mat)
-    {
-        // CG needs opt_csr to run
-        status = aoclsparse_csr_csc_optimize<T>(mat);
-        if(status != aoclsparse_status_success)
-            return status;
-    }
+    aoclsparse::csr *opt_csr = nullptr;
+    // CG needs opt_csr to run
+    status = aoclsparse_csr_csc_optimize<T>(mat, &opt_csr);
+    if(status != aoclsparse_status_success)
+        return status;
+    if(!opt_csr)
+        return aoclsparse_status_internal_error;
+
     // indicate that initialization has been done
     // (not really needed unless the user start mixing forward iface and RCI)
     itsol->solving = true;

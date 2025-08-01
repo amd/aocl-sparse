@@ -703,29 +703,11 @@ aoclsparse_status aoclsparse_sypr_t(aoclsparse_operation       opA,
             valA[idx] = aoclsparse::conj(valA[idx]);
     }
 
-    for(auto *mat : B->mats)
-    {
-        if(auto *temp = dynamic_cast<aoclsparse::csr *>(mat); temp && temp->is_optimized)
-        {
-            B_opt_csr = temp;
-            break;
-        }
-    }
-
+    status = aoclsparse_csr_csc_optimize<T>(B, &(B_opt_csr));
+    if(status != aoclsparse_status_success)
+        return status;
     if(!B_opt_csr)
-    {
-        status = aoclsparse_csr_csc_optimize<T>(B);
-        if(status != aoclsparse_status_success)
-            return status;
-        for(auto *mat : B->mats)
-        {
-            if(auto *temp = dynamic_cast<aoclsparse::csr *>(mat); temp && temp->is_optimized)
-            {
-                B_opt_csr = temp;
-                break;
-            }
-        }
-    }
+        return aoclsparse_status_internal_error;
     aoclsparse_index_base baseA = A->base;
     aoclsparse_index_base baseB = B->internal_base_index;
     // Retrieve CSR arrays of matrix B from optimised CSR.

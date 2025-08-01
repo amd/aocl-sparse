@@ -509,21 +509,24 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
             return aoclsparse_status_not_implemented;
         if(tcsr_mat->is_optimized)
             return aoclsparse_status_success;
+        aoclsparse::tcsr *opt_mat = nullptr;
         switch(A->val_type)
         {
         case aoclsparse_dmat:
-            ret = aoclsparse_tcsr_optimize<double>(A);
+            ret = aoclsparse_tcsr_optimize<double>(A, &opt_mat);
             break;
         case aoclsparse_smat:
-            ret = aoclsparse_tcsr_optimize<float>(A);
+            ret = aoclsparse_tcsr_optimize<float>(A, &opt_mat);
             break;
         case aoclsparse_cmat:
-            ret = aoclsparse_tcsr_optimize<std::complex<float>>(A);
+            ret = aoclsparse_tcsr_optimize<std::complex<float>>(A, &opt_mat);
             break;
         case aoclsparse_zmat:
-            ret = aoclsparse_tcsr_optimize<std::complex<double>>(A);
+            ret = aoclsparse_tcsr_optimize<std::complex<double>>(A, &opt_mat);
             break;
         }
+        if(ret == aoclsparse_status_success && !opt_mat)
+            return aoclsparse_status_internal_error;
         return ret;
     }
 
@@ -584,21 +587,26 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
 
         else
         {
+            aoclsparse::csr *opt_mat = nullptr;
             switch(A->val_type)
             {
             case aoclsparse_dmat:
-                ret = aoclsparse_csr_csc_optimize<double>(A);
+                ret = aoclsparse_csr_csc_optimize<double>(A, &(opt_mat));
                 break;
             case aoclsparse_smat:
-                ret = aoclsparse_csr_csc_optimize<float>(A);
+                ret = aoclsparse_csr_csc_optimize<float>(A, &(opt_mat));
                 break;
             case aoclsparse_cmat:
-                ret = aoclsparse_csr_csc_optimize<std::complex<float>>(A);
+                ret = aoclsparse_csr_csc_optimize<std::complex<float>>(A, &(opt_mat));
                 break;
             case aoclsparse_zmat:
-                ret = aoclsparse_csr_csc_optimize<std::complex<double>>(A);
+                ret = aoclsparse_csr_csc_optimize<std::complex<double>>(A, &(opt_mat));
                 break;
             }
+            // This check is correct: if optimization succeeded but opt_mat is null,
+            // it indicates an internal logic error in aoclsparse_csr_csc_optimize
+            if(ret == aoclsparse_status_success && !opt_mat)
+                return aoclsparse_status_internal_error;
         }
     }
     else if(mv_count - sum >= 0)
