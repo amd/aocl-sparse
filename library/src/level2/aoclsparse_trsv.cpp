@@ -107,6 +107,10 @@ aoclsparse_status
        && descr->fill_mode != aoclsparse_fill_mode_upper)
         return aoclsparse_status_not_implemented;
 
+    // Make sure we have the right type before casting
+    if(A->val_type != get_data_type<T>())
+        return aoclsparse_status_wrong_type;
+
     // Unpack A and check
     aoclsparse::tcsr *tcsr_mat = nullptr;
     aoclsparse::csr  *opt_mat  = nullptr;
@@ -122,10 +126,6 @@ aoclsparse_status
     }
     if(status != aoclsparse_status_success)
         return status; // LCOV_EXCL_LINE
-
-    // Make sure we have the right type before casting
-    if(A->val_type != get_data_type<T>())
-        return aoclsparse_status_wrong_type;
 
     const bool unit = descr->diag_type == aoclsparse_diag_type_unit;
     if(!A->opt_csr_full_diag && !unit) // not of full rank, linear system cannot be solved
@@ -192,6 +192,7 @@ aoclsparse_status
     }
     else
         return aoclsparse_status_internal_error;
+
     using namespace aoclsparse;
     using namespace kernel_templates;
 
@@ -207,7 +208,7 @@ aoclsparse_status
      * d   - double
      * c   - cfloat
      * z   - cdouble
-     * ALL - s, d, c, z
+     * ALL alias to {s, d, c, z}
      *
      * Kernel types
      * ------------
@@ -220,8 +221,8 @@ aoclsparse_status
      *
      * Operation
      * ---------
-     * ====================================================================
-     * Equation - L * x = alpha * b       || DOID = 12
+     * =====================================================================
+     * Equation - L * x = alpha * b       | DOID = 12    |
      * ----+------------------------------+--------------+-----+------------
      * kid | Kernel Name                  | Kernel Type  | SUF | tbl offset
      * ----+------------------------------+--------------+-----+------------
@@ -232,7 +233,7 @@ aoclsparse_status
      * ----+------------------------------+--------------+-----+------------
      *
      * =====================================================================
-     * Equation - L^T * x = alpha * b      || DOID = 13
+     * Equation - L^T * x = alpha * b     | DOID = 13    |
      * ----+------------------------------+--------------+-----+------------
      * kid | Kernel Name                  | Kernel Type  | SUF | tbl offset
      * ----+------------------------------+--------------+-----+------------
@@ -243,7 +244,7 @@ aoclsparse_status
      * ----+------------------------------+--------------+-----+------------
      *
      * =====================================================================
-     * Equation - L^H * x = alpha * b     || DOID = 14
+     * Equation - L^H * x = alpha * b     | DOID = 14    |
      * ----+------------------------------+--------------+-----+------------
      * kid | Kernel Name                  | Kernel Type  | SUF | tbl offset
      * ----+------------------------------+--------------+-----+------------
@@ -254,7 +255,7 @@ aoclsparse_status
      * ----+------------------------------+--------------+-----+------------
      *
      * =====================================================================
-     * Equation - conj(L) * x = alpha * b  || DOID = 15
+     * Equation - conj(L) * x = alpha * b | DOID = 15    |
      * ----+------------------------------+--------------+-----+------------
      * kid | Kernel Name                  | Kernel Type  | SUF | tbl offset
      * ----+------------------------------+--------------+-----+------------
@@ -265,7 +266,7 @@ aoclsparse_status
      * ----+------------------------------+--------------+-----+------------
      *
      * =====================================================================
-     * Equation - U * x = alpha * b        || DOID = 16
+     * Equation - U * x = alpha * b       | DOID = 16    |
      * ----+------------------------------+--------------+-----+------------
      * kid | Kernel Name                  | Kernel Type  | SUF | tbl offset
      * ----+------------------------------+--------------+-----+------------
@@ -276,7 +277,7 @@ aoclsparse_status
      * ----+------------------------------+--------------+-----+------------
      *
      * =====================================================================
-     * Equation - U^T * x = alpha * b      || DOID = 17
+     * Equation - U^T * x = alpha * b     | DOID = 17    |
      * ----+------------------------------+--------------+-----+------------
      * kid | Kernel Name                  | Kernel Type  | SUF | tbl offset
      * ----+------------------------------+--------------+-----+------------
@@ -287,7 +288,7 @@ aoclsparse_status
      * ----+------------------------------+--------------+-----+------------
      *
      * =====================================================================
-     * Equation - U^H * x = alpha * b      || DOID = 18
+     * Equation - U^H * x = alpha * b     | DOID = 18    |
      * ----+------------------------------+--------------+-----+------------
      * kid | Kernel Name                  | Kernel Type  | SUF | tbl offset
      * ----+------------------------------+--------------+-----+------------
@@ -298,7 +299,7 @@ aoclsparse_status
      * ----+------------------------------+--------------+-----+------------
      *
      * =====================================================================
-     * Equation - conj(U) * x = alpha * b  || DOID = 19
+     * Equation - conj(U) * x = alpha * b | DOID = 19    |
      * ----+------------------------------+--------------+-----+------------
      * kid | Kernel Name                  | Kernel Type  | SUF | tbl offset
      * ----+------------------------------+--------------+-----+------------
@@ -355,13 +356,18 @@ aoclsparse_status
      };
     // clang-format on
 
-    // Index at which traingular doids start - 12
+    // Index at which traingular doids starts at 12 and ends at 19
     // Number of kernels for any given doid  - 4 (ref, AVX2, AVX512VL, AVX512F)
     aoclsparse_int doid_offset = (static_cast<aoclsparse_int>(doid) - 12);
-    aoclsparse_int tbl_offset  = doid_offset * 4;
 
-    // Number of sets of TRSV kernels present - 8
-    // Each set of kernel corresponds to a unique doid
+    // Sanity check for doid offset
+    if(doid_offset < 0 || doid_offset > 7)
+        return aoclsparse_status_internal_error; // this should not happen. Did the doid enum change?
+
+    aoclsparse_int tbl_offset = doid_offset * 4;
+
+    // Number of sets of TRSV kernels present is 8 and
+    // each set of kernels corresponds to a unique doid
     thread_local K kache[8];
 
     K kernel = Dispatch::Oracle<K>(tbl, kache[doid_offset], kid, tbl_offset, tbl_offset + 4);
@@ -369,7 +375,7 @@ aoclsparse_status
     if(!kernel)
         return aoclsparse_status_invalid_kid;
 
-    aoclsparse_int *ilend;
+    aoclsparse_int *ilend{nullptr};
 
     // ilend needs to be updated based on the fill mode
     // to point to the correct end of diagonal value
