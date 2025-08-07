@@ -187,7 +187,7 @@ namespace kernel_templates
 
     // Checks if the base type is real - true for float and double
     template <typename T>
-    struct kt_is_base_t_real
+    struct kt_type_is_real
     {
         constexpr operator bool() const noexcept
         {

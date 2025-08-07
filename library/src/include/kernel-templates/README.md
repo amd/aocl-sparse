@@ -51,6 +51,8 @@ Table Reusable Kernel Templates μkernels list.
 |0	|kt_hsum_p|	Horizontal sum (reduction)|
 |0	|kt_conj_p|	Conjugate the contents register|
 |0	|kt_max_p|	Maximum element in a vector per index |
+|0	|kt_div_p|	Vector division|
+|0	|kt_pow2_p|	Vector element-wise square power (non algebraic for complex types)|
 |1	|kt_dot_p|	Dot-product of two vectors|
 |1	|kt_cdot_p|	Conjugate dot-product|
 

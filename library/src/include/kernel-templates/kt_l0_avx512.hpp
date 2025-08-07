@@ -456,7 +456,7 @@ namespace kernel_templates
     // Compare packed SUF elements in a and b, and returns packed maximum values.
     template <bsz SZ, typename SUF>
     KT_FORCE_INLINE
-        std::enable_if_t<SZ == bsz::b512 && kt_is_base_t_real<SUF>(), avxvector_t<SZ, SUF>>
+        std::enable_if_t<SZ == bsz::b512 && kt_type_is_real<SUF>(), avxvector_t<SZ, SUF>>
         kt_max_p(const avxvector_t<SZ, SUF> a, const avxvector_t<SZ, SUF> b) noexcept
     {
         if constexpr(std::is_same_v<SUF, double>)
@@ -466,6 +466,70 @@ namespace kernel_templates
         else if constexpr(std::is_same_v<SUF, float>)
         {
             return _mm512_max_ps(a, b);
+        }
+    }
+
+    // Vector element-wise pow2 of an AVX registers.
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, avxvector_t<SZ, SUF>>
+                    kt_pow2_p(const avxvector_t<SZ, SUF> a) noexcept
+    {
+        if constexpr(std::is_same_v<SUF, double>)
+        {
+            return _mm512_mul_pd(a, a);
+        }
+        else if constexpr(std::is_same_v<SUF, float>)
+        {
+            return _mm512_mul_ps(a, a);
+        }
+        else if constexpr(std::is_same_v<SUF, cdouble>)
+        {
+            using base_t = typename kt_dt<SUF>::base_type;
+            avxvector_t<SZ, SUF> pow2 = kt_mul_p<SZ, base_t>(a, a);
+            avxvector_t<SZ, SUF> shuff = _mm512_permute_pd(pow2, 0x55);
+            pow2 = _mm512_add_pd(pow2, shuff);
+
+            return pow2;
+        }
+        else if constexpr(std::is_same_v<SUF, cfloat>)
+        {
+            using base_t = typename kt_dt<SUF>::base_type;
+            avxvector_t<SZ, SUF> pow2 = kt_mul_p<SZ, base_t>(a, a);
+            avxvector_t<SZ, SUF> shuff = _mm512_permute_ps(pow2, 0xB1);
+            pow2 = _mm512_add_ps(pow2, shuff);
+
+            return pow2;
+        }
+    }
+
+    // Vector element-wise division of two AVX registers.
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, avxvector_t<SZ, SUF>>
+                    kt_div_p(const avxvector_t<SZ, SUF> a, const avxvector_t<SZ, SUF> b) noexcept
+    {
+        if constexpr(std::is_same_v<SUF, double>)
+        {
+            return _mm512_div_pd(a, b);
+        }
+        else if constexpr(std::is_same_v<SUF, float>)
+        {
+            return _mm512_div_ps(a, b);
+        }
+        else if constexpr(std::is_same_v<SUF, cdouble>)
+        {
+            avxvector_t<SZ, SUF> nmrtr = kt_mul_p<SZ, SUF>(a, kt_conj_p<SZ, SUF>(b));
+            avxvector_t<SZ, SUF> dentr = kt_pow2_p<SZ, SUF>(b);
+            avxvector_t<SZ, SUF> result = _mm512_div_pd(nmrtr, dentr);
+
+            return result;
+        }
+        else if constexpr(std::is_same_v<SUF, cfloat>)
+        {
+            avxvector_t<SZ, SUF> nmrtr = kt_mul_p<SZ, SUF>(a, kt_conj_p<SZ, SUF>(b));
+            avxvector_t<SZ, SUF> dentr = kt_pow2_p<SZ, SUF>(b);
+            avxvector_t<SZ, SUF> result = _mm512_div_ps(nmrtr, dentr);
+
+            return result;
         }
     }
 }

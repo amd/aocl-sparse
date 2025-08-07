@@ -49,8 +49,8 @@ namespace TestsKT
                         9.125f, -1.125f, 2.5f,   5.125f,  4.125f, 3.25f,   3.5f,    5.5f};
         double   vd[16]{1.5,     2.25,   3.5,    0.5,     8.25,  -3.25,    6.5,    -1.25,
                         9.125,   5.5,   -2.25,   2.5,     7.25,  -6.25,    9.125,  -0.25};
-        std::complex<float>  vc[16]{ {2.25f, -1.5f},  {4.25f, -2.0f},  {6.125f, -3.0f}, {8.25f, -4.0f},
-                                     {1.5f, -5.0f},   {3.5f, -6.25f},  {7.75f, -7.0f},  {9.25f, -8.0f},
+        std::complex<float>  vc[16]{ {2.25f, -1.5f},  {4.0f, -2.0f},  {4.0f, -3.0f}, {8.25f, -4.0f},
+                                     {1.5f, -5.0f},   {3.5f, -6.25f},  {7.75f, -7.0f},  {9.5f, -8.0f},
                                      {-2.5f, -1.5f},  {-3.25f, -2.0f}, {-5.5f, -3.0f},  {-7.25f, -4.0f},
                                      {-9.75f, -5.0f}, {-2.2f, -6.0f},  {-4.75f, -7.5f}, {-6.0f,  -8.125f}};
         std::complex<double> vz[8]{  {1.25, -12},     {0.5, -21.0},    {0.125, -13.0},  {3.5,   -4.5},
@@ -482,7 +482,8 @@ namespace TestsKT
 
         EXPECT_EQ_VEC(sz, c, data);
 
-        std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
+        if(::testing::Test::HasFailure())
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
     }
 
     template <bsz SZ, typename SUF>
@@ -490,13 +491,13 @@ namespace TestsKT
     {
         using base_t = typename kt_dt<SUF>::base_type;
 
-        const size_t sz   = tsz_v<SZ, SUF>;
-        base_t       zero = static_cast<base_t>(0);
+        const size_t sz = tsz_v<SZ, SUF>;
         const SUF    zero_v[sz]{};
 
         EXPECT_EQ_VEC(sz, (kt_setzero_p<SZ, SUF>()), zero_v);
 
-        std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
+        if(::testing::Test::HasFailure())
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
     }
 
     template <bsz SZ, typename SUF>
@@ -507,7 +508,7 @@ namespace TestsKT
         SUF ref = D.get_data<SUF>()[0];
         SUF ref_v[sz];
 
-        for(auto itr = 0; itr < sz; ++itr)
+        for(size_t itr = 0; itr < sz; ++itr)
         {
             ref_v[itr] = ref;
         }
@@ -519,7 +520,8 @@ namespace TestsKT
 
         EXPECT_EQ_VEC(sz, c, ref_v);
 
-        std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
+        if(::testing::Test::HasFailure())
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
     }
 
     template <bsz SZ, typename SUF>
@@ -544,7 +546,8 @@ namespace TestsKT
         auto res_ptr = reinterpret_cast<SUF *>(&s);
         expect_eq_vec(sz, res_ptr, refs);
 
-        std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
+        if(::testing::Test::HasFailure())
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
     }
 
     template <bsz SZ, typename SUF>
@@ -568,7 +571,8 @@ namespace TestsKT
         auto res_ptr = reinterpret_cast<SUF *>(&s);
         expect_eq_vec(sz, res_ptr, refs);
 
-        std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
+        if(::testing::Test::HasFailure())
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
     }
 
     template <bsz SZ, typename SUF>
@@ -592,7 +596,8 @@ namespace TestsKT
         auto res_ptr = reinterpret_cast<SUF *>(&s);
         expect_eq_vec(sz, res_ptr, refs);
 
-        std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
+        if(::testing::Test::HasFailure())
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
     }
 
     template <bsz SZ, typename SUF>
@@ -618,7 +623,8 @@ namespace TestsKT
         auto res_ptr = reinterpret_cast<SUF *>(&s);
         expect_eq_vec(sz, res_ptr, refs);
 
-        std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
+        if(::testing::Test::HasFailure())
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
     }
 
     template <bsz SZ, typename SUF>
@@ -644,7 +650,8 @@ namespace TestsKT
         auto res_ptr = reinterpret_cast<SUF *>(&s);
         expect_eq_vec(sz, res_ptr, refs);
 
-        std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
+        if(::testing::Test::HasFailure())
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
     }
 
     template <bsz SZ, typename SUF>
@@ -667,7 +674,8 @@ namespace TestsKT
         auto res_ptr = reinterpret_cast<SUF *>(&s);
         EXPECT_EQ_VEC(sz, res_ptr, refs);
 
-        std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
+        if(::testing::Test::HasFailure())
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
     }
 
     /*
@@ -1035,7 +1043,8 @@ namespace TestsKT
 
         expect_eq<SUF>(sums, refs);
 
-        std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
+        if(::testing::Test::HasFailure())
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
     }
 
     template <bsz SZ, typename SUF>
@@ -1052,7 +1061,7 @@ namespace TestsKT
 
         for(size_t i = 0; i < sz; i++)
         {
-            if constexpr(kt_is_base_t_real<SUF>())
+            if constexpr(kt_type_is_real<SUF>())
                 refs[i] = D.get_data<SUF>()[i];
             else
                 refs[i] = std::conj(D.get_data<SUF>()[i]);
@@ -1061,7 +1070,8 @@ namespace TestsKT
         auto *pv = reinterpret_cast<SUF *>(&vs);
         expect_eq_vec(sz, refs, pv);
 
-        std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
+        if(::testing::Test::HasFailure())
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
     }
 
     template <bsz SZ, typename SUF>
@@ -1097,7 +1107,7 @@ namespace TestsKT
         SUF sdot = kt_cdot_p<SZ, SUF>(s1, s2);
         for(size_t i = 0; i < sz; i++)
         {
-            if constexpr(kt_is_base_t_real<SUF>())
+            if constexpr(kt_type_is_real<SUF>())
                 refs += data[0 + i] * data[1 + i];
             else
                 refs += data[0 + i] * std::conj(data[1 + i]);
@@ -1105,7 +1115,8 @@ namespace TestsKT
 
         expect_eq(refs, sdot);
 
-        std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
+        if(::testing::Test::HasFailure())
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
     }
 
     template <bsz SZ, typename SUF>
@@ -1131,7 +1142,8 @@ namespace TestsKT
 
         expect_eq_vec(sz, vss.get(), refs.get());
 
-        std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
+        if(::testing::Test::HasFailure())
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
     }
 
     template <bsz SZ, typename SUF>
@@ -1139,13 +1151,13 @@ namespace TestsKT
     {
         // In case of b128 and complex, we use the kt_fmadd_p_test
         // to test the kt_fmadd_B, because the latter is not implemented
-        if constexpr(SZ == bsz::b128 && !kt_is_base_t_real<SUF>())
+        if constexpr(SZ == bsz::b128 && !kt_type_is_real<SUF>())
         {
             return kt_fmadd_p_test<SZ, SUF>();
         }
 
         // Blocked fmadd_B tests work differently for real and complex types
-        if constexpr(kt_is_base_t_real<SUF>())
+        if constexpr(kt_type_is_real<SUF>())
         {
             size_t               sz = tsz_v<SZ, SUF>;
             avxvector_t<SZ, SUF> s, as, bs, s_;
@@ -1171,7 +1183,8 @@ namespace TestsKT
             auto res_ptr = reinterpret_cast<SUF *>(&s);
             expect_eq_vec(sz, res_ptr, refs);
 
-            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
+            if(::testing::Test::HasFailure())
+                std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
         }
         else
         {
@@ -1231,12 +1244,12 @@ namespace TestsKT
     {
         // In case of b128 and complex, we use the kt_hsum_p_test
         // to test the kt_hsum_B, because the latter is not implemented
-        if constexpr(SZ == bsz::b128 && !kt_is_base_t_real<SUF>())
+        if constexpr(SZ == bsz::b128 && !kt_type_is_real<SUF>())
         {
             return kt_hsum_p_test<SZ, SUF>();
         }
 
-        if constexpr(kt_is_base_t_real<SUF>())
+        if constexpr(kt_type_is_real<SUF>())
         {
             const size_t         sz = tsz_v<SZ, SUF>;
             avxvector_t<SZ, SUF> as, bs, s, s_;
@@ -1289,7 +1302,8 @@ namespace TestsKT
             expect_eq(sumz, refz);
         }
 
-        std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
+        if(::testing::Test::HasFailure())
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
     }
 
     template <bsz SZ, typename SUF>
@@ -1314,6 +1328,79 @@ namespace TestsKT
         auto *pv = reinterpret_cast<SUF *>(&ress);
 
         expect_eq_vec(sz, ref_ress, pv);
+    }
+
+    template <bsz SZ, typename SUF>
+    void kt_div_p_test()
+    {
+        size_t               sz = tsz_v<SZ, SUF>;
+        avxvector_t<SZ, SUF> s, as, bs;
+        SUF                  refs[sz];
+
+        SUF        n    = D.get_data<SUF>()[7];
+        const SUF *data = D.get_data<SUF>();
+
+        as = kt_loadu_p<SZ, SUF>(data);
+        bs = kt_set1_p<SZ, SUF>(n);
+        s  = kt_div_p<SZ, SUF>(as, bs);
+        for(size_t i = 0; i < sz; i++)
+        {
+            refs[i] = data[i] / n;
+        }
+
+        auto res_ptr = reinterpret_cast<SUF *>(&s);
+        expect_eq_vec<SUF>(sz, res_ptr, refs);
+
+        if(::testing::Test::HasFailure())
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
+    }
+
+    template <bsz SZ, typename SUF>
+    void kt_pow2_p_test()
+    {
+        using base_t = typename kt_dt<SUF>::base_type;
+
+        size_t               sz = tsz_v<SZ, SUF>;
+        avxvector_t<SZ, SUF> s, as;
+
+        const SUF *data = D.get_data<SUF>();
+
+        as = kt_loadu_p<SZ, SUF>(data);
+        s  = kt_pow2_p<SZ, SUF>(as);
+
+        if constexpr(kt_type_is_real<SUF>())
+        {
+            SUF refs[sz];
+
+            for(size_t i = 0; i < sz; i++)
+            {
+                refs[i] = data[i] * data[i];
+            }
+
+            auto res_ptr = reinterpret_cast<SUF *>(&s);
+            expect_eq_vec<SUF>(sz, res_ptr, refs);
+        }
+        else
+        {
+            // The comparison is done on the base type
+            base_t refs[sz * 2];
+
+            // In case of complex number, the real and complex
+            // parts are set to the result of pow2.
+            for(int i = 0; i < sz; i++)
+            {
+                base_t temp = (data[i].real() * data[i].real()) + (data[i].imag() * data[i].imag());
+
+                refs[(2 * i)]     = temp;
+                refs[(2 * i) + 1] = temp;
+            }
+
+            auto res_ptr = reinterpret_cast<base_t *>(&s);
+            expect_eq_vec<base_t>(sz * 2, res_ptr, refs);
+        }
+
+        if(::testing::Test::HasFailure())
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
     }
 }
 
@@ -1364,6 +1451,8 @@ KT_INSTANTIATE_TEST(TestsKT::kt_cdot_p_test);
 KT_INSTANTIATE_TEST(TestsKT::kt_storeu_p_test);
 KT_INSTANTIATE_TEST(TestsKT::kt_fmadd_B_test);
 KT_INSTANTIATE_TEST(TestsKT::kt_hsum_B_test);
+KT_INSTANTIATE_TEST(TestsKT::kt_div_p_test);
+KT_INSTANTIATE_TEST(TestsKT::kt_pow2_p_test)
 
-// Max is supported only for real types
+// Operations that only support real types
 KT_INSTANTIATE_TEST_REAL(TestsKT::kt_max_p_test);

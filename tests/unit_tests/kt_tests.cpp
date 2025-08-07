@@ -123,6 +123,12 @@ namespace TestsKT
 
     template <bsz SZ, typename SUF>
     void kt_max_p_test();
+
+    template <bsz SZ, typename SUF>
+    void kt_div_p_test();
+
+    template <bsz SZ, typename SUF>
+    void kt_pow2_p_test();
     // -------------------------
 
     TEST(KT_L0, KT_BASE_T_CHECK)
@@ -560,6 +566,48 @@ namespace TestsKT
         if(can_exec_avx512_tests())
         {
             CALL_FOR_REAL_TYPES(kt_max_p_test, bsz::b512);
+        }
+    }
+
+    /*
+    * Test div intrinsic for all types
+    */
+    TEST(KT_L0, kt_div_p_128)
+    {
+        CALL_FOR_ALL_TYPES(kt_div_p_test, bsz::b128);
+    }
+
+    TEST(KT_L0, kt_div_p_256)
+    {
+        CALL_FOR_ALL_TYPES(kt_div_p_test, bsz::b256);
+    }
+
+    TEST(KT_L0, kt_div_p_512)
+    {
+        if(can_exec_avx512_tests())
+        {
+            CALL_FOR_ALL_TYPES(kt_div_p_test, bsz::b512);
+        }
+    }
+
+    /*
+    * Test pow2 intrinsic for all types
+    */
+    TEST(KT_L0, kt_pow2_p_128)
+    {
+        CALL_FOR_ALL_TYPES(kt_pow2_p_test, bsz::b128);
+    }
+
+    TEST(KT_L0, kt_pow2_p_256)
+    {
+        CALL_FOR_ALL_TYPES(kt_pow2_p_test, bsz::b256);
+    }
+
+    TEST(KT_L0, kt_pow2_p_512)
+    {
+        if(can_exec_avx512_tests())
+        {
+            CALL_FOR_ALL_TYPES(kt_pow2_p_test, bsz::b512);
         }
     }
 }
