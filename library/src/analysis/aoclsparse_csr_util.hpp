@@ -281,6 +281,236 @@ aoclsparse_status aoclsparse_csr_csc_fill_diag(aoclsparse_int        m,
     return aoclsparse_status_success;
 }
 
+/**
+ * @brief Transforms a U/L triangle of a CSR matrix to a full symmetric/hermitian matrix.
+ *
+ * This function takes a sparse matrix stored in CSR (Compressed Sparse Row) format,
+ * and constructs the full symmetric/hermitian matrix based on the upper or lower triangle
+ * of a matrix. The function handles both real and complex types, and can optionally perform
+ * Hermitian conjugation for complex matrices.
+ *
+ * @tparam T    Value type of the matrix elements (e.g., float, double, std::complex).
+ * @tparam HERM If true, performs Hermitian conjugation for complex matrices.
+ *
+ * @param[in]  m        Number of rows (and columns) in the matrix.
+ * @param[in]  src_ptr  Row pointer array of the source CSR matrix.
+ * @param[in]  src_ind  Column indices array of the source CSR matrix.
+ * @param[in]  src_val  Values array of the source CSR matrix.
+ * @param[in]  uplo     Fill mode specifying input triangle to use:
+ *                      - true: upper triangle is used as input
+ *                      - false: lower triangle is used as input
+ * @param[in]  base     Index base (0/1-based).
+ * @param[out] dst_mat  Pointer to the destination CSR matrix to be filled.
+ *
+ * @return aoclsparse_status
+ *         - aoclsparse_status_success on success.
+ *         - aoclsparse_status_invalid_pointer if any input pointer is null.
+ *         - aoclsparse_status_memory_error if memory allocation fails.
+ *
+ * @note The destination matrix object (dst_mat) must be allocated by the caller.
+ *       The function allocates and fills the internal arrays for the full symmetric/hermitian matrix.
+ *       On error, dst_mat is deleted and the appropriate error status is returned.
+ */
+template <typename T, bool HERM = false>
+aoclsparse_status aoclsparse_convert_mat_to_general(const aoclsparse_int        m,
+                                                    const aoclsparse_int       *src_ptr,
+                                                    const aoclsparse_int       *src_ind,
+                                                    const void                 *src_val,
+                                                    const aoclsparse_fill_mode  uplo,
+                                                    const aoclsparse_index_base base,
+                                                    aoclsparse::csr            *dst_mat)
+{
+    if(src_ind == nullptr || src_ptr == nullptr || src_val == nullptr)
+    {
+        delete dst_mat;
+        return aoclsparse_status_invalid_pointer;
+    }
+
+    // Allocate the pointers for storing diagonals in the symmetric matrix
+    std::vector<aoclsparse_int> nnz_val;
+    try
+    {
+        nnz_val.resize(m, 0);
+        dst_mat->idiag    = new aoclsparse_int[m];
+        dst_mat->diag_val = ::operator new(sizeof(T) * m);
+    }
+    catch(std::bad_alloc &)
+    {
+        delete dst_mat;
+        return aoclsparse_status_memory_error;
+    }
+
+    for(aoclsparse_int i = 0; i < m; i++)
+    {
+        dst_mat->ptr[i]   = 0;
+        dst_mat->idiag[i] = 0;
+    }
+    dst_mat->ptr[m] = 0;
+
+    // Count the number of non-zero elements for the symmetric matrix
+    for(aoclsparse_int i = 0; i < m; ++i)
+    {
+        for(aoclsparse_int j = src_ptr[i] - base; j < src_ptr[i + 1] - base; ++j)
+        {
+            aoclsparse_int col = src_ind[j] - base;
+            if(!uplo && col < i)
+            {
+                dst_mat->ptr[i + 1]++;
+                nnz_val[col]++;
+            }
+            else if(uplo && col > i)
+            {
+                dst_mat->ptr[col + 1]++;
+                nnz_val[i]++;
+            }
+        }
+    }
+
+    // Store the output row pointers, diag pointers
+    for(aoclsparse_int i = 0; i < m; ++i)
+    {
+        dst_mat->idiag[i] = dst_mat->ptr[i] + dst_mat->ptr[i + 1];
+        dst_mat->ptr[i + 1] += dst_mat->ptr[i] + nnz_val[i] + 1;
+    }
+
+    /**
+     * Allocate output buffers for the full symmetric/Hermitian matrix.
+     * - 'current_pos' tracks the next available position for each row/column
+     *    to place symmetric or hermitian entries.
+     */
+    std::vector<aoclsparse_int> current_pos;
+    try
+    {
+        current_pos.resize(m, 0);
+        dst_mat->val = ::operator new(sizeof(T) * (dst_mat->ptr[m]));
+        dst_mat->ind = new aoclsparse_int[dst_mat->ptr[m]];
+    }
+    catch(const std::bad_alloc &)
+    {
+        delete dst_mat;
+        return aoclsparse_status_memory_error;
+    }
+
+    T *symm_diag = (T *)dst_mat->diag_val;
+    T *symm_val  = (T *)dst_mat->val;
+    T *csr_val   = (T *)src_val;
+
+    /*
+     * If fill_mode is lower, the position of symmetric triangle starts from dst_mat->idiag[i] + 1.
+     * Similarly, the symmetric triangle starts from dst_mat->ptr[i] of the dst_mat if fill_mode
+     * is upper.
+     */
+    if(!uplo)
+    {
+        for(aoclsparse_int i = 0; i < m; i++)
+            current_pos[i] = dst_mat->idiag[i] + 1;
+    }
+    else
+    {
+        for(aoclsparse_int i = 0; i < m; i++)
+            current_pos[i] = dst_mat->ptr[i];
+    }
+
+    // Save U/L symmetric triangles, output diagonals
+    for(aoclsparse_int i = 0; i < m; ++i)
+    {
+        aoclsparse_int col_pos;
+        col_pos = (!uplo) ? dst_mat->ptr[i] : dst_mat->idiag[i] + 1;
+        T diag  = aoclsparse_numeric::zero<T>();
+        for(aoclsparse_int idx = src_ptr[i] - base; idx < src_ptr[i + 1] - base; ++idx)
+        {
+            aoclsparse_int j = src_ind[idx] - base;
+            if((!uplo && j < i) || (uplo && j > i))
+            {
+                //Original triangle
+                symm_val[col_pos]     = csr_val[idx];
+                dst_mat->ind[col_pos] = j;
+                col_pos++;
+
+                //Symmetrized triangle
+                if constexpr(HERM)
+                    symm_val[current_pos[j]] = aoclsparse::conj(csr_val[idx]);
+                else
+                    symm_val[current_pos[j]] = csr_val[idx];
+                dst_mat->ind[current_pos[j]] = i;
+                current_pos[j]++;
+            }
+            else if(j == i)
+            {
+                if constexpr(HERM)
+                    diag = std::real(csr_val[idx]);
+                else
+                    diag = csr_val[idx];
+            }
+        }
+
+        /*
+ * We know the position of diagonals for each row idiag[i] while storing
+ * the row pointers of dst_mat. Store the same diagonal values from the input
+ * matrix if present. Otherwise, save the diagonals as zero and update the col indices.
+ */
+        symm_val[dst_mat->idiag[i]]     = diag;
+        symm_diag[i]                    = diag;
+        dst_mat->ind[dst_mat->idiag[i]] = i;
+    }
+
+    dst_mat->nnz      = dst_mat->ptr[m];
+    dst_mat->mtx_diag = aoclsparse_diag_type_non_unit;
+    return aoclsparse_status_success;
+}
+
+/**
+ * @brief Sets the diagonal values of a CSR  matrix according to the matrix descriptor.
+ *
+ * This function updates the diagonal entries of the given CSR matrix based on the diagonal type specified
+ * in the matrix descriptor. If the diagonal type is non-unit, the diagonal values are set from the original/provided
+ * diagonal array. If the diagonal type is unit or zero, the diagonal entries are set to 1 or 0 respectively.
+ * The function also updates the matrix's internal diagonal type state.
+ *
+ * @tparam     T            Data type of the matrix values (e.g., float, double, complex).
+ * @param[in]  m            Number of rows (and columns) in the matrix.
+ * @param[in]  descr        Matrix descriptor specifying the diagonal type.
+ * @param[out] csr_mat      Pointer to the CSR matrix structure to be updated.
+ * @return                  aoclsparse_status_success if successful, or an error status if input pointers are invalid.
+ */
+template <typename T>
+aoclsparse_status aoclsparse_set_mat_diag(const aoclsparse_int        m,
+                                          const _aoclsparse_mat_descr descr,
+                                          aoclsparse::csr            *csr_mat)
+{
+    if(csr_mat == nullptr || csr_mat->ind == nullptr || csr_mat->ptr == nullptr
+       || csr_mat->val == nullptr || csr_mat->diag_val == nullptr || csr_mat->idiag == nullptr)
+        return aoclsparse_status_invalid_pointer;
+
+    T  diag_val;
+    T *symm_diag = (T *)csr_mat->diag_val;
+    T *symm_val  = (T *)csr_mat->val;
+
+    // If the diag_type is non-unit, then set the diagonal values of the orginal matrix
+    if(descr.diag_type == aoclsparse_diag_type_non_unit)
+        for(aoclsparse_int i = 0; i < m; i++)
+            symm_val[csr_mat->idiag[i]] = symm_diag[i];
+
+    // If the diag_type is unit or zero, then set the appropriate diagonal values
+    else
+    {
+        if(descr.diag_type == aoclsparse_diag_type_unit)
+            if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
+                diag_val = 1.0;
+            else
+                diag_val = {1, 0};
+
+        else if(descr.diag_type == aoclsparse_diag_type_zero)
+            diag_val = aoclsparse_numeric::zero<T>();
+
+        for(aoclsparse_int i = 0; i < m; i++)
+            symm_val[csr_mat->idiag[i]] = diag_val;
+    }
+
+    csr_mat->mtx_diag = descr.diag_type;
+    return aoclsparse_status_success;
+}
+
 // Creates matrix copies of CSR
 template <typename T>
 aoclsparse_status aoclsparse_matrix_transform(aoclsparse_matrix A)
@@ -322,6 +552,7 @@ aoclsparse_status aoclsparse_matrix_transform(aoclsparse_matrix A)
                     switch(doid)
                     {
                     case aoclsparse::doid::gt:
+                    case aoclsparse::doid::gh:
                     {
                         // TODO: Create a CSC mat copy when CSC support for mv is implemented
                         aoclsparse::csr *mat_copy = nullptr;
@@ -358,6 +589,13 @@ aoclsparse_status aoclsparse_matrix_transform(aoclsparse_matrix A)
                             delete mat_copy;
                             return status;
                         }
+                        if(doid == aoclsparse::doid::gh)
+                        {
+                            T *csr_val = (T *)mat_copy->val;
+                            for(aoclsparse_int idx = 0; idx < A->nnz; idx++)
+                                csr_val[idx] = aoclsparse::conj(csr_val[idx]);
+                        }
+
                         try
                         {
                             A->mats.push_back(mat_copy);
@@ -371,6 +609,131 @@ aoclsparse_status aoclsparse_matrix_transform(aoclsparse_matrix A)
                         mat_copy->doid = doid;
                         break;
                     }
+                    case aoclsparse::doid::sl:
+                    case aoclsparse::doid::su:
+                    case aoclsparse::doid::slc:
+                    case aoclsparse::doid::suc:
+                    {
+                        if(A->m != A->n)
+                        {
+                            return aoclsparse_status_invalid_size;
+                        }
+                        aoclsparse::csr *mat_copy = nullptr;
+                        try
+                        {
+                            mat_copy = new aoclsparse::csr(A->m,
+                                                           A->n,
+                                                           /*A->nnz*/ -1,
+                                                           aoclsparse_csr_mat,
+                                                           aoclsparse_index_base_zero,
+                                                           csr_mat->val_type);
+                        }
+                        catch(std::bad_alloc &)
+                        {
+                            return aoclsparse_status_memory_error;
+                        }
+                        status = aoclsparse_convert_mat_to_general<T, false>(A->m,
+                                                                             csr_mat->ptr,
+                                                                             csr_mat->ind,
+                                                                             csr_mat->val,
+                                                                             optd->fill_mode,
+                                                                             csr_mat->base,
+                                                                             mat_copy);
+                        if(status != aoclsparse_status_success)
+                        {
+                            return status;
+                        }
+
+                        /*
+                         * Conjugate all values in both val and diag_val arrays.
+                         * This ensures that if the matrix descriptor's diagonal type
+                         * is later changed from unit/zero to non-unit, the correct
+                         * conjugated diagonal values will be used for replacement.
+                         */
+                        if(doid == aoclsparse::doid::slc || doid == aoclsparse::doid::suc)
+                        {
+                            T *csr_val  = (T *)mat_copy->val;
+                            T *diag_val = (T *)mat_copy->diag_val;
+                            for(aoclsparse_int idx = 0; idx < mat_copy->ptr[mat_copy->m]; idx++)
+                                csr_val[idx] = aoclsparse::conj(csr_val[idx]);
+                            for(aoclsparse_int idx = 0; idx < mat_copy->m; idx++)
+                                diag_val[idx] = aoclsparse::conj(diag_val[idx]);
+                        }
+                        try
+                        {
+                            A->mats.push_back(mat_copy);
+                        }
+                        catch(std::bad_alloc &)
+                        {
+                            delete mat_copy;
+                            return aoclsparse_status_memory_error;
+                        }
+                        mat_copy->doid = doid;
+                        break;
+                    }
+                    case aoclsparse::doid::hl:
+                    case aoclsparse::doid::hu:
+                    case aoclsparse::doid::hlc:
+                    case aoclsparse::doid::huc:
+                    {
+                        if(A->m != A->n)
+                        {
+                            return aoclsparse_status_invalid_size;
+                        }
+                        aoclsparse::csr *mat_copy = nullptr;
+                        try
+                        {
+                            mat_copy = new aoclsparse::csr(A->m,
+                                                           A->n,
+                                                           /*A->nnz*/ -1,
+                                                           aoclsparse_csr_mat,
+                                                           aoclsparse_index_base_zero,
+                                                           csr_mat->val_type);
+                        }
+                        catch(std::bad_alloc &)
+                        {
+                            return aoclsparse_status_memory_error;
+                        }
+                        status = aoclsparse_convert_mat_to_general<T, true>(A->m,
+                                                                            csr_mat->ptr,
+                                                                            csr_mat->ind,
+                                                                            csr_mat->val,
+                                                                            optd->fill_mode,
+                                                                            csr_mat->base,
+                                                                            mat_copy);
+                        if(status != aoclsparse_status_success)
+                        {
+                            return status;
+                        }
+
+                        /*
+                         * Conjugate all values in both val and diag_val arrays.
+                         * This ensures that if the matrix descriptor's diagonal type
+                         * is later changed from unit/zero to non-unit, the correct
+                         * conjugated diagonal values will be used for replacement.
+                         */
+                        if(doid == aoclsparse::doid::hlc || doid == aoclsparse::doid::huc)
+                        {
+                            T *csr_val  = (T *)mat_copy->val;
+                            T *diag_val = (T *)mat_copy->diag_val;
+                            for(aoclsparse_int idx = 0; idx < mat_copy->ptr[mat_copy->m]; idx++)
+                                csr_val[idx] = aoclsparse::conj(csr_val[idx]);
+                            for(aoclsparse_int idx = 0; idx < mat_copy->m; idx++)
+                                diag_val[idx] = aoclsparse::conj(diag_val[idx]);
+                        }
+                        try
+                        {
+                            A->mats.push_back(mat_copy);
+                        }
+                        catch(std::bad_alloc &)
+                        {
+                            delete mat_copy;
+                            return aoclsparse_status_memory_error;
+                        }
+                        mat_copy->doid = doid;
+                        break;
+                    }
+
                     default:
                         break;
                     }

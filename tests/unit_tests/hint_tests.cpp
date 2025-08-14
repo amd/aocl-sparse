@@ -46,8 +46,11 @@ namespace
         ASSERT_EQ(aoclsparse_set_mv_hint(A, trans, descr, 10), aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_set_dotmv_hint(A, trans, descr, 15), aoclsparse_status_success);
 
-        // Only works with symmetric matrices
-        aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_symmetric);
+        // To avoid incorrect doid, setting mat_type as symmetric only if m == n
+        if(A->m == A->n)
+            aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_symmetric);
+        else
+            aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_general);
         ASSERT_EQ(aoclsparse_set_sv_hint(A, trans, descr, 20), aoclsparse_status_success);
 
         // Currently there is nothing to test for LU hints

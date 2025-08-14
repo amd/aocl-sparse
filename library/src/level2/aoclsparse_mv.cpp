@@ -204,7 +204,13 @@ aoclsparse_status aoclsparse::mv(aoclsparse_operation       op,
         // If a matching matrix was found, update parameters accordingly
         if(copy_csr)
         {
-            csr_mat           = copy_csr;
+            csr_mat = copy_csr;
+            if(descr_t.diag_type != csr_mat->mtx_diag)
+            {
+                status = aoclsparse_set_mat_diag<T>(A->m, descr_t, csr_mat);
+                if(status != aoclsparse_status_success)
+                    return status;
+            }
             op                = aoclsparse_operation_none;
             descr_t.type      = aoclsparse_matrix_type_general;
             descr_t.fill_mode = aoclsparse_fill_mode_lower;

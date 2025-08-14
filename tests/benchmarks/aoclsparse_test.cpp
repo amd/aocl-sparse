@@ -217,13 +217,14 @@ int main(int argc, char *argv[])
             "--kid=<kernel ID> \t Indicates the comma-separated list of kernel that will be "
             "benchmarked (e.g., \"0,2\"; default: -1), -1 is auto."
             "\n\t"
-            "--matrix=<R/D/T> if .mtx input is not provided, then this option indicates the type "
+            "--matrix=<R/D/T/H> if .mtx input is not provided, then this option indicates the type "
             "of "
             "random matrix that is generated. Options are:"
             "\n\t\tR: generate a random matrix whose diagonal may or may not contain full-diagonal"
             "\n\t\tD: generate a random matrix with full-diagonal that is diagonally dominant"
             "\n\t\tT: generate a random triangle matrix with full-diagonal that is diagonally "
             "dominant"
+            "\n\t\tH: generate a random matrix whose diagonal will have only real values"
             "\n\t"
             "--sort=<U/P/F> \t Indicates whether the matrix generated is unsorted or partially "
             "sorted or fully-sorted"
@@ -383,6 +384,10 @@ int main(int argc, char *argv[])
         {
             arg.matrix = aoclsparse_matrix_random_lower_triangle;
         }
+        else if(matrix == 'H')
+        {
+            arg.matrix = aoclsparse_matrix_random_herm_diag_dom;
+        }
         else
         {
             std::cerr << "Invalid value for --matrix" << std::endl;
@@ -407,6 +412,10 @@ int main(int argc, char *argv[])
         else if(matrix == 'T')
         {
             arg.matrixB = aoclsparse_matrix_random_lower_triangle;
+        }
+        else if(matrix == 'H')
+        {
+            arg.matrixB = aoclsparse_matrix_random_herm_diag_dom;
         }
         else
         {

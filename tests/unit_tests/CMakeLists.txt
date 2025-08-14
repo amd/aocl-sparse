@@ -219,6 +219,7 @@ set(GTEST_EXECUTABLES
     createtcsr_tests
     tcsrmv_tests
     createbsr_tests
+    optimize_symm_herm_tests
 )
 
 set(AOCLSPARSE_TEST_DEPENDENCIES

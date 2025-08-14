@@ -42,6 +42,14 @@
 #pragma GCC diagnostic ignored "-Wignored-qualifiers"
 #include "Au/Cpuid/X86Cpu.hh"
 #pragma GCC diagnostic pop
+
+// Utilities to update base for row pointers and column indices =============================================
+#define TRANSFORM_BASE(base, ptr, idx)                                                        \
+    std::transform(                                                                           \
+        ptr.begin(), ptr.end(), ptr.begin(), [base](aoclsparse_int &d) { return d + base; }); \
+    std::transform(                                                                           \
+        idx.begin(), idx.end(), idx.begin(), [base](aoclsparse_int &d) { return d + base; });
+
 // Utilities to compare complex real scalars and vectors =============================================
 
 #define EXPECT_COMPLEX_EQ_VEC(n, x, y)                                           \

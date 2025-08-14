@@ -105,6 +105,8 @@ namespace aoclsparse
         aoclsparse_matrix_format_type mat_type;
         aoclsparse_index_base         base;
         aoclsparse_matrix_data_type   val_type;
+        // Indicates the type of diagonal elements present in the matrix
+        aoclsparse_diag_type mtx_diag = aoclsparse_diag_type_non_unit;
 
         // default constructor
         base_mtx() = default;
@@ -157,6 +159,8 @@ namespace aoclsparse
         aoclsparse_int *idiag = nullptr;
         // position where the first strictly upper triangle element is/would be located in every row
         aoclsparse_int *iurow = nullptr;
+        // holds the diagonal values of the matrix
+        void *diag_val = nullptr;
         // if optimized, set true
         bool is_optimized = false;
 
@@ -217,14 +221,16 @@ namespace aoclsparse
             aoclsparse_int               *ptr,
             aoclsparse_int               *ind,
             void                         *val,
-            aoclsparse_int               *diag = nullptr,
-            aoclsparse_int               *urow = nullptr)
+            aoclsparse_int               *diag     = nullptr,
+            aoclsparse_int               *urow     = nullptr,
+            void                         *diag_val = nullptr)
             : base_mtx(m, n, nnz, mat_type, base, val_type, false)
             , ptr(ptr)
             , ind(ind)
             , val(val)
             , idiag(diag)
             , iurow(urow)
+            , diag_val(diag_val)
         {
         }
         // destructor
@@ -240,6 +246,7 @@ namespace aoclsparse
             // idiag and iurow are always deleted, as they may be allocated for optimized matrices
             delete[] idiag;
             delete[] iurow;
+            ::operator delete(diag_val);
         }
     };
 
