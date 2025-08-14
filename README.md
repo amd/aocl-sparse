@@ -1,5 +1,5 @@
 # AOCL-Sparse
-AOCL-Sparse exposes a common interface that provides Basic Linear Algebra Subroutines for sparse computation implemented for AMD's CPUs. AOCL-Sparse is built with cmake, using the supported compilers GNU and AOCC on Linux and clang/MSVC on Windows. AOCL-Sparse is dependent on AOCL-BLAS and AOCL-LAPACK.
+AOCL-Sparse exposes a common interface that provides Basic Linear Algebra Subroutines for sparse computation implemented for AMD's CPUs. AOCL-Sparse is built with cmake, using the supported compilers GNU and AOCC on Linux and clang/MSVC on Windows. AOCL-Sparse is dependent on AOCL-BLAS, AOCL-LAPACK and AOCL-UTILS.
 
 ## Requirements
 * Git
@@ -58,15 +58,9 @@ build_directory\tests\examples\sample_spmv.exe
 ```
 export AOCL_ROOT=/opt/aocl
 ```
-3. Change directory to `aocl-sparse` and create the build directory `build/release`
+3. Configure the project along with (or none) of the following options depending on the build that is required:
 ```
-cd aocl-sparse
-mkdir -p build/release
-cd build/release
-```
-4. Configure the project by typing cmake ../../ along with (or none) of the following options depending on the build that is required:
-```
-cmake ../.. -DCMAKE_INSTALL_PREFIX="<aoclsparse_install_path>"
+cmake -S . -B <build_directory> -DCMAKE_INSTALL_PREFIX="<aoclsparse_install_path>"
 
 # Configure AOCL-Sparse
 # Build options:
@@ -80,10 +74,9 @@ cmake ../.. -DCMAKE_INSTALL_PREFIX="<aoclsparse_install_path>"
 #   USE_AVX512               - AVX512 Support (Default: ON)
 ```
 **Note** If `CMAKE_INSTALL_PREFIX` is not provided then `/opt/aoclsparse/` is chosen as the default installation location. Inside it will contain the `lib`, `include`, and `examples` directories and associated files.
-5. Build the project by typing make. To install the binaries, do make install
+5. Build and install the project.
 ```
-make
-[sudo] make install
+cmake --build <build_directory> --config Release --target install
 ```
 6. Refer the sections below to run examples/tests and to build documentation
 
@@ -92,6 +85,48 @@ make
 ```
 cmake -S . -B <build_dir> -DUSE_EXTERNAL_OMP_LIB=ON -DEXTERNAL_OMP_LIBRARY="C:\Path-to\default-external-openMP\library\libomp.lib"
 ```
+
+#### Non-AOCL_ROOT Build Mode
+
+For builds using explicit library paths instead of `AOCL_ROOT`, you can specify the AOCL libraries directly via CMake variables. This mode bypasses the need for `AOCL_ROOT` environment variable and allows fine-grained control over library selection.
+
+**Linux Example**:
+```bash
+# Configure with explicit library paths instead of AOCL_ROOT
+cmake -S . -B <build_directory> -DCMAKE_INSTALL_PREFIX="<aoclsparse_install_path>" \
+  -DAOCL_BLIS_LIB=/path/to/aocl/lib_ILP64/libblis-mt.so \
+  -DAOCL_LIBFLAME=/path/to/aocl/lib_ILP64/libflame.so \
+  -DAOCL_UTILS_LIB=/path/to/aocl/lib_ILP64/libaoclutils.so \
+  -DAOCL_BLIS_INCLUDE_DIR=/path/to/aocl/include_ILP64 \
+  -DAOCL_LIBFLAME_INCLUDE_DIR=/path/to/aocl/include_ILP64 \
+  -DAOCL_UTILS_INCLUDE_DIR=/path/to/aocl/include_ILP64/alci \
+  -DBUILD_SHARED_LIBS=ON -DBUILD_ILP64=ON -DSUPPORT_OMP=ON
+
+# Build and install
+cmake --build <build_directory> --config Release --target install
+```
+
+**Windows Example**:
+```cmd
+cd aocl-sparse
+
+# Configure with explicit library paths instead of AOCL_ROOT
+cmake -S . -B <build_directory> -T clangcl -G "Visual Studio 17 2022" ^
+  -DCMAKE_CXX_COMPILER=clang-cl -DCMAKE_INSTALL_PREFIX="<aoclsparse_install_path>" ^
+  -DAOCL_BLIS_LIB="C:/path/to/aocl/lib_ILP64/libblis-mt.lib" ^
+  -DAOCL_LIBFLAME="C:/path/to/aocl/lib_ILP64/libflame.lib" ^
+  -DAOCL_UTILS_LIB="C:/path/to/aocl/lib_ILP64/libaoclutils.lib" ^
+  -DAOCL_BLIS_INCLUDE_DIR="C:/path/to/aocl/include_ILP64" ^
+  -DAOCL_LIBFLAME_INCLUDE_DIR="C:/path/to/aocl/include_ILP64" ^
+  -DAOCL_UTILS_INCLUDE_DIR="C:/path/to/aocl/include_ILP64/alci" ^
+  -DBUILD_SHARED_LIBS=ON -DBUILD_ILP64=ON -DSUPPORT_OMP=ON
+
+# Build and install
+cmake --build <build_directory> --config Release --target install
+```
+
+**Note**: Non-AOCL_ROOT mode is supported on both Linux and Windows, allowing users to build AOCL-Sparse with explicit library paths.
+
 #### Running basic examples
 To get acquainted on how to use the library, a variety of small illustrative examples
 are provided (under the `tests/samples` folder). The purpose of these examples is

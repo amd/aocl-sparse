@@ -53,14 +53,7 @@ if (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
     set(EXTERNAL_OMP_LIBRARY "" CACHE STRING "Provide external OMP library")
 
     # Set paths to AOCLUTILS, BLAS and LAPACK installations.
-    set(CMAKE_AOCL_ROOT
-        $ENV{AOCL_ROOT}
-        CACHE
-        STRING
-        "AOCL_ROOT directory to be used to find BLAS/LAPACK/AOCLUTILS libraries")
-    if(CMAKE_AOCL_ROOT STREQUAL "")
-        message(FATAL_ERROR "CMAKE_AOCL_ROOT is empty. Either set environment variable AOCL_ROOT or set -DCMAKE_AOCL_ROOT=<path_to_AOCL_libs>.")
-    endif()
+    set(CMAKE_AOCL_ROOT $ENV{AOCL_ROOT} CACHE STRING "AOCL_ROOT directory to be used to find BLAS/LAPACK/AOCLUTILS libraries")
 
     set(CMAKE_SPARSE_ROOT $ENV{SPARSE_ROOT} CACHE STRING "SPARSE_ROOT directory to be used to find Sparse artifacts")
     if(CMAKE_SPARSE_ROOT STREQUAL "")
