@@ -49,11 +49,11 @@ namespace TestsKT
                         9.125f, -1.125f, 2.5f,   5.125f,  4.125f, 3.25f,   3.5f,    5.5f};
         double   vd[16]{1.5,     2.25,   3.5,    0.5,     8.25,  -3.25,    6.5,    -1.25,
                         9.125,   5.5,   -2.25,   2.5,     7.25,  -6.25,    9.125,  -0.25};
-        std::complex<float>  vc[16]{ {2.25f, -1.5f},  {4.0f, -2.0f},  {4.0f, -3.0f}, {8.25f, -4.0f},
+        std::complex<float>  vc[16]{ {2.5f, -1.5f},  {4.0f, -2.0f},  {4.0f, -3.0f}, {8.25f, -4.0f},
                                      {1.5f, -5.0f},   {3.5f, -6.25f},  {7.75f, -7.0f},  {9.5f, -8.0f},
                                      {-2.5f, -1.5f},  {-3.25f, -2.0f}, {-5.5f, -3.0f},  {-7.25f, -4.0f},
                                      {-9.75f, -5.0f}, {-2.2f, -6.0f},  {-4.75f, -7.5f}, {-6.0f,  -8.125f}};
-        std::complex<double> vz[8]{  {1.25, -12},     {0.5, -21.0},    {0.125, -13.0},  {3.5,   -4.5},
+        std::complex<double> vz[8]{  {1.5, -12},     {0.5, -21.0},    {0.125, -13.0},  {3.5,   -4.5},
                                      {5.25, -8.125},  {8.5, -6.75},    {9.5, -7.25},    {2.125, -3.0}};
 
         template <typename T>
@@ -1337,15 +1337,15 @@ namespace TestsKT
         avxvector_t<SZ, SUF> s, as, bs;
         SUF                  refs[sz];
 
-        SUF        n    = D.get_data<SUF>()[7];
+        SUF        n    = D.get_data<SUF>()[0];
         const SUF *data = D.get_data<SUF>();
 
-        as = kt_loadu_p<SZ, SUF>(data);
+        as = kt_loadu_p<SZ, SUF>(data + 1);
         bs = kt_set1_p<SZ, SUF>(n);
         s  = kt_div_p<SZ, SUF>(as, bs);
         for(size_t i = 0; i < sz; i++)
         {
-            refs[i] = data[i] / n;
+            refs[i] = data[i + 1] / n;
         }
 
         auto res_ptr = reinterpret_cast<SUF *>(&s);

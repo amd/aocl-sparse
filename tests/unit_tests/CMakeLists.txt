@@ -82,6 +82,9 @@ if (BUILD_SPARSE_TESTS_OUTOFSRCTREE)
         set(COMPILER_FLAGS_DEBUG "${COMPILER_FLAGS_DEBUG};${CMAKE_CXX_FLAGS_DEBUG}")
     endif()
 
+    # Version definitions (missing in out-of-source builds)
+    set(AOCLSPARSE_DEFS "")
+
     ## Change default installation path
     if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set (CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/../bin"
@@ -213,6 +216,9 @@ set(GTEST_EXECUTABLES
     tcsrmv_tests
     createbsr_tests
     optimize_symm_herm_tests
+    # KT tests
+    kt_tests
+    ktlvl2_tests
 )
 
 set(AOCLSPARSE_TEST_DEPENDENCIES
@@ -232,42 +238,18 @@ $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/include>
 )
 
 if(NOT BUILD_SPARSE_TESTS_OUTOFSRCTREE)
-    set(GTEST_INTERNAL_EXECUTABLES
-        kt_tests
-        ktlvl2_tests
-    )
     set(TESTS_COMMON_DIR "${CMAKE_SOURCE_DIR}/tests/common")
-    # -----------------------------------------------------------------------
-    # Build KT tests (Note: this section should not be built for out of source)
-    # -----------------------------------------------------------------------
-    set(KT_KERNELS
-    ${CMAKE_CURRENT_SOURCE_DIR}/kt_kernels.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/ktlvl2_kernels.cpp
-    )
+
     set(AOCLSPARSE_INTERNAL_HEADER_DEPENDENCIES
     ${CMAKE_SOURCE_DIR}/library/src/include
     ${CMAKE_SOURCE_DIR}/library/src/extra
     ${CMAKE_SOURCE_DIR}/tests/include
     )
+
     list(APPEND AOCLSPARSE_TEST_HEADER_DEPENDENCIES ${AOCLSPARSE_INTERNAL_HEADER_DEPENDENCIES})
-    # Double compilation of KT test kernels
-    add_library(KT_KERNELS_AVX512 OBJECT ${KT_KERNELS})
-    target_compile_options(KT_KERNELS_AVX512 PRIVATE ${AOCLSPARSE_AVX512_FLAGS}${AOCLSPARSE_GENERIC_FLAGS})
-    target_link_libraries(KT_KERNELS_AVX512 PRIVATE aoclsparse GTest::gtest_main)
-    target_include_directories(KT_KERNELS_AVX512 PRIVATE ${AOCLSPARSE_TEST_HEADER_DEPENDENCIES})
-
-    add_library(KT_KERNELS_AVX2 OBJECT ${KT_KERNELS})
-    target_compile_options(KT_KERNELS_AVX2 PUBLIC "-mno-avx512f;" -DKT_AVX2_BUILD ${AOCLSPARSE_GENERIC_FLAGS})
-    target_link_libraries(KT_KERNELS_AVX2 PUBLIC aoclsparse GTest::gtest_main)
-    target_include_directories(KT_KERNELS_AVX2 PUBLIC ${AOCLSPARSE_TEST_HEADER_DEPENDENCIES})
-    # -----------------------------------------------------------------------
-
-    list(APPEND AOCLSPARSE_TEST_DEPENDENCIES $<TARGET_OBJECTS:KT_KERNELS_AVX512>)
-    list(APPEND AOCLSPARSE_TEST_DEPENDENCIES $<TARGET_OBJECTS:KT_KERNELS_AVX2>)
-    list(APPEND GTEST_EXECUTABLES ${GTEST_INTERNAL_EXECUTABLES})
 else()
-    list(APPEND AOCLSPARSE_TEST_HEADER_DEPENDENCIES ${CMAKE_CURRENT_SOURCE_DIR}/include)
     set(TESTS_COMMON_DIR "${CMAKE_CURRENT_SOURCE_DIR}/common")
+    list(APPEND AOCLSPARSE_TEST_HEADER_DEPENDENCIES ${CMAKE_CURRENT_SOURCE_DIR}/include)
 endif()
 
 ## Compile common sources only once and then link
@@ -290,34 +272,6 @@ list(APPEND AOCLSPARSE_TEST_DEPENDENCIES $<TARGET_OBJECTS:TEST_COMMONS>)
 add_subdirectory(data)
 
 set(TESTS_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/unit_tests")
-foreach(TNAME ${GTEST_EXECUTABLES})
-    add_executable(${TNAME} ${TNAME}.cpp)
-    target_link_libraries(${TNAME} PUBLIC ${AOCLSPARSE_TEST_DEPENDENCIES})
-    # For Windows shared library builds copying some relevant DLLs into the
-    # unit_tests bin folder enables ctest to run without needing to update PATH
-    # gtest_discover_tests does not work on Windows shared library builds - this
-    # is the best we can do for now
-    if(WIN32 AND BUILD_SHARED_LIBS)
-      add_custom_command(
-        TARGET ${TNAME}
-        POST_BUILD
-        COMMAND
-          ${CMAKE_COMMAND} -E copy_if_different
-          $<TARGET_RUNTIME_DLLS:${TNAME}> $<TARGET_FILE_DIR:${TNAME}>
-        COMMAND_EXPAND_LISTS)
-    endif()
-    target_include_directories(${TNAME} PUBLIC ${AOCLSPARSE_TEST_HEADER_DEPENDENCIES})
-
-    # Add definitions that depend on the CMake configuration.
-    target_compile_definitions(${TNAME} PUBLIC ${AOCLSPARSE_DEFS})
-    # Define -Daoclsparse_ILP64 when ILP64 libraries are built. For LP64, this is an empty string.
-    target_compile_definitions(${TNAME} PUBLIC ${AOCLSPARSE_ILP64})
-
-    target_compile_options(${TNAME} PUBLIC $<$<CONFIG:Debug>:${COMPILER_FLAGS_DEBUG}> "-mno-avx512f;")
-    if(NOT BUILD_SPARSE_TESTS_OUTOFSRCTREE)
-        install(FILES ${TNAME}.cpp DESTINATION ${TESTS_INSTALL_DIR})
-    endif()
-endforeach()
 
 if(NOT BUILD_SPARSE_TESTS_OUTOFSRCTREE)
     install(FILES CMakeLists.txt DESTINATION ${TESTS_INSTALL_DIR})
@@ -347,7 +301,73 @@ if(NOT BUILD_SPARSE_TESTS_OUTOFSRCTREE)
     install(FILES ${CMAKE_SOURCE_DIR}/cmake/Dependencies.cmake DESTINATION ${TESTS_INSTALL_DIR})
     install(FILES ${CMAKE_SOURCE_DIR}/cmake/Coverage.cmake DESTINATION ${TESTS_INSTALL_DIR})
     install(FILES ../benchmarks/bench_tests.cmake DESTINATION ${TESTS_INSTALL_DIR})
+    #--------------------------------
+    # Install KT kernel source files
+    #--------------------------------
+    install(FILES kt_kernels.cpp DESTINATION ${TESTS_INSTALL_DIR})
+    install(FILES ktlvl2_kernels.cpp DESTINATION ${TESTS_INSTALL_DIR})
+    #--------------------------------
 endif()
+
+# -----------------------------------------------------------------------
+# Build KT test dependencies
+# -----------------------------------------------------------------------
+
+set(KT_KERNELS
+kt_kernels.cpp
+ktlvl2_kernels.cpp
+)
+
+# Flags used to build KT test kernels
+set(KT_AVX512_FLAGS "-mavx512f;-mavx512vl;-mavx512dq;")
+set(KT_AVX2_FLAGS "-mavx2;-mfma;")
+
+# Double compilation of KT test kernels
+add_library(KT_KERNELS_AVX512 OBJECT ${KT_KERNELS})
+target_compile_options(KT_KERNELS_AVX512 PRIVATE ${KT_AVX512_FLAGS})
+target_link_libraries(KT_KERNELS_AVX512 PRIVATE aoclsparse GTest::gtest_main)
+target_include_directories(KT_KERNELS_AVX512 PRIVATE ${AOCLSPARSE_TEST_HEADER_DEPENDENCIES})
+
+add_library(KT_KERNELS_AVX2 OBJECT ${KT_KERNELS})
+target_compile_options(KT_KERNELS_AVX2 PUBLIC "-mno-avx512f;" -DKT_AVX2_BUILD ${KT_AVX2_FLAGS})
+target_link_libraries(KT_KERNELS_AVX2 PUBLIC aoclsparse GTest::gtest_main)
+target_include_directories(KT_KERNELS_AVX2 PUBLIC ${AOCLSPARSE_TEST_HEADER_DEPENDENCIES})
+
+list(APPEND AOCLSPARSE_TEST_DEPENDENCIES $<TARGET_OBJECTS:KT_KERNELS_AVX512>)
+list(APPEND AOCLSPARSE_TEST_DEPENDENCIES $<TARGET_OBJECTS:KT_KERNELS_AVX2>)
+
+# End of build KT tests logic
+# -----------------------------------------------------------------------
+
+foreach(TNAME ${GTEST_EXECUTABLES})
+    add_executable(${TNAME} ${TNAME}.cpp)
+    target_link_libraries(${TNAME} PUBLIC ${AOCLSPARSE_TEST_DEPENDENCIES})
+    # For Windows shared library builds copying some relevant DLLs into the
+    # unit_tests bin folder enables ctest to run without needing to update PATH
+    # gtest_discover_tests does not work on Windows shared library builds - this
+    # is the best we can do for now
+    if(WIN32 AND BUILD_SHARED_LIBS)
+      add_custom_command(
+        TARGET ${TNAME}
+        POST_BUILD
+        COMMAND
+          ${CMAKE_COMMAND} -E copy_if_different
+          $<TARGET_RUNTIME_DLLS:${TNAME}> $<TARGET_FILE_DIR:${TNAME}>
+        COMMAND_EXPAND_LISTS)
+    endif()
+    target_include_directories(${TNAME} PUBLIC ${AOCLSPARSE_TEST_HEADER_DEPENDENCIES})
+
+    # Add definitions that depend on the CMake configuration.
+    target_compile_definitions(${TNAME} PUBLIC ${AOCLSPARSE_DEFS})
+    # Define -Daoclsparse_ILP64 when ILP64 libraries are built. For LP64, this is an empty string.
+    target_compile_definitions(${TNAME} PUBLIC ${AOCLSPARSE_ILP64})
+
+    target_compile_options(${TNAME} PUBLIC $<$<CONFIG:Debug>:${COMPILER_FLAGS_DEBUG}> "-mno-avx512f;")
+    if(NOT BUILD_SPARSE_TESTS_OUTOFSRCTREE)
+        install(FILES ${TNAME}.cpp DESTINATION ${TESTS_INSTALL_DIR})
+    endif()
+endforeach()
+
 
 include(GoogleTest)
 foreach(TNAME ${GTEST_EXECUTABLES})

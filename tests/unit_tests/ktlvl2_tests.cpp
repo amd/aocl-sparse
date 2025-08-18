@@ -22,7 +22,8 @@
  * ************************************************************************ */
 #include "aoclsparse.h"
 #include "common_data_utils.h"
-#include "aoclsparse_kernel_templates.hpp"
+using kt_int_t = aoclsparse_int;
+#include "kernel-templates/kernel_templates.hpp"
 
 #include <algorithm>
 #include <complex>
