@@ -79,6 +79,11 @@ int testing_csrmm_aocl(const Arguments &arg, testdata<T> &td, double timings[], 
                                                             td.csr_col_indA.data(),
                                                             td.csr_valA.data()));
 
+        // Hint & optimize for positive hints
+        NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_set_memory_hint(A, arg.mem));
+        NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mm_hint(A, trans, descr, /*Hint=*/1000));
+        NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_optimize(A));
+
         int number_hot_calls = arg.iters;
         // Performance run
         for(int iter = 0; iter < number_hot_calls; ++iter)
