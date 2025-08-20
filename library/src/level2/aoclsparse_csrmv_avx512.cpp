@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -51,11 +51,8 @@ aoclsparse_status aoclsparse_csrmv_vectorized_avx512(aoclsparse_index_base base,
     const double         *x_fix           = x - base;
 
 #ifdef _OPENMP
-    aoclsparse_int        chunk           = (m / context::get_context()->get_num_threads())
-                                                ? (m / context::get_context()->get_num_threads())
-                                                : 1;
-#pragma omp parallel for num_threads(context::get_context()->get_num_threads()) \
-    schedule(dynamic, chunk) private(vec_vals_512, vec_x_512, vec_y_512, vec_y)
+#pragma omp parallel for num_threads(context::get_context()->get_num_threads()) private( \
+        vec_vals_512, vec_x_512, vec_y_512, vec_y)
 #endif
 
     for(aoclsparse_int i = 0; i < m; i++)

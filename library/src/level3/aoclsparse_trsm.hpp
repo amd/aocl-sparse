@@ -49,9 +49,6 @@ aoclsparse_status
                     const aoclsparse_int kid /* Kernel ID request */)
 {
     aoclsparse_status status = aoclsparse_status_success;
-#ifdef _OPENMP
-    aoclsparse_int chunk;
-#endif
 
     // Quick initial checks
     if(!A || !X || !B || !descr)
@@ -141,11 +138,7 @@ aoclsparse_status
     using namespace aoclsparse;
 
 #ifdef _OPENMP
-    chunk = (n / context::get_context()->get_num_threads())
-                ? (n / context::get_context()->get_num_threads())
-                : 1;
-#pragma omp parallel for num_threads(context::get_context()->get_num_threads()) \
-    schedule(dynamic, chunk)
+#pragma omp parallel for num_threads(context::get_context()->get_num_threads())
 #endif
     for(aoclsparse_int ld = 0; ld < n; ++ld)
     {

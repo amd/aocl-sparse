@@ -141,7 +141,7 @@ inline void csr_to_coo(aoclsparse_int                     M,
     // Resize coo_row_ind
     coo_row_ind.resize(nnz);
 #ifdef _OPENMP
-#pragma omp parallel for schedule(dynamic, 1024)
+#pragma omp parallel for
 #endif
     for(aoclsparse_int i = 0; i < M; ++i)
     {

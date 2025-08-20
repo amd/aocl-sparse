@@ -482,11 +482,7 @@ namespace aoclsparse
         csr_col_ind_fix[j] (assuming, csr_col_ind_fix = csr_col_ind - base and j >=1 if base = 1)
     */
 #ifdef _OPENMP
-        aoclsparse_int chunk = (m / context::get_context()->get_num_threads())
-                                   ? (m / context::get_context()->get_num_threads())
-                                   : 1;
-#pragma omp parallel for num_threads(context::get_context()->get_num_threads()) \
-    schedule(dynamic, chunk)
+#pragma omp parallel for num_threads(context::get_context()->get_num_threads())
 #endif
         // Iterate over each row of the input matrix and
         // Perform matrix-vector product for each non-zero of the ith row
@@ -874,11 +870,8 @@ std::enable_if_t<std::is_same_v<T, double>, aoclsparse_status>
     bool diag_last  = end_offset && descr->diag_type == aoclsparse_diag_type_unit;
 
 #ifdef _OPENMP
-    aoclsparse_int chunk = (m / context::get_context()->get_num_threads())
-                               ? (m / context::get_context()->get_num_threads())
-                               : 1;
-#pragma omp parallel for num_threads(context::get_context()->get_num_threads()) \
-    schedule(dynamic, chunk) private(vec_vals, vec_x, vec_y)
+#pragma omp parallel for num_threads(context::get_context()->get_num_threads()) private( \
+        vec_vals, vec_x, vec_y)
 #endif
     for(aoclsparse_int i = 0; i < m; i++)
     {
@@ -974,11 +967,8 @@ std::enable_if_t<std::is_same_v<T, double>, aoclsparse_status>
     const double         *x_fix           = x - base;
 
 #ifdef _OPENMP
-    aoclsparse_int chunk = (m / context::get_context()->get_num_threads())
-                               ? (m / context::get_context()->get_num_threads())
-                               : 1;
-#pragma omp parallel for num_threads(context::get_context()->get_num_threads()) \
-    schedule(dynamic, chunk) private(vec_vals, vec_x, vec_y)
+#pragma omp parallel for num_threads(context::get_context()->get_num_threads()) private( \
+        vec_vals, vec_x, vec_y)
 #endif
     for(aoclsparse_int i = 0; i < m; i++)
     {
@@ -1083,20 +1073,17 @@ std::enable_if_t<std::is_same_v<T, double>, aoclsparse_status>
     if(!csr_mat_br4)
         return aoclsparse_status_invalid_pointer;
 
-    aoclsparse_index_base           base  = csr_mat_br4->base;
-    aoclsparse_int                 *tcptr = csr_mat_br4->ind;
-    aoclsparse_int                 *rptr  = csr_mat_br4->ptr;
-    aoclsparse_int                 *cptr;
-    double                         *tvptr = (double *)csr_mat_br4->val;
-    const double                   *vptr;
-    aoclsparse_int                  blk = 4;
-    [[maybe_unused]] aoclsparse_int chunk_size
-        = (A->m) / (blk * context::get_context()->get_num_threads());
+    aoclsparse_index_base base  = csr_mat_br4->base;
+    aoclsparse_int       *tcptr = csr_mat_br4->ind;
+    aoclsparse_int       *rptr  = csr_mat_br4->ptr;
+    aoclsparse_int       *cptr;
+    double               *tvptr = (double *)csr_mat_br4->val;
+    const double         *vptr;
+    aoclsparse_int        blk = 4;
 
 #ifdef _OPENMP
-    chunk_size = chunk_size ? chunk_size : 1;
-#pragma omp parallel for num_threads(context::get_context()->get_num_threads()) \
-    schedule(dynamic, chunk_size) private(res, vvals, vx, vy, vptr, cptr)
+#pragma omp parallel for num_threads(context::get_context()->get_num_threads()) private( \
+        res, vvals, vx, vy, vptr, cptr)
 #endif
     for(aoclsparse_int i = 0; i < (A->m) / blk; i++)
     {
