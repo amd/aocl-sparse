@@ -287,14 +287,15 @@ namespace aoclsparse
             aoclsparse_order              order,
             aoclsparse_int               *ptr,
             aoclsparse_int               *ind,
-            void                         *val)
+            void                         *val,
+            bool                          is_internal = false)
             : base_mtx(bm * block_dim,
                        bn * block_dim,
                        bnnz * block_dim * block_dim,
                        mat_type,
                        base,
                        val_type,
-                       false)
+                       is_internal)
             , block_dim(block_dim)
             , order(order)
             , ptr(ptr)

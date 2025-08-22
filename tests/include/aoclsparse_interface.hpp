@@ -365,6 +365,7 @@ template <typename T>
 aoclsparse_status aoclsparse_csr2bsr(aoclsparse_int             m,
                                      aoclsparse_int             n,
                                      const aoclsparse_mat_descr descr,
+                                     const aoclsparse_order     block_order,
                                      const T                   *csr_val,
                                      const aoclsparse_int      *csr_row_ptr,
                                      const aoclsparse_int      *csr_col_ind,

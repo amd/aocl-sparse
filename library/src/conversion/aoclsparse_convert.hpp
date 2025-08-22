@@ -35,7 +35,6 @@
 #include <cstring>
 #include <limits.h>
 #include <vector>
-
 #if defined(_WIN32) || defined(_WIN64)
 //Windows equivalent of gcc c99 type qualifier __restrict__
 #define __restrict__ __restrict
@@ -393,6 +392,7 @@ template <typename T>
 aoclsparse_status aoclsparse_csr2bsr_template(aoclsparse_int             m,
                                               aoclsparse_int             n,
                                               const aoclsparse_mat_descr descr,
+                                              const aoclsparse_order     block_order,
                                               const T *__restrict__ csr_val,
                                               const aoclsparse_int *__restrict__ csr_row_ptr,
                                               const aoclsparse_int *__restrict__ csr_col_ind,
@@ -402,15 +402,20 @@ aoclsparse_status aoclsparse_csr2bsr_template(aoclsparse_int             m,
                                               aoclsparse_int *__restrict__ bsr_col_ind)
 {
     // Check sizes
-    if(m < 0 || n < 0 || block_dim < 0)
+    if(m < 0 || n < 0)
     {
         return aoclsparse_status_invalid_size;
     }
 
     // Quick return if possible
-    if(m == 0 || n == 0 || block_dim == 0)
+    if(m == 0 || n == 0)
     {
         return aoclsparse_status_success;
+    }
+
+    if(block_dim <= 0)
+    {
+        return aoclsparse_status_invalid_value;
     }
 
     if((descr->base != aoclsparse_index_base_zero) && (descr->base != aoclsparse_index_base_one))
@@ -504,7 +509,10 @@ aoclsparse_status aoclsparse_csr2bsr_template(aoclsparse_int             m,
                     }
 
                     // Write BCSR value
-                    bsr_val[BCSR_IND(blockcol[bcsr_col], i, j, block_dim)] = csr_val[csr_j];
+                    if(block_order == aoclsparse_order_row)
+                        bsr_val[BCSR_IND(blockcol[bcsr_col], j, i, block_dim)] = csr_val[csr_j];
+                    else
+                        bsr_val[BCSR_IND(blockcol[bcsr_col], i, j, block_dim)] = csr_val[csr_j];
                 }
             }
 

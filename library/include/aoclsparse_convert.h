@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -349,6 +349,9 @@ aoclsparse_status aoclsparse_csr2bsr_nnz(aoclsparse_int             m,
 *  descr        descriptor of the input sparse CSR matrix. Only the base index
 *               is used in the conversion process, the remaining descriptor elements are ignored.
 *  @param[in]
+*  block_order  storage order of the elements inside the blocks. Possible options are \ref aoclsparse_order_row
+*               and \ref aoclsparse_order_column.
+*  @param[in]
 *  csr_val      array of \p nnz elements containing the values of the sparse CSR matrix.
 *  @param[in]
 *  csr_row_ptr  array of \p m +1 elements that point to the start of every row of the
@@ -377,6 +380,7 @@ DLL_PUBLIC
 aoclsparse_status aoclsparse_scsr2bsr(aoclsparse_int             m,
                                       aoclsparse_int             n,
                                       const aoclsparse_mat_descr descr,
+                                      const aoclsparse_order     block_order,
                                       const float               *csr_val,
                                       const aoclsparse_int      *csr_row_ptr,
                                       const aoclsparse_int      *csr_col_ind,
@@ -389,6 +393,7 @@ DLL_PUBLIC
 aoclsparse_status aoclsparse_dcsr2bsr(aoclsparse_int             m,
                                       aoclsparse_int             n,
                                       const aoclsparse_mat_descr descr,
+                                      const aoclsparse_order     block_order,
                                       const double              *csr_val,
                                       const aoclsparse_int      *csr_row_ptr,
                                       const aoclsparse_int      *csr_col_ind,
@@ -396,6 +401,32 @@ aoclsparse_status aoclsparse_dcsr2bsr(aoclsparse_int             m,
                                       double                    *bsr_val,
                                       aoclsparse_int            *bsr_row_ptr,
                                       aoclsparse_int            *bsr_col_ind);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_ccsr2bsr(aoclsparse_int                  m,
+                                      aoclsparse_int                  n,
+                                      const aoclsparse_mat_descr      descr,
+                                      const aoclsparse_order          block_order,
+                                      const aoclsparse_float_complex *csr_val,
+                                      const aoclsparse_int           *csr_row_ptr,
+                                      const aoclsparse_int           *csr_col_ind,
+                                      aoclsparse_int                  block_dim,
+                                      aoclsparse_float_complex       *bsr_val,
+                                      aoclsparse_int                 *bsr_row_ptr,
+                                      aoclsparse_int                 *bsr_col_ind);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_zcsr2bsr(aoclsparse_int                   m,
+                                      aoclsparse_int                   n,
+                                      const aoclsparse_mat_descr       descr,
+                                      const aoclsparse_order           block_order,
+                                      const aoclsparse_double_complex *csr_val,
+                                      const aoclsparse_int            *csr_row_ptr,
+                                      const aoclsparse_int            *csr_col_ind,
+                                      aoclsparse_int                   block_dim,
+                                      aoclsparse_double_complex       *bsr_val,
+                                      aoclsparse_int                  *bsr_row_ptr,
+                                      aoclsparse_int                  *bsr_col_ind);
 /**@}*/
 
 /*! \ingroup conv_module
@@ -628,6 +659,36 @@ aoclsparse_status aoclsparse_convert_csr(const aoclsparse_matrix    src_mat,
                                          const aoclsparse_operation op,
                                          aoclsparse_matrix         *dest_mat);
 
+/*! \ingroup conv_module
+*  \brief Convert internal representation of matrix into a sparse BSR matrix
+*
+*  \details
+*  \P{aoclsparse_convert_bsr} converts the supported matrix format into a BSR format and returns it as a new \ref aoclsparse_matrix.
+*  The input matrix can also be transposed, or conjugated and transposed before the conversion. The newly created matrix should be freed by calling aoclsparse_destroy().
+*  Currently, the API supports a source matrix stored in CSR storage format with the matrix type \ref aoclsparse_matrix_type_general.
+*  The source matrix needs to be initalized using \ref aoclsparse_create_csr().
+*
+*  @param[in] src_mat           source matrix used for conversion.
+*  @param[in] block_dim         size of the non-zero blocks of the BSR matrix.
+*  @param[in] block_order       storage order of the elements inside the blocks. Possible options are
+*                               \ref aoclsparse_order_row and \ref aoclsparse_order_column.
+*  @param[in] op                operation to be performed on the input matrix.
+*  @param[out] dest_mat         output destination matrix in BSR format.
+*
+*  \retval    aoclsparse_status_success          the operation completed successfully
+*  \retval    aoclsparse_status_invalid_size     matrix dimensions are invalid
+*  \retval    aoclsparse_status_invalid_value    \p src_mat or \p block_dim contains invalid value
+*  \retval    aoclsparse_status_invalid_pointer  pointers in \p src_mat or \p dest_mat are invalid
+*  \retval    aoclsparse_status_not_implemented  conversion of the src_mat format given is not implemented
+*  \retval    aoclsparse_status_memory_error     memory allocation for destination matrix failed
+*
+*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_convert_bsr(const aoclsparse_matrix src_mat,
+                                         aoclsparse_int          block_dim,
+                                         aoclsparse_order        block_order,
+                                         aoclsparse_operation    op,
+                                         aoclsparse_matrix      *dest_mat);
 #ifdef __cplusplus
 }
 #endif

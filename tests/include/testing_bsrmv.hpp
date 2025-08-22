@@ -82,6 +82,7 @@ void testing_bsrmv(const Arguments &arg)
     aoclsparse_int         N        = arg.N;
     aoclsparse_int         nnz      = arg.nnz;
     aoclsparse_operation   trans    = arg.transA;
+    aoclsparse_order       order    = arg.order;
     aoclsparse_index_base  base     = arg.baseA;
     aoclsparse_matrix_init mat      = arg.matrix;
     std::string            filename = arg.filename;
@@ -147,6 +148,7 @@ void testing_bsrmv(const Arguments &arg)
     CHECK_AOCLSPARSE_ERROR(aoclsparse_csr2bsr<T>(M,
                                                  N,
                                                  descr,
+                                                 order,
                                                  csr_val.data(),
                                                  csr_row_ptr.data(),
                                                  csr_col_ind.data(),

@@ -599,7 +599,7 @@ extern "C" aoclsparse_status aoclsparse_csr2bsr_nnz(aoclsparse_int             m
                                                     aoclsparse_int            *bsr_nnz)
 {
     // Check sizes
-    if(m < 0 || n < 0 || block_dim < 0)
+    if(m < 0 || n < 0 || block_dim <= 0)
     {
         return aoclsparse_status_invalid_size;
     }
@@ -717,6 +717,7 @@ extern "C" aoclsparse_status aoclsparse_csr2bsr_nnz(aoclsparse_int             m
 extern "C" aoclsparse_status aoclsparse_scsr2bsr(aoclsparse_int             m,
                                                  aoclsparse_int             n,
                                                  const aoclsparse_mat_descr descr,
+                                                 const aoclsparse_order     block_order,
                                                  const float               *csr_val,
                                                  const aoclsparse_int      *csr_row_ptr,
                                                  const aoclsparse_int      *csr_col_ind,
@@ -728,6 +729,7 @@ extern "C" aoclsparse_status aoclsparse_scsr2bsr(aoclsparse_int             m,
     return aoclsparse_csr2bsr_template(m,
                                        n,
                                        descr,
+                                       block_order,
                                        csr_val,
                                        csr_row_ptr,
                                        csr_col_ind,
@@ -740,6 +742,7 @@ extern "C" aoclsparse_status aoclsparse_scsr2bsr(aoclsparse_int             m,
 extern "C" aoclsparse_status aoclsparse_dcsr2bsr(aoclsparse_int             m,
                                                  aoclsparse_int             n,
                                                  const aoclsparse_mat_descr descr,
+                                                 const aoclsparse_order     block_order,
                                                  const double              *csr_val,
                                                  const aoclsparse_int      *csr_row_ptr,
                                                  const aoclsparse_int      *csr_col_ind,
@@ -751,11 +754,62 @@ extern "C" aoclsparse_status aoclsparse_dcsr2bsr(aoclsparse_int             m,
     return aoclsparse_csr2bsr_template(m,
                                        n,
                                        descr,
+                                       block_order,
                                        csr_val,
                                        csr_row_ptr,
                                        csr_col_ind,
                                        block_dim,
                                        bsr_val,
+                                       bsr_row_ptr,
+                                       bsr_col_ind);
+}
+
+extern "C" aoclsparse_status aoclsparse_ccsr2bsr(aoclsparse_int                  m,
+                                                 aoclsparse_int                  n,
+                                                 const aoclsparse_mat_descr      descr,
+                                                 const aoclsparse_order          block_order,
+                                                 const aoclsparse_float_complex *csr_val,
+                                                 const aoclsparse_int           *csr_row_ptr,
+                                                 const aoclsparse_int           *csr_col_ind,
+                                                 aoclsparse_int                  block_dim,
+                                                 aoclsparse_float_complex       *bsr_val,
+                                                 aoclsparse_int                 *bsr_row_ptr,
+                                                 aoclsparse_int                 *bsr_col_ind)
+{
+    return aoclsparse_csr2bsr_template(m,
+                                       n,
+                                       descr,
+                                       block_order,
+                                       reinterpret_cast<const std::complex<float> *>(csr_val),
+                                       csr_row_ptr,
+                                       csr_col_ind,
+                                       block_dim,
+                                       reinterpret_cast<std::complex<float> *>(bsr_val),
+                                       bsr_row_ptr,
+                                       bsr_col_ind);
+}
+
+extern "C" aoclsparse_status aoclsparse_zcsr2bsr(aoclsparse_int                   m,
+                                                 aoclsparse_int                   n,
+                                                 const aoclsparse_mat_descr       descr,
+                                                 const aoclsparse_order           block_order,
+                                                 const aoclsparse_double_complex *csr_val,
+                                                 const aoclsparse_int            *csr_row_ptr,
+                                                 const aoclsparse_int            *csr_col_ind,
+                                                 aoclsparse_int                   block_dim,
+                                                 aoclsparse_double_complex       *bsr_val,
+                                                 aoclsparse_int                  *bsr_row_ptr,
+                                                 aoclsparse_int                  *bsr_col_ind)
+{
+    return aoclsparse_csr2bsr_template(m,
+                                       n,
+                                       descr,
+                                       block_order,
+                                       reinterpret_cast<const std::complex<double> *>(csr_val),
+                                       csr_row_ptr,
+                                       csr_col_ind,
+                                       block_dim,
+                                       reinterpret_cast<std::complex<double> *>(bsr_val),
                                        bsr_row_ptr,
                                        bsr_col_ind);
 }
@@ -1174,4 +1228,272 @@ aoclsparse_status aoclsparse_convert_csr(const aoclsparse_matrix    src_mat,
         return aoclsparse_status_invalid_value;
     }
     return aoclsparse_status_success;
+}
+
+namespace aoclsparse
+{
+    template <typename T>
+    aoclsparse_status convert_bsr_t(const aoclsparse_matrix src_mat,
+                                    aoclsparse_int          block_dim,
+                                    aoclsparse_order        block_order,
+                                    aoclsparse_operation    op,
+                                    aoclsparse_matrix      *dest_mat)
+    {
+        if(src_mat == nullptr || dest_mat == nullptr)
+            return aoclsparse_status_invalid_pointer;
+
+        if(src_mat->mats.empty() || !src_mat->mats[0])
+            return aoclsparse_status_invalid_pointer;
+
+        aoclsparse::csr *csr_mat = dynamic_cast<aoclsparse::csr *>(src_mat->mats[0]);
+        if(!csr_mat)
+            return aoclsparse_status_invalid_pointer;
+
+        aoclsparse_matrix     transposed_mat = nullptr;
+        aoclsparse_status     status         = aoclsparse_status_success;
+        aoclsparse_int        m; //Number of rows in the source matrix
+        aoclsparse_int        n; //Number of columns in the source matrix
+        aoclsparse_int        mb; //Number of rows in the BSR matrix
+        aoclsparse_int        nb; //Number of columns in the BSR matrix
+        aoclsparse_int        bsr_nnz = 0; // Total number of non-zero blocks in BSR matrix
+        aoclsparse_index_base base    = csr_mat->base;
+        aoclsparse_mat_descr  descr;
+        aoclsparse_int       *ind = nullptr, *ptr = nullptr;
+        void                 *val = nullptr;
+
+        aoclsparse_int *bsr_row_ptr = nullptr, *bsr_col_ind = nullptr;
+        T              *bsr_val = nullptr;
+        T               zero    = aoclsparse_numeric::zero<T>();
+        aoclsparse_create_mat_descr(&descr);
+        aoclsparse_set_mat_index_base(descr, base);
+
+        switch(src_mat->input_format)
+        {
+        case aoclsparse_csr_mat:
+            if(op == aoclsparse_operation_none)
+            {
+                // op = none, use the input matrix as is
+                m   = src_mat->m;
+                n   = src_mat->n;
+                mb  = (m + block_dim - 1) / block_dim;
+                nb  = (n + block_dim - 1) / block_dim;
+                ptr = csr_mat->ptr;
+                ind = csr_mat->ind;
+                val = csr_mat->val;
+            }
+            else if(op == aoclsparse_operation_transpose
+                    || op == aoclsparse_operation_conjugate_transpose)
+            {
+                // Use aoclsparse_convert_csr to handle transposition
+                status = aoclsparse_convert_csr(src_mat, op, &transposed_mat);
+
+                if(status != aoclsparse_status_success)
+                {
+                    aoclsparse_destroy_mat_descr(descr);
+                    return status;
+                }
+
+                // Get the transposed CSR matrix
+                if(transposed_mat->mats.empty() || !transposed_mat->mats[0])
+                {
+                    aoclsparse_destroy_mat_descr(descr);
+                    return aoclsparse_status_invalid_pointer;
+                }
+                aoclsparse::csr *transposed_csr
+                    = dynamic_cast<aoclsparse::csr *>(transposed_mat->mats[0]);
+                if(!transposed_csr)
+                {
+                    aoclsparse_destroy(&transposed_mat);
+                    aoclsparse_destroy_mat_descr(descr);
+                    return aoclsparse_status_invalid_pointer;
+                }
+
+                // Set dimensions for transposed matrix
+                m  = transposed_csr->m;
+                n  = transposed_csr->n;
+                mb = (m + block_dim - 1) / block_dim;
+                nb = (n + block_dim - 1) / block_dim;
+
+                // Use the transposed matrix data
+                ptr = transposed_csr->ptr;
+                ind = transposed_csr->ind;
+                val = transposed_csr->val;
+            }
+            // Unsupported operation
+            else
+            {
+                aoclsparse_destroy_mat_descr(descr);
+                return aoclsparse_status_not_implemented;
+            }
+
+            // Allocate the memory for BSR matrix components
+            try
+            {
+                bsr_row_ptr = new aoclsparse_int[mb + 1];
+            }
+            catch(std::bad_alloc &)
+            {
+                if(op != aoclsparse_operation_none)
+                    aoclsparse_destroy(&transposed_mat);
+                aoclsparse_destroy_mat_descr(descr);
+                return aoclsparse_status_memory_error;
+            }
+            // Compute bsr_nnz count and populate BSR row pointer
+            // ptr, ind and val points to source matrix or transposed matrix based on the op
+            status
+                = aoclsparse_csr2bsr_nnz(m, n, descr, ptr, ind, block_dim, bsr_row_ptr, &bsr_nnz);
+            if(status != aoclsparse_status_success)
+            {
+                delete[] bsr_row_ptr;
+                // Clean up the temporary matrix used in transpose conversions
+                if(op != aoclsparse_operation_none)
+                    aoclsparse_destroy(&transposed_mat);
+                aoclsparse_destroy_mat_descr(descr);
+                return status;
+            }
+            // Allocate memory for BSR column indices and values
+            try
+            {
+                bsr_col_ind = new aoclsparse_int[bsr_nnz];
+                bsr_val     = reinterpret_cast<T *>(
+                    ::operator new(sizeof(T) * bsr_nnz * block_dim * block_dim));
+            }
+            catch(std::bad_alloc &)
+            {
+                delete[] bsr_row_ptr;
+                delete[] bsr_col_ind;
+                ::operator delete(bsr_val);
+                // Clean up the temporary matrix used in transpose conversions
+                if(op != aoclsparse_operation_none)
+                    aoclsparse_destroy(&transposed_mat);
+                aoclsparse_destroy_mat_descr(descr);
+                return aoclsparse_status_memory_error;
+            }
+
+            // Initialize BSR values to zero
+            // This ensures that all blocks are padded to zero, as some positions in blocks may not be filled during conversion
+            for(aoclsparse_int i = 0; i < bsr_nnz * block_dim * block_dim; i++)
+                bsr_val[i] = zero;
+
+            // Call csr2bsr_template to fill bsr_col_ind and bsr_val
+            status = aoclsparse_csr2bsr_template(m,
+                                                 n,
+                                                 descr,
+                                                 block_order,
+                                                 reinterpret_cast<const T *>(val),
+                                                 ptr,
+                                                 ind,
+                                                 block_dim,
+                                                 bsr_val,
+                                                 bsr_row_ptr,
+                                                 bsr_col_ind);
+
+            // Clean up the temporary matrix used in transpose conversions
+            if(op != aoclsparse_operation_none)
+                aoclsparse_destroy(&transposed_mat);
+            break;
+        default:
+            // Unsupported input format
+            status = aoclsparse_status_not_implemented;
+            break;
+        }
+
+        // Check if the BSR conversion was successful
+        if(status != aoclsparse_status_success)
+        {
+            delete[] bsr_row_ptr;
+            delete[] bsr_col_ind;
+            ::operator delete(bsr_val);
+            aoclsparse_destroy_mat_descr(descr);
+            return status;
+        }
+        aoclsparse::bsr *dest_bsr = nullptr;
+        // Invoking constructor to create destination matrix by setting is_internal=true to represent internal allocation.
+        // Whereas the public API aoclsparse_create_bsr will always have is_internal set to false.
+        try
+        {
+            *dest_mat = new _aoclsparse_matrix;
+            dest_bsr  = new aoclsparse::bsr(mb,
+                                           nb,
+                                           bsr_nnz,
+                                           aoclsparse_bsr_mat,
+                                           base,
+                                           src_mat->val_type,
+                                           block_dim,
+                                           block_order,
+                                           bsr_row_ptr,
+                                           bsr_col_ind,
+                                           bsr_val,
+                                           true);
+            (*dest_mat)->mats.push_back(dest_bsr);
+        }
+        catch(std::bad_alloc &)
+        {
+            delete[] bsr_row_ptr;
+            delete[] bsr_col_ind;
+            ::operator delete(bsr_val);
+            if(dest_bsr)
+                delete dest_bsr;
+            aoclsparse_destroy_mat_descr(descr);
+            return aoclsparse_status_memory_error;
+        }
+
+        // Init base class properties of the destination matrix with actual dimensions
+        aoclsparse_init_mat(*dest_mat,
+                            mb * block_dim,
+                            nb * block_dim,
+                            bsr_nnz * block_dim * block_dim,
+                            aoclsparse_bsr_mat);
+        (*dest_mat)->val_type = get_data_type<T>();
+
+        aoclsparse_destroy_mat_descr(descr);
+        return status;
+    }
+} // namespace aoclsparse
+
+aoclsparse_status aoclsparse_convert_bsr(const aoclsparse_matrix src_mat,
+                                         aoclsparse_int          block_dim,
+                                         aoclsparse_order        block_order,
+                                         aoclsparse_operation    op,
+                                         aoclsparse_matrix      *dest_mat)
+{
+    if(src_mat == nullptr || dest_mat == nullptr)
+        return aoclsparse_status_invalid_pointer;
+
+    if(block_dim <= 0)
+        return aoclsparse_status_invalid_value;
+
+    if((block_order != aoclsparse_order_row && block_order != aoclsparse_order_column))
+        return aoclsparse_status_invalid_value;
+
+    if(op != aoclsparse_operation_none && op != aoclsparse_operation_transpose
+       && op != aoclsparse_operation_conjugate_transpose)
+        return aoclsparse_status_not_implemented;
+
+    *dest_mat = nullptr;
+    aoclsparse_status status;
+
+    if(src_mat->input_format != aoclsparse_csr_mat)
+        return aoclsparse_status_not_implemented;
+
+    switch(src_mat->val_type)
+    {
+    case aoclsparse_smat:
+        status = aoclsparse::convert_bsr_t<float>(src_mat, block_dim, block_order, op, dest_mat);
+        break;
+    case aoclsparse_dmat:
+        status = aoclsparse::convert_bsr_t<double>(src_mat, block_dim, block_order, op, dest_mat);
+        break;
+    case aoclsparse_cmat:
+        status = aoclsparse::convert_bsr_t<std::complex<float>>(
+            src_mat, block_dim, block_order, op, dest_mat);
+        break;
+    case aoclsparse_zmat:
+        status = aoclsparse::convert_bsr_t<std::complex<double>>(
+            src_mat, block_dim, block_order, op, dest_mat);
+        break;
+    default:
+        return aoclsparse_status_invalid_value;
+    }
+    return status;
 }

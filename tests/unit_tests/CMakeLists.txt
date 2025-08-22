@@ -219,6 +219,7 @@ set(GTEST_EXECUTABLES
     # KT tests
     kt_tests
     ktlvl2_tests
+    bsr_convert_tests
 )
 
 set(AOCLSPARSE_TEST_DEPENDENCIES
