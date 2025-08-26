@@ -218,7 +218,6 @@ aoclsparse_status aoclsparse_update_values_t(aoclsparse_matrix A, aoclsparse_int
     switch(A->mats[0]->mat_type)
     {
     case aoclsparse_csr_mat:
-    case aoclsparse_csc_mat:
     {
         aoclsparse::csr *mat = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
         if(mat && mat->val)
@@ -422,13 +421,16 @@ aoclsparse_status aoclsparse_set_value_t(aoclsparse_matrix A,
     switch(A->mats[0]->mat_type)
     {
     case aoclsparse_csr_mat:
-        status = aoclsparse_set_csr_value(
-            dynamic_cast<aoclsparse::csr *>(A->mats[0]), row_idx, col_idx, val);
+    {
+        bool is_csc = (A->mats[0]->doid == aoclsparse::doid::gt);
+        if(is_csc)
+            status = aoclsparse_set_csr_value(
+                dynamic_cast<aoclsparse::csr *>(A->mats[0]), col_idx, row_idx, val);
+        else
+            status = aoclsparse_set_csr_value(
+                dynamic_cast<aoclsparse::csr *>(A->mats[0]), row_idx, col_idx, val);
         break;
-    case aoclsparse_csc_mat:
-        status = aoclsparse_set_csr_value(
-            dynamic_cast<aoclsparse::csr *>(A->mats[0]), col_idx, row_idx, val);
-        break;
+    }
     case aoclsparse_coo_mat:
         status = aoclsparse_set_coo_value(
             dynamic_cast<aoclsparse::coo *>(A->mats[0]), row_idx, col_idx, val);

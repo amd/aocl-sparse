@@ -97,6 +97,10 @@ aoclsparse_status aoclsparse::mv(aoclsparse_operation       op,
     if(!is_mtx_frmt_supported_mv<T>(A->input_format))
         return aoclsparse_status_not_implemented;
 
+    // CSC matrix support is not implemented
+    if(A->input_format == aoclsparse_csr_mat && A->mats[0]->doid != aoclsparse::doid::gn)
+        return aoclsparse_status_not_implemented;
+
     if constexpr(!is_dt_complex<T>())
     {
         // For real types, conjugate transpose is equal to transpose

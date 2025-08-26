@@ -525,7 +525,7 @@ aoclsparse_status aoclsparse_sypr_t(aoclsparse_operation       opA,
     {
         return aoclsparse_status_invalid_pointer;
     }
-    if(A->mats.empty() || B->mats.empty() || !B->mats[0])
+    if(A->mats.empty() || !A->mats[0] || B->mats.empty() || !B->mats[0])
     {
         return aoclsparse_status_invalid_pointer;
     }
@@ -536,6 +536,9 @@ aoclsparse_status aoclsparse_sypr_t(aoclsparse_operation       opA,
     {
         return aoclsparse_status_not_implemented;
     }
+    // Only CSR matrix format is supported
+    if((A->mats[0]->doid != aoclsparse::doid::gn) || (B->mats[0]->doid != aoclsparse::doid::gn))
+        return aoclsparse_status_not_implemented;
 
     if(A->val_type != get_data_type<T>())
     {

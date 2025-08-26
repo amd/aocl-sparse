@@ -43,6 +43,7 @@ namespace
         aoclsparse_int                N;
         aoclsparse_int                nnz;
         aoclsparse_matrix_format_type format_type;
+        aoclsparse::doid              doid = aoclsparse::doid::gn;
     } UpdateValuesParam;
 
     template <typename T>
@@ -50,7 +51,8 @@ namespace
                             aoclsparse_int                M,
                             aoclsparse_int                N,
                             aoclsparse_int                NNZ,
-                            aoclsparse_matrix_format_type format_type)
+                            aoclsparse_matrix_format_type format_type,
+                            aoclsparse::doid              doid)
     {
         aoclsparse_matrix src_mat = nullptr;
         aoclsparse_seedrand();
@@ -58,7 +60,7 @@ namespace
         std::vector<T>              val;
 
         EXPECT_EQ(aoclsparse_init_matrix_random(
-                      base, M, N, NNZ, format_type, coo_row, coo_col, val, ptr, src_mat),
+                      base, M, N, NNZ, format_type, coo_row, coo_col, val, ptr, src_mat, doid),
                   aoclsparse_status_success);
 
         aoclsparse_int       *t_row_ptr = nullptr;
@@ -78,15 +80,17 @@ namespace
         switch(format_type)
         {
         case aoclsparse_csr_mat:
-            EXPECT_EQ(aoclsparse_export_csr(
-                          src_mat, &b, &m, &n, &nnz, &t_row_ptr, &t_col_ind, &t_new_val),
-                      aoclsparse_status_success);
+        {
+            if(doid == aoclsparse::doid::gt)
+                EXPECT_EQ(aoclsparse_export_csc(
+                              src_mat, &b, &m, &n, &nnz, &t_row_ptr, &t_col_ind, &t_new_val),
+                          aoclsparse_status_success);
+            else
+                EXPECT_EQ(aoclsparse_export_csr(
+                              src_mat, &b, &m, &n, &nnz, &t_row_ptr, &t_col_ind, &t_new_val),
+                          aoclsparse_status_success);
             break;
-        case aoclsparse_csc_mat:
-            EXPECT_EQ(aoclsparse_export_csc(
-                          src_mat, &b, &m, &n, &nnz, &t_row_ptr, &t_col_ind, &t_new_val),
-                      aoclsparse_status_success);
-            break;
+        }
         case aoclsparse_coo_mat:
             EXPECT_EQ(aoclsparse_export_coo(
                           src_mat, &b, &m, &n, &nnz, &t_row_ptr, &t_col_ind, &t_new_val),
@@ -125,9 +129,21 @@ namespace
     // List of all desired positive tests
     const UpdateValuesParam UpdateValuessCases[]
         = {{"update_coo_0B", aoclsparse_index_base_zero, 10, 11, 15, aoclsparse_coo_mat},
-           {"update_csc_1B", aoclsparse_index_base_one, 4, 3, 1, aoclsparse_csc_mat},
+           {"update_csc_1B",
+            aoclsparse_index_base_one,
+            4,
+            3,
+            1,
+            aoclsparse_csr_mat,
+            aoclsparse::doid::gt},
            {"update_csr_0B", aoclsparse_index_base_zero, 3, 9, 27, aoclsparse_csr_mat},
-           {"update_csc_0B", aoclsparse_index_base_zero, 7, 3, 3, aoclsparse_csc_mat}};
+           {"update_csc_0B",
+            aoclsparse_index_base_zero,
+            7,
+            3,
+            3,
+            aoclsparse_csr_mat,
+            aoclsparse::doid::gt}};
     // It is used to when testing::PrintToString(GetParam()) to generate test name for ctest
     void PrintTo(const UpdateValuesParam &param, std::ostream *os)
     {
@@ -139,24 +155,26 @@ namespace
     TEST_P(RndOK, Double)
     {
         const UpdateValuesParam &param = GetParam();
-        test_update_values<double>(param.base, param.M, param.N, param.nnz, param.format_type);
+        test_update_values<double>(
+            param.base, param.M, param.N, param.nnz, param.format_type, param.doid);
     }
     TEST_P(RndOK, Float)
     {
         const UpdateValuesParam &param = GetParam();
-        test_update_values<float>(param.base, param.M, param.N, param.nnz, param.format_type);
+        test_update_values<float>(
+            param.base, param.M, param.N, param.nnz, param.format_type, param.doid);
     }
     TEST_P(RndOK, ComplexDouble)
     {
         const UpdateValuesParam &param = GetParam();
         test_update_values<aoclsparse_double_complex>(
-            param.base, param.M, param.N, param.nnz, param.format_type);
+            param.base, param.M, param.N, param.nnz, param.format_type, param.doid);
     }
     TEST_P(RndOK, ComplexFloat)
     {
         const UpdateValuesParam &param = GetParam();
         test_update_values<aoclsparse_float_complex>(
-            param.base, param.M, param.N, param.nnz, param.format_type);
+            param.base, param.M, param.N, param.nnz, param.format_type, param.doid);
     }
     INSTANTIATE_TEST_SUITE_P(UpdateValuesTestSuite, RndOK, testing::ValuesIn(UpdateValuessCases));
 

@@ -1097,19 +1097,23 @@ aoclsparse_status aoclsparse_convert_csr_t(const aoclsparse_matrix    src_mat,
             status = aoclsparse_status_not_implemented;
             break;
         }
-        src_val  = reinterpret_cast<T *>(csr_mat->val);
-        dest_val = reinterpret_cast<T *>(dest_csr->val);
-        if(op == aoclsparse_operation_none)
+        src_val     = reinterpret_cast<T *>(csr_mat->val);
+        dest_val    = reinterpret_cast<T *>(dest_csr->val);
+        bool is_csc = (csr_mat->doid == aoclsparse::doid::gt);
+        // Determine if a direct memory copy is possible (no transpose for CSR, or transpose for CSC)
+        bool direct_copy = (!is_csc && (op == aoclsparse_operation_none))
+                           || (is_csc && (op != aoclsparse_operation_none));
+        if(direct_copy)
         {
-            memcpy(dest_csr->ptr, csr_mat->ptr, (src_mat->m + 1) * sizeof(aoclsparse_int));
-            memcpy(dest_csr->ind, csr_mat->ind, src_mat->nnz * sizeof(aoclsparse_int));
-            memcpy(dest_val, src_val, src_mat->nnz * sizeof(T));
+            memcpy(dest_csr->ptr, csr_mat->ptr, (csr_mat->m + 1) * sizeof(aoclsparse_int));
+            memcpy(dest_csr->ind, csr_mat->ind, csr_mat->nnz * sizeof(aoclsparse_int));
+            memcpy(dest_val, src_val, csr_mat->nnz * sizeof(T));
         }
         else
         {
-            status = aoclsparse_csr2csc_template(src_mat->m,
-                                                 src_mat->n,
-                                                 src_mat->nnz,
+            status = aoclsparse_csr2csc_template(csr_mat->m,
+                                                 csr_mat->n,
+                                                 csr_mat->nnz,
                                                  csr_mat->base,
                                                  csr_mat->base,
                                                  csr_mat->ptr,
@@ -1118,38 +1122,6 @@ aoclsparse_status aoclsparse_convert_csr_t(const aoclsparse_matrix    src_mat,
                                                  dest_csr->ind,
                                                  dest_csr->ptr,
                                                  dest_val);
-        }
-        break;
-    }
-    case aoclsparse_csc_mat:
-    {
-        aoclsparse::csr *csc_mat = dynamic_cast<aoclsparse::csr *>(src_mat->mats[0]);
-        if(!csc_mat)
-        {
-            status = aoclsparse_status_not_implemented;
-            break;
-        }
-        src_val  = reinterpret_cast<T *>(csc_mat->val);
-        dest_val = reinterpret_cast<T *>(dest_csr->val);
-        if(op == aoclsparse_operation_none)
-        {
-            status = aoclsparse_csr2csc_template(src_mat->n,
-                                                 src_mat->m,
-                                                 src_mat->nnz,
-                                                 csc_mat->base,
-                                                 csc_mat->base,
-                                                 csc_mat->ptr,
-                                                 csc_mat->ind,
-                                                 src_val,
-                                                 dest_csr->ind,
-                                                 dest_csr->ptr,
-                                                 dest_val);
-        }
-        else
-        {
-            memcpy(dest_csr->ptr, csc_mat->ptr, (src_mat->n + 1) * sizeof(aoclsparse_int));
-            memcpy(dest_csr->ind, csc_mat->ind, src_mat->nnz * sizeof(aoclsparse_int));
-            memcpy(dest_val, src_val, src_mat->nnz * sizeof(T));
         }
         break;
     }

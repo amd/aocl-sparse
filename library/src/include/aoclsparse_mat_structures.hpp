@@ -118,11 +118,13 @@ namespace aoclsparse
                  aoclsparse_matrix_format_type mat_type,
                  aoclsparse_index_base         base,
                  aoclsparse_matrix_data_type   val_type,
-                 bool                          is_internal)
-            : is_internal(is_internal) // Initialize member variables with constructor parameters
+                 bool                          is_internal,
+                 aoclsparse::doid              doid = aoclsparse::doid::len)
+            : is_internal(is_internal)
             , m(m)
             , n(n)
             , nnz(nnz)
+            , doid(doid)
             , mat_type(mat_type)
             , base(base)
             , val_type(val_type)
@@ -176,21 +178,19 @@ namespace aoclsparse
             aoclsparse_int                nnz,
             aoclsparse_matrix_format_type mat_type,
             aoclsparse_index_base         base,
-            aoclsparse_matrix_data_type   val_type)
-            : base_mtx(m, n, nnz, mat_type, base, val_type, true)
+            aoclsparse_matrix_data_type   val_type,
+            aoclsparse::doid              doid = aoclsparse::doid::gn)
+            : base_mtx(m, n, nnz, mat_type, base, val_type, true, doid)
         {
             try
             {
                 // row/column pointer array can be allocated regardless of nnz value
                 // This enables array creation when matrix dimensions are known but nnz is not yet set
-                // For CSC format, allocate n+1 (columns + 1) for csc_col_ptr
-                // For CSR format, allocate m+1 (rows + 1) for csr_row_ptr
-                aoclsparse_int len = (mat_type == aoclsparse_csc_mat) ? (n + 1) : (m + 1);
-                ptr                = new aoclsparse_int[len];
+                ptr = new aoclsparse_int[m + 1];
                 if(nnz == 0)
                 {
                     // For empty matrices, set all row/column pointers to the base index
-                    std::fill(ptr, ptr + len, base);
+                    std::fill(ptr, ptr + m + 1, base);
                 }
                 // Only allocate memory if nnz is valid (non-negative)
                 if(nnz >= 0)
@@ -221,10 +221,11 @@ namespace aoclsparse
             aoclsparse_int               *ptr,
             aoclsparse_int               *ind,
             void                         *val,
+            aoclsparse::doid              doid     = aoclsparse::doid::gn,
             aoclsparse_int               *diag     = nullptr,
             aoclsparse_int               *urow     = nullptr,
             void                         *diag_val = nullptr)
-            : base_mtx(m, n, nnz, mat_type, base, val_type, false)
+            : base_mtx(m, n, nnz, mat_type, base, val_type, false, doid)
             , ptr(ptr)
             , ind(ind)
             , val(val)

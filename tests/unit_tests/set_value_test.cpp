@@ -43,6 +43,7 @@ namespace
         aoclsparse_int                N;
         aoclsparse_int                nnz;
         aoclsparse_matrix_format_type format_type;
+        aoclsparse::doid              doid = aoclsparse::doid::len;
     } SetValueParam;
 
     template <typename T>
@@ -50,7 +51,8 @@ namespace
                         aoclsparse_int                M,
                         aoclsparse_int                N,
                         aoclsparse_int                NNZ,
-                        aoclsparse_matrix_format_type format_type)
+                        aoclsparse_matrix_format_type format_type,
+                        aoclsparse::doid              doid)
     {
         aoclsparse_matrix src_mat = nullptr;
         aoclsparse_seedrand();
@@ -58,7 +60,7 @@ namespace
         std::vector<T>              val;
 
         EXPECT_EQ(aoclsparse_init_matrix_random(
-                      base, M, N, NNZ, format_type, coo_row, coo_col, val, ptr, src_mat),
+                      base, M, N, NNZ, format_type, coo_row, coo_col, val, ptr, src_mat, doid),
                   aoclsparse_status_success);
 
         // random index to be used to set new value
@@ -96,10 +98,22 @@ namespace
     // List of all desired positive tests
     const SetValueParam SetValuesCases[]
         = {{"set_coo_0B", aoclsparse_index_base_zero, 10, 11, 20, aoclsparse_coo_mat},
-           {"set_csc_0B", aoclsparse_index_base_zero, 5, 22, 1, aoclsparse_csc_mat},
+           {"set_csc_0B",
+            aoclsparse_index_base_zero,
+            5,
+            22,
+            1,
+            aoclsparse_csr_mat,
+            aoclsparse::doid::gt},
            {"set_csr_0B", aoclsparse_index_base_zero, 1, 1, 1, aoclsparse_csr_mat},
            {"set_coo_1B", aoclsparse_index_base_one, 2, 1, 1, aoclsparse_coo_mat},
-           {"set_csc_1B", aoclsparse_index_base_one, 3, 4, 11, aoclsparse_csc_mat},
+           {"set_csc_1B",
+            aoclsparse_index_base_one,
+            3,
+            4,
+            11,
+            aoclsparse_csr_mat,
+            aoclsparse::doid::gt},
            {"set_csr_1B", aoclsparse_index_base_one, 12, 5, 40, aoclsparse_csr_mat}};
 
     // It is used to when testing::PrintToString(GetParam()) to generate test name for ctest
@@ -116,14 +130,16 @@ namespace
     TEST_P(RndOK, Double)
     {
         const SetValueParam &param = GetParam();
-        test_set_value<double>(param.base, param.M, param.N, param.nnz, param.format_type);
+        test_set_value<double>(
+            param.base, param.M, param.N, param.nnz, param.format_type, param.doid);
     }
 
     // tests with float type
     TEST_P(RndOK, Float)
     {
         const SetValueParam &param = GetParam();
-        test_set_value<float>(param.base, param.M, param.N, param.nnz, param.format_type);
+        test_set_value<float>(
+            param.base, param.M, param.N, param.nnz, param.format_type, param.doid);
     }
 
     // tests with double type
@@ -131,7 +147,7 @@ namespace
     {
         const SetValueParam &param = GetParam();
         test_set_value<aoclsparse_double_complex>(
-            param.base, param.M, param.N, param.nnz, param.format_type);
+            param.base, param.M, param.N, param.nnz, param.format_type, param.doid);
     }
 
     // tests with float type
@@ -139,7 +155,7 @@ namespace
     {
         const SetValueParam &param = GetParam();
         test_set_value<aoclsparse_float_complex>(
-            param.base, param.M, param.N, param.nnz, param.format_type);
+            param.base, param.M, param.N, param.nnz, param.format_type, param.doid);
     }
 
     INSTANTIATE_TEST_SUITE_P(SetValueTestSuite, RndOK, testing::ValuesIn(SetValuesCases));

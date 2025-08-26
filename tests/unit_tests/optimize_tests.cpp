@@ -144,12 +144,12 @@ namespace
 
         A->m = A->n = 2;
         // return early for any mat_type other than aoclsparse_csr_mat
-        A->mat_type = aoclsparse_csc_mat;
+        A->mats[0]->doid = aoclsparse::doid::gt;
         EXPECT_EQ(aoclsparse_optimize(A), aoclsparse_status_success);
 
         // return early for any A->val_type other than aoclsparse_dmat
-        A->mat_type = aoclsparse_csr_mat;
-        A->val_type = aoclsparse_cmat;
+        A->mats[0]->doid = aoclsparse::doid::gn;
+        A->val_type      = aoclsparse_cmat;
         EXPECT_EQ(aoclsparse_optimize(A), aoclsparse_status_success);
 
         aoclsparse_destroy_mat_descr(descr);

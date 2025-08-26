@@ -58,8 +58,8 @@ aoclsparse_status
         return aoclsparse_status_invalid_pointer;
 
     // Only CSR, CSC and TCSR input format supported
-    if(A->input_format != aoclsparse_csr_mat && A->input_format != aoclsparse_tcsr_mat
-       && A->input_format != aoclsparse_csc_mat)
+    // Internally, CSC is stored as CSR with rows and columns swapped.
+    if(A->input_format != aoclsparse_csr_mat && A->input_format != aoclsparse_tcsr_mat)
     {
         return aoclsparse_status_not_implemented;
     }
@@ -185,7 +185,7 @@ aoclsparse_status
         // ending of the row
         iurow = (opt_mat)->iurow;
 
-        if(opt_mat->mat_type == aoclsparse_csc_mat)
+        if(opt_mat->doid == aoclsparse::doid::gt)
             doid = trans_doid(doid);
 
         base = opt_mat->base;

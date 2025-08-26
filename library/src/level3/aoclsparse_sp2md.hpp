@@ -267,12 +267,15 @@ inline aoclsparse_status aoclsparse_sp2md_t(const aoclsparse_operation      opA,
     aoclsparse::csr *B_csr = dynamic_cast<aoclsparse::csr *>(B->mats[0]);
     // Holds data related to opB(B)
     aoclsparse::csr *B_op = nullptr;
-
+    // Check if A_csr and B_csr are valid and not of type CSC ("gt" transposed)
     if(!A_csr || !B_csr)
     {
         return aoclsparse_status_not_implemented;
     }
-
+    if(A_csr->doid != aoclsparse::doid::gn || B_csr->doid != aoclsparse::doid::gn)
+    {
+        return aoclsparse_status_not_implemented;
+    }
     // Verify the matrix types and T are consistent
     if(!((A->val_type == aoclsparse_smat && std::is_same_v<T, float>)
          || (A->val_type == aoclsparse_dmat && std::is_same_v<T, double>)

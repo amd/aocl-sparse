@@ -43,21 +43,10 @@ namespace
             aoclsparse::csr *dest_csr = dynamic_cast<aoclsparse::csr *>(dest->mats[0]);
             EXPECT_NE(src_csr, nullptr);
             EXPECT_NE(dest_csr, nullptr);
-            EXPECT_EQ_VEC(src->m + 1, src_csr->ptr, dest_csr->ptr);
-            EXPECT_EQ_VEC(src->nnz, src_csr->ind, dest_csr->ind);
+            EXPECT_EQ_VEC(src_csr->m + 1, src_csr->ptr, dest_csr->ptr);
+            EXPECT_EQ_VEC(src_csr->nnz, src_csr->ind, dest_csr->ind);
             src_val  = src_csr->val;
             dest_val = dest_csr->val;
-        }
-        else if(src->input_format == aoclsparse_csc_mat)
-        {
-            aoclsparse::csr *src_csc  = dynamic_cast<aoclsparse::csr *>(src->mats[0]);
-            aoclsparse::csr *dest_csc = dynamic_cast<aoclsparse::csr *>(dest->mats[0]);
-            EXPECT_NE(src_csc, nullptr);
-            EXPECT_NE(dest_csc, nullptr);
-            EXPECT_EQ_VEC(src->nnz, src_csc->ind, dest_csc->ind);
-            EXPECT_EQ_VEC(src->n + 1, src_csc->ptr, dest_csc->ptr);
-            src_val  = src_csc->val;
-            dest_val = dest_csc->val;
         }
         else if(src->input_format == aoclsparse_coo_mat)
         {

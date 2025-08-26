@@ -56,8 +56,9 @@ aoclsparse_status
     if(A->mats.empty() || !A->mats[0])
         return aoclsparse_status_invalid_pointer;
 
-    // Only CSR input format supported
-    if(A->input_format != aoclsparse_csr_mat)
+    // Only CSR, CSC, TCSR input format supported
+    // Internally, CSC is stored as CSR with rows and columns swapped.
+    if(A->input_format != aoclsparse_csr_mat && A->input_format != aoclsparse_tcsr_mat)
     {
         return aoclsparse_status_not_implemented;
     }
@@ -106,12 +107,20 @@ aoclsparse_status
        && descr->fill_mode != aoclsparse_fill_mode_upper)
         return aoclsparse_status_not_implemented;
 
-    aoclsparse::csr *A_opt_csr = nullptr;
     // call optimize
-    status = aoclsparse_csr_csc_optimize<T>(A, &A_opt_csr);
+    aoclsparse::csr  *A_opt_csr  = nullptr;
+    aoclsparse::tcsr *A_opt_tcsr = nullptr;
+    if(A->input_format == aoclsparse_csr_mat)
+    {
+        status = aoclsparse_csr_csc_optimize<T>(A, &A_opt_csr);
+    }
+    else if(A->input_format == aoclsparse_tcsr_mat)
+    {
+        status = aoclsparse_tcsr_optimize<T>(A, &A_opt_tcsr);
+    }
     if(status != aoclsparse_status_success)
         return status;
-    if(!A_opt_csr)
+    if(!A_opt_csr && !A_opt_tcsr)
         return aoclsparse_status_internal_error;
 
     aoclsparse_int incb, incx, b_offset, x_offset;

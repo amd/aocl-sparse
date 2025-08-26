@@ -600,7 +600,7 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
             op                = aoclsparse_operation_none;
             descr_t.type      = aoclsparse_matrix_type_general;
             descr_t.fill_mode = aoclsparse_fill_mode_lower;
-            descr_t.base      = aoclsparse_index_base_zero;
+            descr_t.base      = csr_m->base;
             /*
                  * The 'mat_found' flag is set to indicate that a matching optimized
                  * matrix has been found, so the kernel can be called directly.

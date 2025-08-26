@@ -337,6 +337,63 @@ namespace
                     mm, nn, ldx, X_start, XRef_start, expected_precision<decltype(tol)>(tol));
             }
         }
+        const aoclsparse_int        nnz = A->nnz;
+        std::vector<aoclsparse_int> csc_col_ptr(n + 1);
+        std::vector<aoclsparse_int> csc_row_ind(nnz);
+        std::vector<T>              csc_val(nnz);
+
+        // Convert CSR to CSC
+        ASSERT_EQ(aoclsparse_csr2csc(m,
+                                     n,
+                                     nnz,
+                                     descr,
+                                     base,
+                                     &icrowa[0],
+                                     &icola[0],
+                                     &aval[0],
+                                     &csc_row_ind[0],
+                                     &csc_col_ptr[0],
+                                     &csc_val[0]),
+                  aoclsparse_status_success);
+
+        aoclsparse_matrix A_csc;
+        ASSERT_EQ(aoclsparse_create_csc<T>(
+                      &A_csc, base, m, n, nnz, &csc_col_ptr[0], &csc_row_ind[0], &csc_val[0]),
+                  aoclsparse_status_success);
+
+        std::vector<T> X_csc(X.size(), 0);
+
+        status = aoclsparse_trsm_kid<T>(trans,
+                                        alpha,
+                                        A_csc,
+                                        descr,
+                                        order,
+                                        &B[starting_offset_b + 0],
+                                        k,
+                                        ldb,
+                                        &X_csc[starting_offset_x + 0],
+                                        ldx,
+                                        kid);
+
+        ASSERT_EQ(status, exp_status)
+            << "Test failed with unexpected return from aoclsparse_trsm_kid (CSC matrix)";
+        if(status == aoclsparse_status_success)
+        {
+            auto XRef_start  = XRef.cbegin() + starting_offset_x;
+            auto X_csc_start = X_csc.cbegin() + starting_offset_x;
+            if constexpr(std::is_same_v<T, std::complex<double>>
+                         || std::is_same_v<T, std::complex<float>>)
+            {
+                EXPECT_COMPLEX_MAT_NEAR(
+                    mm, nn, ldx, X_csc_start, XRef_start, expected_precision<decltype(tol)>(tol));
+            }
+            else
+            {
+                EXPECT_MAT_NEAR(
+                    mm, nn, ldx, X_csc_start, XRef_start, expected_precision<decltype(tol)>(tol));
+            }
+        }
+        EXPECT_EQ(aoclsparse_destroy(&A_csc), aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
         ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
     }
@@ -667,6 +724,105 @@ namespace
     TEST(TrsmNegative, InvalidChecks)
     {
         test_trsm_invalid();
+    }
+    TEST(TrsmSuite, TcsrBaseZeroDouble)
+    {
+        double               alpha = 1.0;
+        aoclsparse_matrix    A     = nullptr;
+        aoclsparse_mat_descr descr = nullptr;
+        aoclsparse_int       kid   = 0;
+        aoclsparse_operation trans = aoclsparse_operation_none;
+
+        // Input parameters
+        aoclsparse_int              m, n, nnz;
+        std::vector<aoclsparse_int> row_ptr_L, row_ptr_U;
+        std::vector<aoclsparse_int> col_idx_L, col_idx_U;
+        std::vector<double>         val_L, val_U;
+        init_tcsr_matrix<double>(m,
+                                 n,
+                                 nnz,
+                                 row_ptr_L,
+                                 row_ptr_U,
+                                 col_idx_L,
+                                 col_idx_U,
+                                 val_L,
+                                 val_U,
+                                 aoclsparse_fully_sorted,
+                                 aoclsparse_index_base_zero);
+
+        std::vector<double> b, x_gold_L, x_gold_U, x, X, B, XRef;
+        b.assign({1, 1, 1, 1});
+        x_gold_L.assign({-1.00, 0.25, -1.00, 0.66666666666666663});
+        x_gold_U.assign({-1.0, 0.25, -0.16666666666666666, 0.1111111111111111});
+        x.assign({0, 0, 0, 0});
+
+        // Create mat descr
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_zero),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_triangular),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_fill_mode(descr, aoclsparse_fill_mode_lower),
+                  aoclsparse_status_success);
+
+        // Create TCSR Matrix
+        ASSERT_EQ(aoclsparse_create_dtcsr(&A,
+                                          aoclsparse_index_base_zero,
+                                          m,
+                                          n,
+                                          nnz,
+                                          row_ptr_L.data(),
+                                          row_ptr_U.data(),
+                                          col_idx_L.data(),
+                                          col_idx_U.data(),
+                                          val_L.data(),
+                                          val_U.data()),
+                  aoclsparse_status_success);
+
+        // For TRSM, we need B and X matrices (multiple RHS)
+        int k   = 1; // single RHS for simplicity
+        int ldb = m, ldx = m;
+        B.resize(m * k);
+        X.resize(m * k);
+        XRef.resize(m * k);
+        std::copy(b.begin(), b.end(), B.begin());
+        std::copy(x_gold_L.begin(), x_gold_L.end(), XRef.begin());
+
+        // Solve for (L+D)X=B
+        ASSERT_EQ(aoclsparse_dtrsm_kid(trans,
+                                       alpha,
+                                       A,
+                                       descr,
+                                       aoclsparse_order_column,
+                                       B.data(),
+                                       k,
+                                       ldb,
+                                       X.data(),
+                                       ldx,
+                                       kid),
+                  aoclsparse_status_success);
+        EXPECT_MAT_NEAR(k, ldx, ldx, X.begin(), XRef.begin(), expected_precision<double>(10.0));
+
+        // Solve for (D+U)X = B
+        std::copy(x_gold_U.begin(), x_gold_U.end(), XRef.begin());
+        ASSERT_EQ(aoclsparse_set_mat_fill_mode(descr, aoclsparse_fill_mode_upper),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_dtrsm_kid(trans,
+                                       alpha,
+                                       A,
+                                       descr,
+                                       aoclsparse_order_column,
+                                       B.data(),
+                                       k,
+                                       ldb,
+                                       X.data(),
+                                       ldx,
+                                       kid),
+                  aoclsparse_status_success);
+        EXPECT_MAT_NEAR(k, ldx, ldx, X.begin(), XRef.begin(), expected_precision<double>(10.0));
+
+        ASSERT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
     }
 }
 // namespace

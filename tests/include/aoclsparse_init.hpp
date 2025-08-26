@@ -27,6 +27,7 @@
 
 #include "aoclsparse.h"
 #include "aoclsparse_datatype2string.hpp"
+#include "aoclsparse_mtx_dispatcher.hpp"
 #include "aoclsparse_random.hpp"
 #include "aoclsparse_test.hpp"
 
@@ -761,7 +762,7 @@ inline void aoclsparse_full_shuffle(aoclsparse_matrix_format_type mtype,
                                     aoclsparse_int                nnz,
                                     aoclsparse_index_base         base)
 {
-    if(mtype == aoclsparse_csr_mat || mtype == aoclsparse_csc_mat)
+    if(mtype == aoclsparse_csr_mat)
     {
         for(aoclsparse_int i = 0; i < m; i++)
         {
@@ -988,8 +989,9 @@ aoclsparse_status aoclsparse_init_matrix_random(aoclsparse_index_base         ba
                                                 std::vector<T>               &coo_val,
                                                 std::vector<aoclsparse_int>  &ptr,
                                                 aoclsparse_matrix            &mat,
-                                                bool                          full_diag = false,
-                                                bool                          is_herm   = false)
+                                                aoclsparse::doid doid      = aoclsparse::doid::len,
+                                                bool             full_diag = false,
+                                                bool             is_herm   = false)
 {
     aoclsparse_status status = aoclsparse_status_success;
     mat                      = nullptr;
@@ -1008,33 +1010,37 @@ aoclsparse_status aoclsparse_init_matrix_random(aoclsparse_index_base         ba
             &mat, base, M, N, NNZ, coo_row.data(), coo_col.data(), coo_val.data());
 
     case aoclsparse_csr_mat:
-        coo_to_csr(M, NNZ, coo_row, ptr, base);
-        return aoclsparse_create_csr(
-            &mat, base, M, N, NNZ, ptr.data(), coo_col.data(), coo_val.data());
-
-    case aoclsparse_csc_mat:
     {
-        // find permutation to match CSC order
-        std::vector<aoclsparse_int> perm(NNZ);
-        std::iota(perm.begin(), perm.end(), 0);
-        std::sort(perm.begin(), perm.end(), [coo_col, coo_row](auto a, auto b) {
-            if(coo_col[a] == coo_col[b])
-                return coo_row[a] < coo_row[b];
-            return coo_col[a] < coo_col[b];
-        });
-        std::vector<aoclsparse_int> tmp_row = coo_row;
-        std::vector<T>              tmp_val = coo_val;
-        for(aoclsparse_int i = 0; i < NNZ; i++)
+        if(doid == aoclsparse::doid::gt)
         {
-            coo_row[i] = tmp_row[perm[i]];
-            coo_val[i] = tmp_val[perm[i]];
-        }
-        // sorting coo_col has the same effect as shuffling with perm[]
-        std::sort(coo_col.begin(), coo_col.end());
+            // find permutation to match CSC order
+            std::vector<aoclsparse_int> perm(NNZ);
+            std::iota(perm.begin(), perm.end(), 0);
+            std::sort(perm.begin(), perm.end(), [coo_col, coo_row](auto a, auto b) {
+                if(coo_col[a] == coo_col[b])
+                    return coo_row[a] < coo_row[b];
+                return coo_col[a] < coo_col[b];
+            });
+            std::vector<aoclsparse_int> tmp_row = coo_row;
+            std::vector<T>              tmp_val = coo_val;
+            for(aoclsparse_int i = 0; i < NNZ; i++)
+            {
+                coo_row[i] = tmp_row[perm[i]];
+                coo_val[i] = tmp_val[perm[i]];
+            }
+            // sorting coo_col has the same effect as shuffling with perm[]
+            std::sort(coo_col.begin(), coo_col.end());
 
-        coo_to_csr(N, NNZ, coo_col, ptr, base);
-        return aoclsparse_create_csc(
-            &mat, base, M, N, NNZ, ptr.data(), coo_row.data(), coo_val.data());
+            coo_to_csr(N, NNZ, coo_col, ptr, base);
+            return aoclsparse_create_csc(
+                &mat, base, M, N, NNZ, ptr.data(), coo_row.data(), coo_val.data());
+        }
+        else
+        {
+            coo_to_csr(M, NNZ, coo_row, ptr, base);
+            return aoclsparse_create_csr(
+                &mat, base, M, N, NNZ, ptr.data(), coo_col.data(), coo_val.data());
+        }
     }
     default:
         return aoclsparse_status_not_implemented;

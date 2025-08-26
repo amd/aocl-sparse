@@ -60,10 +60,6 @@ namespace
         {
             EXPECT_EQ_VEC(out_m + 1, in_idx_ptr, out_idx_ptr);
         }
-        else if(mat_type == aoclsparse_csc_mat)
-        {
-            EXPECT_EQ_VEC(out_n + 1, in_idx_ptr, out_idx_ptr);
-        }
         else if(mat_type == aoclsparse_coo_mat)
         {
             EXPECT_EQ_VEC(out_nnz, in_idx_ptr, out_idx_ptr);
@@ -529,12 +525,12 @@ namespace
     TEST(ExportMatTest, CSC_Success)
     {
         aoclsparse_matrix     A             = NULL;
-        float                 valf[]        = {2.0f, 8.0f, 6.0f};
-        aoclsparse_int        csc_row_idx[] = {1, 2, 2};
-        aoclsparse_int        csc_col_ptr[] = {1, 3, 4};
-        aoclsparse_int        m             = 2;
+        float                 valf[]        = {2.0f, 8.0f, 6.0f, 5.0f};
+        aoclsparse_int        csc_row_idx[] = {1, 2, 3, 3};
+        aoclsparse_int        csc_col_ptr[] = {1, 3, 5};
+        aoclsparse_int        m             = 3;
         aoclsparse_int        n             = 2;
-        aoclsparse_int        nnz           = 3;
+        aoclsparse_int        nnz           = 4;
         aoclsparse_index_base in_base       = aoclsparse_index_base_one, out_base;
         aoclsparse_int       *out_col_ptr   = NULL;
         aoclsparse_int       *out_row_idx   = NULL;
@@ -548,16 +544,16 @@ namespace
             aoclsparse_export_csc(
                 A, &out_base, &out_m, &out_n, &out_nnz, &out_col_ptr, &out_row_idx, &out_valf),
             aoclsparse_status_success);
-        verify_export_data(aoclsparse_csc_mat,
-                           m,
+        verify_export_data(aoclsparse_csr_mat,
                            n,
+                           m,
                            nnz,
                            in_base,
                            csc_col_ptr,
                            csc_row_idx,
                            valf,
-                           out_m,
                            out_n,
+                           out_m,
                            out_nnz,
                            out_base,
                            out_col_ptr,
@@ -670,10 +666,18 @@ namespace
         aoclsparse_int              out_m, out_n, out_nnz;
 
         // 1) Matrix is in CSC format but want to export as COO
-        EXPECT_EQ(
-            aoclsparse_init_matrix_random(
-                in_base, m, n, nnz, aoclsparse_csc_mat, coo_row_idx, coo_col_idx, vald, temp, A),
-            aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_init_matrix_random(in_base,
+                                                m,
+                                                n,
+                                                nnz,
+                                                aoclsparse_csr_mat,
+                                                coo_row_idx,
+                                                coo_col_idx,
+                                                vald,
+                                                temp,
+                                                A,
+                                                aoclsparse::doid::gt),
+                  aoclsparse_status_success);
         EXPECT_EQ(
             aoclsparse_export_coo(
                 A, &out_base, &out_m, &out_n, &out_nnz, &out_row_idx, &out_col_idx, &out_vald),

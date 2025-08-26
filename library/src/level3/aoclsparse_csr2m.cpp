@@ -193,7 +193,8 @@ aoclsparse_status aoclsparse_csr2m_nnz_count(aoclsparse_int             m,
         }
 
         // Number of non-zeroes of resultant matrix C
-        nnz_C = csr_C->ptr[m];
+        nnz_C      = csr_C->ptr[m];
+        csr_C->nnz = nnz_C;
 
         // Creates a new resultant matrix C
         // And allocates memory for column index and value
@@ -217,10 +218,10 @@ aoclsparse_status aoclsparse_csr2m_nnz_count(aoclsparse_int             m,
         // It should be transposed back to CSR representation after finalize stage.
         if(opflag == 3)
         {
-            aoclsparse_init_mat(*C, n, m, nnz_C, aoclsparse_csc_mat);
+            aoclsparse_init_mat(*C, n, m, nnz_C, aoclsparse_csr_mat);
             (*C)->val_type = get_data_type<T>();
             // Assign the resultant C matrix arrays to CSC format
-            csr_C->mat_type = aoclsparse_csc_mat;
+            csr_C->doid = aoclsparse::doid::gt;
             // Allocate memory for CSR arrays here
             aoclsparse::csr *csr_mat = nullptr;
             try
@@ -300,9 +301,10 @@ aoclsparse_status aoclsparse_csr2m_finalize(aoclsparse_int             m_a,
     {
         if(auto *temp_mat = dynamic_cast<aoclsparse::csr *>(mat))
         {
-            if(temp_mat->mat_type == aoclsparse_csr_mat && csr_mat == nullptr)
+            bool is_csc = (temp_mat->doid == aoclsparse::doid::gt);
+            if(!is_csc && csr_mat == nullptr)
                 csr_mat = temp_mat;
-            else if(temp_mat->mat_type == aoclsparse_csc_mat && csc_mat == nullptr)
+            else if(is_csc && csc_mat == nullptr)
                 csc_mat = temp_mat;
             // Early exit if both found
             if(csr_mat && csc_mat)

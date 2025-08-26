@@ -45,6 +45,7 @@ namespace
         aoclsparse_int                n;
         aoclsparse_int                nnz;
         aoclsparse_matrix_format_type format_type;
+        aoclsparse::doid              doid = aoclsparse::doid::len;
     } ConvertCSRParam;
 
     template <typename T>
@@ -53,7 +54,8 @@ namespace
                           aoclsparse_int                m,
                           aoclsparse_int                n,
                           aoclsparse_int                nnz,
-                          aoclsparse_matrix_format_type format_type)
+                          aoclsparse_matrix_format_type format_type,
+                          aoclsparse::doid              doid)
     {
         aoclsparse_seedrand();
 
@@ -63,7 +65,7 @@ namespace
         std::vector<T>              val;
 
         EXPECT_EQ(aoclsparse_init_matrix_random(
-                      base, m, n, nnz, format_type, coo_row, coo_col, val, ptr, src_mat),
+                      base, m, n, nnz, format_type, coo_row, coo_col, val, ptr, src_mat, doid),
                   aoclsparse_status_success);
 
         aoclsparse_int       *dest_row_ptr = nullptr;
@@ -145,32 +147,31 @@ namespace
 #define B1 aoclsparse_index_base_one
 
 #define COO aoclsparse_coo_mat
-#define CSC aoclsparse_csc_mat
 #define CSR aoclsparse_csr_mat
 
     // List of all desired negative tests
     const ConvertCSRParam ConvertCSRValues[] = {
         {"cooToCsr__0NNZ_0b", NOOP, B0, 1, 1, 0, COO},
-        {"cscToCsr__0NNZ_1b", NOOP, B1, 10, 1, 0, CSC},
+        {"cscToCsr__0NNZ_1b", NOOP, B1, 10, 1, 0, CSR, aoclsparse::doid::gt},
         {"csrToCsr__0NNZ_0b", NOOP, B0, 1, 5, 0, CSR},
         {"cooToCsrT_0NNZ_1b", TRANS, B1, 4, 3, 0, COO},
-        {"cscToCsrH_0NNZ_0b", HERM, B0, 4, 30, 0, CSC},
+        {"cscToCsrH_0NNZ_0b", HERM, B0, 4, 30, 0, CSR, aoclsparse::doid::gt},
         {"csrToCsrT_0NNZ_1b", TRANS, B1, 5, 1, 0, CSR},
 
         {"cooToCsr__0b", NOOP, B0, 1, 11, 10, COO},
-        {"cscToCsr__0b", NOOP, B0, 1, 11, 5, CSC},
+        {"cscToCsr__0b", NOOP, B0, 1, 11, 5, CSR, aoclsparse::doid::gt},
         {"csrToCsr__0b", NOOP, B0, 1, 1, 1, CSR},
 
         {"cooToCsrT_1b", TRANS, B1, 7, 3, 13, COO},
-        {"cscToCsrT_0b", TRANS, B0, 7, 5, 2, CSC},
+        {"cscToCsrT_0b", TRANS, B0, 7, 5, 2, CSR, aoclsparse::doid::gt},
         {"csrToCsrT_1b", TRANS, B1, 1, 3, 3, CSR},
 
         {"cooToCsrH_0b", HERM, B0, 16, 10, 100, COO},
-        {"cscToCsrH_1b", HERM, B1, 7, 7, 20, CSC},
+        {"cscToCsrH_1b", HERM, B1, 7, 7, 20, CSR, aoclsparse::doid::gt},
         {"csrToCsrH_0b", HERM, B0, 6, 10, 40, CSR},
 
         {"cooToCsr__1B", NOOP, B1, 6, 10, 1, COO},
-        {"cscToCsr__1B", NOOP, B1, 6, 4, 10, CSC},
+        {"cscToCsr__1B", NOOP, B1, 6, 4, 10, CSR, aoclsparse::doid::gt},
         {"csrToCsr__1B", NOOP, B1, 6, 10, 10, CSR},
     };
 
@@ -189,7 +190,7 @@ namespace
     {
         const ConvertCSRParam &param = GetParam();
         test_convert_csr<double>(
-            param.op, param.base, param.m, param.n, param.nnz, param.format_type);
+            param.op, param.base, param.m, param.n, param.nnz, param.format_type, param.doid);
     }
 
     // tests with float type
@@ -197,7 +198,7 @@ namespace
     {
         const ConvertCSRParam &param = GetParam();
         test_convert_csr<float>(
-            param.op, param.base, param.m, param.n, param.nnz, param.format_type);
+            param.op, param.base, param.m, param.n, param.nnz, param.format_type, param.doid);
     }
 
     // tests with double type
@@ -205,7 +206,7 @@ namespace
     {
         const ConvertCSRParam &param = GetParam();
         test_convert_csr<aoclsparse_double_complex>(
-            param.op, param.base, param.m, param.n, param.nnz, param.format_type);
+            param.op, param.base, param.m, param.n, param.nnz, param.format_type, param.doid);
     }
 
     // tests with float type
@@ -213,7 +214,7 @@ namespace
     {
         const ConvertCSRParam &param = GetParam();
         test_convert_csr<aoclsparse_float_complex>(
-            param.op, param.base, param.m, param.n, param.nnz, param.format_type);
+            param.op, param.base, param.m, param.n, param.nnz, param.format_type, param.doid);
     }
 
     INSTANTIATE_TEST_SUITE_P(ConvertCSRTestSuite, Pos, testing::ValuesIn(ConvertCSRValues));

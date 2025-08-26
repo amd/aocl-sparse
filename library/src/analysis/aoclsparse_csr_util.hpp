@@ -560,21 +560,22 @@ aoclsparse_status aoclsparse_matrix_transform(aoclsparse_matrix A)
                         {
                             // Create a matrix copy
                             // Interchanged m, n dimensions, for the csc conversion
-                            mat_copy = new aoclsparse::csr(A->n,
-                                                           A->m,
-                                                           A->nnz,
+                            mat_copy = new aoclsparse::csr(csr_mat->n,
+                                                           csr_mat->m,
+                                                           csr_mat->nnz,
                                                            aoclsparse_csr_mat,
                                                            aoclsparse_index_base_zero,
-                                                           csr_mat->val_type);
+                                                           csr_mat->val_type,
+                                                           doid);
                         }
                         catch(std::bad_alloc &)
                         {
                             return aoclsparse_status_memory_error;
                         }
                         // convert to 0-base
-                        status = aoclsparse_csr2csc_template(A->m,
-                                                             A->n,
-                                                             A->nnz,
+                        status = aoclsparse_csr2csc_template(csr_mat->m,
+                                                             csr_mat->n,
+                                                             csr_mat->nnz,
                                                              csr_mat->base,
                                                              aoclsparse_index_base_zero,
                                                              csr_mat->ptr,
@@ -605,8 +606,6 @@ aoclsparse_status aoclsparse_matrix_transform(aoclsparse_matrix A)
                             delete mat_copy;
                             return aoclsparse_status_memory_error;
                         }
-
-                        mat_copy->doid = doid;
                         break;
                     }
                     case aoclsparse::doid::sl:
@@ -790,8 +789,8 @@ aoclsparse_status aoclsparse_csr_csc_optimize(aoclsparse_matrix A, aoclsparse::c
     }
 
     T             *src_val = static_cast<T *>(src_mat->val);
-    aoclsparse_int m_mat   = (A->input_format == aoclsparse_csr_mat) ? A->m : A->n;
-    aoclsparse_int n_mat   = (A->input_format == aoclsparse_csr_mat) ? A->n : A->m;
+    aoclsparse_int m_mat   = src_mat->m;
+    aoclsparse_int n_mat   = src_mat->n;
 
     // Check the user's matrix format
     // First check the matrix is a valid matrix
@@ -845,7 +844,8 @@ aoclsparse_status aoclsparse_csr_csc_optimize(aoclsparse_matrix A, aoclsparse::c
                                           src_mat->nnz,
                                           src_mat->mat_type,
                                           aoclsparse_index_base_zero,
-                                          src_mat->val_type);
+                                          src_mat->val_type,
+                                          src_mat->doid);
         }
         catch(const std::bad_alloc &)
         {
@@ -909,9 +909,6 @@ aoclsparse_status aoclsparse_csr_csc_optimize(aoclsparse_matrix A, aoclsparse::c
             delete opt_mat;
             return status;
         }
-        // TODO: The dimensions of opt_mat should remain unchanged.
-        opt_mat->m            = A->m;
-        opt_mat->n            = A->n;
         opt_mat->is_optimized = true;
         opt_mat->nnz          = opt_mat->ptr[m_mat];
 

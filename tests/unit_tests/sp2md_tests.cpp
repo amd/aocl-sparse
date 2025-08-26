@@ -182,10 +182,10 @@ namespace
             beta  = -2.0;
         }
 
-        op_a        = op_n;
-        op_b        = op_n;
-        A->mat_type = aoclsparse_csc_mat;
-        B->mat_type = aoclsparse_csc_mat;
+        op_a             = op_n;
+        op_b             = op_n;
+        A->mats[0]->doid = aoclsparse::doid::gt;
+        B->mats[0]->doid = aoclsparse::doid::gt;
         EXPECT_EQ(aoclsparse_sp2md(
                       op_a, descrA, A, op_b, descrB, B, alpha, beta, dense_c.data(), row, B->m, -1),
                   aoclsparse_status_not_implemented);

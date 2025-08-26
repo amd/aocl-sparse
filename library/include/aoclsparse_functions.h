@@ -1318,7 +1318,7 @@ aoclsparse_status aoclsparse_scsrsv(aoclsparse_operation       trans,
  *
  *  <b>Notes</b>
  *
- * 1. This routine supports sparse matrices in CSR and CSC formats.
+ * 1. This routine supports sparse matrices in CSR, CSC, and TCSR formats.
  *
  * 2. If the matrix descriptor \p descr specifies that the matrix \f$A\f$ is to be regarded as
  *    having a unitary diagonal, then the main diagonal entries of matrix \f$A\f$ are not accessed and
@@ -1825,7 +1825,7 @@ aoclsparse_status aoclsparse_sdotmv(const aoclsparse_operation op,
  *              \p B, or \p X pointer is invalid.
  *  \retval     aoclsparse_status_not_implemented this error occurs when the provided matrix
  *              \ref aoclsparse_matrix_type is \ref aoclsparse_matrix_type_general or \ref aoclsparse_matrix_type_hermitian
- *              or when matrix \p A is not in CSR format.
+ *              or when matrix \p A is not in CSR, CSC, TCSR format.
  * \{
  */
 DLL_PUBLIC
@@ -2321,7 +2321,7 @@ aoclsparse_status aoclsparse_sypr(aoclsparse_operation       opA,
  *              is invalid.
  *  \retval     aoclsparse_status_invalid_pointer The pointer \p descr, \p A, \p B, or \p C
  *              is invalid.
- *  \retval     aoclsparse_status_invalid_value The values of \p descr->base and \p A->mats[0]->base do not coincide.
+ *  \retval     aoclsparse_status_invalid_value The values of \p descr->base and base specified at the creation of the matrix do not coincide.
  *  \retval     aoclsparse_status_not_implemented
  *              \ref aoclsparse_matrix_type is not one of these: \ref aoclsparse_matrix_type_general,
  *              \ref aoclsparse_matrix_type_symmetric, \ref aoclsparse_matrix_type_hermitian  or
