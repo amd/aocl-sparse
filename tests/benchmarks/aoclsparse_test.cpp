@@ -528,9 +528,13 @@ int main(int argc, char *argv[])
     else if(strcmp(arg.function, "bsrmv") == 0)
     {
         if(precision == 's')
-            testing_bsrmv<float>(arg);
+            return testing_bsrmv<float>(arg);
         else if(precision == 'd')
-            testing_bsrmv<double>(arg);
+            return testing_bsrmv<double>(arg);
+        else if(precision == 'c')
+            return testing_bsrmv<aoclsparse_float_complex>(arg);
+        else if(precision == 'z')
+            return testing_bsrmv<aoclsparse_double_complex>(arg);
     }
     else if(strcmp(arg.function, "csrsv") == 0)
     {

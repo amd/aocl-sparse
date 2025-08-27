@@ -51,6 +51,22 @@ namespace Dispatch
         unsigned int              arch; // suggested architecture(s) for kernel
     };
 
+    // This function takes two functions perfoming the same mathematical operation
+    // but written based on different ISA's as input. Then returns the function that
+    // is supported by the current machine architecture.
+    template <typename K>
+    K ORL(K avx512_f, K avx2_f)
+    {
+        using namespace aoclsparse;
+
+        // Machine supports AVX512 and the build is AVX512
+        if(context::get_context()->supports<context_isa_t::AVX512F>()
+           && aoclsparse_is_avx512_build())
+            return avx512_f;
+        else
+            return avx2_f;
+    }
+
     template <typename K>
     constexpr Table<K> ORL([[maybe_unused]] Table<K> T)
     {

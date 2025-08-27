@@ -65,6 +65,18 @@ namespace aoclsparse
                                     const SUF *__restrict__ x,
                                     const SUF beta,
                                     SUF *__restrict__ y);
+
+    template <kernel_templates::bsz SZ, typename SUF, size_t KERNEL_DIM, bool alpha_s, bool beta_s>
+    aoclsparse_status bsrmv_nxn_v(SUF                             alpha,
+                                  aoclsparse_int                  mb,
+                                  [[maybe_unused]] aoclsparse_int nb,
+                                  const SUF *__restrict__ bsr_val,
+                                  const aoclsparse_int *__restrict__ bsr_col_ind,
+                                  const aoclsparse_int *__restrict__ bsr_row_ptr,
+                                  const aoclsparse_mat_descr descr,
+                                  const SUF *__restrict__ x,
+                                  SUF beta,
+                                  SUF *__restrict__ y);
 }
 
 template <kernel_templates::bsz SZ,

@@ -60,6 +60,31 @@ namespace aoclsparse
 
 namespace aoclsparse_numeric
 {
+    /* Provide a "one" for all floating point data types */
+    template <typename T>
+    struct one
+    {
+        constexpr operator T() const noexcept
+        {
+            if constexpr(std::is_same_v<T, float>)
+                return 1.0f;
+            else if constexpr(std::is_same_v<T, double>)
+                return 1.0;
+            else if constexpr(std::is_same_v<T, std::complex<float>>
+                              || std::is_same_v<T, aoclsparse_float_complex>)
+            {
+                T v{1.0f, 0.0f};
+                return v;
+            }
+            else if constexpr(std::is_same_v<T, std::complex<double>>
+                              || std::is_same_v<T, aoclsparse_double_complex>)
+            {
+                T v{1.0, 0.0};
+                return v;
+            }
+        }
+    };
+
     /* Provide a "zero" for all floating point data types */
     /* Default definition handles real/std types */
     template <typename T>

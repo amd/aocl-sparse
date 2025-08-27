@@ -95,6 +95,7 @@ set(DOUBLE_COMPILATION
   src/level1/aoclsparse_gthr_kt.cpp
   src/level1/aoclsparse_sctr_kt.cpp
 
+  src/level2/aoclsparse_bsrmv_kt.cpp
   src/level2/aoclsparse_csrmv_kt.cpp
   src/level2/aoclsparse_trsv_kt.cpp
   src/level3/aoclsparse_csrmm_kt.cpp

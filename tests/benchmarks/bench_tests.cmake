@@ -232,9 +232,11 @@ foreach(FUNCTION "blkcsrmv")
 endforeach(FUNCTION)
 
 foreach(FUNCTION "bsrmv")
-  foreach(PREC "d" "s")
+  foreach(PREC "d" "s" "c" "z")
     foreach(BASE "0" "1")      #test for base-0 and base-1
-      foreach(BLK "2" "3" "4")
+      foreach(BLK "2" "3" "4" "5" "6" "7" "8" "9" "16") # test for block sizes 2 to 9
+      # block size 9 goes to general kernel. This is done to improve coverage
+      # block size 16 kernel is used to test the recursive cases of compute blocks in vector kernels
 
         foreach(MATSIZE ${SQMATRIXSIZES} ${RCTMATRIXSIZES})
           # split MATSIZE string to individual tokens

@@ -24,6 +24,7 @@
 #include "aoclsparse_descr.h"
 #include "aoclsparse.hpp"
 #include "aoclsparse_blkcsrmv.hpp"
+#include "aoclsparse_bsrmv.hpp"
 #include "aoclsparse_csr_util.hpp"
 #include "aoclsparse_csrmv.hpp"
 #include "aoclsparse_ellmv.hpp"
@@ -320,6 +321,49 @@ aoclsparse_status aoclsparse::mv(aoclsparse_operation       op,
         }
     case aoclsparse_tcsr_mat:
         return aoclsparse::tcsrmv(descr, alpha, A, x, beta, y, d_id, kid);
+    case aoclsparse_bsr_mat:
+    {
+        aoclsparse::bsr *bsr_m = nullptr;
+
+        // Search for a matrix copy matching our descriptor/operation (DOID)
+        for(base_mtx *m : A->mats)
+        {
+            auto mtx = dynamic_cast<aoclsparse::bsr *>(m);
+
+            // If the cast succeeds, check the mtx type
+            if(mtx && mtx->mat_type == mtx_t)
+            {
+                bsr_m = mtx;
+                break;
+            }
+        }
+
+        // nullptr check
+        if(!bsr_m)
+        {
+            // If no matching matrix was found, return not implemented
+            return aoclsparse_status_not_implemented;
+        }
+
+        if(bsr_m->order != aoclsparse_order_column)
+        {
+            // Currently only column major is supported
+            return aoclsparse_status_not_implemented;
+        }
+
+        return aoclsparse::bsrmv<T>(op,
+                                    alpha,
+                                    bsr_m->bm,
+                                    bsr_m->bn,
+                                    bsr_m->block_dim,
+                                    static_cast<const T *>(bsr_m->val),
+                                    bsr_m->ind,
+                                    bsr_m->ptr,
+                                    descr,
+                                    x,
+                                    beta,
+                                    y);
+    }
     default:
         return aoclsparse_status_not_implemented;
     }

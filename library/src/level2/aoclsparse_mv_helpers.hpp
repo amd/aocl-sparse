@@ -54,14 +54,15 @@ bool is_mtx_frmt_supported_mv(aoclsparse_matrix_format_type mtx_t)
 {
     if constexpr(aoclsparse::is_dt_complex<T>())
     {
-        // Only CSR is supported for complex types
-        if(mtx_t != aoclsparse_csr_mat)
+        // Only CSR and BSR are supported for complex types
+        if(mtx_t != aoclsparse_csr_mat && mtx_t != aoclsparse_bsr_mat)
             return false;
     }
     else
     {
-        // Only CSR and TCSR input format supported
-        if(mtx_t != aoclsparse_csr_mat && mtx_t != aoclsparse_tcsr_mat)
+        // Only CSR, TCSR and BSR input format supported
+        if(mtx_t != aoclsparse_csr_mat && mtx_t != aoclsparse_tcsr_mat
+           && mtx_t != aoclsparse_bsr_mat)
             return false;
     }
 
