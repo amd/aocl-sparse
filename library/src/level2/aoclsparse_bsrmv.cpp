@@ -51,7 +51,8 @@ namespace aoclsparse
                 return ORL<K>(aoclsparse::bsrmv_nxn_v<max_isa, T, 8, alpha_s, beta_s>,
                               aoclsparse::bsrmv_nxn_v<bsz::b256, T, 8, alpha_s, beta_s>);
             else if constexpr(dim == 16)
-                return aoclsparse::bsrmv_nxn_v<max_isa, T, 16, alpha_s, beta_s>;
+                return ORL<K>(aoclsparse::bsrmv_nxn_v<max_isa, T, 16, alpha_s, beta_s>,
+                              aoclsparse::bsrmv_nxn_v<bsz::b256, T, 16, alpha_s, beta_s>);
         }
         else if constexpr(std::is_same_v<T, float>)
         {
