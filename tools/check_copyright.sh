@@ -26,7 +26,7 @@
 # in the form: 'Copyright (c) 2020-2024' or 'Copyright (c) 2024'
 
 # Whitelist of files which are considered always OK
-whitelist=(README.md tests/examples/README.md docs/Doxyfile docs/AOCL-Sparse_API_Guide.pdf LICENSE.md NOTICES CMakePresets.json cmake/presets/README.MD cmake/presets/base.json cmake/presets/linux-make.json cmake/presets/linux-ninja.json cmake/presets/win-msvc.json cmake/presets/win-ninja.json tests/unit_tests/README.md library/src/include/kernel-templates/README.md library/src/include/kernel-templates/kt_logo_blk.png .github/workflows/branch-name-check.yml .github/PULL_REQUEST_TEMPLATE/common-mistakes.md .github/PULL_REQUEST_TEMPLATE/pr.md .github/PULL_REQUEST_TEMPLATE/small.md .github/pull_request_template.md)
+whitelist=(README.md tests/examples/README.md docs/Doxyfile docs/AOCL-Sparse_API_Guide.pdf LICENSE.md NOTICES CMakePresets.json cmake/presets/README.MD cmake/presets/base.json cmake/presets/linux-make.json cmake/presets/linux-ninja.json cmake/presets/win-msvc.json cmake/presets/win-ninja.json tests/unit_tests/README.md library/src/include/kernel-templates/README.md library/src/include/kernel-templates/kt_logo_blk.png .github/workflows/branch-name-check.yml .github/PULL_REQUEST_TEMPLATE/common-mistakes.md .github/PULL_REQUEST_TEMPLATE/pr.md .github/PULL_REQUEST_TEMPLATE/small.md .github/pull_request_template.md docs/images/BSR.png docs/images/CSC.png docs/images/CSR.png docs/images/sparse_representation.drawio)
 
 print_help() {
   echo $0 [-p] [file1 [file2 ...]]
