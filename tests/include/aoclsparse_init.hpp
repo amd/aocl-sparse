@@ -477,6 +477,7 @@ inline aoclsparse_status aoclsparse_readmtx_coo(const char                  *fil
     // Check for banner
     if(!fgets(line, 1024, f))
     {
+        fclose(f);
         return aoclsparse_status_internal_error;
     }
 
@@ -489,6 +490,7 @@ inline aoclsparse_status aoclsparse_readmtx_coo(const char                  *fil
     // Extract banner
     if(sscanf(line, "%s %s %s %s %s", banner, array, coord, data, type) != 5)
     {
+        fclose(f);
         return aoclsparse_status_internal_error;
     }
 
@@ -505,18 +507,21 @@ inline aoclsparse_status aoclsparse_readmtx_coo(const char                  *fil
     // Check banner
     if(strncmp(line, "%%MatrixMarket", 14) != 0)
     {
+        fclose(f);
         return aoclsparse_status_internal_error;
     }
 
     // Check array type
     if(strcmp(array, "matrix") != 0)
     {
+        fclose(f);
         return aoclsparse_status_internal_error;
     }
 
     // Check coord
     if(strcmp(coord, "coordinate") != 0)
     {
+        fclose(f);
         return aoclsparse_status_internal_error;
     }
 
@@ -524,6 +529,7 @@ inline aoclsparse_status aoclsparse_readmtx_coo(const char                  *fil
     if(strcmp(data, "real") != 0 && strcmp(data, "integer") != 0 && strcmp(data, "pattern") != 0
        && strcmp(data, "complex") != 0)
     {
+        fclose(f);
         return aoclsparse_status_internal_error;
     }
 
@@ -531,6 +537,7 @@ inline aoclsparse_status aoclsparse_readmtx_coo(const char                  *fil
     if(strcmp(type, "general") != 0 && strcmp(type, "symmetric") != 0
        && strcmp(type, "hermitian") != 0)
     {
+        fclose(f);
         return aoclsparse_status_internal_error;
     }
 
@@ -572,6 +579,7 @@ inline aoclsparse_status aoclsparse_readmtx_coo(const char                  *fil
     {
         if(idx >= nnz)
         {
+            fclose(f);
             return aoclsparse_status_internal_error;
         }
 
@@ -608,6 +616,7 @@ inline aoclsparse_status aoclsparse_readmtx_coo(const char                  *fil
             {
                 if(idx >= nnz)
                 {
+                    fclose(f);
                     return aoclsparse_status_internal_error;
                 }
 

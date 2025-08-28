@@ -84,6 +84,8 @@ int testing_doti(const Arguments &arg)
 
     // create relevant test data for this API
     testdata<T> td;
+    td.m
+        = 1; // m is not used in level 1 routines, but need to initialize as it gets used in the problem name
     td.n    = arg.N;
     td.nnzA = aoclsparse_init_spvec_size(arg.nnz, arg.N);
 
@@ -96,9 +98,9 @@ int testing_doti(const Arguments &arg)
 
     // Allocate memory for vectors
     aoclsparse_int xdim, ydim;
-    T              doti_gold;
-    ydim = td.n;
-    xdim = td.nnzA;
+    T              doti_gold = aoclsparse_numeric::zero<T>();
+    ydim                     = td.n;
+    xdim                     = td.nnzA;
 
     td.y.resize(ydim);
     td.x.resize(xdim);

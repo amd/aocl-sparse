@@ -89,6 +89,8 @@ int testing_roti(const Arguments &arg)
 
     // create relevant test data for this API
     testdata<T> td;
+    td.m
+        = 1; // m is not used in level 1 routines, but need to initialize as it gets used in the problem name
     td.n    = arg.N;
     td.nnzA = aoclsparse_init_spvec_size(arg.nnz, arg.N);
 
@@ -97,6 +99,25 @@ int testing_roti(const Arguments &arg)
     // and their statistics
     std::vector<data_stats> tstats(testqueue.size());
 
+    //At present alpha and beta have the same real / imaginary parts.
+    //TODO: support distinct real and imaginary parts
+    if constexpr(std::is_same_v<T, aoclsparse_float_complex>
+                 || std::is_same_v<T, std::complex<float>>)
+    {
+        td.alpha = {static_cast<float>(arg.alpha), static_cast<float>(arg.alpha)};
+        td.beta  = {static_cast<float>(arg.beta), static_cast<float>(arg.beta)};
+    }
+    else if constexpr(std::is_same_v<T, aoclsparse_double_complex>
+                      || std::is_same_v<T, std::complex<double>>)
+    {
+        td.alpha = {static_cast<double>(arg.alpha), static_cast<double>(arg.alpha)};
+        td.beta  = {static_cast<double>(arg.beta), static_cast<double>(arg.beta)};
+    }
+    if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
+    {
+        td.alpha = static_cast<T>(arg.alpha);
+        td.beta  = static_cast<T>(arg.beta);
+    }
     aoclsparse_seedrand();
 
     // Allocate memory for vectors

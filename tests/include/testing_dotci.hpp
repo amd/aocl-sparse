@@ -85,6 +85,8 @@ int testing_dotci(const Arguments &arg)
 
     // create relevant test data for this API
     testdata<T> td;
+    td.m
+        = 1; // m is not used in level 1 routines, but need to initialize as it gets used in the problem name
     td.n    = arg.N;
     td.nnzA = aoclsparse_init_spvec_size(arg.nnz, arg.N);
 
