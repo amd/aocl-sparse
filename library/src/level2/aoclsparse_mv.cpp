@@ -98,10 +98,6 @@ aoclsparse_status aoclsparse::mv(aoclsparse_operation       op,
     if(!is_mtx_frmt_supported_mv<T>(A->input_format))
         return aoclsparse_status_not_implemented;
 
-    // CSC matrix support is not implemented
-    if(A->input_format == aoclsparse_csr_mat && A->mats[0]->doid != aoclsparse::doid::gn)
-        return aoclsparse_status_not_implemented;
-
     if constexpr(!is_dt_complex<T>())
     {
         // For real types, conjugate transpose is equal to transpose
@@ -223,12 +219,26 @@ aoclsparse_status aoclsparse::mv(aoclsparse_operation       op,
             descr_t.base      = copy_csr->base;
             d_id              = doid::gn;
         }
-        // Otherwise, if not a general/triangular/hermitian/conjugate, use optimized if available
+        // Otherwise, use optimized matrix for non-general matrices
         else if(!(d_id == doid::gn || d_id == doid::gt || d_id == doid::gh || d_id == doid::gc)
                 && opt_csr)
         {
             csr_mat      = opt_csr;
             descr_t.base = opt_csr->base;
+        }
+
+        // Transpose doid if matrix is stored in CSC format (doid::gt), exclude this for copy_csr
+        if(!copy_csr && csr_mat->doid == doid::gt)
+            d_id = trans_doid(d_id);
+
+        // trans_doid alters the uplo value for CSC Matrix; update descr_t.fill_mode accordingly.
+        // NOTE: This check will be removed once symm & hermitian types only allow symm or herm mats, not all square mats.
+        if(csr_mat->doid == doid::gt)
+        {
+            if(descr_t.fill_mode == aoclsparse_fill_mode_upper)
+                descr_t.fill_mode = aoclsparse_fill_mode_lower;
+            else if(descr_t.fill_mode == aoclsparse_fill_mode_lower)
+                descr_t.fill_mode = aoclsparse_fill_mode_upper;
         }
 
         // Invoke CSRMV interface with do_check set to false

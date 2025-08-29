@@ -922,15 +922,44 @@ aoclsparse_status aoclsparse_init_coo_matrix(std::vector<aoclsparse_int> &coo_ro
     }
     return status;
 }
+// Inline function to sort arrays based on coo_col_ind
+template <typename T>
+inline void sort_by_coo_col_ind(std::vector<aoclsparse_int> &coo_col_ind,
+                                std::vector<aoclsparse_int> &csc_row_ind,
+                                std::vector<T>              &csc_val)
+{
+    // Create a vector of tuples to hold the combined data
+    std::vector<std::tuple<aoclsparse_int, aoclsparse_int, T>> combined_data;
+
+    // Populate the combined data
+    for(size_t i = 0; i < coo_col_ind.size(); ++i)
+    {
+        combined_data.emplace_back(coo_col_ind[i], csc_row_ind[i], csc_val[i]);
+    }
+
+    // Sort the combined data based on coo_col_ind (first element of the tuple)
+    std::sort(combined_data.begin(), combined_data.end(), [](const auto &a, const auto &b) {
+        return std::get<0>(a) < std::get<0>(b);
+    });
+
+    // Unpack the sorted data back into the original arrays
+    for(size_t i = 0; i < combined_data.size(); ++i)
+    {
+        coo_col_ind[i] = std::get<0>(combined_data[i]);
+        csc_row_ind[i] = std::get<1>(combined_data[i]);
+        csc_val[i]     = std::get<2>(combined_data[i]);
+    }
+}
 /* ==================================================================================== */
 /*! \brief  Initialize a sparse matrix in CSR format. Also handle whether to generate a
             matrix with full diagonals based on input matrix type. The level of sorting
-            (full, partial, unsorting) also is controlled using a input parameter 'sort'
+            (full, partial, unsorting) also is controlled using a input parameter 'sort'.
+            Can also generate CSC format if doid == doid::gt.
  */
 template <typename T>
-aoclsparse_status aoclsparse_init_csr_matrix(std::vector<aoclsparse_int> &csr_row_ptr,
-                                             std::vector<aoclsparse_int> &csr_col_ind,
-                                             std::vector<T>              &csr_val,
+aoclsparse_status aoclsparse_init_csr_matrix(std::vector<aoclsparse_int> &ptr,
+                                             std::vector<aoclsparse_int> &ind,
+                                             std::vector<T>              &val,
                                              aoclsparse_int              &M,
                                              aoclsparse_int              &N,
                                              aoclsparse_int              &nnz,
@@ -939,10 +968,13 @@ aoclsparse_status aoclsparse_init_csr_matrix(std::vector<aoclsparse_int> &csr_ro
                                              const char                  *filename,
                                              bool                        &issymm,
                                              bool                         general,
-                                             aoclsparse_matrix_sort sort = aoclsparse_unsorted)
+                                             aoclsparse_matrix_sort sort = aoclsparse_unsorted,
+                                             aoclsparse::doid       doid = aoclsparse::doid::len)
 {
-    aoclsparse_status           status = aoclsparse_status_success;
-    std::vector<aoclsparse_int> coo_row_ind;
+    aoclsparse_status status = aoclsparse_status_success;
+    // For CSR format: coo_ind ~ coo_row_ind
+    // For CSC format: coo_ind ~ coo_col_ind
+    std::vector<aoclsparse_int> coo_ind;
 
     //check sort option
     if(sort != aoclsparse_unsorted && sort != aoclsparse_partially_sorted
@@ -951,34 +983,60 @@ aoclsparse_status aoclsparse_init_csr_matrix(std::vector<aoclsparse_int> &csr_ro
 
     // generate COO matrix of the same parameters which is fully sorted
     // (that's default) so that we can apply coo_csr()
-    status = aoclsparse_init_coo_matrix(coo_row_ind,
-                                        csr_col_ind,
-                                        csr_val,
-                                        M,
-                                        N,
-                                        nnz,
-                                        base,
-                                        matrix,
-                                        filename,
-                                        issymm,
-                                        general,
-                                        aoclsparse_fully_sorted);
-    if(status != aoclsparse_status_success)
-        return status;
-
-    // convert to CSR (already in that order, just need the correct csr_row_ptr
-    coo_to_csr(M, nnz, coo_row_ind, csr_row_ptr, base);
+    if(doid == aoclsparse::doid::gt)
+    {
+        // CSC format: swap csc_col_ptr with coo_col_ind for COO generation
+        status = aoclsparse_init_coo_matrix(ind,
+                                            coo_ind,
+                                            val,
+                                            M,
+                                            N,
+                                            nnz,
+                                            base,
+                                            matrix,
+                                            filename,
+                                            issymm,
+                                            general,
+                                            aoclsparse_fully_sorted);
+        if(status != aoclsparse_status_success)
+            return status;
+        // Sort by column index for CSC
+        sort_by_coo_col_ind(coo_ind, ind, val);
+        // Convert to CSC (already in that order, just need the correct csc_col_ptr)
+        coo_to_csr(N, nnz, coo_ind, ptr, base); // Use N for CSC
+    }
+    else
+    {
+        // CSR format: swap csr_row_ptr with coo_row_ind for COO generation
+        status = aoclsparse_init_coo_matrix(coo_ind,
+                                            ind,
+                                            val,
+                                            M,
+                                            N,
+                                            nnz,
+                                            base,
+                                            matrix,
+                                            filename,
+                                            issymm,
+                                            general,
+                                            aoclsparse_fully_sorted);
+        if(status != aoclsparse_status_success)
+            return status;
+        // convert to CSR (already in that order, just need the correct csr_row_ptr)
+        coo_to_csr(M, nnz, coo_ind, ptr, base);
+    }
 
     //default random generation in COO, is a sorted operation. So do nothing.
     if(sort == aoclsparse_unsorted)
     {
-        //shuffle the csr col_ind and csr_val arrays
+        //CSR: shuffle the csr_col_ind and csr_val arrays
+        //CSC: shuffle the csc_row_ind and csc_val arrays
         aoclsparse_full_shuffle(
-            aoclsparse_csr_mat, csr_row_ptr, csr_col_ind, csr_val, M, nnz, base);
+            aoclsparse_csr_mat, ptr, ind, val, (doid == aoclsparse::doid::gt ? N : M), nnz, base);
     }
     else if(sort == aoclsparse_partially_sorted)
     {
-        aoclsparse_partial_shuffle(csr_row_ptr, csr_col_ind, csr_val, M, base);
+        aoclsparse_partial_shuffle(ptr, ind, val, (doid == aoclsparse::doid::gt ? N : M), base);
     }
     return status;
 }

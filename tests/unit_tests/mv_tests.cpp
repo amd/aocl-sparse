@@ -1354,6 +1354,107 @@ namespace
         EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
     }
+    // Test CSC Matrix Vector multiplication with Transpose operation of triangular matrix type
+    // Provide a CSC matrix and test with transpose and fill mode switching.
+    // Expectation: Should correctly flip fill mode and produce correct results.
+    template <typename T>
+    void test_mv_csc_success()
+    {
+        aoclsparse_int M = 5, N = 4, NNZ = 8;
+        T              alpha = 1.0;
+        T              beta  = 0.0;
+        // Initialise vectors
+        std::vector<T> x(N, 0.0), y, y_ref;
+
+        x[0] = 1.0;
+        x[1] = 2.0;
+        x[2] = 3.0;
+        x[3] = 4.0;
+
+        aoclsparse_mat_descr descr;
+        aoclsparse_create_mat_descr(&descr);
+
+        aoclsparse_index_base base = aoclsparse_index_base_zero;
+
+        aoclsparse_int    csr_row_ptr[6] = {0, 2, 3, 4, 7, 8};
+        aoclsparse_int    csr_col_ind[8] = {0, 3, 1, 2, 1, 2, 3, 1};
+        T                 csr_val[8]     = {1, 2, 3, 4, 5, 6, 7, 8};
+        aoclsparse_matrix A;
+        aoclsparse_create_csr<T>(&A, base, M, N, NNZ, csr_row_ptr, csr_col_ind, csr_val);
+
+        // Convert CSR to CSC
+        std::vector<aoclsparse_int> csc_col_ptr(N + 1);
+        std::vector<aoclsparse_int> csc_row_ind(NNZ);
+        std::vector<T>              csc_val(NNZ);
+
+        ASSERT_EQ(aoclsparse_csr2csc(M,
+                                     N,
+                                     NNZ,
+                                     descr,
+                                     base,
+                                     csr_row_ptr,
+                                     csr_col_ind,
+                                     csr_val,
+                                     csc_row_ind.data(),
+                                     csc_col_ptr.data(),
+                                     csc_val.data()),
+                  aoclsparse_status_success);
+
+        aoclsparse_matrix A_csc;
+        ASSERT_EQ(
+            aoclsparse_create_csc<T>(
+                &A_csc, base, M, N, NNZ, csc_col_ptr.data(), csc_row_ind.data(), csc_val.data()),
+            aoclsparse_status_success);
+
+        // Set matrix type and fill mode
+        aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_triangular);
+        aoclsparse_set_mat_fill_mode(descr, aoclsparse_fill_mode_lower);
+
+        // Reference result using CSR (y_ref and y are size M)
+        y.assign(M, 0.0);
+        y_ref.assign(M, 0.0);
+        EXPECT_EQ(aoclsparse_mv<T>(
+                      aoclsparse_operation_none, &alpha, A, descr, x.data(), &beta, y_ref.data()),
+                  aoclsparse_status_success);
+
+        // Result using CSC
+        y.assign(M, 0.0);
+        EXPECT_EQ(aoclsparse_mv<T>(
+                      aoclsparse_operation_none, &alpha, A_csc, descr, x.data(), &beta, y.data()),
+                  aoclsparse_status_success);
+        EXPECT_DOUBLE_EQ_VEC(M, y.data(), y_ref.data());
+
+        // Now test transpose operation
+        // For transpose, input x should be size M, output y should be size N
+        std::vector<T> x_tr(M, 0.0), y_tr(N, 0.0), y_ref_tr(N, 0.0);
+        x_tr[0] = 1.0;
+        x_tr[1] = 2.0;
+        x_tr[2] = 3.0;
+        x_tr[3] = 4.0;
+        x_tr[4] = 5.0;
+
+        EXPECT_EQ(aoclsparse_mv<T>(aoclsparse_operation_transpose,
+                                   &alpha,
+                                   A,
+                                   descr,
+                                   x_tr.data(),
+                                   &beta,
+                                   y_ref_tr.data()),
+                  aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_mv<T>(aoclsparse_operation_transpose,
+                                   &alpha,
+                                   A_csc,
+                                   descr,
+                                   x_tr.data(),
+                                   &beta,
+                                   y_tr.data()),
+                  aoclsparse_status_success);
+        EXPECT_DOUBLE_EQ_VEC(N, y_tr.data(), y_ref_tr.data());
+
+        aoclsparse_destroy_mat_descr(descr);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A_csc), aoclsparse_status_success);
+    }
 
     TEST(mv, NullArgDouble)
     {
@@ -1615,6 +1716,14 @@ namespace
     TEST(mv, CmplxInvalid)
     {
         mv_cmplx_failures<aoclsparse_double_complex>(8, 8, 27, zero, op_h, 1, mat_h, fl_up, diag_u);
+    }
+    TEST(mv, SuccessDoubleCSC)
+    {
+        test_mv_csc_success<double>();
+    }
+    TEST(mv, SuccessFloatCSC)
+    {
+        test_mv_csc_success<float>();
     }
 
     /* Transpose operation for a hermitian matrix is not implemented

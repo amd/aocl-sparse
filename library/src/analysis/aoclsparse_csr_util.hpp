@@ -531,13 +531,14 @@ aoclsparse_status aoclsparse_matrix_transform(aoclsparse_matrix A)
             return aoclsparse_status_invalid_pointer;
         while(optd)
         {
-            //if(optd->act == aoclsparse_action_mv)
+            if(!optd->action_optimized) // If the action has not been optimized yet
             {
-                aoclsparse::doid doid = optd->doid;
+                aoclsparse::doid     doid      = optd->doid;
+                aoclsparse_fill_mode fill_mode = optd->fill_mode;
 
                 // Check if the matrix copy already exists
                 bool found_mat = false;
-                for(size_t i = 1; i < A->mats.size(); i++)
+                for(size_t i = 0; i < A->mats.size(); i++)
                 {
                     if(A->mats[i] && A->mats[i]->doid == doid)
                     {
@@ -549,6 +550,15 @@ aoclsparse_status aoclsparse_matrix_transform(aoclsparse_matrix A)
                 // Generate matrix copy
                 if(!found_mat)
                 {
+                    // CSC matrix as input --> transpose DOID and fill_mode
+                    if(A->mats[0]->doid == aoclsparse::doid::gt)
+                    {
+                        doid      = trans_doid(doid);
+                        fill_mode = fill_mode == aoclsparse_fill_mode_lower
+                                        ? aoclsparse_fill_mode_upper
+                                        : aoclsparse_fill_mode_lower;
+                    }
+
                     switch(doid)
                     {
                     case aoclsparse::doid::gt:
@@ -560,13 +570,14 @@ aoclsparse_status aoclsparse_matrix_transform(aoclsparse_matrix A)
                         {
                             // Create a matrix copy
                             // Interchanged m, n dimensions, for the csc conversion
-                            mat_copy = new aoclsparse::csr(csr_mat->n,
-                                                           csr_mat->m,
-                                                           csr_mat->nnz,
-                                                           aoclsparse_csr_mat,
-                                                           aoclsparse_index_base_zero,
-                                                           csr_mat->val_type,
-                                                           doid);
+                            mat_copy = new aoclsparse::csr(
+                                csr_mat->n,
+                                csr_mat->m,
+                                csr_mat->nnz,
+                                aoclsparse_csr_mat,
+                                aoclsparse_index_base_zero,
+                                csr_mat->val_type,
+                                optd->doid); // Retain original matrix doid (non-transposed) to maintain matrix orientation
                         }
                         catch(std::bad_alloc &)
                         {
@@ -606,6 +617,7 @@ aoclsparse_status aoclsparse_matrix_transform(aoclsparse_matrix A)
                             delete mat_copy;
                             return aoclsparse_status_memory_error;
                         }
+                        optd->action_optimized = true;
                         break;
                     }
                     case aoclsparse::doid::sl:
@@ -625,7 +637,8 @@ aoclsparse_status aoclsparse_matrix_transform(aoclsparse_matrix A)
                                                            /*A->nnz*/ -1,
                                                            aoclsparse_csr_mat,
                                                            aoclsparse_index_base_zero,
-                                                           csr_mat->val_type);
+                                                           csr_mat->val_type,
+                                                           optd->doid);
                         }
                         catch(std::bad_alloc &)
                         {
@@ -635,7 +648,7 @@ aoclsparse_status aoclsparse_matrix_transform(aoclsparse_matrix A)
                                                                              csr_mat->ptr,
                                                                              csr_mat->ind,
                                                                              csr_mat->val,
-                                                                             optd->fill_mode,
+                                                                             fill_mode,
                                                                              csr_mat->base,
                                                                              mat_copy);
                         if(status != aoclsparse_status_success)
@@ -667,7 +680,7 @@ aoclsparse_status aoclsparse_matrix_transform(aoclsparse_matrix A)
                             delete mat_copy;
                             return aoclsparse_status_memory_error;
                         }
-                        mat_copy->doid = doid;
+                        optd->action_optimized = true;
                         break;
                     }
                     case aoclsparse::doid::hl:
@@ -687,7 +700,8 @@ aoclsparse_status aoclsparse_matrix_transform(aoclsparse_matrix A)
                                                            /*A->nnz*/ -1,
                                                            aoclsparse_csr_mat,
                                                            aoclsparse_index_base_zero,
-                                                           csr_mat->val_type);
+                                                           csr_mat->val_type,
+                                                           optd->doid);
                         }
                         catch(std::bad_alloc &)
                         {
@@ -697,7 +711,7 @@ aoclsparse_status aoclsparse_matrix_transform(aoclsparse_matrix A)
                                                                             csr_mat->ptr,
                                                                             csr_mat->ind,
                                                                             csr_mat->val,
-                                                                            optd->fill_mode,
+                                                                            fill_mode,
                                                                             csr_mat->base,
                                                                             mat_copy);
                         if(status != aoclsparse_status_success)
@@ -729,7 +743,7 @@ aoclsparse_status aoclsparse_matrix_transform(aoclsparse_matrix A)
                             delete mat_copy;
                             return aoclsparse_status_memory_error;
                         }
-                        mat_copy->doid = doid;
+                        optd->action_optimized = true;
                         break;
                     }
 

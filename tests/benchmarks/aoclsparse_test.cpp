@@ -52,6 +52,7 @@
 // Level2
 #include "testing_blkcsrmv.hpp"
 #include "testing_bsrmv.hpp"
+#include "testing_cscmv.hpp"
 #include "testing_csrmv.hpp"
 #include "testing_csrsv.hpp"
 #include "testing_diamv.hpp"
@@ -758,6 +759,17 @@ int main(int argc, char *argv[])
             return testing_trsm<aoclsparse_float_complex>(arg);
         else if(precision == 'z')
             return testing_trsm<aoclsparse_double_complex>(arg);
+    }
+    else if(strcmp(arg.function, "cscmv") == 0)
+    {
+        if(precision == 's')
+            return testing_cscmv<float>(arg);
+        else if(precision == 'd')
+            return testing_cscmv<double>(arg);
+        else if(precision == 'c')
+            return testing_cscmv<aoclsparse_float_complex>(arg);
+        else if(precision == 'z')
+            return testing_cscmv<aoclsparse_double_complex>(arg);
     }
     else
     {

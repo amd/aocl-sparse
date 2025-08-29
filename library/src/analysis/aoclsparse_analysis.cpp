@@ -535,7 +535,7 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
     aoclsparse::csr *csr_mat = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
     if(!csr_mat)
         return aoclsparse_status_not_implemented;
-    // Check CSR matrix is populated, it not return an error. ToDo: need to handle CSC / COO cases later
+    // Check CSR matrix is populated, it not return an error. ToDo: need to handle COO cases later
     if(!csr_mat->ptr || !csr_mat->ind || !csr_mat->val)
     {
         return aoclsparse_status_invalid_pointer;
@@ -548,21 +548,25 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
     aoclsparse_int other_count = 0, sum = 0;
     while(optd)
     {
-        optimized              = optimized && optd->action_optimized;
-        optd->action_optimized = true;
-        // Increment the actions counter that are implemented
-        if((optd->act == aoclsparse_action_mv || optd->act == aoclsparse_action_dotmv)
-           && optd->trans == aoclsparse_operation_none
-           && optd->type == aoclsparse_matrix_type_general && A->val_type == aoclsparse_dmat
-           && optd->nop > 0)
-            mv_count++;
-        else if(optd->act == aoclsparse_action_ilu0 && optd->nop > 0)
-            ilu_count++;
-        else if(optd->act == aoclsparse_action_symgs && optd->nop > 0)
-            sgs_count++;
-        else
-            other_count++;
-        sum++;
+        if(!optd->action_optimized) // If the action has not been optimized yet
+        {
+            optimized              = optimized && optd->action_optimized;
+            optd->action_optimized = true;
+            // Increment the actions counter that are implemented
+            // Skip mv_count optimization if matrix is in CSC format (csr_mat->doid == aoclsparse::doid::gt indicates CSC)
+            if((optd->act == aoclsparse_action_mv || optd->act == aoclsparse_action_dotmv)
+               && optd->trans == aoclsparse_operation_none
+               && optd->type == aoclsparse_matrix_type_general && A->val_type == aoclsparse_dmat
+               && optd->nop > 0 && csr_mat->doid != aoclsparse::doid::gt)
+                mv_count++;
+            else if(optd->act == aoclsparse_action_ilu0 && optd->nop > 0)
+                ilu_count++;
+            else if(optd->act == aoclsparse_action_symgs && optd->nop > 0)
+                sgs_count++;
+            else
+                other_count++;
+            sum++;
+        }
         optd = optd->next;
     }
     // all actions in the list were already optimized for

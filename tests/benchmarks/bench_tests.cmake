@@ -116,7 +116,7 @@ foreach(FUNCTION "csrmv" "ellmv" "diamv") # TODO add back "csrsv", so far failin
   endforeach(PREC)
 endforeach(FUNCTION)
 
-foreach(FUNCTION "optmv")
+foreach(FUNCTION "optmv" "cscmv")
   foreach(PREC "s" "d" "c" "z")
     foreach(MATSIZE ${SQMATRIXSIZES} ${RCTMATRIXSIZES})
 
@@ -128,9 +128,17 @@ foreach(FUNCTION "optmv")
 
       foreach(TRANSPOSE "N" "T" "H")
         # General matrix type
+        # Note: trans_doid(gh) = gc is not implemented
+        if(FUNCTION STREQUAL "cscmv" AND TRANSPOSE STREQUAL "H" AND (PREC STREQUAL "c" OR PREC STREQUAL "z"))
+          continue()
+        endif()
         add_test(FuncTest.${FUNCTION}${TRANSPOSE}-General-Unsorted-Matrix-R-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ}xalpha-1xbeta-0xBase-0 ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --alpha=1 --beta=0 --indexbaseA=0 --transposeA=${TRANSPOSE} --matrix=R --sort=U --verify=1 --iters=1 --mem=U)
-        # if Transpose then check for memory type R
-        if(TRANSPOSE STREQUAL "T")
+        # OPTMV: if Transpose then check for memory type R
+        if(TRANSPOSE STREQUAL "T" AND FUNCTION STREQUAL "optmv")
+          add_test(FuncTest.${FUNCTION}${TRANSPOSE}-General-Unsorted-Matrix-R-MemR-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ}xalpha-1xbeta-0xBase-0 ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --alpha=1 --beta=0 --indexbaseA=0 --transposeA=${TRANSPOSE} --matrix=R --sort=U --verify=1 --iters=1 --mem=R)
+        endif()
+        # CSCMV: if non-transpose then check for memory type R
+        if(TRANSPOSE STREQUAL "N" AND FUNCTION STREQUAL "cscmv")
           add_test(FuncTest.${FUNCTION}${TRANSPOSE}-General-Unsorted-Matrix-R-MemR-${PREC}-${SIZEM}x${SIZEN}x${SIZENNZ}xalpha-1xbeta-0xBase-0 ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=${SIZEM} --sizen=${SIZEN} --sizennz=${SIZENNZ} --alpha=1 --beta=0 --indexbaseA=0 --transposeA=${TRANSPOSE} --matrix=R --sort=U --verify=1 --iters=1 --mem=R)
         endif()
         # if Conjugate Transpose then check for memory type R
@@ -164,7 +172,7 @@ foreach(FUNCTION "optmv")
     add_test(FuncTest.${FUNCTION}-General-PartiallySorted-Matrix-D-${PREC}-100x100x500xalpha-3xbeta--1.5xBase-1 ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=100 --sizen=100 --sizennz=500 --alpha=3 --beta=-1.5 --indexbaseA=1 --transposeA=N --matrix=D --sort=P --verify=1 --iters=1 --mem=U)
     add_test(FuncTest.${FUNCTION}T-General-PartiallySorted-Matrix-D-${PREC}-100x100x500xalpha-3xbeta--1.5xBase-1 ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=100 --sizen=100 --sizennz=500 --alpha=3 --beta=-1.5 --indexbaseA=1 --transposeA=T --matrix=D --sort=P --verify=1 --iters=1 --mem=U)
     add_test(FuncTest.${FUNCTION}T-General-PartiallySorted-Matrix-D-MemR-${PREC}-100x100x500xalpha-3xbeta--1.5xBase-1 ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=100 --sizen=100 --sizennz=500 --alpha=3 --beta=-1.5 --indexbaseA=1 --transposeA=T --matrix=D --sort=P --verify=1 --iters=1 --mem=R)
-    IF(PREC STREQUAL "c" OR PREC STREQUAL "z")
+    IF(FUNCTION STREQUAL "optmv" AND (PREC STREQUAL "c" OR PREC STREQUAL "z"))
       add_test(FuncTest.${FUNCTION}H-General-PartiallySorted-Matrix-D-${PREC}-100x100x500xalpha-3xbeta--1.5xBase-1 ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench  --function=${FUNCTION} --precision=${PREC} --sizem=100 --sizen=100 --sizennz=500 --alpha=3 --beta=-1.5 --indexbaseA=1 --transposeA=H --matrix=D --sort=P --verify=1 --iters=1 --mem=U)
     ENDIF()
     # Matrix = R, Sort = P
