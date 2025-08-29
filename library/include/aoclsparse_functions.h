@@ -1113,7 +1113,7 @@ aoclsparse_status aoclsparse_sbsrmv(aoclsparse_operation       trans,
  *
  *  @param[in]
  *  op          Matrix operation, \p op can be one of \ref aoclsparse_operation_none,
- *              \ref aoclsparse_operation_conjugate_transpose, or \ref aoclsparse_operation_conjugate_transpose.
+ *              \ref aoclsparse_operation_transpose, or \ref aoclsparse_operation_conjugate_transpose.
  *  @param[in]
  *  alpha       Scalar \f$\alpha\f$.
  *  @param[in]
@@ -1991,7 +1991,7 @@ aoclsparse_status aoclsparse_strsm_kid(const aoclsparse_operation trans,
 /*! \ingroup level3_module
  *  \brief Sparse matrix Sparse matrix multiplication for real and complex datatypes.
  *  \details
- *  \P{aoclsparse_?sp2m} multiplies two sparse matrices in CSR storage format. The
+ *  \P{aoclsparse_sp2m} multiplies two sparse matrices in CSR storage format. The
  *  result is stored in a newly allocated sparse matrix in CSR format, such that
  *  \f[
  *    C =  op(A) \, op(B),

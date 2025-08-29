@@ -57,6 +57,12 @@ aoclsparse_create\_?csr()
 .. doxygenfunction:: aoclsparse_create_zcsr
    :project: sparse
 
+aoclsparse::create_csr()
+-------------------------
+
+.. doxygenfunction:: aoclsparse::create_csr
+   :project: sparse
+
 aoclsparse_create\_?tcsr()
 --------------------------
 
@@ -85,6 +91,12 @@ aoclsparse_create\_?bsr()
     :project: sparse
     :outline:
 .. doxygenfunction:: aoclsparse_create_zbsr
+   :project: sparse
+
+aoclsparse::create_bsr()
+-------------------------
+
+.. doxygenfunction:: aoclsparse::create_bsr
    :project: sparse
 
 aoclsparse_create\_?coo()
