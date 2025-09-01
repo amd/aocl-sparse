@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2021-2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2021-2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,17 +26,13 @@
 
 #include <cstdlib>
 
-aoclsparse::context *aoclsparse::context::global_obj = nullptr;
-std::mutex           aoclsparse::context::global_lock;
-
 // Thread local isa_hint
 thread_local aoclsparse::isa_hint tl_isa_hint;
 
 // Function that returns the aoclsparse global context
 aoclsparse::context *aoclsparse::context::get_context()
 {
-    std::lock_guard<std::mutex> lock(global_lock);
-    if(nullptr == global_obj)
-        global_obj = new aoclsparse::context();
-    return global_obj;
+    static aoclsparse::context global_obj;
+
+    return &global_obj;
 }
