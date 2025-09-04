@@ -161,9 +161,9 @@ namespace contextTest
         char init_v_1[10] = "AVX2";
         char init_v_2[10] = "AVX512";
         char init_v_3[10] = "GENERIC";
-        char ledger_1[10];
-        char ledger_2[10];
-        char ledger_3[10];
+        char ledger_1[10] = {};
+        char ledger_2[10] = {};
+        char ledger_3[10] = {};
 
         std::thread t[thread_count];
 
@@ -265,13 +265,13 @@ namespace contextTest
         constexpr size_t thread_count = 3;
         Au::X86Cpu       Cpu          = {0};
 
-        char init_v_1[10] = "AVX2";
-        char init_v_2[10] = "AVX512";
-        char init_v_3[10] = "RACECAR";
-        char ledger_1[10];
-        char ledger_2[10];
-        char ledger_3[10];
-        char ledger_base[10];
+        char init_v_1[10]    = "AVX2";
+        char init_v_2[10]    = "AVX512";
+        char init_v_3[10]    = "RACECAR";
+        char ledger_1[10]    = {};
+        char ledger_2[10]    = {};
+        char ledger_3[10]    = {};
+        char ledger_base[10] = {};
 
         debug_info info;
 

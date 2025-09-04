@@ -350,6 +350,12 @@ namespace
                 alpha = {1, 0};
                 beta  = {0, 0};
                 break;
+            default:
+                alpha = {std::numeric_limits<double>::quiet_NaN(),
+                         std::numeric_limits<double>::quiet_NaN()};
+                beta  = {std::numeric_limits<double>::quiet_NaN(),
+                         std::numeric_limits<double>::quiet_NaN()};
+                break;
             }
         }
         else
@@ -375,6 +381,10 @@ namespace
             case 4:
                 alpha = 1.;
                 beta  = 0.0;
+                break;
+            default:
+                alpha = std::numeric_limits<double>::quiet_NaN();
+                beta  = std::numeric_limits<double>::quiet_NaN();
                 break;
             }
         }

@@ -69,7 +69,7 @@ namespace
         bool psort = true; //assume ascending order
         for(aoclsparse_int i = 0; i < m; i++)
         {
-            aoclsparse_int row_start, row_end, diag_index;
+            aoclsparse_int row_start, row_end, diag_index = -1;
             row_start = csr_row_ptr[i] - base;
             row_end   = csr_row_ptr[i + 1] - base;
 
@@ -89,11 +89,13 @@ namespace
                     break;
                 }
             }
-            if(isort == PARTIAL_SORT)
+            // If valid diagonal exists, perform partial sorting along the diagonal
+            // If valid diagonal does not exist, fall back to full sorting
+            if(isort == PARTIAL_SORT && (diag_index >= 0))
             {
                 //check if lower and upper regions of the row are sorted or not
                 //if atleast one triangle is unsorted, we consider partial sorting
-                //diagonal is has been checked to be in the correct positio (i,i) for row #i
+                //diagonal has been checked to be in the correct position (i,i) for row #i
                 //no need to check the second triangle/row, if the first one is already unsorted.
                 psort = check_sorting_core(row_start, diag_index, csr_col_ind);
                 if(psort)
@@ -289,7 +291,7 @@ namespace
                                 bool           sortexp_status)
     {
         bool                        fulldiag, sorted, diagdom, is_trng;
-        aoclsparse_status           status;
+        aoclsparse_status           status  = aoclsparse_status_success;
         bool                        is_symm = false;
         std::vector<T>              csr_val, csc_val, coo_val;
         std::vector<aoclsparse_int> csr_col_ind, csc_row_ind, csr_row_ptr, csc_col_ptr;
