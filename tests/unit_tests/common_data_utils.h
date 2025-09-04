@@ -43,15 +43,29 @@
 #include "Au/Cpuid/X86Cpu.hh"
 #pragma GCC diagnostic pop
 
-// Utilities to update base for row pointers and column indices =============================================
+// The following code suppresses coverity warnings related ASSERT_EQ statements.
+// It creates a coverity recognizable no-return "model" for ASSERT_EQ,
+// indicating ASSERT_EQ failures will lead to program exit.
+#ifdef __COVERITY__
+void __coverity_panic__(void); // modeled as no-return
+#define ASSERT_EQ(ret, sta)       \
+    do                            \
+    {                             \
+        if(!((ret) == (sta)))     \
+        {                         \
+            __coverity_panic__(); \
+        }                         \
+    } while(0)
+#endif
+
+// Utilities to update base for row pointers and column indices
 #define TRANSFORM_BASE(base, ptr, idx)                                                        \
     std::transform(                                                                           \
         ptr.begin(), ptr.end(), ptr.begin(), [base](aoclsparse_int &d) { return d + base; }); \
     std::transform(                                                                           \
         idx.begin(), idx.end(), idx.begin(), [base](aoclsparse_int &d) { return d + base; });
 
-// Utilities to compare complex real scalars and vectors =============================================
-
+// Utilities to compare complex real scalars and vectors
 #define EXPECT_COMPLEX_EQ_VEC(n, x, y)                                           \
     for(size_t i = 0; i < (size_t)n; i++)                                        \
     {                                                                            \
