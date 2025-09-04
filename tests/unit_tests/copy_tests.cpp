@@ -28,8 +28,8 @@ namespace
 {
     void test_compare_matrix(const aoclsparse_matrix src, const aoclsparse_matrix dest)
     {
-        void *src_val;
-        void *dest_val;
+        void *src_val  = nullptr;
+        void *dest_val = nullptr;
         EXPECT_EQ(src->m, dest->m);
         EXPECT_EQ(src->n, dest->n);
         EXPECT_EQ(src->nnz, dest->nnz);

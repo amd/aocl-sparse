@@ -311,7 +311,7 @@ namespace dispatch_Test
             *ok = kid == aoclsparse_debug_dispatcher(dispatcher.c_str(), aoclsparse_smat, -1);
         };
 
-        int         ok1, ok2;
+        int         ok1 = 0, ok2 = 0;
         std::thread t1(lt_driver, &ok1, 0, "generic"s);
         std::thread t2(lt_driver, &ok2, 1, "avx2"s);
         t1.join();
