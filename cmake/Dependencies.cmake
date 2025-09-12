@@ -70,27 +70,47 @@ function(aocl_libs)
     endif(SUPPORT_OMP)
   endif(WIN32)
 
-  # Link against dynamic library by default
+  # Determine library names based on BUILD_SHARED_LIBS for all three libraries
+  if(BUILD_SHARED_LIBS)
+    # Prefer dynamic libraries, fallback to static
+    set(_utils_preferred_library ${_utils_dyn_library})
+    set(_utils_fallback_library ${_utils_static_library})
+    set(_blas_preferred_library ${_blas_dyn_library})
+    set(_blas_fallback_library ${_blas_static_library})
+    set(_flame_preferred_library ${_flame_dyn_library})
+    set(_flame_fallback_library ${_flame_static_library})
+  else()
+    # Prefer static libraries, fallback to dynamic
+    set(_utils_preferred_library ${_utils_static_library})
+    set(_utils_fallback_library ${_utils_dyn_library})
+    set(_blas_preferred_library ${_blas_static_library})
+    set(_blas_fallback_library ${_blas_dyn_library})
+    set(_flame_preferred_library ${_flame_static_library})
+    set(_flame_fallback_library ${_flame_dyn_library})
+  endif()
+
+  # Find libraries with BUILD_SHARED_LIBS preference
   find_library(
     AOCL_UTILS_LIB
-    NAMES ${_utils_dyn_library} ${_utils_static_library} NAMES_PER_DIR
+    NAMES ${_utils_preferred_library} ${_utils_fallback_library} NAMES_PER_DIR
     HINTS ${CMAKE_AOCL_ROOT}/utils ${CMAKE_AOCL_ROOT}/amd-utils ${CMAKE_AOCL_ROOT}
     PATH_SUFFIXES "lib/${ILP_DIR}" "lib_${ILP_DIR}" "lib"
     DOC "AOCL Utils library")
 
   find_library(
     AOCL_BLIS_LIB
-    NAMES ${_blas_dyn_library} ${_blas_static_library}
+    NAMES ${_blas_preferred_library} ${_blas_fallback_library} NAMES_PER_DIR
     HINTS ${CMAKE_AOCL_ROOT}/blis ${CMAKE_AOCL_ROOT}/amd-blis ${CMAKE_AOCL_ROOT}
     PATH_SUFFIXES "lib/${ILP_DIR}" "lib_${ILP_DIR}" "lib"
     DOC "AOCL Blis library")
 
   find_library(
     AOCL_LIBFLAME
-    NAMES ${_flame_dyn_library} ${_flame_static_library} NAMES_PER_DIR
+    NAMES ${_flame_preferred_library} ${_flame_fallback_library} NAMES_PER_DIR
     HINTS ${CMAKE_AOCL_ROOT}/libflame ${CMAKE_AOCL_ROOT}/amd-libflame ${CMAKE_AOCL_ROOT}
     PATH_SUFFIXES "lib/${ILP_DIR}" "lib_${ILP_DIR}" "lib"
     DOC "AOCL LIBFLAME library")
+
   # ====Headers
   find_path(
     AOCL_UTILS_INCLUDE_DIR

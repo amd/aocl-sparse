@@ -112,6 +112,16 @@ set(CMAKE_AOCL_ROOT $ENV{AOCL_ROOT} CACHE STRING "AOCL_ROOT directory to be used
 set(USE_EXTERNAL_OMP_LIB OFF CACHE BOOL "Use OpenMP target generated from find_package(OpenMP) by default")
 set(EXTERNAL_OMP_LIBRARY "" CACHE STRING "Provide external OMP library")
 
+if(WIN32)
+  # Policy ensuring the correct MSVC runtime library configuration
+  cmake_policy(SET CMP0091 NEW)
+  if(BUILD_SHARED_LIBS)
+      set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+  else()
+      set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  endif()
+endif()
+
 if (NOT (${ASAN} AND ${CMAKE_SYSTEM_NAME} MATCHES "Linux" AND CMAKE_BUILD_TYPE MATCHES "Debug"))
   # Switch off ASAN: target not supported
   set(ASAN OFF)
