@@ -264,5 +264,13 @@ namespace kernel_templates
         using base_type = double;
         using type      = std::complex<double>;
     };
+
+    // Enum class to represent the fused operation in scatter
+    enum class fused_op
+    {
+        NONE, // No fused operation
+        ADD, // Fused ADD
+        SUB // Fused SUB
+    };
 }
 #endif

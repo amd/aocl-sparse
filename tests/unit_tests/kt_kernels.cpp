@@ -1402,6 +1402,55 @@ namespace TestsKT
         if(::testing::Test::HasFailure())
             std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
     }
+
+    template <bsz SZ, typename SUF>
+    void kt_scatter_p_test()
+    {
+        constexpr size_t     sz = tsz_v<SZ, SUF>;
+        avxvector_t<SZ, SUF> v;
+        const SUF           *data = D.get_data<SUF>();
+        const size_t        *idx  = D.map;
+
+        size_t max_idx = 0;
+
+        // Get the maximum index from idx array
+        // This maximum index is used to size the output array
+        for(int i = 0; i < sz; ++i)
+        {
+            max_idx = (std::max)(max_idx, *(idx + i));
+        }
+
+        // Output and reference arrays
+        // 3 output arrays to test fused add, sub and no op
+        // Size of the array is max_idx + 1 to accommodate the maximum index element
+        std::vector<std::vector<SUF>> out(3, std::vector<SUF>(max_idx + 1, 0)),
+            ref(3, std::vector<SUF>(max_idx + 1, 0));
+
+        // Load vector from data
+        v = kt_loadu_p<SZ, SUF>(data);
+
+        // Scatter to out using idx
+        kt_scatter_p<SZ, SUF, fused_op::ADD>(v, out[0].data(), idx);
+        kt_scatter_p<SZ, SUF, fused_op::SUB>(v, out[1].data(), idx);
+        kt_scatter_p<SZ, SUF>(v, out[2].data(), idx);
+
+        // Reference: out[idx[i]] (op)= data[i]
+        // Reference scatter with fused add and sub
+        // Copy the contents of the vector (data) to the reference
+        for(size_t i = 0; i < sz; i++)
+        {
+            ref[0][idx[i]] += data[i];
+            ref[1][idx[i]] -= data[i];
+            ref[2][idx[i]] = data[i];
+        }
+
+        expect_eq_vec(ref[0].size(), out[0].data(), ref[0].data());
+        expect_eq_vec(ref[1].size(), out[1].data(), ref[1].data());
+        expect_eq_vec(ref[2].size(), out[2].data(), ref[2].data());
+
+        if(::testing::Test::HasFailure())
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
+    }
 }
 
 // Test instantiation macros for real types
@@ -1452,7 +1501,8 @@ KT_INSTANTIATE_TEST(TestsKT::kt_storeu_p_test);
 KT_INSTANTIATE_TEST(TestsKT::kt_fmadd_B_test);
 KT_INSTANTIATE_TEST(TestsKT::kt_hsum_B_test);
 KT_INSTANTIATE_TEST(TestsKT::kt_div_p_test);
-KT_INSTANTIATE_TEST(TestsKT::kt_pow2_p_test)
+KT_INSTANTIATE_TEST(TestsKT::kt_pow2_p_test);
+KT_INSTANTIATE_TEST(TestsKT::kt_scatter_p_test);
 
 // Operations that only support real types
 KT_INSTANTIATE_TEST_REAL(TestsKT::kt_max_p_test);

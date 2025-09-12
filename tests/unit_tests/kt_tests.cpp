@@ -129,6 +129,9 @@ namespace TestsKT
 
     template <bsz SZ, typename SUF>
     void kt_pow2_p_test();
+
+    template <bsz SZ, typename SUF>
+    void kt_scatter_p_test();
     // -------------------------
 
     TEST(KT_L0, KT_BASE_T_CHECK)
@@ -608,6 +611,19 @@ namespace TestsKT
         if(can_exec_avx512_tests())
         {
             CALL_FOR_ALL_TYPES(kt_pow2_p_test, bsz::b512);
+        }
+    }
+
+    TEST(KT_L0, kt_scatter_p_256)
+    {
+        CALL_FOR_ALL_TYPES(kt_scatter_p_test, bsz::b256);
+    }
+
+    TEST(KT_L0, kt_scatter_p_512)
+    {
+        if(can_exec_avx512_tests())
+        {
+            CALL_FOR_ALL_TYPES(kt_scatter_p_test, bsz::b512);
         }
     }
 }

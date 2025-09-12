@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,13 +34,25 @@
 namespace kernel_templates
 {
     // Scatter kernel
-    template <bsz SZ, typename SUF>
+    template <bsz SZ, typename SUF, fused_op OP = fused_op::NONE>
     KT_FORCE_INLINE void
         kt_scatter_p(const avxvector_t<SZ, SUF> a, SUF *v, const kt_int_t *b) noexcept
     {
         const SUF *acast = reinterpret_cast<const SUF *>(&a);
         for(size_t k = 0; k < tsz_v<SZ, SUF>; k++)
-            v[b[k]] = acast[k];
+        {
+            if constexpr(OP == fused_op::NONE)
+                v[b[k]] = acast[k];
+            else if constexpr(OP == fused_op::ADD)
+                v[b[k]] += acast[k];
+            else if constexpr(OP == fused_op::SUB)
+                v[b[k]] -= acast[k];
+            else
+            {
+                static_assert(OP != fused_op::NONE && OP != fused_op::ADD && OP != fused_op::SUB,
+                              "Unsupported fused operation");
+            }
+        }
     }
 }
 #endif
