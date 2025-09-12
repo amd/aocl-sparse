@@ -1,5 +1,5 @@
 # ##############################################################################
-# Copyright (c) 2020-2024 Advanced Micro Devices, Inc.
+# Copyright (c) 2020-2025 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -180,18 +180,15 @@ function(openmp_libs)
     endif()
 
     if(WIN32)
-      if(CMAKE_GENERATOR  STREQUAL "Ninja")
-        set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};-fopenmp")
-      else()
-        set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};/openmp")
-      endif()
-    else()
-      set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};${OpenMP_CXX_FLAGS}")
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+      set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
     endif()
 
-    set(OPENMP_FOUND ${OPENMP_FOUND} PARENT_SCOPE)
     set(OpenMP_Library ${OpenMP_Library} PARENT_SCOPE)
-    set(COMPILER_FLAGS_COMMON ${COMPILER_FLAGS_COMMON} PARENT_SCOPE)
+    set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} PARENT_SCOPE)
+    set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} PARENT_SCOPE)
+    set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} PARENT_SCOPE)
 
   endif()
 
@@ -203,6 +200,8 @@ find_package(Git REQUIRED)
 
 if(SUPPORT_OMP)
   openmp_libs()
+  # Add SUPPORT_OMP preprocessor definition if OpenMP support is enabled
+  list(APPEND AOCLSPARSE_DEFS -DSUPPORT_OMP)
 endif(SUPPORT_OMP)
 #fetch pthread library for Linux builds, irrespective of ST/MT modes
 if(NOT WIN32)
@@ -254,7 +253,7 @@ message(STATUS "  \$UTILS_LIBRARY_DIR....${UTILS_LIBRARY_DIR}")
 
 if(SUPPORT_OMP)
   message(STATUS "  \$OpenMP_Library....${OpenMP_Library}")
-  message(STATUS "  \$OpenMP_Flags....${COMPILER_FLAGS_COMMON}")
+  message(STATUS "  \$OpenMP_Flags....${CMAKE_C_FLAGS};${CMAKE_CXX_FLAGS};${CMAKE_EXE_LINKER_FLAGS}")
 else(SUPPORT_OMP)
   message(STATUS "  \$Threads Library....${Threads_Library}")
 endif(SUPPORT_OMP)

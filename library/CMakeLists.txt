@@ -112,8 +112,7 @@ add_library(aocl::aoclsparse ALIAS aoclsparse)
 aoclsparse_add_dependency(aoclsparse)
 
 # Target link libraries and compile options
-# TODO: Remove OPENMP_FOUND since OpenMP_Library is set to null in ST mode and remove the parent scope for this variable as well
-if(SUPPORT_OMP AND OPENMP_FOUND)
+if(SUPPORT_OMP)
   target_link_libraries(aoclsparse PRIVATE ${OpenMP_Library}
                                   PUBLIC ${LAPACK_LIBRARIES})
 else()
