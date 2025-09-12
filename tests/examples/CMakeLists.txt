@@ -62,6 +62,16 @@ if (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
         set(CMAKE_SPARSE_ROOT ${CMAKE_AOCL_ROOT})
     endif()
 
+    if(WIN32)
+        # Policy ensuring the correct MSVC runtime library configuration
+        cmake_policy(SET CMP0091 NEW)
+        if(BUILD_SHARED_LIBS)
+            set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+        else()
+            set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+        endif()
+    endif()
+
     ## Change default installation path
     if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set (CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/../bin"

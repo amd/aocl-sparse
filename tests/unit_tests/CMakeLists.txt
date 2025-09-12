@@ -64,6 +64,16 @@ if (BUILD_SPARSE_TESTS_OUTOFSRCTREE)
         set(CMAKE_SPARSE_ROOT ${CMAKE_AOCL_ROOT})
     endif()
 
+    if(WIN32)
+        # Policy ensuring the correct MSVC runtime library configuration
+        cmake_policy(SET CMP0091 NEW)
+        if(BUILD_SHARED_LIBS)
+            set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+        else()
+            set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+        endif()
+    endif()
+
     if (NOT (${ASAN} AND ${CMAKE_SYSTEM_NAME} MATCHES "Linux" AND CMAKE_BUILD_TYPE MATCHES "Debug"))
         # Switch off ASAN: target not supported
         message(STATUS "ASAN is supported only for Linux-Debug environemnt. Disabling ASAN to proceed further.")
@@ -75,11 +85,43 @@ if (BUILD_SPARSE_TESTS_OUTOFSRCTREE)
         set(COVERAGE OFF)
     endif()
 
-    # Debug flags
-    set(COMPILER_FLAGS_DEBUG "-O0;-gdwarf-5;-g3;-Wall;-Wextra;")
-    if(ASAN)
-        set(CMAKE_CXX_FLAGS_DEBUG "-fsanitize=address")
-        set(COMPILER_FLAGS_DEBUG "${COMPILER_FLAGS_DEBUG};${CMAKE_CXX_FLAGS_DEBUG}")
+    # Add empty "cleanall" target
+    # for coverage target to add dependencies to it
+    add_custom_target( cleanall
+    COMMAND ${CMAKE_MAKE_PROGRAM} clean
+    )
+
+    # Check for CL compatibility layer of clang
+    get_filename_component(COMPILER_BASENAME "${CMAKE_CXX_COMPILER}" NAME)
+    if(COMPILER_BASENAME MATCHES "^(.+-)?(clang-cl)(-[0-9]+(\\.[0-9]+)*)?(-[^.]+)?(\\.exe)?$")
+        set(CLANG_OPTIONS_STYLE "MSVC")
+    else()
+        set(CLANG_OPTIONS_STYLE "GNU")
+    endif()
+
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CLANG_OPTIONS_STYLE STREQUAL "GNU"))
+        set(COMPILER_FLAGS_COMMON "-mavx2;-mfma;")
+        set(COMPILER_FLAGS_DEBUG "-O0;-gdwarf-5;-g3;-Wall;-Wextra;")
+        set(AOCLSPARSE_AVX512_FLAGS "-mavx512f;-mavx512vl;-mavx512dq;")
+        if(ASAN)
+            set(CMAKE_CXX_FLAGS_DEBUG "-fsanitize=address")
+            set(COMPILER_FLAGS_DEBUG "${COMPILER_FLAGS_DEBUG};${CMAKE_CXX_FLAGS_DEBUG}")
+        endif()
+        if(COVERAGE AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+            include(Coverage.cmake)
+            set(COMPILER_FLAGS_DEBUG "${COMPILER_FLAGS_DEBUG};--coverage")
+            add_link_options("$<$<CONFIG:Debug>:--coverage>")
+        else()
+            set(COVERAGE OFF)
+        endif()
+    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CLANG_OPTIONS_STYLE STREQUAL "MSVC")
+        set(COMPILER_FLAGS_COMMON "/arch:AVX2;")
+        set(COMPILER_FLAGS_DEBUG "/Od;/Zi;")
+        set(AOCLSPARSE_AVX512_FLAGS "/arch:AVX512;")
+    else()
+        set(COMPILER_FLAGS_COMMON "-mavx2;-mfma;")
+        set(COMPILER_FLAGS_DEBUG "-g")
+        set(AOCLSPARSE_AVX512_FLAGS "-mavx512f;-mavx512vl;-mavx512dq;")
     endif()
 
     # Version definitions (missing in out-of-source builds)
@@ -101,19 +143,6 @@ if (BUILD_SPARSE_TESTS_OUTOFSRCTREE)
     ## During out-of-source-tree build of examples, Blis, Libflame, openmp and utils dependecies need to be found explicitly.
     ## So we call Dependencies.cmake
     include(Dependencies.cmake)
-
-    # Add empty "cleanall" target
-    # for coverage target to add dependencies to it
-    add_custom_target( cleanall
-    COMMAND ${CMAKE_MAKE_PROGRAM} clean
-    )
-    if(COVERAGE AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-        include(Coverage.cmake)
-        set(COMPILER_FLAGS_DEBUG "${COMPILER_FLAGS_DEBUG};--coverage")
-        add_link_options("$<$<CONFIG:Debug>:--coverage>")
-    else()
-        set(COVERAGE OFF)
-    endif()
 
     find_library(SPARSE_LIBRARY
     NAMES "aoclsparse" "aoclsparse-d"
@@ -139,6 +168,13 @@ else (BUILD_SPARSE_TESTS_OUTOFSRCTREE)
     set(SPARSE_LIBRARY "aoclsparse")
 endif (BUILD_SPARSE_TESTS_OUTOFSRCTREE)
 message(STATUS "  \$SPARSE_LIBRARY......${SPARSE_LIBRARY}")
+
+set(AOCLSPARSE_GENERIC_FLAGS "${COMPILER_FLAGS_COMMON};${COMPILER_FLAGS_DEBUG};")
+message(STATUS "Compiler Flags for Unit Tests:")
+message(STATUS "  \$Common flags......${COMPILER_FLAGS_COMMON}")
+message(STATUS "  \$Debug flags......${COMPILER_FLAGS_DEBUG}")
+message(STATUS "  \$Generic Flagss......${AOCLSPARSE_GENERIC_FLAGS}")
+message(STATUS "  \$AVX512 flags......${AOCLSPARSE_AVX512_FLAGS}")
 
 include(FetchContent)
 set(FETCHCONTENT_QUIET off)
@@ -319,18 +355,14 @@ kt_kernels.cpp
 ktlvl2_kernels.cpp
 )
 
-# Flags used to build KT test kernels
-set(KT_AVX512_FLAGS "-mavx512f;-mavx512vl;-mavx512dq;")
-set(KT_AVX2_FLAGS "-mavx2;-mfma;")
-
 # Double compilation of KT test kernels
 add_library(KT_KERNELS_AVX512 OBJECT ${KT_KERNELS})
-target_compile_options(KT_KERNELS_AVX512 PRIVATE ${KT_AVX512_FLAGS})
+target_compile_options(KT_KERNELS_AVX512 PRIVATE ${AOCLSPARSE_AVX512_FLAGS}${COMPILER_FLAGS_DEBUG})
 target_link_libraries(KT_KERNELS_AVX512 PRIVATE aoclsparse GTest::gtest_main)
 target_include_directories(KT_KERNELS_AVX512 PRIVATE ${AOCLSPARSE_TEST_HEADER_DEPENDENCIES})
 
 add_library(KT_KERNELS_AVX2 OBJECT ${KT_KERNELS})
-target_compile_options(KT_KERNELS_AVX2 PUBLIC "-mno-avx512f;" -DKT_AVX2_BUILD ${KT_AVX2_FLAGS})
+target_compile_options(KT_KERNELS_AVX2 PUBLIC "-mno-avx512f;" -DKT_AVX2_BUILD ${AOCLSPARSE_GENERIC_FLAGS})
 target_link_libraries(KT_KERNELS_AVX2 PUBLIC aoclsparse GTest::gtest_main)
 target_include_directories(KT_KERNELS_AVX2 PUBLIC ${AOCLSPARSE_TEST_HEADER_DEPENDENCIES})
 
