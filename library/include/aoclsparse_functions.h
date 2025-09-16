@@ -1142,11 +1142,11 @@ aoclsparse_status aoclsparse_sbsrmv(aoclsparse_operation       trans,
  *  \retval     aoclsparse_status_not_implemented The requested functionality is not implemented.
  *
  * @rst
- * .. collapse:: Example - C++ (tests/examples/sample_spmv.cpp)
+ * .. collapse:: Example - C++ (tests/examples/sample_mv_cpp.cpp)
  *
  *    .. only:: html
  *
- *       .. literalinclude:: ../tests/examples/sample_spmv.cpp
+ *       .. literalinclude:: ../tests/examples/sample_mv_cpp.cpp
  *          :language: C++
  *          :linenos:
  *
@@ -1358,11 +1358,11 @@ aoclsparse_status aoclsparse_scsrsv(aoclsparse_operation       trans,
  *
  * \
  *
- * .. collapse:: Example - Complex space (tests/examples/sample_ztrsv.cpp)
+ * .. collapse:: Example - Complex space (tests/examples/sample_tcsr_ztrsv.cpp)
  *
  *      .. only:: html
  *
- *         .. literalinclude:: ../tests/examples/sample_ztrsv.cpp
+ *         .. literalinclude:: ../tests/examples/sample_tcsr_ztrsv.cpp
  *            :language: C++
  *            :linenos:
  *

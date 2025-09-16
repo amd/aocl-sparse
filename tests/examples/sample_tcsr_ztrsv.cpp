@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023-2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023-2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,7 +33,7 @@
 int main()
 {
     std::cout << "---------------------------------" << std::endl
-              << " TCSR matrix, SPMV sample program " << std::endl
+              << " TCSR matrix, TRSV sample program " << std::endl
               << "---------------------------------" << std::endl
               << std::endl;
 
