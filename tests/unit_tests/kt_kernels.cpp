@@ -489,8 +489,6 @@ namespace TestsKT
     template <bsz SZ, typename SUF>
     void kt_setzero_p_test()
     {
-        using base_t = typename kt_dt<SUF>::base_type;
-
         const size_t sz = tsz_v<SZ, SUF>;
         const SUF    zero_v[sz]{};
 
@@ -1387,7 +1385,7 @@ namespace TestsKT
 
             // In case of complex number, the real and complex
             // parts are set to the result of pow2.
-            for(int i = 0; i < sz; i++)
+            for(size_t i = 0; i < sz; i++)
             {
                 base_t temp = (data[i].real() * data[i].real()) + (data[i].imag() * data[i].imag());
 
@@ -1415,7 +1413,7 @@ namespace TestsKT
 
         // Get the maximum index from idx array
         // This maximum index is used to size the output array
-        for(int i = 0; i < sz; ++i)
+        for(size_t i = 0; i < sz; ++i)
         {
             max_idx = (std::max)(max_idx, *(idx + i));
         }
