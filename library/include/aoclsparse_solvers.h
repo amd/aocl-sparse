@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -195,7 +195,7 @@ aoclsparse_status aoclsparse_itsol_option_set(aoclsparse_itsol_handle handle,
                                               const char             *value);
 
 /*! \ingroup solvers_module
- * \brief Initialize a problem \p handle ( \c aoclsparse_itsol_handle) for the iterative solvers suite of the library.
+ * \brief Initialize a problem \p handle ( <tt>aoclsparse_itsol_handle</tt>) for the iterative solvers suite of the library.
  *
  * \details
  * The init apis initialize a data structure referred to as problem \p handle.
@@ -578,7 +578,7 @@ aoclsparse_status aoclsparse_itsol_c_solve(aoclsparse_itsol_handle         handl
  * double precision datatypes to solve a linear system of equations \f$Ax=b\f$.
  *
  * \details
- * \P{aoclsparse_?sorv} performs successive over-relaxation preconditioner on a linear
+ * <tt>aoclsparse_?sorv</tt> performs successive over-relaxation preconditioner on a linear
  * system of equations represented using a sparse matrix \f$A\f$ in CSR storage format.
  * This is an iterative technique that solves the left hand side of this expression for \p x,
  * using an initial guess for \p x
@@ -633,7 +633,7 @@ aoclsparse_status aoclsparse_itsol_c_solve(aoclsparse_itsol_handle         handl
  *                                               or double precision datatypes with \ref aoclsparse_sor_forward.
  * \retval  aoclsparse_status_invalid_size       Matrix is not square.
  * \retval  aoclsparse_status_invalid_value      \p M or \p N is set to a negative value; or \p A,
- *                                               \p descr or \p sor_type has invalid value; or presence of zero-valued or
+ *                                               \p descr or \c sor_type has invalid value; or presence of zero-valued or
  *                                               repeated diagonal elements.
  *
  * @rst
@@ -685,7 +685,7 @@ aoclsparse_status aoclsparse_zsorv(aoclsparse_sor_type              sor_type,
  *  \brief Symmetric Gauss Seidel(SYMGS) Preconditioner for real/complex single and double data precisions.
  *
  *  \details
- *  \P{aoclsparse_?symgs} performs an iteration of Gauss Seidel preconditioning. Krylov methods such
+ *  <tt>aoclsparse_?symgs</tt> performs an iteration of Gauss Seidel preconditioning. Krylov methods such
  *  as CG (Conjugate Gradient) and GMRES (Generalized Minimal Residual) are used to solve large sparse
  *  linear systems of the form
  *  \f[
@@ -726,11 +726,11 @@ aoclsparse_status aoclsparse_zsorv(aoclsparse_sor_type              sor_type,
  *  \f[
  *  (U + D)\;x = b - L\;x_1
  *  \f]
- *  So, Symmetric Gauss Seidel (SYMGS) can be computed using two \P{aoclsparse_?mv}
- *  and two \P{aoclsparse_?trsv} operations.
+ *  So, Symmetric Gauss Seidel (SYMGS) can be computed using two <tt>aoclsparse_?mv</tt>
+ *  and two <tt>aoclsparse_?trsv</tt> operations.
  *
  *  The sparse matrix \f$A\f$ can be either a symmetric or a Hermitian matrix, whose fill
- *  is indicated by \p fill_mode from the matrix descriptor \p descr
+ *  is indicated by \c fill_mode from the matrix descriptor \p descr
  *  where either upper or lower triangular portion of the matrix is used.
  *  Matrix \f$A\f$ must be of full rank,  that is, the matrix must be invertible. The linear operator \f$op()\f$ can
  *  define the transposition or conjugate transposition operations. By default, no transposition
@@ -753,7 +753,7 @@ aoclsparse_status aoclsparse_zsorv(aoclsparse_sor_type              sor_type,
  *
  *  3. This set of APIs allocates couple of work array buffers of size \f$m\f$ for to store intermediate results
  *
- *  4. If the input matrix is of triangular type, the SGS is computed using a single \P{aoclsparse_?trsv} operation
+ *  4. If the input matrix is of triangular type, the SGS is computed using a single <tt>aoclsparse_?trsv</tt> operation
  *     and a quick return is made without going through the 3-step reference(described above)
  *
  *  @param[in]
@@ -1113,7 +1113,7 @@ aoclsparse_status aoclsparse_ssymgs_mv_kid(aoclsparse_operation       trans,
  *  \retval     aoclsparse_status_success the operation completed successfully.
  *  \retval     aoclsparse_status_invalid_size wrong matrix size (e.g., not square).
  *  \retval     aoclsparse_status_invalid_value input parameters contain an invalid value (e.g., wrong base).
- *  \retval     aoclsparse_status_invalid_pointer \p descr, \p A, \p precond_csr_val, \p x or \p b is invalid.
+ *  \retval     aoclsparse_status_invalid_pointer \p descr, \p A, \c precond_csr_val, \p x or \p b is invalid.
  *  \retval     aoclsparse_status_wrong_type matrix handle \p A does not match the floating point data type.
  *  \retval     aoclsparse_status_unsorted_input input matrix is not sorted.
  *  \retval     aoclsparse_status_numerical_error encoutered a diagonal pivot too close to zero or a diagonal element is missing.

@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020-2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -49,7 +49,7 @@
  * <li>Sparse format conversion functions for translating matrices in a variety of
  * sparse storage formats.</li>
  *
- *<li>Sparse auxiliary functions used to perform miscelaneous tasks adjacent to the ones described above.</li></ol>
+ *<li>Sparse auxiliary functions used to perform miscellaneous tasks adjacent to the ones described above.</li></ol>
  */
 
 #include "aoclsparse_analysis.h"

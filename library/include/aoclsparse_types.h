@@ -29,7 +29,7 @@
 #include <stdint.h>
 
 /*! \ingroup types_module
- *  \brief Macro for function attribute
+ *  \brief Macro for function attribute.
  *
  *  \details
  *  The macro specifies visibility attribute of public functions
@@ -69,7 +69,7 @@ typedef int32_t aoclsparse_int;
  * @brief
  * Default complex float type.
  * @details
- * User can redefine to accomodate custom complex float type definition.
+ * User can redefine to accommodate custom complex float type definition.
  *
  * @note The library expects that complex numbers real and imaginary parts
  * are contiguous in memory.
@@ -86,7 +86,7 @@ typedef struct alignas(2 * sizeof(float))
  * @brief
  * Default complex double type.
  * @details
- * User can redefine to accomodate custom complex double type definition.
+ * User can redefine to accommodate custom complex double type definition.
  *
  * @note The library expects that complex numbers real and imaginary parts
  * are contiguous in memory.

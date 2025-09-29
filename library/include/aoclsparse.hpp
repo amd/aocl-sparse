@@ -30,7 +30,7 @@ namespace aoclsparse
 {
     /** \ingroup level2_module
     *  \details
-    *  \P{aoclsparse::trsv} is the C++ interface to \P{aoclsparse_?trsv} and it performs a sparse
+    *  \p aoclsparse::trsv is the C++ interface to <tt>aoclsparse_?trsv</tt> and it performs a sparse
     *  triangular solve using the provided input parameters.
     *  @tparam
     *  T           Data type supported for \p T are double, float, std::complex<double>
@@ -65,13 +65,13 @@ namespace aoclsparse
     /**@}*/
 
     /*! \ingroup level2_module
+    *  \brief C++ function to compute sparse matrix-vector multiplication for real/complex single and double data precisions.
+    *
     *  \details
-    *  \P{aoclsparse::mv} is the C++ interface to \P{aoclsparse_?mv} that computes
+    *  \p aoclsparse::mv is the C++ interface to <tt>aoclsparse_?mv</tt> that computes
     *   sparse matrix-vector multiplication using the provided input parameters.
     *  @tparam
-    *  T           Data type supported for \p T are double, float, std::complex<double>
-    *              or std::complex<float>
-    *
+    *  T           Data type supported for \p T are double, float, std::complex<double> and std::complex<float>
     *
     * @rst
     * .. collapse:: Example - C++ (tests/examples/sample_mv_cpp.cpp)
@@ -97,7 +97,7 @@ namespace aoclsparse
 
     /*! \ingroup aux_module
     *  \details
-    *  \P{aoclsparse::create_csr} is the C++ interface to \P{aoclsparse_create_?csr} that creates
+    *  \p aoclsparse::create_csr is the C++ interface to <tt>aoclsparse_create_?csr</tt> that creates
     *  \ref aoclsparse_matrix and initializes it with provided input parameters.
     *  @tparam
     *  T           Data type supported for \p T are double, float, std::complex<double>
@@ -117,14 +117,14 @@ namespace aoclsparse
 
     /*! \ingroup level3_module
     *  \details
-    *  \P{aoclsparse::sp2m} is the C++ interface to \ref aoclsparse_sp2m that multiplies two
+    *  \p aoclsparse::sp2m is the C++ interface to \ref aoclsparse_sp2m that multiplies two
     *   sparse matrices in CSR storage format and the result is stored in a newly allocated sparse
     *   matrix in CSR format.
     *  @tparam
     *  T           Data type supported for \p T are double, float, std::complex<double>
     *              or std::complex<float>
     * @rst
-    * .. collapse:: Example - Complex space (tests/examples/sample__csr2m_cpp.cpp)
+    * .. collapse:: Example - Complex space (tests/examples/sample_csr2m_cpp.cpp)
     *
     *    .. only:: html
     *
@@ -148,7 +148,7 @@ namespace aoclsparse
 
     /*! \ingroup aux_module
     *  \details
-    *  \P{aoclsparse::create_bsr} is the C++ interface to \P{aoclsparse_create_?bsr} that creates \ref aoclsparse_matrix
+    *  \p aoclsparse::create_bsr is the C++ interface to <tt>aoclsparse_create_?bsr</tt> that creates \ref aoclsparse_matrix
     *   in BSR format and initializes it with the provided input parameters.
     *  @tparam
     *  T           Data type supported for \p T are double, float, std::complex<double>
