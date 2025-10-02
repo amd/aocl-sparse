@@ -40,8 +40,10 @@ namespace kernel_templates
     {
         if constexpr(kt_is_base_t_float<SUF>())
             return _mm512_setzero_ps();
-        else
+        else if constexpr(kt_is_base_t_double<SUF>())
             return _mm512_setzero_pd();
+        else if constexpr(kt_is_base_t_int<SUF>())
+            return _mm512_setzero_si512();
     };
 
     // Fill vector with a scalar value
@@ -69,6 +71,10 @@ namespace kernel_templates
             const float i = std::imag(x);
             return _mm512_set_ps(i, r, i, r, i, r, i, r, i, r, i, r, i, r, i, r);
         }
+        else if constexpr(std::is_same_v<SUF, int64_t>)
+            return _mm512_set1_epi64(x);
+        else if constexpr(std::is_same_v<SUF, int32_t>)
+            return _mm512_set1_epi32(x);
     };
 
     // Unaligned set (load) to AVX register with indirect memory access
@@ -106,6 +112,18 @@ namespace kernel_templates
                                  v[(*(b + 2U))].imag(), v[(*(b + 2U))].real(),
                                  v[(*(b + 1U))].imag(), v[(*(b + 1U))].real(),
                                  v[(*(b + 0U))].imag(), v[(*(b + 0U))].real());
+        }
+        else if constexpr(std::is_same_v<SUF, int64_t>)
+        {
+            return _mm512_set_epi64(v[*(b + 7U)], v[*(b + 6U)], v[*(b + 5U)], v[*(b + 4U)],
+                                    v[*(b + 3U)], v[*(b + 2U)], v[*(b + 1U)], v[*(b + 0U)]);
+        }
+        else if constexpr(std::is_same_v<SUF, int32_t>)
+        {
+            return _mm512_set_epi32(v[*(b + 15U)], v[*(b + 14U)], v[*(b + 13U)], v[*(b + 12U)],
+                                    v[*(b + 11U)], v[*(b + 10U)], v[*(b + 9U)], v[*(b + 8U)],
+                                    v[*(b + 7U)], v[*(b + 6U)], v[*(b + 5U)], v[*(b + 4U)],
+                                    v[*(b + 3U)], v[*(b + 2U)], v[*(b + 1U)], v[*(b + 0U)]);
         }
     };
 
@@ -199,8 +217,12 @@ namespace kernel_templates
     {
         if constexpr(kt_is_base_t_float<SUF>())
             return _mm512_load_ps(reinterpret_cast<const float *>(a));
-        else
+        else if constexpr(kt_is_base_t_double<SUF>())
             return _mm512_load_pd(reinterpret_cast<const double *>(a));
+        else if constexpr(std::is_same_v<SUF, int64_t>)
+            return _mm512_load_epi64(reinterpret_cast<void const*>(a));
+        else if constexpr(std::is_same_v<SUF, int32_t>)
+            return _mm512_load_epi32(reinterpret_cast<void const*>(a));
     }
 
     // Dense direct (un)aligned load to AVX register
@@ -210,8 +232,12 @@ namespace kernel_templates
     {
         if constexpr(kt_is_base_t_float<SUF>())
             return _mm512_loadu_ps(reinterpret_cast<const float *>(a));
-        else
+        else if constexpr(kt_is_base_t_double<SUF>())
             return _mm512_loadu_pd(reinterpret_cast<const double *>(a));
+        else if constexpr(std::is_same_v<SUF, int64_t>)
+            return _mm512_loadu_epi64(reinterpret_cast<void const*>(a));
+        else if constexpr(std::is_same_v<SUF, int32_t>)
+            return _mm512_loadu_epi32(reinterpret_cast<void const*>(a));
     };
 
     // Stores the values in an AVX register to a memory location (Memory does not have to be aligned)

@@ -40,6 +40,11 @@ using namespace kernel_templates;
     func<SZ, cfloat>();                  \
     func<SZ, cdouble>();
 
+// Macro to invoke test functions for int types
+#define CALL_FOR_INT_TYPES(func, SZ) \
+    func<SZ, int64_t>();             \
+    func<SZ, int32_t>();
+
 // Macro to invoke test functions for all supported types
 #define CALL_FOR_ALL_TYPES(func, SZ) \
     CALL_FOR_REAL_TYPES(func, SZ)    \
@@ -67,6 +72,9 @@ namespace TestsKT
 
     template <bsz SZ, typename SUF>
     void kt_loadu_p_test();
+
+    template <bsz SZ, typename SUF>
+    void kt_load_p_test();
 
     template <bsz SZ, typename SUF>
     void kt_setzero_p_test();
@@ -186,11 +194,13 @@ namespace TestsKT
     TEST(KT_L0, kt_loadu_p_128)
     {
         CALL_FOR_ALL_TYPES(kt_loadu_p_test, bsz::b128);
+        CALL_FOR_INT_TYPES(kt_loadu_p_test, bsz::b128);
     }
 
     TEST(KT_L0, kt_loadu_p_256)
     {
         CALL_FOR_ALL_TYPES(kt_loadu_p_test, bsz::b256);
+        CALL_FOR_INT_TYPES(kt_loadu_p_test, bsz::b256);
     }
 
     TEST(KT_L0, kt_loadu_p_512)
@@ -198,6 +208,31 @@ namespace TestsKT
         if(can_exec_avx512_tests())
         {
             CALL_FOR_ALL_TYPES(kt_loadu_p_test, bsz::b512);
+            CALL_FOR_INT_TYPES(kt_loadu_p_test, bsz::b512);
+        }
+    }
+
+    /*
+     * Test load intrinsic to load 2 (cdouble), 4 (cfloat), 4 (double), 8 (floats) length vectors
+     */
+    TEST(KT_L0, kt_load_p_128)
+    {
+        CALL_FOR_ALL_TYPES(kt_load_p_test, bsz::b128);
+        CALL_FOR_INT_TYPES(kt_load_p_test, bsz::b128);
+    }
+
+    TEST(KT_L0, kt_load_p_256)
+    {
+        CALL_FOR_ALL_TYPES(kt_load_p_test, bsz::b256);
+        CALL_FOR_INT_TYPES(kt_load_p_test, bsz::b256);
+    }
+
+    TEST(KT_L0, kt_load_p_512)
+    {
+        if(can_exec_avx512_tests())
+        {
+            CALL_FOR_ALL_TYPES(kt_load_p_test, bsz::b512);
+            CALL_FOR_INT_TYPES(kt_load_p_test, bsz::b512);
         }
     }
 
@@ -207,11 +242,13 @@ namespace TestsKT
     TEST(KT_L0, kt_setzero_p_128)
     {
         CALL_FOR_ALL_TYPES(kt_setzero_p_test, bsz::b128);
+        CALL_FOR_INT_TYPES(kt_setzero_p_test, bsz::b128);
     }
 
     TEST(KT_L0, kt_setzero_p_256)
     {
         CALL_FOR_ALL_TYPES(kt_setzero_p_test, bsz::b256);
+        CALL_FOR_INT_TYPES(kt_setzero_p_test, bsz::b256);
     }
 
     TEST(KT_L0, kt_setzero_p_512)
@@ -219,6 +256,7 @@ namespace TestsKT
         if(can_exec_avx512_tests())
         {
             CALL_FOR_ALL_TYPES(kt_setzero_p_test, bsz::b512);
+            CALL_FOR_INT_TYPES(kt_setzero_p_test, bsz::b512);
         }
     }
 
@@ -228,11 +266,13 @@ namespace TestsKT
     TEST(KT_L0, kt_set1_p_128)
     {
         CALL_FOR_ALL_TYPES(kt_set1_p_test, bsz::b128);
+        CALL_FOR_INT_TYPES(kt_set1_p_test, bsz::b128);
     }
 
     TEST(KT_L0, kt_set1_p_256)
     {
         CALL_FOR_ALL_TYPES(kt_set1_p_test, bsz::b256);
+        CALL_FOR_INT_TYPES(kt_set1_p_test, bsz::b256);
     }
 
     TEST(KT_L0, kt_set1_p_512)
@@ -240,6 +280,7 @@ namespace TestsKT
         if(can_exec_avx512_tests())
         {
             CALL_FOR_ALL_TYPES(kt_set1_p_test, bsz::b512);
+            CALL_FOR_INT_TYPES(kt_set1_p_test, bsz::b512);
         }
     }
 
