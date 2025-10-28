@@ -199,7 +199,7 @@ aoclsparse_status aoclsparse::bsrmv(aoclsparse_operation       trans,
     T zero = aoclsparse_numeric::zero<T>();
     T one  = aoclsparse_numeric::one<T>();
 
-    aoclsparse_status status;
+    aoclsparse_status status = aoclsparse_status_invalid_value;
     if(*alpha != one && *beta != zero)
         status = bsrmv<T, true, true>(
             trans, alpha, mb, nb, bsr_dim, bsr_val, bsr_col_ind, bsr_row_ptr, descr, x, beta, y);
