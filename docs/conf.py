@@ -35,6 +35,9 @@ extensions = ['sphinxcontrib.bibtex', 'breathe', 'sphinx_collapse']
 bibtex_bibfiles = ['refs.bib']
 bibtex_reference_style = 'author_year'
 
+# Enable automatic numbering of figures, tables, and code-blocks
+numfig = True
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_template']
 
