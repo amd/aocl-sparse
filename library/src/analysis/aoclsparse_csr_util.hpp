@@ -773,10 +773,28 @@ aoclsparse_status aoclsparse_csr_csc_optimize(aoclsparse_matrix A, aoclsparse::c
         return aoclsparse_status_wrong_type;
 
     // Stores optimized csr ptr
-    *opt_csr_mat = nullptr;
+    *opt_csr_mat             = nullptr;
+    aoclsparse::csr *src_mat = nullptr;
 
-    // Get first matrix from A->mats
-    aoclsparse::csr *src_mat = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
+    // Check if the optimized matrix is already in A->mats
+    for(size_t i = 0; i < A->mats.size(); i++)
+    {
+        aoclsparse::csr *temp_opt_mat = dynamic_cast<aoclsparse::csr *>(A->mats[i]);
+
+        if(temp_opt_mat && temp_opt_mat->is_optimized)
+        {
+            // If the optimized matrix is found, return it
+            *opt_csr_mat = temp_opt_mat;
+            return aoclsparse_status_success;
+        }
+        else if(temp_opt_mat && !temp_opt_mat->is_optimized && src_mat == nullptr)
+        {
+            // Use the first non-optimized matrix as source
+            src_mat = temp_opt_mat;
+        }
+    }
+
+    // Validate the source matrix
     if(!src_mat)
         return aoclsparse_status_not_implemented;
     if(!src_mat->ptr || !src_mat->ind || !src_mat->val)
@@ -789,17 +807,6 @@ aoclsparse_status aoclsparse_csr_csc_optimize(aoclsparse_matrix A, aoclsparse::c
     {
         *opt_csr_mat = src_mat;
         return aoclsparse_status_success;
-    }
-
-    // Check if the optimized matrix is already in A->mats
-    for(size_t i = 1; i < A->mats.size(); i++)
-    {
-        aoclsparse::csr *temp_opt_mat = dynamic_cast<aoclsparse::csr *>(A->mats[i]);
-        if(temp_opt_mat && temp_opt_mat->is_optimized)
-        {
-            *opt_csr_mat = temp_opt_mat;
-            return aoclsparse_status_success;
-        }
     }
 
     T             *src_val = static_cast<T *>(src_mat->val);
