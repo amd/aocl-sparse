@@ -958,53 +958,66 @@ aoclsparse_status aoclsparse_tcsr_optimize(aoclsparse_matrix A, aoclsparse::tcsr
 {
     if(!A || A->mats.empty() || !opt_tcsr_mat)
         return aoclsparse_status_invalid_pointer;
-    // Check if the user input matrix is in TCSR format
-    aoclsparse::tcsr *tcsr_mat = dynamic_cast<aoclsparse::tcsr *>(A->mats[0]);
-    if(!tcsr_mat)
-    {
-        return aoclsparse_status_not_implemented;
-    }
-    if(!tcsr_mat->row_ptr_L || !tcsr_mat->row_ptr_U)
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    if(tcsr_mat->is_optimized)
-    {
-        *opt_tcsr_mat = tcsr_mat;
-        return aoclsparse_status_success;
-    }
+
     // Make sure we have the right type before proceeding
     if(A->val_type != get_data_type<T>())
         return aoclsparse_status_wrong_type;
 
+    aoclsparse::tcsr *src_mat = dynamic_cast<aoclsparse::tcsr *>(A->mats[0]);
+
+    // Check if the optimized matrix is already in A->mats
+    for(size_t i = 0; i < A->mats.size(); i++)
+    {
+        aoclsparse::tcsr *temp_opt_mat = dynamic_cast<aoclsparse::tcsr *>(A->mats[i]);
+
+        if(temp_opt_mat && temp_opt_mat->is_optimized)
+        {
+            // If the optimized matrix is found, return it
+            *opt_tcsr_mat = temp_opt_mat;
+
+            if(!temp_opt_mat->row_ptr_L || !temp_opt_mat->row_ptr_U)
+            {
+                return aoclsparse_status_invalid_pointer;
+            }
+
+            return aoclsparse_status_success;
+        }
+        else if(temp_opt_mat && !temp_opt_mat->is_optimized && src_mat == nullptr)
+        {
+            // Use the first non-optimized matrix as source
+            src_mat = temp_opt_mat;
+        }
+    }
+
     // Stores optimized csr ptr
     *opt_tcsr_mat = nullptr;
+
     // Create idiag and iurow
     try
     {
-        tcsr_mat->idiag = new aoclsparse_int[A->m];
-        tcsr_mat->iurow = new aoclsparse_int[A->m];
+        src_mat->idiag = new aoclsparse_int[A->m];
+        src_mat->iurow = new aoclsparse_int[A->m];
     }
     catch(std::bad_alloc &)
     {
-        delete[] tcsr_mat->idiag;
-        tcsr_mat->idiag = nullptr;
-        delete[] tcsr_mat->iurow;
-        tcsr_mat->iurow = nullptr;
+        delete[] src_mat->idiag;
+        src_mat->idiag = nullptr;
+        delete[] src_mat->iurow;
+        src_mat->iurow = nullptr;
         return aoclsparse_status_memory_error;
     }
 
     for(aoclsparse_int i = 0; i < A->m; i++)
     {
         // Diagonal is at the end of the each row in the lower triangular part
-        tcsr_mat->idiag[i] = tcsr_mat->row_ptr_L[i + 1] - 1;
+        src_mat->idiag[i] = src_mat->row_ptr_L[i + 1] - 1;
         // Diagonal is at the beginning of each row in the upper triangular part
         // Increment row_ptr_U to get the position of upper triangle element
-        tcsr_mat->iurow[i] = tcsr_mat->row_ptr_U[i] + 1;
+        src_mat->iurow[i] = src_mat->row_ptr_U[i] + 1;
     }
-    *opt_tcsr_mat          = tcsr_mat;
-    tcsr_mat->is_optimized = true;
-    A->opt_csr_full_diag   = A->fulldiag;
+    *opt_tcsr_mat         = src_mat;
+    src_mat->is_optimized = true;
+    A->opt_csr_full_diag  = A->fulldiag;
     return aoclsparse_status_success;
 }
 

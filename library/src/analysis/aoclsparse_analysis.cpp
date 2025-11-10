@@ -469,11 +469,6 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
     // Creates idiag ptr for lower and iurow ptr for upper triangualr matrix
     if(A->input_format == aoclsparse_tcsr_mat)
     {
-        aoclsparse::tcsr *const tcsr_mat = dynamic_cast<aoclsparse::tcsr *>(A->mats[0]);
-        if(!tcsr_mat)
-            return aoclsparse_status_not_implemented;
-        if(tcsr_mat->is_optimized)
-            return aoclsparse_status_success;
         aoclsparse::tcsr *opt_mat = nullptr;
         switch(A->val_type)
         {
