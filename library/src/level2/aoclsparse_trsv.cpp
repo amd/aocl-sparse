@@ -118,11 +118,11 @@ aoclsparse_status
     aoclsparse_status status;
     // Optimize TCSR matrix
     if(A->input_format == aoclsparse_tcsr_mat)
-        status = aoclsparse_tcsr_optimize<T>(A, &tcsr_mat);
+        status = aoclsparse_tcsr_optimize<T>(A, tcsr_mat);
     else
     {
         // Optimize CSR/CSC matrix
-        status = aoclsparse_csr_csc_optimize<T>(A, &opt_mat);
+        status = aoclsparse_csr_csc_optimize<T>(A, opt_mat);
     }
     if(status != aoclsparse_status_success)
         return status; // LCOV_EXCL_LINE

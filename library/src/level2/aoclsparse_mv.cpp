@@ -150,11 +150,11 @@ aoclsparse_status aoclsparse::mv(aoclsparse_operation       op,
     {
         if(A->input_format == aoclsparse_tcsr_mat && !aoclsparse::is_dt_complex<T>())
         {
-            status = aoclsparse_tcsr_optimize<T>(A, &opt_tcsr);
+            status = aoclsparse_tcsr_optimize<T>(A, opt_tcsr);
         }
         else
         {
-            status = aoclsparse_csr_csc_optimize<T>(A, &(opt_csr));
+            status = aoclsparse_csr_csc_optimize<T>(A, opt_csr);
         }
         if(status != aoclsparse_status_success)
             return status;

@@ -706,7 +706,7 @@ aoclsparse_status aoclsparse_sypr_t(aoclsparse_operation       opA,
             valA[idx] = aoclsparse::conj(valA[idx]);
     }
 
-    status = aoclsparse_csr_csc_optimize<T>(B, &(B_opt_csr));
+    status = aoclsparse_csr_csc_optimize<T>(B, B_opt_csr);
     if(status != aoclsparse_status_success)
         return status;
     if(!B_opt_csr)

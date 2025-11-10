@@ -111,11 +111,11 @@ aoclsparse_status
     aoclsparse::tcsr *A_opt_tcsr = nullptr;
     if(A->input_format == aoclsparse_csr_mat)
     {
-        status = aoclsparse_csr_csc_optimize<T>(A, &A_opt_csr);
+        status = aoclsparse_csr_csc_optimize<T>(A, A_opt_csr);
     }
     else if(A->input_format == aoclsparse_tcsr_mat)
     {
-        status = aoclsparse_tcsr_optimize<T>(A, &A_opt_tcsr);
+        status = aoclsparse_tcsr_optimize<T>(A, A_opt_tcsr);
     }
     if(status != aoclsparse_status_success)
         return status;

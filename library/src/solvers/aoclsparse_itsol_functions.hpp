@@ -574,7 +574,7 @@ aoclsparse_status aoclsparse_itsol_solve(
 
     aoclsparse::csr *opt_csr = nullptr;
     // CG needs opt_csr to run
-    status = aoclsparse_csr_csc_optimize<T>(mat, &opt_csr);
+    status = aoclsparse_csr_csc_optimize<T>(mat, opt_csr);
     if(status != aoclsparse_status_success)
         return status;
     if(!opt_csr)

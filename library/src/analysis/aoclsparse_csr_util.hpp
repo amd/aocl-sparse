@@ -761,11 +761,11 @@ aoclsparse_status aoclsparse_matrix_transform(aoclsparse_matrix A)
 /* Given input matrix in CSR/CSC format, check it and create the matching
  * clean version opt_csr_mat/opt_csc_mat, respectively */
 template <typename T>
-aoclsparse_status aoclsparse_csr_csc_optimize(aoclsparse_matrix A, aoclsparse::csr **opt_csr_mat)
+aoclsparse_status aoclsparse_csr_csc_optimize(aoclsparse_matrix A, aoclsparse::csr *&opt_csr_mat)
 {
     aoclsparse_status status;
 
-    if(!A || A->mats.empty() || !opt_csr_mat)
+    if(!A || A->mats.empty())
         return aoclsparse_status_invalid_pointer;
 
     // Make sure we have the right type before proceeding
@@ -773,7 +773,7 @@ aoclsparse_status aoclsparse_csr_csc_optimize(aoclsparse_matrix A, aoclsparse::c
         return aoclsparse_status_wrong_type;
 
     // Stores optimized csr ptr
-    *opt_csr_mat             = nullptr;
+    opt_csr_mat              = nullptr;
     aoclsparse::csr *src_mat = nullptr;
 
     // Check if the optimized matrix is already in A->mats
@@ -784,7 +784,7 @@ aoclsparse_status aoclsparse_csr_csc_optimize(aoclsparse_matrix A, aoclsparse::c
         if(temp_opt_mat && temp_opt_mat->is_optimized)
         {
             // If the optimized matrix is found, return it
-            *opt_csr_mat = temp_opt_mat;
+            opt_csr_mat = temp_opt_mat;
             return aoclsparse_status_success;
         }
         else if(temp_opt_mat && !temp_opt_mat->is_optimized && src_mat == nullptr)
@@ -805,7 +805,7 @@ aoclsparse_status aoclsparse_csr_csc_optimize(aoclsparse_matrix A, aoclsparse::c
     // Quick exit if the matrix is already optimized
     if(src_mat->is_optimized)
     {
-        *opt_csr_mat = src_mat;
+        opt_csr_mat = src_mat;
         return aoclsparse_status_success;
     }
 
@@ -852,7 +852,7 @@ aoclsparse_status aoclsparse_csr_csc_optimize(aoclsparse_matrix A, aoclsparse::c
             return status;
         }
         src_mat->is_optimized = true;
-        *opt_csr_mat          = src_mat;
+        opt_csr_mat           = src_mat;
     }
     else
     {
@@ -942,7 +942,7 @@ aoclsparse_status aoclsparse_csr_csc_optimize(aoclsparse_matrix A, aoclsparse::c
             delete opt_mat;
             return aoclsparse_status_memory_error;
         }
-        *opt_csr_mat = opt_mat;
+        opt_csr_mat = opt_mat;
     }
     //being full-diagonal is property of the original matrix. So need to
     A->opt_csr_full_diag = fulldiag;
@@ -954,9 +954,9 @@ aoclsparse_status aoclsparse_csr_csc_optimize(aoclsparse_matrix A, aoclsparse::c
 // Check TCSR matrix inputs and create idiag for the lower and iurow for
 // the upper triangular matrix
 template <typename T>
-aoclsparse_status aoclsparse_tcsr_optimize(aoclsparse_matrix A, aoclsparse::tcsr **opt_tcsr_mat)
+aoclsparse_status aoclsparse_tcsr_optimize(aoclsparse_matrix A, aoclsparse::tcsr *&opt_tcsr_mat)
 {
-    if(!A || A->mats.empty() || !opt_tcsr_mat)
+    if(!A || A->mats.empty())
         return aoclsparse_status_invalid_pointer;
 
     // Make sure we have the right type before proceeding
@@ -973,7 +973,7 @@ aoclsparse_status aoclsparse_tcsr_optimize(aoclsparse_matrix A, aoclsparse::tcsr
         if(temp_opt_mat && temp_opt_mat->is_optimized)
         {
             // If the optimized matrix is found, return it
-            *opt_tcsr_mat = temp_opt_mat;
+            opt_tcsr_mat = temp_opt_mat;
 
             if(!temp_opt_mat->row_ptr_L || !temp_opt_mat->row_ptr_U)
             {
@@ -990,7 +990,7 @@ aoclsparse_status aoclsparse_tcsr_optimize(aoclsparse_matrix A, aoclsparse::tcsr
     }
 
     // Stores optimized csr ptr
-    *opt_tcsr_mat = nullptr;
+    opt_tcsr_mat = nullptr;
 
     // Create idiag and iurow
     try
@@ -1015,7 +1015,7 @@ aoclsparse_status aoclsparse_tcsr_optimize(aoclsparse_matrix A, aoclsparse::tcsr
         // Increment row_ptr_U to get the position of upper triangle element
         src_mat->iurow[i] = src_mat->row_ptr_U[i] + 1;
     }
-    *opt_tcsr_mat         = src_mat;
+    opt_tcsr_mat          = src_mat;
     src_mat->is_optimized = true;
     A->opt_csr_full_diag  = A->fulldiag;
     return aoclsparse_status_success;
