@@ -963,7 +963,7 @@ aoclsparse_status aoclsparse_tcsr_optimize(aoclsparse_matrix A, aoclsparse::tcsr
     if(A->val_type != get_data_type<T>())
         return aoclsparse_status_wrong_type;
 
-    aoclsparse::tcsr *src_mat = dynamic_cast<aoclsparse::tcsr *>(A->mats[0]);
+    aoclsparse::tcsr *src_mat = nullptr;
 
     // Check if the optimized matrix is already in A->mats
     for(size_t i = 0; i < A->mats.size(); i++)
@@ -988,6 +988,10 @@ aoclsparse_status aoclsparse_tcsr_optimize(aoclsparse_matrix A, aoclsparse::tcsr
             src_mat = temp_opt_mat;
         }
     }
+
+    // When the user has passed a matrix without any TCSR copies
+    if(!src_mat)
+        return aoclsparse_status_invalid_pointer;
 
     // Stores optimized csr ptr
     opt_tcsr_mat = nullptr;
