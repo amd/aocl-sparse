@@ -802,12 +802,6 @@ aoclsparse_status aoclsparse_csr_csc_optimize(aoclsparse_matrix A, aoclsparse::c
     //Make sure base-index is the correct value
     if(src_mat->base != aoclsparse_index_base_zero && src_mat->base != aoclsparse_index_base_one)
         return aoclsparse_status_invalid_value;
-    // Quick exit if the matrix is already optimized
-    if(src_mat->is_optimized)
-    {
-        opt_csr_mat = src_mat;
-        return aoclsparse_status_success;
-    }
 
     T             *src_val = static_cast<T *>(src_mat->val);
     aoclsparse_int m_mat   = src_mat->m;
@@ -975,11 +969,6 @@ aoclsparse_status aoclsparse_tcsr_optimize(aoclsparse_matrix A, aoclsparse::tcsr
             // If the optimized matrix is found, return it
             opt_tcsr_mat = temp_opt_mat;
 
-            if(!temp_opt_mat->row_ptr_L || !temp_opt_mat->row_ptr_U)
-            {
-                return aoclsparse_status_invalid_pointer;
-            }
-
             return aoclsparse_status_success;
         }
         else if(temp_opt_mat && !temp_opt_mat->is_optimized && src_mat == nullptr)
@@ -991,6 +980,9 @@ aoclsparse_status aoclsparse_tcsr_optimize(aoclsparse_matrix A, aoclsparse::tcsr
 
     // When the user has passed a matrix without any TCSR copies
     if(!src_mat)
+        return aoclsparse_status_invalid_pointer;
+
+    if(!src_mat->row_ptr_L || !src_mat->row_ptr_U)
         return aoclsparse_status_invalid_pointer;
 
     // Stores optimized csr ptr
