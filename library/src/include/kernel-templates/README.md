@@ -248,3 +248,81 @@ The above example can be compiled as follows:
 ```bash
 g++ -o compare_kernels compare_kernels.cpp kt_axpyi_avx2.o kt_axpyi_avx512.o  # Generate the executable for the application
 ```
+
+## Documentation
+
+### Generating Documentation
+
+This directory includes a dedicated Doxyfile for generating standalone kernel templates documentation.
+
+To generate the documentation:
+
+```bash
+cd library/src/include/kernel-templates
+doxygen Doxyfile
+```
+
+This will create:
+- `docs/html/index.html` - HTML documentation (browse with web browser)
+- `docs/latex/` - LaTeX source files for PDF generation
+- `docs/xml/` - XML output for integration with Sphinx/Breathe
+
+### View Documentation
+
+Open the HTML documentation:
+```bash
+xdg-open docs/html/index.html  # Linux
+# or
+open docs/html/index.html      # macOS
+# or
+start docs/html/index.html     # Windows
+```
+
+### Generate PDF Documentation
+
+```bash
+cd docs/latex
+make
+# Output: refman.pdf
+```
+
+### Documentation Contents
+
+The generated documentation includes:
+
+**Type Traits and Metadata:**
+- `avxvector` - SIMD vector type traits and size information
+- `kt_is_base_t_*` - Type checking traits (double, float, int)
+- `kt_type_is_real` - Real vs complex type differentiation
+- `kt_is_same` - Vector configuration matching verification
+- `kt_dt` - Data type extraction for real and complex types
+
+**Level-0 Kernels (Basic Operations):**
+All operations documented with examples and intrinsic equivalents:
+- Memory operations: `kt_load_p`, `kt_loadu_p`, `kt_storeu_p`, `kt_set1_p`, `kt_setzero_p`, `kt_set_p`, `kt_maskz_set_p`
+- Arithmetic: `kt_add_p`, `kt_sub_p`, `kt_mul_p`, `kt_div_p`
+- Fused operations: `kt_fmadd_p`, `kt_fmsub_p`
+- Reductions: `kt_hsum_p`, `kt_conj_p`, `kt_max_p`, `kt_pow2_p`
+- Blocked variants: `kt_fmadd_B`, `kt_hsum_B`
+
+**Architecture Support:**
+- SSE (128-bit): `bsz::b128`
+- AVX2 (256-bit): `bsz::b256`
+- AVX-512 (512-bit): `bsz::b512`
+
+**Data Type Support:**
+- `float`, `double` - Real types
+- `std::complex<float>`, `std::complex<double>` - Complex types
+- `int32_t`, `int64_t` - Integer types (limited operations)
+
+### Clean Documentation
+
+```bash
+rm -rf docs/
+```
+
+### Requirements
+
+- Doxygen 1.9.8 or later
+- LaTeX distribution (for PDF): texlive-full or MiKTeX
+- Web browser (for HTML viewing)

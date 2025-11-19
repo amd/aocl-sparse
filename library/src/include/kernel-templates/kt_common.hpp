@@ -155,50 +155,108 @@ namespace kernel_templates
 #endif
     }
 
-    // Checks if the base type is double - true only for double and cdouble
+    /**
+     * @brief Type trait to check if base type is double-precision
+     *
+     * Returns true for both real double and complex double (cdouble) types.
+     * Used for compile-time type dispatching in kernel templates.
+     *
+     * @tparam T Type to check
+     */
     template <typename T>
     struct kt_is_base_t_double
     {
+        /**
+         * @brief Conversion operator for boolean evaluation
+         * @return true if T is double or std::complex<double>, false otherwise
+         */
         constexpr operator bool() const noexcept
         {
             return std::is_same<T, double>::value || std::is_same<T, cdouble>::value;
         }
     };
 
-    // Checks if the base type is float - true only for float and cfloat
+    /**
+     * @brief Type trait to check if base type is single-precision
+     *
+     * Returns true for both real float and complex float (cfloat) types.
+     * Used for compile-time type dispatching in kernel templates.
+     *
+     * @tparam T Type to check
+     */
     template <typename T>
     struct kt_is_base_t_float
     {
+        /**
+         * @brief Conversion operator for boolean evaluation
+         * @return true if T is float or std::complex<float>, false otherwise
+         */
         constexpr operator bool() const noexcept
         {
             return std::is_same<T, float>::value || std::is_same<T, cfloat>::value;
         }
     };
 
-    // Checks if the base type is int - true only for int32 and int64
+    /**
+     * @brief Type trait to check if base type is integer
+     *
+     * Returns true for both 32-bit and 64-bit integer types.
+     * Used for compile-time type dispatching in kernel templates.
+     *
+     * @tparam T Type to check
+     */
     template <typename T>
     struct kt_is_base_t_int
     {
+        /**
+         * @brief Conversion operator for boolean evaluation
+         * @return true if T is int32_t or int64_t, false otherwise
+         */
         constexpr operator bool() const noexcept
         {
             return std::is_same<T, int32_t>::value || std::is_same<T, int64_t>::value;
         }
     };
 
-    // Checks if the base type is real - true for float and double
+    /**
+     * @brief Type trait to check if type is real (non-complex)
+     *
+     * Returns true only for real float and double types, excluding complex variants.
+     * Used to constrain template functions to real-only operations (e.g., kt_max_p).
+     *
+     * @tparam T Type to check
+     */
     template <typename T>
     struct kt_type_is_real
     {
+        /**
+         * @brief Conversion operator for boolean evaluation
+         * @return true if T is float or double (excluding complex types), false otherwise
+         */
         constexpr operator bool() const noexcept
         {
             return std::is_same<T, double>::value || std::is_same<T, float>::value;
         }
     };
 
-    // Checks if both the vector length and datatype are the same
+    /**
+     * @brief Type trait to check if two vector configurations are identical
+     *
+     * Returns true if both vector size and scalar data type match.
+     * Used for compile-time verification of matching vector types.
+     *
+     * @tparam SZA   First vector size type
+     * @tparam SZB   Second vector size type
+     * @tparam SUFA  First scalar data type
+     * @tparam SUFB  Second scalar data type
+     */
     template <bsz SZA, bsz SZB, typename SUFA, typename SUFB>
     struct kt_is_same
     {
+        /**
+         * @brief Conversion operator for boolean evaluation
+         * @return true if both vector sizes and data types match, false otherwise
+         */
         constexpr operator bool() const noexcept
         {
             return SZA == SZB && std::is_same_v<SUFA, SUFB>;
@@ -243,26 +301,51 @@ namespace kernel_templates
 #endif
     }
 
-    // Get the underlying types of the base type
+    /**
+     * @brief Data type trait to extract base and full types
+     *
+     * Primary template for real types where base_type and type are the same.
+     * Specialized for complex types to extract the underlying real type.
+     *
+     * @tparam SUF Scalar data type (float, double, or complex variants)
+     */
     template <typename SUF>
     struct kt_dt
     {
+        /** @brief Underlying base type (same as SUF for real types) */
         using base_type = SUF;
-        using type      = SUF;
+
+        /** @brief Full type (same as SUF for real types) */
+        using type = SUF;
     };
 
-    // Partial specializations for complex types
+    /**
+     * @brief Specialization for complex<float>
+     *
+     * Extracts float as the base type from complex<float>.
+     */
     template <>
     struct kt_dt<std::complex<float>>
     {
+        /** @brief Underlying base type (float) */
         using base_type = float;
-        using type      = std::complex<float>;
+
+        /** @brief Full complex type */
+        using type = std::complex<float>;
     };
+    /**
+     * @brief Specialization for complex<double>
+     *
+     * Extracts double as the base type from complex<double>.
+     */
     template <>
     struct kt_dt<std::complex<double>>
     {
+        /** @brief Underlying base type (double) */
         using base_type = double;
-        using type      = std::complex<double>;
+
+        /** @brief Full complex type */
+        using type = std::complex<double>;
     };
 
     // Enum class to represent the fused operation in scatter
