@@ -55,4 +55,5 @@ html_theme_options = {
     "flavor": "local",
     "repository_provider" : None,
     "navigation_with_keys" : False,
+    "repository_url": "https://github.com/amd/aocl-sparse"
 }
