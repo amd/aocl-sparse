@@ -34,7 +34,6 @@
 #include <limits>
 
 aoclsparse_status aoclsparse_destroy_ilu(_aoclsparse_ilu *ilu_info);
-aoclsparse_status aoclsparse_destroy_symgs(_aoclsparse_symgs *sgs_info);
 aoclsparse_status aoclsparse_destroy_mats(aoclsparse_matrix A);
 void              set_symgs_matrix_properties(aoclsparse_mat_descr  descr_dest,
                                               aoclsparse_operation *trans_dest,

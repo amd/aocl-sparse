@@ -39,6 +39,5 @@
 #endif
 
 aoclsparse_status aoclsparse_optimize_ilu(aoclsparse_matrix A);
-aoclsparse_status aoclsparse_optimize_symgs(aoclsparse_matrix A);
 
 #endif // AOCLSPARSE_ANALYSIS_HPP

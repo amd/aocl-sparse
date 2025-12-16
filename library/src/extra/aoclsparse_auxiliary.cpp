@@ -659,7 +659,6 @@ aoclsparse_status aoclsparse_destroy(aoclsparse_matrix *A)
     {
         aoclsparse_optimize_destroy((*A)->optim_data);
         aoclsparse_destroy_ilu(&((*A)->ilu_info));
-        aoclsparse_destroy_symgs(&((*A)->symgs_info));
         aoclsparse_destroy_mats(*A);
         delete *A;
         *A = NULL;
@@ -971,27 +970,6 @@ aoclsparse_status aoclsparse_destroy_ilu(_aoclsparse_ilu *ilu_info)
         {
             ::operator delete(ilu_info->precond_csr_val);
             ilu_info->precond_csr_val = NULL;
-        }
-    }
-    return aoclsparse_status_success;
-}
-/********************************************************************************
- * \brief aoclsparse_matrix is a structure holding the sparse matrix A.
- * The working buffers of SYMGS needs to be deallocated.
- *******************************************************************************/
-aoclsparse_status aoclsparse_destroy_symgs(_aoclsparse_symgs *sgs_info)
-{
-    if(sgs_info != NULL)
-    {
-        if(sgs_info->r != NULL)
-        {
-            ::operator delete(sgs_info->r);
-            sgs_info->r = NULL;
-        }
-        if(sgs_info->q != NULL)
-        {
-            ::operator delete(sgs_info->q);
-            sgs_info->q = NULL;
         }
     }
     return aoclsparse_status_success;

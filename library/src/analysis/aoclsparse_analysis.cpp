@@ -384,42 +384,6 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
     return aoclsparse_status_success;
 }
 /*
-    SYMGS optimize API allocates working buffers
-*/
-aoclsparse_status aoclsparse_optimize_symgs(aoclsparse_matrix A)
-{
-    aoclsparse_status ret = aoclsparse_status_success;
-    void             *r, *q;
-    //If already allocated, then no need to reallocate. So return. Need to happen only once in the beginning
-    if(A->symgs_info.sgs_ready == true)
-    {
-        return ret;
-    }
-
-    try
-    {
-        r = ::operator new(data_size[A->val_type] * A->m);
-    }
-    catch(std::bad_alloc &)
-    {
-        return aoclsparse_status_memory_error;
-    }
-    try
-    {
-        q = ::operator new(data_size[A->val_type] * A->m);
-    }
-    catch(std::bad_alloc &)
-    {
-        ::operator delete(r);
-        return aoclsparse_status_memory_error;
-    }
-    A->symgs_info.r = r;
-    A->symgs_info.q = q;
-    //turn this flag on to indicate necessary allocations for SGS have been done
-    A->symgs_info.sgs_ready = true;
-    return ret;
-}
-/*
     ILU optimize API allocates working buffers and also
     memory for the precondtioned csr value buffer
 */
@@ -624,11 +588,6 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
     {
         // Only ilu hints have been passed
         ret = aoclsparse_optimize_ilu(A);
-    }
-    else if(sgs_count)
-    {
-        // Symgs Optimize/work-array allocations
-        ret = aoclsparse_optimize_symgs(A);
     }
     return ret;
 }
