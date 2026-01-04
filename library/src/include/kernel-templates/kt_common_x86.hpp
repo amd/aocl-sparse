@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -54,8 +54,10 @@ namespace kernel_templates
                 return 0;
             else if constexpr(kt_is_base_t_double<T>())
                 return 1;
+            else if constexpr(kt_is_base_t_int<T>())
+                return 2;
             // else if constexpr(...<T>)
-            // return 2;
+            // return 3;
         }
 
         /*
@@ -78,13 +80,15 @@ namespace kernel_templates
 #pragma GCC diagnostic ignored "-Wignored-attributes"
         // clang-format off
         // mm instrinsic database storing all mm types used by AVXVECTOR
-        // Note on adding new types, refer to guide at top of file!
+        // Note on adding new types, refer to guide in kt_common.hpp!
+        // __m64 is used for 64-bit vectors irrespective of the base type. Operation on __m64 is not
+        // facilitated by the AVXVECTOR struct, but it is used for half vectors.
         template <bsz SZ, typename SUF, bool HALF>
-        // index_t                                             float   double   float   double
-        using get_vec_t = type_switch<index<SZ, SUF, HALF>(), __m128, __m128d, __m256, __m256d
+        // index_t                                            float  double   int    float   double      int   float   double     int
+        using get_vec_t = type_switch<index<SZ, SUF, HALF>(), __m64, __m64, __m64,  __m128, __m128d, __m128i, __m256, __m256d, __m256i
         #ifdef __AVX512F__
-        //                         float   double
-                                , __m512, __m512d
+        //                                float   double      int
+                                       , __m512, __m512d, __m512i
         #endif
         >;
 #pragma GCC diagnostic pop
@@ -98,7 +102,8 @@ namespace kernel_templates
         constexpr int get_sz_v()
         {
             // For non-complex types: pack and type sizes always match
-            if constexpr(std::is_floating_point<SUF>::value || isTSZ == true)
+            if constexpr(std::is_floating_point<SUF>::value || isTSZ == true
+                         || kt_is_base_t_int<SUF>())
                 return sizeof(T) / sizeof(SUF);
             else // For complex types: pack size is twice of type size (real, imag)
                 return ((sizeof(T) / sizeof(SUF)) * 2);
@@ -227,6 +232,10 @@ namespace kernel_templates
     //
     // Example: `avxvector<bsz::b256,float> v = kt_setzero_p<bsz::b256,float>() is equivalent to `v = _mm256_setzero_ps()`
     template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b128, avxvector_t<SZ, SUF>>
+                    kt_setzero_p(void) noexcept;
+
+    template <bsz SZ, typename SUF>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b256, avxvector_t<SZ, SUF>>
                     kt_setzero_p(void) noexcept;
 
@@ -240,6 +249,10 @@ namespace kernel_templates
     // return an avxvector filled with the same scalar value.
     //
     // Example `avxvector_t<bsz::b512, double> v = kt_set1_p<bsz::b512, double>(x)` is equivalent to `v = _mm512_set1_pd(x)`
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b128, avxvector_t<SZ, SUF>>
+                    kt_set1_p(const SUF x) noexcept;
+
     template <bsz SZ, typename SUF>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b256, avxvector_t<SZ, SUF>>
                     kt_set1_p(const SUF x) noexcept;
@@ -258,6 +271,10 @@ namespace kernel_templates
     // return an avxvector with the loaded data.
     //
     // Example: `kt_set_p<bsz::b256, double>(v, b)` expands to _mm256_set_pd(v[*(b+3)],v[*(b+2)],v[*(b+1)],v[*(b+0)])
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b128, avxvector_t<SZ, SUF>>
+                    kt_set_p(const SUF *v, const kt_int_t *b) noexcept;
+
     template <bsz SZ, typename SUF>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b256, avxvector_t<SZ, SUF>>
                     kt_set_p(const SUF *v, const kt_int_t *b) noexcept;
@@ -280,6 +297,11 @@ namespace kernel_templates
     //
     // Example: `kt_maskz_set_p<256, float, AVX, 3>(v, b)` expands to `_mm256_set_ps(0f, 0f, 0f, 0f, 0f, v[b+2], v[b+1], v[b+0])`
     // and      `kt_maskz_set_p<256, double, AVX512VL, 3>(v, b)` expands to _mm256_maskz_loadu_pd(7, &v[b])
+    // Note: In direct memory model, AVX512VL extension can only be used with bsz::b256.
+    template <bsz SZ, typename SUF, kt_avxext, int L>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b128, avxvector_t<SZ, SUF>>
+                    kt_maskz_set_p(const SUF *v, const kt_int_t b) noexcept;
+
     template <bsz SZ, typename SUF, kt_avxext EXT, int L>
     KT_FORCE_INLINE
         std::enable_if_t<(SZ == bsz::b256 && EXT == kt_avxext::AVX2), avxvector_t<SZ, SUF>>
@@ -304,6 +326,10 @@ namespace kernel_templates
     //
     // Example: `kt_maskz_set_p<256, double, AVX, 2>(v, b)` expands to `_mm256_set_pd(0.0, 0.0, v[*(b+1)], v[*(b+0)])`
     template <bsz SZ, typename SUF, kt_avxext, int L>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b128, avxvector_t<SZ, SUF>>
+                    kt_maskz_set_p(const SUF *v, const kt_int_t *b) noexcept;
+
+    template <bsz SZ, typename SUF, kt_avxext, int L>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b256, avxvector_t<SZ, SUF>>
                     kt_maskz_set_p(const SUF *v, const kt_int_t *b) noexcept;
 
@@ -315,6 +341,10 @@ namespace kernel_templates
 
     // Dense direct aligned load to AVX register
     // return an avxvector with the loaded content.
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b128, avxvector_t<SZ, SUF>>
+                    kt_load_p(const SUF *a) noexcept;
+
     template <bsz SZ, typename SUF>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b256, avxvector_t<SZ, SUF>>
                     kt_load_p(const SUF *a) noexcept;
@@ -330,6 +360,10 @@ namespace kernel_templates
     //
     // Example: `avxvector_t<bsz::b256,double> v = kt_loadu_p<bsz::b256,double>(&a[7])` is equivalent to `v = _mm256_loadu_pd(&a[7])`
     template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b128, avxvector_t<SZ, SUF>>
+                    kt_loadu_p(const SUF *a) noexcept;
+
+    template <bsz SZ, typename SUF>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b256, avxvector_t<SZ, SUF>>
                     kt_loadu_p(const SUF *a) noexcept;
 
@@ -343,6 +377,10 @@ namespace kernel_templates
     // returns void.
     //
     // Example:`kt_storeu_p<256,double>(&x, vec)` is equivalent to `_mm256_storeu_pd(&x, vec)`
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b128, void>
+                    kt_storeu_p(SUF *a, const avxvector_t<SZ, SUF> v) noexcept;
+
     template <bsz SZ, typename SUF>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b256, void>
                     kt_storeu_p(const SUF *, const avxvector_t<SZ, SUF>) noexcept;
@@ -360,6 +398,10 @@ namespace kernel_templates
     //
     // Example: `avxvector_t<bsz::b256, double> c = kt_add_p(a, b)` is equivalent to `__256d c = _mm256_add_pd(a, b)`
     template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b128, avxvector_t<SZ, SUF>>
+                    kt_add_p(const avxvector_t<SZ, SUF> a, const avxvector_t<SZ, SUF> b) noexcept;
+
+    template <bsz SZ, typename SUF>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b256, avxvector_t<SZ, SUF>>
                     kt_add_p(const avxvector_t<SZ, SUF> a, const avxvector_t<SZ, SUF> b) noexcept;
 
@@ -376,6 +418,10 @@ namespace kernel_templates
     //
     // Example: `avxvector_t<bsz::b256, double> c = kt_sub_p(a, b)` is equivalent to `__256d c = _mm256_sub_pd(a, b)`
     template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b128, avxvector_t<SZ, SUF>>
+                    kt_sub_p(const avxvector_t<SZ, SUF> a, const avxvector_t<SZ, SUF> b) noexcept;
+
+    template <bsz SZ, typename SUF>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b256, avxvector_t<SZ, SUF>>
                     kt_sub_p(const avxvector_t<SZ, SUF> a, const avxvector_t<SZ, SUF> b) noexcept;
 
@@ -390,6 +436,10 @@ namespace kernel_templates
     //  - `b` avxvector
     // return an avxvector with `a` * `b` elementwise.
     // Example: `avxvector_t<bsz::b256, double> c = kt_mul_p(a, b)` is equivalent to `__256d c = _mm256_mul_pd(a, b)`
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b128, avxvector_t<SZ, SUF>>
+                    kt_mul_p(const avxvector_t<SZ, SUF> a, const avxvector_t<SZ, SUF> b) noexcept;
+
     template <bsz SZ, typename SUF>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b256, avxvector_t<SZ, SUF>>
                     kt_mul_p(const avxvector_t<SZ, SUF> a, const avxvector_t<SZ, SUF> b) noexcept;
@@ -406,6 +456,12 @@ namespace kernel_templates
     //  - `c` avxvector
     // return an avxvector with `a` * `b` + `c` elementwise.
     // Example: `avxvector_t<bsz::b256, double> d = kt_fmadd_p(a, b, c)` is equivalent to `__256d d = _mm256_fmadd_pd(a, b, c)`
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b128, avxvector_t<SZ, SUF>>
+                    kt_fmadd_p(const avxvector_t<SZ, SUF> a,
+                               const avxvector_t<SZ, SUF> b,
+                               const avxvector_t<SZ, SUF> c) noexcept;
+
     template <bsz SZ, typename SUF>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b256, avxvector_t<SZ, SUF>>
                     kt_fmadd_p(const avxvector_t<SZ, SUF> a,
@@ -426,6 +482,12 @@ namespace kernel_templates
     //  - `c` avxvector
     // return an avxvector with `a` * `b` - `c` elementwise.
     // Example: `avxvector_t<bsz::b256, double> d = kt_fmsub_p(a, b, c)` is equivalent to `__256d d = _mm256_fmsub_pd(a, b, c)`
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b128, avxvector_t<SZ, SUF>>
+                    kt_fmsub_p(const avxvector_t<SZ, SUF> a,
+                               const avxvector_t<SZ, SUF> b,
+                               const avxvector_t<SZ, SUF> c) noexcept;
+
     template <bsz SZ, typename SUF>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b256, avxvector_t<SZ, SUF>>
                     kt_fmsub_p(const avxvector_t<SZ, SUF> a,
@@ -449,6 +511,10 @@ namespace kernel_templates
     // return a scalar containing the horizontal sum of the elements of `v`, that is,
     // `v[0] + v[1] + ... + v[N]` with `N` the appropiate vector size
     template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b128, SUF>
+                    kt_hsum_p(avxvector_t<SZ, SUF> const v) noexcept;
+
+    template <bsz SZ, typename SUF>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b256, SUF>
                     kt_hsum_p(avxvector_t<SZ, SUF> const v) noexcept;
 
@@ -460,10 +526,14 @@ namespace kernel_templates
 
     // Templated version of the conjugate operation
     // Conjugate an AVX register
-    //  - `SZ`  size (in bits) of AVX vector, i.e., bsz::b256 or bsz::b512
+    //  - `SZ`  size (in bits) of AVX and SSE vector
     //  - `SUF` suffix of working type, i.e., `double`, `float`, `cdouble`, or `cfloat`
     //  - `a` avxvector
     // returns `conjugate(a)` for complex types and returns `a`for real
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b128, avxvector_t<SZ, SUF>>
+                    kt_conj_p(const avxvector_t<SZ, SUF> a) noexcept;
+
     template <bsz SZ, typename SUF>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b256, avxvector_t<SZ, SUF>>
                     kt_conj_p(const avxvector_t<SZ, SUF> a) noexcept;
@@ -471,5 +541,107 @@ namespace kernel_templates
     template <bsz SZ, typename SUF>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, avxvector_t<SZ, SUF>>
                     kt_conj_p(const avxvector_t<SZ, SUF> a) noexcept;
+
+    // -----------------------------------------------------------------------
+
+    // Vector fused multiply-add of three registers - blocked variant
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b128, void>
+                    kt_fmadd_B(const avxvector_t<SZ, SUF>             a,
+                               const avxvector_t<SZ, SUF>             b,
+                               avxvector_t<SZ, SUF>                  &c,
+                               [[maybe_unused]] avxvector_t<SZ, SUF> &d) noexcept;
+
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b256, void>
+                    kt_fmadd_B(const avxvector_t<SZ, SUF>             a,
+                               const avxvector_t<SZ, SUF>             b,
+                               avxvector_t<SZ, SUF>                  &c,
+                               [[maybe_unused]] avxvector_t<SZ, SUF> &d) noexcept;
+
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, void>
+                    kt_fmadd_B(const avxvector_t<SZ, SUF> a,
+                               const avxvector_t<SZ, SUF> b,
+                               avxvector_t<SZ, SUF>      &c,
+                               avxvector_t<SZ, SUF>      &d) noexcept;
+
+    // -----------------------------------------------------------------------
+
+    // Horizontal sum (reduction) of an register - blocked variant
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b128, SUF>
+                    kt_hsum_B(const avxvector_t<SZ, SUF>                  a,
+                              [[maybe_unused]] const avxvector_t<SZ, SUF> b) noexcept;
+
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b256, SUF>
+                    kt_hsum_B(const avxvector_t<SZ, SUF>                  a,
+                              [[maybe_unused]] const avxvector_t<SZ, SUF> b) noexcept;
+
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, SUF>
+                    kt_hsum_B(const avxvector_t<SZ, SUF> a, const avxvector_t<SZ, SUF> b) noexcept;
+
+    // -----------------------------------------------------------------------
+    // Compare packed SUF elements in a and b, and returns packed maximum values.
+    // Return max an SSE/AVX register
+    //  - `SZ`  size (in bits) of AVX and SSE vector
+    //  - `SUF` suffix of working type, i.e., `double`, `float`
+    // returns `max(a)` for real
+    // This operation is only available for real types.
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE
+        std::enable_if_t<SZ == bsz::b128 && kt_type_is_real<SUF>(), avxvector_t<SZ, SUF>>
+        kt_max_p(const avxvector_t<SZ, SUF> a, const avxvector_t<SZ, SUF> b) noexcept;
+
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE
+        std::enable_if_t<SZ == bsz::b256 && kt_type_is_real<SUF>(), avxvector_t<SZ, SUF>>
+        kt_max_p(const avxvector_t<SZ, SUF> a, const avxvector_t<SZ, SUF> b) noexcept;
+
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE
+        std::enable_if_t<SZ == bsz::b512 && kt_type_is_real<SUF>(), avxvector_t<SZ, SUF>>
+        kt_max_p(const avxvector_t<SZ, SUF> a, const avxvector_t<SZ, SUF> b) noexcept;
+
+    // -----------------------------------------------------------------------
+    // Vector pow2 of AVX registers.
+    //  - `a` avxvector
+    // returns for real a real avxvector with `a` .* `a` elementwise.
+    // returns for complex a complex avxvector with elementwise squared norm:
+    // `a = (..., x1 + z1i, x0 + z0i)` then `b = kt_pow2_p(a) = (..., x1^2 + z1^2, x1^2 + z1^2, x0^2 + z0^2, x0^2 + z0^2),
+    // i.e. b[1] = b[0] = |a[0]|^2 = |x0+z0i|^2, b[3] = b[2] = |a[1]|^2 = |x1+z1i|^2, ...
+    // This is used for implementing complex division and is useful when normalizing (z/|z|), etc.
+    // Example: `avxvector_t<bsz::b256, double> c = kt_pow2_p(a)` is equivalent to `__256d c = _mm256_mul_pd(a, a)`
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b128, avxvector_t<SZ, SUF>>
+                    kt_pow2_p(const avxvector_t<SZ, SUF> a) noexcept;
+
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b256, avxvector_t<SZ, SUF>>
+                    kt_pow2_p(const avxvector_t<SZ, SUF> a) noexcept;
+
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, avxvector_t<SZ, SUF>>
+                    kt_pow2_p(const avxvector_t<SZ, SUF> a) noexcept;
+
+    // -----------------------------------------------------------------------
+    // Vector division of two AVX registers.
+    //  - `a` avxvector
+    //  - `b` avxvector
+    // return an avxvector with `a` / `b` elementwise.
+    // Example: `avxvector_t<bsz::b256, double> c = kt_div_p(a, b)` is equivalent to `__256d c = _mm256_div_pd(a, b)`
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b128, avxvector_t<SZ, SUF>>
+                    kt_div_p(const avxvector_t<SZ, SUF> a, const avxvector_t<SZ, SUF> b) noexcept;
+
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b256, avxvector_t<SZ, SUF>>
+                    kt_div_p(const avxvector_t<SZ, SUF> a, const avxvector_t<SZ, SUF> b) noexcept;
+
+    template <bsz SZ, typename SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, avxvector_t<SZ, SUF>>
+                    kt_div_p(const avxvector_t<SZ, SUF> a, const avxvector_t<SZ, SUF> b) noexcept;
 }
 #endif

@@ -21,7 +21,7 @@
 
 .. AOCL-Sparse documentation master file
 
-AMD AOCL-Sparse Library Documentation
+AOCL-Sparse
 *************************************
 
 .. _MainIntro:
@@ -65,7 +65,7 @@ Additional highlights:
 Naming convention
 -----------------
 
-API's in the library are formed by three sections: :code:`aoclsparse` prefix,
+APIs in the library are formed by three sections: :code:`aoclsparse` prefix,
 :code:`P` data type precision, followed by an abbreviated form of the functionality.
 Data type precion :code:`P` is a single letter indicating:
 :code:`s` single,
@@ -84,6 +84,8 @@ Some illustrative examples follow.
     :cpp:func:`aoclsparse_daxpyi()`, :code:`d`, :code:`AXPY` perform a variant of the operation :math:`a\@,x+y` in double precision@,
     :cpp:func:`aoclsparse_cmv()`,    :code:`c`, :code:`SPMV` sparse matrix-vector product using complex single precision@,
     :cpp:func:`aoclsparse_ztrsm()`,  :code:`z`, :code:`TRSM` complex double precision linear system of equations TRiangular Solver with Multiple right-hand sides.
+
+A subset of APIs: ``trsv``, ``mv``, ``create_csr``, ``create_bsr``, and ``sp2m`` support C++ interfaces in the ``aoclsparse::`` namespace. These interfaces are templated to support the following data types: ``float``, ``double``, ``std::complex<float>``, and ``std::complex<double>``.
 
 
 Throughout this document and where not ambiguous, if an API supports two or more data types described above, then it will be

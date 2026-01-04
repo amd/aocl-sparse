@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,7 @@
 #include "aoclsparse.h"
 #include "common_data_utils.h"
 #include "gtest/gtest.h"
-#include "aoclsparse.hpp"
+#include "aoclsparse_interface.hpp"
 
 #include <algorithm>
 #include <complex>
@@ -74,25 +74,25 @@ namespace
         EXPECT_EQ(aoclsparse_create_csr<T>(
                       &A, base, m, n, nnz, row_ptr.data(), col_idx.data(), val.data()),
                   aoclsparse_status_success);
-        EXPECT_EQ_VEC(
-            m + 1, (aoclsparse_int *)A->csr_mat.csr_row_ptr, (aoclsparse_int *)row_ptr.data());
-        EXPECT_EQ_VEC(
-            nnz, (aoclsparse_int *)A->csr_mat.csr_col_ptr, (aoclsparse_int *)col_idx.data());
+        aoclsparse::csr *csr_mat = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
+        EXPECT_NE(csr_mat, nullptr);
+        EXPECT_EQ_VEC(m + 1, (aoclsparse_int *)csr_mat->ptr, (aoclsparse_int *)row_ptr.data());
+        EXPECT_EQ_VEC(nnz, (aoclsparse_int *)csr_mat->ind, (aoclsparse_int *)col_idx.data());
         if constexpr(std::is_same_v<T, aoclsparse_float_complex>)
         {
             std::complex<float> *tmp1 = (std::complex<float> *)val.data();
-            std::complex<float> *tmp2 = (std::complex<float> *)A->csr_mat.csr_val;
+            std::complex<float> *tmp2 = (std::complex<float> *)csr_mat->val;
             EXPECT_COMPLEX_FLOAT_EQ_VEC(nnz, tmp1, tmp2);
         }
         else if constexpr(std::is_same_v<T, aoclsparse_double_complex>)
         {
             std::complex<double> *tmp1 = (std::complex<double> *)val.data();
-            std::complex<double> *tmp2 = (std::complex<double> *)A->csr_mat.csr_val;
+            std::complex<double> *tmp2 = (std::complex<double> *)csr_mat->val;
             EXPECT_COMPLEX_DOUBLE_EQ_VEC(nnz, tmp1, tmp2);
         }
         else
         {
-            EXPECT_EQ_VEC(nnz, (T *)A->csr_mat.csr_val, (T *)val.data());
+            EXPECT_EQ_VEC(nnz, (T *)csr_mat->val, (T *)val.data());
         }
         EXPECT_EQ(m, A->m);
         EXPECT_EQ(n, A->n);

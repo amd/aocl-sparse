@@ -33,14 +33,8 @@
 #include <cmath>
 #include <limits>
 
-aoclsparse_status aoclsparse_destroy_mv(aoclsparse_matrix A);
-aoclsparse_status aoclsparse_destroy_2m(aoclsparse_matrix A);
 aoclsparse_status aoclsparse_destroy_ilu(_aoclsparse_ilu *ilu_info);
 aoclsparse_status aoclsparse_destroy_symgs(_aoclsparse_symgs *sgs_info);
-aoclsparse_status aoclsparse_destroy_opt_csr(aoclsparse_matrix A);
-aoclsparse_status aoclsparse_destroy_csc(aoclsparse_matrix A);
-aoclsparse_status aoclsparse_destroy_coo(aoclsparse_matrix A);
-aoclsparse_status aoclsparse_destroy_tcsr(aoclsparse_matrix A);
 aoclsparse_status aoclsparse_destroy_mats(aoclsparse_matrix A);
 void              set_symgs_matrix_properties(aoclsparse_mat_descr  descr_dest,
                                               aoclsparse_operation *trans_dest,
@@ -49,59 +43,10 @@ void              set_symgs_matrix_properties(aoclsparse_mat_descr  descr_dest,
                                               aoclsparse_operation &trans);
 
 void aoclsparse_init_mat(aoclsparse_matrix             A,
-                         aoclsparse_index_base         base,
                          aoclsparse_int                M,
                          aoclsparse_int                N,
                          aoclsparse_int                nnz,
                          aoclsparse_matrix_format_type matrix_type);
-
-/********************************************************************************
- * \brief aoclsparse_create_csr_t sets the sparse matrix in the CSR format
- * for any data type
- ********************************************************************************/
-template <typename T>
-aoclsparse_status aoclsparse_create_csr_t(aoclsparse_matrix    *mat,
-                                          aoclsparse_index_base base,
-                                          aoclsparse_int        M,
-                                          aoclsparse_int        N,
-                                          aoclsparse_int        nnz,
-                                          aoclsparse_int       *row_ptr,
-                                          aoclsparse_int       *col_idx,
-                                          T                    *val)
-{
-    aoclsparse_status status;
-    if(!mat)
-        return aoclsparse_status_invalid_pointer;
-    *mat = nullptr;
-    // Validate the input parameters
-    aoclsparse_matrix_sort mat_sort;
-    bool                   mat_fulldiag;
-    if((status = aoclsparse_mat_check_internal(
-            M, N, nnz, row_ptr, col_idx, val, shape_general, base, mat_sort, mat_fulldiag, nullptr))
-       != aoclsparse_status_success)
-    {
-        return status;
-    }
-    try
-    {
-        *mat = new _aoclsparse_matrix;
-    }
-    catch(std::bad_alloc &)
-    {
-        return aoclsparse_status_memory_error;
-    }
-    aoclsparse_init_mat(*mat, base, M, N, nnz, aoclsparse_csr_mat);
-    (*mat)->val_type            = get_data_type<T>();
-    (*mat)->mat_type            = aoclsparse_csr_mat;
-    (*mat)->csr_mat.csr_row_ptr = row_ptr;
-    (*mat)->csr_mat.csr_col_ptr = col_idx;
-    (*mat)->csr_mat.csr_val     = val;
-    (*mat)->csr_mat_is_users    = true;
-    (*mat)->sort                = mat_sort;
-    (*mat)->fulldiag            = mat_fulldiag;
-
-    return aoclsparse_status_success;
-}
 
 /********************************************************************************
  * \brief aoclsparse_create_tcsr_t sets the sparse matrix in the TCSR format
@@ -197,25 +142,38 @@ aoclsparse_status aoclsparse_create_tcsr_t(aoclsparse_matrix          *mat,
         return aoclsparse_status_invalid_value;
 
     // create matrix
+    aoclsparse::tcsr *tcsr_mat = nullptr;
     try
     {
-        *mat = new _aoclsparse_matrix;
+        *mat     = new _aoclsparse_matrix;
+        tcsr_mat = new aoclsparse::tcsr(M,
+                                        N,
+                                        nnz,
+                                        base,
+                                        get_data_type<T>(),
+                                        row_ptr_L,
+                                        row_ptr_U,
+                                        col_idx_L,
+                                        col_idx_U,
+                                        val_L,
+                                        val_U);
+        (*mat)->mats.push_back(tcsr_mat);
     }
     catch(std::bad_alloc &)
     {
+        if(tcsr_mat)
+            delete tcsr_mat;
+        if(*mat)
+        {
+            delete *mat;
+            *mat = nullptr;
+        }
         return aoclsparse_status_memory_error;
     }
 
-    aoclsparse_init_mat(*mat, base, M, N, nnz, aoclsparse_tcsr_mat);
-    (*mat)->val_type           = get_data_type<T>();
-    (*mat)->tcsr_mat.col_idx_L = col_idx_L;
-    (*mat)->tcsr_mat.col_idx_U = col_idx_U;
-    (*mat)->tcsr_mat.row_ptr_L = row_ptr_L;
-    (*mat)->tcsr_mat.row_ptr_U = row_ptr_U;
-    (*mat)->tcsr_mat.val_L     = val_L;
-    (*mat)->tcsr_mat.val_U     = val_U;
-    (*mat)->tcsr_mat_is_users  = true;
-    (*mat)->fulldiag           = true;
+    aoclsparse_init_mat(*mat, M, N, nnz, aoclsparse_tcsr_mat);
+    (*mat)->val_type = get_data_type<T>();
+    (*mat)->fulldiag = true;
     (*mat)->mat_type = aoclsparse_tcsr_mat; // Used to identify the matrix type in the mv dispatcher
     if((sort_L == aoclsparse_partially_sorted || sort_U == aoclsparse_partially_sorted))
         (*mat)->sort = aoclsparse_partially_sorted;
@@ -247,7 +205,7 @@ aoclsparse_status aoclsparse_create_coo_t(aoclsparse_matrix          *mat,
 template <typename T>
 aoclsparse_status aoclsparse_update_values_t(aoclsparse_matrix A, aoclsparse_int len, T *val)
 {
-    if(A == nullptr || val == nullptr)
+    if(A == nullptr || A->mats.empty() || !A->mats[0] || val == nullptr)
         return aoclsparse_status_invalid_pointer;
     if(len != A->nnz)
         return aoclsparse_status_invalid_size;
@@ -255,34 +213,53 @@ aoclsparse_status aoclsparse_update_values_t(aoclsparse_matrix A, aoclsparse_int
     if(A->val_type != get_data_type<T>())
         return aoclsparse_status_wrong_type;
 
-    T *A_val = nullptr;
+    aoclsparse_status status = aoclsparse_status_invalid_pointer;
 
-    switch(A->input_format)
+    switch(A->mats[0]->mat_type)
     {
     case aoclsparse_csr_mat:
-        A_val = reinterpret_cast<T *>(A->csr_mat.csr_val);
-        memcpy(A_val, val, len * sizeof(T));
-        break;
-    case aoclsparse_csc_mat:
-        A_val = reinterpret_cast<T *>(A->csc_mat.val);
-        memcpy(A_val, val, len * sizeof(T));
-        break;
+    {
+        aoclsparse::csr *mat = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
+        if(mat && mat->val)
+        {
+            memcpy(mat->val, val, len * sizeof(T));
+            status = aoclsparse_status_success;
+        }
+    }
+    break;
     case aoclsparse_coo_mat:
-        A_val = reinterpret_cast<T *>(A->coo_mat.val);
-        memcpy(A_val, val, len * sizeof(T));
-        break;
+    {
+        aoclsparse::coo *coo_mat = dynamic_cast<aoclsparse::coo *>(A->mats[0]);
+        if(coo_mat && coo_mat->val)
+        {
+            memcpy(coo_mat->val, val, len * sizeof(T));
+            status = aoclsparse_status_success;
+        }
+    }
+    break;
     default:
         return aoclsparse_status_not_implemented;
     }
-
+    if(status != aoclsparse_status_success)
+        return status;
+    // destroy the previously created matrix copy data
+    for(size_t i = 1; i < A->mats.size(); i++)
+    {
+        if(A->mats[i])
+        {
+            delete A->mats[i];
+            A->mats[i] = nullptr;
+        }
+    }
     return aoclsparse_status_success;
 }
 
 template <typename T>
-aoclsparse_status aoclsparse_copy_csc(aoclsparse_int         n,
+aoclsparse_status aoclsparse_copy_csr(aoclsparse_int         m,
+                                      aoclsparse_int         n,
                                       aoclsparse_int         nnz,
-                                      const aoclsparse::csc *src,
-                                      aoclsparse::csc       *dest);
+                                      const aoclsparse::csr *src,
+                                      aoclsparse::csr      **dest);
 
 template <typename T>
 aoclsparse_status
@@ -338,51 +315,52 @@ aoclsparse_status aoclsparse_export_coo_t(const aoclsparse_matrix mat,
     {
         return aoclsparse_status_wrong_type;
     }
-    if((mat->coo_mat.row_ind != nullptr) && (mat->coo_mat.col_ind != nullptr)
-       && (mat->coo_mat.val != nullptr))
+    aoclsparse::coo *coo_mat = nullptr;
+    for(auto *mat_rep : mat->mats)
     {
-        *row_ptr = mat->coo_mat.row_ind;
-        *col_ptr = mat->coo_mat.col_ind;
-        *val     = static_cast<T *>(mat->coo_mat.val);
+        auto *temp_mat = dynamic_cast<aoclsparse::coo *>(mat_rep);
+        if(temp_mat && temp_mat->row_ind && temp_mat->col_ind && temp_mat->val)
+        {
+            coo_mat = temp_mat;
+            break;
+        }
     }
-    else
-    {
+    if(!coo_mat)
         return aoclsparse_status_invalid_value;
-    }
 
-    *m    = mat->m;
-    *n    = mat->n;
-    *nnz  = mat->nnz;
-    *base = mat->base;
+    *row_ptr = coo_mat->row_ind;
+    *col_ptr = coo_mat->col_ind;
+    *val     = static_cast<T *>(coo_mat->val);
+    *m       = mat->m;
+    *n       = mat->n;
+    *nnz     = mat->nnz;
+    *base    = coo_mat->base;
     return aoclsparse_status_success;
 }
 
 template <typename T>
-aoclsparse_status aoclsparse_set_coo_value(aoclsparse_matrix A,
-                                           aoclsparse_int    row_idx,
-                                           aoclsparse_int    col_idx,
-                                           T                 val)
+aoclsparse_status aoclsparse_set_coo_value(aoclsparse::coo *coo_mat,
+                                           aoclsparse_int   row_idx,
+                                           aoclsparse_int   col_idx,
+                                           T                val)
 {
-    if(A == nullptr)
+    if(!coo_mat)
         return aoclsparse_status_invalid_pointer;
 
-    if(A->coo_mat.row_ind == nullptr)
+    if(!coo_mat->row_ind)
         return aoclsparse_status_invalid_pointer;
 
-    if(A->coo_mat.col_ind == nullptr)
+    if(!coo_mat->col_ind)
         return aoclsparse_status_invalid_pointer;
 
-    if(A->coo_mat.val == nullptr)
+    if(!coo_mat->val)
         return aoclsparse_status_invalid_pointer;
 
-    if(A->input_format != aoclsparse_coo_mat)
-        return aoclsparse_status_internal_error;
+    T *temp_val = reinterpret_cast<T *>(coo_mat->val);
 
-    T *temp_val = reinterpret_cast<T *>(A->coo_mat.val);
-
-    for(aoclsparse_int i = 0; i < A->nnz; i++)
+    for(aoclsparse_int i = 0; i < coo_mat->nnz; i++)
     {
-        if(A->coo_mat.row_ind[i] == row_idx && A->coo_mat.col_ind[i] == col_idx)
+        if(coo_mat->row_ind[i] == row_idx && coo_mat->col_ind[i] == col_idx)
         {
             temp_val[i] = val;
             return aoclsparse_status_success;
@@ -392,35 +370,27 @@ aoclsparse_status aoclsparse_set_coo_value(aoclsparse_matrix A,
 }
 
 template <typename T>
-aoclsparse_status aoclsparse_set_csr_value(aoclsparse_index_base base,
-                                           const aoclsparse_int *row_ptr,
-                                           const aoclsparse_int *col_ptr,
-                                           T                    *val_ptr,
-                                           aoclsparse_int        row_idx,
-                                           aoclsparse_int        col_idx,
-                                           T                     val)
+aoclsparse_status aoclsparse_set_csr_value(aoclsparse::csr *csr_mat,
+                                           aoclsparse_int   row_idx,
+                                           aoclsparse_int   col_idx,
+                                           T                val)
 {
-    if(base != aoclsparse_index_base_one && base != aoclsparse_index_base_zero)
+    if(!csr_mat || !csr_mat->ptr || !csr_mat->ind || !csr_mat->val)
+        return aoclsparse_status_invalid_pointer;
+
+    if(csr_mat->base != aoclsparse_index_base_one && csr_mat->base != aoclsparse_index_base_zero)
         return aoclsparse_status_invalid_value;
 
-    if(row_ptr == nullptr)
-        return aoclsparse_status_invalid_pointer;
+    aoclsparse_int row   = row_idx - csr_mat->base;
+    aoclsparse_int begin = csr_mat->ptr[row] - csr_mat->base;
+    aoclsparse_int end   = csr_mat->ptr[row + 1] - csr_mat->base;
 
-    if(col_ptr == nullptr)
-        return aoclsparse_status_invalid_pointer;
-
-    if(val_ptr == nullptr)
-        return aoclsparse_status_invalid_pointer;
-
-    aoclsparse_int row   = row_idx - base;
-    aoclsparse_int begin = row_ptr[row] - base;
-    aoclsparse_int end   = row_ptr[row + 1] - base;
-
+    T *temp_val = reinterpret_cast<T *>(csr_mat->val);
     for(aoclsparse_int i = begin; i < end; i++)
     {
-        if(col_ptr[i] == col_idx)
+        if(csr_mat->ind[i] == col_idx)
         {
-            val_ptr[i] = val;
+            temp_val[i] = val;
             return aoclsparse_status_success;
         }
     }
@@ -433,12 +403,12 @@ aoclsparse_status aoclsparse_set_value_t(aoclsparse_matrix A,
                                          aoclsparse_int    col_idx,
                                          T                 val)
 {
-    if(A == nullptr)
+    if(A == nullptr || A->mats.empty() || !A->mats[0])
         return aoclsparse_status_invalid_pointer;
 
     // check if coordinate given by user is within matrix bounds
-    if((A->m + A->base <= row_idx || row_idx < A->base)
-       || (A->n + A->base <= col_idx || col_idx < A->base))
+    aoclsparse_index_base base = A->mats[0]->base;
+    if((A->m + base <= row_idx || row_idx < base) || (A->n + base <= col_idx || col_idx < base))
         return aoclsparse_status_invalid_value;
 
     // if matrix type is same as T
@@ -446,28 +416,24 @@ aoclsparse_status aoclsparse_set_value_t(aoclsparse_matrix A,
         return aoclsparse_status_wrong_type;
 
     aoclsparse_status status;
-    T                *val_ptr = nullptr;
 
     // different method to set value for different types
-    switch(A->input_format)
+    switch(A->mats[0]->mat_type)
     {
     case aoclsparse_csr_mat:
-        val_ptr = reinterpret_cast<T *>(A->csr_mat.csr_val);
-        status  = aoclsparse_set_csr_value(A->base,
-                                          A->csr_mat.csr_row_ptr,
-                                          A->csr_mat.csr_col_ptr,
-                                          val_ptr,
-                                          row_idx,
-                                          col_idx,
-                                          val);
+    {
+        bool is_csc = (A->mats[0]->doid == aoclsparse::doid::gt);
+        if(is_csc)
+            status = aoclsparse_set_csr_value(
+                dynamic_cast<aoclsparse::csr *>(A->mats[0]), col_idx, row_idx, val);
+        else
+            status = aoclsparse_set_csr_value(
+                dynamic_cast<aoclsparse::csr *>(A->mats[0]), row_idx, col_idx, val);
         break;
-    case aoclsparse_csc_mat:
-        val_ptr = reinterpret_cast<T *>(A->csc_mat.val);
-        status  = aoclsparse_set_csr_value(
-            A->base, A->csc_mat.col_ptr, A->csc_mat.row_idx, val_ptr, col_idx, row_idx, val);
-        break;
+    }
     case aoclsparse_coo_mat:
-        status = aoclsparse_set_coo_value(A, row_idx, col_idx, val);
+        status = aoclsparse_set_coo_value(
+            dynamic_cast<aoclsparse::coo *>(A->mats[0]), row_idx, col_idx, val);
         break;
     default:
         return aoclsparse_status_not_implemented;
@@ -475,8 +441,16 @@ aoclsparse_status aoclsparse_set_value_t(aoclsparse_matrix A,
     if(status != aoclsparse_status_success)
         return status;
 
-    // destroy the previously optimized data
-    return aoclsparse_destroy_opt_csr(A);
+    // Invalidate the internally created matrix copies
+    for(size_t i = 1; i < A->mats.size(); i++)
+    {
+        if(A->mats[i])
+        {
+            delete A->mats[i];
+            A->mats[i] = nullptr;
+        }
+    }
+    return aoclsparse_status_success;
 }
 
 // This is library-side instantiations of "internal" dispatchers
@@ -643,8 +617,9 @@ namespace dispatcher_instantiations
     }
 
     // high complexity dispatcher to test corner cases
-    template <typename T>
-    aoclsparse_int dispatch(aoclsparse_int kid = -1)
+    template <typename T, bool range_enabled = false>
+    aoclsparse_int
+        dispatch(aoclsparse_int begin = 0, aoclsparse_int end = 0, aoclsparse_int kid = -1)
     {
         using K = decltype(&kernel_ref<0, T>);
         using namespace aoclsparse;
@@ -664,8 +639,15 @@ namespace dispatcher_instantiations
         // clang-format on
 
         // Thread local kernel cache
-        thread_local K kache  = nullptr;
-        K              kernel = Dispatch::Oracle<K>(tbl, kache, kid);
+        thread_local K kache = nullptr;
+        K              kernel;
+
+        if constexpr(range_enabled)
+            // In this case, KID cannot be greater than end
+            // Auto is permitted to be used i.e. kid = -1
+            kernel = Dispatch::Oracle<K>(tbl, kache, kid, begin, end); // Range enabled
+        else
+            kernel = Dispatch::Oracle<K>(tbl, kache, kid);
 
         if(!kernel)
             return aoclsparse_status_invalid_kid;
@@ -725,7 +707,5 @@ namespace dispatcher_instantiations
         auto okid = kernel();
         return 4000 + okid;
     }
-
 }
-
 #endif

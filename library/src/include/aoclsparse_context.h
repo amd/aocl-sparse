@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2021-2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2021-2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,14 +28,15 @@
 #include "aoclsparse.h"
 
 #include <algorithm>
-#include <memory>
-#include <mutex>
 
 #ifdef _OPENMP
 #include <omp.h>
 #endif
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wignored-qualifiers"
 #include "Au/Cpuid/X86Cpu.hh"
+#pragma GCC diagnostic pop
 
 namespace aoclsparse
 {
@@ -129,9 +130,6 @@ namespace aoclsparse
     class context
     {
     private:
-        static context   *global_obj;
-        static std::mutex global_lock;
-
         //AOCLSPARSE local arch info container
         archs lib_local_arch;
 
@@ -274,16 +272,21 @@ namespace aoclsparse
             return nt;
         }
 
-    protected:
-        // Ensure direct calls to destructor is avoided with delete
+    public:
+        // Note: Ensure direct calls to destructor are not done
         ~context() {}
 
-    public:
         // Delete the copy constructor of the context class
         context(context &t) = delete;
 
         // Delete the assignment operator of the context class
         void operator=(const context &) = delete;
+
+        // Delete the move constructor of the context class
+        context(context &&t) = delete;
+
+        // Delete the move assignment operator of the context class
+        void operator=(context &&t) = delete;
 
         // Function to check if an ISA is supported
         // ----------------------------------------
@@ -419,11 +422,17 @@ namespace aoclsparse
             return (this->current_hint != this->old_hint);
         }
 
-        // Delete the copy constructor of the context class
+        // Delete the copy constructor of the isa_hint class
         isa_hint(isa_hint &t) = delete;
 
-        // Delete the assignment operator of the context class
+        // Delete the assignment operator of the isa_hint class
         void operator=(const isa_hint &) = delete;
+
+        // Delete the move constructor of the isa_hint class
+        isa_hint(isa_hint &&t) = delete;
+
+        // Delete the move assignment operator of the isa_hint class
+        void operator=(isa_hint &&t) = delete;
     };
 }
 

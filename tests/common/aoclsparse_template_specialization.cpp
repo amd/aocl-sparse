@@ -22,7 +22,7 @@
  * ************************************************************************ */
 
 #include "aoclsparse.h"
-#include "aoclsparse.hpp"
+#include "aoclsparse_interface.hpp"
 
 #include <complex>
 template <>
@@ -1393,54 +1393,6 @@ aoclsparse_status aoclsparse_csr2dia(aoclsparse_int             m,
 {
     return aoclsparse_dcsr2dia(
         m, n, descr, csr_row_ptr, csr_col_ind, csr_val, dia_num_diag, dia_offset, dia_val);
-}
-
-template <>
-aoclsparse_status aoclsparse_csr2bsr(aoclsparse_int             m,
-                                     aoclsparse_int             n,
-                                     const aoclsparse_mat_descr descr,
-                                     const float               *csr_val,
-                                     const aoclsparse_int      *csr_row_ptr,
-                                     const aoclsparse_int      *csr_col_ind,
-                                     aoclsparse_int             block_dim,
-                                     float                     *bsr_val,
-                                     aoclsparse_int            *bsr_row_ptr,
-                                     aoclsparse_int            *bsr_col_ind)
-{
-    return aoclsparse_scsr2bsr(m,
-                               n,
-                               descr,
-                               csr_val,
-                               csr_row_ptr,
-                               csr_col_ind,
-                               block_dim,
-                               bsr_val,
-                               bsr_row_ptr,
-                               bsr_col_ind);
-}
-
-template <>
-aoclsparse_status aoclsparse_csr2bsr(aoclsparse_int             m,
-                                     aoclsparse_int             n,
-                                     const aoclsparse_mat_descr descr,
-                                     const double              *csr_val,
-                                     const aoclsparse_int      *csr_row_ptr,
-                                     const aoclsparse_int      *csr_col_ind,
-                                     aoclsparse_int             block_dim,
-                                     double                    *bsr_val,
-                                     aoclsparse_int            *bsr_row_ptr,
-                                     aoclsparse_int            *bsr_col_ind)
-{
-    return aoclsparse_dcsr2bsr(m,
-                               n,
-                               descr,
-                               csr_val,
-                               csr_row_ptr,
-                               csr_col_ind,
-                               block_dim,
-                               bsr_val,
-                               bsr_row_ptr,
-                               bsr_col_ind);
 }
 
 template <>
@@ -3033,3 +2985,49 @@ aoclsparse_status aoclsparse_itsol_rci_solve(aoclsparse_itsol_handle   handle,
     aoclsparse_float_complex  *px = reinterpret_cast<aoclsparse_float_complex *>(x);
     return aoclsparse_itsol_c_rci_solve(handle, ircomm, pu, pv, px, rinfo);
 }
+
+#define AOCLSPARSE_CREATE_BSR(PREFIX, SUF)                                          \
+    template <>                                                                     \
+    aoclsparse_status aoclsparse_create_bsr(aoclsparse_matrix          *mat,        \
+                                            const aoclsparse_index_base base,       \
+                                            const aoclsparse_order      order,      \
+                                            const aoclsparse_int        bM,         \
+                                            const aoclsparse_int        bN,         \
+                                            const aoclsparse_int        block_dim,  \
+                                            aoclsparse_int             *row_ptr,    \
+                                            aoclsparse_int             *col_idx,    \
+                                            SUF                        *val,        \
+                                            bool                        fast_chck)  \
+    {                                                                               \
+        return aoclsparse_create_##PREFIX##bsr(                                     \
+            mat, base, order, bM, bN, block_dim, row_ptr, col_idx, val, fast_chck); \
+    }
+INSTANTIATE_FOR_ALL_TYPES_SUFFIX(AOCLSPARSE_CREATE_BSR);
+
+#define AOCLSPARSE_CSR2BSR(PREFIX, SUF)                                          \
+    template <>                                                                  \
+    aoclsparse_status aoclsparse_csr2bsr(aoclsparse_int             m,           \
+                                         aoclsparse_int             n,           \
+                                         const aoclsparse_mat_descr descr,       \
+                                         const aoclsparse_order     block_order, \
+                                         const SUF                 *csr_val,     \
+                                         const aoclsparse_int      *csr_row_ptr, \
+                                         const aoclsparse_int      *csr_col_ind, \
+                                         aoclsparse_int             block_dim,   \
+                                         SUF                       *bsr_val,     \
+                                         aoclsparse_int            *bsr_row_ptr, \
+                                         aoclsparse_int            *bsr_col_ind) \
+    {                                                                            \
+        return aoclsparse_##PREFIX##csr2bsr(m,                                   \
+                                            n,                                   \
+                                            descr,                               \
+                                            block_order,                         \
+                                            csr_val,                             \
+                                            csr_row_ptr,                         \
+                                            csr_col_ind,                         \
+                                            block_dim,                           \
+                                            bsr_val,                             \
+                                            bsr_row_ptr,                         \
+                                            bsr_col_ind);                        \
+    }
+INSTANTIATE_FOR_ALL_TYPES_SUFFIX(AOCLSPARSE_CSR2BSR);

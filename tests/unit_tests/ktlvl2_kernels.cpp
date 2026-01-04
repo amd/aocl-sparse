@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024-2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -94,3 +94,11 @@ KT_SPMV_TEST(get_bsz(), double);
 KT_SPMV_TEST(get_bsz(), float);
 KT_SPMV_TEST(get_bsz(), std::complex<double>);
 KT_SPMV_TEST(get_bsz(), std::complex<float>);
+
+// Instantiate the tests for b128
+#ifdef KT_AVX2_BUILD
+KT_SPMV_TEST(bsz::b128, double);
+KT_SPMV_TEST(bsz::b128, float);
+KT_SPMV_TEST(bsz::b128, std::complex<double>);
+KT_SPMV_TEST(bsz::b128, std::complex<float>);
+#endif

@@ -1,5 +1,5 @@
 /* ************************************************************************
-    * Copyright (c) 2021-2024 Advanced Micro Devices, Inc. All rights reserved.
+    * Copyright (c) 2021-2025 Advanced Micro Devices, Inc. All rights reserved.
     *
     * Permission is hereby granted, free of charge, to any person obtaining a copy
     * of this software and associated documentation files (the "Software"), to deal
@@ -25,12 +25,12 @@
 #ifndef TESTING_CSRMM_HPP
 #define TESTING_CSRMM_HPP
 
-#include "aoclsparse.hpp"
 #include "aoclsparse_arguments.hpp"
 #include "aoclsparse_check.hpp"
 #include "aoclsparse_flops.hpp"
 #include "aoclsparse_gbyte.hpp"
 #include "aoclsparse_init.hpp"
+#include "aoclsparse_interface.hpp"
 #include "aoclsparse_random.hpp"
 #include "aoclsparse_reference.hpp"
 #include "aoclsparse_stats.hpp"
@@ -78,6 +78,11 @@ int testing_csrmm_aocl(const Arguments &arg, testdata<T> &td, double timings[], 
                                                             td.csr_row_ptrA.data(),
                                                             td.csr_col_indA.data(),
                                                             td.csr_valA.data()));
+
+        // Hint & optimize for positive hints
+        NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_set_memory_hint(A, arg.mem));
+        NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mm_hint(A, trans, descr, /*Hint=*/1000));
+        NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_optimize(A));
 
         int number_hot_calls = arg.iters;
         // Performance run

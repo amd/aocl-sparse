@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,12 +25,12 @@
 #ifndef TESTING_AXPYI_HPP
 #define TESTING_AXPYI_HPP
 
-#include "aoclsparse.hpp"
 #include "aoclsparse_arguments.hpp"
 #include "aoclsparse_check.hpp"
 #include "aoclsparse_flops.hpp"
 #include "aoclsparse_gbyte.hpp"
 #include "aoclsparse_init.hpp"
+#include "aoclsparse_interface.hpp"
 #include "aoclsparse_random.hpp"
 #include "aoclsparse_reference.hpp"
 #include "aoclsparse_stats.hpp"
@@ -88,6 +88,8 @@ int testing_axpyi(const Arguments &arg)
 
     // create relevant test data for this API
     testdata<T> td;
+    td.m
+        = 1; // m is not used in level 1 routines, but need to initialize as it is used in the problem name
     td.n    = arg.N;
     td.nnzA = aoclsparse_init_spvec_size(arg.nnz, arg.N);
 

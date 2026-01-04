@@ -21,7 +21,7 @@
  *
  * ************************************************************************ */
 /*! \file
- *  \brief These functions provides analysis and optiomization functionality
+ *  \brief These functions provide analysis and optimization functionality.
  */
 #ifndef AOCLSPARSE_ANALYSIS_H_
 #define AOCLSPARSE_ANALYSIS_H_
@@ -34,7 +34,7 @@ extern "C" {
 
 /*! \ingroup analysis_module
 *  \brief Performs analysis and possible data allocations and matrix restructuring operations
-*  related to accelerate sparse operations involving matrices
+*  to accelerate sparse operations involving matrices.
 *
 *  \details
 *  In aoclsparse_optimize() sparse matrices are restructured based on matrix analysis,
@@ -57,7 +57,7 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix mat);
 *  \brief Record hints of the expected number and types of calls to optimize the input matrix for.
 *
 *  \details
-*  Any of the \p aoclsparse_set_*_hint functions may be used to indicate that a given number of calls to the same
+*  Any of the <tt>aoclsparse_set_</tt>*_hint functions may be used to indicate that a given number of calls to the same
 *  Sparse BLAS API will be performed. When aoclsparse_optimize() is invoked, the input matrix might be
 *  tuned to accelerate the hinted calls.
 *
@@ -71,8 +71,8 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix mat);
 *  expected_no_of_calls   A rough estimate of the number of the calls.
 *
 *  \retval  aoclsparse_status_success           the operation completed successfully.
-*  \retval  aoclsparse_status_invalid_value     \p mat, \p trans, \p descr or \p expected_no_of_calls is invalid.
-*                                               Expecting \p expected_no_of_calls > 0.
+*  \retval  aoclsparse_status_invalid_value     \p mat, \p trans, \p descr or \c expected_no_of_calls is invalid.
+*                                               Expecting \c expected_no_of_calls > 0.
 *  \retval  aoclsparse_status_invalid_pointer   \p mat or \p descr is invalid.
 *  \retval  aoclsparse_status_memory_error      internal memory allocation failure.
 */
@@ -109,7 +109,7 @@ aoclsparse_status aoclsparse_set_2m_hint(aoclsparse_matrix          mat,
 /**@}*/
 
 /*! \ingroup analysis_module
-*  \brief Provides hints to optimize preconditioning matrices
+*  \brief Provides hints to optimize preconditioning matrices.
 *
 *  \details
 *  Set hints for analysis and optimization of preconditioning-related factorizations and/or
@@ -151,7 +151,7 @@ aoclsparse_status aoclsparse_set_dotmv_hint(aoclsparse_matrix          mat,
 
 /*! \ingroup analysis_module
 *  \brief Record a hint of the expected number of calls to aoclsparse_strsm() and variants
-*  to optimize the input matrix for.
+*  to optimize the input matrix for the hinted operations.
 *
 *  \details
 *  aoclsparse_set_sm_hint() may be used to indicate that a given number
@@ -176,7 +176,7 @@ aoclsparse_status aoclsparse_set_dotmv_hint(aoclsparse_matrix          mat,
 *  expected_no_of_calls   A rough estimate of the number of the calls.
 *
 *  \retval  aoclsparse_status_success           the operation completed successfully.
-*  \retval  aoclsparse_status_invalid_value     \p expected_no_of_calls, \p order, \p mat,
+*  \retval  aoclsparse_status_invalid_value     \c expected_no_of_calls, \p order, \p mat,
 *                                               \p trans or \p descr is invalid.
 *  \retval  aoclsparse_status_invalid_pointer   \p mat or \p descr is invalid.
 *  \retval  aoclsparse_status_memory_error      internal memory allocation failure.
@@ -192,10 +192,10 @@ aoclsparse_status aoclsparse_set_sm_hint(aoclsparse_matrix          mat,
 
 /*! \ingroup analysis_module
 *  \brief Record a hint of the expected number of aoclsparse_sorv()
-*  calls to optimize the input matrix for.
+*  calls to optimize the input matrix for the hinted operations.
 *
 *  \details
-*  \P{aoclsparse_set_sorv_hint} may be used to indicate that a given number
+*  <tt>aoclsparse_set_sorv_hint</tt> may be used to indicate that a given number
 *  of calls to the SOR preconditioner aoclsparse_sorv()
 *  will be performed. When aoclsparse_optimize() is invoked,
 *  the input matrix might be tuned to accelerate the hinted calls.
@@ -212,7 +212,7 @@ aoclsparse_status aoclsparse_set_sm_hint(aoclsparse_matrix          mat,
 *  expected_no_of_calls     A rough estimate of the number of the calls.
 *
 *  \retval  aoclsparse_status_success           the operation completed successfully.
-*  \retval  aoclsparse_status_invalid_value     \p expected_no_of_calls, \p descr, \p type  or
+*  \retval  aoclsparse_status_invalid_value     \c expected_no_of_calls, \p descr, \p type  or
                                                 \p mat type is invalid.
 *  \retval  aoclsparse_status_invalid_pointer   \p mat or \p descr is NULL.
 *  \retval  aoclsparse_status_memory_error      internal memory allocation failure.
@@ -230,7 +230,7 @@ aoclsparse_status aoclsparse_set_sorv_hint(aoclsparse_matrix          mat,
 *  the input matrix for the hinted operations.
 *
 *  \details
-*  \P{aoclsparse_set_memory_hint} may be used to indicate how much memory can
+*  <tt>aoclsparse_set_memory_hint</tt> may be used to indicate how much memory can
 *  be allocated during the optimization process of the input matrix for
 *  the previously hinted operations. In particular, \ref aoclsparse_memory_usage_minimal
 *  suggests that the new memory should be only of order of vectors, whereas

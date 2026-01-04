@@ -195,7 +195,7 @@ namespace
         EXPECT_EQ(aoclsparse_sorv(aoclsparse_sor_forward, descr, A, omega, alpha, x, b),
                   aoclsparse_status_invalid_value);
 
-        // descr->base deosn't match A->base
+        // descr->base deosn't match A->mats[0]->base
         aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_one);
         EXPECT_EQ(aoclsparse_sorv(aoclsparse_sor_forward, descr, A, omega, alpha, x, b),
                   aoclsparse_status_invalid_value);

@@ -56,19 +56,22 @@ if (BUILD_SPARSE_TESTS_OUTOFSRCTREE)
     set(EXTERNAL_OMP_LIBRARY "" CACHE STRING "Provide external OMP library")
 
     # Set paths to AOCLUTILS, BLAS and LAPACK installations.
-    set(CMAKE_AOCL_ROOT
-        $ENV{AOCL_ROOT}
-        CACHE
-        STRING
-        "AOCL_ROOT directory to be used to find BLAS/LAPACK/AOCLUTILS libraries")
-    if(CMAKE_AOCL_ROOT STREQUAL "")
-        message(FATAL_ERROR "CMAKE_AOCL_ROOT is empty. Either set environment variable AOCL_ROOT or set -DCMAKE_AOCL_ROOT=<path_to_AOCL_libs>.")
-    endif()
+    set(CMAKE_AOCL_ROOT $ENV{AOCL_ROOT} CACHE STRING "AOCL_ROOT directory to be used to find BLAS/LAPACK/AOCLUTILS libraries")
     set(CMAKE_SPARSE_ROOT $ENV{SPARSE_ROOT} CACHE STRING "SPARSE_ROOT directory to be used to find Sparse artifacts")
     if(CMAKE_SPARSE_ROOT STREQUAL "")
         message(WARNING "SPARSE_ROOT was not set. Will search for it in main CMAKE_AOCL_ROOT directory.")
         #Inherit AOCL_ROOT since we assume Sparse artifacts would be present as part of AOCL installation
         set(CMAKE_SPARSE_ROOT ${CMAKE_AOCL_ROOT})
+    endif()
+
+    if(WIN32)
+        # Policy ensuring the correct MSVC runtime library configuration
+        cmake_policy(SET CMP0091 NEW)
+        if(BUILD_SHARED_LIBS)
+            set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+        else()
+            set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+        endif()
     endif()
 
     if (NOT (${ASAN} AND ${CMAKE_SYSTEM_NAME} MATCHES "Linux" AND CMAKE_BUILD_TYPE MATCHES "Debug"))
@@ -82,12 +85,47 @@ if (BUILD_SPARSE_TESTS_OUTOFSRCTREE)
         set(COVERAGE OFF)
     endif()
 
-    # Debug flags
-    set(COMPILER_FLAGS_DEBUG "-O0;-gdwarf-5;-g3;-Wall;-Wextra;")
-    if(ASAN)
-        set(CMAKE_CXX_FLAGS_DEBUG "-fsanitize=address")
-        set(COMPILER_FLAGS_DEBUG "${COMPILER_FLAGS_DEBUG};${CMAKE_CXX_FLAGS_DEBUG}")
+    # Add empty "cleanall" target
+    # for coverage target to add dependencies to it
+    add_custom_target( cleanall
+    COMMAND ${CMAKE_MAKE_PROGRAM} clean
+    )
+
+    # Check for CL compatibility layer of clang
+    get_filename_component(COMPILER_BASENAME "${CMAKE_CXX_COMPILER}" NAME)
+    if(COMPILER_BASENAME MATCHES "^(.+-)?(clang-cl)(-[0-9]+(\\.[0-9]+)*)?(-[^.]+)?(\\.exe)?$")
+        set(CLANG_OPTIONS_STYLE "MSVC")
+    else()
+        set(CLANG_OPTIONS_STYLE "GNU")
     endif()
+
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CLANG_OPTIONS_STYLE STREQUAL "GNU"))
+        set(COMPILER_FLAGS_COMMON "-mavx2;-mfma;")
+        set(COMPILER_FLAGS_DEBUG "-O0;-gdwarf-5;-g3;-Wall;-Wextra;")
+        set(AOCLSPARSE_AVX512_FLAGS "-mavx512f;-mavx512vl;-mavx512dq;")
+        if(ASAN)
+            set(CMAKE_CXX_FLAGS_DEBUG "-fsanitize=address")
+            set(COMPILER_FLAGS_DEBUG "${COMPILER_FLAGS_DEBUG};${CMAKE_CXX_FLAGS_DEBUG}")
+        endif()
+        if(COVERAGE AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+            include(Coverage.cmake)
+            set(COMPILER_FLAGS_DEBUG "${COMPILER_FLAGS_DEBUG};--coverage")
+            add_link_options("$<$<CONFIG:Debug>:--coverage>")
+        else()
+            set(COVERAGE OFF)
+        endif()
+    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CLANG_OPTIONS_STYLE STREQUAL "MSVC")
+        set(COMPILER_FLAGS_COMMON "/arch:AVX2;")
+        set(COMPILER_FLAGS_DEBUG "/Od;/Zi;")
+        set(AOCLSPARSE_AVX512_FLAGS "/arch:AVX512;")
+    else()
+        set(COMPILER_FLAGS_COMMON "-mavx2;-mfma;")
+        set(COMPILER_FLAGS_DEBUG "-g")
+        set(AOCLSPARSE_AVX512_FLAGS "-mavx512f;-mavx512vl;-mavx512dq;")
+    endif()
+
+    # Version definitions (missing in out-of-source builds)
+    set(AOCLSPARSE_DEFS "")
 
     ## Change default installation path
     if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -105,19 +143,6 @@ if (BUILD_SPARSE_TESTS_OUTOFSRCTREE)
     ## During out-of-source-tree build of examples, Blis, Libflame, openmp and utils dependecies need to be found explicitly.
     ## So we call Dependencies.cmake
     include(Dependencies.cmake)
-
-    # Add empty "cleanall" target
-    # for coverage target to add dependencies to it
-    add_custom_target( cleanall
-    COMMAND ${CMAKE_MAKE_PROGRAM} clean
-    )
-    if(COVERAGE AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-        include(Coverage.cmake)
-        set(COMPILER_FLAGS_DEBUG "${COMPILER_FLAGS_DEBUG};--coverage")
-        add_link_options("$<$<CONFIG:Debug>:--coverage>")
-    else()
-        set(COVERAGE OFF)
-    endif()
 
     find_library(SPARSE_LIBRARY
     NAMES "aoclsparse" "aoclsparse-d"
@@ -143,6 +168,13 @@ else (BUILD_SPARSE_TESTS_OUTOFSRCTREE)
     set(SPARSE_LIBRARY "aoclsparse")
 endif (BUILD_SPARSE_TESTS_OUTOFSRCTREE)
 message(STATUS "  \$SPARSE_LIBRARY......${SPARSE_LIBRARY}")
+
+set(AOCLSPARSE_GENERIC_FLAGS "${COMPILER_FLAGS_COMMON};${COMPILER_FLAGS_DEBUG};")
+message(STATUS "Compiler Flags for Unit Tests:")
+message(STATUS "  \$Common flags......${COMPILER_FLAGS_COMMON}")
+message(STATUS "  \$Debug flags......${COMPILER_FLAGS_DEBUG}")
+message(STATUS "  \$Generic Flagss......${AOCLSPARSE_GENERIC_FLAGS}")
+message(STATUS "  \$AVX512 flags......${AOCLSPARSE_AVX512_FLAGS}")
 
 include(FetchContent)
 set(FETCHCONTENT_QUIET off)
@@ -218,6 +250,12 @@ set(GTEST_EXECUTABLES
     extreme_value_tests
     createtcsr_tests
     tcsrmv_tests
+    createbsr_tests
+    optimize_symm_herm_tests
+    # KT tests
+    kt_tests
+    ktlvl2_tests
+    bsr_convert_tests
 )
 
 set(AOCLSPARSE_TEST_DEPENDENCIES
@@ -237,42 +275,18 @@ $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/include>
 )
 
 if(NOT BUILD_SPARSE_TESTS_OUTOFSRCTREE)
-    set(GTEST_INTERNAL_EXECUTABLES
-        kt_tests
-        ktlvl2_tests
-    )
     set(TESTS_COMMON_DIR "${CMAKE_SOURCE_DIR}/tests/common")
-    # -----------------------------------------------------------------------
-    # Build KT tests (Note: this section should not be built for out of source)
-    # -----------------------------------------------------------------------
-    set(KT_KERNELS
-    ${CMAKE_CURRENT_SOURCE_DIR}/kt_kernels.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/ktlvl2_kernels.cpp
-    )
+
     set(AOCLSPARSE_INTERNAL_HEADER_DEPENDENCIES
     ${CMAKE_SOURCE_DIR}/library/src/include
     ${CMAKE_SOURCE_DIR}/library/src/extra
     ${CMAKE_SOURCE_DIR}/tests/include
     )
+
     list(APPEND AOCLSPARSE_TEST_HEADER_DEPENDENCIES ${AOCLSPARSE_INTERNAL_HEADER_DEPENDENCIES})
-    # Double compilation of KT test kernels
-    add_library(KT_KERNELS_AVX512 OBJECT ${KT_KERNELS})
-    target_compile_options(KT_KERNELS_AVX512 PRIVATE ${AOCLSPARSE_AVX512_FLAGS}${AOCLSPARSE_GENERIC_FLAGS})
-    target_link_libraries(KT_KERNELS_AVX512 PRIVATE aoclsparse GTest::gtest_main)
-    target_include_directories(KT_KERNELS_AVX512 PRIVATE ${AOCLSPARSE_TEST_HEADER_DEPENDENCIES})
-
-    add_library(KT_KERNELS_AVX2 OBJECT ${KT_KERNELS})
-    target_compile_options(KT_KERNELS_AVX2 PUBLIC "-mno-avx512f;" -DKT_AVX2_BUILD ${AOCLSPARSE_GENERIC_FLAGS})
-    target_link_libraries(KT_KERNELS_AVX2 PUBLIC aoclsparse GTest::gtest_main)
-    target_include_directories(KT_KERNELS_AVX2 PUBLIC ${AOCLSPARSE_TEST_HEADER_DEPENDENCIES})
-    # -----------------------------------------------------------------------
-
-    list(APPEND AOCLSPARSE_TEST_DEPENDENCIES $<TARGET_OBJECTS:KT_KERNELS_AVX512>)
-    list(APPEND AOCLSPARSE_TEST_DEPENDENCIES $<TARGET_OBJECTS:KT_KERNELS_AVX2>)
-    list(APPEND GTEST_EXECUTABLES ${GTEST_INTERNAL_EXECUTABLES})
 else()
-    list(APPEND AOCLSPARSE_TEST_HEADER_DEPENDENCIES ${CMAKE_CURRENT_SOURCE_DIR}/include)
     set(TESTS_COMMON_DIR "${CMAKE_CURRENT_SOURCE_DIR}/common")
+    list(APPEND AOCLSPARSE_TEST_HEADER_DEPENDENCIES ${CMAKE_CURRENT_SOURCE_DIR}/include)
 endif()
 
 ## Compile common sources only once and then link
@@ -295,6 +309,69 @@ list(APPEND AOCLSPARSE_TEST_DEPENDENCIES $<TARGET_OBJECTS:TEST_COMMONS>)
 add_subdirectory(data)
 
 set(TESTS_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/unit_tests")
+
+if(NOT BUILD_SPARSE_TESTS_OUTOFSRCTREE)
+    install(FILES CMakeLists.txt DESTINATION ${TESTS_INSTALL_DIR})
+    install(FILES common_data_utils.cpp DESTINATION ${TESTS_INSTALL_DIR})
+    install(FILES common_data_utils.h DESTINATION ${TESTS_INSTALL_DIR}/include)
+    install(FILES createcsc_ut_functions.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
+    install(FILES cg_ut_functions.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
+    install(FILES gmres_ut_functions.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
+    install(FILES data/CMakeLists.txt DESTINATION ${TESTS_INSTALL_DIR}/data)
+    install(FILES data/tinyc.mtx DESTINATION ${TESTS_INSTALL_DIR}/data)
+    install(FILES data/tinyr.mtx DESTINATION ${TESTS_INSTALL_DIR}/data)
+    install(FILES ../common/aoclsparse_template_specialization.cpp DESTINATION ${TESTS_INSTALL_DIR}/common)
+    install(FILES ../common/aoclsparse_utility.cpp DESTINATION ${TESTS_INSTALL_DIR}/common)
+    install(FILES ../include/aoclsparse_interface.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
+    install(FILES ../include/aoclsparse_reference.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
+    install(FILES ../include/aoclsparse_random.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
+    install(FILES ../include/aoclsparse_arguments.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
+    install(FILES ../include/aoclsparse_datatype2string.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
+    install(FILES ../include/aoclsparse_init.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
+    install(FILES ../include/aoclsparse_test.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
+    install(FILES ../include/aoclsparse_utility.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
+    install(FILES ../include/aoclsparse_check.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
+    install(FILES ../../library/src/include/aoclsparse_descr.h DESTINATION ${TESTS_INSTALL_DIR}/include)
+    install(FILES ../../library/src/include/aoclsparse_mat_structures.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
+    install(FILES ../../library/src/include/aoclsparse_mtx_dispatcher.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
+    install(FILES ../../library/src/extra/aoclsparse_utils.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
+    install(FILES ${CMAKE_SOURCE_DIR}/cmake/Dependencies.cmake DESTINATION ${TESTS_INSTALL_DIR})
+    install(FILES ${CMAKE_SOURCE_DIR}/cmake/Coverage.cmake DESTINATION ${TESTS_INSTALL_DIR})
+    install(FILES ../benchmarks/bench_tests.cmake DESTINATION ${TESTS_INSTALL_DIR})
+    #--------------------------------
+    # Install KT kernel source files
+    #--------------------------------
+    install(FILES kt_kernels.cpp DESTINATION ${TESTS_INSTALL_DIR})
+    install(FILES ktlvl2_kernels.cpp DESTINATION ${TESTS_INSTALL_DIR})
+    #--------------------------------
+endif()
+
+# -----------------------------------------------------------------------
+# Build KT test dependencies
+# -----------------------------------------------------------------------
+
+set(KT_KERNELS
+kt_kernels.cpp
+ktlvl2_kernels.cpp
+)
+
+# Double compilation of KT test kernels
+add_library(KT_KERNELS_AVX512 OBJECT ${KT_KERNELS})
+target_compile_options(KT_KERNELS_AVX512 PRIVATE ${AOCLSPARSE_AVX512_FLAGS}${COMPILER_FLAGS_DEBUG})
+target_link_libraries(KT_KERNELS_AVX512 PRIVATE aoclsparse GTest::gtest_main)
+target_include_directories(KT_KERNELS_AVX512 PRIVATE ${AOCLSPARSE_TEST_HEADER_DEPENDENCIES})
+
+add_library(KT_KERNELS_AVX2 OBJECT ${KT_KERNELS})
+target_compile_options(KT_KERNELS_AVX2 PUBLIC "-mno-avx512f;" -DKT_AVX2_BUILD ${AOCLSPARSE_GENERIC_FLAGS})
+target_link_libraries(KT_KERNELS_AVX2 PUBLIC aoclsparse GTest::gtest_main)
+target_include_directories(KT_KERNELS_AVX2 PUBLIC ${AOCLSPARSE_TEST_HEADER_DEPENDENCIES})
+
+list(APPEND AOCLSPARSE_TEST_DEPENDENCIES $<TARGET_OBJECTS:KT_KERNELS_AVX512>)
+list(APPEND AOCLSPARSE_TEST_DEPENDENCIES $<TARGET_OBJECTS:KT_KERNELS_AVX2>)
+
+# End of build KT tests logic
+# -----------------------------------------------------------------------
+
 foreach(TNAME ${GTEST_EXECUTABLES})
     add_executable(${TNAME} ${TNAME}.cpp)
     target_link_libraries(${TNAME} PUBLIC ${AOCLSPARSE_TEST_DEPENDENCIES})
@@ -324,35 +401,6 @@ foreach(TNAME ${GTEST_EXECUTABLES})
     endif()
 endforeach()
 
-if(NOT BUILD_SPARSE_TESTS_OUTOFSRCTREE)
-    install(FILES CMakeLists.txt DESTINATION ${TESTS_INSTALL_DIR})
-    install(FILES common_data_utils.cpp DESTINATION ${TESTS_INSTALL_DIR})
-    install(FILES common_data_utils.h DESTINATION ${TESTS_INSTALL_DIR}/include)
-    install(FILES createcsc_ut_functions.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
-    install(FILES cg_ut_functions.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
-    install(FILES gmres_ut_functions.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
-    install(FILES data/CMakeLists.txt DESTINATION ${TESTS_INSTALL_DIR}/data)
-    install(FILES data/tinyc.mtx DESTINATION ${TESTS_INSTALL_DIR}/data)
-    install(FILES data/tinyr.mtx DESTINATION ${TESTS_INSTALL_DIR}/data)
-    install(FILES ../common/aoclsparse_template_specialization.cpp DESTINATION ${TESTS_INSTALL_DIR}/common)
-    install(FILES ../common/aoclsparse_utility.cpp DESTINATION ${TESTS_INSTALL_DIR}/common)
-    install(FILES ../include/aoclsparse.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
-    install(FILES ../include/aoclsparse_reference.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
-    install(FILES ../include/aoclsparse_random.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
-    install(FILES ../include/aoclsparse_arguments.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
-    install(FILES ../include/aoclsparse_datatype2string.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
-    install(FILES ../include/aoclsparse_init.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
-    install(FILES ../include/aoclsparse_test.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
-    install(FILES ../include/aoclsparse_utility.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
-    install(FILES ../include/aoclsparse_check.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
-    install(FILES ../../library/src/include/aoclsparse_descr.h DESTINATION ${TESTS_INSTALL_DIR}/include)
-    install(FILES ../../library/src/include/aoclsparse_mat_structures.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
-    install(FILES ../../library/src/include/aoclsparse_mtx_dispatcher.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
-    install(FILES ../../library/src/extra/aoclsparse_utils.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
-    install(FILES ${CMAKE_SOURCE_DIR}/cmake/Dependencies.cmake DESTINATION ${TESTS_INSTALL_DIR})
-    install(FILES ${CMAKE_SOURCE_DIR}/cmake/Coverage.cmake DESTINATION ${TESTS_INSTALL_DIR})
-    install(FILES ../benchmarks/bench_tests.cmake DESTINATION ${TESTS_INSTALL_DIR})
-endif()
 
 include(GoogleTest)
 foreach(TNAME ${GTEST_EXECUTABLES})

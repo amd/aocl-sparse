@@ -45,7 +45,7 @@ Build options:
 	```
 7. Run the application
 	```
-	./out_sparse/sample_spmv
+	./out_sparse/sample_mv_cpp
 	```
 ## Build steps on Windows
 
@@ -85,6 +85,136 @@ Build options:
 	```
 7. Run the application
 	```
-	.\out_sparse\sample_spmv.exe
+	.\out_sparse\sample_mv_cpp.exe
 	```
 **Note** The environment variable "SPARSE_ROOT" takes precedence when searching for sparse library and headers. If the environment variable "SPARSE_ROOT" is not defined, then SPARSE_ROOT inherits the path from AOCL_ROOT and looks for AOCL sparse installation in AOCL_ROOT. If Sparse library/headers are not found either in SPARSE_ROOT or AOCL_ROOT, then an error is returned.
+
+## Out-of-Source Tree Build
+
+The examples automatically support both in-source and out-of-source tree builds without requiring user intervention.
+
+### Key Features of Out-of-Source Build Mode
+
+When building examples standalone, the following features are automatically enabled:
+
+- **Independent Project Setup**: Creates a standalone CMake project (`aoclsparse_examples`) with its own build configuration
+- **External Dependency Resolution**: Automatically finds and links required AOCL libraries (BLAS, LAPACK, UTILS) through the `Dependencies.cmake` module
+- **Library Discovery**: Searches for AOCL-Sparse library and headers in `SPARSE_ROOT` or `AOCL_ROOT` locations with support for both LP64 and ILP64 variants
+- **Flexible Installation Path**: Sets default installation to `../bin` relative to the examples directory
+- **Build Configuration Inheritance**: Supports the same build options as the main library (`BUILD_SHARED_LIBS`, `BUILD_ILP64`, `SUPPORT_OMP`)
+- **Skip Source Installation**: Source files and CMake configurations are not installed when building in out-of-source mode
+
+### Out-of-Source Build Steps on Linux
+
+1. Ensure AOCL-Sparse library is already installed and define environment variables:
+	```bash
+	export AOCL_ROOT=/opt/aocl/gcc
+	export SPARSE_ROOT=/path/to/aocl-sparse/installation
+	export LD_LIBRARY_PATH=$SPARSE_ROOT/lib:$AOCL_ROOT/lib:$LD_LIBRARY_PATH
+	```
+
+2. Navigate to the examples directory:
+	```bash
+	cd /path/to/aocl-sparse/tests/examples
+	```
+
+3. Configure the build (out-of-source mode is automatically enabled):
+	```bash
+	cmake -S . -B out_sparse_standalone \
+	  -DBUILD_SHARED_LIBS=ON \
+	  -DBUILD_ILP64=OFF \
+	  -DSUPPORT_OMP=ON
+	```
+
+4. Build the examples:
+	```bash
+	cmake --build out_sparse_standalone
+	```
+
+5. Run an example:
+	```bash
+	./out_sparse_standalone/sample_mv_cpp
+	```
+
+### Out-of-Source Build Steps on Windows
+
+1. Ensure AOCL-Sparse library is already installed and define environment variables:
+	```cmd
+	set "AOCL_ROOT=C:\Program Files\AMD\AOCL-Windows"
+	set "SPARSE_ROOT=C:\path\to\aocl-sparse\installation"
+	set "PATH=%SPARSE_ROOT%\lib;%AOCL_ROOT%\lib;%PATH%"
+	```
+
+2. Navigate to the examples directory:
+	```cmd
+	cd C:\path\to\aocl-sparse\tests\examples
+	```
+
+3. Configure the build (out-of-source mode is automatically enabled):
+	```cmd
+	cmake -S . -B out_sparse_standalone ^
+	  -G "Visual Studio 17 2022" -A x64 -T "clangcl" ^
+	  -DCMAKE_CXX_COMPILER=clang-cl ^
+	  -DBUILD_SHARED_LIBS=ON ^
+	  -DBUILD_ILP64=OFF ^
+	  -DSUPPORT_OMP=ON
+	```
+
+4. Build the examples:
+	```cmd
+	cmake --build out_sparse_standalone
+	```
+
+5. Run an example:
+	```cmd
+	.\out_sparse_standalone\Debug\sample_mv_cpp.exe
+	```
+
+**Important**: The `SPARSE_ROOT` environment variable must be properly defined to point to the AOCL-Sparse installation directory. If `SPARSE_ROOT` is not set, the build system will fall back to searching in `AOCL_ROOT`.
+
+**Note**: For out-of-source builds, `AOCL_ROOT` is not strictly required to be defined. If you are building with explicit CMake variables for BLAS/LAPACK/UTILS libraries (non-AOCL_ROOT mode), the build system will delegate dependency resolution to the `Dependencies.cmake` module.
+
+### Non-AOCL_ROOT Build Mode
+
+For builds using explicit library paths instead of `AOCL_ROOT`, you can specify the AOCL libraries directly via CMake variables.
+
+**Linux Example**:
+```bash
+# Define common options with explicit library paths
+common_opts="-DAOCL_BLIS_LIB=/path/to/aocl/lib_ILP64/libblis-mt.so \
+  -DAOCL_LIBFLAME=/path/to/aocl/lib_ILP64/libflame.so \
+  -DAOCL_UTILS_LIB=/path/to/aocl/lib_ILP64/libaoclutils.so \
+  -DAOCL_BLIS_INCLUDE_DIR=/path/to/aocl/include_ILP64 \
+  -DAOCL_LIBFLAME_INCLUDE_DIR=/path/to/aocl/include_ILP64 \
+  -DAOCL_UTILS_INCLUDE_DIR=/path/to/aocl/include_ILP64/alci"
+
+# Configure examples with explicit library paths
+cmake -S . -B build $common_opts
+
+# Build examples
+cmake --build build -j
+```
+
+This mode bypasses the need for `AOCL_ROOT` environment variable and allows fine-grained control over library selection. If AOCL_ROOT is also defined, then non-AOCL_ROOT mode of explicit definition will take precedence.
+
+**Note**: Non-AOCL_ROOT support on Windows is similar to Linux configure/build, using the same explicit CMake library variables with appropriate Windows library paths and extensions.
+
+This mode is particularly useful when:
+- Building examples against a pre-installed AOCL-Sparse library
+- Developing custom applications based on the example code
+- Testing with different build configurations independently
+- Using non-AOCL BLAS/LAPACK/UTILS libraries by explicitly setting CMake variables
+
+## Unit Tests Out-of-Source Build
+
+Similar to examples, the unit tests located in `tests/unit_tests` also support out-of-source tree builds with automatic configuration.
+
+The unit tests build includes Google Test framework integration and supports `ctest` for automated test execution. The same environment variable requirements (`SPARSE_ROOT`, `AOCL_ROOT`) and non-AOCL_ROOT mode apply as with examples. Unit tests also support the non-AOCL_ROOT build mode using explicit CMake library variables.
+
+**Example for out-of-source unit tests build**:
+```bash
+cd /path/to/aocl-sparse/tests/unit_tests
+cmake -S . -B build_tests -DBUILD_SHARED_LIBS=ON -DBUILD_ILP64=OFF -DSUPPORT_OMP=ON
+cmake --build build_tests
+ctest --test-dir build_tests
+```

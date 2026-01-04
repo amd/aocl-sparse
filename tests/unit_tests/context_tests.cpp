@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024-2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,10 +31,54 @@
 #include <thread>
 #include <type_traits>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wignored-qualifiers"
 #include "Au/Cpuid/X86Cpu.hh"
+#pragma GCC diagnostic pop
 
 namespace contextTest
 {
+    // Test if OpenMP is enabled
+    TEST(context, ompEnabledTest)
+    {
+        bool status = false;
+        std::cout << "=== OpenMP Enablement Test ===" << std::endl;
+
+#ifdef SUPPORT_OMP
+        std::cout << "SUPPORT_OMP macro is DEFINED (CMake configuration)" << std::endl;
+#ifdef _OPENMP
+        // OpenMP is enabled
+        status = true;
+        std::cout << "OpenMP is ENABLED" << std::endl;
+        std::cout << "_OPENMP version: " << _OPENMP << std::endl;
+
+        // Additional verification: Check if we can get thread info
+        int max_threads = omp_get_max_threads();
+        std::cout << "Max OpenMP threads available: " << max_threads << std::endl;
+
+        // Verify we're in a single-threaded context initially
+        int current_threads = omp_get_num_threads();
+        std::cout << "Current number of threads: " << current_threads << std::endl;
+#else
+        // This scenario is an error scenario. This indicates
+        // openmp library/flags are not linked properly
+        status = false;
+        std::cout << "ERROR: SUPPORT_OMP is defined but _OPENMP is NOT DEFINED" << std::endl;
+        std::cout << "This indicates OpenMP library/flags are not linked properly" << std::endl;
+#endif
+#else
+        // Single-threaded case, no need to check anything here. So make sure test passes.
+        std::cout << "SUPPORT_OMP macro is NOT DEFINED (Single-threaded build)" << std::endl;
+        std::cout << "Running in single-threaded mode as expected" << std::endl;
+        status = true;
+#endif
+
+        std::cout << "Test result: " << (status ? "PASS" : "FAIL") << std::endl;
+        std::cout << "===============================" << std::endl;
+
+        EXPECT_TRUE(status) << "OpenMP enablement using SUPPORT_OMP has issues. "
+                            << "Check compilation flags and OpenMP library linking.\n";
+    }
     // Test if number of threads returned by get_num_threads() can be launched
     TEST(context, threadingTest)
     {
@@ -158,9 +202,9 @@ namespace contextTest
         char init_v_1[10] = "AVX2";
         char init_v_2[10] = "AVX512";
         char init_v_3[10] = "GENERIC";
-        char ledger_1[10];
-        char ledger_2[10];
-        char ledger_3[10];
+        char ledger_1[10] = {};
+        char ledger_2[10] = {};
+        char ledger_3[10] = {};
 
         std::thread t[thread_count];
 
@@ -262,13 +306,13 @@ namespace contextTest
         constexpr size_t thread_count = 3;
         Au::X86Cpu       Cpu          = {0};
 
-        char init_v_1[10] = "AVX2";
-        char init_v_2[10] = "AVX512";
-        char init_v_3[10] = "RACECAR";
-        char ledger_1[10];
-        char ledger_2[10];
-        char ledger_3[10];
-        char ledger_base[10];
+        char init_v_1[10]    = "AVX2";
+        char init_v_2[10]    = "AVX512";
+        char init_v_3[10]    = "RACECAR";
+        char ledger_1[10]    = {};
+        char ledger_2[10]    = {};
+        char ledger_3[10]    = {};
+        char ledger_base[10] = {};
 
         debug_info info;
 

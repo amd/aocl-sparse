@@ -27,12 +27,12 @@
 
 #include "aoclsparse_analysis.h"
 #include "aoclsparse_convert.h"
-#include "aoclsparse.hpp"
 #include "aoclsparse_arguments.hpp"
 #include "aoclsparse_check.hpp"
 #include "aoclsparse_flops.hpp"
 #include "aoclsparse_gbyte.hpp"
 #include "aoclsparse_init.hpp"
+#include "aoclsparse_interface.hpp"
 #include "aoclsparse_random.hpp"
 #include "aoclsparse_reference.hpp"
 #include "aoclsparse_test.hpp"

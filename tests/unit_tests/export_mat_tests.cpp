@@ -24,8 +24,8 @@
 #include "aoclsparse_types.h"
 #include "common_data_utils.h"
 #include "gtest/gtest.h"
-#include "aoclsparse.hpp"
 #include "aoclsparse_init.hpp"
+#include "aoclsparse_interface.hpp"
 
 #include <algorithm>
 #include <numeric>
@@ -59,10 +59,6 @@ namespace
         if(mat_type == aoclsparse_csr_mat)
         {
             EXPECT_EQ_VEC(out_m + 1, in_idx_ptr, out_idx_ptr);
-        }
-        else if(mat_type == aoclsparse_csc_mat)
-        {
-            EXPECT_EQ_VEC(out_n + 1, in_idx_ptr, out_idx_ptr);
         }
         else if(mat_type == aoclsparse_coo_mat)
         {
@@ -148,23 +144,25 @@ namespace
         ASSERT_EQ(aoclsparse_create_csr(&A, in_base, m, n, nnz, csr_row_ptr, csr_col_idx, valf),
                   aoclsparse_status_success);
         // 3.a) csr_row_ptr is NULL
-        tmp_arr                = A->csr_mat.csr_row_ptr;
-        A->csr_mat.csr_row_ptr = NULL;
+        aoclsparse::csr *csr_mat = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
+        EXPECT_NE(csr_mat, nullptr);
+        tmp_arr      = csr_mat->ptr;
+        csr_mat->ptr = NULL;
         EXPECT_EQ(
             aoclsparse_export_csr(
                 A, &out_base, &out_m, &out_n, &out_nnz, &out_row_ptr, &out_col_idx, &out_valf),
             aoclsparse_status_invalid_value);
         // 3.b) csr_col_ptr is NULL
-        A->csr_mat.csr_row_ptr = tmp_arr;
-        tmp_arr                = A->csr_mat.csr_col_ptr;
-        A->csr_mat.csr_col_ptr = NULL;
+        csr_mat->ptr = tmp_arr;
+        tmp_arr      = csr_mat->ind;
+        csr_mat->ind = NULL;
         EXPECT_EQ(
             aoclsparse_export_csr(
                 A, &out_base, &out_m, &out_n, &out_nnz, &out_row_ptr, &out_col_idx, &out_valf),
             aoclsparse_status_invalid_value);
         // 3.c) csr_val is NULL
-        A->csr_mat.csr_col_ptr = tmp_arr;
-        A->csr_mat.csr_val     = NULL;
+        csr_mat->ind = tmp_arr;
+        csr_mat->val = NULL;
         EXPECT_EQ(
             aoclsparse_export_csr(
                 A, &out_base, &out_m, &out_n, &out_nnz, &out_row_ptr, &out_col_idx, &out_valf),
@@ -314,11 +312,20 @@ namespace
                   aoclsparse_status_success);
         aoclsparse_set_mv_hint(A, aoclsparse_operation_none, descr, 1);
         aoclsparse_optimize(A);
-        // 3.a) opt_csr_mat.csr_row_ptr is NULL. Return pointers from csr_mat.
+        aoclsparse::csr *opt_csr_mat = nullptr;
+        for(auto *mat : A->mats)
+        {
+            if(auto *csr = dynamic_cast<aoclsparse::csr *>(mat); csr && csr->is_optimized)
+            {
+                opt_csr_mat = csr;
+                break;
+            }
+        }
+        // 3.a) opt_csr_mat->ptr is NULL. Return pointers from csr_mat.
         {
             SCOPED_TRACE("3.a CSR 1-base, optimized, hacked NULL row_ptr");
-            tmp_arr                    = A->opt_csr_mat.csr_row_ptr;
-            A->opt_csr_mat.csr_row_ptr = NULL;
+            tmp_arr          = opt_csr_mat->ptr;
+            opt_csr_mat->ptr = NULL;
             EXPECT_EQ(
                 aoclsparse_export_csr(
                     A, &out_base, &out_m, &out_n, &out_nnz, &out_row_ptr, &out_col_idx, &out_valf),
@@ -338,14 +345,14 @@ namespace
                                out_row_ptr,
                                out_col_idx,
                                out_valf);
-            A->opt_csr_mat.csr_row_ptr = tmp_arr;
+            opt_csr_mat->ptr = tmp_arr;
         }
 
-        // 3.b) opt_csr_mat.csr_col_ptr is NULL. Return pointers from csr_mat.
+        // 3.b) opt_csr_mat->ind is NULL. Return pointers from csr_mat.
         {
             SCOPED_TRACE("3.b CSR 1-base, optimized, hacked NULL col_ptr");
-            tmp_arr                    = A->opt_csr_mat.csr_col_ptr;
-            A->opt_csr_mat.csr_col_ptr = NULL;
+            tmp_arr          = opt_csr_mat->ind;
+            opt_csr_mat->ind = NULL;
             EXPECT_EQ(
                 aoclsparse_export_csr(
                     A, &out_base, &out_m, &out_n, &out_nnz, &out_row_ptr, &out_col_idx, &out_valf),
@@ -365,14 +372,14 @@ namespace
                                out_row_ptr,
                                out_col_idx,
                                out_valf);
-            A->opt_csr_mat.csr_col_ptr = tmp_arr;
+            opt_csr_mat->ind = tmp_arr;
         }
 
         // 3.c) opt_csr_mat.csr_col is NULL. Return pointers from csr_mat.
         {
             SCOPED_TRACE("3.c CSR 1-base, optimized, hacked NULL val");
-            val                    = A->opt_csr_mat.csr_val;
-            A->opt_csr_mat.csr_val = NULL;
+            val              = opt_csr_mat->val;
+            opt_csr_mat->val = NULL;
             EXPECT_EQ(
                 aoclsparse_export_csr(
                     A, &out_base, &out_m, &out_n, &out_nnz, &out_row_ptr, &out_col_idx, &out_valf),
@@ -392,7 +399,7 @@ namespace
                                out_row_ptr,
                                out_col_idx,
                                out_valf);
-            A->opt_csr_mat.csr_val = val;
+            opt_csr_mat->val = val;
             aoclsparse_destroy_mat_descr(descr);
             aoclsparse_destroy(&A);
         }
@@ -456,21 +463,23 @@ namespace
         ASSERT_EQ(aoclsparse_create_csc(
                       &A, aoclsparse_index_base_one, m, n, nnz, csc_col_ptr, csc_row_idx, valf),
                   aoclsparse_status_success);
-        tmp_arr            = A->csc_mat.col_ptr;
-        A->csc_mat.col_ptr = NULL;
+        aoclsparse::csr *csc_mat = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
+        EXPECT_NE(csc_mat, nullptr);
+        tmp_arr      = csc_mat->ptr;
+        csc_mat->ptr = NULL;
         EXPECT_EQ(
             aoclsparse_export_csc(
                 A, &out_base, &out_m, &out_n, &out_nnz, &out_col_ptr, &out_row_idx, &out_valf),
             aoclsparse_status_invalid_value);
-        A->csc_mat.col_ptr = tmp_arr;
-        tmp_arr            = A->csc_mat.row_idx;
-        A->csc_mat.row_idx = NULL;
+        csc_mat->ptr = tmp_arr;
+        tmp_arr      = csc_mat->ind;
+        csc_mat->ind = NULL;
         EXPECT_EQ(
             aoclsparse_export_csc(
                 A, &out_base, &out_m, &out_n, &out_nnz, &out_col_ptr, &out_row_idx, &out_valf),
             aoclsparse_status_invalid_value);
-        A->csc_mat.row_idx = tmp_arr;
-        A->csc_mat.val     = NULL;
+        csc_mat->ind = tmp_arr;
+        csc_mat->val = NULL;
         EXPECT_EQ(
             aoclsparse_export_csc(
                 A, &out_base, &out_m, &out_n, &out_nnz, &out_col_ptr, &out_row_idx, &out_valf),
@@ -516,12 +525,12 @@ namespace
     TEST(ExportMatTest, CSC_Success)
     {
         aoclsparse_matrix     A             = NULL;
-        float                 valf[]        = {2.0f, 8.0f, 6.0f};
-        aoclsparse_int        csc_row_idx[] = {1, 2, 2};
-        aoclsparse_int        csc_col_ptr[] = {1, 3, 4};
-        aoclsparse_int        m             = 2;
+        float                 valf[]        = {2.0f, 8.0f, 6.0f, 5.0f};
+        aoclsparse_int        csc_row_idx[] = {1, 2, 3, 3};
+        aoclsparse_int        csc_col_ptr[] = {1, 3, 5};
+        aoclsparse_int        m             = 3;
         aoclsparse_int        n             = 2;
-        aoclsparse_int        nnz           = 3;
+        aoclsparse_int        nnz           = 4;
         aoclsparse_index_base in_base       = aoclsparse_index_base_one, out_base;
         aoclsparse_int       *out_col_ptr   = NULL;
         aoclsparse_int       *out_row_idx   = NULL;
@@ -535,16 +544,16 @@ namespace
             aoclsparse_export_csc(
                 A, &out_base, &out_m, &out_n, &out_nnz, &out_col_ptr, &out_row_idx, &out_valf),
             aoclsparse_status_success);
-        verify_export_data(aoclsparse_csc_mat,
-                           m,
+        verify_export_data(aoclsparse_csr_mat,
                            n,
+                           m,
                            nnz,
                            in_base,
                            csc_col_ptr,
                            csc_row_idx,
                            valf,
-                           out_m,
                            out_n,
+                           out_m,
                            out_nnz,
                            out_base,
                            out_col_ptr,
@@ -614,23 +623,25 @@ namespace
                 in_base, m, n, nnz, aoclsparse_coo_mat, coo_row_idx, coo_col_idx, valf, temp, A),
             aoclsparse_status_success);
         // 3.a) coo -> row_idx is NULL
-        tmp_arr            = A->coo_mat.row_ind;
-        A->coo_mat.row_ind = NULL;
+        aoclsparse::coo *coo_mat = dynamic_cast<aoclsparse::coo *>(A->mats[0]);
+        EXPECT_NE(coo_mat, nullptr);
+        tmp_arr          = coo_mat->row_ind;
+        coo_mat->row_ind = NULL;
         EXPECT_EQ(
             aoclsparse_export_coo(
                 A, &out_base, &out_m, &out_n, &out_nnz, &out_row_idx, &out_col_idx, &out_valf),
             aoclsparse_status_invalid_value);
         // 3.b) coo -> col_idx is NULL
-        A->coo_mat.row_ind = tmp_arr;
-        tmp_arr            = A->coo_mat.col_ind;
-        A->coo_mat.col_ind = NULL;
+        coo_mat->row_ind = tmp_arr;
+        tmp_arr          = coo_mat->col_ind;
+        coo_mat->col_ind = NULL;
         EXPECT_EQ(
             aoclsparse_export_coo(
                 A, &out_base, &out_m, &out_n, &out_nnz, &out_row_idx, &out_col_idx, &out_valf),
             aoclsparse_status_invalid_value);
         // 3.c) coo -> val is NULL
-        A->coo_mat.col_ind = tmp_arr;
-        A->coo_mat.val     = NULL;
+        coo_mat->col_ind = tmp_arr;
+        coo_mat->val     = NULL;
         EXPECT_EQ(
             aoclsparse_export_coo(
                 A, &out_base, &out_m, &out_n, &out_nnz, &out_row_idx, &out_col_idx, &out_valf),
@@ -655,10 +666,18 @@ namespace
         aoclsparse_int              out_m, out_n, out_nnz;
 
         // 1) Matrix is in CSC format but want to export as COO
-        EXPECT_EQ(
-            aoclsparse_init_matrix_random(
-                in_base, m, n, nnz, aoclsparse_csc_mat, coo_row_idx, coo_col_idx, vald, temp, A),
-            aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_init_matrix_random(in_base,
+                                                m,
+                                                n,
+                                                nnz,
+                                                aoclsparse_csr_mat,
+                                                coo_row_idx,
+                                                coo_col_idx,
+                                                vald,
+                                                temp,
+                                                A,
+                                                aoclsparse::doid::gt),
+                  aoclsparse_status_success);
         EXPECT_EQ(
             aoclsparse_export_coo(
                 A, &out_base, &out_m, &out_n, &out_nnz, &out_row_idx, &out_col_idx, &out_vald),

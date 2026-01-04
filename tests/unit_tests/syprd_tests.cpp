@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,7 @@
 #include "aoclsparse.h"
 #include "common_data_utils.h"
 #include "gtest/gtest.h"
-#include "aoclsparse.hpp"
+#include "aoclsparse_interface.hpp"
 
 #include <algorithm>
 
@@ -456,9 +456,9 @@ namespace
     template <typename T>
     void test_syprd_nullptr()
     {
-        aoclsparse_index_base       base = aoclsparse_index_base_zero;
-        aoclsparse_operation        op   = aoclsparse_operation_none;
-        aoclsparse_order            order;
+        aoclsparse_index_base       base  = aoclsparse_index_base_zero;
+        aoclsparse_operation        op    = aoclsparse_operation_none;
+        aoclsparse_order            order = aoclsparse_order_row;
         aoclsparse_int              m, k, nnz, A_m, A_n, B_m, B_n, C_m, C_n, ldb, ldc;
         std::vector<T>              csr_val;
         std::vector<aoclsparse_int> csr_col_ind;
@@ -503,9 +503,9 @@ namespace
     template <typename T>
     void test_syprd_wrong_size()
     {
-        aoclsparse_index_base       base = aoclsparse_index_base_zero;
-        aoclsparse_operation        op   = aoclsparse_operation_none;
-        aoclsparse_order            order;
+        aoclsparse_index_base       base  = aoclsparse_index_base_zero;
+        aoclsparse_operation        op    = aoclsparse_operation_none;
+        aoclsparse_order            order = aoclsparse_order_row;
         aoclsparse_int              m, k, nnz, A_m, A_n, B_m, B_n, C_m, C_n, ldb, ldc;
         std::vector<T>              csr_val;
         std::vector<aoclsparse_int> csr_col_ind;
@@ -549,7 +549,7 @@ namespace
     void test_syprd_invalid_operation()
     {
         aoclsparse_int              m, k, nnz, A_m, A_n, B_m, B_n, C_m, C_n, ldb, ldc;
-        aoclsparse_operation        op;
+        aoclsparse_operation        op    = aoclsparse_operation_none;
         aoclsparse_order            order = aoclsparse_order_row;
         std::vector<T>              csr_val;
         std::vector<aoclsparse_int> csr_col_ind;
@@ -592,9 +592,9 @@ namespace
     template <typename T>
     void test_syprd_do_nothing()
     {
-        aoclsparse_index_base       base = aoclsparse_index_base_zero;
-        aoclsparse_operation        op   = aoclsparse_operation_none;
-        aoclsparse_order            order;
+        aoclsparse_index_base       base  = aoclsparse_index_base_zero;
+        aoclsparse_operation        op    = aoclsparse_operation_none;
+        aoclsparse_order            order = aoclsparse_order_row;
         aoclsparse_int              m, k, nnz, A_m, A_n, B_m, B_n, C_m, C_n, ldb, ldc;
         std::vector<T>              csr_val;
         std::vector<aoclsparse_int> csr_col_ind;

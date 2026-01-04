@@ -505,93 +505,109 @@ aoclsparse_status kt_trsv_ut(const SUF             alpha,
 
 // ---- Lower -----
 
-#define TRSV_L_TEMPLATE_DECLARATION_(BSZ, SUF, CONJ)                    \
-    template aoclsparse_status kt_trsv_l<BSZ, SUF, get_kt_ext(), CONJ>( \
-        const SUF             alpha,                                    \
-        aoclsparse_int        m,                                        \
-        aoclsparse_index_base base,                                     \
-        const SUF *__restrict__ a,                                      \
-        const aoclsparse_int *__restrict__ icol,                        \
-        const aoclsparse_int *__restrict__ ilrow,                       \
-        const aoclsparse_int *__restrict__ idiag,                       \
-        const SUF *__restrict__ b,                                      \
-        aoclsparse_int incb,                                            \
-        SUF *__restrict__ x,                                            \
-        aoclsparse_int incx,                                            \
+#define TRSV_L_TEMPLATE_DECLARATION_(BSZ, SUF, EXT, CONJ)      \
+    template aoclsparse_status kt_trsv_l<BSZ, SUF, EXT, CONJ>( \
+        const SUF             alpha,                           \
+        aoclsparse_int        m,                               \
+        aoclsparse_index_base base,                            \
+        const SUF *__restrict__ a,                             \
+        const aoclsparse_int *__restrict__ icol,               \
+        const aoclsparse_int *__restrict__ ilrow,              \
+        const aoclsparse_int *__restrict__ idiag,              \
+        const SUF *__restrict__ b,                             \
+        aoclsparse_int incb,                                   \
+        SUF *__restrict__ x,                                   \
+        aoclsparse_int incx,                                   \
         const bool     unit);
 
-#define TRSV_L_TEMPLATE_DECLARATION_CONJ(BSZ, SUF) TRSV_L_TEMPLATE_DECLARATION_(BSZ, SUF, true)
+#define TRSV_L_TEMPLATE_DECLARATION_CONJ(BSZ, SUF, EXT) \
+    TRSV_L_TEMPLATE_DECLARATION_(BSZ, SUF, EXT, true)
 
-#define TRSV_L_TEMPLATE_DECLARATION(BSZ, SUF) TRSV_L_TEMPLATE_DECLARATION_(BSZ, SUF, false)
+#define TRSV_L_TEMPLATE_DECLARATION(BSZ, SUF, EXT) \
+    TRSV_L_TEMPLATE_DECLARATION_(BSZ, SUF, EXT, false)
 
 // ---- Lower transpose -----
 
-#define TRSV_LT_TEMPLATE_DECLARATION_(BSZ, SUF, CONJ)                    \
-    template aoclsparse_status kt_trsv_lt<BSZ, SUF, get_kt_ext(), CONJ>( \
-        const SUF             alpha,                                     \
-        aoclsparse_int        m,                                         \
-        aoclsparse_index_base base,                                      \
-        const SUF *__restrict__ a,                                       \
-        const aoclsparse_int *__restrict__ icol,                         \
-        const aoclsparse_int *__restrict__ ilrow,                        \
-        const aoclsparse_int *__restrict__ idiag,                        \
-        const SUF *__restrict__ b,                                       \
-        aoclsparse_int incb,                                             \
-        SUF *__restrict__ x,                                             \
-        aoclsparse_int incx,                                             \
+#define TRSV_LT_TEMPLATE_DECLARATION_(BSZ, SUF, EXT, CONJ)      \
+    template aoclsparse_status kt_trsv_lt<BSZ, SUF, EXT, CONJ>( \
+        const SUF             alpha,                            \
+        aoclsparse_int        m,                                \
+        aoclsparse_index_base base,                             \
+        const SUF *__restrict__ a,                              \
+        const aoclsparse_int *__restrict__ icol,                \
+        const aoclsparse_int *__restrict__ ilrow,               \
+        const aoclsparse_int *__restrict__ idiag,               \
+        const SUF *__restrict__ b,                              \
+        aoclsparse_int incb,                                    \
+        SUF *__restrict__ x,                                    \
+        aoclsparse_int incx,                                    \
         const bool     unit);
 
-#define TRSV_LT_TEMPLATE_DECLARATION_CONJ(BSZ, SUF) TRSV_LT_TEMPLATE_DECLARATION_(BSZ, SUF, true)
+#define TRSV_LT_TEMPLATE_DECLARATION_CONJ(BSZ, SUF, EXT) \
+    TRSV_LT_TEMPLATE_DECLARATION_(BSZ, SUF, EXT, true)
 
-#define TRSV_LT_TEMPLATE_DECLARATION(BSZ, SUF) TRSV_LT_TEMPLATE_DECLARATION_(BSZ, SUF, false)
+#define TRSV_LT_TEMPLATE_DECLARATION(BSZ, SUF, EXT) \
+    TRSV_LT_TEMPLATE_DECLARATION_(BSZ, SUF, EXT, false)
 
 // ---- Upper -----
 
-#define TRSV_U_TEMPLATE_DECLARATION_(BSZ, SUF, CONJ)                    \
-    template aoclsparse_status kt_trsv_u<BSZ, SUF, get_kt_ext(), CONJ>( \
-        const SUF             alpha,                                    \
-        aoclsparse_int        m,                                        \
-        aoclsparse_index_base base,                                     \
-        const SUF *__restrict__ a,                                      \
-        const aoclsparse_int *__restrict__ icol,                        \
-        const aoclsparse_int *__restrict__ ilrow,                       \
-        const aoclsparse_int *__restrict__ iurow,                       \
-        const SUF *__restrict__ b,                                      \
-        aoclsparse_int incb,                                            \
-        SUF *__restrict__ x,                                            \
-        aoclsparse_int incx,                                            \
+#define TRSV_U_TEMPLATE_DECLARATION_(BSZ, SUF, EXT, CONJ)      \
+    template aoclsparse_status kt_trsv_u<BSZ, SUF, EXT, CONJ>( \
+        const SUF             alpha,                           \
+        aoclsparse_int        m,                               \
+        aoclsparse_index_base base,                            \
+        const SUF *__restrict__ a,                             \
+        const aoclsparse_int *__restrict__ icol,               \
+        const aoclsparse_int *__restrict__ ilrow,              \
+        const aoclsparse_int *__restrict__ iurow,              \
+        const SUF *__restrict__ b,                             \
+        aoclsparse_int incb,                                   \
+        SUF *__restrict__ x,                                   \
+        aoclsparse_int incx,                                   \
         const bool     unit);
 
-#define TRSV_U_TEMPLATE_DECLARATION_CONJ(BSZ, SUF) TRSV_U_TEMPLATE_DECLARATION_(BSZ, SUF, true)
+#define TRSV_U_TEMPLATE_DECLARATION_CONJ(BSZ, SUF, EXT) \
+    TRSV_U_TEMPLATE_DECLARATION_(BSZ, SUF, EXT, true)
 
-#define TRSV_U_TEMPLATE_DECLARATION(BSZ, SUF) TRSV_U_TEMPLATE_DECLARATION_(BSZ, SUF, false)
+#define TRSV_U_TEMPLATE_DECLARATION(BSZ, SUF, EXT) \
+    TRSV_U_TEMPLATE_DECLARATION_(BSZ, SUF, EXT, false)
 
 // ---- Upper transpose -----
 
-#define TRSV_UT_TEMPLATE_DECLARATION_(BSZ, SUF, CONJ)                    \
-    template aoclsparse_status kt_trsv_ut<BSZ, SUF, get_kt_ext(), CONJ>( \
-        const SUF             alpha,                                     \
-        aoclsparse_int        m,                                         \
-        aoclsparse_index_base base,                                      \
-        const SUF *__restrict__ a,                                       \
-        const aoclsparse_int *__restrict__ icol,                         \
-        const aoclsparse_int *__restrict__ ilrow,                        \
-        const aoclsparse_int *__restrict__ iurow,                        \
-        const SUF *__restrict__ b,                                       \
-        aoclsparse_int incb,                                             \
-        SUF *__restrict__ x,                                             \
-        aoclsparse_int incx,                                             \
+#define TRSV_UT_TEMPLATE_DECLARATION_(BSZ, SUF, EXT, CONJ)      \
+    template aoclsparse_status kt_trsv_ut<BSZ, SUF, EXT, CONJ>( \
+        const SUF             alpha,                            \
+        aoclsparse_int        m,                                \
+        aoclsparse_index_base base,                             \
+        const SUF *__restrict__ a,                              \
+        const aoclsparse_int *__restrict__ icol,                \
+        const aoclsparse_int *__restrict__ ilrow,               \
+        const aoclsparse_int *__restrict__ iurow,               \
+        const SUF *__restrict__ b,                              \
+        aoclsparse_int incb,                                    \
+        SUF *__restrict__ x,                                    \
+        aoclsparse_int incx,                                    \
         const bool     unit);
 
-#define TRSV_UT_TEMPLATE_DECLARATION_CONJ(BSZ, SUF) TRSV_UT_TEMPLATE_DECLARATION_(BSZ, SUF, true)
+#define TRSV_UT_TEMPLATE_DECLARATION_CONJ(BSZ, SUF, EXT) \
+    TRSV_UT_TEMPLATE_DECLARATION_(BSZ, SUF, EXT, true)
 
-#define TRSV_UT_TEMPLATE_DECLARATION(BSZ, SUF) TRSV_UT_TEMPLATE_DECLARATION_(BSZ, SUF, false)
+#define TRSV_UT_TEMPLATE_DECLARATION(BSZ, SUF, EXT) \
+    TRSV_UT_TEMPLATE_DECLARATION_(BSZ, SUF, EXT, false)
 
-KT_INSTANTIATE(TRSV_L_TEMPLATE_DECLARATION_CONJ, get_bsz());
-KT_INSTANTIATE(TRSV_L_TEMPLATE_DECLARATION, get_bsz());
-KT_INSTANTIATE(TRSV_LT_TEMPLATE_DECLARATION_CONJ, get_bsz());
-KT_INSTANTIATE(TRSV_LT_TEMPLATE_DECLARATION, get_bsz());
-KT_INSTANTIATE(TRSV_U_TEMPLATE_DECLARATION_CONJ, get_bsz());
-KT_INSTANTIATE(TRSV_U_TEMPLATE_DECLARATION, get_bsz());
-KT_INSTANTIATE(TRSV_UT_TEMPLATE_DECLARATION_CONJ, get_bsz());
-KT_INSTANTIATE(TRSV_UT_TEMPLATE_DECLARATION, get_bsz());
+#define KT_INSTANTIATE_TRSV(BSZ, EXT)                                \
+    KT_INSTANTIATE_EXT(TRSV_L_TEMPLATE_DECLARATION_CONJ, BSZ, EXT);  \
+    KT_INSTANTIATE_EXT(TRSV_L_TEMPLATE_DECLARATION, BSZ, EXT);       \
+    KT_INSTANTIATE_EXT(TRSV_LT_TEMPLATE_DECLARATION_CONJ, BSZ, EXT); \
+    KT_INSTANTIATE_EXT(TRSV_LT_TEMPLATE_DECLARATION, BSZ, EXT);      \
+    KT_INSTANTIATE_EXT(TRSV_U_TEMPLATE_DECLARATION_CONJ, BSZ, EXT);  \
+    KT_INSTANTIATE_EXT(TRSV_U_TEMPLATE_DECLARATION, BSZ, EXT);       \
+    KT_INSTANTIATE_EXT(TRSV_UT_TEMPLATE_DECLARATION_CONJ, BSZ, EXT); \
+    KT_INSTANTIATE_EXT(TRSV_UT_TEMPLATE_DECLARATION, BSZ, EXT);
+
+// This instantiates AVX2/AVX512 kernel based on the build flags
+KT_INSTANTIATE_TRSV(get_bsz(), get_kt_ext());
+#ifndef KT_AVX2_BUILD
+// Instantiate AVX512VL kernels for AVX512 builds
+KT_INSTANTIATE_TRSV(bsz::b256, kt_avxext::AVX512VL);
+#endif

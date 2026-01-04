@@ -28,18 +28,14 @@
 #include "aoclsparse_descr.h"
 #include "aoclsparse_cntx_dispatcher.hpp"
 #include "aoclsparse_convert.hpp"
+#include "aoclsparse_csr_util.hpp"
 #include "aoclsparse_l3_kt.hpp"
 #include "aoclsparse_utils.hpp"
 
 #include <algorithm>
 #include <cmath>
 #include <complex>
-#include <immintrin.h>
 #include <vector>
-#if defined(_WIN32) || defined(_WIN64)
-//Windows equivalent of gcc c99 type qualifier __restrict__
-#define __restrict__ __restrict
-#endif
 
 template <typename T>
 aoclsparse_status aoclsparse_csrmm_col_major_ref(T                          alpha,
@@ -445,7 +441,7 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
     using namespace kernel_templates;
 
     // Check for valid matrix, descriptor
-    if(A == nullptr || B == nullptr || C == nullptr || descr == nullptr)
+    if(A == nullptr || A->mats.empty() || B == nullptr || C == nullptr || descr == nullptr)
     {
         return aoclsparse_status_invalid_pointer;
     }
@@ -481,9 +477,12 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
     aoclsparse_int k = A->n;
     aoclsparse_int m_c{0}, n_c{0};
 
-    const aoclsparse_int *csr_col_ind = A->csr_mat.csr_col_ptr;
-    const aoclsparse_int *csr_row_ptr = A->csr_mat.csr_row_ptr;
-    const T              *csr_val     = static_cast<T *>(A->csr_mat.csr_val);
+    aoclsparse::csr *csr_mat = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
+    if(!csr_mat)
+        return aoclsparse_status_not_implemented;
+    const aoclsparse_int *csr_col_ind = csr_mat->ind;
+    const aoclsparse_int *csr_row_ptr = csr_mat->ptr;
+    const T              *csr_val     = static_cast<T *>(csr_mat->val);
 
     // Variables to identify the type of the matrix
     const aoclsparse_matrix_type mat_type = descr->type;
@@ -497,7 +496,7 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
         return aoclsparse_status_invalid_value;
     }
     // Check for base index incompatibility
-    if(A->base != descr->base)
+    if(csr_mat->base != descr->base)
     {
         return aoclsparse_status_invalid_value;
     }
@@ -550,20 +549,85 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
         m_c = k;
     }
     n_c = n;
-    // In case of general type matrices, beta scaling is done inside the kernel
+
+    T                          *val_A;
+    aoclsparse_int             *col_ind_A;
+    aoclsparse_int             *row_ptr_A;
+    std::vector<aoclsparse_int> csr_row_ptr_A;
+    std::vector<aoclsparse_int> csr_col_ind_A;
+    std::vector<T>              csr_val_A;
+    aoclsparse_int              mb;
+    aoclsparse_status           status;
+    // If mat_found is set, pointers already reference the optimized matrix in A->mats.
+    bool                  mat_found = false;
+    _aoclsparse_mat_descr descr_t;
+    aoclsparse_copy_mat_descr(&descr_t, descr);
+    aoclsparse::doid d_id = aoclsparse::get_doid<T>(descr, op);
+    mb                    = m; //Number of rows in matrix A
+
     // To support early return cases for alpha == zero scenario
-    if(alpha == zero || mat_type != aoclsparse_matrix_type_general) [[maybe_unused]]
-        aoclsparse_status st = scale_dense_matrix(order, C, m_c, n_c, ldc, beta);
     if(alpha == zero)
     {
-        return aoclsparse_status_success; // Early return
+        status = scale_dense_matrix(order, C, m_c, n_c, ldc, beta);
+        return status; // Early return
     }
-    // Invokes kernels for symmetric and hermitian matrices
-    if(mat_type != aoclsparse_matrix_type_general)
+    if(A->input_format != aoclsparse_csr_mat)
+        return aoclsparse_status_not_implemented;
+    /*
+         * This loop iterates over the list of optimized matrices in A->mats and selects the one that matches
+         * the required operation (doid). If found, it sets the pointers to the optimized matrix data and marks
+         * mat_found as true for direct kernel invocation.
+         */
+    for(auto mat : A->mats)
     {
-        [[maybe_unused]] std::vector<T> csr_val_A;
-        T                              *val_A = const_cast<T *>(csr_val);
-        if(op == aoclsparse_operation_conjugate_transpose || op == aoclsparse_operation_transpose)
+        aoclsparse::csr *csr_m = dynamic_cast<aoclsparse::csr *>(mat);
+        if(csr_m != nullptr && mat->doid == d_id)
+        {
+            // Extract the matrix
+            val_A     = (T *)csr_m->val;
+            col_ind_A = csr_m->ind;
+            row_ptr_A = csr_m->ptr;
+            mb        = csr_m->m;
+
+            //Call set_mat_diag to set unit/zero diag types
+            if(descr_t.diag_type != mat->mtx_diag)
+            {
+                status = aoclsparse_set_mat_diag<T>(A->m, descr_t, csr_m);
+                if(status != aoclsparse_status_success)
+                    return status;
+            }
+            // reset op & descr
+            op                = aoclsparse_operation_none;
+            descr_t.type      = aoclsparse_matrix_type_general;
+            descr_t.fill_mode = aoclsparse_fill_mode_lower;
+            descr_t.base      = csr_m->base;
+            /*
+                 * The 'mat_found' flag is set to indicate that a matching optimized
+                 * matrix has been found, so the kernel can be called directly.
+                 */
+            mat_found = true;
+            // reset doid
+            d_id = doid::gn;
+            break;
+        }
+    }
+
+    switch(d_id)
+    {
+    case doid::sl:
+    case doid::su:
+    case doid::slc:
+    case doid::suc:
+    case doid::hl:
+    case doid::hu:
+    case doid::hlc:
+    case doid::huc:
+        status = scale_dense_matrix(order, C, m_c, n_c, ldc, beta);
+        if(status != aoclsparse_status_success)
+            return status;
+
+        val_A = const_cast<T *>(csr_val);
+        if(op != aoclsparse_operation_none)
         {
             try
             {
@@ -586,11 +650,11 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
                 if constexpr(std::is_same_v<T, std::complex<double>>
                              || std::is_same_v<T, std::complex<float>>)
                 {
-                    if((op == aoclsparse_operation_conjugate_transpose
-                        && mat_type == aoclsparse_matrix_type_symmetric)
-                       || (op == aoclsparse_operation_transpose
-                           && mat_type == aoclsparse_matrix_type_hermitian))
+                    if(d_id == doid::slc || d_id == doid::suc || d_id == doid::hlc
+                       || d_id == doid::huc)
+                    {
                         csr_val_A[idx] = aoclsparse::conj(csr_val[idx]);
+                    }
                     else
                         csr_val_A[idx] = csr_val[idx];
                 }
@@ -619,17 +683,25 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
                 return aoclsparse_csrmm_sym_row_ref<T, true>(
                     alpha, descr, val_A, csr_col_ind, csr_row_ptr, k, B, n, ldb, C, ldc);
         }
-    }
-    else // mat_type == aoclsparse_matrix_type_general
-    {
-        std::vector<aoclsparse_int> csr_row_ptr_A;
-        std::vector<aoclsparse_int> csr_col_ind_A;
-        std::vector<T>              csr_val_A;
-        aoclsparse_int             *row_ptr_A = const_cast<aoclsparse_int *>(csr_row_ptr);
-        aoclsparse_int             *col_ind_A = const_cast<aoclsparse_int *>(csr_col_ind);
-        T                          *val_A     = const_cast<T *>(csr_val);
-        aoclsparse_int              mb        = m;
-        if(op == aoclsparse_operation_conjugate_transpose || op == aoclsparse_operation_transpose)
+        break;
+    case doid::gn:
+    case doid::gt:
+    case doid::gh:
+        /*
+             * If mat_found is set to true, it indicates that an optimized matrix matching
+             * the required operation has already been found in A->mats. In this case,
+             * the pointers val_A, col_ind_A, and row_ptr_A are already set to the optimized
+             * matrix data. Therefore, we can skip further processing and directly invoke
+             * the appropriate kernel using these pointers.
+             */
+        if(mat_found)
+            break;
+        row_ptr_A = const_cast<aoclsparse_int *>(csr_row_ptr);
+        col_ind_A = const_cast<aoclsparse_int *>(csr_col_ind);
+        val_A     = const_cast<T *>(csr_val);
+        mb        = m;
+
+        if(d_id == doid::gt || d_id == doid::gh)
         {
             try
             {
@@ -656,7 +728,7 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
             if(status != aoclsparse_status_success)
                 return aoclsparse_status_internal_error;
             // Apply conjugate on transposed value array.
-            if(op == aoclsparse_operation_conjugate_transpose)
+            if(d_id == doid::gh)
             {
                 for(aoclsparse_int idx = 0; idx < A->nnz; idx++)
                     csr_val_A[idx] = aoclsparse::conj(csr_val_A[idx]);
@@ -666,12 +738,16 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
             val_A     = csr_val_A.data();
             mb        = k;
         }
-        if(order == aoclsparse_order_column)
-        {
-            // Column order
-            using K = decltype(&aoclsparse_csrmm_col_major_ref<T>);
+        break;
+    default:
+        return aoclsparse_status_not_implemented;
+    }
+    if(order == aoclsparse_order_column)
+    {
+        // Column order
+        using K = decltype(&aoclsparse_csrmm_col_major_ref<T>);
 
-            // clang-format off
+        // clang-format off
             // Table of available kernels
             static constexpr Table<K> tbl[]{
             {aoclsparse_csrmm_col_major_ref<T>, context_isa_t::GENERIC, 0U | archs::ALL},
@@ -679,24 +755,24 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
      ORL<K>({csrmm_col_kt<bsz::b256, T>,        context_isa_t::AVX512VL,0U | archs::ALL}),
      ORL<K>({csrmm_col_kt<bsz::b512, T>,        context_isa_t::AVX512F, 0U | archs::ALL})
             };
-            // clang-format on
+        // clang-format on
 
-            // Thread local kernel cache
-            thread_local K kache  = nullptr;
-            K              kernel = Oracle<K>(tbl, kache, kid);
+        // Thread local kernel cache
+        thread_local K kache  = nullptr;
+        K              kernel = Oracle<K>(tbl, kache, kid);
 
-            if(!kernel)
-                return aoclsparse_status_invalid_kid;
+        if(!kernel)
+            return aoclsparse_status_invalid_kid;
 
-            // Invoke the kernel
-            return kernel(alpha, descr, val_A, col_ind_A, row_ptr_A, mb, B, n, ldb, beta, C, ldc);
-        }
-        else
-        {
-            // Row order
-            using K = decltype(&aoclsparse_csrmm_row_major_ref<T>);
+        // Invoke the kernel
+        return kernel(alpha, &descr_t, val_A, col_ind_A, row_ptr_A, mb, B, n, ldb, beta, C, ldc);
+    }
+    else
+    {
+        // Row order
+        using K = decltype(&aoclsparse_csrmm_row_major_ref<T>);
 
-            // clang-format off
+        // clang-format off
             // Table of available kernels
             static constexpr Table<K> tbl[]{
             {aoclsparse_csrmm_row_major_ref<T>, context_isa_t::GENERIC, 0U | archs::ALL},
@@ -704,19 +780,17 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
      ORL<K>({csrmm_row_kt<bsz::b256, T>,        context_isa_t::AVX512VL,0U | archs::ALL}),
      ORL<K>({csrmm_row_kt<bsz::b512, T>,        context_isa_t::AVX512F, 0U | archs::ALL})
             };
-            // clang-format on
+        // clang-format on
 
-            // Thread local kernel cache
-            thread_local K kache  = nullptr;
-            K              kernel = Oracle<K>(tbl, kache, kid);
+        // Thread local kernel cache
+        thread_local K kache  = nullptr;
+        K              kernel = Oracle<K>(tbl, kache, kid);
 
-            if(!kernel)
-                return aoclsparse_status_invalid_kid;
+        if(!kernel)
+            return aoclsparse_status_invalid_kid;
 
-            // Invoke the kernel
-            return kernel(alpha, descr, val_A, col_ind_A, row_ptr_A, mb, B, n, ldb, beta, C, ldc);
-        }
+        // Invoke the kernel
+        return kernel(alpha, &descr_t, val_A, col_ind_A, row_ptr_A, mb, B, n, ldb, beta, C, ldc);
     }
-    return aoclsparse_status_not_implemented;
 }
 #endif /* AOCLSPARSE_CSRMM_HPP*/

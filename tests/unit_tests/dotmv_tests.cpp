@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,7 @@
 #include "aoclsparse.h"
 #include "common_data_utils.h"
 #include "gtest/gtest.h"
-#include "aoclsparse.hpp"
+#include "aoclsparse_interface.hpp"
 
 namespace
 {
@@ -1122,7 +1122,7 @@ namespace
         test_mv_wrong_type_base_size<aoclsparse_double_complex>();
     }
 
-    TEST(dotmv, NotImpl)
+    TEST(dotmv, CSCImpl)
     {
         // CSC matrix not supported for dotmv
         aoclsparse_int              m = 2, n = 2, nnz = 2;
@@ -1149,7 +1149,7 @@ namespace
 
         EXPECT_EQ(aoclsparse_dotmv(
                       aoclsparse_operation_none, alpha, A, descr, x.data(), beta, y.data(), &d),
-                  aoclsparse_status_not_implemented);
+                  aoclsparse_status_success);
 
         aoclsparse_destroy_mat_descr(descr);
         EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);

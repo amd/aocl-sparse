@@ -24,13 +24,12 @@
 #ifndef AOCLSPARSE_SYMGS_HPP
 #define AOCLSPARSE_SYMGS_HPP
 
-#include "aoclsparse.h"
 #include "aoclsparse_context.h"
 #include "aoclsparse_descr.h"
+#include "aoclsparse.hpp"
 #include "aoclsparse_analysis.hpp"
 #include "aoclsparse_auxiliary.hpp"
 #include "aoclsparse_csr_util.hpp"
-#include "aoclsparse_l2.hpp"
 #include "aoclsparse_utils.hpp"
 
 #include <immintrin.h>
@@ -123,7 +122,7 @@ aoclsparse_status symgs_ref(aoclsparse_operation       trans,
             1. if Lower triangle only, solve (L + D)*x = b;
             2. if Upper triangle only, solve (U + D)*x = b;
         */
-        status = aoclsparse_trsv(trans, alpha_one, A, descr, b, 1, x, 1, avxversion);
+        status = aoclsparse::trsv(trans, alpha_one, A, descr, b, 1, x, 1, avxversion);
         if(status != aoclsparse_status_success)
             return status;
 
@@ -133,7 +132,7 @@ aoclsparse_status symgs_ref(aoclsparse_operation       trans,
                 Step 2: Sparse product
                 y = A . x
             */
-            status = aoclsparse_mv_t<T>(trans, &alpha_one, A, descr, x, &beta, y);
+            status = aoclsparse::mv<T>(trans, &alpha_one, A, descr, x, &beta, y);
         }
         return status;
     }
@@ -191,7 +190,7 @@ aoclsparse_status symgs_ref(aoclsparse_operation       trans,
     set_symgs_matrix_properties(&descr_cpy, &trans_cpy, u_fmode, dtype_strict, u_trans);
     //Step 1.1: q = alpha.U.x0
 
-    status = aoclsparse_mv_t(trans_cpy, &alpha, A, &descr_cpy, x, &beta, q);
+    status = aoclsparse::mv(trans_cpy, &alpha, A, &descr_cpy, x, &beta, q);
 
     //Step 1.2: r = b - q = b - alpha.U.x0
     for(aoclsparse_int i = 0; i < A->m; i++)
@@ -204,7 +203,7 @@ aoclsparse_status symgs_ref(aoclsparse_operation       trans,
                 (L+D)q = r
     */
     set_symgs_matrix_properties(&descr_cpy, &trans_cpy, l_fmode, dtype, l_trans);
-    status = aoclsparse_trsv(trans_cpy, alpha_one, A, &descr_cpy, r, 1, q, 1, avxversion);
+    status = aoclsparse::trsv(trans_cpy, alpha_one, A, &descr_cpy, r, 1, q, 1, avxversion);
     if(status != aoclsparse_status_success)
         return status;
     /*
@@ -221,7 +220,7 @@ aoclsparse_status symgs_ref(aoclsparse_operation       trans,
     set_symgs_matrix_properties(&descr_cpy, &trans_cpy, l_fmode, dtype_strict, l_trans);
     //Step 2.1: r = L.q = L.x1
 
-    status = aoclsparse_mv_t(trans_cpy, &alpha_one, A, &descr_cpy, q, &beta, r);
+    status = aoclsparse::mv(trans_cpy, &alpha_one, A, &descr_cpy, q, &beta, r);
 
     //Step 2.2: q = b - r = (b - L.x1)
     for(aoclsparse_int i = 0; i < A->m; i++)
@@ -231,7 +230,7 @@ aoclsparse_status symgs_ref(aoclsparse_operation       trans,
 
     set_symgs_matrix_properties(&descr_cpy, &trans_cpy, u_fmode, dtype, u_trans);
     //Step 2.3: (U + D).x = q
-    status = aoclsparse_trsv(trans_cpy, alpha_one, A, &descr_cpy, q, 1, x, 1, avxversion);
+    status = aoclsparse::trsv(trans_cpy, alpha_one, A, &descr_cpy, q, 1, x, 1, avxversion);
     if(status != aoclsparse_status_success)
         return status;
 
@@ -241,7 +240,7 @@ aoclsparse_status symgs_ref(aoclsparse_operation       trans,
             Step 3: Sparse product
             y = A . x
         */
-        status = aoclsparse_mv_t(trans, &alpha_one, A, descr, x, &beta, y);
+        status = aoclsparse::mv(trans, &alpha_one, A, descr, x, &beta, y);
 
         if(status != aoclsparse_status_success)
             return status;
@@ -281,6 +280,8 @@ aoclsparse_status aoclsparse_symgs(
     {
         return aoclsparse_status_invalid_pointer;
     }
+    if(A->mats.empty() || !A->mats[0])
+        return aoclsparse_status_invalid_pointer;
 
     //Only CSR format is supported for SYMGS
     if(A->input_format != aoclsparse_csr_mat)
@@ -296,7 +297,7 @@ aoclsparse_status aoclsparse_symgs(
     }
     // There is an issue that zero-based indexing is defined in two separate places and
     // can lead to ambiguity, we check that both are consistent.
-    if(A->base != descr->base)
+    if(A->mats[0]->base != descr->base)
     {
         return aoclsparse_status_invalid_value;
     }
@@ -344,16 +345,13 @@ aoclsparse_status aoclsparse_symgs(
     {
         return aoclsparse_status_wrong_type;
     }
-    // Unpack A and check
-    if(!A->opt_csr_ready)
-    {
-        // user did not check the matrix, call optimize
-        status = aoclsparse_csr_csc_optimize<T>(A);
-        if(status != aoclsparse_status_success)
-        {
-            return status;
-        }
-    }
+    aoclsparse::csr *A_opt_csr = nullptr;
+    // call optimize
+    status = aoclsparse_csr_csc_optimize<T>(A, &A_opt_csr);
+    if(status != aoclsparse_status_success)
+        return status;
+    if(!A_opt_csr)
+        return aoclsparse_status_internal_error;
     if(A->symgs_info.sgs_ready == false)
     {
         /*

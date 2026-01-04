@@ -51,6 +51,8 @@ aoclsparse_status aoclsparse_ilu_template(aoclsparse_operation       op,
     {
         return aoclsparse_status_invalid_pointer;
     }
+    if(A->mats.empty() || !A->mats[0])
+        return aoclsparse_status_invalid_pointer;
 
     if(op != aoclsparse_operation_none)
     {
@@ -76,11 +78,12 @@ aoclsparse_status aoclsparse_ilu_template(aoclsparse_operation       op,
     {
         return aoclsparse_status_wrong_type;
     }
-    if((A->base != aoclsparse_index_base_zero) && (A->base != aoclsparse_index_base_one))
+    if((A->mats[0]->base != aoclsparse_index_base_zero)
+       && (A->mats[0]->base != aoclsparse_index_base_one))
     {
         return aoclsparse_status_invalid_value;
     }
-    if(A->base != descr->base)
+    if(A->mats[0]->base != descr->base)
     {
         return aoclsparse_status_invalid_value;
     }
@@ -110,21 +113,26 @@ aoclsparse_status aoclsparse_ilu_template(aoclsparse_operation       op,
     switch(A->ilu_info.ilu_fact_type)
     {
     case aoclsparse_ilu0:
+    {
+        aoclsparse::csr *csr_mat = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
+        if(!csr_mat)
+            return aoclsparse_status_not_implemented;
         //Invoke ILU0 API for CSR storage format
         ret = aoclsparse_ilu0_template<T>(A->n,
                                           A->ilu_info.lu_diag_ptr,
                                           &(A->ilu_info.ilu_factorized),
                                           &(A->ilu_info.ilu_fact_type),
                                           (T *)A->ilu_info.precond_csr_val,
-                                          A->csr_mat.csr_row_ptr,
-                                          A->csr_mat.csr_col_ptr,
-                                          A->base,
+                                          csr_mat->ptr,
+                                          csr_mat->ind,
+                                          csr_mat->base,
                                           precond_csr_val,
                                           x,
                                           b);
         if(ret)
             return ret;
         break;
+    }
     default:
         ret = aoclsparse_status_internal_error;
         break;

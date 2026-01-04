@@ -1,6 +1,6 @@
 
 /* ************************************************************************
- * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,9 +25,9 @@
 #include "aoclsparse_types.h"
 #include "common_data_utils.h"
 #include "gtest/gtest.h"
-#include "aoclsparse.hpp"
 #include "aoclsparse_datatype2string.hpp"
 #include "aoclsparse_init.hpp"
+#include "aoclsparse_interface.hpp"
 #include "aoclsparse_random.hpp"
 
 #include <algorithm>
@@ -43,6 +43,7 @@ namespace
         aoclsparse_int                N;
         aoclsparse_int                nnz;
         aoclsparse_matrix_format_type format_type;
+        aoclsparse::doid              doid = aoclsparse::doid::len;
     } SetValueParam;
 
     template <typename T>
@@ -50,7 +51,8 @@ namespace
                         aoclsparse_int                M,
                         aoclsparse_int                N,
                         aoclsparse_int                NNZ,
-                        aoclsparse_matrix_format_type format_type)
+                        aoclsparse_matrix_format_type format_type,
+                        aoclsparse::doid              doid)
     {
         aoclsparse_matrix src_mat = nullptr;
         aoclsparse_seedrand();
@@ -58,7 +60,7 @@ namespace
         std::vector<T>              val;
 
         EXPECT_EQ(aoclsparse_init_matrix_random(
-                      base, M, N, NNZ, format_type, coo_row, coo_col, val, ptr, src_mat),
+                      base, M, N, NNZ, format_type, coo_row, coo_col, val, ptr, src_mat, doid),
                   aoclsparse_status_success);
 
         // random index to be used to set new value
@@ -96,10 +98,22 @@ namespace
     // List of all desired positive tests
     const SetValueParam SetValuesCases[]
         = {{"set_coo_0B", aoclsparse_index_base_zero, 10, 11, 20, aoclsparse_coo_mat},
-           {"set_csc_0B", aoclsparse_index_base_zero, 5, 22, 1, aoclsparse_csc_mat},
+           {"set_csc_0B",
+            aoclsparse_index_base_zero,
+            5,
+            22,
+            1,
+            aoclsparse_csr_mat,
+            aoclsparse::doid::gt},
            {"set_csr_0B", aoclsparse_index_base_zero, 1, 1, 1, aoclsparse_csr_mat},
            {"set_coo_1B", aoclsparse_index_base_one, 2, 1, 1, aoclsparse_coo_mat},
-           {"set_csc_1B", aoclsparse_index_base_one, 3, 4, 11, aoclsparse_csc_mat},
+           {"set_csc_1B",
+            aoclsparse_index_base_one,
+            3,
+            4,
+            11,
+            aoclsparse_csr_mat,
+            aoclsparse::doid::gt},
            {"set_csr_1B", aoclsparse_index_base_one, 12, 5, 40, aoclsparse_csr_mat}};
 
     // It is used to when testing::PrintToString(GetParam()) to generate test name for ctest
@@ -116,14 +130,16 @@ namespace
     TEST_P(RndOK, Double)
     {
         const SetValueParam &param = GetParam();
-        test_set_value<double>(param.base, param.M, param.N, param.nnz, param.format_type);
+        test_set_value<double>(
+            param.base, param.M, param.N, param.nnz, param.format_type, param.doid);
     }
 
     // tests with float type
     TEST_P(RndOK, Float)
     {
         const SetValueParam &param = GetParam();
-        test_set_value<float>(param.base, param.M, param.N, param.nnz, param.format_type);
+        test_set_value<float>(
+            param.base, param.M, param.N, param.nnz, param.format_type, param.doid);
     }
 
     // tests with double type
@@ -131,7 +147,7 @@ namespace
     {
         const SetValueParam &param = GetParam();
         test_set_value<aoclsparse_double_complex>(
-            param.base, param.M, param.N, param.nnz, param.format_type);
+            param.base, param.M, param.N, param.nnz, param.format_type, param.doid);
     }
 
     // tests with float type
@@ -139,10 +155,94 @@ namespace
     {
         const SetValueParam &param = GetParam();
         test_set_value<aoclsparse_float_complex>(
-            param.base, param.M, param.N, param.nnz, param.format_type);
+            param.base, param.M, param.N, param.nnz, param.format_type, param.doid);
     }
 
     INSTANTIATE_TEST_SUITE_P(SetValueTestSuite, RndOK, testing::ValuesIn(SetValuesCases));
+
+    TEST(SetValueMatsCopies, MultipleMatrixCopies)
+    {
+        aoclsparse_matrix src_mat = nullptr;
+        aoclsparse_seedrand();
+
+        // Matrix setup
+        aoclsparse_int              M = 4, N = 4, NNZ = 8;
+        double                      alpha = 1.0;
+        double                      beta  = 0.0;
+        double                      x[]   = {1.0, 2.0, 3.0, 4.0};
+        double                      y[M];
+        std::vector<aoclsparse_int> csr_row, csr_col, ptr;
+        std::vector<double>         val;
+        aoclsparse_mat_descr        descr;
+        aoclsparse_int              nmat = 0, nmat_after_set = 0;
+
+        EXPECT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_general),
+                  aoclsparse_status_success);
+
+        EXPECT_EQ(aoclsparse_init_matrix_random<double>(aoclsparse_index_base_zero,
+                                                        M,
+                                                        N,
+                                                        NNZ,
+                                                        aoclsparse_csr_mat,
+                                                        csr_row,
+                                                        csr_col,
+                                                        val,
+                                                        ptr,
+                                                        src_mat),
+                  aoclsparse_status_success);
+
+        // Create multiple optimization hints to potentially create multiple matrix copies
+        EXPECT_EQ(aoclsparse_set_mv_hint(src_mat, aoclsparse_operation_none, descr, 1),
+                  aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_set_mv_hint(src_mat, aoclsparse_operation_transpose, descr, 1),
+                  aoclsparse_status_success);
+
+        EXPECT_EQ(aoclsparse_optimize(src_mat), aoclsparse_status_success);
+
+        // Perform operations that might create matrix copies
+        EXPECT_EQ(
+            aoclsparse_mv<double>(aoclsparse_operation_none, &alpha, src_mat, descr, x, &beta, y),
+            aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_mv<double>(
+                      aoclsparse_operation_transpose, &alpha, src_mat, descr, x, &beta, y),
+                  aoclsparse_status_success);
+
+        // src_mat->mats may contain optimized CSR copies, such as opt_csr and transposed mv copies
+        // Count non-null matrices
+        for(auto *mat : src_mat->mats)
+        {
+            if(mat)
+            {
+                nmat++;
+            }
+        }
+        // At this point, we should have at least one internal matrix (the input matrix)
+        ASSERT_GT(nmat, 1);
+
+        // Modify a value - should clean up all internal matrices
+        aoclsparse_int ridx    = random_generator<aoclsparse_int>(0, NNZ - 1);
+        double         new_val = random_generator_normal<double>();
+        // Set a new value in the sparse matrix
+        EXPECT_EQ(aoclsparse_set_value(src_mat, csr_row[ridx], csr_col[ridx], new_val),
+                  aoclsparse_status_success);
+
+        // Check if the optimized CSR matrix is cleaned up
+        // All internal matrices should now be nullptr
+        for(const auto &mat : src_mat->mats)
+        {
+            if(mat)
+            {
+                nmat_after_set++;
+            }
+        }
+        // Should have one valid matrix (input matrix)
+        EXPECT_EQ(nmat_after_set, 1);
+
+        // Cleanup
+        EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&src_mat), aoclsparse_status_success);
+    }
 
     TEST(SetValueErrorSuite, UinitializedMatrix)
     {

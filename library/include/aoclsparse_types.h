@@ -29,7 +29,7 @@
 #include <stdint.h>
 
 /*! \ingroup types_module
- *  \brief Macro for function attribute
+ *  \brief Macro for function attribute.
  *
  *  \details
  *  The macro specifies visibility attribute of public functions
@@ -69,7 +69,7 @@ typedef int32_t aoclsparse_int;
  * @brief
  * Default complex float type.
  * @details
- * User can redefine to accomodate custom complex float type definition.
+ * User can redefine to accommodate custom complex float type definition.
  *
  * @note The library expects that complex numbers real and imaginary parts
  * are contiguous in memory.
@@ -86,7 +86,7 @@ typedef struct alignas(2 * sizeof(float))
  * @brief
  * Default complex double type.
  * @details
- * User can redefine to accomodate custom complex double type definition.
+ * User can redefine to accommodate custom complex double type definition.
  *
  * @note The library expects that complex numbers real and imaginary parts
  * are contiguous in memory.
@@ -238,10 +238,10 @@ typedef enum aoclsparse_matrix_format_type_
     aoclsparse_dia_mat     = 5, ///< @rst :ref:`DIAG<storage_dia>` format. @endrst
     aoclsparse_csr_mat_br4 = 6, ///< @rst :ref:`Optimized CSR<storage_csr_mat_br4>` format for
                                 ///< AVX2 double precision data type. @endrst
-    aoclsparse_csc_mat = 7, ///< @rst :ref:`CSC<storage_csc>` format. @endrst
-    aoclsparse_coo_mat = 8, ///< @rst :ref:`COO<storage_coo>` format. @endrst
-    aoclsparse_tcsr_mat = 9, ///< @rst :ref:`TCSR<storage_tcsr>` format. @endrst
-    aoclsparse_blkcsr_mat = 10 ///< @rst :ref:`BLKCSR<storage_blk_csr>` format. @endrst
+    aoclsparse_coo_mat = 7, ///< @rst :ref:`COO<storage_coo>` format. @endrst
+    aoclsparse_tcsr_mat = 8, ///< @rst :ref:`TCSR<storage_tcsr>` format. @endrst
+    aoclsparse_blkcsr_mat = 9, ///< @rst :ref:`BLKCSR<storage_blk_csr>` format. @endrst
+    aoclsparse_bsr_mat = 10 ///< @rst :ref:`BSR<storage_bsr>` format. @endrst
     // clang-format on
 } aoclsparse_matrix_format_type;
 

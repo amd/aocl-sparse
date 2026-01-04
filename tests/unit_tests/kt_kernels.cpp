@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023-2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023-2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,6 +30,7 @@ using kt_int_t = size_t;
 
 #include <complex>
 #include <iostream>
+#include <memory>
 #include <typeinfo>
 
 using namespace kernel_templates;
@@ -48,14 +49,42 @@ namespace TestsKT
                         9.125f, -1.125f, 2.5f,   5.125f,  4.125f, 3.25f,   3.5f,    5.5f};
         double   vd[16]{1.5,     2.25,   3.5,    0.5,     8.25,  -3.25,    6.5,    -1.25,
                         9.125,   5.5,   -2.25,   2.5,     7.25,  -6.25,    9.125,  -0.25};
-        std::complex<float>  vc[16]{ {2.25f, -1.5f},  {4.25f, -2.0f},  {6.125f, -3.0f}, {8.25f, -4.0f},
-                                     {1.5f, -5.0f},   {3.5f, -6.25f},  {7.75f, -7.0f},  {9.25f, -8.0f},
+        std::complex<float>  vc[16]{ {2.5f, -1.5f},  {4.0f, -2.0f},  {4.0f, -3.0f}, {8.25f, -4.0f},
+                                     {1.5f, -5.0f},   {3.5f, -6.25f},  {7.75f, -7.0f},  {9.5f, -8.0f},
                                      {-2.5f, -1.5f},  {-3.25f, -2.0f}, {-5.5f, -3.0f},  {-7.25f, -4.0f},
                                      {-9.75f, -5.0f}, {-2.2f, -6.0f},  {-4.75f, -7.5f}, {-6.0f,  -8.125f}};
-        std::complex<double> vz[8]{  {1.25, -12},     {0.5, -21.0},    {0.125, -13.0},  {3.5,   -4.5},
+        std::complex<double> vz[8]{  {1.5, -12},     {0.5, -21.0},    {0.125, -13.0},  {3.5,   -4.5},
                                      {5.25, -8.125},  {8.5, -6.75},    {9.5, -7.25},    {2.125, -3.0}};
+
+        template <typename T>
+        constexpr const T* get_data() const noexcept
+        {
+            if constexpr(std::is_same_v<T, float>)
+                return vs;
+            else if constexpr(std::is_same_v<T, double>)
+                return vd;
+            else if constexpr(std::is_same_v<T, cfloat>)
+                return reinterpret_cast<const T*>(vc);
+            else if constexpr(std::is_same_v<T, cdouble>)
+                return reinterpret_cast<const T*>(vz);
+            else
+                return nullptr; // Unsupported type
+        }
         // clang-format on
     };
+
+    template <typename T>
+    std::string get_typename()
+    {
+        if constexpr(std::is_same_v<T, float>)
+            return "float";
+        else if constexpr(std::is_same_v<T, double>)
+            return "double";
+        else if constexpr(std::is_same_v<T, cfloat>)
+            return "std::complex<float>";
+        else if constexpr(std::is_same_v<T, cdouble>)
+            return "std::complex<double>";
+    }
 
     const KTTCommonData D;
 
@@ -72,6 +101,11 @@ namespace TestsKT
         EXPECT_TRUE(kt_is_base_t_double<cdouble>());
         EXPECT_FALSE(kt_is_base_t_double<float>());
         EXPECT_FALSE(kt_is_base_t_double<cfloat>());
+
+        EXPECT_TRUE(kt_is_base_t_int<int32_t>());
+        EXPECT_TRUE(kt_is_base_t_int<int64_t>());
+        EXPECT_FALSE(kt_is_base_t_int<float>());
+        EXPECT_FALSE(kt_is_base_t_int<double>());
     }
 
     void kt_is_same_test()
@@ -81,92 +115,125 @@ namespace TestsKT
         EXPECT_FALSE((kt_is_same<bsz::b256, bsz::b512, double, double>()));
         EXPECT_FALSE((kt_is_same<bsz::b256, bsz::b512, float, cfloat>()));
     }
-#endif
 
-#ifndef KT_AVX2_BUILD
-    void kt_types_512()
+    void kt_types_128()
     {
         /*
-         * These bsz::b512 bit tests check that the correct data type
+         * These bsz::b128 bit tests check that the correct data type
          * and packed sizes are "returned".
          */
-        // bsz::b512 float
-        EXPECT_EQ(typeid(avxvector<bsz::b512, float>::type), typeid(__m512));
-        EXPECT_EQ(typeid(avxvector<bsz::b512, float>::half_type), typeid(__m256));
-        EXPECT_EQ((avxvector<bsz::b512, float>::p_size), 16U);
-        EXPECT_EQ((avxvector<bsz::b512, float>()), 16U);
-        EXPECT_EQ((avxvector<bsz::b512, float>::hp_size), 8U);
-        EXPECT_EQ((avxvector<bsz::b512, float>::tsz), 16U);
+        // bsz::b128 float
+        EXPECT_EQ(typeid(avxvector<bsz::b128, float>::type), typeid(__m128));
+        EXPECT_EQ(typeid(avxvector<bsz::b128, float>::half_type), typeid(__m64));
+        EXPECT_EQ((avxvector<bsz::b128, float>::p_size), 4U);
+        EXPECT_EQ((avxvector<bsz::b128, float>()), 4U);
+        EXPECT_EQ((avxvector<bsz::b128, float>::hp_size), 2U);
+        EXPECT_EQ((avxvector<bsz::b128, float>::tsz), 4U);
 
         // helpers
-        EXPECT_EQ(typeid(avxvector_t<bsz::b512, float>), typeid(__m512));
-        EXPECT_EQ(typeid(avxvector_half_t<bsz::b512, float>), typeid(__m256));
-        EXPECT_EQ((avxvector_v<bsz::b512, float>), 16U);
-        EXPECT_EQ((avxvector<bsz::b512, float>()), 16U);
-        EXPECT_EQ((avxvector_half_v<bsz::b512, float>), 8U);
-        EXPECT_EQ((hsz_v<bsz::b512, float>), 8U);
-        EXPECT_EQ((tsz_v<bsz::b512, float>), 16U);
+        EXPECT_EQ(typeid(avxvector_t<bsz::b128, float>), typeid(__m128));
+        EXPECT_EQ(typeid(avxvector_half_t<bsz::b128, float>), typeid(__m64));
+        EXPECT_EQ((avxvector_v<bsz::b128, float>), 4U);
+        EXPECT_EQ((avxvector<bsz::b128, float>()), 4U);
+        EXPECT_EQ((avxvector_half_v<bsz::b128, float>), 2U);
+        EXPECT_EQ((hsz_v<bsz::b128, float>), 2U);
+        EXPECT_EQ((tsz_v<bsz::b128, float>), 4U);
 
-        // bsz::b512 double
-        EXPECT_EQ(typeid(avxvector<bsz::b512, double>::type), typeid(__m512d));
-        EXPECT_EQ(typeid(avxvector<bsz::b512, double>::half_type), typeid(__m256d));
-        EXPECT_EQ((avxvector<bsz::b512, double>::p_size), 8U);
-        EXPECT_EQ((avxvector<bsz::b512, double>()), 8U);
-        EXPECT_EQ((avxvector<bsz::b512, double>::hp_size), 4U);
-        EXPECT_EQ((avxvector<bsz::b512, double>::tsz), 8U);
+        // bsz::b128 double
+        EXPECT_EQ(typeid(avxvector<bsz::b128, double>::type), typeid(__m128d));
+        EXPECT_EQ(typeid(avxvector<bsz::b128, double>::half_type), typeid(__m64));
+        EXPECT_EQ((avxvector<bsz::b128, double>::p_size), 2U);
+        EXPECT_EQ((avxvector<bsz::b128, double>()), 2U);
+        EXPECT_EQ((avxvector<bsz::b128, double>::hp_size), 1U);
+        EXPECT_EQ((avxvector<bsz::b128, double>::tsz), 2U);
 
         // helpers
-        EXPECT_EQ(typeid(avxvector_t<bsz::b512, double>), typeid(__m512d));
-        EXPECT_EQ(typeid(avxvector_half_t<bsz::b512, double>), typeid(__m256d));
-        EXPECT_EQ((avxvector_v<bsz::b512, double>), 8U);
-        EXPECT_EQ((avxvector<bsz::b512, double>()), 8U);
-        EXPECT_EQ((avxvector_half_v<bsz::b512, double>), 4U);
-        EXPECT_EQ((hsz_v<bsz::b512, double>), 4U);
-        EXPECT_EQ((tsz_v<bsz::b512, double>), 8U);
+        EXPECT_EQ(typeid(avxvector_t<bsz::b128, double>), typeid(__m128d));
+        EXPECT_EQ(typeid(avxvector_half_t<bsz::b128, double>), typeid(__m64));
+        EXPECT_EQ((avxvector_v<bsz::b128, double>), 2U);
+        EXPECT_EQ((avxvector<bsz::b128, double>()), 2U);
+        EXPECT_EQ((avxvector_half_v<bsz::b128, double>), 1U);
+        EXPECT_EQ((hsz_v<bsz::b128, double>), 1U);
+        EXPECT_EQ((tsz_v<bsz::b128, double>), 2U);
+
+        // Integer types
+
+        // int32_t
+        EXPECT_EQ(typeid(avxvector<bsz::b128, int32_t>::type), typeid(__m128i));
+        EXPECT_EQ(typeid(avxvector<bsz::b128, int32_t>::half_type), typeid(__m64));
+        EXPECT_EQ((avxvector<bsz::b128, int32_t>::p_size), 4U);
+        EXPECT_EQ((avxvector<bsz::b128, int32_t>()), 4U);
+        EXPECT_EQ((avxvector<bsz::b128, int32_t>::hp_size), 2U);
+        EXPECT_EQ((avxvector<bsz::b128, int32_t>::tsz), 4U);
+
+        // helpers
+        EXPECT_EQ(typeid(avxvector_t<bsz::b128, int32_t>), typeid(__m128i));
+        EXPECT_EQ(typeid(avxvector_half_t<bsz::b128, int32_t>), typeid(__m64));
+        EXPECT_EQ((avxvector_v<bsz::b128, int32_t>), 4U);
+        EXPECT_EQ((avxvector<bsz::b128, int32_t>()), 4U);
+        EXPECT_EQ((avxvector_half_v<bsz::b128, int32_t>), 2U);
+        EXPECT_EQ((hsz_v<bsz::b128, int32_t>), 2U);
+        EXPECT_EQ((tsz_v<bsz::b128, int32_t>), 4U);
+
+        // int64_t
+        EXPECT_EQ(typeid(avxvector<bsz::b128, int64_t>::type), typeid(__m128i));
+        EXPECT_EQ(typeid(avxvector<bsz::b128, int64_t>::half_type), typeid(__m64));
+        EXPECT_EQ((avxvector<bsz::b128, int64_t>::p_size), 2U);
+        EXPECT_EQ((avxvector<bsz::b128, int64_t>()), 2U);
+        EXPECT_EQ((avxvector<bsz::b128, int64_t>::hp_size), 1U);
+        EXPECT_EQ((avxvector<bsz::b128, int64_t>::tsz), 2U);
+
+        // helpers
+        EXPECT_EQ(typeid(avxvector_t<bsz::b128, int64_t>), typeid(__m128i));
+        EXPECT_EQ(typeid(avxvector_half_t<bsz::b128, int64_t>), typeid(__m64));
+        EXPECT_EQ((avxvector_v<bsz::b128, int64_t>), 2U);
+        EXPECT_EQ((avxvector<bsz::b128, int64_t>()), 2U);
+        EXPECT_EQ((avxvector_half_v<bsz::b128, int64_t>), 1U);
+        EXPECT_EQ((hsz_v<bsz::b128, int64_t>), 1U);
+        EXPECT_EQ((tsz_v<bsz::b128, int64_t>), 2U);
     }
 
-    void kt_ctypes_512()
+    void kt_ctypes_128()
     {
         /*
-        * These bsz::b512 bit tests check that the correct complex data type
-        * and packed sizes are "returned".
-        */
-        // bsz::b512 cfloat
-        EXPECT_EQ(typeid(avxvector<bsz::b512, cfloat>::type), typeid(__m512));
-        EXPECT_EQ(typeid(avxvector<bsz::b512, cfloat>::half_type), typeid(__m256));
-        EXPECT_EQ((avxvector<bsz::b512, cfloat>::p_size), 16U);
-        EXPECT_EQ((avxvector<bsz::b512, cfloat>()), 16U);
-        EXPECT_EQ((avxvector<bsz::b512, cfloat>::hp_size), 8U);
-        EXPECT_EQ((avxvector<bsz::b512, cfloat>::tsz), 8U);
+         * These bsz::b128 bit tests check that the correct complex data type
+         * and packed sizes are "returned".
+         */
+        // bsz::b128 cfloat
+        EXPECT_EQ(typeid(avxvector<bsz::b128, cfloat>::type), typeid(__m128));
+        EXPECT_EQ(typeid(avxvector<bsz::b128, cfloat>::half_type), typeid(__m64));
+        EXPECT_EQ((avxvector<bsz::b128, cfloat>::p_size), 4U);
+        EXPECT_EQ((avxvector<bsz::b128, cfloat>()), 4U);
+        EXPECT_EQ((avxvector<bsz::b128, cfloat>::hp_size), 2U);
+        EXPECT_EQ((avxvector<bsz::b128, cfloat>::tsz), 2U);
 
         // helpers
-        EXPECT_EQ(typeid(avxvector_t<bsz::b512, cfloat>), typeid(__m512));
-        EXPECT_EQ(typeid(avxvector_half_t<bsz::b512, cfloat>), typeid(__m256));
-        EXPECT_EQ((avxvector_v<bsz::b512, cfloat>), 16U);
-        EXPECT_EQ((avxvector<bsz::b512, cfloat>()), 16U);
-        EXPECT_EQ((avxvector_half_v<bsz::b512, cfloat>), 8U);
-        EXPECT_EQ((hsz_v<bsz::b512, cfloat>), 8U);
-        EXPECT_EQ((tsz_v<bsz::b512, cfloat>), 8U);
+        EXPECT_EQ(typeid(avxvector_t<bsz::b128, cfloat>), typeid(__m128));
+        EXPECT_EQ(typeid(avxvector_half_t<bsz::b128, cfloat>), typeid(__m64));
+        EXPECT_EQ((avxvector_v<bsz::b128, cfloat>), 4U);
+        EXPECT_EQ((avxvector<bsz::b128, cfloat>()), 4U);
+        EXPECT_EQ((avxvector_half_v<bsz::b128, cfloat>), 2U);
+        EXPECT_EQ((hsz_v<bsz::b128, cfloat>), 2U);
+        EXPECT_EQ((tsz_v<bsz::b128, cfloat>), 2U);
 
-        // bsz::b512 cdouble
-        EXPECT_EQ(typeid(avxvector<bsz::b512, cdouble>::type), typeid(__m512d));
-        EXPECT_EQ(typeid(avxvector<bsz::b512, cdouble>::half_type), typeid(__m256d));
-        EXPECT_EQ((avxvector<bsz::b512, cdouble>::p_size), 8U);
-        EXPECT_EQ((avxvector<bsz::b512, cdouble>()), 8U);
-        EXPECT_EQ((avxvector<bsz::b512, cdouble>::hp_size), 4U);
-        EXPECT_EQ((avxvector<bsz::b512, cdouble>::tsz), 4U);
+        // bsz::b128 cdouble
+        EXPECT_EQ(typeid(avxvector<bsz::b128, cdouble>::type), typeid(__m128d));
+        EXPECT_EQ(typeid(avxvector<bsz::b128, cdouble>::half_type), typeid(__m64));
+        EXPECT_EQ((avxvector<bsz::b128, cdouble>::p_size), 2U);
+        EXPECT_EQ((avxvector<bsz::b128, cdouble>()), 2U);
+        EXPECT_EQ((avxvector<bsz::b128, cdouble>::hp_size), 0U);
+        EXPECT_EQ((avxvector<bsz::b128, cdouble>::tsz), 1U);
 
         // helpers
-        EXPECT_EQ(typeid(avxvector_t<bsz::b512, cdouble>), typeid(__m512d));
-        EXPECT_EQ(typeid(avxvector_half_t<bsz::b512, cdouble>), typeid(__m256d));
-        EXPECT_EQ((avxvector_v<bsz::b512, cdouble>), 8U);
-        EXPECT_EQ((avxvector<bsz::b512, cdouble>()), 8U);
-        EXPECT_EQ((avxvector_half_v<bsz::b512, cdouble>), 4U);
-        EXPECT_EQ((hsz_v<bsz::b512, cdouble>), 4U);
-        EXPECT_EQ((tsz_v<bsz::b512, cdouble>), 4U);
+        EXPECT_EQ(typeid(avxvector_t<bsz::b128, cdouble>), typeid(__m128d));
+        EXPECT_EQ(typeid(avxvector_half_t<bsz::b128, cdouble>), typeid(__m64));
+        EXPECT_EQ((avxvector_v<bsz::b128, cdouble>), 2U);
+        EXPECT_EQ((avxvector<bsz::b128, cdouble>()), 2U);
+        EXPECT_EQ((avxvector_half_v<bsz::b128, cdouble>), 0U);
+        EXPECT_EQ((hsz_v<bsz::b128, cdouble>), 0U);
+        EXPECT_EQ((tsz_v<bsz::b128, cdouble>), 1U);
     }
 
-#else
     void kt_types_256()
     {
         /*
@@ -206,6 +273,41 @@ namespace TestsKT
         EXPECT_EQ((avxvector_half_v<bsz::b256, double>), 2U);
         EXPECT_EQ((hsz_v<bsz::b256, double>), 2U);
         EXPECT_EQ((tsz_v<bsz::b256, double>), 4U);
+
+        // Integer types test
+        // int32_t
+        EXPECT_EQ(typeid(avxvector<bsz::b256, int32_t>::type), typeid(__m256i));
+        EXPECT_EQ(typeid(avxvector<bsz::b256, int32_t>::half_type), typeid(__m128i));
+        EXPECT_EQ((avxvector<bsz::b256, int32_t>::p_size), 8U);
+        EXPECT_EQ((avxvector<bsz::b256, int32_t>()), 8U);
+        EXPECT_EQ((avxvector<bsz::b256, int32_t>::hp_size), 4U);
+        EXPECT_EQ((avxvector<bsz::b256, int32_t>::tsz), 8U);
+
+        // helpers
+        EXPECT_EQ(typeid(avxvector_t<bsz::b256, int32_t>), typeid(__m256i));
+        EXPECT_EQ(typeid(avxvector_half_t<bsz::b256, int32_t>), typeid(__m128i));
+        EXPECT_EQ((avxvector_v<bsz::b256, int32_t>), 8U);
+        EXPECT_EQ((avxvector<bsz::b256, int32_t>()), 8U);
+        EXPECT_EQ((avxvector_half_v<bsz::b256, int32_t>), 4U);
+        EXPECT_EQ((hsz_v<bsz::b256, int32_t>), 4U);
+        EXPECT_EQ((tsz_v<bsz::b256, int32_t>), 8U);
+
+        // int64_t
+        EXPECT_EQ(typeid(avxvector<bsz::b256, int64_t>::type), typeid(__m256i));
+        EXPECT_EQ(typeid(avxvector<bsz::b256, int64_t>::half_type), typeid(__m128i));
+        EXPECT_EQ((avxvector<bsz::b256, int64_t>::p_size), 4U);
+        EXPECT_EQ((avxvector<bsz::b256, int64_t>()), 4U);
+        EXPECT_EQ((avxvector<bsz::b256, int64_t>::hp_size), 2U);
+        EXPECT_EQ((avxvector<bsz::b256, int64_t>::tsz), 4U);
+
+        // helpers
+        EXPECT_EQ(typeid(avxvector_t<bsz::b256, int64_t>), typeid(__m256i));
+        EXPECT_EQ(typeid(avxvector_half_t<bsz::b256, int64_t>), typeid(__m128i));
+        EXPECT_EQ((avxvector_v<bsz::b256, int64_t>), 4U);
+        EXPECT_EQ((avxvector<bsz::b256, int64_t>()), 4U);
+        EXPECT_EQ((avxvector_half_v<bsz::b256, int64_t>), 2U);
+        EXPECT_EQ((hsz_v<bsz::b256, int64_t>), 2U);
+        EXPECT_EQ((tsz_v<bsz::b256, int64_t>), 4U);
     }
 
     void kt_ctypes_256()
@@ -248,446 +350,332 @@ namespace TestsKT
         EXPECT_EQ((hsz_v<bsz::b256, cdouble>), 2U);
         EXPECT_EQ((tsz_v<bsz::b256, cdouble>), 2U);
     }
+#else
+    void kt_types_512()
+    {
+        /*
+         * These bsz::b512 bit tests check that the correct data type
+         * and packed sizes are "returned".
+         */
+        // bsz::b512 float
+        EXPECT_EQ(typeid(avxvector<bsz::b512, float>::type), typeid(__m512));
+        EXPECT_EQ(typeid(avxvector<bsz::b512, float>::half_type), typeid(__m256));
+        EXPECT_EQ((avxvector<bsz::b512, float>::p_size), 16U);
+        EXPECT_EQ((avxvector<bsz::b512, float>()), 16U);
+        EXPECT_EQ((avxvector<bsz::b512, float>::hp_size), 8U);
+        EXPECT_EQ((avxvector<bsz::b512, float>::tsz), 16U);
+
+        // helpers
+        EXPECT_EQ(typeid(avxvector_t<bsz::b512, float>), typeid(__m512));
+        EXPECT_EQ(typeid(avxvector_half_t<bsz::b512, float>), typeid(__m256));
+        EXPECT_EQ((avxvector_v<bsz::b512, float>), 16U);
+        EXPECT_EQ((avxvector<bsz::b512, float>()), 16U);
+        EXPECT_EQ((avxvector_half_v<bsz::b512, float>), 8U);
+        EXPECT_EQ((hsz_v<bsz::b512, float>), 8U);
+        EXPECT_EQ((tsz_v<bsz::b512, float>), 16U);
+
+        // bsz::b512 double
+        EXPECT_EQ(typeid(avxvector<bsz::b512, double>::type), typeid(__m512d));
+        EXPECT_EQ(typeid(avxvector<bsz::b512, double>::half_type), typeid(__m256d));
+        EXPECT_EQ((avxvector<bsz::b512, double>::p_size), 8U);
+        EXPECT_EQ((avxvector<bsz::b512, double>()), 8U);
+        EXPECT_EQ((avxvector<bsz::b512, double>::hp_size), 4U);
+        EXPECT_EQ((avxvector<bsz::b512, double>::tsz), 8U);
+
+        // helpers
+        EXPECT_EQ(typeid(avxvector_t<bsz::b512, double>), typeid(__m512d));
+        EXPECT_EQ(typeid(avxvector_half_t<bsz::b512, double>), typeid(__m256d));
+        EXPECT_EQ((avxvector_v<bsz::b512, double>), 8U);
+        EXPECT_EQ((avxvector<bsz::b512, double>()), 8U);
+        EXPECT_EQ((avxvector_half_v<bsz::b512, double>), 4U);
+        EXPECT_EQ((hsz_v<bsz::b512, double>), 4U);
+        EXPECT_EQ((tsz_v<bsz::b512, double>), 8U);
+
+        // Integer types test
+        // int32_t
+        EXPECT_EQ(typeid(avxvector<bsz::b512, int32_t>::type), typeid(__m512i));
+        EXPECT_EQ(typeid(avxvector<bsz::b512, int32_t>::half_type), typeid(__m256i));
+        EXPECT_EQ((avxvector<bsz::b512, int32_t>::p_size), 16U);
+        EXPECT_EQ((avxvector<bsz::b512, int32_t>()), 16U);
+        EXPECT_EQ((avxvector<bsz::b512, int32_t>::hp_size), 8U);
+        EXPECT_EQ((avxvector<bsz::b512, int32_t>::tsz), 16U);
+
+        // helpers
+        EXPECT_EQ(typeid(avxvector_t<bsz::b512, int32_t>), typeid(__m512i));
+        EXPECT_EQ(typeid(avxvector_half_t<bsz::b512, int32_t>), typeid(__m256i));
+        EXPECT_EQ((avxvector_v<bsz::b512, int32_t>), 16U);
+        EXPECT_EQ((avxvector<bsz::b512, int32_t>()), 16U);
+        EXPECT_EQ((avxvector_half_v<bsz::b512, int32_t>), 8U);
+        EXPECT_EQ((hsz_v<bsz::b512, int32_t>), 8U);
+        EXPECT_EQ((tsz_v<bsz::b512, int32_t>), 16U);
+
+        // bsz::b512 int64_t
+        EXPECT_EQ(typeid(avxvector<bsz::b512, int64_t>::type), typeid(__m512i));
+        EXPECT_EQ(typeid(avxvector<bsz::b512, int64_t>::half_type), typeid(__m256i));
+        EXPECT_EQ((avxvector<bsz::b512, int64_t>::p_size), 8U);
+        EXPECT_EQ((avxvector<bsz::b512, int64_t>()), 8U);
+        EXPECT_EQ((avxvector<bsz::b512, int64_t>::hp_size), 4U);
+        EXPECT_EQ((avxvector<bsz::b512, int64_t>::tsz), 8U);
+
+        // helpers
+        EXPECT_EQ(typeid(avxvector_t<bsz::b512, int64_t>), typeid(__m512i));
+        EXPECT_EQ(typeid(avxvector_half_t<bsz::b512, int64_t>), typeid(__m256i));
+        EXPECT_EQ((avxvector_v<bsz::b512, int64_t>), 8U);
+        EXPECT_EQ((avxvector<bsz::b512, int64_t>()), 8U);
+        EXPECT_EQ((avxvector_half_v<bsz::b512, int64_t>), 4U);
+        EXPECT_EQ((hsz_v<bsz::b512, int64_t>), 4U);
+        EXPECT_EQ((tsz_v<bsz::b512, int64_t>), 8U);
+    }
+
+    void kt_ctypes_512()
+    {
+        /*
+        * These bsz::b512 bit tests check that the correct complex data type
+        * and packed sizes are "returned".
+        */
+        // bsz::b512 cfloat
+        EXPECT_EQ(typeid(avxvector<bsz::b512, cfloat>::type), typeid(__m512));
+        EXPECT_EQ(typeid(avxvector<bsz::b512, cfloat>::half_type), typeid(__m256));
+        EXPECT_EQ((avxvector<bsz::b512, cfloat>::p_size), 16U);
+        EXPECT_EQ((avxvector<bsz::b512, cfloat>()), 16U);
+        EXPECT_EQ((avxvector<bsz::b512, cfloat>::hp_size), 8U);
+        EXPECT_EQ((avxvector<bsz::b512, cfloat>::tsz), 8U);
+
+        // helpers
+        EXPECT_EQ(typeid(avxvector_t<bsz::b512, cfloat>), typeid(__m512));
+        EXPECT_EQ(typeid(avxvector_half_t<bsz::b512, cfloat>), typeid(__m256));
+        EXPECT_EQ((avxvector_v<bsz::b512, cfloat>), 16U);
+        EXPECT_EQ((avxvector<bsz::b512, cfloat>()), 16U);
+        EXPECT_EQ((avxvector_half_v<bsz::b512, cfloat>), 8U);
+        EXPECT_EQ((hsz_v<bsz::b512, cfloat>), 8U);
+        EXPECT_EQ((tsz_v<bsz::b512, cfloat>), 8U);
+
+        // bsz::b512 cdouble
+        EXPECT_EQ(typeid(avxvector<bsz::b512, cdouble>::type), typeid(__m512d));
+        EXPECT_EQ(typeid(avxvector<bsz::b512, cdouble>::half_type), typeid(__m256d));
+        EXPECT_EQ((avxvector<bsz::b512, cdouble>::p_size), 8U);
+        EXPECT_EQ((avxvector<bsz::b512, cdouble>()), 8U);
+        EXPECT_EQ((avxvector<bsz::b512, cdouble>::hp_size), 4U);
+        EXPECT_EQ((avxvector<bsz::b512, cdouble>::tsz), 4U);
+
+        // helpers
+        EXPECT_EQ(typeid(avxvector_t<bsz::b512, cdouble>), typeid(__m512d));
+        EXPECT_EQ(typeid(avxvector_half_t<bsz::b512, cdouble>), typeid(__m256d));
+        EXPECT_EQ((avxvector_v<bsz::b512, cdouble>), 8U);
+        EXPECT_EQ((avxvector<bsz::b512, cdouble>()), 8U);
+        EXPECT_EQ((avxvector_half_v<bsz::b512, cdouble>), 4U);
+        EXPECT_EQ((hsz_v<bsz::b512, cdouble>), 4U);
+        EXPECT_EQ((tsz_v<bsz::b512, cdouble>), 4U);
+    }
 #endif
 
-    template <bsz SZ>
+    template <bsz SZ, typename SUF>
     void kt_loadu_p_test()
     {
-        EXPECT_EQ_VEC((tsz_v<SZ, float>), (kt_loadu_p<SZ, float>(&D.vs[0])), &D.vs[0]);
-        EXPECT_EQ_VEC((tsz_v<SZ, double>), (kt_loadu_p<SZ, double>(&D.vd[0])), &D.vd[0]);
+        auto       data = D.get_data<SUF>();
+        const auto sz   = tsz_v<SZ, SUF>;
 
-        std::complex<float>    *c;
-        avxvector_t<SZ, cfloat> w;
-        w = kt_loadu_p<SZ, cfloat>(&D.vc[0]);
-        c = reinterpret_cast<std::complex<float> *>(&w);
-        // Check in complex space
-        EXPECT_EQ_VEC((tsz_v<SZ, cfloat>), c, &D.vc[0]);
+        SUF                 *c;
+        avxvector_t<SZ, SUF> w;
+        w = kt_loadu_p<SZ, SUF>(data);
+        c = reinterpret_cast<SUF *>(&w);
 
-        std::complex<double>    *z;
-        avxvector_t<SZ, cdouble> v;
-        v = kt_loadu_p<SZ, cdouble>(&D.vz[0]);
-        z = reinterpret_cast<std::complex<double> *>(&v);
-        // Check in complex space
-        EXPECT_EQ_VEC((tsz_v<SZ, cdouble>), z, &D.vz[0]);
+        EXPECT_EQ_VEC(sz, c, data);
+
+        if(::testing::Test::HasFailure())
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
     }
 
-    template <bsz SZ>
+    template <bsz SZ, typename SUF>
     void kt_setzero_p_test()
     {
-        const size_t ns        = tsz_v<SZ, float>;
-        const size_t nd        = tsz_v<SZ, double>;
-        const float  szero[ns] = {0.f};
-        const double dzero[nd] = {0.0};
+        using base_t = typename kt_dt<SUF>::base_type;
 
-        EXPECT_EQ_VEC((tsz_v<SZ, float>), (kt_setzero_p<SZ, float>()), szero);
-        EXPECT_EQ_VEC((tsz_v<SZ, double>), (kt_setzero_p<SZ, double>()), dzero);
+        const size_t sz = tsz_v<SZ, SUF>;
+        const SUF    zero_v[sz]{};
 
-        // Complex checks are reinterpreted as double-packed reals
-        EXPECT_EQ_VEC((tsz_v<SZ, cfloat>), (kt_setzero_p<SZ, cfloat>()), szero);
-        EXPECT_EQ_VEC((tsz_v<SZ, cdouble>), (kt_setzero_p<SZ, cdouble>()), dzero);
+        EXPECT_EQ_VEC(sz, (kt_setzero_p<SZ, SUF>()), zero_v);
+
+        if(::testing::Test::HasFailure())
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
     }
 
-    template <bsz SZ>
+    template <bsz SZ, typename SUF>
     void kt_set1_p_test()
     {
+        const auto sz = tsz_v<SZ, SUF>;
 
-        float refs[]{
-            4.f, 4.f, 4.f, 4.f, 4.f, 4.f, 4.f, 4.f, 4.f, 4.f, 4.f, 4.f, 4.f, 4.f, 4.f, 4.f};
-        double  refd[]{5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0};
-        cfloat  tc(2.1f, 4.5f);
-        cdouble tz(2.2f, 5.1f);
+        SUF ref = D.get_data<SUF>()[0];
+        SUF ref_v[sz];
 
-        cfloat refc[8];
+        for(size_t itr = 0; itr < sz; ++itr)
+        {
+            ref_v[itr] = ref;
+        }
 
-        for(size_t i = 0; i < 8; ++i)
-            refc[i] = tc;
+        SUF                 *c;
+        avxvector_t<SZ, SUF> w;
+        w = kt_set1_p<SZ, SUF>(ref);
+        c = reinterpret_cast<SUF *>(&w);
 
-        cdouble refz[4];
+        EXPECT_EQ_VEC(sz, c, ref_v);
 
-        for(size_t i = 0; i < 4; ++i)
-            refz[i] = tz;
-
-        EXPECT_EQ_VEC((tsz_v<SZ, float>), (kt_set1_p<SZ, float>(4.0f)), refs);
-        EXPECT_EQ_VEC((tsz_v<SZ, double>), (kt_set1_p<SZ, double>(5.0)), refd);
-
-        std::complex<float>    *c;
-        avxvector_t<SZ, cfloat> vc;
-        vc = kt_set1_p<SZ, cfloat>(tc);
-        c  = reinterpret_cast<std::complex<float> *>(&vc);
-        // Check in complex space
-        EXPECT_EQ_VEC((tsz_v<SZ, cfloat>), c, refc);
-
-        std::complex<double>    *z;
-        avxvector_t<SZ, cdouble> vz;
-        vz = kt_set1_p<SZ, cdouble>(tz);
-        z  = reinterpret_cast<std::complex<double> *>(&vz);
-        EXPECT_EQ_VEC((tsz_v<SZ, cdouble>), z, refz);
+        if(::testing::Test::HasFailure())
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
     }
 
-    template <bsz SZ>
+    template <bsz SZ, typename SUF>
     void kt_add_p_test()
     {
-        const size_t            ns = tsz_v<SZ, float>;
-        const size_t            nd = tsz_v<SZ, double>;
-        avxvector_t<SZ, float>  s, as, bs;
-        avxvector_t<SZ, double> d, ad, bd;
-        float                   refs[ns];
-        double                  refd[nd];
+        const size_t         sz = tsz_v<SZ, SUF>;
+        avxvector_t<SZ, SUF> s, as, bs;
+        SUF                  refs[sz];
 
-        as = kt_loadu_p<SZ, float>(&D.vs[0]);
-        bs = kt_set1_p<SZ, float>(1.0f);
-        s  = kt_add_p<SZ, float>(as, bs);
-        for(size_t i = 0; i < ns; i++)
+        SUF        n    = D.get_data<SUF>()[0];
+        const SUF *data = (D.get_data<SUF>() + 4);
+
+        as = kt_loadu_p<SZ, SUF>(data);
+        bs = kt_set1_p<SZ, SUF>(n);
+        s  = kt_add_p<SZ, SUF>(as, bs);
+
+        for(size_t i = 0; i < sz; i++)
         {
-            refs[i] = D.vs[i] + 1.0f;
+            refs[i] = data[i] + n;
         }
-        EXPECT_FLOAT_EQ_VEC(ns, s, refs);
 
-        ad = kt_loadu_p<SZ, double>(&D.vd[0]);
-        bd = kt_set1_p<SZ, double>(1.0);
-        d  = kt_add_p<SZ, double>(ad, bd);
-        for(size_t i = 0; i < nd; i++)
-        {
-            refd[i] = D.vd[i] + 1.0;
-        }
-        EXPECT_DOUBLE_EQ_VEC(nd, d, refd);
+        auto res_ptr = reinterpret_cast<SUF *>(&s);
+        expect_eq_vec(sz, res_ptr, refs);
 
-        // Complex type testing
-        size_t                   nc = tsz_v<SZ, cfloat>;
-        size_t                   nz = tsz_v<SZ, cdouble>;
-        avxvector_t<SZ, cfloat>  c, ac, bc;
-        avxvector_t<SZ, cdouble> z, az, bz;
-        cfloat                   refc[nc];
-        cdouble                  refz[nz];
-        std::complex<float>     *pc;
-        std::complex<double>    *pz;
-        std::complex<float>      tc(1.0f, 5.0f);
-        std::complex<double>     tz(3.0, 5.5);
-
-        ac = kt_loadu_p<SZ, cfloat>(&D.vc[2]);
-        bc = kt_set1_p<SZ, cfloat>(tc);
-        c  = kt_add_p<SZ, cfloat>(ac, bc);
-
-        for(size_t i = 0; i < nc; i++)
-        {
-            refc[i] = D.vc[2 + i] + tc;
-        }
-        pc = reinterpret_cast<std::complex<float> *>(&c);
-        EXPECT_COMPLEX_FLOAT_EQ_VEC(nc, pc, refc);
-
-        az = kt_loadu_p<SZ, cdouble>(&D.vz[2]);
-        bz = kt_set1_p<SZ, cdouble>(tz);
-        z  = kt_add_p<SZ, cdouble>(az, bz);
-        for(size_t i = 0; i < nz; i++)
-        {
-            refz[i] = D.vz[2 + i] + (tz);
-        }
-        pz = reinterpret_cast<std::complex<double> *>(&z);
-        EXPECT_COMPLEX_DOUBLE_EQ_VEC(nz, pz, refz);
+        if(::testing::Test::HasFailure())
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
     }
 
-    template <bsz SZ>
+    template <bsz SZ, typename SUF>
     void kt_sub_p_test()
     {
-        const size_t            ns = tsz_v<SZ, float>;
-        const size_t            nd = tsz_v<SZ, double>;
-        avxvector_t<SZ, float>  s, as, bs;
-        avxvector_t<SZ, double> d, ad, bd;
-        float                   refs[ns];
-        double                  refd[nd];
+        const size_t         sz = tsz_v<SZ, SUF>;
+        avxvector_t<SZ, SUF> s, as, bs;
+        SUF                  refs[sz];
 
-        as = kt_loadu_p<SZ, float>(&D.vs[0]);
-        bs = kt_set1_p<SZ, float>(1.0f);
-        s  = kt_sub_p<SZ, float>(as, bs);
-        for(size_t i = 0; i < ns; i++)
+        SUF        n    = D.get_data<SUF>()[1];
+        const SUF *data = (D.get_data<SUF>() + 3);
+
+        as = kt_loadu_p<SZ, SUF>(data);
+        bs = kt_set1_p<SZ, SUF>(n);
+        s  = kt_sub_p<SZ, SUF>(as, bs);
+        for(size_t i = 0; i < sz; i++)
         {
-            refs[i] = D.vs[i] - 1.0f;
+            refs[i] = data[i] - n;
         }
-        EXPECT_FLOAT_EQ_VEC(ns, s, refs);
 
-        ad = kt_loadu_p<SZ, double>(&D.vd[0]);
-        bd = kt_set1_p<SZ, double>(1.0);
-        d  = kt_sub_p<SZ, double>(ad, bd);
-        for(size_t i = 0; i < nd; i++)
-        {
-            refd[i] = D.vd[i] - 1.0;
-        }
-        EXPECT_DOUBLE_EQ_VEC(nd, d, refd);
+        auto res_ptr = reinterpret_cast<SUF *>(&s);
+        expect_eq_vec(sz, res_ptr, refs);
 
-        // Complex type testing
-        size_t                   nc = tsz_v<SZ, cfloat>;
-        size_t                   nz = tsz_v<SZ, cdouble>;
-        avxvector_t<SZ, cfloat>  c, ac, bc;
-        avxvector_t<SZ, cdouble> z, az, bz;
-        cfloat                   refc[8];
-        cdouble                  refz[4];
-        std::complex<float>     *pc;
-        std::complex<double>    *pz;
-        std::complex<float>      tc(1.0f, 5.0f);
-        std::complex<double>     tz(3.0, 5.5);
-
-        ac = kt_loadu_p<SZ, cfloat>(&D.vc[2]);
-        bc = kt_set1_p<SZ, cfloat>(tc);
-        c  = kt_sub_p<SZ, cfloat>(ac, bc);
-        for(size_t i = 0; i < nc; i++)
-        {
-            refc[i] = D.vc[2 + i] - (tc);
-        }
-        pc = reinterpret_cast<std::complex<float> *>(&c);
-        EXPECT_COMPLEX_FLOAT_EQ_VEC(nc, pc, refc);
-
-        az = kt_loadu_p<SZ, cdouble>(&D.vz[2]);
-        bz = kt_set1_p<SZ, cdouble>(tz);
-        z  = kt_sub_p<SZ, cdouble>(az, bz);
-        for(size_t i = 0; i < nz; i++)
-        {
-            refz[i] = D.vz[2 + i] - (tz);
-        }
-        pz = reinterpret_cast<std::complex<double> *>(&z);
-        EXPECT_COMPLEX_DOUBLE_EQ_VEC(nz, pz, refz);
+        if(::testing::Test::HasFailure())
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
     }
 
-    template <bsz SZ>
+    template <bsz SZ, typename SUF>
     void kt_mul_p_test()
     {
-        size_t                  ns = tsz_v<SZ, float>;
-        size_t                  nd = tsz_v<SZ, double>;
-        avxvector_t<SZ, float>  s, as, bs;
-        avxvector_t<SZ, double> d, ad, bd;
-        float                   refs[ns];
-        double                  refd[nd];
+        size_t               sz = tsz_v<SZ, SUF>;
+        avxvector_t<SZ, SUF> s, as, bs;
+        SUF                  refs[sz];
 
-        as = kt_loadu_p<SZ, float>(&D.vs[0]);
-        bs = kt_set1_p<SZ, float>(3.3f);
-        s  = kt_mul_p<SZ, float>(as, bs);
-        for(size_t i = 0; i < ns; i++)
-        {
-            refs[i] = D.vs[i] * 3.3f;
-        }
-        EXPECT_FLOAT_EQ_VEC(ns, s, refs);
+        SUF        n    = D.get_data<SUF>()[2];
+        const SUF *data = (D.get_data<SUF>() + 2);
 
-        ad = kt_loadu_p<SZ, double>(&D.vd[0]);
-        bd = kt_set1_p<SZ, double>(3.5);
-        d  = kt_mul_p<SZ, double>(ad, bd);
-        for(size_t i = 0; i < nd; i++)
+        as = kt_loadu_p<SZ, SUF>(data);
+        bs = kt_set1_p<SZ, SUF>(n);
+        s  = kt_mul_p<SZ, SUF>(as, bs);
+        for(size_t i = 0; i < sz; i++)
         {
-            refd[i] = D.vd[i] * 3.5;
+            refs[i] = data[i] * n;
         }
-        EXPECT_DOUBLE_EQ_VEC(nd, d, refd);
 
-        // complex<float> mul_p
-        const size_t            nc = tsz_v<SZ, cfloat>;
-        avxvector_t<SZ, cfloat> ac = kt_loadu_p<SZ, cfloat>(&D.vc[2]);
-        avxvector_t<SZ, cfloat> bc = kt_set1_p<SZ, cfloat>(D.vc[0]);
-        avxvector_t<SZ, cfloat> sc = kt_mul_p<SZ, cfloat>(ac, bc);
-        std::complex<float>     refc[nc];
-        std::complex<float>    *pc;
-        for(size_t i = 0; i < nc; i++)
-        {
-            refc[i] = D.vc[2 + i] * D.vc[0];
-        }
-        pc = reinterpret_cast<std::complex<float> *>(&sc);
-        EXPECT_COMPLEX_FLOAT_EQ_VEC(nc, pc, refc);
+        auto res_ptr = reinterpret_cast<SUF *>(&s);
+        expect_eq_vec(sz, res_ptr, refs);
 
-        // complex<double> mul_p
-        avxvector_t<SZ, cdouble> az = kt_loadu_p<SZ, cdouble>(&D.vz[2]);
-        avxvector_t<SZ, cdouble> bz = kt_set1_p<SZ, cdouble>(D.vz[0]);
-        avxvector_t<SZ, cdouble> dz = kt_mul_p<SZ, cdouble>(az, bz);
-        const size_t             nz = tsz_v<SZ, cdouble>;
-        std::complex<double>     refz[nz];
-        std::complex<double>    *pz;
-        for(size_t i = 0; i < nz; i++)
-        {
-            refz[i] = D.vz[2 + i] * D.vz[0];
-            ;
-        }
-        pz = reinterpret_cast<std::complex<double> *>(&dz);
-        EXPECT_COMPLEX_DOUBLE_EQ_VEC(nz, pz, refz)
+        if(::testing::Test::HasFailure())
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
     }
 
-    template <bsz SZ>
+    template <bsz SZ, typename SUF>
     void kt_fmadd_p_test()
     {
-        size_t                  ns = tsz_v<SZ, float>;
-        size_t                  nd = tsz_v<SZ, double>;
-        avxvector_t<SZ, float>  s, as, bs;
-        avxvector_t<SZ, double> d, ad, bd;
-        float                   refs[ns];
-        double                  refd[nd];
+        size_t               sz = tsz_v<SZ, SUF>;
+        avxvector_t<SZ, SUF> s, as, bs;
+        SUF                  refs[sz];
 
-        as = kt_loadu_p<SZ, float>(&D.vs[0]);
-        bs = kt_set_p<SZ, float>(D.vs, D.map);
-        s  = kt_set_p<SZ, float>(D.vs, &D.map[4]);
-        s  = kt_fmadd_p<SZ, float>(as, bs, s);
-        for(size_t i = 0; i < ns; i++)
+        const SUF    *data = D.get_data<SUF>();
+        const size_t *idx  = D.map;
+
+        as = kt_loadu_p<SZ, SUF>(data + 2);
+        bs = kt_set_p<SZ, SUF>(data, idx);
+        s  = kt_set_p<SZ, SUF>(data, idx + 4);
+        s  = kt_fmadd_p<SZ, SUF>(as, bs, s);
+
+        for(size_t i = 0; i < sz; i++)
         {
-            refs[i] = D.vs[i] * D.vs[D.map[i]] + D.vs[D.map[4 + i]];
-        }
-        EXPECT_FLOAT_EQ_VEC(ns, s, refs);
-
-        ad = kt_loadu_p<SZ, double>(&D.vd[0]);
-        bd = kt_set_p<SZ, double>(D.vd, D.map);
-        d  = kt_set_p<SZ, double>(D.vd, &D.map[2]);
-        d  = kt_fmadd_p<SZ, double>(ad, bd, d);
-        for(size_t i = 0; i < nd; i++)
-        {
-            refd[i] = D.vd[i] * D.vd[D.map[i]] + D.vd[D.map[2 + i]];
-        }
-        EXPECT_DOUBLE_EQ_VEC(nd, d, refd);
-
-        // Complex<float> FMADD
-        constexpr size_t       nc = tsz_v<SZ, cfloat>;
-        avxvector_t<SZ, float> sc, ac, bc, cc;
-        cfloat                 refc[nc];
-        const cfloat          *vc1 = D.vc;
-        const cfloat          *vc2 = D.vc + 1;
-
-        ac = kt_loadu_p<SZ, cfloat>(&D.vc[2]);
-        bc = kt_loadu_p<SZ, cfloat>(vc1);
-        cc = kt_loadu_p<SZ, cfloat>(vc2);
-        sc = kt_fmadd_p<SZ, cfloat>(ac, bc, cc);
-        for(size_t i = 0; i < nc; i++)
-        {
-            refc[i] = D.vc[2 + i] * vc1[i] + vc2[i];
-        }
-        std::complex<float> *pc = reinterpret_cast<std::complex<float> *>(&sc);
-        EXPECT_COMPLEX_FLOAT_EQ_VEC(nc, pc, refc);
-
-        // Complex<double> FMADD
-        constexpr size_t        nz = tsz_v<SZ, cdouble>;
-        avxvector_t<SZ, double> sz, az, bz, cz;
-        cdouble                 refz[nz];
-        const cdouble          *vz1 = D.vz;
-        const cdouble          *vz2 = D.vz + 1;
-
-        az = kt_loadu_p<SZ, cdouble>(&D.vz[2]);
-        bz = kt_loadu_p<SZ, cdouble>(vz1);
-        cz = kt_loadu_p<SZ, cdouble>(vz2);
-        sz = kt_fmadd_p<SZ, cdouble>(az, bz, cz);
-        for(size_t i = 0; i < nz; i++)
-        {
-            refz[i] = D.vz[2 + i] * vz1[i] + vz2[i];
+            refs[i] = data[i + 2] * data[idx[i]] + data[idx[4 + i]];
         }
 
-        std::complex<double> *pz = reinterpret_cast<std::complex<double> *>(&sz);
-        EXPECT_COMPLEX_DOUBLE_EQ_VEC(nz, pz, refz);
+        auto res_ptr = reinterpret_cast<SUF *>(&s);
+        expect_eq_vec(sz, res_ptr, refs);
+
+        if(::testing::Test::HasFailure())
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
     }
 
-    template <bsz SZ>
+    template <bsz SZ, typename SUF>
     void kt_fmsub_p_test()
     {
-        size_t                  ns = tsz_v<SZ, float>;
-        size_t                  nd = tsz_v<SZ, double>;
-        avxvector_t<SZ, float>  s, as, bs;
-        avxvector_t<SZ, double> d, ad, bd;
-        float                   refs[ns];
-        double                  refd[nd];
+        size_t               sz = tsz_v<SZ, SUF>;
+        avxvector_t<SZ, SUF> s, as, bs;
+        SUF                  refs[sz];
 
-        as = kt_loadu_p<SZ, float>(&D.vs[0]);
-        bs = kt_set_p<SZ, float>(D.vs, D.map);
-        s  = kt_set_p<SZ, float>(D.vs, &D.map[4]);
-        s  = kt_fmsub_p<SZ, float>(as, bs, s);
-        for(size_t i = 0; i < ns; i++)
+        const SUF    *data = D.get_data<SUF>();
+        const size_t *idx  = D.map;
+
+        as = kt_loadu_p<SZ, SUF>(data);
+        bs = kt_set_p<SZ, SUF>(data, idx);
+        s  = kt_set_p<SZ, SUF>(data, idx + 4);
+        s  = kt_fmsub_p<SZ, SUF>(as, bs, s);
+
+        for(size_t i = 0; i < sz; i++)
         {
-            refs[i] = D.vs[i] * D.vs[D.map[i]] - D.vs[D.map[4 + i]];
-        }
-        EXPECT_FLOAT_EQ_VEC(ns, s, refs);
-
-        ad = kt_loadu_p<SZ, double>(&D.vd[0]);
-        bd = kt_set_p<SZ, double>(D.vd, D.map);
-        d  = kt_set_p<SZ, double>(D.vd, &D.map[2]);
-        d  = kt_fmsub_p<SZ, double>(ad, bd, d);
-        for(size_t i = 0; i < nd; i++)
-        {
-            refd[i] = D.vd[i] * D.vd[D.map[i]] - D.vd[D.map[2 + i]];
-        }
-        EXPECT_DOUBLE_EQ_VEC(nd, d, refd);
-
-        // Complex<float> FMSUB
-        constexpr size_t       nc = tsz_v<SZ, cfloat>;
-        avxvector_t<SZ, float> sc, ac, bc, cc;
-        cfloat                 refc[nc];
-        const cfloat          *vc1 = D.vc;
-        const cfloat          *vc2 = D.vc + 1;
-
-        ac = kt_loadu_p<SZ, cfloat>(&D.vc[2]);
-        bc = kt_loadu_p<SZ, cfloat>(vc1);
-        cc = kt_loadu_p<SZ, cfloat>(vc2);
-        sc = kt_fmsub_p<SZ, cfloat>(ac, bc, cc);
-        for(size_t i = 0; i < nc; i++)
-        {
-            refc[i] = D.vc[2 + i] * vc1[i] - vc2[i];
-        }
-        std::complex<float> *pc = reinterpret_cast<std::complex<float> *>(&sc);
-        EXPECT_COMPLEX_FLOAT_EQ_VEC(nc, pc, refc);
-
-        // Complex<double> FMSUB
-        constexpr size_t        nz = tsz_v<SZ, cdouble>;
-        avxvector_t<SZ, double> sz, az, bz, cz;
-        cdouble                 refz[nz];
-        const cdouble          *vz1 = D.vz;
-        const cdouble          *vz2 = D.vz + 1;
-
-        az = kt_loadu_p<SZ, cdouble>(&D.vz[2]);
-        bz = kt_loadu_p<SZ, cdouble>(vz1);
-        cz = kt_loadu_p<SZ, cdouble>(vz2);
-        sz = kt_fmsub_p<SZ, cdouble>(az, bz, cz);
-        for(size_t i = 0; i < nz; i++)
-        {
-            refz[i] = D.vz[2 + i] * vz1[i] - vz2[i];
+            refs[i] = data[i] * data[idx[i]] - data[idx[4 + i]];
         }
 
-        std::complex<double> *pz = reinterpret_cast<std::complex<double> *>(&sz);
-        EXPECT_COMPLEX_DOUBLE_EQ_VEC(nz, pz, refz);
+        auto res_ptr = reinterpret_cast<SUF *>(&s);
+        expect_eq_vec(sz, res_ptr, refs);
+
+        if(::testing::Test::HasFailure())
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
     }
 
-    template <bsz SZ>
+    template <bsz SZ, typename SUF>
     void kt_set_p_test()
     {
-        const size_t             ns = tsz_v<SZ, float>;
-        const size_t             nd = tsz_v<SZ, double>;
-        const size_t             nc = tsz_v<SZ, cfloat>;
-        const size_t             nz = tsz_v<SZ, cdouble>;
-        avxvector_t<SZ, float>   s;
-        avxvector_t<SZ, double>  d;
-        avxvector_t<SZ, cfloat>  c;
-        avxvector_t<SZ, cdouble> z;
-        float                    refs[ns];
-        double                   refd[nd];
-        cfloat                   refc[nc];
-        cdouble                  refz[nz];
-        cfloat                  *pc;
-        cdouble                 *pz;
+        const size_t         sz = tsz_v<SZ, SUF>;
+        avxvector_t<SZ, SUF> s;
+        SUF                  refs[sz];
 
-        s = kt_set_p<SZ, float>(D.vs, &D.map[2]);
-        for(size_t i = 0; i < ns; i++)
-        {
-            refs[i] = D.vs[D.map[2 + i]];
-        }
-        EXPECT_EQ_VEC(ns, s, refs);
+        const SUF    *data = D.get_data<SUF>();
+        const size_t *idx  = D.map;
 
-        d = kt_set_p<SZ, double>(D.vd, &D.map[3]);
-        for(size_t i = 0; i < nd; i++)
-        {
-            refd[i] = D.vd[D.map[3 + i]];
-        }
-        EXPECT_EQ_VEC(nd, d, refd);
+        s = kt_set_p<SZ, SUF>(data, idx + 2);
 
-        c = kt_set_p<SZ, cfloat>(D.vc, &D.map[5]);
-        for(size_t i = 0; i < nc; i++)
+        for(size_t i = 0; i < sz; i++)
         {
-            refc[i] = D.vc[D.map[5 + i]];
+            refs[i] = data[idx[2 + i]];
         }
-        pc = reinterpret_cast<cfloat *>(&c);
-        EXPECT_COMPLEX_EQ_VEC(nc, pc, refc);
 
-        z = kt_set_p<SZ, cdouble>(D.vz, &D.map[0]);
-        for(size_t i = 0; i < nz; i++)
-        {
-            refz[i] = D.vz[D.map[0 + i]];
-        }
-        pz = reinterpret_cast<cdouble *>(&z);
-        EXPECT_COMPLEX_EQ_VEC(nz, pz, refz);
+        auto res_ptr = reinterpret_cast<SUF *>(&s);
+        EXPECT_EQ_VEC(sz, res_ptr, refs);
+
+        if(::testing::Test::HasFailure())
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
     }
 
     /*
@@ -777,7 +765,151 @@ namespace TestsKT
         }                                                                                    \
     }
 
-#ifndef KT_AVX2_BUILD
+#ifdef KT_AVX2_BUILD
+    void kt_maskz_set_p_128_avx()
+    {
+        // ===================================================
+        // DIRECT (can have any extension other than AVX512VL)
+        //====================================================
+        // bsz::b128/float -> 4
+        kt_maskz_set_p_param_dir(bsz::b128, float, s, AVX, 1, 1);
+        kt_maskz_set_p_param_dir(bsz::b128, float, s, AVX2, 2, 0);
+        kt_maskz_set_p_param_dir(bsz::b128, float, s, AVX512F, 3, 2);
+        kt_maskz_set_p_param_dir(bsz::b128, float, s, AVX, 4, 1);
+
+        // This must trigger a warning under AVX512F (bsz::b128 bit __mask8)
+        // kt_maskz_set_p_param_dir(bsz::b128, float, s, AVX, 9);
+        // Test to ensure the memory is not touched
+        kt_maskz_set_p_param_dir(bsz::b128, float, s, AVX, -1, 10000000);
+
+        // bsz::b128 double -> 2
+        kt_maskz_set_p_param_dir(bsz::b128, double, d, AVX512DQ, 1, 0);
+        kt_maskz_set_p_param_dir(bsz::b128, double, d, AVX512F, 2, 1);
+        // This also triggers a warning
+        // kt_maskz_set_p_param_dir(bsz::b128, double, d, AVX, 5);
+        // Test to ensure the memory is not touched
+        kt_maskz_set_p_param_dir(bsz::b128, double, d, AVX, -1, 10000000);
+
+        // bsz::b128 cfloat -> 2
+        kt_maskz_set_p_param_dir(bsz::b128, cfloat, c, AVX2, 1, 1);
+        kt_maskz_set_p_param_dir(bsz::b128, cfloat, c, AVX, 2, 0);
+
+        // Test to ensure the memory is not touched
+        kt_maskz_set_p_param_dir(bsz::b128, cfloat, c, AVX512F, -1, 10000000);
+
+        // bsz::b128 cdouble -> 1
+        kt_maskz_set_p_param_dir(bsz::b128, cdouble, z, AVX, 1, 0);
+
+        // Test to ensure the memory is not touched
+        kt_maskz_set_p_param_dir(bsz::b128, cdouble, z, AVX2, -1, 10000000);
+
+        // =================================
+        // INDIRECT (can have any extension)
+        // =================================
+        kt_maskz_set_p_param_indir(bsz::b128, float, s, AVX, 1, 0);
+        kt_maskz_set_p_param_indir(bsz::b128, float, s, AVX512F, 2, 1);
+        kt_maskz_set_p_param_indir(bsz::b128, float, s, AVX512VL, 3, 0);
+        kt_maskz_set_p_param_indir(bsz::b128, float, s, AVX, 4, 1);
+
+        kt_maskz_set_p_param_indir(bsz::b128, double, d, AVX, 1, 0);
+        kt_maskz_set_p_param_indir(bsz::b128, double, d, AVX512DQ, 2, 1);
+
+        kt_maskz_set_p_param_indir(bsz::b128, cfloat, c, AVX, 1, 0);
+        kt_maskz_set_p_param_indir(bsz::b128, cfloat, c, AVX512F, 2, 1);
+
+        kt_maskz_set_p_param_indir(bsz::b128, cdouble, z, AVX, 1, 1);
+
+        // Out of bound access tests
+        kt_maskz_set_p_param_indir_out_of_bound(bsz::b128, float, s, AVX);
+        kt_maskz_set_p_param_indir_out_of_bound(bsz::b128, double, d, AVX);
+        kt_maskz_set_p_param_indir_out_of_bound(bsz::b128, cfloat, c, AVX);
+        kt_maskz_set_p_param_indir_out_of_bound(bsz::b128, cdouble, z, AVX);
+    }
+
+    void kt_maskz_set_p_256_avx()
+    {
+        // ===============
+        // DIRECT
+        //================
+        // bsz::b256/float -> 8
+        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 1, 1);
+        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 2, 0);
+        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 3, 2);
+        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 4, 1);
+        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 5, 0);
+        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 6, 1);
+        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 7, 0);
+        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 8, 1);
+        // This must trigger a warning under AVX512F (bsz::b256 bit __mask8)
+        // kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 9);
+        // Test to ensure the memory is not touched
+        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, -1, 10000000);
+
+        // bsz::b256 double -> 4
+        kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX, 1, 0);
+        kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX, 2, 1);
+        kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX, 3, 3);
+        kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX, 4, 2);
+        // This also triggers a warning
+        // kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX, 5);
+        // Test to ensure the memory is not touched
+        kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX, -1, 10000000);
+
+        // bsz::b256 cfloat -> 4
+        kt_maskz_set_p_param_dir(bsz::b256, cfloat, c, AVX, 1, 1);
+        kt_maskz_set_p_param_dir(bsz::b256, cfloat, c, AVX, 2, 0);
+        kt_maskz_set_p_param_dir(bsz::b256, cfloat, c, AVX, 3, 4);
+        kt_maskz_set_p_param_dir(bsz::b256, cfloat, c, AVX, 4, 0);
+
+        // Test to ensure the memory is not touched
+        kt_maskz_set_p_param_dir(bsz::b256, cfloat, c, AVX, -1, 10000000);
+
+        // bsz::b256 cdouble -> 2
+        kt_maskz_set_p_param_dir(bsz::b256, cdouble, z, AVX, 1, 0);
+        kt_maskz_set_p_param_dir(bsz::b256, cdouble, z, AVX, 2, 4);
+        kt_maskz_set_p_param_dir(bsz::b256, cdouble, z, AVX, 2, 0);
+
+        // Test to ensure the memory is not touched
+        kt_maskz_set_p_param_dir(bsz::b256, cdouble, z, AVX, -1, 10000000);
+
+        // =================================
+        // INDIRECT (can have any extension)
+        // =================================
+        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX, 1, 0);
+        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX512F, 2, 1);
+        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX512VL, 3, 0);
+        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX, 4, 1);
+        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX, 5, 0);
+        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX, 6, 2);
+        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX, 7, 0);
+        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX, 8, 0);
+        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX, 9, 0);
+
+        kt_maskz_set_p_param_indir(bsz::b256, double, d, AVX, 1, 0);
+        kt_maskz_set_p_param_indir(bsz::b256, double, d, AVX512DQ, 0, 1);
+        kt_maskz_set_p_param_indir(bsz::b256, double, d, AVX, 3, 0);
+        kt_maskz_set_p_param_indir(bsz::b256, double, d, AVX, 4, 3);
+        kt_maskz_set_p_param_indir(bsz::b256, double, d, AVX, 5, 0);
+
+        kt_maskz_set_p_param_indir(bsz::b256, cfloat, c, AVX, 1, 0);
+        kt_maskz_set_p_param_indir(bsz::b256, cfloat, c, AVX512F, 2, 1);
+        kt_maskz_set_p_param_indir(bsz::b256, cfloat, c, AVX512VL, 0, 0);
+        kt_maskz_set_p_param_indir(bsz::b256, cfloat, c, AVX, 4, 1);
+        kt_maskz_set_p_param_indir(bsz::b256, cfloat, c, AVX, 3, 3);
+
+        kt_maskz_set_p_param_indir(bsz::b256, cdouble, z, AVX, 1, 1);
+        kt_maskz_set_p_param_indir(bsz::b256, cdouble, z, AVX512DQ, 2, 0);
+        kt_maskz_set_p_param_indir(bsz::b256, cdouble, z, AVX, 1, 0);
+        kt_maskz_set_p_param_indir(bsz::b256, cdouble, z, AVX, 2, 2);
+        kt_maskz_set_p_param_indir(bsz::b256, cdouble, z, AVX512DQ, 0, 0);
+
+        // Out of bound access tests
+        kt_maskz_set_p_param_indir_out_of_bound(bsz::b256, float, s, AVX2);
+        kt_maskz_set_p_param_indir_out_of_bound(bsz::b256, double, d, AVX2);
+        kt_maskz_set_p_param_indir_out_of_bound(bsz::b256, cfloat, c, AVX2);
+        kt_maskz_set_p_param_indir_out_of_bound(bsz::b256, cdouble, z, AVX2);
+    }
+#else
     void kt_maskz_set_p_256_AVX512vl()
     {
         kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX512VL, 1, 0);
@@ -890,581 +1022,437 @@ namespace TestsKT
         kt_maskz_set_p_param_indir_out_of_bound(bsz::b512, cfloat, c, AVX512F);
         kt_maskz_set_p_param_indir_out_of_bound(bsz::b512, cdouble, z, AVX512F);
     }
-
-#else
-    void kt_maskz_set_p_256_avx()
-    {
-        // ===============
-        // DIRECT
-        //================
-        // bsz::b256/float -> 8
-        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 1, 1);
-        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 2, 0);
-        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 3, 2);
-        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 4, 1);
-        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 5, 0);
-        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 6, 1);
-        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 7, 0);
-        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 8, 1);
-        // This must trigger a warning under AVX512F (bsz::b256 bit __mask8)
-        // kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 9);
-        // Test to ensure the memory is not touched
-        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, -1, 10000000);
-
-        // bsz::b256 double -> 4
-        kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX, 1, 0);
-        kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX, 2, 1);
-        kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX, 3, 3);
-        kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX, 4, 2);
-        // This also triggers a warning
-        // kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX, 5);
-        // Test to ensure the memory is not touched
-        kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX, -1, 10000000);
-
-        // bsz::b256 cfloat -> 4
-        kt_maskz_set_p_param_dir(bsz::b256, cfloat, c, AVX, 1, 1);
-        kt_maskz_set_p_param_dir(bsz::b256, cfloat, c, AVX, 2, 0);
-        kt_maskz_set_p_param_dir(bsz::b256, cfloat, c, AVX, 3, 4);
-        kt_maskz_set_p_param_dir(bsz::b256, cfloat, c, AVX, 4, 0);
-
-        // Test to ensure the memory is not touched
-        kt_maskz_set_p_param_dir(bsz::b256, cfloat, c, AVX, -1, 10000000);
-
-        // bsz::b256 cdouble -> 2
-        kt_maskz_set_p_param_dir(bsz::b256, cdouble, z, AVX, 1, 0);
-        kt_maskz_set_p_param_dir(bsz::b256, cdouble, z, AVX, 2, 4);
-        kt_maskz_set_p_param_dir(bsz::b256, cdouble, z, AVX, 2, 0);
-
-        // Test to ensure the memory is not touched
-        kt_maskz_set_p_param_dir(bsz::b256, cdouble, z, AVX, -1, 10000000);
-
-        // =================================
-        // INDIRECT (can have any extension)
-        // =================================
-        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX, 1, 0);
-        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX512F, 2, 1);
-        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX512VL, 3, 0);
-        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX, 4, 1);
-        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX, 5, 0);
-        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX, 6, 2);
-        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX, 7, 0);
-        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX, 8, 0);
-        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX, 9, 0);
-
-        kt_maskz_set_p_param_indir(bsz::b256, double, d, AVX, 1, 0);
-        kt_maskz_set_p_param_indir(bsz::b256, double, d, AVX512DQ, 0, 1);
-        kt_maskz_set_p_param_indir(bsz::b256, double, d, AVX, 3, 0);
-        kt_maskz_set_p_param_indir(bsz::b256, double, d, AVX, 4, 3);
-        kt_maskz_set_p_param_indir(bsz::b256, double, d, AVX, 5, 0);
-
-        kt_maskz_set_p_param_indir(bsz::b256, cfloat, c, AVX, 1, 0);
-        kt_maskz_set_p_param_indir(bsz::b256, cfloat, c, AVX512F, 2, 1);
-        kt_maskz_set_p_param_indir(bsz::b256, cfloat, c, AVX512VL, 0, 0);
-        kt_maskz_set_p_param_indir(bsz::b256, cfloat, c, AVX, 4, 1);
-        kt_maskz_set_p_param_indir(bsz::b256, cfloat, c, AVX, 3, 3);
-
-        kt_maskz_set_p_param_indir(bsz::b256, cdouble, z, AVX, 1, 1);
-        kt_maskz_set_p_param_indir(bsz::b256, cdouble, z, AVX512DQ, 2, 0);
-        kt_maskz_set_p_param_indir(bsz::b256, cdouble, z, AVX, 1, 0);
-        kt_maskz_set_p_param_indir(bsz::b256, cdouble, z, AVX, 2, 2);
-        kt_maskz_set_p_param_indir(bsz::b256, cdouble, z, AVX512DQ, 0, 0);
-
-        // Out of bound access tests
-        kt_maskz_set_p_param_indir_out_of_bound(bsz::b256, float, s, AVX2);
-        kt_maskz_set_p_param_indir_out_of_bound(bsz::b256, double, d, AVX2);
-        kt_maskz_set_p_param_indir_out_of_bound(bsz::b256, cfloat, c, AVX2);
-        kt_maskz_set_p_param_indir_out_of_bound(bsz::b256, cdouble, z, AVX2);
-    }
 #endif
 
-    template <bsz SZ>
+    template <bsz SZ, typename SUF>
     void kt_hsum_p_test()
     {
-        const size_t            ns = tsz_v<SZ, float>;
-        const size_t            nd = tsz_v<SZ, double>;
-        avxvector_t<SZ, float>  vs;
-        avxvector_t<SZ, double> vd;
-        float                   sums, refs = 0.0f;
-        double                  sumd, refd = 0.0;
+        const size_t         sz = tsz_v<SZ, SUF>;
+        avxvector_t<SZ, SUF> vs;
+        SUF                  sums{}, refs{};
 
-        vs   = kt_loadu_p<SZ, float>(D.vs);
-        sums = kt_hsum_p<SZ, float>(vs);
-        for(size_t i = 0; i < ns; i++)
+        const SUF *data = D.get_data<SUF>();
+
+        vs   = kt_loadu_p<SZ, SUF>(data);
+        sums = kt_hsum_p<SZ, SUF>(vs);
+
+        for(size_t i = 0; i < sz; i++)
         {
-            refs += D.vs[i];
+            refs += data[i];
         }
-        EXPECT_FLOAT_EQ(sums, refs);
 
-        vd   = kt_loadu_p<SZ, double>(D.vd);
-        sumd = kt_hsum_p<SZ, double>(vd);
-        for(size_t i = 0; i < nd; i++)
-        {
-            refd += D.vd[i];
-        }
-        EXPECT_DOUBLE_EQ(sumd, refd);
+        expect_eq<SUF>(sums, refs);
 
-        const size_t             nc = tsz_v<SZ, cfloat>;
-        const size_t             nz = tsz_v<SZ, cdouble>;
-        avxvector_t<SZ, cfloat>  vc;
-        avxvector_t<SZ, cdouble> vz;
-        cfloat                   sumz, refz = {0.0f, 0.0f};
-        cdouble                  sumc, refc = {0.0, 0.0};
-
-        vc   = kt_loadu_p<SZ, cfloat>(D.vc);
-        sumz = kt_hsum_p<SZ, cfloat>(vc);
-        for(size_t i = 0; i < nc; i++)
-        {
-            refz += D.vc[i];
-        }
-        EXPECT_COMPLEX_FLOAT_EQ(sumz, refz);
-
-        vz   = kt_loadu_p<SZ, cdouble>(D.vz);
-        sumc = kt_hsum_p<SZ, cdouble>(vz);
-        for(size_t i = 0; i < nz; i++)
-        {
-            refc += D.vz[i];
-        }
-        EXPECT_COMPLEX_DOUBLE_EQ(sumc, refc);
+        if(::testing::Test::HasFailure())
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
     }
 
-    template <bsz SZ>
+    template <bsz SZ, typename SUF>
     void kt_conj_p_test()
     {
 
-        constexpr size_t         ns = tsz_v<SZ, float>;
-        constexpr size_t         nd = tsz_v<SZ, double>;
-        constexpr size_t         nz = tsz_v<SZ, cdouble>;
-        constexpr size_t         nc = tsz_v<SZ, cfloat>;
-        avxvector_t<SZ, float>   vs;
-        avxvector_t<SZ, double>  vd;
-        avxvector_t<SZ, cfloat>  vc;
-        avxvector_t<SZ, cdouble> vz;
-
-        float   refs[ns];
-        double  refd[nd];
-        cfloat  refc[nc];
-        cdouble refz[nz];
+        constexpr size_t     sz = tsz_v<SZ, SUF>;
+        avxvector_t<SZ, SUF> vs;
+        SUF                  refs[sz];
 
         // Float
-        vs = kt_loadu_p<SZ, float>(D.vs);
-        vs = kt_conj_p<SZ, float>(vs);
+        vs = kt_loadu_p<SZ, SUF>(D.get_data<SUF>());
+        vs = kt_conj_p<SZ, SUF>(vs);
 
-        for(size_t i = 0; i < ns; i++)
+        for(size_t i = 0; i < sz; i++)
         {
-            refs[i] = D.vs[i];
+            if constexpr(kt_type_is_real<SUF>())
+                refs[i] = D.get_data<SUF>()[i];
+            else
+                refs[i] = std::conj(D.get_data<SUF>()[i]);
         }
 
-        EXPECT_EQ_VEC(ns, refs, vs);
+        auto *pv = reinterpret_cast<SUF *>(&vs);
+        expect_eq_vec(sz, refs, pv);
 
-        // Double
-        vd = kt_loadu_p<SZ, double>(D.vd);
-        vd = kt_conj_p<SZ, double>(vd);
-
-        for(size_t i = 0; i < nd; i++)
-        {
-            refd[i] = D.vd[i];
-        }
-
-        EXPECT_EQ_VEC(nd, refd, vd);
-
-        // Cfloat
-        vc = kt_loadu_p<SZ, cfloat>(&D.vc[0]);
-        vc = kt_conj_p<SZ, cfloat>(vc);
-
-        for(size_t i = 0; i < nc; i++)
-        {
-            refc[i] = conj(D.vc[i]);
-        }
-
-        std::complex<float> *pc = reinterpret_cast<std::complex<float> *>(&vc);
-        EXPECT_COMPLEX_EQ_VEC(nc, refc, pc);
-
-        // CDouble
-        vz = kt_loadu_p<SZ, cdouble>(&D.vz[0]);
-        vz = kt_conj_p<SZ, cdouble>(vz);
-
-        for(size_t i = 0; i < nz; i++)
-        {
-            refz[i] = conj(D.vz[i]);
-        }
-
-        std::complex<double> *pz = reinterpret_cast<std::complex<double> *>(&vz);
-        EXPECT_COMPLEX_EQ_VEC(nz, refz, pz);
+        if(::testing::Test::HasFailure())
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
     }
 
-    template <bsz SZ>
+    template <bsz SZ, typename SUF>
     void kt_dot_p_test()
     {
-        const size_t            ns   = tsz_v<SZ, float>;
-        const size_t            nd   = tsz_v<SZ, double>;
-        avxvector_t<SZ, float>  s1   = kt_loadu_p<SZ, float>(&D.vs[0]);
-        avxvector_t<SZ, float>  s2   = kt_loadu_p<SZ, float>(&D.vs[0]);
-        avxvector_t<SZ, double> d1   = kt_loadu_p<SZ, double>(&D.vd[0]);
-        avxvector_t<SZ, double> d2   = kt_loadu_p<SZ, double>(&D.vd[0]);
-        float                   refs = 0.0f;
-        double                  refd = 0.0;
+        const size_t sz = tsz_v<SZ, SUF>;
 
-        float sdot = kt_dot_p<SZ, float>(s1, s2);
-        for(size_t i = 0; i < ns; i++)
-            refs += D.vs[0 + i] * D.vs[0 + i];
-        EXPECT_FLOAT_EQ(refs, sdot);
+        const SUF *data = D.get_data<SUF>();
 
-        double ddot = kt_dot_p<SZ, double>(d1, d2);
-        for(size_t i = 0; i < nd; i++)
-            refd += D.vd[0 + i] * D.vd[0 + i];
-        EXPECT_DOUBLE_EQ(refd, ddot);
+        avxvector_t<SZ, SUF> s1   = kt_loadu_p<SZ, SUF>(data);
+        avxvector_t<SZ, SUF> s2   = kt_loadu_p<SZ, SUF>(data + 1);
+        SUF                  refs = 0.0f;
 
-        const size_t             nc   = tsz_v<SZ, cfloat>;
-        const size_t             nz   = tsz_v<SZ, cdouble>;
-        avxvector_t<SZ, cfloat>  c1   = kt_loadu_p<SZ, cfloat>(&D.vc[3]);
-        avxvector_t<SZ, cfloat>  c2   = kt_loadu_p<SZ, cfloat>(&D.vc[5]);
-        avxvector_t<SZ, cdouble> z1   = kt_loadu_p<SZ, cdouble>(&D.vz[1]);
-        avxvector_t<SZ, cdouble> z2   = kt_loadu_p<SZ, cdouble>(&D.vz[0]);
-        cfloat                   refc = {0.0f, 0.0f};
-        cdouble                  refz = {0.0, 0.0};
+        SUF sdot = kt_dot_p<SZ, SUF>(s1, s2);
 
-        cfloat cdot = kt_dot_p<SZ, cfloat>(c1, c2);
-        for(size_t i = 0; i < nc; i++)
-            refc += D.vc[3 + i] * D.vc[5 + i];
-        EXPECT_COMPLEX_FLOAT_EQ(refc, cdot);
+        for(size_t i = 0; i < sz; i++)
+            refs += data[0 + i] * data[1 + i];
 
-        cdouble zdot = kt_dot_p<SZ, cdouble>(z1, z2);
-        for(size_t i = 0; i < nz; i++)
-            refz += D.vz[1 + i] * D.vz[0 + i];
-        EXPECT_COMPLEX_DOUBLE_EQ(refz, zdot);
+        expect_eq<SUF>(sdot, refs);
     }
 
-    template <bsz SZ>
+    template <bsz SZ, typename SUF>
     void kt_cdot_p_test()
     {
-        size_t                  ns   = tsz_v<SZ, float>;
-        size_t                  nd   = tsz_v<SZ, double>;
-        avxvector_t<SZ, float>  s1   = kt_loadu_p<SZ, float>(&D.vs[0]);
-        avxvector_t<SZ, float>  s2   = kt_loadu_p<SZ, float>(&D.vs[1]);
-        avxvector_t<SZ, double> d1   = kt_loadu_p<SZ, double>(&D.vd[2]);
-        avxvector_t<SZ, double> d2   = kt_loadu_p<SZ, double>(&D.vd[0]);
-        float                   refs = 0.0f;
-        double                  refd = 0.0;
+        size_t sz = tsz_v<SZ, SUF>;
 
-        float sdot = kt_cdot_p<SZ, float>(s1, s2);
-        for(size_t i = 0; i < ns; i++)
-            refs += D.vs[0 + i] * D.vs[1 + i];
-        EXPECT_FLOAT_EQ(refs, sdot);
+        const SUF *data = D.get_data<SUF>();
 
-        double ddot = kt_cdot_p<SZ, double>(d1, d2);
-        for(size_t i = 0; i < nd; i++)
-            refd += D.vd[2 + i] * D.vd[0 + i];
-        EXPECT_DOUBLE_EQ(refd, ddot);
+        avxvector_t<SZ, SUF> s1 = kt_loadu_p<SZ, SUF>(data);
+        avxvector_t<SZ, SUF> s2 = kt_loadu_p<SZ, SUF>(data + 1);
+        SUF                  refs{};
 
-        size_t                   nc   = tsz_v<SZ, cfloat>;
-        size_t                   nz   = tsz_v<SZ, cdouble>;
-        avxvector_t<SZ, cfloat>  c1   = kt_loadu_p<SZ, cfloat>(&D.vc[3]);
-        avxvector_t<SZ, cfloat>  c2   = kt_loadu_p<SZ, cfloat>(&D.vc[5]);
-        avxvector_t<SZ, cdouble> z1   = kt_loadu_p<SZ, cdouble>(&D.vz[3]);
-        avxvector_t<SZ, cdouble> z2   = kt_loadu_p<SZ, cdouble>(&D.vz[2]);
-        cfloat                   refc = {0.0f, 0.0f};
-        cdouble                  refz = {0.0, 0.0};
+        SUF sdot = kt_cdot_p<SZ, SUF>(s1, s2);
+        for(size_t i = 0; i < sz; i++)
+        {
+            if constexpr(kt_type_is_real<SUF>())
+                refs += data[0 + i] * data[1 + i];
+            else
+                refs += data[0 + i] * std::conj(data[1 + i]);
+        }
 
-        cfloat cdot = kt_cdot_p<SZ, cfloat>(c1, c2);
-        for(size_t i = 0; i < nc; i++)
-            refc += D.vc[3 + i] * conj(D.vc[5 + i]);
+        expect_eq(refs, sdot);
 
-        EXPECT_COMPLEX_FLOAT_EQ(refc, cdot);
-
-        cdouble zdot = kt_cdot_p<SZ, cdouble>(z1, z2);
-        for(size_t i = 0; i < nz; i++)
-            refz += D.vz[3 + i] * conj(D.vz[2 + i]);
-
-        EXPECT_COMPLEX_DOUBLE_EQ(refz, zdot);
+        if(::testing::Test::HasFailure())
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
     }
 
-    template <bsz SZ>
+    template <bsz SZ, typename SUF>
     void kt_storeu_p_test()
     {
-        constexpr size_t         ns = tsz_v<SZ, float>;
-        constexpr size_t         nd = tsz_v<SZ, double>;
-        constexpr size_t         nc = tsz_v<SZ, cfloat>;
-        constexpr size_t         nz = tsz_v<SZ, cdouble>;
-        avxvector_t<SZ, float>   s;
-        avxvector_t<SZ, double>  d;
-        avxvector_t<SZ, cfloat>  c;
-        avxvector_t<SZ, cdouble> z;
-        float                    refs[ns];
-        float                    vss[ns];
-        double                   refd[nd];
-        double                   vdd[nd];
+        constexpr size_t     sz = tsz_v<SZ, SUF>;
+        avxvector_t<SZ, SUF> s;
 
+        // Smart pointer to manage memory
         // Used to dynamic memory allocation to suppress a potential compiler bug
-        cfloat  *refc = new cfloat[nc];
-        cfloat  *vcc  = new cfloat[nc];
-        cdouble *refz = new cdouble[nz];
-        cdouble *vzz  = new cdouble[nz];
+        std::unique_ptr<SUF[]> refs(new SUF[sz]);
+        std::unique_ptr<SUF[]> vss(new SUF[sz]);
 
-        s = kt_loadu_p<SZ, float>(&D.vs[3]);
-        kt_storeu_p<SZ, float>(vss, s);
-        for(size_t i = 0; i < ns; i++)
+        const SUF *data = D.get_data<SUF>();
+
+        s = kt_loadu_p<SZ, SUF>(data + 3);
+        kt_storeu_p<SZ, SUF>(vss.get(), s);
+
+        for(size_t i = 0; i < sz; i++)
         {
-            refs[i] = D.vs[i + 3];
+            refs[i] = data[i + 3];
         }
-        EXPECT_EQ_VEC(ns, vss, refs);
 
-        d = kt_loadu_p<SZ, double>(&D.vd[3]);
-        kt_storeu_p<SZ, double>(vdd, d);
-        for(size_t i = 0; i < nd; i++)
-        {
-            refd[i] = D.vd[i + 3];
-        }
-        EXPECT_EQ_VEC(nd, vdd, refd);
+        expect_eq_vec(sz, vss.get(), refs.get());
 
-        c = kt_loadu_p<SZ, cfloat>(&D.vc[3]);
-        kt_storeu_p<SZ, cfloat>(vcc, c);
-        for(size_t i = 0; i < nc; i++)
-        {
-            refc[i] = D.vc[i + 3];
-        }
-        EXPECT_EQ_VEC(nc, vcc, refc);
-
-        z = kt_loadu_p<SZ, cdouble>(&D.vz[3]);
-        kt_storeu_p<SZ, cdouble>(vzz, z);
-        for(size_t i = 0; i < nz; i++)
-        {
-            refz[i] = D.vz[i + 3];
-        }
-        EXPECT_EQ_VEC(nz, vzz, refz);
-
-        delete[] refc;
-        delete[] refz;
-        delete[] vcc;
-        delete[] vzz;
+        if(::testing::Test::HasFailure())
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
     }
 
-    template <bsz SZ>
+    template <bsz SZ, typename SUF>
     void kt_fmadd_B_test()
     {
-        size_t                  ns = tsz_v<SZ, float>;
-        size_t                  nd = tsz_v<SZ, double>;
-        avxvector_t<SZ, float>  s, as, bs, s_;
-        avxvector_t<SZ, double> d, ad, bd, d_;
-        float                   refs[ns];
-        std::vector<float>      refs_(ns, -9.0f);
-        double                  refd[nd];
-        std::vector<double>     refd_(ns, -8.0);
-
-        as = kt_loadu_p<SZ, float>(&D.vs[0]);
-        bs = kt_set_p<SZ, float>(D.vs, D.map);
-        s  = kt_set_p<SZ, float>(D.vs, &D.map[4]);
-        s_ = kt_set1_p<SZ, float>(-9.0f);
-        kt_fmadd_B<SZ, float>(as, bs, s, s_);
-        for(size_t i = 0; i < ns; i++)
+        // In case of b128 and complex, we use the kt_fmadd_p_test
+        // to test the kt_fmadd_B, because the latter is not implemented
+        if constexpr(SZ == bsz::b128 && !kt_type_is_real<SUF>())
         {
-            refs[i] = D.vs[i] * D.vs[D.map[i]] + D.vs[D.map[4 + i]];
-        }
-        EXPECT_FLOAT_EQ_VEC(ns, s, refs);
-        EXPECT_EQ_VEC(ns, s_, refs_.data());
-
-        ad = kt_loadu_p<SZ, double>(&D.vd[0]);
-        bd = kt_set_p<SZ, double>(D.vd, D.map);
-        d  = kt_set_p<SZ, double>(D.vd, &D.map[2]);
-        d_ = kt_set1_p<SZ, double>(-8.0);
-        kt_fmadd_B<SZ, double>(ad, bd, d, d_);
-        for(size_t i = 0; i < nd; i++)
-        {
-            refd[i] = D.vd[i] * D.vd[D.map[i]] + D.vd[D.map[2 + i]];
-        }
-        EXPECT_DOUBLE_EQ_VEC(nd, d, refd);
-        EXPECT_DOUBLE_EQ_VEC(nd, d_, refd_);
-
-        // Complex<float> FMADD ================================================
-        constexpr size_t       nc = tsz_v<SZ, cfloat>;
-        avxvector_t<SZ, float> scr, sci, ac, bc, cc, s1;
-        cfloat                 refc[nc], refsci[nc], refscr[nc];
-        const cfloat          *vc1 = D.vc;
-        const cfloat          *vc2 = D.vc + 1;
-
-        ac  = kt_loadu_p<SZ, cfloat>(&D.vc[2]);
-        bc  = kt_loadu_p<SZ, cfloat>(vc1);
-        cc  = kt_loadu_p<SZ, cfloat>(vc2);
-        s1  = kt_set1_p<SZ, cfloat>({1.0f, 1.0f});
-        scr = kt_setzero_p<SZ, cfloat>();
-        sci = kt_setzero_p<SZ, cfloat>();
-        kt_fmadd_B<SZ, cfloat>(s1, cc, scr, sci);
-        for(size_t i = 0; i < nc; i++)
-        {
-            refc[i] = std::complex(vc2[i].real(), vc2[i].imag());
-        }
-        std::complex<float> *pc = reinterpret_cast<std::complex<float> *>(&scr);
-        EXPECT_COMPLEX_FLOAT_EQ_VEC(nc, pc, refc);
-
-        for(size_t i = 0; i < nc; i++)
-        {
-            refc[i] = std::complex(vc2[i].imag(), vc2[i].real());
-        }
-        pc = reinterpret_cast<std::complex<float> *>(&sci);
-        EXPECT_COMPLEX_FLOAT_EQ_VEC(nc, pc, refc);
-
-        for(size_t i = 0; i < nc; i++)
-        {
-            refscr[i] = {D.vc[2 + i].real() * vc1[i].real() + scr[2 * i],
-                         D.vc[2 + i].imag() * vc1[i].imag() + scr[2 * i + 1]};
-        }
-        for(size_t i = 0; i < nc; i++)
-        {
-            refsci[i] = {D.vc[2 + i].real() * vc1[i].imag() + sci[2 * i],
-                         D.vc[2 + i].imag() * vc1[i].real() + sci[2 * i + 1]};
-        }
-        kt_fmadd_B<SZ, cfloat>(ac, bc, scr, sci);
-        pc = reinterpret_cast<std::complex<float> *>(&scr);
-        EXPECT_COMPLEX_FLOAT_EQ_VEC(nc, pc, refscr);
-        pc = reinterpret_cast<std::complex<float> *>(&sci);
-        EXPECT_COMPLEX_FLOAT_EQ_VEC(nc, pc, refsci);
-
-        // Complex<double> FMADD ===============================================
-        constexpr size_t        nz = tsz_v<SZ, cdouble>;
-        avxvector_t<SZ, double> az, bz, cz, dcr, dci, d1;
-        cdouble                 refz[nz], refdzr[nz], refdzi[nz];
-        const cdouble          *vz1 = D.vz;
-        const cdouble          *vz2 = D.vz + 1;
-
-        az  = kt_loadu_p<SZ, cdouble>(&D.vz[2]);
-        bz  = kt_loadu_p<SZ, cdouble>(vz1);
-        cz  = kt_loadu_p<SZ, cdouble>(vz2);
-        d1  = kt_set1_p<SZ, cdouble>({1.0, 1.0});
-        dcr = kt_setzero_p<SZ, cdouble>();
-        dci = kt_setzero_p<SZ, cdouble>();
-        kt_fmadd_B<SZ, cdouble>(d1, cz, dcr, dci);
-
-        for(size_t i = 0; i < nz; i++)
-        {
-            refz[i] = vz2[i];
-        }
-        std::complex<double> *pz = reinterpret_cast<std::complex<double> *>(&dcr);
-        EXPECT_COMPLEX_DOUBLE_EQ_VEC(nz, pz, refz);
-        for(size_t i = 0; i < nz; i++)
-        {
-            refz[i] = std::complex<double>(vz2[i].imag(), vz2[i].real());
-        }
-        pz = reinterpret_cast<std::complex<double> *>(&dci);
-        EXPECT_COMPLEX_DOUBLE_EQ_VEC(nz, pz, refz);
-
-        for(size_t i = 0; i < nz; i++)
-        {
-            refdzr[i] = {D.vz[2 + i].real() * vz1[i].real() + dcr[2 * i],
-                         D.vz[2 + i].imag() * vz1[i].imag() + dcr[2 * i + 1]};
-        }
-        for(size_t i = 0; i < nz; i++)
-        {
-            refdzi[i] = {D.vz[2 + i].real() * vz1[i].imag() + dci[2 * i],
-                         D.vz[2 + i].imag() * vz1[i].real() + dci[2 * i + 1]};
+            return kt_fmadd_p_test<SZ, SUF>();
         }
 
-        kt_fmadd_B<SZ, cdouble>(az, bz, dcr, dci);
+        // Blocked fmadd_B tests work differently for real and complex types
+        if constexpr(kt_type_is_real<SUF>())
+        {
+            size_t               sz = tsz_v<SZ, SUF>;
+            avxvector_t<SZ, SUF> s, as, bs, s_;
+            SUF                  refs[sz];
 
-        pz = reinterpret_cast<std::complex<double> *>(&dcr);
-        EXPECT_COMPLEX_DOUBLE_EQ_VEC(nz, pz, refdzr);
+            const SUF    *data = D.get_data<SUF>();
+            const size_t *idx  = D.map;
 
-        pz = reinterpret_cast<std::complex<double> *>(&dci);
-        EXPECT_COMPLEX_DOUBLE_EQ_VEC(nz, pz, refdzi);
+            std::vector<SUF> refs_(sz, data[2]);
+
+            as = kt_loadu_p<SZ, SUF>(data);
+            bs = kt_set_p<SZ, SUF>(data, idx);
+            s  = kt_set_p<SZ, SUF>(data, idx + 4);
+            s_ = kt_set1_p<SZ, SUF>(data[2]);
+
+            kt_fmadd_B<SZ, SUF>(as, bs, s, s_);
+
+            for(size_t i = 0; i < sz; i++)
+            {
+                refs[i] = data[i] * data[idx[i]] + data[idx[4 + i]];
+            }
+
+            auto res_ptr = reinterpret_cast<SUF *>(&s);
+            expect_eq_vec(sz, res_ptr, refs);
+
+            if(::testing::Test::HasFailure())
+                std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
+        }
+        else
+        {
+            constexpr size_t     sz = tsz_v<SZ, SUF>;
+            avxvector_t<SZ, SUF> scr, sci, ac, bc, cc, s1;
+            SUF                  refc[sz], refsci[sz], refscr[sz];
+            const SUF           *vc1  = D.get_data<SUF>();
+            const SUF           *vc2  = D.get_data<SUF>() + 1;
+            const SUF           *data = D.get_data<SUF>();
+
+            ac  = kt_loadu_p<SZ, SUF>(vc1 + 2);
+            bc  = kt_loadu_p<SZ, SUF>(vc1);
+            cc  = kt_loadu_p<SZ, SUF>(vc2);
+            s1  = kt_set1_p<SZ, SUF>({1.0f, 1.0f});
+            scr = kt_setzero_p<SZ, SUF>();
+            sci = kt_setzero_p<SZ, SUF>();
+            kt_fmadd_B<SZ, SUF>(s1, cc, scr, sci);
+
+            for(size_t i = 0; i < sz; i++)
+            {
+                refc[i] = std::complex(vc2[i].real(), vc2[i].imag());
+            }
+
+            SUF *pc = reinterpret_cast<SUF *>(&scr);
+            expect_eq_vec(sz, pc, refc);
+
+            for(size_t i = 0; i < sz; i++)
+            {
+                refc[i] = std::complex(vc2[i].imag(), vc2[i].real());
+            }
+
+            pc = reinterpret_cast<SUF *>(&sci);
+            expect_eq_vec(sz, pc, refc);
+
+            for(size_t i = 0; i < sz; i++)
+            {
+                refscr[i] = {data[2 + i].real() * vc1[i].real() + scr[2 * i],
+                             data[2 + i].imag() * vc1[i].imag() + scr[2 * i + 1]};
+            }
+            for(size_t i = 0; i < sz; i++)
+            {
+                refsci[i] = {data[2 + i].real() * vc1[i].imag() + sci[2 * i],
+                             data[2 + i].imag() * vc1[i].real() + sci[2 * i + 1]};
+            }
+            kt_fmadd_B<SZ, SUF>(ac, bc, scr, sci);
+
+            pc = reinterpret_cast<SUF *>(&scr);
+            expect_eq_vec(sz, pc, refscr);
+
+            pc = reinterpret_cast<SUF *>(&sci);
+            expect_eq_vec(sz, pc, refsci);
+        }
     }
 
-    template <bsz SZ>
+    template <bsz SZ, typename SUF>
     void kt_hsum_B_test()
     {
-        const size_t            ns = tsz_v<SZ, float>;
-        const size_t            nd = tsz_v<SZ, double>;
-        avxvector_t<SZ, float>  as, bs, s, s_;
-        avxvector_t<SZ, double> ad, bd, d, d_;
-        float                   sums, refs = 0.0f;
-        double                  sumd, refd = 0.0;
-
-        // Float ==============================================================
-        as = kt_loadu_p<SZ, float>(D.vs);
-        bs = kt_set_p<SZ, float>(D.vs, &D.map[4]);
-        s  = kt_set1_p<SZ, float>(-3.0f);
-        s_ = kt_setzero_p<SZ, float>();
-        kt_fmadd_B<SZ, float>(as, bs, s, s_);
-        sums = kt_hsum_B<SZ, float>(s, s_);
-        for(size_t i = 0; i < ns; i++)
+        // In case of b128 and complex, we use the kt_hsum_p_test
+        // to test the kt_hsum_B, because the latter is not implemented
+        if constexpr(SZ == bsz::b128 && !kt_type_is_real<SUF>())
         {
-            refs += D.vs[i] * D.vs[D.map[4 + i]] - 3.f;
+            return kt_hsum_p_test<SZ, SUF>();
         }
-        EXPECT_FLOAT_EQ(sums, refs);
 
-        // Double ==============================================================
-        ad = kt_loadu_p<SZ, double>(D.vd);
-        bd = kt_set_p<SZ, double>(D.vd, &D.map[2]);
-        d  = kt_set1_p<SZ, double>(-5.0);
-        d_ = kt_set1_p<SZ, double>(1.3);
-        kt_fmadd_B<SZ, double>(bd, ad, d, d_);
-        sumd = kt_hsum_B<SZ, double>(d, d_);
-        for(size_t i = 0; i < nd; i++)
+        if constexpr(kt_type_is_real<SUF>())
         {
-            refd += D.vd[i] * D.vd[D.map[2 + i]] - 5.0;
+            const size_t         sz = tsz_v<SZ, SUF>;
+            avxvector_t<SZ, SUF> as, bs, s, s_;
+            SUF                  sums{}, refs{};
+
+            const SUF    *data = D.get_data<SUF>();
+            const size_t *idx  = D.map;
+
+            const SUF n = data[2];
+
+            as = kt_loadu_p<SZ, SUF>(data);
+            bs = kt_set_p<SZ, SUF>(data, idx + 4);
+            s  = kt_set1_p<SZ, SUF>(n);
+            s_ = kt_setzero_p<SZ, SUF>();
+
+            kt_fmadd_B<SZ, SUF>(as, bs, s, s_);
+
+            sums = kt_hsum_B<SZ, SUF>(s, s_);
+
+            for(size_t i = 0; i < sz; i++)
+            {
+                refs += data[i] * data[idx[4 + i]] + n;
+            }
+
+            expect_eq(sums, refs);
         }
-        EXPECT_DOUBLE_EQ(sumd, refd);
-
-        const size_t             nc = tsz_v<SZ, cfloat>;
-        const size_t             nz = tsz_v<SZ, cdouble>;
-        avxvector_t<SZ, cfloat>  ac, bc, c, c_, qc;
-        avxvector_t<SZ, cdouble> az, bz, z, z_;
-        cfloat                   sumc, refc = {0.0f, 0.0f};
-        cdouble                  sumz, refz = {0.0, 0.0};
-
-        // cdouble ==============================================================
-        az = kt_loadu_p<SZ, cdouble>(D.vz);
-        bz = kt_set_p<SZ, cdouble>(D.vz, &D.map[3]);
-        // auto c1 = std::complex(1.0, 5.0);
-        // auto c0 = std::complex(0.0);
-        // cdouble t1[]{c1, c0, c0, c0};
-        // cdouble t2[]{std::complex(2.0) * c1, c0, c0, c0};
-        // az = kt_loadu_p<SZ, cdouble>(t1);
-        // bz = kt_loadu_p<SZ, cdouble>(t2);
-        z  = kt_setzero_p<SZ, cdouble>();
-        z_ = kt_setzero_p<SZ, cdouble>();
-        // (z, z_) <- az * bz
-        kt_fmadd_B<SZ, cdouble>(bz, az, z, z_);
-        sumz = kt_hsum_B<SZ, cdouble>(z, z_);
-        for(size_t i = 0; i < nz; i++)
+        else
         {
-            // Test also commutativity
-            //      bz                 * az
-            refz += D.vz[D.map[3 + i]] * D.vz[i];
-        }
-        EXPECT_COMPLEX_DOUBLE_EQ(sumz, refz);
+            const size_t         sz = tsz_v<SZ, SUF>;
+            avxvector_t<SZ, SUF> az, bz, z, z_;
+            SUF                  sumz{}, refz{};
 
-        // cfloat ==============================================================
-        ac = kt_loadu_p<SZ, cfloat>(D.vc);
-        bc = kt_set_p<SZ, cfloat>(D.vc, &D.map[2]);
-        qc = kt_set_p<SZ, cfloat>(D.vc, &D.map[5]);
-        c  = kt_setzero_p<SZ, cfloat>();
-        c_ = kt_setzero_p<SZ, cfloat>();
-        kt_fmadd_B<SZ, cfloat>(ac, bc, c, c_);
-        kt_fmadd_B<SZ, cfloat>(qc, bc, c, c_);
-        sumc = kt_hsum_B<SZ, cfloat>(c, c_);
-        for(size_t i = 0; i < nc; i++)
-        {
-            // test also accumulation TODO
-            //      (qc                 + ac      ) * bc
-            refc += (D.vc[D.map[5 + i]] + D.vc[i]) * D.vc[D.map[2 + i]];
+            const SUF    *data = D.get_data<SUF>();
+            const size_t *idx  = D.map;
+
+            az = kt_loadu_p<SZ, SUF>(data);
+            bz = kt_set_p<SZ, SUF>(data, idx + 3);
+
+            z  = kt_setzero_p<SZ, SUF>();
+            z_ = kt_setzero_p<SZ, SUF>();
+            // (z, z_) <- az * bz
+            kt_fmadd_B<SZ, SUF>(bz, az, z, z_);
+            sumz = kt_hsum_B<SZ, SUF>(z, z_);
+            for(size_t i = 0; i < sz; i++)
+            {
+                // Test also commutativity
+                //      bz                 * az
+                refz += data[idx[3 + i]] * data[i];
+            }
+            expect_eq(sumz, refz);
         }
-        EXPECT_COMPLEX_FLOAT_EQ(sumc, refc);
+
+        if(::testing::Test::HasFailure())
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
     }
 
+    template <bsz SZ, typename SUF>
+    void kt_max_p_test()
+    {
+        size_t sz = tsz_v<SZ, SUF>;
+
+        const SUF *data = D.get_data<SUF>();
+
+        avxvector_t<SZ, SUF> s1 = kt_loadu_p<SZ, SUF>(data);
+        avxvector_t<SZ, SUF> s2 = kt_loadu_p<SZ, SUF>(data + 2);
+
+        SUF ref_ress[sz];
+
+        avxvector_t<SZ, SUF> ress = kt_max_p<SZ, SUF>(s1, s2);
+
+        for(size_t i = 0; i < sz; i++)
+        {
+            ref_ress[i] = (std::max)(data[0 + i], data[2 + i]);
+        }
+
+        auto *pv = reinterpret_cast<SUF *>(&ress);
+
+        expect_eq_vec(sz, ref_ress, pv);
+    }
+
+    template <bsz SZ, typename SUF>
+    void kt_div_p_test()
+    {
+        size_t               sz = tsz_v<SZ, SUF>;
+        avxvector_t<SZ, SUF> s, as, bs;
+        SUF                  refs[sz];
+
+        SUF        n    = D.get_data<SUF>()[0];
+        const SUF *data = D.get_data<SUF>();
+
+        as = kt_loadu_p<SZ, SUF>(data + 1);
+        bs = kt_set1_p<SZ, SUF>(n);
+        s  = kt_div_p<SZ, SUF>(as, bs);
+        for(size_t i = 0; i < sz; i++)
+        {
+            refs[i] = data[i + 1] / n;
+        }
+
+        auto res_ptr = reinterpret_cast<SUF *>(&s);
+        expect_eq_vec<SUF>(sz, res_ptr, refs);
+
+        if(::testing::Test::HasFailure())
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
+    }
+
+    template <bsz SZ, typename SUF>
+    void kt_pow2_p_test()
+    {
+        using base_t = typename kt_dt<SUF>::base_type;
+
+        size_t               sz = tsz_v<SZ, SUF>;
+        avxvector_t<SZ, SUF> s, as;
+
+        const SUF *data = D.get_data<SUF>();
+
+        as = kt_loadu_p<SZ, SUF>(data);
+        s  = kt_pow2_p<SZ, SUF>(as);
+
+        if constexpr(kt_type_is_real<SUF>())
+        {
+            SUF refs[sz];
+
+            for(size_t i = 0; i < sz; i++)
+            {
+                refs[i] = data[i] * data[i];
+            }
+
+            auto res_ptr = reinterpret_cast<SUF *>(&s);
+            expect_eq_vec<SUF>(sz, res_ptr, refs);
+        }
+        else
+        {
+            // The comparison is done on the base type
+            base_t refs[sz * 2];
+
+            // In case of complex number, the real and complex
+            // parts are set to the result of pow2.
+            for(int i = 0; i < sz; i++)
+            {
+                base_t temp = (data[i].real() * data[i].real()) + (data[i].imag() * data[i].imag());
+
+                refs[(2 * i)]     = temp;
+                refs[(2 * i) + 1] = temp;
+            }
+
+            auto res_ptr = reinterpret_cast<base_t *>(&s);
+            expect_eq_vec<base_t>(sz * 2, res_ptr, refs);
+        }
+
+        if(::testing::Test::HasFailure())
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
+    }
 }
 
-// Instantiation
-template void TestsKT::kt_loadu_p_test<get_bsz()>();
-template void TestsKT::kt_setzero_p_test<get_bsz()>();
-template void TestsKT::kt_set1_p_test<get_bsz()>();
-template void TestsKT::kt_add_p_test<get_bsz()>();
-template void TestsKT::kt_sub_p_test<get_bsz()>();
-template void TestsKT::kt_mul_p_test<get_bsz()>();
-template void TestsKT::kt_fmadd_p_test<get_bsz()>();
-template void TestsKT::kt_fmsub_p_test<get_bsz()>();
-template void TestsKT::kt_set_p_test<get_bsz()>();
-template void TestsKT::kt_hsum_p_test<get_bsz()>();
-template void TestsKT::kt_conj_p_test<get_bsz()>();
-template void TestsKT::kt_dot_p_test<get_bsz()>();
-template void TestsKT::kt_cdot_p_test<get_bsz()>();
-template void TestsKT::kt_storeu_p_test<get_bsz()>();
-template void TestsKT::kt_fmadd_B_test<get_bsz()>();
-template void TestsKT::kt_hsum_B_test<get_bsz()>();
+// Test instantiation macros for real types
+#define KT_TEST_INSTANTIATE_FOR_REAL(func, SZ) \
+    template void func<SZ, float>();           \
+    template void func<SZ, double>();
+
+// Test instantiation macros for complex types
+#define KT_TEST_INSTANTIATE_FOR_COMPLEX(func, SZ) \
+    template void func<SZ, cfloat>();             \
+    template void func<SZ, cdouble>();
+
+// Test instantiation macros for all data types
+#define KT_TEST_INSTANTIATE_FOR_ALL_TYPES(func, SZ) \
+    KT_TEST_INSTANTIATE_FOR_REAL(func, SZ)          \
+    KT_TEST_INSTANTIATE_FOR_COMPLEX(func, SZ)
+
+// Test instantiation macros for all data types during AVX2 build
+#ifdef KT_AVX2_BUILD
+#define KT_INSTANTIATE_TEST(func)                       \
+    KT_TEST_INSTANTIATE_FOR_ALL_TYPES(func, bsz::b128); \
+    KT_TEST_INSTANTIATE_FOR_ALL_TYPES(func, get_bsz());
+
+#define KT_INSTANTIATE_TEST_REAL(func)             \
+    KT_TEST_INSTANTIATE_FOR_REAL(func, bsz::b128); \
+    KT_TEST_INSTANTIATE_FOR_REAL(func, get_bsz());
+#else
+// Test instantiation macros for all data types during AVX512 build
+#define KT_INSTANTIATE_TEST(func) KT_TEST_INSTANTIATE_FOR_ALL_TYPES(func, get_bsz());
+
+#define KT_INSTANTIATE_TEST_REAL(func) KT_TEST_INSTANTIATE_FOR_REAL(func, get_bsz());
+#endif
+
+KT_INSTANTIATE_TEST(TestsKT::kt_loadu_p_test);
+KT_INSTANTIATE_TEST(TestsKT::kt_setzero_p_test);
+KT_INSTANTIATE_TEST(TestsKT::kt_set1_p_test);
+KT_INSTANTIATE_TEST(TestsKT::kt_add_p_test);
+KT_INSTANTIATE_TEST(TestsKT::kt_sub_p_test);
+KT_INSTANTIATE_TEST(TestsKT::kt_mul_p_test);
+KT_INSTANTIATE_TEST(TestsKT::kt_fmadd_p_test);
+KT_INSTANTIATE_TEST(TestsKT::kt_fmsub_p_test);
+KT_INSTANTIATE_TEST(TestsKT::kt_set_p_test);
+KT_INSTANTIATE_TEST(TestsKT::kt_hsum_p_test);
+KT_INSTANTIATE_TEST(TestsKT::kt_conj_p_test);
+KT_INSTANTIATE_TEST(TestsKT::kt_dot_p_test);
+KT_INSTANTIATE_TEST(TestsKT::kt_cdot_p_test);
+KT_INSTANTIATE_TEST(TestsKT::kt_storeu_p_test);
+KT_INSTANTIATE_TEST(TestsKT::kt_fmadd_B_test);
+KT_INSTANTIATE_TEST(TestsKT::kt_hsum_B_test);
+KT_INSTANTIATE_TEST(TestsKT::kt_div_p_test);
+KT_INSTANTIATE_TEST(TestsKT::kt_pow2_p_test)
+
+// Operations that only support real types
+KT_INSTANTIATE_TEST_REAL(TestsKT::kt_max_p_test);

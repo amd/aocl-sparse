@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024-2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,12 +25,12 @@
 #ifndef TESTING_CSR2CSC_HPP
 #define TESTING_CSR2CSC_HPP
 
-#include "aoclsparse.hpp"
 #include "aoclsparse_arguments.hpp"
 #include "aoclsparse_check.hpp"
 #include "aoclsparse_flops.hpp"
 #include "aoclsparse_gbyte.hpp"
 #include "aoclsparse_init.hpp"
+#include "aoclsparse_interface.hpp"
 #include "aoclsparse_stats.hpp"
 #include "aoclsparse_test.hpp"
 #include "aoclsparse_utility.hpp"

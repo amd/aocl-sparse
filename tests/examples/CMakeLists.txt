@@ -1,5 +1,5 @@
 # ########################################################################
-# Copyright (c) 2022-2024 Advanced Micro Devices, Inc.
+# Copyright (c) 2022-2025 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files(the "Software"), to deal
@@ -53,20 +53,23 @@ if (BUILD_SPARSE_EXAMPLE_OUTOFSRCTREE)
     set(EXTERNAL_OMP_LIBRARY "" CACHE STRING "Provide external OMP library")
 
     # Set paths to AOCLUTILS, BLAS and LAPACK installations.
-    set(CMAKE_AOCL_ROOT
-        $ENV{AOCL_ROOT}
-        CACHE
-        STRING
-        "AOCL_ROOT directory to be used to find BLAS/LAPACK/AOCLUTILS libraries")
-    if(CMAKE_AOCL_ROOT STREQUAL "")
-        message(FATAL_ERROR "CMAKE_AOCL_ROOT is empty. Either set environment variable AOCL_ROOT or set -DCMAKE_AOCL_ROOT=<path_to_AOCL_libs>.")
-    endif()
+    set(CMAKE_AOCL_ROOT $ENV{AOCL_ROOT} CACHE STRING "AOCL_ROOT directory to be used to find BLAS/LAPACK/AOCLUTILS libraries")
 
     set(CMAKE_SPARSE_ROOT $ENV{SPARSE_ROOT} CACHE STRING "SPARSE_ROOT directory to be used to find Sparse artifacts")
     if(CMAKE_SPARSE_ROOT STREQUAL "")
         message(WARNING "SPARSE_ROOT was not set. Will search for it in main CMAKE_AOCL_ROOT directory.")
         #Inherit AOCL_ROOT since we assume Sparse artifacts would be present as part of AOCL installation
         set(CMAKE_SPARSE_ROOT ${CMAKE_AOCL_ROOT})
+    endif()
+
+    if(WIN32)
+        # Policy ensuring the correct MSVC runtime library configuration
+        cmake_policy(SET CMP0091 NEW)
+        if(BUILD_SHARED_LIBS)
+            set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+        else()
+            set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+        endif()
     endif()
 
     ## Change default installation path
@@ -180,11 +183,9 @@ endif()
 set(EXAMPLE_EXECUTABLES
     sample_spmv_multi_instance
     sample_zgthr
-    sample_spmv
     sample_zsp2m
     sample_csr2m
     sample_dtrsv
-    sample_ztrsv
     sample_itsol_d_cg_rci
     sample_itsol_d_cg
     sample_itsol_s_cg_rci
@@ -218,6 +219,10 @@ set(EXAMPLE_EXECUTABLES
     sample_tcsr_ztrsv
     sample_itsol_z_gmres_rci
     sample_itsol_z_gmres
+    # CPP examples
+    sample_mv_cpp
+    sample_trsv_cpp
+    sample_csr2m_cpp
 )
 # Take all sample executables also as test targets
 foreach(SNAME ${EXAMPLE_EXECUTABLES})

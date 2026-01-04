@@ -64,11 +64,8 @@ aoclsparse_status aoclsparse::csrmv_kt(aoclsparse_index_base base,
             y[i] = beta * y[i];
     }
 #ifdef _OPENMP
-    aoclsparse_int chunk = (m / context::get_context()->get_num_threads())
-                               ? (m / context::get_context()->get_num_threads())
-                               : 1;
-#pragma omp parallel for num_threads(context::get_context()->get_num_threads()) \
-    schedule(dynamic, chunk) private(va, vx, vb, vc)
+#pragma omp parallel for num_threads(context::get_context()->get_num_threads()) private( \
+        va, vx, vb, vc)
 #endif
     for(aoclsparse_int i = 0; i < m; i++)
     {

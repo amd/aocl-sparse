@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -95,7 +95,7 @@ int compute_stats(double *data, int n, data_stats &dstats)
 twosample_test_result
     twosample_test(const data_stats &a, const data_stats &b, double alpha, int ztest)
 {
-    twosample_test_result result;
+    twosample_test_result result = {}; // Initialize all fields to zero
     using namespace boost::math;
 
     double alph{alpha};

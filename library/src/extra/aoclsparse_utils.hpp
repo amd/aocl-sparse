@@ -42,8 +42,6 @@
 #define POPCOUNT(x) __builtin_popcount(x)
 #endif
 
-extern const size_t data_size[];
-
 /* Conjugate functionality the returns both complex and real types */
 /* The standard std::conj return only complex types */
 namespace aoclsparse
@@ -62,6 +60,31 @@ namespace aoclsparse
 
 namespace aoclsparse_numeric
 {
+    /* Provide a "one" for all floating point data types */
+    template <typename T>
+    struct one
+    {
+        constexpr operator T() const noexcept
+        {
+            if constexpr(std::is_same_v<T, float>)
+                return 1.0f;
+            else if constexpr(std::is_same_v<T, double>)
+                return 1.0;
+            else if constexpr(std::is_same_v<T, std::complex<float>>
+                              || std::is_same_v<T, aoclsparse_float_complex>)
+            {
+                T v{1.0f, 0.0f};
+                return v;
+            }
+            else if constexpr(std::is_same_v<T, std::complex<double>>
+                              || std::is_same_v<T, aoclsparse_double_complex>)
+            {
+                T v{1.0, 0.0};
+                return v;
+            }
+        }
+    };
+
     /* Provide a "zero" for all floating point data types */
     /* Default definition handles real/std types */
     template <typename T>
@@ -548,4 +571,18 @@ namespace aoclsparse
         }
     };
 }
+
+// Helper macro to instantiate dispatchers for all 4 datatypes
+#define INSTANTIATE_FOR_ALL_TYPES(FNCTN) \
+    FNCTN(float)                         \
+    FNCTN(double)                        \
+    FNCTN(std::complex<float>)           \
+    FNCTN(std::complex<double>)
+
+// Generate all four versions
+#define INSTANTIATE_FOR_ALL_TYPES_SUFFIX(FUNC) \
+    FUNC(s, float)                             \
+    FUNC(d, double)                            \
+    FUNC(c, aoclsparse_float_complex)          \
+    FUNC(z, aoclsparse_double_complex)
 #endif

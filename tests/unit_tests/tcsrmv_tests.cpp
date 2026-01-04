@@ -23,8 +23,8 @@
 #include "aoclsparse.h"
 #include "common_data_utils.h"
 #include "gtest/gtest.h"
-#include "aoclsparse.hpp"
 #include "aoclsparse_init.hpp"
+#include "aoclsparse_interface.hpp"
 #include "aoclsparse_reference.hpp"
 
 #include <algorithm>
@@ -390,9 +390,11 @@ namespace
         // Call optimize
         ASSERT_EQ(aoclsparse_optimize(A), aoclsparse_status_success);
 
+        aoclsparse::tcsr *tcsr_mat = dynamic_cast<aoclsparse::tcsr *>(A->mats[0]);
+        EXPECT_NE(tcsr_mat, nullptr);
         // Check for idiag and iurow
-        EXPECT_EQ_VEC(M, A->tcsr_mat.idiag, exp_idiag);
-        EXPECT_EQ_VEC(M, A->tcsr_mat.iurow, exp_iurow);
+        EXPECT_EQ_VEC(M, tcsr_mat->idiag, exp_idiag);
+        EXPECT_EQ_VEC(M, tcsr_mat->iurow, exp_iurow);
 
         // Full matrix spmv
         EXPECT_EQ(aoclsparse_mv<T>(trans, &alpha, A, descr, x.data(), &beta, y.data()),

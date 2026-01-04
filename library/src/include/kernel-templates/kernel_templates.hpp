@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -47,6 +47,9 @@
 #ifdef __AVX2__
 // Generic L0 micro kernels
 #include "kt_l0.hpp"
+
+// SSE specific L0 micro kernels
+#include "kt_l0_sse.hpp"
 
 // AVX2 specific L0 micro kernels
 #include "kt_l0_avx2.hpp"

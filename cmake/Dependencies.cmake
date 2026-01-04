@@ -1,5 +1,5 @@
 # ##############################################################################
-# Copyright (c) 2020-2024 Advanced Micro Devices, Inc.
+# Copyright (c) 2020-2025 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -70,27 +70,47 @@ function(aocl_libs)
     endif(SUPPORT_OMP)
   endif(WIN32)
 
-  # Link against dynamic library by default
+  # Determine library names based on BUILD_SHARED_LIBS for all three libraries
+  if(BUILD_SHARED_LIBS)
+    # Prefer dynamic libraries, fallback to static
+    set(_utils_preferred_library ${_utils_dyn_library})
+    set(_utils_fallback_library ${_utils_static_library})
+    set(_blas_preferred_library ${_blas_dyn_library})
+    set(_blas_fallback_library ${_blas_static_library})
+    set(_flame_preferred_library ${_flame_dyn_library})
+    set(_flame_fallback_library ${_flame_static_library})
+  else()
+    # Prefer static libraries, fallback to dynamic
+    set(_utils_preferred_library ${_utils_static_library})
+    set(_utils_fallback_library ${_utils_dyn_library})
+    set(_blas_preferred_library ${_blas_static_library})
+    set(_blas_fallback_library ${_blas_dyn_library})
+    set(_flame_preferred_library ${_flame_static_library})
+    set(_flame_fallback_library ${_flame_dyn_library})
+  endif()
+
+  # Find libraries with BUILD_SHARED_LIBS preference
   find_library(
     AOCL_UTILS_LIB
-    NAMES ${_utils_dyn_library} ${_utils_static_library} NAMES_PER_DIR
+    NAMES ${_utils_preferred_library} ${_utils_fallback_library} NAMES_PER_DIR
     HINTS ${CMAKE_AOCL_ROOT}/utils ${CMAKE_AOCL_ROOT}/amd-utils ${CMAKE_AOCL_ROOT}
     PATH_SUFFIXES "lib/${ILP_DIR}" "lib_${ILP_DIR}" "lib"
     DOC "AOCL Utils library")
 
   find_library(
     AOCL_BLIS_LIB
-    NAMES ${_blas_dyn_library} ${_blas_static_library}
+    NAMES ${_blas_preferred_library} ${_blas_fallback_library} NAMES_PER_DIR
     HINTS ${CMAKE_AOCL_ROOT}/blis ${CMAKE_AOCL_ROOT}/amd-blis ${CMAKE_AOCL_ROOT}
     PATH_SUFFIXES "lib/${ILP_DIR}" "lib_${ILP_DIR}" "lib"
     DOC "AOCL Blis library")
 
   find_library(
     AOCL_LIBFLAME
-    NAMES ${_flame_dyn_library} ${_flame_static_library} NAMES_PER_DIR
+    NAMES ${_flame_preferred_library} ${_flame_fallback_library} NAMES_PER_DIR
     HINTS ${CMAKE_AOCL_ROOT}/libflame ${CMAKE_AOCL_ROOT}/amd-libflame ${CMAKE_AOCL_ROOT}
     PATH_SUFFIXES "lib/${ILP_DIR}" "lib_${ILP_DIR}" "lib"
     DOC "AOCL LIBFLAME library")
+
   # ====Headers
   find_path(
     AOCL_UTILS_INCLUDE_DIR
@@ -180,18 +200,15 @@ function(openmp_libs)
     endif()
 
     if(WIN32)
-      if(CMAKE_GENERATOR  STREQUAL "Ninja")
-        set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};-fopenmp")
-      else()
-        set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};/openmp")
-      endif()
-    else()
-      set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};${OpenMP_CXX_FLAGS}")
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+      set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
     endif()
 
-    set(OPENMP_FOUND ${OPENMP_FOUND} PARENT_SCOPE)
     set(OpenMP_Library ${OpenMP_Library} PARENT_SCOPE)
-    set(COMPILER_FLAGS_COMMON ${COMPILER_FLAGS_COMMON} PARENT_SCOPE)
+    set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} PARENT_SCOPE)
+    set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} PARENT_SCOPE)
+    set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} PARENT_SCOPE)
 
   endif()
 
@@ -203,6 +220,8 @@ find_package(Git REQUIRED)
 
 if(SUPPORT_OMP)
   openmp_libs()
+  # Add SUPPORT_OMP preprocessor definition if OpenMP support is enabled
+  list(APPEND AOCLSPARSE_DEFS -DSUPPORT_OMP)
 endif(SUPPORT_OMP)
 #fetch pthread library for Linux builds, irrespective of ST/MT modes
 if(NOT WIN32)
@@ -254,7 +273,7 @@ message(STATUS "  \$UTILS_LIBRARY_DIR....${UTILS_LIBRARY_DIR}")
 
 if(SUPPORT_OMP)
   message(STATUS "  \$OpenMP_Library....${OpenMP_Library}")
-  message(STATUS "  \$OpenMP_Flags....${COMPILER_FLAGS_COMMON}")
+  message(STATUS "  \$OpenMP_Flags....${CMAKE_C_FLAGS};${CMAKE_CXX_FLAGS};${CMAKE_EXE_LINKER_FLAGS}")
 else(SUPPORT_OMP)
   message(STATUS "  \$Threads Library....${Threads_Library}")
 endif(SUPPORT_OMP)

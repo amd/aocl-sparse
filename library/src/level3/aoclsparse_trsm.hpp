@@ -24,12 +24,11 @@
 #ifndef AOCLSPARSE_SM_HPP
 #define AOCLSPARSE_SM_HPP
 
-#include "aoclsparse.h"
 #include "aoclsparse_context.h"
 #include "aoclsparse_descr.h"
+#include "aoclsparse.hpp"
 #include "aoclsparse_auxiliary.hpp"
 #include "aoclsparse_csr_util.hpp"
-#include "aoclsparse_l2.hpp"
 
 /*
  * TRSM dispatcher
@@ -50,16 +49,16 @@ aoclsparse_status
                     const aoclsparse_int kid /* Kernel ID request */)
 {
     aoclsparse_status status = aoclsparse_status_success;
-#ifdef _OPENMP
-    aoclsparse_int chunk;
-#endif
 
     // Quick initial checks
     if(!A || !X || !B || !descr)
         return aoclsparse_status_invalid_pointer;
+    if(A->mats.empty() || !A->mats[0])
+        return aoclsparse_status_invalid_pointer;
 
-    // Only CSR input format supported
-    if(A->input_format != aoclsparse_csr_mat)
+    // Only CSR, CSC, TCSR input format supported
+    // Internally, CSC is stored as CSR with rows and columns swapped.
+    if(A->input_format != aoclsparse_csr_mat && A->input_format != aoclsparse_tcsr_mat)
     {
         return aoclsparse_status_not_implemented;
     }
@@ -86,7 +85,7 @@ aoclsparse_status
     // Check for base index incompatibility
     // There is an issue that zero-based indexing is defined in two separate places and
     // can lead to ambiguity, we check that both are consistent.
-    if(A->base != descr->base)
+    if(A->mats[0]->base != descr->base)
     {
         return aoclsparse_status_invalid_value;
     }
@@ -108,14 +107,21 @@ aoclsparse_status
        && descr->fill_mode != aoclsparse_fill_mode_upper)
         return aoclsparse_status_not_implemented;
 
-    // Unpack A and check
-    if(!A->opt_csr_ready)
+    // call optimize
+    aoclsparse::csr  *A_opt_csr  = nullptr;
+    aoclsparse::tcsr *A_opt_tcsr = nullptr;
+    if(A->input_format == aoclsparse_csr_mat)
     {
-        // user did not check the matrix, call optimize
-        aoclsparse_status status = aoclsparse_csr_csc_optimize<T>(A);
-        if(status != aoclsparse_status_success)
-            return status;
+        status = aoclsparse_csr_csc_optimize<T>(A, &A_opt_csr);
     }
+    else if(A->input_format == aoclsparse_tcsr_mat)
+    {
+        status = aoclsparse_tcsr_optimize<T>(A, &A_opt_tcsr);
+    }
+    if(status != aoclsparse_status_success)
+        return status;
+    if(!A_opt_csr && !A_opt_tcsr)
+        return aoclsparse_status_internal_error;
 
     aoclsparse_int incb, incx, b_offset, x_offset;
 
@@ -141,15 +147,11 @@ aoclsparse_status
     using namespace aoclsparse;
 
 #ifdef _OPENMP
-    chunk = (n / context::get_context()->get_num_threads())
-                ? (n / context::get_context()->get_num_threads())
-                : 1;
-#pragma omp parallel for num_threads(context::get_context()->get_num_threads()) \
-    schedule(dynamic, chunk)
+#pragma omp parallel for num_threads(context::get_context()->get_num_threads())
 #endif
     for(aoclsparse_int ld = 0; ld < n; ++ld)
     {
-        status = aoclsparse_trsv<T>(
+        status = aoclsparse::trsv<T>(
             transpose, alpha, A, descr, &B[ld * b_offset], incb, &X[ld * x_offset], incx, kid);
     }
 

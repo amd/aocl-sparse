@@ -25,7 +25,6 @@
 #include "aoclsparse_analysis.hpp"
 #include "aoclsparse_csr_util.hpp"
 #include "aoclsparse_mat_structures.hpp"
-#include "aoclsparse_utils.hpp"
 
 #include <algorithm>
 /*
@@ -40,12 +39,22 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
     // 2) matrix dimensions are <= 1
     // 3) matrix is not stored in the csr format
     // 4) ToDo: add more exceptions
+    if(!A || A->mats.empty())
+        return aoclsparse_status_invalid_pointer;
+
     if(A->val_type != aoclsparse_dmat || A->mat_type != aoclsparse_csr_mat || A->m <= 1
        || A->n <= 1)
     {
         A->optimized = true;
         return aoclsparse_status_success;
     }
+
+    // The user-given matrix should be located at the first position in A->mats
+    aoclsparse::csr *csr_mat = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
+    if(!csr_mat)
+        return aoclsparse_status_not_implemented;
+    if(!csr_mat->ptr || !csr_mat->ind || !csr_mat->val)
+        return aoclsparse_status_invalid_pointer;
 
     // early return if already optimized
     // ToDo: could have side effect of not optimizing A if
@@ -56,7 +65,7 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
     }
 
     // collect the required for decision making
-    aoclsparse_int *row_ptr = A->csr_mat.csr_row_ptr;
+    aoclsparse_int *row_ptr = csr_mat->ptr;
     aoclsparse_int  m       = A->m;
     // 1: ELL width
     aoclsparse_int ell_width = 0, nnz = A->nnz;
@@ -140,44 +149,43 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
         {
             aoclsparse_int total_blks = 0;
             aoclsparse_int nRowsblk   = aoclsparse_opt_blksize(
-                A->m, A->nnz, A->base, A->csr_mat.csr_row_ptr, A->csr_mat.csr_col_ptr, &total_blks);
+                A->m, A->nnz, csr_mat->base, csr_mat->ptr, csr_mat->ind, &total_blks);
             if(nRowsblk != 0)
             {
-                const aoclsparse_int blk_width  = 8;
-                aoclsparse::blk_csr *mat_blkcsr = nullptr;
-                mat_blkcsr                      = &(A->blk_csr_mat);
-
+                const aoclsparse_int blk_width   = 8;
+                aoclsparse::blk_csr *blk_csr_mat = nullptr;
                 try
                 {
-                    mat_blkcsr->blk_row_ptr = new aoclsparse_int[m + 1];
-                    mat_blkcsr->blk_col_ptr = new aoclsparse_int[nnz];
-                    mat_blkcsr->blk_val
-                        = ::operator new((nnz + nRowsblk * blk_width) * sizeof(double));
-                    mat_blkcsr->masks = new uint8_t[total_blks * nRowsblk];
+                    blk_csr_mat = new aoclsparse::blk_csr(
+                        m, A->n, nnz, nRowsblk, csr_mat->base, A->val_type, blk_width, total_blks);
                 }
                 catch(std::bad_alloc &)
                 {
-                    delete[] mat_blkcsr->blk_row_ptr;
-                    delete[] mat_blkcsr->blk_col_ptr;
-                    ::operator delete(mat_blkcsr->blk_val);
-                    delete[] mat_blkcsr->masks;
                     return aoclsparse_status_memory_error;
                 }
                 aoclsparse_csr2blkcsr(A->m,
                                       A->n,
                                       A->nnz,
-                                      A->csr_mat.csr_row_ptr,
-                                      A->csr_mat.csr_col_ptr,
-                                      (double *)A->csr_mat.csr_val,
-                                      mat_blkcsr->blk_row_ptr,
-                                      mat_blkcsr->blk_col_ptr,
-                                      (double *)mat_blkcsr->blk_val,
-                                      mat_blkcsr->masks,
+                                      csr_mat->ptr,
+                                      csr_mat->ind,
+                                      (double *)csr_mat->val,
+                                      blk_csr_mat->blk_row_ptr,
+                                      blk_csr_mat->blk_col_ptr,
+                                      (double *)blk_csr_mat->blk_val,
+                                      blk_csr_mat->masks,
                                       nRowsblk,
-                                      A->base);
-                A->blk_csr_mat.nRowsblk = nRowsblk;
-                A->blk_optimized        = true;
-                A->mat_type             = aoclsparse_csr_mat;
+                                      csr_mat->base);
+                try
+                {
+                    A->mats.push_back(blk_csr_mat);
+                }
+                catch(std::bad_alloc &)
+                {
+                    delete blk_csr_mat;
+                    return aoclsparse_status_memory_error;
+                }
+                A->blk_optimized = true;
+                A->mat_type      = aoclsparse_csr_mat;
             }
         }
     }
@@ -205,38 +213,34 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
     }
     if(A->mat_type == aoclsparse_ellt_csr_hyb_mat)
     {
-        aoclsparse_int           ell_width;
-        aoclsparse_int           ell_m;
-        aoclsparse::ell_csr_hyb *ell_csr_hyb_mat = &(A->ell_csr_hyb_mat);
+        aoclsparse_int ell_width;
+        aoclsparse_int ell_m;
         // get the ell_width
-        aoclsparse_csr2ellthyb_width(A->m, A->nnz, A->csr_mat.csr_row_ptr, &ell_m, &ell_width);
+        aoclsparse_csr2ellthyb_width(A->m, A->nnz, csr_mat->ptr, &ell_m, &ell_width);
         if(ell_width == 0)
         {
             A->mat_type = aoclsparse_csr_mat;
             return aoclsparse_status_success;
         }
+        aoclsparse::ell_csr_hyb *ell_csr_hyb_mat = nullptr;
         try
         {
-            ell_csr_hyb_mat->ell_col_ind    = new aoclsparse_int[ell_width * A->m];
-            ell_csr_hyb_mat->csr_row_id_map = new aoclsparse_int[A->m - ell_m];
-            ell_csr_hyb_mat->ell_val = ::operator new(data_size[A->val_type] * ell_width * A->m);
+            ell_csr_hyb_mat = new aoclsparse::ell_csr_hyb(
+                A->m, A->n, A->nnz, csr_mat->base, A->val_type, ell_width, ell_m);
         }
         catch(std::bad_alloc &)
         {
-            delete[] ell_csr_hyb_mat->ell_col_ind;
-            delete[] ell_csr_hyb_mat->csr_row_id_map;
-            ::operator delete(ell_csr_hyb_mat->ell_val);
             return aoclsparse_status_memory_error;
         }
         // convert to hybrid ELLT-CSR format
         if(A->val_type == aoclsparse_dmat)
         {
             aoclsparse_dcsr2ellthyb(A->m,
-                                    A->base,
+                                    csr_mat->base,
                                     &ell_m,
-                                    A->csr_mat.csr_row_ptr,
-                                    A->csr_mat.csr_col_ptr,
-                                    (double *)A->csr_mat.csr_val,
+                                    csr_mat->ptr,
+                                    csr_mat->ind,
+                                    (double *)csr_mat->val,
                                     NULL,
                                     ell_csr_hyb_mat->csr_row_id_map,
                                     ell_csr_hyb_mat->ell_col_ind,
@@ -246,112 +250,105 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
         else if(A->val_type == aoclsparse_smat)
         {
             aoclsparse_scsr2ellthyb(A->m,
-                                    A->base,
+                                    csr_mat->base,
                                     &ell_m,
-                                    A->csr_mat.csr_row_ptr,
-                                    A->csr_mat.csr_col_ptr,
-                                    (float *)A->csr_mat.csr_val,
+                                    csr_mat->ptr,
+                                    csr_mat->ind,
+                                    (float *)csr_mat->val,
                                     NULL,
                                     ell_csr_hyb_mat->csr_row_id_map,
                                     ell_csr_hyb_mat->ell_col_ind,
                                     (float *)ell_csr_hyb_mat->ell_val,
                                     ell_width);
         }
+        try
+        {
+            A->mats.push_back(ell_csr_hyb_mat);
+        }
+        catch(std::bad_alloc &)
+        {
+            delete ell_csr_hyb_mat;
+            return aoclsparse_status_memory_error;
+        }
         // set appropriate members of "A"
-        ell_csr_hyb_mat->ell_width   = ell_width;
-        ell_csr_hyb_mat->ell_m       = ell_m;
-        ell_csr_hyb_mat->csr_col_ptr = A->csr_mat.csr_col_ptr;
-        ell_csr_hyb_mat->csr_val     = A->csr_mat.csr_val;
+        ell_csr_hyb_mat->csr_col_ptr = csr_mat->ind;
+        ell_csr_hyb_mat->csr_val     = csr_mat->val;
+        ell_csr_hyb_mat->doid        = csr_mat->doid;
     }
     else if((A->mat_type == aoclsparse_csr_mat_br4) && (A->val_type == aoclsparse_dmat))
     { // vectorized csr blocked format for AVX2
+        aoclsparse::csr *csr_mat_br4 = nullptr;
         try
         {
             std::vector<aoclsparse_int> row_ptr(A->m);
 
-            aoclsparse_int   row_nnz;
-            aoclsparse::csr *csr_mat_br4 = &(A->csr_mat_br4);
+            aoclsparse_int row_nnz;
             // populate row_nnz
             aoclsparse_int i;
             aoclsparse_int j;
             aoclsparse_int tnnz = 0;
-            try
-            {
-                csr_mat_br4->csr_row_ptr = new aoclsparse_int[A->m + 1];
-            }
-            catch(std::bad_alloc &)
-            {
-                return aoclsparse_status_memory_error;
-            }
-            csr_mat_br4->csr_row_ptr[0] = A->base;
+            csr_mat_br4         = new aoclsparse::csr(
+                A->m, A->n, -1, aoclsparse_csr_mat_br4, csr_mat->base, A->val_type);
+            csr_mat_br4->ptr[0] = csr_mat->base;
             for(i = 0; i < A->m; i += 4)
             {
                 aoclsparse_int m1, m2;
                 if((A->m - i) < 4)
                     break;
-                m1 = (std::max)((A->csr_mat.csr_row_ptr[i + 1] - A->csr_mat.csr_row_ptr[i]),
-                                (A->csr_mat.csr_row_ptr[i + 2] - A->csr_mat.csr_row_ptr[i + 1]));
-                m2 = (std::max)((A->csr_mat.csr_row_ptr[i + 3] - A->csr_mat.csr_row_ptr[i + 2]),
-                                (A->csr_mat.csr_row_ptr[i + 4] - A->csr_mat.csr_row_ptr[i + 3]));
+                m1         = (std::max)((csr_mat->ptr[i + 1] - csr_mat->ptr[i]),
+                                (csr_mat->ptr[i + 2] - csr_mat->ptr[i + 1]));
+                m2         = (std::max)((csr_mat->ptr[i + 3] - csr_mat->ptr[i + 2]),
+                                (csr_mat->ptr[i + 4] - csr_mat->ptr[i + 3]));
                 row_nnz    = (std::max)(m1, m2);
                 row_ptr[i] = row_ptr[i + 1] = row_ptr[i + 2] = row_ptr[i + 3] = row_nnz;
-                csr_mat_br4->csr_row_ptr[i + 1] = csr_mat_br4->csr_row_ptr[i] + row_nnz;
-                csr_mat_br4->csr_row_ptr[i + 2] = csr_mat_br4->csr_row_ptr[i + 1] + row_nnz;
-                csr_mat_br4->csr_row_ptr[i + 3] = csr_mat_br4->csr_row_ptr[i + 2] + row_nnz;
-                csr_mat_br4->csr_row_ptr[i + 4] = csr_mat_br4->csr_row_ptr[i + 3] + row_nnz;
+                csr_mat_br4->ptr[i + 1] = csr_mat_br4->ptr[i] + row_nnz;
+                csr_mat_br4->ptr[i + 2] = csr_mat_br4->ptr[i + 1] + row_nnz;
+                csr_mat_br4->ptr[i + 3] = csr_mat_br4->ptr[i + 2] + row_nnz;
+                csr_mat_br4->ptr[i + 4] = csr_mat_br4->ptr[i + 3] + row_nnz;
                 tnnz += 4 * row_nnz;
             }
             for(j = i; j < A->m; ++j)
             {
-                row_nnz = A->csr_mat.csr_row_ptr[j + 1] - A->csr_mat.csr_row_ptr[j];
+                row_nnz = csr_mat->ptr[j + 1] - csr_mat->ptr[j];
                 tnnz += row_nnz;
-                row_ptr[j]                      = row_nnz;
-                csr_mat_br4->csr_row_ptr[j + 1] = csr_mat_br4->csr_row_ptr[j] + row_nnz;
+                row_ptr[j]              = row_nnz;
+                csr_mat_br4->ptr[j + 1] = csr_mat_br4->ptr[j] + row_nnz;
             }
             // create the new csr matrix and convert to the csr-avx2 format
-            try
-            {
-                csr_mat_br4->csr_col_ptr = new aoclsparse_int[tnnz];
-                csr_mat_br4->csr_val     = ::operator new(sizeof(double) * tnnz);
-            }
-            catch(std::bad_alloc &)
-            {
-                delete[] csr_mat_br4->csr_col_ptr;
-                ::operator delete(csr_mat_br4->csr_val);
-                return aoclsparse_status_memory_error;
-            }
+            csr_mat_br4->ind  = new aoclsparse_int[tnnz];
+            csr_mat_br4->val  = ::operator new(sizeof(double) * tnnz);
             aoclsparse_int tc = 0; // count of nonzeros
             // keeps track of the last column index accessed during the conversion
             aoclsparse_int last_col_idx = 0;
             for(i = 0; i < A->m; ++i)
             {
-                aoclsparse_int nz   = A->csr_mat.csr_row_ptr[i + 1] - A->csr_mat.csr_row_ptr[i];
-                aoclsparse_int ridx = A->csr_mat.csr_row_ptr[i];
+                aoclsparse_int nz   = csr_mat->ptr[i + 1] - csr_mat->ptr[i];
+                aoclsparse_int ridx = csr_mat->ptr[i];
                 for(j = 0; j < nz; ++j)
                 {
-                    ((double *)csr_mat_br4->csr_val)[tc]
-                        = ((double *)A->csr_mat.csr_val)[ridx - A->base + j];
-                    csr_mat_br4->csr_col_ptr[tc] = A->csr_mat.csr_col_ptr[ridx - A->base + j];
-                    last_col_idx                 = csr_mat_br4->csr_col_ptr[tc];
+                    ((double *)csr_mat_br4->val)[tc]
+                        = ((double *)csr_mat->val)[ridx - csr_mat->base + j];
+                    csr_mat_br4->ind[tc] = csr_mat->ind[ridx - csr_mat->base + j];
+                    last_col_idx         = csr_mat_br4->ind[tc];
                     tc++;
                 }
                 if(nz < row_ptr[i])
                 { // ToDo -- can remove the if condition
                     for(j = nz; j < row_ptr[i]; ++j)
                     {
-                        csr_mat_br4->csr_col_ptr[tc]         = last_col_idx;
-                        ((double *)csr_mat_br4->csr_val)[tc] = static_cast<double>(0);
+                        csr_mat_br4->ind[tc]             = last_col_idx;
+                        ((double *)csr_mat_br4->val)[tc] = static_cast<double>(0);
                         tc++;
                     }
                 }
             }
             tc                   = 0;
-            aoclsparse_int *cptr = (aoclsparse_int *)csr_mat_br4->csr_col_ptr;
-            double         *vptr = (double *)csr_mat_br4->csr_val;
+            aoclsparse_int *cptr = (aoclsparse_int *)csr_mat_br4->ind;
+            double         *vptr = (double *)csr_mat_br4->val;
             for(i = 0; i < A->m; i += 4)
             {
-                cptr               = csr_mat_br4->csr_col_ptr + tc;
-                vptr               = (double *)csr_mat_br4->csr_val + tc;
+                cptr               = csr_mat_br4->ind + tc;
+                vptr               = (double *)csr_mat_br4->val + tc;
                 aoclsparse_int nnz = row_ptr[i];
                 if((A->m - i) < 4)
                     break;
@@ -371,11 +368,14 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
                 memcpy(cptr, bufidx.data(), sizeof(aoclsparse_int) * nnz * 4);
                 tc += nnz * 4;
             }
+            A->mats.push_back(csr_mat_br4);
             // set appropriate members of "A"
-            //        A->csr_mat_br4.csr_row_ptr = row_ptr;
+            //        A->csr_mat_br4.ptr = row_ptr;
         }
         catch(std::bad_alloc &)
         {
+            if(csr_mat_br4)
+                delete csr_mat_br4;
             // row_ptr, bufval, bufidx memory allocation fail
             return aoclsparse_status_memory_error;
         }
@@ -425,6 +425,15 @@ aoclsparse_status aoclsparse_optimize_symgs(aoclsparse_matrix A)
 */
 aoclsparse_status aoclsparse_optimize_ilu(aoclsparse_matrix A)
 {
+    if(!A || A->mats.empty())
+        return aoclsparse_status_invalid_pointer;
+
+    aoclsparse::csr *csr_mat = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
+    if(!csr_mat)
+        return aoclsparse_status_not_implemented;
+    if(!csr_mat->val)
+        return aoclsparse_status_invalid_pointer;
+
     aoclsparse_status ret     = aoclsparse_status_success;
     void             *ilu_val = nullptr;
     //If already allocated, then no need to reallocate. So return. Need to happen only once in the beginning
@@ -444,7 +453,7 @@ aoclsparse_status aoclsparse_optimize_ilu(aoclsparse_matrix A)
         ::operator delete(ilu_val);
         return aoclsparse_status_memory_error;
     }
-    memcpy(ilu_val, A->csr_mat.csr_val, (data_size[A->val_type] * A->nnz));
+    memcpy(ilu_val, csr_mat->val, (data_size[A->val_type] * A->nnz));
     A->ilu_info.precond_csr_val = ilu_val;
     //turn this flag on to indicate necessary allocations for ILU have been done
     A->ilu_info.ilu_ready = true;
@@ -465,6 +474,8 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
     {
         return aoclsparse_status_invalid_size;
     }
+    if(A->mats.empty())
+        return aoclsparse_status_invalid_pointer;
 
     // Investigate potential optimized copies
     // if memory usage is unrestricted
@@ -479,10 +490,10 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
             ret = aoclsparse_matrix_transform<float>(A);
             break;
         case aoclsparse_cmat:
-            ret = aoclsparse_matrix_transform<aoclsparse_float_complex>(A);
+            ret = aoclsparse_matrix_transform<std::complex<float>>(A);
             break;
         case aoclsparse_zmat:
-            ret = aoclsparse_matrix_transform<aoclsparse_double_complex>(A);
+            ret = aoclsparse_matrix_transform<std::complex<double>>(A);
             break;
         }
         if(ret != aoclsparse_status_success)
@@ -494,31 +505,38 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
     // Creates idiag ptr for lower and iurow ptr for upper triangualr matrix
     if(A->input_format == aoclsparse_tcsr_mat)
     {
-        if(A->opt_csr_ready) // check if already optimized
+        aoclsparse::tcsr *const tcsr_mat = dynamic_cast<aoclsparse::tcsr *>(A->mats[0]);
+        if(!tcsr_mat)
+            return aoclsparse_status_not_implemented;
+        if(tcsr_mat->is_optimized)
             return aoclsparse_status_success;
-        else
+        aoclsparse::tcsr *opt_mat = nullptr;
+        switch(A->val_type)
         {
-            switch(A->val_type)
-            {
-            case aoclsparse_dmat:
-                ret = aoclsparse_tcsr_optimize<double>(A);
-                break;
-            case aoclsparse_smat:
-                ret = aoclsparse_tcsr_optimize<float>(A);
-                break;
-            case aoclsparse_cmat:
-                ret = aoclsparse_tcsr_optimize<aoclsparse_float_complex>(A);
-                break;
-            case aoclsparse_zmat:
-                ret = aoclsparse_tcsr_optimize<aoclsparse_double_complex>(A);
-                break;
-            }
+        case aoclsparse_dmat:
+            ret = aoclsparse_tcsr_optimize<double>(A, &opt_mat);
+            break;
+        case aoclsparse_smat:
+            ret = aoclsparse_tcsr_optimize<float>(A, &opt_mat);
+            break;
+        case aoclsparse_cmat:
+            ret = aoclsparse_tcsr_optimize<std::complex<float>>(A, &opt_mat);
+            break;
+        case aoclsparse_zmat:
+            ret = aoclsparse_tcsr_optimize<std::complex<double>>(A, &opt_mat);
+            break;
         }
+        if(ret == aoclsparse_status_success && !opt_mat)
+            return aoclsparse_status_internal_error;
         return ret;
     }
-    // Check CSR matrix is populated, it not return an error. ToDo: need to handle CSC / COO cases later
-    if((A->csr_mat.csr_row_ptr == nullptr) || (A->csr_mat.csr_col_ptr == nullptr)
-       || (A->csr_mat.csr_val == nullptr))
+
+    // CSR matrix checks
+    aoclsparse::csr *csr_mat = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
+    if(!csr_mat)
+        return aoclsparse_status_not_implemented;
+    // Check CSR matrix is populated, it not return an error. ToDo: need to handle COO cases later
+    if(!csr_mat->ptr || !csr_mat->ind || !csr_mat->val)
     {
         return aoclsparse_status_invalid_pointer;
     }
@@ -530,21 +548,25 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
     aoclsparse_int other_count = 0, sum = 0;
     while(optd)
     {
-        optimized              = optimized && optd->action_optimized;
-        optd->action_optimized = true;
-        // Increment the actions counter that are implemented
-        if((optd->act == aoclsparse_action_mv || optd->act == aoclsparse_action_dotmv)
-           && optd->trans == aoclsparse_operation_none
-           && optd->type == aoclsparse_matrix_type_general && A->val_type == aoclsparse_dmat
-           && optd->nop > 0)
-            mv_count++;
-        else if(optd->act == aoclsparse_action_ilu0 && optd->nop > 0)
-            ilu_count++;
-        else if(optd->act == aoclsparse_action_symgs && optd->nop > 0)
-            sgs_count++;
-        else
-            other_count++;
-        sum++;
+        if(!optd->action_optimized) // If the action has not been optimized yet
+        {
+            optimized              = optimized && optd->action_optimized;
+            optd->action_optimized = true;
+            // Increment the actions counter that are implemented
+            // Skip mv_count optimization if matrix is in CSC format (csr_mat->doid == aoclsparse::doid::gt indicates CSC)
+            if((optd->act == aoclsparse_action_mv || optd->act == aoclsparse_action_dotmv)
+               && optd->trans == aoclsparse_operation_none
+               && optd->type == aoclsparse_matrix_type_general && A->val_type == aoclsparse_dmat
+               && optd->nop > 0 && csr_mat->doid != aoclsparse::doid::gt)
+                mv_count++;
+            else if(optd->act == aoclsparse_action_ilu0 && optd->nop > 0)
+                ilu_count++;
+            else if(optd->act == aoclsparse_action_symgs && optd->nop > 0)
+                sgs_count++;
+            else
+                other_count++;
+            sum++;
+        }
         optd = optd->next;
     }
     // all actions in the list were already optimized for
@@ -553,25 +575,43 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
     // If 'other' hints have been passed, simply optimize the matrix by creating a clean CSR / clean CSC
     if(other_count || sum == 0)
     {
-        if(A->opt_csr_ready || A->opt_csc_ready)
+        // Check if any matrix in A->mats is already optimized
+        bool is_optimized = false;
+        for(const auto &mat : A->mats)
+        {
+            aoclsparse::csr *opt_mat = dynamic_cast<aoclsparse::csr *>(mat);
+            if(opt_mat && opt_mat->is_optimized)
+            {
+                is_optimized = true;
+                break; // No need to check further
+            }
+        }
+
+        if(is_optimized)
             ret = aoclsparse_status_success;
+
         else
         {
+            aoclsparse::csr *opt_mat = nullptr;
             switch(A->val_type)
             {
             case aoclsparse_dmat:
-                ret = aoclsparse_csr_csc_optimize<double>(A);
+                ret = aoclsparse_csr_csc_optimize<double>(A, &(opt_mat));
                 break;
             case aoclsparse_smat:
-                ret = aoclsparse_csr_csc_optimize<float>(A);
+                ret = aoclsparse_csr_csc_optimize<float>(A, &(opt_mat));
                 break;
             case aoclsparse_cmat:
-                ret = aoclsparse_csr_csc_optimize<aoclsparse_float_complex>(A);
+                ret = aoclsparse_csr_csc_optimize<std::complex<float>>(A, &(opt_mat));
                 break;
             case aoclsparse_zmat:
-                ret = aoclsparse_csr_csc_optimize<aoclsparse_double_complex>(A);
+                ret = aoclsparse_csr_csc_optimize<std::complex<double>>(A, &(opt_mat));
                 break;
             }
+            // This check is correct: if optimization succeeded but opt_mat is null,
+            // it indicates an internal logic error in aoclsparse_csr_csc_optimize
+            if(ret == aoclsparse_status_success && !opt_mat)
+                return aoclsparse_status_internal_error;
         }
     }
     else if(mv_count - sum >= 0)
@@ -601,7 +641,7 @@ aoclsparse_status aoclsparse_set_hint(aoclsparse_matrix          mat,
                                       aoclsparse_int             kid = -1)
 {
     // Check matrix and descriptor
-    if((mat == nullptr) || (descr == nullptr))
+    if(!mat || mat->mats.empty() || !mat->mats[0] || (descr == nullptr))
     {
         return aoclsparse_status_invalid_pointer;
     }
@@ -613,7 +653,7 @@ aoclsparse_status aoclsparse_set_hint(aoclsparse_matrix          mat,
     // Check for base index incompatibility
     // There is an issue that zero-based indexing is defined in two separate places and
     // can lead to ambiguity, we check that both are consistent.
-    if(mat->base != descr->base)
+    if(mat->mats[0]->base != descr->base)
     {
         return aoclsparse_status_invalid_value;
     }

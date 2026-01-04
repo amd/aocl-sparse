@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,12 +25,12 @@
 #ifndef TESTING_TRSM_HPP
 #define TESTING_TRSM_HPP
 
-#include "aoclsparse.hpp"
 #include "aoclsparse_arguments.hpp"
 #include "aoclsparse_check.hpp"
 #include "aoclsparse_flops.hpp"
 #include "aoclsparse_gbyte.hpp"
 #include "aoclsparse_init.hpp"
+#include "aoclsparse_interface.hpp"
 #include "aoclsparse_random.hpp"
 #include "aoclsparse_reference.hpp"
 #include "aoclsparse_test.hpp"
@@ -240,10 +240,29 @@ int testing_trsm(const Arguments &arg)
             2. only compare (k x m) with reference, the last 2 rows might
                 have garbage so unit check might fail
         */
-        td.ldy = td.m + 2;
-        td.ldx = td.m + 2;
-        mm     = td.k;
-        nn     = td.m;
+        // Validate td.m is within safe bounds for computation
+        // td.m is considered tainted data by static analysis, so we need explicit validation
+        constexpr auto max_safe_val = std::numeric_limits<decltype(td.m)>::max() - 2;
+
+        if(td.m < 0)
+        {
+            throw std::invalid_argument("td.m must be non-negative");
+        }
+        if(td.m > max_safe_val)
+        {
+            throw std::overflow_error("td.m value too large for safe addition");
+        }
+
+        // Create validated local copy to break tainted data flow
+        decltype(td.m) validated_m = td.m;
+
+        // Coverity: At this point, validated_m is guaranteed to be in range [0, max_safe_val]
+        // Therefore validated_m + 2 is guaranteed to be <= max_val
+        td.ldx = validated_m + 2;
+        td.ldy = validated_m + 2;
+
+        mm = td.k;
+        nn = td.m;
     }
     else if(order == aoclsparse_order_row)
     {

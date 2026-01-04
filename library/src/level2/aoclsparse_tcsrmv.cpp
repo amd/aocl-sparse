@@ -55,11 +55,8 @@ aoclsparse_status aoclsparse_dtcsrmv_avx2(const aoclsparse_index_base base,
     const double         *x_fix      = x - base;
 
 #ifdef _OPENMP
-    aoclsparse_int chunk = (m / context::get_context()->get_num_threads())
-                               ? (m / context::get_context()->get_num_threads())
-                               : 1;
-#pragma omp parallel for num_threads(context::get_context()->get_num_threads()) \
-    schedule(dynamic, chunk) private(vec_vals, vec_x, vec_y)
+#pragma omp parallel for num_threads(context::get_context()->get_num_threads()) private( \
+        vec_vals, vec_x, vec_y)
 #endif
     for(aoclsparse_int i = 0; i < m; i++)
     {

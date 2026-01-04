@@ -335,11 +335,7 @@ aoclsparse_status aoclsparse_elltmv_ref(const T                         alpha,
     aoclsparse_index_base base = descr->base;
 
 #ifdef _OPENMP
-    aoclsparse_int chunk = (m / context::get_context()->get_num_threads())
-                               ? (m / context::get_context()->get_num_threads())
-                               : 1;
-#pragma omp parallel for num_threads(context::get_context()->get_num_threads()) \
-    schedule(dynamic, chunk) private(rd)
+#pragma omp parallel for num_threads(context::get_context()->get_num_threads()) private(rd)
 #endif
     for(aoclsparse_int j = 0; j < m; j++)
     {
@@ -382,18 +378,15 @@ std::enable_if_t<std::is_same_v<T, double>, aoclsparse_status>
 
     __m256d res, vvals, vx, vy, va, vb;
 
-    va                                   = _mm256_set1_pd(alpha);
-    vb                                   = _mm256_set1_pd(beta);
-    res                                  = _mm256_setzero_pd();
-    aoclsparse_int                  k    = ell_width;
-    aoclsparse_int                  blk  = 4;
-    aoclsparse_index_base           base = descr->base;
-    [[maybe_unused]] aoclsparse_int chunk_size
-        = m / (blk * context::get_context()->get_num_threads());
+    va                         = _mm256_set1_pd(alpha);
+    vb                         = _mm256_set1_pd(beta);
+    res                        = _mm256_setzero_pd();
+    aoclsparse_int        k    = ell_width;
+    aoclsparse_int        blk  = 4;
+    aoclsparse_index_base base = descr->base;
 #ifdef _OPENMP
-    chunk_size = chunk_size ? chunk_size : 1;
-#pragma omp parallel for num_threads(context::get_context()->get_num_threads()) \
-    schedule(dynamic, chunk_size) private(res, vvals, vx, vy)
+#pragma omp parallel for num_threads(context::get_context()->get_num_threads()) private( \
+        res, vvals, vx, vy)
 #endif
     for(aoclsparse_int j = 0; j < m / blk; j++)
     {
@@ -611,14 +604,11 @@ std::enable_if_t<std::is_same_v<T, double>, aoclsparse_status>
         }
     }
 
-    int                             blk = 4;
-    [[maybe_unused]] aoclsparse_int chunk_size
-        = m / (blk * context::get_context()->get_num_threads());
+    int                   blk  = 4;
     aoclsparse_index_base base = descr->base;
 #ifdef _OPENMP
-    chunk_size = chunk_size ? chunk_size : 1;
 #pragma omp parallel for num_threads(context::get_context()->get_num_threads()) \
-    schedule(dynamic, chunk_size) firstprivate(res, vvals, vx, vy)
+    firstprivate(res, vvals, vx, vy)
 #endif
     for(aoclsparse_int j = 0; j < m / blk; j++)
     {
@@ -678,7 +668,6 @@ std::enable_if_t<std::is_same_v<T, double>, aoclsparse_status>
     __m256d               vec_vals, vec_x, vec_y;
     const aoclsparse_int *colIndPtr;
     const double         *matValPtr;
-    chunk_size = 512;
     // reset some of the "y" elements corresponding to csr_row_idx_map.
     // this step is required when beta is non-zero
     if(beta != static_cast<double>(0))
@@ -692,8 +681,8 @@ std::enable_if_t<std::is_same_v<T, double>, aoclsparse_status>
 
     base = descr->base;
 #ifdef _OPENMP
-#pragma omp parallel for num_threads(context::get_context()->get_num_threads()) \
-    schedule(dynamic, chunk_size) private(vec_vals, vec_x, vec_y, colIndPtr, matValPtr)
+#pragma omp parallel for num_threads(context::get_context()->get_num_threads()) private( \
+        vec_vals, vec_x, vec_y, colIndPtr, matValPtr)
 #endif
     for(aoclsparse_int i = 0; i < m - ell_m; ++i)
     {

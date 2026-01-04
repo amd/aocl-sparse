@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,7 @@
 #include "aoclsparse.h"
 #include "common_data_utils.h"
 #include "gtest/gtest.h"
-#include "aoclsparse.hpp"
+#include "aoclsparse_interface.hpp"
 
 #include <algorithm>
 #include <complex>
@@ -68,10 +68,12 @@ namespace
         aoclsparse_int lnnz = row_ptr_L[m] - base; // (L + D)nnz
         aoclsparse_int unnz = row_ptr_U[m] - base; // (D + U)nnz
 
-        EXPECT_EQ_VEC(m + 1, row_ptr_L, A->tcsr_mat.row_ptr_L);
-        EXPECT_EQ_VEC(m + 1, row_ptr_U, A->tcsr_mat.row_ptr_U);
-        EXPECT_EQ_VEC(lnnz, col_idx_L, A->tcsr_mat.col_idx_L);
-        EXPECT_EQ_VEC(unnz, col_idx_U, A->tcsr_mat.col_idx_U);
+        aoclsparse::tcsr *tcsr_mat = dynamic_cast<aoclsparse::tcsr *>(A->mats[0]);
+        EXPECT_NE(tcsr_mat, nullptr);
+        EXPECT_EQ_VEC(m + 1, row_ptr_L, tcsr_mat->row_ptr_L);
+        EXPECT_EQ_VEC(m + 1, row_ptr_U, tcsr_mat->row_ptr_U);
+        EXPECT_EQ_VEC(lnnz, col_idx_L, tcsr_mat->col_idx_L);
+        EXPECT_EQ_VEC(unnz, col_idx_U, tcsr_mat->col_idx_U);
 
         EXPECT_EQ(m, A->m);
         EXPECT_EQ(n, A->n);

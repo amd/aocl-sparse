@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,8 +23,8 @@
 #include "aoclsparse.h"
 #include "common_data_utils.h"
 #include "gtest/gtest.h"
-#include "aoclsparse.hpp"
 #include "aoclsparse_init.hpp"
+#include "aoclsparse_interface.hpp"
 
 #include <complex>
 #include <iostream>
@@ -34,6 +34,7 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wtype-limits"
 #include "blis.hh"
 #pragma GCC diagnostic pop
 
@@ -303,7 +304,7 @@ namespace
                   aoclsparse_status_success);
 
         // Invalid base for A matrix
-        A->base = (aoclsparse_index_base)3;
+        A->mats[0]->base = (aoclsparse_index_base)3;
         if(stage == 0)
         {
             request = aoclsparse_stage_full_computation;
@@ -322,8 +323,8 @@ namespace
         aoclsparse_destroy(&C);
 
         // Invalid base for B matrix
-        A->base      = b_a;
-        descrB->base = (aoclsparse_index_base)3;
+        A->mats[0]->base = b_a;
+        descrB->base     = (aoclsparse_index_base)3;
         if(stage == 0)
         {
             request = aoclsparse_stage_full_computation;
@@ -934,8 +935,10 @@ namespace
             EXPECT_EQ(aoclsparse_sypr(op_a, A, B, descrB, &C, request), aoclsparse_status_success);
 
             // Modify the values of A matix value arrays.
+            aoclsparse::csr *csr_mat = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
+            EXPECT_NE(csr_mat, nullptr);
             for(aoclsparse_int i = 0; i < A->nnz; i++)
-                ((T *)A->csr_mat.csr_val)[i] = random_generator_normal<T>();
+                ((T *)csr_mat->val)[i] = random_generator_normal<T>();
 
             // Invoke sypr with finalize stage alone.
             // Expect success as C matrix created in previous invocation

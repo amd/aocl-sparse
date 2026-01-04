@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,7 +21,8 @@
  *
  * ************************************************************************ */
 
-#include "aoclsparse_csr2m.hpp"
+#include "aoclsparse.hpp"
+#include "aoclsparse_mat_structures.hpp"
 
 aoclsparse_status aoclsparse_spmm(aoclsparse_operation    opA,
                                   const aoclsparse_matrix A,
@@ -32,28 +33,32 @@ aoclsparse_status aoclsparse_spmm(aoclsparse_operation    opA,
     {
         return aoclsparse_status_invalid_pointer;
     }
+    if(A->mats.empty() || !A->mats[0] || B->mats.empty() || !B->mats[0])
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
     aoclsparse_status    status  = aoclsparse_status_success;
     aoclsparse_operation opB     = aoclsparse_operation_none;
     aoclsparse_request   request = aoclsparse_stage_full_computation;
 
     _aoclsparse_mat_descr descrA;
-    descrA.base = A->base;
+    descrA.base = A->mats[0]->base;
     descrA.type = aoclsparse_matrix_type_general;
 
     _aoclsparse_mat_descr descrB;
-    descrB.base = B->base;
+    descrB.base = B->mats[0]->base;
     descrB.type = aoclsparse_matrix_type_general;
 
     if((A->val_type == aoclsparse_smat) && (B->val_type == aoclsparse_smat))
-        status = aoclsparse_csr2m_t<float>(opA, &descrA, A, opB, &descrB, B, request, C);
+        status = aoclsparse::sp2m<float>(opA, &descrA, A, opB, &descrB, B, request, C);
     else if((A->val_type == aoclsparse_dmat) && (B->val_type == aoclsparse_dmat))
-        status = aoclsparse_csr2m_t<double>(opA, &descrA, A, opB, &descrB, B, request, C);
+        status = aoclsparse::sp2m<double>(opA, &descrA, A, opB, &descrB, B, request, C);
     else if((A->val_type == aoclsparse_cmat) && (B->val_type == aoclsparse_cmat))
         status
-            = aoclsparse_csr2m_t<std::complex<float>>(opA, &descrA, A, opB, &descrB, B, request, C);
+            = aoclsparse::sp2m<std::complex<float>>(opA, &descrA, A, opB, &descrB, B, request, C);
     else if((A->val_type == aoclsparse_zmat) && (B->val_type == aoclsparse_zmat))
-        status = aoclsparse_csr2m_t<std::complex<double>>(
-            opA, &descrA, A, opB, &descrB, B, request, C);
+        status
+            = aoclsparse::sp2m<std::complex<double>>(opA, &descrA, A, opB, &descrB, B, request, C);
     else
         status = aoclsparse_status_wrong_type;
 

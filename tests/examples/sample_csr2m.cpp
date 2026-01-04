@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2021-2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2021-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,6 +34,15 @@
 
 #define PRINT_OUTPUT
 
+void check_error(aoclsparse_status status, const char *api_name)
+{
+    if(status != aoclsparse_status_success)
+    {
+        std::cerr << "ERROR in " << api_name << std::endl;
+        exit(EXIT_FAILURE);
+    }
+}
+
 int main(void)
 {
     aoclsparse_status     status;
@@ -55,8 +64,13 @@ int main(void)
     // Create matrix descriptor of input matrices
     // aoclsparse_create_mat_descr set aoclsparse_matrix_type to aoclsparse_matrix_type_general
     // and aoclsparse_index_base to aoclsparse_index_base_zero.
-    aoclsparse_create_mat_descr(&descrA);
-    aoclsparse_create_mat_descr(&descrB);
+    status = aoclsparse_create_mat_descr(&descrA);
+
+    check_error(status, "aoclsparse_create_mat_descr for A");
+
+    status = aoclsparse_create_mat_descr(&descrB);
+
+    check_error(status, "aoclsparse_create_mat_descr for B");
 
     // Matrix sizes
     aoclsparse_int m = 3, n = 3, k = 3;
@@ -68,7 +82,9 @@ int main(void)
     aoclsparse_int row_ptr_A[] = {0, 2, 3, 6};
     aoclsparse_int col_ind_A[] = {0, 2, 2, 0, 1, 2};
     float          val_A[]     = {1, 2, 3, 4, 5, 6};
-    aoclsparse_create_scsr(&csrA, base, m, k, nnz_A, row_ptr_A, col_ind_A, val_A);
+    status = aoclsparse_create_scsr(&csrA, base, m, k, nnz_A, row_ptr_A, col_ind_A, val_A);
+
+    check_error(status, "aoclsparse_create_scsr for A");
 
     // Matrix B
     // 	1  2  0
@@ -77,7 +93,9 @@ int main(void)
     aoclsparse_int row_ptr_B[] = {0, 2, 3, 4};
     aoclsparse_int col_ind_B[] = {0, 1, 2, 1};
     float          val_B[]     = {1, 2, 3, 4};
-    aoclsparse_create_scsr(&csrB, base, k, n, nnz_B, row_ptr_B, col_ind_B, val_B);
+    status = aoclsparse_create_scsr(&csrB, base, k, n, nnz_B, row_ptr_B, col_ind_B, val_B);
+
+    check_error(status, "aoclsparse_create_scsr for B");
 
     aoclsparse_matrix csrC          = NULL;
     aoclsparse_int   *csr_row_ptr_C = NULL;
@@ -92,18 +110,15 @@ int main(void)
     // extracted to measure the memory required for full operation.
     request = aoclsparse_stage_nnz_count;
     status  = aoclsparse_scsr2m(transA, descrA, csrA, transB, descrB, csrB, request, &csrC);
-    if(status == aoclsparse_status_success)
-        std::cout << "DONE\n";
-    else
-    {
-        std::cout << "ERROR in aoclsparse_scsr2m\n";
-        exit(EXIT_FAILURE);
-    }
 
-    aoclsparse_export_scsr(
+    check_error(status, "aoclsparse_scsr2m with aoclsparse_stage_nnz_count");
+
+    status = aoclsparse_export_scsr(
         csrC, &base, &C_M, &C_N, &nnz_C, &csr_row_ptr_C, &csr_col_ind_C, &csr_val_C);
 
-#if 0
+    check_error(status, "aoclsparse_export_scsr after nnz count");
+
+#ifdef PRINT_OUTPUT
     std::cout << "C_M"
               << "\t"
               << "C_N"
@@ -124,15 +139,13 @@ int main(void)
     // aoclsparse_stage_nnz_count parameter.
     request = aoclsparse_stage_finalize;
     status  = aoclsparse_scsr2m(transA, descrA, csrA, transB, descrB, csrB, request, &csrC);
-    if(status == aoclsparse_status_success)
-        std::cout << "DONE\n";
-    else
-    {
-        std::cout << "ERROR in aoclsparse_scsr2m\n";
-        exit(EXIT_FAILURE);
-    }
-    aoclsparse_export_scsr(
+
+    check_error(status, "aoclsparse_scsr2m with aoclsparse_stage_finalize");
+
+    status = aoclsparse_export_scsr(
         csrC, &base, &C_M, &C_N, &nnz_C, &csr_row_ptr_C, &csr_col_ind_C, &csr_val_C);
+
+    check_error(status, "aoclsparse_export_scsr after finalize");
 
 #ifdef PRINT_OUTPUT
     std::cout << "csr_col_ind_C: " << std::endl;
@@ -152,16 +165,13 @@ int main(void)
     // single step.
     request = aoclsparse_stage_full_computation;
     status  = aoclsparse_scsr2m(transA, descrA, csrA, transB, descrB, csrB, request, &csrC);
-    if(status == aoclsparse_status_success)
-        std::cout << "DONE\n";
-    else
-    {
-        std::cout << "ERROR in aoclsparse_scsr2m\n";
-        exit(EXIT_FAILURE);
-    }
 
-    aoclsparse_export_scsr(
+    check_error(status, "aoclsparse_scsr2m with aoclsparse_stage_full_computation");
+
+    status = aoclsparse_export_scsr(
         csrC, &base, &C_M, &C_N, &nnz_C, &csr_row_ptr_C, &csr_col_ind_C, &csr_val_C);
+
+    check_error(status, "aoclsparse_export_scsr after full computation");
 
 #ifdef PRINT_OUTPUT
     std::cout << "C_M"
@@ -188,6 +198,8 @@ int main(void)
 #endif
 
 #endif
+
+    // Note: Error from destroy functions are ignored.
     aoclsparse_destroy_mat_descr(descrA);
     aoclsparse_destroy_mat_descr(descrB);
     aoclsparse_destroy(&csrA);

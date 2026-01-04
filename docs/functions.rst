@@ -182,6 +182,12 @@ aoclsparse\_?mv()
 .. doxygenfunction:: aoclsparse_zmv
    :project: sparse
 
+aoclsparse::mv()
+-----------------
+
+.. doxygenfunction:: aoclsparse::mv
+    :project: sparse
+
 aoclsparse\_?trsv()
 -------------------
 
@@ -220,6 +226,12 @@ aoclsparse\_?trsv()
     :outline:
 .. doxygenfunction:: aoclsparse_ztrsv_kid
    :project: sparse
+
+aoclsparse::trsv()
+------------------
+
+.. doxygenfunction:: aoclsparse::trsv
+    :project: sparse
 
 aoclsparse\_?dotmv()
 --------------------
@@ -323,6 +335,12 @@ aoclsparse_sp2m()
 
 .. doxygenfunction:: aoclsparse_sp2m
    :project: sparse
+
+aoclsparse::sp2m()
+------------------
+
+.. doxygenfunction:: aoclsparse::sp2m
+    :project: sparse
 
 aoclsparse_spmm()
 -----------------

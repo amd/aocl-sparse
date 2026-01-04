@@ -105,6 +105,11 @@ aoclsparse_convert_csr()
 .. doxygenfunction:: aoclsparse_convert_csr
    :project: sparse
 
+aoclsparse_convert_bsr()
+------------------------
+
+.. doxygenfunction:: aoclsparse_convert_bsr
+   :project: sparse
 ..
    removed from doc in 4.2
     .. doxygenfunction:: aoclsparse_csr2ellthyb_width

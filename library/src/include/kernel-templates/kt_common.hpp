@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -66,7 +66,7 @@
  *  Step 1
  *  ------
  *  Increase by 1 the supported base type:
- *  constexpr int supported_base_t = 3;
+ *  constexpr int supported_base_t = 4;
  *
  *  Step 2
  *  -------
@@ -90,17 +90,19 @@
  *            return 0;
  *       else if constexpr(kt_is_base_t_double<T>())
  *            return 1;
- *       else if constexpr(kt_is_base_t_bfloat16<T>())
- *            return 2; // Equal to new supported_base_t - 1
+ *      else if constexpr(kt_is_base_t_int<T>())
+ *          return 2;
+ *      else if constexpr(kt_is_base_t_bfloat16<T>())
+ *          return 3; // Equal to new supported_base_t - 1
  *   }
  *
  *   Step 4
  *   ------
  *   Add oracle to get vector type:
  *   template <bsz SZ, typename SUF, v_type VT>
- *    using get_vec_t = type_switch<indx<SZ, SUF, VT>(), __m128, __m128d, __m256bh, __m256, __m256d, __m256bh
+ *    using get_vec_t = type_switch<indx<SZ, SUF, VT>(),  __m64, __m64, __m64, __m64, __m128, __m128d, __m128i, __m128bh, __m256, __m256d, __m256i, __m256bh
  * #ifdef __AVX512F__
- *                            ,__m512, __m512d __m512bh
+ *                            ,__m512i, __m512, __m512d, __m512bh
  * #endif
  *
  *   Step 5
@@ -131,13 +133,14 @@ namespace kernel_templates
      * Add new types here
      * 3. ...
      */
-    constexpr int supported_base_t = 2;
+    constexpr int supported_base_t = 3;
 
     // Enum class that represents the vector lengths
     enum class bsz
     {
-        b256 = supported_base_t * 1,
-        b512 = supported_base_t * 2
+        b128 = supported_base_t * 1,
+        b256 = supported_base_t * 2,
+        b512 = supported_base_t * 3
     };
 
     // For a given translation unit that includes this header,
@@ -169,6 +172,26 @@ namespace kernel_templates
         constexpr operator bool() const noexcept
         {
             return std::is_same<T, float>::value || std::is_same<T, cfloat>::value;
+        }
+    };
+
+    // Checks if the base type is int - true only for int32 and int64
+    template <typename T>
+    struct kt_is_base_t_int
+    {
+        constexpr operator bool() const noexcept
+        {
+            return std::is_same<T, int32_t>::value || std::is_same<T, int64_t>::value;
+        }
+    };
+
+    // Checks if the base type is real - true for float and double
+    template <typename T>
+    struct kt_type_is_real
+    {
+        constexpr operator bool() const noexcept
+        {
+            return std::is_same<T, double>::value || std::is_same<T, float>::value;
         }
     };
 
@@ -219,5 +242,27 @@ namespace kernel_templates
         return kt_avxext::AVX2;
 #endif
     }
+
+    // Get the underlying types of the base type
+    template <typename SUF>
+    struct kt_dt
+    {
+        using base_type = SUF;
+        using type      = SUF;
+    };
+
+    // Partial specializations for complex types
+    template <>
+    struct kt_dt<std::complex<float>>
+    {
+        using base_type = float;
+        using type      = std::complex<float>;
+    };
+    template <>
+    struct kt_dt<std::complex<double>>
+    {
+        using base_type = double;
+        using type      = std::complex<double>;
+    };
 }
 #endif

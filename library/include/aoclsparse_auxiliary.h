@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020-2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,7 +21,7 @@
  *
  * ************************************************************************ */
 /*! \file
- *  \brief aoclsparse_auxiliary.h provides auxilary functions in aoclsparse
+ *  \brief aoclsparse_auxiliary.h provides auxiliary functions in aoclsparse
  */
 #ifndef AOCLSPARSE_AUXILIARY_H_
 #define AOCLSPARSE_AUXILIARY_H_
@@ -30,12 +30,14 @@
 
 #include <stdbool.h>
 
+extern const size_t data_size[];
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /*! \ingroup aux_module
- *  \brief Get AOCL-Sparse Library version
+ *  \brief Get AOCL-Sparse Library version.
  *
  *  \details
  *  \returns AOCL-Sparse Library version number
@@ -45,7 +47,7 @@ DLL_PUBLIC
 const char *aoclsparse_get_version();
 
 /*! \ingroup aux_module
- *  \brief Set ISA code-path preference
+ *  \brief Set ISA code-path preference.
  *  \details
  *  This auxiliary function sets the ISA code-path preference to run
  *  kernels that have more than a single path implementation.
@@ -54,21 +56,21 @@ const char *aoclsparse_get_version();
  *
  *  @param[in] isa_preference pointer to a const char array specifying the ISA
  *  preference, valid values are: "AVX2", "AVX512", "GENERIC", "ENV". The first
- *  three values are also valid for the \p AOCL_ENABLE_INSTRUCTIONS environmental
+ *  three values are also valid for the \c AOCL_ENABLE_INSTRUCTIONS environmental
  *  variable. While "ENV" is a special value to request to read again the environmental
  *  variable and set the ISA path preference accordingly.
  *
  *  \returns \ref aoclsparse_status.
  *  \retval aoclsparse_status_success ISA preference set successfully.
- *  \retval aoclsparse_status_invalid_input signals that either the \p isa_preference
+ *  \retval aoclsparse_status_invalid_input signals that either the \c isa_preference
  *  contains an invalid string or that "ENV" was passed and the environmental
- *  variable \p AOCL_ENABLE_INSTRUCTIONS contained an invalid string.
+ *  variable \c AOCL_ENABLE_INSTRUCTIONS contained an invalid string.
  */
 DLL_PUBLIC
 aoclsparse_status aoclsparse_enable_instructions(const char isa_preference[]);
 
 /*! \ingroup aux_module
- *  \brief Auxiliary debug utility
+ *  \brief Auxiliary debug utility.
  *  \details
  *  This auxiliary function is intended for debug purposes, it reports the global and thread-level
  *  ISA code-path preference and the number of threads to use.
@@ -93,9 +95,9 @@ aoclsparse_status aoclsparse_debug_get(char            isa_preference[],
                                        char            arch[]);
 
 /*! \ingroup aux_module
- *  \brief Create a matrix descriptor
+ *  \brief Create a matrix descriptor.
  *  \details
- *  \P{aoclsparse_create_mat_descr} creates a matrix descriptor. It initializes
+ *  <tt>aoclsparse_create_mat_descr</tt> creates a matrix descriptor. It initializes
  *  \ref aoclsparse_matrix_type to \ref aoclsparse_matrix_type_general and
  *  \ref aoclsparse_index_base to \ref aoclsparse_index_base_zero. It should be destroyed
  *  at the end using aoclsparse_destroy_mat_descr().
@@ -110,10 +112,10 @@ DLL_PUBLIC
 aoclsparse_status aoclsparse_create_mat_descr(aoclsparse_mat_descr *descr);
 
 /*! \ingroup aux_module
- *  \brief Copy a matrix descriptor
+ *  \brief Copy a matrix descriptor.
  *  \details
- *  \P{aoclsparse_copy_mat_descr} copies a matrix descriptor. Both, source and destination
- *  matrix descriptors must be initialized prior to calling \p aoclsparse_copy_mat_descr.
+ *  <tt>aoclsparse_copy_mat_descr</tt> copies a matrix descriptor. Both, source and destination
+ *  matrix descriptors must be initialized prior to calling <tt>aoclsparse_copy_mat_descr</tt>.
  *
  *  @param[out]
  *  dest    the pointer to the destination matrix descriptor.
@@ -128,10 +130,10 @@ aoclsparse_status aoclsparse_copy_mat_descr(aoclsparse_mat_descr       dest,
                                             const aoclsparse_mat_descr src);
 
 /*! \ingroup aux_module
- *  \brief Destroy a matrix descriptor
+ *  \brief Destroy a matrix descriptor.
  *
  *  \details
- *  \P{aoclsparse_destroy_mat_descr} destroys a matrix descriptor and releases all
+ *  <tt>aoclsparse_destroy_mat_descr</tt> destroys a matrix descriptor and releases all
  *  resources used by the descriptor.
  *
  *  @param[in]
@@ -144,10 +146,10 @@ DLL_PUBLIC
 aoclsparse_status aoclsparse_destroy_mat_descr(aoclsparse_mat_descr descr);
 
 /*! \ingroup aux_module
- *  \brief Specify the index base of a matrix descriptor
+ *  \brief Specify the index base of a matrix descriptor.
  *
  *  \details
- *  \P{aoclsparse_set_mat_index_base} sets the index base of a matrix descriptor. Valid
+ *  <tt>aoclsparse_set_mat_index_base</tt> sets the index base of a matrix descriptor. Valid
  *  options are \ref aoclsparse_index_base_zero or \ref aoclsparse_index_base_one.
  *
  *  @param[inout]
@@ -164,10 +166,10 @@ aoclsparse_status aoclsparse_set_mat_index_base(aoclsparse_mat_descr  descr,
                                                 aoclsparse_index_base base);
 
 /*! \ingroup aux_module
- *  \brief Get the index base of a matrix descriptor
+ *  \brief Get the index base of a matrix descriptor.
  *
  *  \details
- *  \P{aoclsparse_get_mat_index_base} returns the index base of a matrix descriptor.
+ *  <tt>aoclsparse_get_mat_index_base</tt> returns the index base of a matrix descriptor.
  *
  *  @param[in]
  *  descr   the matrix descriptor.
@@ -178,10 +180,10 @@ DLL_PUBLIC
 aoclsparse_index_base aoclsparse_get_mat_index_base(const aoclsparse_mat_descr descr);
 
 /*! \ingroup aux_module
- *  \brief Specify the matrix type of a matrix descriptor
+ *  \brief Specify the matrix type of a matrix descriptor.
  *
  *  \details
- *  \P{aoclsparse_set_mat_type} sets the matrix type of a matrix descriptor. Valid
+ *  <tt>aoclsparse_set_mat_type</tt> sets the matrix type of a matrix descriptor. Valid
  *  matrix types are \ref aoclsparse_matrix_type_general,
  *  \ref aoclsparse_matrix_type_symmetric, \ref aoclsparse_matrix_type_hermitian or
  *  \ref aoclsparse_matrix_type_triangular.
@@ -201,10 +203,10 @@ DLL_PUBLIC
 aoclsparse_status aoclsparse_set_mat_type(aoclsparse_mat_descr descr, aoclsparse_matrix_type type);
 
 /*! \ingroup aux_module
- *  \brief Get the matrix type of a matrix descriptor
+ *  \brief Get the matrix type of a matrix descriptor.
  *
  *  \details
- *  \P{aoclsparse_get_mat_type} returns the matrix type of a matrix descriptor.
+ *  <tt>aoclsparse_get_mat_type</tt> returns the matrix type of a matrix descriptor.
  *
  *  @param[in]
  *  descr   the matrix descriptor.
@@ -217,10 +219,10 @@ DLL_PUBLIC
 aoclsparse_matrix_type aoclsparse_get_mat_type(const aoclsparse_mat_descr descr);
 
 /*! \ingroup aux_module
- *  \brief Specify the matrix fill mode of a matrix descriptor
+ *  \brief Specify the matrix fill mode of a matrix descriptor.
  *
  *  \details
- *  \P{aoclsparse_set_mat_fill_mode} sets the matrix fill mode of a matrix descriptor.
+ *  <tt>aoclsparse_set_mat_fill_mode</tt> sets the matrix fill mode of a matrix descriptor.
  *  Valid fill modes are \ref aoclsparse_fill_mode_lower or
  *  \ref aoclsparse_fill_mode_upper.
  *
@@ -231,17 +233,17 @@ aoclsparse_matrix_type aoclsparse_get_mat_type(const aoclsparse_mat_descr descr)
  *
  *  \retval aoclsparse_status_success the operation completed successfully.
  *  \retval aoclsparse_status_invalid_pointer \p descr pointer is invalid.
- *  \retval aoclsparse_status_invalid_value \p fill_mode is invalid.
+ *  \retval aoclsparse_status_invalid_value \c fill_mode is invalid.
  */
 DLL_PUBLIC
 aoclsparse_status aoclsparse_set_mat_fill_mode(aoclsparse_mat_descr descr,
                                                aoclsparse_fill_mode fill_mode);
 
 /*! \ingroup aux_module
- *  \brief Get the matrix fill mode of a matrix descriptor
+ *  \brief Get the matrix fill mode of a matrix descriptor.
  *
  *  \details
- *  \P{aoclsparse_get_mat_fill_mode} returns the matrix fill mode of a matrix descriptor.
+ *  <tt>aoclsparse_get_mat_fill_mode</tt> returns the matrix fill mode of a matrix descriptor.
  *
  *  @param[in]
  *  descr   the matrix descriptor.
@@ -252,10 +254,10 @@ DLL_PUBLIC
 aoclsparse_fill_mode aoclsparse_get_mat_fill_mode(const aoclsparse_mat_descr descr);
 
 /*! \ingroup aux_module
- *  \brief Specify the matrix diagonal type of a matrix descriptor
+ *  \brief Specify the matrix diagonal type of a matrix descriptor.
  *
  *  \details
- *  \P{aoclsparse_set_mat_diag_type} sets the matrix diagonal type of a matrix
+ *  <tt>aoclsparse_set_mat_diag_type</tt> sets the matrix diagonal type of a matrix
  *  descriptor. Valid diagonal types are \ref aoclsparse_diag_type_unit,
  *  \ref aoclsparse_diag_type_non_unit or \ref aoclsparse_diag_type_zero.
  *
@@ -266,17 +268,17 @@ aoclsparse_fill_mode aoclsparse_get_mat_fill_mode(const aoclsparse_mat_descr des
  *
  *  \retval aoclsparse_status_success the operation completed successfully.
  *  \retval aoclsparse_status_invalid_pointer \p descr pointer is invalid.
- *  \retval aoclsparse_status_invalid_value \p diag_type is invalid.
+ *  \retval aoclsparse_status_invalid_value \c diag_type is invalid.
  */
 DLL_PUBLIC
 aoclsparse_status aoclsparse_set_mat_diag_type(aoclsparse_mat_descr descr,
                                                aoclsparse_diag_type diag_type);
 
 /*! \ingroup aux_module
- *  \brief Get the matrix diagonal type of a matrix descriptor
+ *  \brief Get the matrix diagonal type of a matrix descriptor.
  *
  *  \details
- *  \P{aoclsparse_get_mat_diag_type} returns the matrix diagonal type of a matrix
+ *  <tt>aoclsparse_get_mat_diag_type</tt> returns the matrix diagonal type of a matrix
  *  descriptor.
  *
  *  @param[in]
@@ -290,7 +292,7 @@ aoclsparse_diag_type aoclsparse_get_mat_diag_type(const aoclsparse_mat_descr des
 /*! \brief Set a new value to an existing nonzero in the matrix.
  *
  *  \details
- *  \P{aoclsparse_?set_value} modifies the value of an existing nonzero element specified by its coordinates.
+ *  <tt>aoclsparse_?set_value</tt> modifies the value of an existing nonzero element specified by its coordinates.
  *  The row and column coordinates need to match the base (0 or 1-base) of the matrix.
  *  The change directly affects user's arrays if the matrix was created using aoclsparse_create_scsr(),
  *  aoclsparse_create_scsc(), aoclsparse_create_scoo() or other variants.
@@ -305,7 +307,7 @@ aoclsparse_diag_type aoclsparse_get_mat_diag_type(const aoclsparse_mat_descr des
  *
  *  \retval aoclsparse_status_success               The operation completed successfully.
  *  \retval aoclsparse_status_invalid_pointer       The matrix handler \p A is invalid
- *  \retval aoclsparse_status_invalid_value         The cooridante \p row_idx or \p col_idx is out of matrix bound
+ *  \retval aoclsparse_status_invalid_value         The cooridante \c row_idx or \c col_idx is out of matrix bound
  *  \retval aoclsparse_status_wrong_type            Matrix has different data type then the one used in API
  *  \retval aoclsparse_status_not_implemented       Matrix format is not supported for this operation
  *  \retval aoclsparse_status_invalid_index_value   The specified element does not exist in the matrix
@@ -337,7 +339,7 @@ aoclsparse_status aoclsparse_sset_value(aoclsparse_matrix A,
  *  \brief Creates a new \ref aoclsparse_matrix based on CSR (Compressed Sparse Row) format.
  *
  *  \details
- *  \P{aoclsparse_create_?csr} creates \ref aoclsparse_matrix and initializes it with
+ *  <tt>aoclsparse_create_?csr</tt> creates \ref aoclsparse_matrix and initializes it with
  *  input parameters passed. The input arrays are left unchanged by the library except for the call to
  *  aoclsparse_order_mat(), which performs ordering of column indices of the matrix,
  *  or aoclsparse_sset_value(), aoclsparse_supdate_values() and variants, which modify
@@ -365,9 +367,9 @@ aoclsparse_status aoclsparse_sset_value(aoclsparse_matrix A,
  *  val     array of \p nnz elements of the sparse CSR matrix.
  *
  *  \retval aoclsparse_status_success the operation completed successfully.
- *  \retval aoclsparse_status_invalid_pointer at least one of \p row_ptr, \p col_idx or \p val pointer is NULL.
+ *  \retval aoclsparse_status_invalid_pointer at least one of \c row_ptr, \c col_idx or \p val pointer is NULL.
  *  \retval aoclsparse_status_invalid_size    at least one  of \p M, \p N or \p nnz has a negative value.
- *  \retval aoclsparse_status_invalid_index_value  any \p col_idx value is not within N.
+ *  \retval aoclsparse_status_invalid_index_value  any \c col_idx value is not within N.
  *  \retval aoclsparse_status_memory_error         memory allocation for matrix failed.
  */
 /**@{*/
@@ -414,10 +416,104 @@ aoclsparse_status aoclsparse_create_zcsr(aoclsparse_matrix         *mat,
 /**@}*/
 
 /*! \ingroup aux_module
+ *  \brief Creates a new \ref aoclsparse_matrix based on BSR (Block-compressed Sparse Row) format.
+ *
+ *  \details
+ *  <tt>aoclsparse_create_?bsr</tt> creates \ref aoclsparse_matrix in BSR format and initializes it with
+ *  input parameters passed. In BSR format, the matrix is split into a rectangular grid of square blocks of size
+ *  \c block_dim, having \p bM blocks per row and \p bN blocks per column. Each block containing at least one non-zero
+ *  is stored as a dense subblock, padded with zeros for the missing elements in the block.  All such blocks are
+ *  stored in the similar fashion to CSR where each element is a block. The elements inside each non-zero
+ *  block are either stored in row-major or column-major order based on the \p order parameter.
+ *  The input arrays are not modified by the library.
+ *
+ *  @param[out]
+ *  mat the pointer to the BSR matrix allocated in the API.
+ *  @param[in]
+ *  base    \ref aoclsparse_index_base_zero or \ref aoclsparse_index_base_one.
+ *  @param[in]
+ *  order    storage order of dense blocks. Possible options are
+ *           \ref aoclsparse_order_row and \ref aoclsparse_order_column.
+ *  @param[in]
+ *  bM           number of block rows of the BSR matrix.
+ *  @param[in]
+ *  bN           number of block columns of the BSR matrix.
+ *  @param[in]
+ *  block_dim size of the non-zero blocks of the BSR matrix.
+ *  @param[in]
+ *  row_ptr array of \p bM+1 elements that point to the start
+ *              of every row block of the BSR matrix.
+ *  @param[in]
+ *  col_idx array of elements containing the column block indices of the BSR matrix.
+ *  @param[in]
+ *  val     array containing the non-zero elements of the BSR matrix. The length of val array must be equal to the
+ *              length of \c col_idx multiplied by \c block_dim*block_dim.
+ *  @param[in]
+ *  fast_chck  flag to perform a minimal and faster validation on the input matrix. If it is set to true, it skips the
+ *              checks on diagonals/indices/sorting of the matrix.
+ *
+ *  \retval aoclsparse_status_success the operation completed successfully.
+ *  \retval aoclsparse_status_invalid_pointer at least one of \p mat, \c row_ptr, \c col_idx or \p val pointer is NULL.
+ *  \retval aoclsparse_status_invalid_size    at least one  of \p bM or \p bN has an invalid size.
+ *  \retval aoclsparse_status_invalid_value   if \c block_dim has an invalid value.
+ *  \retval aoclsparse_status_invalid_index_value  either \c col_idx or \c row_ptr value is invalid.
+ *  \retval aoclsparse_status_memory_error         memory allocation for matrix failed.
+ */
+/**@{*/
+DLL_PUBLIC
+aoclsparse_status aoclsparse_create_sbsr(aoclsparse_matrix          *mat,
+                                         const aoclsparse_index_base base,
+                                         const aoclsparse_order      order,
+                                         const aoclsparse_int        bM,
+                                         const aoclsparse_int        bN,
+                                         const aoclsparse_int        block_dim,
+                                         aoclsparse_int             *row_ptr,
+                                         aoclsparse_int             *col_idx,
+                                         float                      *val,
+                                         bool                        fast_chck);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_create_dbsr(aoclsparse_matrix          *mat,
+                                         const aoclsparse_index_base base,
+                                         const aoclsparse_order      order,
+                                         const aoclsparse_int        bM,
+                                         const aoclsparse_int        bN,
+                                         const aoclsparse_int        block_dim,
+                                         aoclsparse_int             *row_ptr,
+                                         aoclsparse_int             *col_idx,
+                                         double                     *val,
+                                         bool                        fast_chck);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_create_cbsr(aoclsparse_matrix          *mat,
+                                         const aoclsparse_index_base base,
+                                         const aoclsparse_order      order,
+                                         const aoclsparse_int        bM,
+                                         const aoclsparse_int        bN,
+                                         const aoclsparse_int        block_dim,
+                                         aoclsparse_int             *row_ptr,
+                                         aoclsparse_int             *col_idx,
+                                         aoclsparse_float_complex   *val,
+                                         bool                        fast_chck);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_create_zbsr(aoclsparse_matrix          *mat,
+                                         const aoclsparse_index_base base,
+                                         const aoclsparse_order      order,
+                                         const aoclsparse_int        bM,
+                                         const aoclsparse_int        bN,
+                                         const aoclsparse_int        block_dim,
+                                         aoclsparse_int             *row_ptr,
+                                         aoclsparse_int             *col_idx,
+                                         aoclsparse_double_complex  *val,
+                                         bool                        fast_chck);
+/**@}*/
+
+/*! \ingroup aux_module
  *  \brief Creates a new \ref aoclsparse_matrix based on TCSR (Triangular Compressed Sparse Row) format.
  *
  *  \details
- *  \P{aoclsparse_create_?tcsr} creates \ref aoclsparse_matrix and initializes it with input
+ *  <tt>aoclsparse_create_?tcsr</tt> creates \ref aoclsparse_matrix and initializes it with input
  *  parameters passed. Array data must not be modified by the user while matrix is being used
  *  as the pointers are copied, not the data. The input arrays are not modified by the library and
  *  the matrix should be destroyed at the end using aoclsparse_destroy().
@@ -438,9 +534,9 @@ aoclsparse_status aoclsparse_create_zcsr(aoclsparse_matrix         *mat,
  *  @param[in]    N           Total number of columns in the \p mat.
  *  @param[in]    nnz         Number of non-zero entries in the \p mat.
  *  @param[in]    row_ptr_L   Array of lower triangular elements that point to the start of every row of
- *                            the \p mat in \p col_idx_L and \p val_L.
+ *                            the \p mat in \c col_idx_L and \c val_L.
  *  @param[in]    row_ptr_U   Array of upper triangular elements that point to the start of every row of
- *                            the \p mat in \p col_idx_U and \p val_U.
+ *                            the \p mat in \c col_idx_U and \c val_U.
  *  @param[in]    col_idx_L   Array of lower triangular elements containing column indices of the \p mat.
  *  @param[in]    col_idx_U   Array of upper triangular elements containing column indices of the \p mat.
  *  @param[in]    val_L       Array of lower triangular elements of the \p mat.
@@ -450,7 +546,7 @@ aoclsparse_status aoclsparse_create_zcsr(aoclsparse_matrix         *mat,
  *  \retval aoclsparse_status_invalid_pointer       Pointer given to API is invalid or nullptr.
  *  \retval aoclsparse_status_invalid_size          M, N, nnz is invalid.
  *  \retval aoclsparse_status_invalid_index_value   Index given for \p mat is out of matrix bounds depending on base given.
- *  \retval aoclsparse_status_invalid_value         The cooridante \p row_ptr or \p col_idx is out of matrix bound or \p mat
+ *  \retval aoclsparse_status_invalid_value         The cooridante \c row_ptr or \c col_idx is out of matrix bound or \p mat
  *                                                  has duplicate diagonals or \p mat does not have full diagonals.
  *  \retval aoclsparse_status_unsorted_input        The \p mat is unsorted. It supports only fully sorted and partially sorted
  *                                                  matrix as input. The lower triangular part must not contain U elements, the
@@ -517,7 +613,7 @@ aoclsparse_status aoclsparse_create_ztcsr(aoclsparse_matrix          *mat,
  *  \brief Creates a new \ref aoclsparse_matrix based on COO (Co-ordinate format).
  *
  *  \details
- *  \P{aoclsparse_create_?coo} creates \ref aoclsparse_matrix and initializes it with
+ *  <tt>aoclsparse_create_?coo</tt> creates \ref aoclsparse_matrix and initializes it with
  *  input parameters passed. Array data must not be modified by the user while matrix is alive as
  *  the pointers are copied, not the data. The input arrays are left unchanged
  *  by the library except for the call to aoclsparse_sset_value(),
@@ -585,7 +681,7 @@ aoclsparse_status aoclsparse_create_zcoo(aoclsparse_matrix          *mat,
 /*! \brief Set new values to all existing nonzero element in the matrix.
  *
  *  \details
- *  \P{aoclsparse_?update_values} overwrites all existing nonzeros in the matrix
+ *  <tt>aoclsparse_?update_values</tt> overwrites all existing nonzeros in the matrix
  *  with the new values provided in \p val array. The order of elements must
  *  match the order in the matrix. That would be either the order at the
  *  creation of the matrix or the sorted order if aoclsparse_order_mat() has been
@@ -624,10 +720,10 @@ aoclsparse_status aoclsparse_supdate_values(aoclsparse_matrix A, aoclsparse_int 
 /**@}*/
 
 /*! \ingroup aux_module
- *  \brief Export a \p CSR matrix
+ *  \brief Export a \p CSR matrix.
  *
  *  \details
- *  \P{aoclsparse_export_?csr} exposes the components defining the
+ *  <tt>aoclsparse_export_?csr</tt> exposes the components defining the
  *  \p CSR matrix in \p mat structure by copying out the data pointers. No additional
  *  memory is allocated. User should not modify the arrays and once aoclsparse_destroy()
  *  is called to free \p mat, these arrays will become inaccessible. If the matrix is
@@ -698,10 +794,10 @@ aoclsparse_status aoclsparse_export_zcsr(const aoclsparse_matrix     mat,
 /**@}*/
 
 /*! \ingroup aux_module
- *  \brief Destroy a sparse matrix structure
+ *  \brief Destroy a sparse matrix structure.
  *
  *  \details
- *  \p aoclsparse_destroy destroys a structure that holds matrix \p mat.
+ *  <tt>aoclsparse_destroy</tt> destroys a structure that holds matrix \p mat.
  *  @param[in]
  *  mat the pointer to the sparse matrix.
  *
@@ -717,7 +813,7 @@ aoclsparse_status aoclsparse_destroy(aoclsparse_matrix *mat);
  *  \brief Creates a new \ref aoclsparse_matrix based on CSC (Compressed Sparse Column) format.
  *
  *  \details
- *  \P{aoclsparse_create_?csc} creates \ref aoclsparse_matrix and initializes it with
+ *  <tt>aoclsparse_create_?csc</tt> creates \ref aoclsparse_matrix and initializes it with
  *  input parameters passed. The input arrays are left unchanged by the library except for the call to
  *  aoclsparse_order_mat(), which performs ordering of row indices of the matrix,
  *  or aoclsparse_sset_value(), aoclsparse_supdate_values() and variants, which
@@ -745,9 +841,9 @@ aoclsparse_status aoclsparse_destroy(aoclsparse_matrix *mat);
  *  val         array of \p nnz elements of the sparse CSC matrix.
  *
  *  \retval aoclsparse_status_success              the operation completed successfully.
- *  \retval aoclsparse_status_invalid_pointer      \p col_ptr, \p row_idx or \p val pointer is NULL.
+ *  \retval aoclsparse_status_invalid_pointer      \c col_ptr, \c row_idx or \p val pointer is NULL.
  *  \retval aoclsparse_status_invalid_size         \p M, \p N or \p nnz are negative values.
- *  \retval aoclsparse_status_invalid_index_value  any \p row_idx value is not within M.
+ *  \retval aoclsparse_status_invalid_index_value  any \c row_idx value is not within M.
  *  \retval aoclsparse_status_memory_error         memory allocation for matrix failed.
  */
 /**@{*/
@@ -795,7 +891,7 @@ aoclsparse_status aoclsparse_create_zcsc(aoclsparse_matrix         *mat,
 /*! \brief Export a \p COO matrix.
  *
  *  \details
- *  \P{aoclsparse_export_?coo} exposes the components defining the
+ *  <tt>aoclsparse_export_?coo</tt> exposes the components defining the
  *  \p COO matrix in \p mat structure by copying out the data pointers. No additional
  *  memory is allocated. User should not modify the arrays and once aoclsparse_destroy()
  *  is called to free \p mat, these arrays will become inaccessible. If the matrix is
@@ -860,10 +956,10 @@ aoclsparse_status aoclsparse_export_scoo(const aoclsparse_matrix mat,
 /**@}*/
 
 /*! \ingroup aux_module
- *  \brief Creates a copy of source \ref aoclsparse_matrix
+ *  \brief Creates a copy of source \ref aoclsparse_matrix.
  *
  *  \details
- *  \P{aoclsparse_copy} creates a deep copy of source \ref aoclsparse_matrix (hints and optimized data
+ *  <tt>aoclsparse_copy</tt> creates a deep copy of source \ref aoclsparse_matrix (hints and optimized data
  *  are not copied). Matrix should be destroyed using aoclsparse_destroy(). aoclsparse_convert_csr()
  *  can also be used to create a copy of the source matrix while converting it in CSR format.
  *
@@ -890,10 +986,10 @@ aoclsparse_status aoclsparse_copy(const aoclsparse_matrix    src,
 /**@}*/
 
 /*! \ingroup aux_module
- *  \brief Performs ordering of index array of the matrix
+ *  \brief Performs ordering of index array of the matrix.
  *
  *  \details
- *  \P{aoclsparse_order} orders column indices within a row for matrix in CSR format and row indices
+ *  <tt>aoclsparse_order</tt> orders column indices within a row for matrix in CSR format and row indices
  *  within a column for CSC format. It also adjusts value array accordingly. Ordering is implemented
  *  only for CSR and CSC format. aoclsparse_copy() can be used to get exact copy of data
  *  aoclsparse_convert_csr() can be used to convert any format to CSR. Matrix should be destroyed
@@ -913,10 +1009,10 @@ aoclsparse_status aoclsparse_order_mat(aoclsparse_matrix mat);
 /**@}*/
 
 /*! \ingroup aux_module
- *  \brief Export \p CSC matrix
+ *  \brief Export \p CSC matrix.
  *
  *  \details
- *  \P{aoclsparse_export_?csc} exposes the components defining the
+ *  <tt>aoclsparse_export_?csc</tt> exposes the components defining the
  *  \p CSC matrix in \p mat structure by copying out the data pointers. No additional
  *  memory is allocated. User should not modify the arrays and once aoclsparse_destroy()
  *  is called to free \p mat, these arrays will become inaccessible. If the matrix is

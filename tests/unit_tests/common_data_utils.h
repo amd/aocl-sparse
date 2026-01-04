@@ -23,7 +23,7 @@
 #include "aoclsparse.h"
 #include "aoclsparse_descr.h"
 #include "gtest/gtest.h"
-#include "aoclsparse.hpp"
+#include "aoclsparse_interface.hpp"
 #include "aoclsparse_mat_structures.hpp" // FIXME: library internal header used for testing
 #include "aoclsparse_reference.hpp"
 
@@ -38,9 +38,34 @@
 #include <vector>
 
 //aocl utils
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wignored-qualifiers"
 #include "Au/Cpuid/X86Cpu.hh"
-// Utilities to compare complex real scalars and vectors =============================================
+#pragma GCC diagnostic pop
 
+// The following code suppresses coverity warnings related ASSERT_EQ statements.
+// It creates a coverity recognizable no-return "model" for ASSERT_EQ,
+// indicating ASSERT_EQ failures will lead to program exit.
+#ifdef __COVERITY__
+void __coverity_panic__(void); // modeled as no-return
+#define ASSERT_EQ(ret, sta)       \
+    do                            \
+    {                             \
+        if(!((ret) == (sta)))     \
+        {                         \
+            __coverity_panic__(); \
+        }                         \
+    } while(0)
+#endif
+
+// Utilities to update base for row pointers and column indices
+#define TRANSFORM_BASE(base, ptr, idx)                                                        \
+    std::transform(                                                                           \
+        ptr.begin(), ptr.end(), ptr.begin(), [base](aoclsparse_int &d) { return d + base; }); \
+    std::transform(                                                                           \
+        idx.begin(), idx.end(), idx.begin(), [base](aoclsparse_int &d) { return d + base; });
+
+// Utilities to compare complex real scalars and vectors
 #define EXPECT_COMPLEX_EQ_VEC(n, x, y)                                           \
     for(size_t i = 0; i < (size_t)n; i++)                                        \
     {                                                                            \
@@ -144,7 +169,7 @@ void expect_eq(T res, T ref)
 
 // Template function to compare a vector irrespective of type =================================
 template <typename T>
-void expect_eq_vec(aoclsparse_int n, T *res, T *ref)
+inline void expect_eq_vec(aoclsparse_int n, T *res, T *ref)
 {
     if constexpr(std::is_same_v<T, double>)
     {

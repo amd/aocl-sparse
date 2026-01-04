@@ -52,6 +52,7 @@
 // Level2
 #include "testing_blkcsrmv.hpp"
 #include "testing_bsrmv.hpp"
+#include "testing_cscmv.hpp"
 #include "testing_csrmv.hpp"
 #include "testing_csrsv.hpp"
 #include "testing_diamv.hpp"
@@ -79,7 +80,10 @@
 #include "testing_complex_mtx_load.hpp"
 
 //aocl utils
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wignored-qualifiers"
 #include "Au/Cpuid/X86Cpu.hh"
+#pragma GCC diagnostic pop
 
 int main(int argc, char *argv[])
 {
@@ -167,7 +171,8 @@ int main(int argc, char *argv[])
             "\n\t"
             "--beta=<scalar beta> \t Specifies the scalar beta (default: 0.0)"
             "\n\t"
-            "--transposeA=<N/T> \t N = no transpose, T = transpose (default: N)"
+            "--transposeA=<N/T/H> \t N = no transpose, T = transpose, H = conjugate transpose "
+            "(default: N)"
             "\n\t"
             "--transposeB=<N/T> \t N = no transpose, T = transpose (default: N)"
             "\n\t"
@@ -183,7 +188,8 @@ int main(int argc, char *argv[])
             "\n\t"
             "--indexbaseB=<0/1> \t 0 = zero-based indexing, 1 = one-based indexing (default: 0)"
             "\n\t"
-            "--diag=<N/U> \t N = non-unit diagonal, U = unit diagonal (default = N)"
+            "--diag=<N/U/Z> \t N = non-unit diagonal, U = unit diagonal, Z = zero diagonal "
+            "(default = N)"
             "\n\t"
             "--uplo=<L/U> \t L = lower fill, U = upper fill (default = L)"
             "\n\t"
@@ -212,13 +218,14 @@ int main(int argc, char *argv[])
             "--kid=<kernel ID> \t Indicates the comma-separated list of kernel that will be "
             "benchmarked (e.g., \"0,2\"; default: -1), -1 is auto."
             "\n\t"
-            "--matrix=<R/D/T> if .mtx input is not provided, then this option indicates the type "
+            "--matrix=<R/D/T/H> if .mtx input is not provided, then this option indicates the type "
             "of "
             "random matrix that is generated. Options are:"
             "\n\t\tR: generate a random matrix whose diagonal may or may not contain full-diagonal"
             "\n\t\tD: generate a random matrix with full-diagonal that is diagonally dominant"
             "\n\t\tT: generate a random triangle matrix with full-diagonal that is diagonally "
             "dominant"
+            "\n\t\tH: generate a random matrix whose diagonal will have only real values"
             "\n\t"
             "--sort=<U/P/F> \t Indicates whether the matrix generated is unsorted or partially "
             "sorted or fully-sorted"
@@ -339,9 +346,26 @@ int main(int argc, char *argv[])
 
     arg.baseA = (baseA == 0) ? aoclsparse_index_base_zero : aoclsparse_index_base_one;
     arg.baseB = (baseB == 0) ? aoclsparse_index_base_zero : aoclsparse_index_base_one;
-    arg.diag  = (diag == 'N') ? aoclsparse_diag_type_non_unit : aoclsparse_diag_type_unit;
     arg.uplo  = (uplo == 'L') ? aoclsparse_fill_mode_lower : aoclsparse_fill_mode_upper;
     arg.order = (order == 1) ? aoclsparse_order_column : aoclsparse_order_row;
+
+    if(diag == 'N')
+    {
+        arg.diag = aoclsparse_diag_type_non_unit;
+    }
+    else if(diag == 'U')
+    {
+        arg.diag = aoclsparse_diag_type_unit;
+    }
+    else if(diag == 'Z')
+    {
+        arg.diag = aoclsparse_diag_type_zero;
+    }
+    else
+    {
+        std::cerr << "Invalid value for --diag" << std::endl;
+        return -1;
+    }
 
     if(arg.filename != "")
     {
@@ -360,6 +384,10 @@ int main(int argc, char *argv[])
         else if(matrix == 'T')
         {
             arg.matrix = aoclsparse_matrix_random_lower_triangle;
+        }
+        else if(matrix == 'H')
+        {
+            arg.matrix = aoclsparse_matrix_random_herm_diag_dom;
         }
         else
         {
@@ -385,6 +413,10 @@ int main(int argc, char *argv[])
         else if(matrix == 'T')
         {
             arg.matrixB = aoclsparse_matrix_random_lower_triangle;
+        }
+        else if(matrix == 'H')
+        {
+            arg.matrixB = aoclsparse_matrix_random_herm_diag_dom;
         }
         else
         {
@@ -497,9 +529,13 @@ int main(int argc, char *argv[])
     else if(strcmp(arg.function, "bsrmv") == 0)
     {
         if(precision == 's')
-            testing_bsrmv<float>(arg);
+            return testing_bsrmv<float>(arg);
         else if(precision == 'd')
-            testing_bsrmv<double>(arg);
+            return testing_bsrmv<double>(arg);
+        else if(precision == 'c')
+            return testing_bsrmv<aoclsparse_float_complex>(arg);
+        else if(precision == 'z')
+            return testing_bsrmv<aoclsparse_double_complex>(arg);
     }
     else if(strcmp(arg.function, "csrsv") == 0)
     {
@@ -723,6 +759,17 @@ int main(int argc, char *argv[])
             return testing_trsm<aoclsparse_float_complex>(arg);
         else if(precision == 'z')
             return testing_trsm<aoclsparse_double_complex>(arg);
+    }
+    else if(strcmp(arg.function, "cscmv") == 0)
+    {
+        if(precision == 's')
+            return testing_cscmv<float>(arg);
+        else if(precision == 'd')
+            return testing_cscmv<double>(arg);
+        else if(precision == 'c')
+            return testing_cscmv<aoclsparse_float_complex>(arg);
+        else if(precision == 'z')
+            return testing_cscmv<aoclsparse_double_complex>(arg);
     }
     else
     {

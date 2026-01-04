@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,8 +23,8 @@
 #include "aoclsparse.h"
 #include "common_data_utils.h"
 #include "gtest/gtest.h"
-#include "aoclsparse.hpp"
 #include "aoclsparse_init.hpp"
+#include "aoclsparse_interface.hpp"
 
 #include <complex>
 #include <iostream>
@@ -35,9 +35,10 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wtype-limits"
 #include "blis.hh"
-#pragma GCC diagnostic pop
 #include "cblas.hh"
+#pragma GCC diagnostic pop
 namespace
 {
     aoclsparse_order      col  = aoclsparse_order_column;
@@ -128,23 +129,23 @@ namespace
             beta  = -2.0;
         }
 
-        op_a    = op_n;
-        op_b    = op_n;
-        A->m    = 5;
-        A->n    = 3;
-        B->m    = 3;
-        B->n    = 3;
-        A->base = one;
+        op_a             = op_n;
+        op_b             = op_n;
+        A->m             = 5;
+        A->n             = 3;
+        B->m             = 3;
+        B->n             = 3;
+        A->mats[0]->base = one;
         EXPECT_EQ(aoclsparse_sp2md(
                       op_a, descrA, A, op_b, descrB, B, alpha, beta, dense_c.data(), row, B->n, -1),
                   aoclsparse_status_invalid_value);
-        A->base = zero;
-        B->base = one;
+        A->mats[0]->base = zero;
+        B->mats[0]->base = one;
         EXPECT_EQ(aoclsparse_sp2md(
                       op_a, descrA, A, op_b, descrB, B, alpha, beta, dense_c.data(), col, A->m, -1),
                   aoclsparse_status_invalid_value);
-        A->base = zero;
-        B->base = zero;
+        A->mats[0]->base = zero;
+        B->mats[0]->base = zero;
         EXPECT_EQ(aoclsparse_sp2md(op_a,
                                    descrA,
                                    A,
@@ -181,10 +182,10 @@ namespace
             beta  = -2.0;
         }
 
-        op_a        = op_n;
-        op_b        = op_n;
-        A->mat_type = aoclsparse_csc_mat;
-        B->mat_type = aoclsparse_csc_mat;
+        op_a             = op_n;
+        op_b             = op_n;
+        A->mats[0]->doid = aoclsparse::doid::gt;
+        B->mats[0]->doid = aoclsparse::doid::gt;
         EXPECT_EQ(aoclsparse_sp2md(
                       op_a, descrA, A, op_b, descrB, B, alpha, beta, dense_c.data(), row, B->m, -1),
                   aoclsparse_status_not_implemented);

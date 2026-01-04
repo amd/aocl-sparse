@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,8 +23,8 @@
 #include "aoclsparse.h"
 #include "common_data_utils.h"
 #include "gtest/gtest.h"
-#include "aoclsparse.hpp"
 #include "aoclsparse_init.hpp"
+#include "aoclsparse_interface.hpp"
 
 #include <complex>
 #include <iostream>
@@ -34,9 +34,10 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wtype-limits"
 #include "blis.hh"
-#pragma GCC diagnostic pop
 #include "cblas.hh"
+#pragma GCC diagnostic pop
 
 namespace
 {
@@ -894,11 +895,15 @@ namespace
         EXPECT_EQ(aoclsparse_sp2m(op_a, descrA, A, op_b, descrB, B, request, &C),
                   aoclsparse_status_success);
 
+        aoclsparse::csr *A_csr = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
+        aoclsparse::csr *B_csr = dynamic_cast<aoclsparse::csr *>(B->mats[0]);
+        EXPECT_NE(A_csr, nullptr);
+        EXPECT_NE(B_csr, nullptr);
         // Modify the values of A and B matix value arrays.
         for(aoclsparse_int i = 0; i < A->nnz; i++)
-            ((T *)A->csr_mat.csr_val)[i] = random_generator_normal<T>();
+            ((T *)A_csr->val)[i] = random_generator_normal<T>();
         for(aoclsparse_int i = 0; i < B->nnz; i++)
-            ((T *)B->csr_mat.csr_val)[i] = random_generator_normal<T>();
+            ((T *)B_csr->val)[i] = random_generator_normal<T>();
 
         // Invoke sp2m with finalize stage alone.
         // Expect success as C matrix created in previous invocation

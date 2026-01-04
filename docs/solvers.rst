@@ -90,7 +90,7 @@ References
 ----------
 
 .. bibliography::
-   :all:
+   :filter: key % "sparse_"
    :list: bullet
 
 

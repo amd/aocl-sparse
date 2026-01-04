@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,29 +20,52 @@
  * THE SOFTWARE.
  *
  * ************************************************************************ */
-#ifndef AOCLSPARSE_L2_HPP
-#define AOCLSPARSE_L2_HPP
+#ifndef AOCLSPARSE_OPTMV_HELPERS_HPP
+#define AOCLSPARSE_OPTMV_HELPERS_HPP
+
 #include "aoclsparse.h"
 
-// Extern declaration of L2 dispatcher(s)
+// Kernel to scale vectors
+// To-do: Move to L1 section like dot operation
 template <typename T>
-aoclsparse_status aoclsparse_trsv(const aoclsparse_operation transpose,
-                                  const T                    alpha,
-                                  aoclsparse_matrix          A,
-                                  const aoclsparse_mat_descr descr,
-                                  const T                   *b,
-                                  const aoclsparse_int       incb,
-                                  T                         *x,
-                                  const aoclsparse_int       incx,
-                                  aoclsparse_int             kid = 2);
+aoclsparse_status vscale(T *v, T c, aoclsparse_int sz)
+{
+    T zero = 0;
+
+    if(!v)
+        return aoclsparse_status_invalid_pointer;
+
+    if(c != zero)
+    {
+        for(aoclsparse_int i = 0; i < sz; i++)
+            v[i] = c * v[i];
+    }
+    else
+    {
+        for(aoclsparse_int i = 0; i < sz; i++)
+            v[i] = zero;
+    }
+
+    return aoclsparse_status_success;
+}
 
 template <typename T>
-aoclsparse_status aoclsparse_mv_t(aoclsparse_operation       op,
-                                  const T                   *alpha,
-                                  aoclsparse_matrix          A,
-                                  const aoclsparse_mat_descr descr,
-                                  const T                   *x,
-                                  const T                   *beta,
-                                  T                         *y);
+bool is_mtx_frmt_supported_mv(aoclsparse_matrix_format_type mtx_t)
+{
+    if constexpr(aoclsparse::is_dt_complex<T>())
+    {
+        // Only CSR and BSR are supported for complex types
+        if(mtx_t != aoclsparse_csr_mat && mtx_t != aoclsparse_bsr_mat)
+            return false;
+    }
+    else
+    {
+        // Only CSR, TCSR and BSR input format supported
+        if(mtx_t != aoclsparse_csr_mat && mtx_t != aoclsparse_tcsr_mat
+           && mtx_t != aoclsparse_bsr_mat)
+            return false;
+    }
 
+    return true;
+}
 #endif

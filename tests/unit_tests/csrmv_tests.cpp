@@ -23,7 +23,7 @@
 #include "aoclsparse.h"
 #include "common_data_utils.h"
 #include "gtest/gtest.h"
-#include "aoclsparse.hpp"
+#include "aoclsparse_interface.hpp"
 #include "aoclsparse_reference.hpp"
 namespace
 {
@@ -330,7 +330,8 @@ namespace
                 trans, &alpha, M, N, NNZ, csr_val, csr_col_ind, csr_row_ptr, descr, x, &beta, y),
             aoclsparse_status_success);
 
-        EXPECT_EQ(ref_csrmvsym(alpha,
+        EXPECT_EQ(ref_csrmvsym(trans,
+                               alpha,
                                M,
                                csc_val,
                                csc_row_ind,
@@ -425,7 +426,8 @@ namespace
                 trans, &alpha, M, N, NNZ, csr_val, csr_col_ind, csr_row_ptr, descr, x, &beta, y),
             aoclsparse_status_success);
 
-        EXPECT_EQ(ref_csrmvsym(alpha,
+        EXPECT_EQ(ref_csrmvsym(trans,
+                               alpha,
                                M,
                                csr_val,
                                csr_col_ind,

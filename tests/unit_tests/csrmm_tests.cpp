@@ -23,16 +23,17 @@
 #include "aoclsparse.h"
 #include "common_data_utils.h"
 #include "gtest/gtest.h"
-#include "aoclsparse.hpp"
 #include "aoclsparse_init.hpp"
+#include "aoclsparse_interface.hpp"
 
 #include <algorithm>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wtype-limits"
 #include "blis.hh"
-#pragma GCC diagnostic pop
 #include "cblas.hh"
+#pragma GCC diagnostic pop
 
 namespace
 {
@@ -1179,7 +1180,7 @@ namespace
             case 4:
                 m = 3, k = 3, n = 3, nnz = 9;
                 csr_val.assign(
-                    {{1, 2}, {2, 3}, {3, 4}, {4, 5}, {5, 6}, {6, 7}, {7, 8}, {8, 9}, {9, 10}});
+                    {{1, 0}, {2, 3}, {3, 4}, {4, 5}, {5, 0}, {6, 7}, {7, 8}, {8, 9}, {9, 0}});
                 csr_col_ind.assign({0, 1, 2, 0, 1, 2, 0, 1, 2});
                 csr_row_ptr.assign({0, 3, 6, 9});
                 transform(csr_row_ptr.begin(),
@@ -1209,25 +1210,49 @@ namespace
                     {
                         if(op == aoclsparse_operation_none
                            || op == aoclsparse_operation_conjugate_transpose)
-                            C_exp.assign({{945, 394},
-                                          {1856, 565},
-                                          {1873, 294},
-                                          {-956, 1197},
-                                          {965, 2896},
-                                          {2644, 2062},
-                                          {373, 996},
-                                          {1000, 1958},
-                                          {1955, -1416}});
+                            C_exp.assign({{949.0, 382.0},
+                                          {1532.0, 361.0},
+                                          {1193.0, -1186.0},
+                                          {-184.0, 1329.0},
+                                          {1553.0, 2140.0},
+                                          {3184.0, 1602.0},
+                                          {369.0, 976.0},
+                                          {1312.0, 350.0},
+                                          {2075.0, -1496.0}});
                         else
-                            C_exp.assign({{85, -1018},
-                                          {244, -1879},
-                                          {1253, -2142},
-                                          {1608, 337},
-                                          {581, 344},
-                                          {-736, 2378},
-                                          {773, -716},
-                                          {1804, -1310},
-                                          {1483, 2256}});
+                            C_exp.assign({{81.0, -1006.0},
+                                          {568.0, -1675.0},
+                                          {1933.0, -662.0},
+                                          {836.0, 205.0},
+                                          {-7.0, 1100.0},
+                                          {-1276.0, 2838.0},
+                                          {777.0, -696.0},
+                                          {1492.0, 298.0},
+                                          {1363.0, 2336.0}});
+                    }
+                    else //Row major
+                    {
+                        if(op == aoclsparse_operation_none
+                           || op == aoclsparse_operation_conjugate_transpose)
+                            C_exp.assign({{-1249.0, 608.0},
+                                          {568.0, 1765.0},
+                                          {63.0, 252.0},
+                                          {-236.0, 1997.0},
+                                          {1779.0, 2502.0},
+                                          {268.0, -194.0},
+                                          {2425.0, 2744.0},
+                                          {3734.0, -128.0},
+                                          {907.0, -680.0}});
+                        else
+                            C_exp.assign({{1051.0, 924.0},
+                                          {1572.0, -1135.0},
+                                          {483.0, -88.0},
+                                          {-276.0, 1893.0},
+                                          {2831.0, -1046.0},
+                                          {844.0, 582.0},
+                                          {-2995.0, 1868.0},
+                                          {2794.0, 1908.0},
+                                          {695.0, 1148.0}});
                     }
                 }
                 if(symut_unit)
@@ -1256,6 +1281,30 @@ namespace
                                           {420, 90},
                                           {1299, 2240}});
                     }
+                    else //Row major
+                    {
+                        if(op == aoclsparse_operation_none
+                           || op == aoclsparse_operation_conjugate_transpose)
+                            C_exp.assign({{-1249.0, 608.0},
+                                          {568.0, 1765.0},
+                                          {63.0, 252.0},
+                                          {28.0, 453.0},
+                                          {1275.0, 2110.0},
+                                          {84.0, -410.0},
+                                          {2345.0, 2760.0},
+                                          {1590.0, -544.0},
+                                          {843.0, -776.0}});
+                        else
+                            C_exp.assign({{1051.0, 924.0},
+                                          {1572.0, -1135.0},
+                                          {483.0, -88.0},
+                                          {-12.0, 349.0},
+                                          {2327.0, -1438.0},
+                                          {660.0, 366.0},
+                                          {-3075.0, 1884.0},
+                                          {650.0, 1492.0},
+                                          {631.0, 1052.0}});
+                    }
                 }
                 if(symlt_non_unit)
                 {
@@ -1263,25 +1312,49 @@ namespace
                     {
                         if(op == aoclsparse_operation_none
                            || op == aoclsparse_operation_conjugate_transpose)
-                            C_exp.assign({{357, -2034},
-                                          {1060, -1887},
-                                          {2805, 810},
-                                          {912, 49},
-                                          {-1299, 2512},
-                                          {-3568, 5026},
-                                          {1501, -1092},
-                                          {1244, 1930},
-                                          {1723, 3088}});
+                            C_exp.assign({{361.0, -2046.0},
+                                          {736.0, -2091.0},
+                                          {2125.0, -670.0},
+                                          {1684.0, 181.0},
+                                          {-711.0, 1756.0},
+                                          {-3028.0, 4566.0},
+                                          {1497.0, -1112.0},
+                                          {1556.0, 322.0},
+                                          {1843.0, 3008.0}});
                         else
-                            C_exp.assign({{1993, 650},
-                                          {1656, 309},
-                                          {505, -2858},
-                                          {612, 2309},
-                                          {2765, 2488},
-                                          {5452, 2894},
-                                          {781, 1676},
-                                          {1632, -1242},
-                                          {2867, -2056}});
+                            C_exp.assign({{1989.0, 662.0},
+                                          {1980.0, 513.0},
+                                          {1185.0, -1378.0},
+                                          {-160.0, 2177.0},
+                                          {2177.0, 3244.0},
+                                          {4912.0, 3354.0},
+                                          {785.0, 1696.0},
+                                          {1320.0, 366.0},
+                                          {2747.0, -1976.0}});
+                    }
+                    else //Row major
+                    {
+                        if(op == aoclsparse_operation_none
+                           || op == aoclsparse_operation_conjugate_transpose)
+                            C_exp.assign({{1723.0, 1780.0},
+                                          {3300.0, -2055.0},
+                                          {763.0, -56.0},
+                                          {-252.0, 1885.0},
+                                          {3647.0, -1518.0},
+                                          {1316.0, 750.0},
+                                          {-3883.0, 2540.0},
+                                          {3202.0, 2276.0},
+                                          {1543.0, 1668.0}});
+                        else
+                            C_exp.assign({{-2105.0, 1280.0},
+                                          {1488.0, 3493.0},
+                                          {31.0, 532.0},
+                                          {-196.0, 2005.0},
+                                          {2171.0, 2966.0},
+                                          {420.0, -586.0},
+                                          {3097.0, 3632.0},
+                                          {4102.0, -536.0},
+                                          {1427.0, -1528.0}});
                     }
                 }
                 if(symlt_unit)
@@ -1309,6 +1382,30 @@ namespace
                                           {785, 1696},
                                           {248, 158},
                                           {2683, -2072}});
+                    }
+                    else //Row major
+                    {
+                        if(op == aoclsparse_operation_none
+                           || op == aoclsparse_operation_conjugate_transpose)
+                            C_exp.assign({{1723.0, 1780.0},
+                                          {3300.0, -2055.0},
+                                          {763.0, -56.0},
+                                          {12.0, 341.0},
+                                          {3143.0, -1910.0},
+                                          {1132.0, 534.0},
+                                          {-3963.0, 2556.0},
+                                          {1058.0, 1860.0},
+                                          {1479.0, 1572.0}});
+                        else
+                            C_exp.assign({{-2105.0, 1280.0},
+                                          {1488.0, 3493.0},
+                                          {31.0, 532.0},
+                                          {68.0, 461.0},
+                                          {1667.0, 2574.0},
+                                          {236.0, -802.0},
+                                          {3017.0, 3648.0},
+                                          {1958.0, -952.0},
+                                          {1363.0, -1624.0}});
                     }
                 }
                 break;
@@ -1824,6 +1921,9 @@ namespace
                                                        aoclsparse_operation_conjugate_transpose})
                             for(int kid = 0; kid < kid_count; kid++)
                             {
+                                for(aoclsparse_memory_usage mem_policy :
+                                    {aoclsparse_memory_usage_minimal,
+                                     aoclsparse_memory_usage_unrestricted})
                                 {
                                     //Initialize inputs for test
                                     init<T>(op,
@@ -1867,6 +1967,12 @@ namespace
                                                                     csr_col_ind.data(),
                                                                     csr_val.data()),
                                               aoclsparse_status_success);
+                                    ASSERT_EQ(aoclsparse_set_memory_hint(A, mem_policy),
+                                              aoclsparse_status_success);
+                                    ASSERT_EQ(aoclsparse_set_mm_hint(A, op, descr, 1000 /*Hint*/),
+                                              aoclsparse_status_success);
+                                    ASSERT_EQ(aoclsparse_optimize(A), aoclsparse_status_success);
+
                                     EXPECT_EQ(aoclsparse_csrmm<T>(op,
                                                                   alpha,
                                                                   A,
@@ -1910,6 +2016,9 @@ namespace
                             {aoclsparse_index_base_zero, aoclsparse_index_base_one})
                             for(int kid = 0; kid < kid_count; kid++)
                             {
+                                for(aoclsparse_memory_usage mem_policy :
+                                    {aoclsparse_memory_usage_minimal,
+                                     aoclsparse_memory_usage_unrestricted})
                                 {
                                     init<T>(op,
                                             order,
@@ -1950,6 +2059,12 @@ namespace
                                                                     csr_col_ind.data(),
                                                                     (T *)csr_val.data()),
                                               aoclsparse_status_success);
+                                    ASSERT_EQ(aoclsparse_set_memory_hint(A, mem_policy),
+                                              aoclsparse_status_success);
+                                    ASSERT_EQ(aoclsparse_set_mm_hint(A, op, descr, 1000 /*Hint*/),
+                                              aoclsparse_status_success);
+                                    ASSERT_EQ(aoclsparse_optimize(A), aoclsparse_status_success);
+
                                     EXPECT_EQ(aoclsparse_csrmm<T>(op,
                                                                   alpha,
                                                                   A,
@@ -2026,86 +2141,99 @@ namespace
                                          aoclsparse_operation_transpose,
                                          aoclsparse_operation_conjugate_transpose})
                                     {
-                                        //Initialize inputs for test
-                                        init<T>(op,
-                                                order,
-                                                m,
-                                                k,
-                                                n,
-                                                nnz,
-                                                csr_val,
-                                                csr_col_ind,
-                                                csr_row_ptr,
-                                                alpha,
-                                                beta,
-                                                B,
-                                                C,
-                                                C_exp,
-                                                base,
-                                                id,
-                                                mat_type,
-                                                fill,
-                                                diag);
+                                        for(aoclsparse_memory_usage mem_policy :
+                                            {aoclsparse_memory_usage_minimal,
+                                             aoclsparse_memory_usage_unrestricted})
+                                        {
+                                            //Initialize inputs for test
+                                            init<T>(op,
+                                                    order,
+                                                    m,
+                                                    k,
+                                                    n,
+                                                    nnz,
+                                                    csr_val,
+                                                    csr_col_ind,
+                                                    csr_row_ptr,
+                                                    alpha,
+                                                    beta,
+                                                    B,
+                                                    C,
+                                                    C_exp,
+                                                    base,
+                                                    id,
+                                                    mat_type,
+                                                    fill,
+                                                    diag);
 
-                                        // Set values of ldb, ldc and matrix dimenstions of C matrix
-                                        set_mm_dim(op,
-                                                   order,
-                                                   m,
-                                                   k,
-                                                   n,
-                                                   A_m,
-                                                   A_n,
-                                                   B_m,
-                                                   B_n,
-                                                   C_m,
-                                                   C_n,
-                                                   ldb,
-                                                   ldc);
-                                        C.resize(C_m * C_n);
+                                            // Set values of ldb, ldc and matrix dimenstions of C matrix
+                                            set_mm_dim(op,
+                                                       order,
+                                                       m,
+                                                       k,
+                                                       n,
+                                                       A_m,
+                                                       A_n,
+                                                       B_m,
+                                                       B_n,
+                                                       C_m,
+                                                       C_n,
+                                                       ldb,
+                                                       ldc);
+                                            C.resize(C_m * C_n);
 
-                                        aoclsparse_mat_descr descr;
-                                        ASSERT_EQ(aoclsparse_create_mat_descr(&descr),
-                                                  aoclsparse_status_success);
-                                        ASSERT_EQ(aoclsparse_set_mat_type(descr, mat_type),
-                                                  aoclsparse_status_success);
-                                        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, base),
-                                                  aoclsparse_status_success);
-                                        ASSERT_EQ(aoclsparse_set_mat_fill_mode(descr, fill),
-                                                  aoclsparse_status_success);
-                                        ASSERT_EQ(aoclsparse_set_mat_diag_type(descr, diag),
-                                                  aoclsparse_status_success);
+                                            aoclsparse_mat_descr descr;
+                                            ASSERT_EQ(aoclsparse_create_mat_descr(&descr),
+                                                      aoclsparse_status_success);
+                                            ASSERT_EQ(aoclsparse_set_mat_type(descr, mat_type),
+                                                      aoclsparse_status_success);
+                                            ASSERT_EQ(aoclsparse_set_mat_index_base(descr, base),
+                                                      aoclsparse_status_success);
+                                            ASSERT_EQ(aoclsparse_set_mat_fill_mode(descr, fill),
+                                                      aoclsparse_status_success);
+                                            ASSERT_EQ(aoclsparse_set_mat_diag_type(descr, diag),
+                                                      aoclsparse_status_success);
 
-                                        aoclsparse_matrix A;
-                                        ASSERT_EQ(aoclsparse_create_csr(&A,
-                                                                        base,
-                                                                        m,
-                                                                        k,
-                                                                        nnz,
-                                                                        csr_row_ptr.data(),
-                                                                        csr_col_ind.data(),
-                                                                        csr_val.data()),
-                                                  aoclsparse_status_success);
-                                        EXPECT_EQ(aoclsparse_csrmm<T>(op,
-                                                                      alpha,
-                                                                      A,
-                                                                      descr,
-                                                                      order,
-                                                                      B.data(),
-                                                                      C_n,
-                                                                      ldb,
-                                                                      beta,
-                                                                      C.data(),
-                                                                      ldc,
-                                                                      kid),
-                                                  aoclsparse_status_success);
+                                            aoclsparse_matrix A;
+                                            ASSERT_EQ(aoclsparse_create_csr(&A,
+                                                                            base,
+                                                                            m,
+                                                                            k,
+                                                                            nnz,
+                                                                            csr_row_ptr.data(),
+                                                                            csr_col_ind.data(),
+                                                                            csr_val.data()),
+                                                      aoclsparse_status_success);
+                                            ASSERT_EQ(aoclsparse_set_memory_hint(A, mem_policy),
+                                                      aoclsparse_status_success);
+                                            ASSERT_EQ(
+                                                aoclsparse_set_mm_hint(A, op, descr, 1000 /*Hint*/),
+                                                aoclsparse_status_success);
+                                            ASSERT_EQ(aoclsparse_optimize(A),
+                                                      aoclsparse_status_success);
 
-                                        if constexpr(std::is_same_v<T, double>)
-                                            EXPECT_DOUBLE_EQ_VEC(C_m * C_n, C, C_exp);
-                                        if constexpr(std::is_same_v<T, float>)
-                                            EXPECT_FLOAT_EQ_VEC(C_m * C_n, C, C_exp);
+                                            EXPECT_EQ(aoclsparse_csrmm<T>(op,
+                                                                          alpha,
+                                                                          A,
+                                                                          descr,
+                                                                          order,
+                                                                          B.data(),
+                                                                          C_n,
+                                                                          ldb,
+                                                                          beta,
+                                                                          C.data(),
+                                                                          ldc,
+                                                                          kid),
+                                                      aoclsparse_status_success);
 
-                                        aoclsparse_destroy_mat_descr(descr);
-                                        aoclsparse_destroy(&A);
+                                            if constexpr(std::is_same_v<T, double>)
+                                                EXPECT_DOUBLE_EQ_VEC(C_m * C_n, C, C_exp);
+                                            if constexpr(std::is_same_v<T, float>)
+                                                EXPECT_FLOAT_EQ_VEC(C_m * C_n, C, C_exp);
+
+                                            aoclsparse_destroy_mat_descr(descr);
+                                            aoclsparse_destroy(&A);
+                                        }
                                     }
                                 }
                             }
@@ -2141,6 +2269,145 @@ namespace
                                     for(aoclsparse_index_base base :
                                         {aoclsparse_index_base_zero, aoclsparse_index_base_one})
                                     {
+                                        for(aoclsparse_memory_usage mem_policy :
+                                            {aoclsparse_memory_usage_minimal,
+                                             aoclsparse_memory_usage_unrestricted})
+                                        {
+                                            init<T>(op,
+                                                    order,
+                                                    m,
+                                                    k,
+                                                    n,
+                                                    nnz,
+                                                    csr_val,
+                                                    csr_col_ind,
+                                                    csr_row_ptr,
+                                                    alpha,
+                                                    beta,
+                                                    B,
+                                                    C,
+                                                    C_exp,
+                                                    base,
+                                                    id,
+                                                    mat_type,
+                                                    fill,
+                                                    diag);
+
+                                            // Set values of ldb, ldc and matrix dimenstions of C matrix
+                                            set_mm_dim(op,
+                                                       order,
+                                                       m,
+                                                       k,
+                                                       n,
+                                                       A_m,
+                                                       A_n,
+                                                       B_m,
+                                                       B_n,
+                                                       C_m,
+                                                       C_n,
+                                                       ldb,
+                                                       ldc);
+                                            C.resize(C_m * C_n);
+
+                                            aoclsparse_mat_descr descr;
+                                            ASSERT_EQ(aoclsparse_create_mat_descr(&descr),
+                                                      aoclsparse_status_success);
+                                            ASSERT_EQ(aoclsparse_set_mat_type(descr, mat_type),
+                                                      aoclsparse_status_success);
+                                            ASSERT_EQ(aoclsparse_set_mat_index_base(descr, base),
+                                                      aoclsparse_status_success);
+                                            ASSERT_EQ(aoclsparse_set_mat_fill_mode(descr, fill),
+                                                      aoclsparse_status_success);
+                                            ASSERT_EQ(aoclsparse_set_mat_diag_type(descr, diag),
+                                                      aoclsparse_status_success);
+
+                                            aoclsparse_matrix A;
+                                            ASSERT_EQ(aoclsparse_create_csr(&A,
+                                                                            base,
+                                                                            m,
+                                                                            k,
+                                                                            nnz,
+                                                                            csr_row_ptr.data(),
+                                                                            csr_col_ind.data(),
+                                                                            (T *)csr_val.data()),
+                                                      aoclsparse_status_success);
+                                            ASSERT_EQ(aoclsparse_set_memory_hint(A, mem_policy),
+                                                      aoclsparse_status_success);
+                                            ASSERT_EQ(
+                                                aoclsparse_set_mm_hint(A, op, descr, 1000 /*Hint*/),
+                                                aoclsparse_status_success);
+                                            ASSERT_EQ(aoclsparse_optimize(A),
+                                                      aoclsparse_status_success);
+
+                                            EXPECT_EQ(aoclsparse_csrmm<T>(op,
+                                                                          alpha,
+                                                                          A,
+                                                                          descr,
+                                                                          order,
+                                                                          B.data(),
+                                                                          C_n,
+                                                                          ldb,
+                                                                          beta,
+                                                                          C.data(),
+                                                                          ldc,
+                                                                          kid),
+                                                      aoclsparse_status_success);
+
+                                            if constexpr(std::is_same_v<T,
+                                                                        aoclsparse_float_complex>)
+                                            {
+                                                std::vector<std::complex<float>> *res, *res_exp;
+                                                res = (std::vector<std::complex<float>> *)&C;
+                                                res_exp
+                                                    = (std::vector<std::complex<float>> *)&C_exp;
+                                                EXPECT_COMPLEX_FLOAT_EQ_VEC(
+                                                    C_m * C_n, (*res), (*res_exp));
+                                            }
+                                            if constexpr(std::is_same_v<T,
+                                                                        aoclsparse_double_complex>)
+                                            {
+                                                std::vector<std::complex<double>> *res, *res_exp;
+                                                res = (std::vector<std::complex<double>> *)&C;
+                                                res_exp
+                                                    = (std::vector<std::complex<double>> *)&C_exp;
+                                                EXPECT_COMPLEX_DOUBLE_EQ_VEC(
+                                                    C_m * C_n, (*res), (*res_exp));
+                                            }
+
+                                            aoclsparse_destroy_mat_descr(descr);
+                                            aoclsparse_destroy(&A);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            // Run unit test for Hermitian matrix
+            for(aoclsparse_matrix_type mat_type : {aoclsparse_matrix_type_hermitian})
+            {
+                for(aoclsparse_fill_mode fill :
+                    {aoclsparse_fill_mode_upper, aoclsparse_fill_mode_lower})
+                {
+                    for(aoclsparse_diag_type diag :
+                        {aoclsparse_diag_type_non_unit, aoclsparse_diag_type_unit})
+                    {
+                        for(aoclsparse_operation op : {aoclsparse_operation_none,
+                                                       aoclsparse_operation_transpose,
+                                                       aoclsparse_operation_conjugate_transpose})
+                        {
+                            //Initialize inputs for test
+                            for(aoclsparse_order order :
+                                {aoclsparse_order_column, aoclsparse_order_row})
+                            {
+                                for(aoclsparse_index_base base :
+                                    {aoclsparse_index_base_zero, aoclsparse_index_base_one})
+                                {
+                                    for(aoclsparse_memory_usage mem_policy :
+                                        {aoclsparse_memory_usage_minimal,
+                                         aoclsparse_memory_usage_unrestricted})
+                                    {
                                         init<T>(op,
                                                 order,
                                                 m,
@@ -2156,7 +2423,7 @@ namespace
                                                 C,
                                                 C_exp,
                                                 base,
-                                                id,
+                                                4,
                                                 mat_type,
                                                 fill,
                                                 diag);
@@ -2199,6 +2466,15 @@ namespace
                                                                         csr_col_ind.data(),
                                                                         (T *)csr_val.data()),
                                                   aoclsparse_status_success);
+
+                                        ASSERT_EQ(aoclsparse_set_memory_hint(A, mem_policy),
+                                                  aoclsparse_status_success);
+                                        ASSERT_EQ(
+                                            aoclsparse_set_mm_hint(A, op, descr, 1000 /*Hint*/),
+                                            aoclsparse_status_success);
+                                        ASSERT_EQ(aoclsparse_optimize(A),
+                                                  aoclsparse_status_success);
+
                                         EXPECT_EQ(aoclsparse_csrmm<T>(op,
                                                                       alpha,
                                                                       A,
@@ -2233,110 +2509,6 @@ namespace
                                         aoclsparse_destroy_mat_descr(descr);
                                         aoclsparse_destroy(&A);
                                     }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Run unit test for Hermitian column major
-            for(aoclsparse_matrix_type mat_type : {aoclsparse_matrix_type_hermitian})
-            {
-                for(aoclsparse_fill_mode fill :
-                    {aoclsparse_fill_mode_upper, aoclsparse_fill_mode_lower})
-                {
-                    for(aoclsparse_diag_type diag :
-                        {aoclsparse_diag_type_non_unit, aoclsparse_diag_type_unit})
-                    {
-                        for(aoclsparse_operation op : {aoclsparse_operation_none,
-                                                       aoclsparse_operation_transpose,
-                                                       aoclsparse_operation_conjugate_transpose})
-                        {
-                            //Initialize inputs for test
-                            for(aoclsparse_order order : {aoclsparse_order_column})
-                            {
-                                for(aoclsparse_index_base base :
-                                    {aoclsparse_index_base_zero, aoclsparse_index_base_one})
-                                {
-                                    init<T>(op,
-                                            order,
-                                            m,
-                                            k,
-                                            n,
-                                            nnz,
-                                            csr_val,
-                                            csr_col_ind,
-                                            csr_row_ptr,
-                                            alpha,
-                                            beta,
-                                            B,
-                                            C,
-                                            C_exp,
-                                            base,
-                                            4,
-                                            mat_type,
-                                            fill,
-                                            diag);
-
-                                    // Set values of ldb, ldc and matrix dimenstions of C matrix
-                                    set_mm_dim(
-                                        op, order, m, k, n, A_m, A_n, B_m, B_n, C_m, C_n, ldb, ldc);
-                                    C.resize(C_m * C_n);
-
-                                    aoclsparse_mat_descr descr;
-                                    ASSERT_EQ(aoclsparse_create_mat_descr(&descr),
-                                              aoclsparse_status_success);
-                                    ASSERT_EQ(aoclsparse_set_mat_type(descr, mat_type),
-                                              aoclsparse_status_success);
-                                    ASSERT_EQ(aoclsparse_set_mat_index_base(descr, base),
-                                              aoclsparse_status_success);
-                                    ASSERT_EQ(aoclsparse_set_mat_fill_mode(descr, fill),
-                                              aoclsparse_status_success);
-                                    ASSERT_EQ(aoclsparse_set_mat_diag_type(descr, diag),
-                                              aoclsparse_status_success);
-
-                                    aoclsparse_matrix A;
-                                    ASSERT_EQ(aoclsparse_create_csr(&A,
-                                                                    base,
-                                                                    m,
-                                                                    k,
-                                                                    nnz,
-                                                                    csr_row_ptr.data(),
-                                                                    csr_col_ind.data(),
-                                                                    (T *)csr_val.data()),
-                                              aoclsparse_status_success);
-                                    EXPECT_EQ(aoclsparse_csrmm<T>(op,
-                                                                  alpha,
-                                                                  A,
-                                                                  descr,
-                                                                  order,
-                                                                  B.data(),
-                                                                  C_n,
-                                                                  ldb,
-                                                                  beta,
-                                                                  C.data(),
-                                                                  ldc,
-                                                                  kid),
-                                              aoclsparse_status_success);
-
-                                    if constexpr(std::is_same_v<T, aoclsparse_float_complex>)
-                                    {
-                                        std::vector<std::complex<float>> *res, *res_exp;
-                                        res     = (std::vector<std::complex<float>> *)&C;
-                                        res_exp = (std::vector<std::complex<float>> *)&C_exp;
-                                        EXPECT_COMPLEX_FLOAT_EQ_VEC(C_m * C_n, (*res), (*res_exp));
-                                    }
-                                    if constexpr(std::is_same_v<T, aoclsparse_double_complex>)
-                                    {
-                                        std::vector<std::complex<double>> *res, *res_exp;
-                                        res     = (std::vector<std::complex<double>> *)&C;
-                                        res_exp = (std::vector<std::complex<double>> *)&C_exp;
-                                        EXPECT_COMPLEX_DOUBLE_EQ_VEC(C_m * C_n, (*res), (*res_exp));
-                                    }
-
-                                    aoclsparse_destroy_mat_descr(descr);
-                                    aoclsparse_destroy(&A);
                                 }
                             }
                         }
@@ -2382,20 +2554,18 @@ namespace
         {
             m_b = n_a;
             m_c = m_a;
-            k   = n_a;
         }
         else
         {
             m_b = m_a;
             m_c = n_a;
-            k   = m_a;
         }
         n_b = n_c = column;
 
         m = m_c;
         n = column;
         k = m_b;
-        std::vector<T> dense_a(m_a * n_a), dense_b(m_b * n_b), dense_c, dense_c_exp;
+        std::vector<T> dense_a(m_a * n_a), dense_b(m_b * n_b), dense_c, dense_c_exp, dense_c_bkp;
         if(layout == aoclsparse_order_row)
         {
             blis_layout = CblasRowMajor;
@@ -2405,6 +2575,8 @@ namespace
             dense_c.resize(m_c * ldc);
             aoclsparse_init<T>(dense_c, m_c, ldc, m_c);
             dense_c_sz = m_c * ldc;
+            dense_c_bkp.resize(dense_c_sz);
+            dense_c_bkp = dense_c;
         }
         else
         {
@@ -2415,6 +2587,8 @@ namespace
             dense_c.resize(ldc * n_c);
             aoclsparse_init<T>(dense_c, ldc, n_c, ldc);
             dense_c_sz = ldc * n_c;
+            dense_c_bkp.resize(dense_c_sz);
+            dense_c_bkp = dense_c;
         }
 
         tolerance_t<T> abserr = sqrt(std::numeric_limits<tolerance_t<T>>::epsilon());
@@ -2443,167 +2617,179 @@ namespace
         if(row_ptr_a.size() == 0)
             row_ptr_a.reserve(1);
         aoclsparse_matrix A;
-        ASSERT_EQ(aoclsparse_create_csr(
-                      &A, b_a, m_a, n_a, nnz_a, row_ptr_a.data(), col_ind_a.data(), val_a.data()),
-                  aoclsparse_status_success);
-        aoclsparse_mat_descr descrA;
-        ASSERT_EQ(aoclsparse_create_mat_descr(&descrA), aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_set_mat_index_base(descrA, b_a), aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_set_mat_type(descrA, mat_type), aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_set_mat_diag_type(descrA, diag), aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_set_mat_fill_mode(descrA, fill), aoclsparse_status_success);
 
-        dense_c_exp = dense_c;
-        if(dense_c.size() == 0)
+        for(aoclsparse_memory_usage mem_policy :
+            {aoclsparse_memory_usage_minimal, aoclsparse_memory_usage_unrestricted})
         {
-            dense_c.reserve(1);
-            dense_c_exp.reserve(1);
-        }
+            dense_c = dense_c_bkp;
+            ASSERT_EQ(
+                aoclsparse_create_csr(
+                    &A, b_a, m_a, n_a, nnz_a, row_ptr_a.data(), col_ind_a.data(), val_a.data()),
+                aoclsparse_status_success);
+            aoclsparse_mat_descr descrA;
+            ASSERT_EQ(aoclsparse_create_mat_descr(&descrA), aoclsparse_status_success);
+            ASSERT_EQ(aoclsparse_set_mat_index_base(descrA, b_a), aoclsparse_status_success);
+            ASSERT_EQ(aoclsparse_set_mat_type(descrA, mat_type), aoclsparse_status_success);
+            ASSERT_EQ(aoclsparse_set_mat_diag_type(descrA, diag), aoclsparse_status_success);
+            ASSERT_EQ(aoclsparse_set_mat_fill_mode(descrA, fill), aoclsparse_status_success);
 
-        T alpha, beta;
-        if constexpr(std::is_same_v<T, aoclsparse_double_complex>
-                     || std::is_same_v<T, aoclsparse_float_complex>)
-        {
-            switch(scalar)
+            ASSERT_EQ(aoclsparse_set_memory_hint(A, mem_policy), aoclsparse_status_success);
+            ASSERT_EQ(aoclsparse_set_mm_hint(A, op_a, descrA, 1000 /*Hint*/),
+                      aoclsparse_status_success);
+            ASSERT_EQ(aoclsparse_optimize(A), aoclsparse_status_success);
+
+            dense_c_exp = dense_c;
+            if(dense_c.size() == 0)
             {
-            case 0:
-                alpha = {-1, 2};
-                beta  = {2, -1};
-                break;
-            case 1:
-                alpha = {0, 0};
-                beta  = {2, -1};
-                break;
-            case 2:
-                alpha = {0, 0};
-                beta  = {0, 0};
-                break;
-            case 3:
-                alpha = {0, 0};
-                beta  = {1, 0};
-                break;
-            case 4:
-                alpha = {1, 0};
-                beta  = {0, 0};
-                break;
+                dense_c.reserve(1);
+                dense_c_exp.reserve(1);
             }
-        }
-        else
-        {
-            switch(scalar)
+
+            T alpha, beta;
+            if constexpr(std::is_same_v<T, aoclsparse_double_complex>
+                         || std::is_same_v<T, aoclsparse_float_complex>)
             {
-            case 0:
-                alpha = 3.0;
-                beta  = -2.0;
-                break;
-            case 1:
-                alpha = 0.;
-                beta  = -2.0;
-                break;
-            case 2:
-                alpha = 0.;
-                beta  = 0.;
-                break;
-            case 3:
-                alpha = 0.;
-                beta  = 1.0;
-                break;
-            case 4:
-                alpha = 1.;
-                beta  = 0.0;
-                break;
+                switch(scalar)
+                {
+                case 0:
+                    alpha = {-1, 2};
+                    beta  = {2, -1};
+                    break;
+                case 1:
+                    alpha = {0, 0};
+                    beta  = {2, -1};
+                    break;
+                case 2:
+                    alpha = {0, 0};
+                    beta  = {0, 0};
+                    break;
+                case 3:
+                    alpha = {0, 0};
+                    beta  = {1, 0};
+                    break;
+                case 4:
+                    alpha = {1, 0};
+                    beta  = {0, 0};
+                    break;
+                }
             }
+            else
+            {
+                switch(scalar)
+                {
+                case 0:
+                    alpha = 3.0;
+                    beta  = -2.0;
+                    break;
+                case 1:
+                    alpha = 0.;
+                    beta  = -2.0;
+                    break;
+                case 2:
+                    alpha = 0.;
+                    beta  = 0.;
+                    break;
+                case 3:
+                    alpha = 0.;
+                    beta  = 1.0;
+                    break;
+                case 4:
+                    alpha = 1.;
+                    beta  = 0.0;
+                    break;
+                }
+            }
+            EXPECT_EQ(aoclsparse_csrmm<T>(op_a,
+                                          alpha,
+                                          A,
+                                          descrA,
+                                          layout,
+                                          dense_b.data(),
+                                          column,
+                                          ldb,
+                                          beta,
+                                          dense_c.data() + offset,
+                                          ldc,
+                                          kid),
+                      aoclsparse_status_success);
+
+            EXPECT_EQ(aoclsparse_csr2dense(m_a,
+                                           n_a,
+                                           descrA,
+                                           val_a.data(),
+                                           row_ptr_a.data(),
+                                           col_ind_a.data(),
+                                           dense_a.data(),
+                                           lda,
+                                           layout),
+                      aoclsparse_status_success);
+
+            if constexpr(std::is_same_v<T, aoclsparse_float_complex>)
+            {
+                blis::gemm(blis_layout,
+                           (CBLAS_TRANSPOSE)op_a,
+                           (CBLAS_TRANSPOSE)op_b,
+                           (int64_t)m,
+                           (int64_t)n,
+                           (int64_t)k,
+                           *reinterpret_cast<const std::complex<float> *>(&alpha),
+                           (std::complex<float> const *)dense_a.data(),
+                           (int64_t)lda,
+                           (std::complex<float> const *)dense_b.data(),
+                           (int64_t)ldb,
+                           *reinterpret_cast<const std::complex<float> *>(&beta),
+                           (std::complex<float> *)dense_c_exp.data() + offset,
+                           (int64_t)ldc);
+                EXPECT_COMPLEX_ARR_NEAR(dense_c_sz,
+                                        ((std::complex<float> *)dense_c.data()),
+                                        ((std::complex<float> *)dense_c_exp.data()),
+                                        abserr);
+            }
+            else if constexpr(std::is_same_v<T, aoclsparse_double_complex>)
+            {
+                blis::gemm(blis_layout,
+                           (CBLAS_TRANSPOSE)op_a,
+                           (CBLAS_TRANSPOSE)op_b,
+                           (int64_t)m,
+                           (int64_t)n,
+                           (int64_t)k,
+                           *reinterpret_cast<const std::complex<double> *>(&alpha),
+                           (std::complex<double> const *)dense_a.data(),
+                           (int64_t)lda,
+                           (std::complex<double> const *)dense_b.data(),
+                           (int64_t)ldb,
+                           *reinterpret_cast<const std::complex<double> *>(&beta),
+                           (std::complex<double> *)dense_c_exp.data() + offset,
+                           (int64_t)ldc);
+
+                EXPECT_COMPLEX_ARR_NEAR(dense_c_sz,
+                                        ((std::complex<double> *)dense_c.data()),
+                                        ((std::complex<double> *)dense_c_exp.data()),
+                                        abserr);
+            }
+
+            else
+            {
+                blis::gemm(blis_layout,
+                           (CBLAS_TRANSPOSE)op_a,
+                           (CBLAS_TRANSPOSE)op_b,
+                           (int64_t)m,
+                           (int64_t)n,
+                           (int64_t)k,
+                           (T)alpha,
+                           (T const *)dense_a.data(),
+                           (int64_t)lda,
+                           (T const *)dense_b.data(),
+                           (int64_t)ldb,
+                           (T)beta,
+                           (T *)dense_c_exp.data() + offset,
+                           (int64_t)ldc);
+                EXPECT_ARR_NEAR(dense_c_sz, dense_c.data(), dense_c_exp.data(), abserr);
+            }
+
+            aoclsparse_destroy_mat_descr(descrA);
+            aoclsparse_destroy(&A);
         }
-        EXPECT_EQ(aoclsparse_csrmm<T>(op_a,
-                                      alpha,
-                                      A,
-                                      descrA,
-                                      layout,
-                                      dense_b.data(),
-                                      column,
-                                      ldb,
-                                      beta,
-                                      dense_c.data() + offset,
-                                      ldc,
-                                      kid),
-                  aoclsparse_status_success);
-
-        EXPECT_EQ(aoclsparse_csr2dense(m_a,
-                                       n_a,
-                                       descrA,
-                                       val_a.data(),
-                                       row_ptr_a.data(),
-                                       col_ind_a.data(),
-                                       dense_a.data(),
-                                       lda,
-                                       layout),
-                  aoclsparse_status_success);
-
-        if constexpr(std::is_same_v<T, aoclsparse_float_complex>)
-        {
-            blis::gemm(blis_layout,
-                       (CBLAS_TRANSPOSE)op_a,
-                       (CBLAS_TRANSPOSE)op_b,
-                       (int64_t)m,
-                       (int64_t)n,
-                       (int64_t)k,
-                       *reinterpret_cast<const std::complex<float> *>(&alpha),
-                       (std::complex<float> const *)dense_a.data(),
-                       (int64_t)lda,
-                       (std::complex<float> const *)dense_b.data(),
-                       (int64_t)ldb,
-                       *reinterpret_cast<const std::complex<float> *>(&beta),
-                       (std::complex<float> *)dense_c_exp.data() + offset,
-                       (int64_t)ldc);
-            EXPECT_COMPLEX_ARR_NEAR(dense_c_sz,
-                                    ((std::complex<float> *)dense_c.data()),
-                                    ((std::complex<float> *)dense_c_exp.data()),
-                                    abserr);
-        }
-        else if constexpr(std::is_same_v<T, aoclsparse_double_complex>)
-        {
-            blis::gemm(blis_layout,
-                       (CBLAS_TRANSPOSE)op_a,
-                       (CBLAS_TRANSPOSE)op_b,
-                       (int64_t)m,
-                       (int64_t)n,
-                       (int64_t)k,
-                       *reinterpret_cast<const std::complex<double> *>(&alpha),
-                       (std::complex<double> const *)dense_a.data(),
-                       (int64_t)lda,
-                       (std::complex<double> const *)dense_b.data(),
-                       (int64_t)ldb,
-                       *reinterpret_cast<const std::complex<double> *>(&beta),
-                       (std::complex<double> *)dense_c_exp.data() + offset,
-                       (int64_t)ldc);
-
-            EXPECT_COMPLEX_ARR_NEAR(dense_c_sz,
-                                    ((std::complex<double> *)dense_c.data()),
-                                    ((std::complex<double> *)dense_c_exp.data()),
-                                    abserr);
-        }
-
-        else
-        {
-            blis::gemm(blis_layout,
-                       (CBLAS_TRANSPOSE)op_a,
-                       (CBLAS_TRANSPOSE)op_b,
-                       (int64_t)m,
-                       (int64_t)n,
-                       (int64_t)k,
-                       (T)alpha,
-                       (T const *)dense_a.data(),
-                       (int64_t)lda,
-                       (T const *)dense_b.data(),
-                       (int64_t)ldb,
-                       (T)beta,
-                       (T *)dense_c_exp.data() + offset,
-                       (int64_t)ldc);
-            EXPECT_ARR_NEAR(dense_c_sz, dense_c.data(), dense_c_exp.data(), abserr);
-        }
-
-        aoclsparse_destroy_mat_descr(descrA);
-        aoclsparse_destroy(&A);
     }
 
     TEST(csrmm, NullArgDouble)

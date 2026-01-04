@@ -1,5 +1,5 @@
 # ########################################################################
-# Copyright (c) 2020-2024 Advanced Micro Devices, Inc.
+# Copyright (c) 2020-2025 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -46,6 +46,7 @@ set(AOCLSPARSE_SOURCES
   src/level2/aoclsparse_tcsrmv.cpp
   src/level3/aoclsparse_csrmm.cpp
   src/level3/aoclsparse_csr2m.cpp
+  src/level3/aoclsparse_csr2m_wrapper.cpp
   src/level3/aoclsparse_sp2m.cpp
   src/level3/aoclsparse_spmm.cpp
   src/level3/aoclsparse_spmmd.cpp
@@ -61,6 +62,10 @@ set(AOCLSPARSE_SOURCES
   src/solvers/aoclsparse_sorv.cpp
   src/solvers/aoclsparse_itsol_functions.cpp
   src/solvers/aoclsparse_symgs.cpp
+
+# Create
+  src/create/aoclsparse_create.cpp
+  src/create/aoclsparse_create_wrapper.cpp
 
 # Conversion
   src/conversion/aoclsparse_convert.cpp
@@ -90,6 +95,7 @@ set(DOUBLE_COMPILATION
   src/level1/aoclsparse_gthr_kt.cpp
   src/level1/aoclsparse_sctr_kt.cpp
 
+  src/level2/aoclsparse_bsrmv_kt.cpp
   src/level2/aoclsparse_csrmv_kt.cpp
   src/level2/aoclsparse_trsv_kt.cpp
   src/level3/aoclsparse_csrmm_kt.cpp

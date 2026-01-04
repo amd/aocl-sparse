@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024-2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,9 +20,9 @@
  * THE SOFTWARE.
  *
  * ************************************************************************ */
-#include "aoclsparse.h"
 #include "common_data_utils.h"
 #include "gtest/gtest.h"
+#include "aoclsparse.hpp"
 
 #include <complex>
 #include <map>
@@ -311,7 +311,7 @@ namespace dispatch_Test
             *ok = kid == aoclsparse_debug_dispatcher(dispatcher.c_str(), aoclsparse_smat, -1);
         };
 
-        int         ok1, ok2;
+        int         ok1 = 0, ok2 = 0;
         std::thread t1(lt_driver, &ok1, 0, "generic"s);
         std::thread t2(lt_driver, &ok2, 1, "avx2"s);
         t1.join();
@@ -425,5 +425,47 @@ namespace dispatch_Test
                       0 + 4000);
             break;
         }
+    }
+
+    TEST(Oracle, Invalid_kid_Range)
+    {
+        // This test checks the range dispatcher with invalid kid values.
+        // The range dispatcher is expected to return a specific error code
+        // when the kid is out of the valid range or when begin and end are not valid.
+
+        std::string dispatcher = "dispatch_range";
+
+        // Valid range kid is only 2, 3, 4 even though the table has 7 entries.
+        // Kernel ID in range
+        EXPECT_EQ(aoclsparse::test::dispatcher<float>(dispatcher, 1, 0, 2), 1001);
+
+        EXPECT_EQ(aoclsparse::test::dispatcher<float>(dispatcher, 0, 0, 1), 1000);
+
+        // Kernel ID in range with non-default lower-bound
+        EXPECT_EQ(aoclsparse::test::dispatcher<float>(dispatcher, 1, 2, 5), 1003);
+
+        // Edge case
+        EXPECT_EQ(aoclsparse::test::dispatcher<double>(dispatcher, 2, 0, 2),
+                  aoclsparse_status_invalid_kid);
+
+        // No search range
+        EXPECT_EQ(aoclsparse::test::dispatcher<std::complex<double>>(dispatcher, 0, 0, 0),
+                  aoclsparse_status_invalid_kid);
+
+        // Kernel ID out of range
+        EXPECT_EQ(aoclsparse::test::dispatcher<std::complex<double>>(dispatcher, 3, 0, 2),
+                  aoclsparse_status_invalid_kid);
+
+        // Begin and end are not valid values
+        EXPECT_EQ(aoclsparse::test::dispatcher<std::complex<float>>(dispatcher, 1, 2, 0),
+                  aoclsparse_status_invalid_kid);
+
+        // Begin is not in range
+        EXPECT_EQ(aoclsparse::test::dispatcher<std::complex<float>>(dispatcher, 1, -1, 2),
+                  aoclsparse_status_invalid_kid);
+
+        // End is not in range
+        EXPECT_EQ(aoclsparse::test::dispatcher<std::complex<float>>(dispatcher, 1, 0, 8),
+                  aoclsparse_status_invalid_kid);
     }
 }

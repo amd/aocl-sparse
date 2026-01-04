@@ -40,7 +40,7 @@ aoclsparse_status aoclsparse_add_csr_count_nnz(const aoclsparse_int        M,
                                                const aoclsparse_int       *A_col_ptr,
                                                const aoclsparse_int       *B_row_ptr,
                                                const aoclsparse_int       *B_col_ptr,
-                                               aoclsparse_int            *&C_row_ptr)
+                                               aoclsparse_int             *C_row_ptr)
 {
     using namespace aoclsparse;
     aoclsparse_int status = aoclsparse_status_success;
@@ -127,47 +127,39 @@ aoclsparse_status aoclsparse_add_csr_ref(const aoclsparse_int        M,
                                          const aoclsparse_int       *B_row_ptr,
                                          const aoclsparse_int       *B_col_ptr,
                                          const T                    *B_val,
-                                         aoclsparse_int            *&C_row_ptr,
-                                         aoclsparse_int            *&C_col_ptr,
-                                         T                         *&C_val)
+                                         aoclsparse::csr           **C)
 {
     using namespace aoclsparse;
     aoclsparse_int status = aoclsparse_status_success;
+
     if(A_row_ptr == nullptr || (A_nnz != 0 && (A_col_ptr == nullptr || A_val == nullptr)))
         return aoclsparse_status_invalid_pointer;
 
     if(B_row_ptr == nullptr || (B_nnz != 0 && (B_col_ptr == nullptr || B_val == nullptr)))
         return aoclsparse_status_invalid_pointer;
 
-    try
-    {
-        C_row_ptr = new aoclsparse_int[M + 1];
-    }
-    catch(std::bad_alloc &)
-    {
-        return aoclsparse_status_memory_error;
-    }
+    if(C == nullptr)
+        return aoclsparse_status_invalid_pointer;
+
+    // Set pointers to NULL initially
+    *C = nullptr;
+
+    // Handle empty matrix case - allocate 0-nnz matrix via constructor
     if(M == 0 || N == 0 || (A_nnz + B_nnz) == 0)
     {
-        for(int i = 0; i < M + 1; i++)
-        {
-            C_row_ptr[i] = base_A;
-        }
         try
         {
-            C_col_ptr = new aoclsparse_int[0];
-            C_val     = static_cast<T *>(::operator new(sizeof(T)));
+            // Constructor handles row pointer initialization for empty matrix
+            *C = new aoclsparse::csr(M, N, 0, aoclsparse_csr_mat, base_A, get_data_type<T>());
         }
         catch(std::bad_alloc &)
         {
-
-            delete[] C_row_ptr;
-            delete[] C_col_ptr;
-            ::operator delete(C_val);
             return aoclsparse_status_memory_error;
         }
+        C_nnz = 0;
         return aoclsparse_status_success;
     }
+
     aoclsparse_int num_of_threads = context::get_context()->get_num_threads();
 
     // Count the exact nnz in first stage before computation when we are using
@@ -177,29 +169,59 @@ aoclsparse_status aoclsparse_add_csr_ref(const aoclsparse_int        M,
     // C_row_ptr[] is built in the main computation loop.
     if(num_of_threads != 1)
     {
+        // For multiple threads: first allocate C with just the row pointer array
+        try
+        {
+            *C = new aoclsparse::csr(M, N, -1, aoclsparse_csr_mat, base_A, get_data_type<T>());
+        }
+        catch(std::bad_alloc &)
+        {
+            return aoclsparse_status_memory_error;
+        }
+
+        // Count the exact nnz in first stage before computation
         if(aoclsparse_add_csr_count_nnz(
-               M, N, base_A, base_B, C_nnz, A_row_ptr, A_col_ptr, B_row_ptr, B_col_ptr, C_row_ptr)
+               M, N, base_A, base_B, C_nnz, A_row_ptr, A_col_ptr, B_row_ptr, B_col_ptr, (*C)->ptr)
            != aoclsparse_status_success)
+        {
+            delete *C;
+            *C = nullptr;
             return aoclsparse_status_internal_error;
+        }
+
+        // Now allocate the column indices and values arrays
+        try
+        {
+            (*C)->ind = new aoclsparse_int[C_nnz];
+            (*C)->val = ::operator new(C_nnz * sizeof(T));
+            (*C)->nnz = C_nnz;
+        }
+        catch(std::bad_alloc &)
+        {
+            delete *C;
+            *C = nullptr;
+            return aoclsparse_status_memory_error;
+        }
     }
     else
     {
-        // overestimate the number of nonzeros
-        C_nnz        = A_nnz + B_nnz;
-        C_row_ptr[0] = base_A;
+        // For single thread: overestimate nnz and allocate C matrix directly
+        C_nnz = A_nnz + B_nnz;
+        try
+        {
+            *C = new aoclsparse::csr(M, N, C_nnz, aoclsparse_csr_mat, base_A, get_data_type<T>());
+        }
+        catch(std::bad_alloc &)
+        {
+            return aoclsparse_status_memory_error;
+        }
+        (*C)->ptr[0] = base_A;
     }
-    try
-    {
-        C_col_ptr = new aoclsparse_int[C_nnz];
-        C_val     = static_cast<T *>(::operator new((C_nnz) * sizeof(T)));
-    }
-    catch(std::bad_alloc &)
-    {
-        delete[] C_row_ptr;
-        delete[] C_col_ptr;
-        ::operator delete(C_val);
-        return aoclsparse_status_memory_error;
-    }
+
+    // Get pointers for easier access
+    aoclsparse_int *C_row_ptr = (*C)->ptr;
+    aoclsparse_int *C_col_ptr = (*C)->ind;
+    T              *C_val     = reinterpret_cast<T *>((*C)->val);
 
 #ifdef _OPENMP
 #pragma omp parallel num_threads(num_of_threads) reduction(max : status)
@@ -271,14 +293,15 @@ aoclsparse_status aoclsparse_add_csr_ref(const aoclsparse_int        M,
     {
         if(num_of_threads == 1)
         {
-            C_nnz = C_row_ptr[M] - base_A;
+            C_nnz     = C_row_ptr[M] - base_A;
+            (*C)->nnz = C_nnz;
         }
     }
     else
     {
-        delete[] C_col_ptr;
-        delete[] C_row_ptr;
-        ::operator delete(C_val);
+        // If anything goes wrong, just destruct C
+        delete *C;
+        *C = nullptr;
     }
 
     return (aoclsparse_status)status;
@@ -293,6 +316,11 @@ aoclsparse_status aoclsparse_add_t(const aoclsparse_operation op,
 {
 
     if(A == nullptr || B == nullptr || C == nullptr)
+    {
+        return aoclsparse_status_invalid_pointer;
+    }
+
+    if(A->mats.empty() || B->mats.empty())
     {
         return aoclsparse_status_invalid_pointer;
     }
@@ -314,34 +342,37 @@ aoclsparse_status aoclsparse_add_t(const aoclsparse_operation op,
             return aoclsparse_status_invalid_size;
     }
 
-    aoclsparse_int *C_row_ptr = nullptr, *C_col_ptr = nullptr, C_nnz = 0;
-    T              *C_val = nullptr;
-    T              *A_val = reinterpret_cast<T *>(A->csr_mat.csr_val);
-    T              *B_val = reinterpret_cast<T *>(B->csr_mat.csr_val);
+    aoclsparse_int C_nnz = 0;
+
+    aoclsparse::csr *A_csr = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
+    aoclsparse::csr *B_csr = dynamic_cast<aoclsparse::csr *>(B->mats[0]);
+
+    if(!A_csr || !B_csr)
+        return aoclsparse_status_not_implemented;
+
+    T *A_val = reinterpret_cast<T *>(A_csr->val);
+    T *B_val = reinterpret_cast<T *>(B_csr->val);
 
     aoclsparse_status status = aoclsparse_status_success;
+    aoclsparse::csr  *C_csr  = nullptr;
 
     if(op == aoclsparse_operation_none)
     {
-        if((status = aoclsparse_add_csr_ref(A->m,
-                                            A->n,
-                                            A->base,
-                                            B->base,
-                                            A->nnz,
-                                            B->nnz,
-                                            C_nnz,
-                                            A->csr_mat.csr_row_ptr,
-                                            A->csr_mat.csr_col_ptr,
-                                            A_val,
-                                            alpha,
-                                            B->csr_mat.csr_row_ptr,
-                                            B->csr_mat.csr_col_ptr,
-                                            B_val,
-                                            C_row_ptr,
-                                            C_col_ptr,
-                                            C_val))
-           != aoclsparse_status_success)
-            return status;
+        status = aoclsparse_add_csr_ref(A->m,
+                                        A->n,
+                                        A_csr->base,
+                                        B_csr->base,
+                                        A->nnz,
+                                        B->nnz,
+                                        C_nnz,
+                                        A_csr->ptr,
+                                        A_csr->ind,
+                                        A_val,
+                                        alpha,
+                                        B_csr->ptr,
+                                        B_csr->ind,
+                                        B_val,
+                                        &C_csr);
     }
     else
     {
@@ -357,33 +388,33 @@ aoclsparse_status aoclsparse_add_t(const aoclsparse_operation op,
         {
             return aoclsparse_status_memory_error;
         }
-        if((status = aoclsparse_csr2csc_template(A->m,
-                                                 A->n,
-                                                 A->nnz,
-                                                 A->base,
-                                                 A->base,
-                                                 A->csr_mat.csr_row_ptr,
-                                                 A->csr_mat.csr_col_ptr,
-                                                 A_val,
-                                                 temp_col_ptr.data(),
-                                                 temp_row_ptr.data(),
-                                                 temp_val.data()))
-           != aoclsparse_status_success)
-            return status;
-        if constexpr(std::is_same_v<T, std::complex<float>>
-                     || std::is_same_v<T, std::complex<double>>)
+        status = aoclsparse_csr2csc_template(A->m,
+                                             A->n,
+                                             A->nnz,
+                                             A_csr->base,
+                                             A_csr->base,
+                                             A_csr->ptr,
+                                             A_csr->ind,
+                                             A_val,
+                                             temp_col_ptr.data(),
+                                             temp_row_ptr.data(),
+                                             temp_val.data());
+        if(status == aoclsparse_status_success)
         {
-            if(op == aoclsparse_operation_conjugate_transpose)
+            if constexpr(std::is_same_v<T, std::complex<float>>
+                         || std::is_same_v<T, std::complex<double>>)
             {
-                // transpose is done, now conjugate
-                for(aoclsparse_int i = 0; i < A->nnz; i++)
-                    temp_val[i] = std::conj(temp_val[i]);
+                if(op == aoclsparse_operation_conjugate_transpose)
+                {
+                    // transpose is done, now conjugate
+                    for(aoclsparse_int i = 0; i < A->nnz; i++)
+                        temp_val[i] = std::conj(temp_val[i]);
+                }
             }
-        }
-        if((status = aoclsparse_add_csr_ref(A->n,
+            status = aoclsparse_add_csr_ref(A->n,
                                             A->m,
-                                            A->base,
-                                            B->base,
+                                            A_csr->base,
+                                            B_csr->base,
                                             A->nnz,
                                             B->nnz,
                                             C_nnz,
@@ -391,29 +422,41 @@ aoclsparse_status aoclsparse_add_t(const aoclsparse_operation op,
                                             temp_col_ptr.data(),
                                             temp_val.data(),
                                             alpha,
-                                            B->csr_mat.csr_row_ptr,
-                                            B->csr_mat.csr_col_ptr,
+                                            B_csr->ptr,
+                                            B_csr->ind,
                                             B_val,
-                                            C_row_ptr,
-                                            C_col_ptr,
-                                            C_val))
-           != aoclsparse_status_success)
-            return status;
-    }
-    try
-    {
-        *C = new _aoclsparse_matrix;
-    }
-    catch(std::bad_alloc &)
-    {
-        return aoclsparse_status_memory_error;
+                                            &C_csr);
+        }
     }
 
-    aoclsparse_init_mat(*C, A->base, B->m, B->n, C_nnz, aoclsparse_csr_mat);
-    (*C)->val_type            = get_data_type<T>();
-    (*C)->csr_mat.csr_row_ptr = C_row_ptr;
-    (*C)->csr_mat.csr_col_ptr = C_col_ptr;
-    (*C)->csr_mat.csr_val     = C_val;
-    (*C)->csr_mat_is_users    = false;
-    return aoclsparse_status_success;
+    // Only allocate the main matrix C at the end to avoid returning partially filled matrix
+    if(status == aoclsparse_status_success)
+    {
+        try
+        {
+            *C = new _aoclsparse_matrix;
+            (*C)->mats.push_back(C_csr);
+        }
+        catch(std::bad_alloc &)
+        {
+            if(C_csr)
+            {
+                delete C_csr;
+            }
+            if(*C)
+            {
+                delete *C;
+                *C = nullptr;
+            }
+            return aoclsparse_status_memory_error;
+        }
+        aoclsparse_init_mat(*C, B->m, B->n, C_nnz, aoclsparse_csr_mat);
+        (*C)->val_type = get_data_type<T>();
+        return aoclsparse_status_success;
+    }
+    else
+    {
+        // C_csr is already cleaned up in aoclsparse_add_csr_ref on failure
+        return status;
+    }
 }

@@ -59,35 +59,42 @@ namespace aoclsparse
         aoclsparse_int *col = nullptr, *crow = nullptr, *diag = nullptr, *urow = nullptr,
                        *rstart = nullptr, *rend = nullptr;
 
+        // The user creates the tcsr matrix, which should be located at mtx->mats[0]
+        aoclsparse::tcsr *tcsr_mat = dynamic_cast<aoclsparse::tcsr *>(mtx->mats[0]);
+        if(!tcsr_mat)
+        {
+            return aoclsparse_status_not_implemented;
+        }
+
         if(doid == doid::tln || doid == doid::tlt || doid == doid::tlh || doid == doid::tlc)
         {
-            val    = (T *)mtx->tcsr_mat.val_L;
-            col    = mtx->tcsr_mat.col_idx_L;
-            rstart = mtx->tcsr_mat.row_ptr_L;
-            rend   = mtx->tcsr_mat.row_ptr_L + 1;
+            val    = (T *)tcsr_mat->val_L;
+            col    = tcsr_mat->col_idx_L;
+            rstart = tcsr_mat->row_ptr_L;
+            rend   = tcsr_mat->row_ptr_L + 1;
         }
         else if(doid == doid::tun || doid == doid::tut || doid == doid::tuh || doid == doid::tuc)
         {
-            val    = (T *)mtx->tcsr_mat.val_U;
-            col    = mtx->tcsr_mat.col_idx_U;
-            rstart = mtx->tcsr_mat.row_ptr_U;
-            rend   = mtx->tcsr_mat.row_ptr_U + 1;
+            val    = (T *)tcsr_mat->val_U;
+            col    = tcsr_mat->col_idx_U;
+            rstart = tcsr_mat->row_ptr_U;
+            rend   = tcsr_mat->row_ptr_U + 1;
         }
         else if(doid == doid::sl || doid == doid::slc || doid == doid::hl || doid == doid::hlc)
         {
-            val  = (T *)mtx->tcsr_mat.val_L;
-            col  = mtx->tcsr_mat.col_idx_L;
-            crow = mtx->tcsr_mat.row_ptr_L;
-            diag = mtx->tcsr_mat.idiag;
-            urow = mtx->tcsr_mat.row_ptr_L + 1;
+            val  = (T *)tcsr_mat->val_L;
+            col  = tcsr_mat->col_idx_L;
+            crow = tcsr_mat->row_ptr_L;
+            diag = tcsr_mat->idiag;
+            urow = tcsr_mat->row_ptr_L + 1;
         }
         else if(doid == doid::su || doid == doid::suc || doid == doid::hu || doid == doid::huc)
         {
-            val  = (T *)mtx->tcsr_mat.val_U;
-            col  = mtx->tcsr_mat.col_idx_U;
-            crow = mtx->tcsr_mat.row_ptr_U;
-            diag = mtx->tcsr_mat.row_ptr_U;
-            urow = mtx->tcsr_mat.iurow;
+            val  = (T *)tcsr_mat->val_U;
+            col  = tcsr_mat->col_idx_U;
+            crow = tcsr_mat->row_ptr_U;
+            diag = tcsr_mat->row_ptr_U;
+            urow = tcsr_mat->iurow;
         }
 
         // TCSR dispatcher
@@ -98,12 +105,12 @@ namespace aoclsparse
                 return aoclsparse_dtcsrmv_avx2(descr->base,
                                                *alpha,
                                                mtx->m,
-                                               (double *)mtx->tcsr_mat.val_L,
-                                               (double *)mtx->tcsr_mat.val_U,
-                                               mtx->tcsr_mat.col_idx_L,
-                                               mtx->tcsr_mat.col_idx_U,
-                                               mtx->tcsr_mat.row_ptr_L,
-                                               mtx->tcsr_mat.row_ptr_U,
+                                               (double *)tcsr_mat->val_L,
+                                               (double *)tcsr_mat->val_U,
+                                               tcsr_mat->col_idx_L,
+                                               tcsr_mat->col_idx_U,
+                                               tcsr_mat->row_ptr_L,
+                                               tcsr_mat->row_ptr_U,
                                                x,
                                                *beta,
                                                y);
@@ -165,12 +172,12 @@ namespace aoclsparse
             }
             else
             {
-                return aoclsparse_csrmv_ref(
+                return ref_csrmv_tri(
                     descr, *alpha, mtx->m, mtx->n, val, col, rstart, rend, x, *beta, y);
             }
         case doid::tlt:
         case doid::tut:
-            return aoclsparse_csrmvt_ptr(
+            return ref_csrmv_tri_th(
                 descr, *alpha, mtx->m, mtx->n, val, col, rstart, rend, x, *beta, y);
         case doid::tlh:
         case doid::tlc:

@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,7 +21,8 @@
  *
  * ************************************************************************ */
 
-#include "aoclsparse_csr2m.hpp"
+#include "aoclsparse.hpp"
+#include "aoclsparse_mat_structures.hpp"
 
 aoclsparse_status aoclsparse_sp2m(aoclsparse_operation       opA,
                                   const aoclsparse_mat_descr descrA,
@@ -37,13 +38,13 @@ aoclsparse_status aoclsparse_sp2m(aoclsparse_operation       opA,
         return aoclsparse_status_invalid_pointer;
     }
     if((A->val_type == aoclsparse_smat) && (B->val_type == aoclsparse_smat))
-        return aoclsparse_csr2m_t<float>(opA, descrA, A, opB, descrB, B, request, C);
+        return aoclsparse::sp2m<float>(opA, descrA, A, opB, descrB, B, request, C);
     else if((A->val_type == aoclsparse_dmat) && (B->val_type == aoclsparse_dmat))
-        return aoclsparse_csr2m_t<double>(opA, descrA, A, opB, descrB, B, request, C);
+        return aoclsparse::sp2m<double>(opA, descrA, A, opB, descrB, B, request, C);
     else if((A->val_type == aoclsparse_cmat) && (B->val_type == aoclsparse_cmat))
-        return aoclsparse_csr2m_t<std::complex<float>>(opA, descrA, A, opB, descrB, B, request, C);
+        return aoclsparse::sp2m<std::complex<float>>(opA, descrA, A, opB, descrB, B, request, C);
     else if((A->val_type == aoclsparse_zmat) && (B->val_type == aoclsparse_zmat))
-        return aoclsparse_csr2m_t<std::complex<double>>(opA, descrA, A, opB, descrB, B, request, C);
+        return aoclsparse::sp2m<std::complex<double>>(opA, descrA, A, opB, descrB, B, request, C);
     else
         return aoclsparse_status_wrong_type;
 }

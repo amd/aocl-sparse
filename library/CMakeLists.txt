@@ -1,5 +1,5 @@
 # ########################################################################
-# Copyright (c) 2020-2024 Advanced Micro Devices, Inc.
+# Copyright (c) 2020-2025 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -35,6 +35,7 @@ set(PUBLIC_HEADERS
     include/aoclsparse_auxiliary.h
     include/aoclsparse_solvers.h
     include/aoclsparse.h
+    include/aoclsparse.hpp
     ${PROJECT_BINARY_DIR}/include/aoclsparse_version.h
 )
 
@@ -111,8 +112,7 @@ add_library(aocl::aoclsparse ALIAS aoclsparse)
 aoclsparse_add_dependency(aoclsparse)
 
 # Target link libraries and compile options
-# TODO: Remove OPENMP_FOUND since OpenMP_Library is set to null in ST mode and remove the parent scope for this variable as well
-if(SUPPORT_OMP AND OPENMP_FOUND)
+if(SUPPORT_OMP)
   target_link_libraries(aoclsparse PRIVATE ${OpenMP_Library}
                                   PUBLIC ${LAPACK_LIBRARIES})
 else()
@@ -141,3 +141,8 @@ set(CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION "\${CPACK_PACKAGING_INSTALL_PR
 set(package_name aoclsparse)
 
 set(AOCLSPARSE_CONFIG_DIR "\${CPACK_PACKAGING_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}" CACHE PATH "Path placed into ldconfig file")
+
+# Install the kernel-templates directory
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/include/kernel-templates/
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/include/kernel-templates
+        FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h")

@@ -104,7 +104,7 @@ aoclsparse_status aoclsparse_add_hint(aoclsparse_optimize_data  *&list,
  * min_dim      : N (cols) for CSC and M (rows) for CSR
  * nnz          : number of non-zeros
  * idx_ptr      : csr_row_ptr[M+1] for CSR and csc_mat_col_ptr[N+1] for CSC
- * indices      : csr_col_ptr[nnz] for CSR and csc_mat.row_idx[nnz] for CSC
+ * indices      : csr_col_ptr[nnz] for CSR and csc_mat.ind[nnz] for CSC
  * val          : csr_val[nnz] for CSR and csc_mat.val[nnz] for CSC
  * shape        : expecting lower/upper triangular matrix or general?
  * base         : aoclsparse_index_base_zero or aoclsparse_index_base_one
@@ -115,6 +115,11 @@ aoclsparse_status aoclsparse_add_hint(aoclsparse_optimize_data  *&list,
  * if defined, it gets the status and a string describing the probelm on its interface
  *
  * Possible erros: invalid_pointer, invalid_size, invalid_index, invalid_value
+ *
+ * Behavior with fast_chck == true:
+ * - no checks on indices
+ * - mat_fulldiag is set to false
+ * - mat_sort is not set aoclsparse_unknown_sort
  */
 aoclsparse_status aoclsparse_mat_check_internal(aoclsparse_int          maj_dim,
                                                 aoclsparse_int          min_dim,
@@ -127,7 +132,8 @@ aoclsparse_status aoclsparse_mat_check_internal(aoclsparse_int          maj_dim,
                                                 aoclsparse_matrix_sort &mat_sort,
                                                 bool                   &mat_fulldiag,
                                                 void (*error_handler)(aoclsparse_status status,
-                                                                      std::string       message))
+                                                                      std::string       message),
+                                                bool fast_chck)
 {
 
     std::ostringstream buffer;
@@ -155,7 +161,7 @@ aoclsparse_status aoclsparse_mat_check_internal(aoclsparse_int          maj_dim,
         status = aoclsparse_status_invalid_value;
         if(error_handler)
         {
-            buffer << "Wrong csr_row_ptr[0] or csc.col_ptr[0]";
+            buffer << "Wrong ptr[0], ptr[0] must be equal to base.";
             error_handler(status, buffer.str());
         }
         return status;
@@ -165,10 +171,20 @@ aoclsparse_status aoclsparse_mat_check_internal(aoclsparse_int          maj_dim,
         status = aoclsparse_status_invalid_value;
         if(error_handler)
         {
-            buffer << "Wrong csr_row_ptr[m]!=nnz or csc.col_ptr[n]!=nnz";
+            buffer << "Wrong! ptr[m] != nnz+base";
             error_handler(status, buffer.str());
         }
         return status;
+    }
+
+    // Return success if fast check is requested
+    if(fast_chck)
+    {
+        mat_fulldiag = false; // no diagonal check
+        mat_sort     = aoclsparse_unknown_sort; // no sorting check
+
+        // no need to check indices, just return success
+        return aoclsparse_status_success;
     }
 
     for(aoclsparse_int i = 1; i <= maj_dim; i++)
@@ -178,7 +194,7 @@ aoclsparse_status aoclsparse_mat_check_internal(aoclsparse_int          maj_dim,
             status = aoclsparse_status_invalid_value;
             if(error_handler)
             {
-                buffer << "Wrong csr_row_ptr/csc.col_ptr - not nondecreasing";
+                buffer << "Wrong ptr - not nondecreasing";
                 error_handler(status, buffer.str());
             }
             return status;

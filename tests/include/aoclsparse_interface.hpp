@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020-2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,13 +22,13 @@
  * ************************************************************************ */
 
 /*! \file
- *  \brief aoclsparse.hpp exposes C++ templated Sparse Linear Algebra interface
+ *  \brief aoclsparse_interface.hpp exposes C++ templated Sparse Linear Algebra interface
  *  with only the precision templated.
  */
 
 #pragma once
-#ifndef AOCLSPARSE_HPP
-#define AOCLSPARSE_HPP
+#ifndef AOCLSPARSE_INTERFACE_HPP
+#define AOCLSPARSE_INTERFACE_HPP
 
 #include "aoclsparse.h"
 #include "aoclsparse_utils.hpp"
@@ -365,6 +365,7 @@ template <typename T>
 aoclsparse_status aoclsparse_csr2bsr(aoclsparse_int             m,
                                      aoclsparse_int             n,
                                      const aoclsparse_mat_descr descr,
+                                     const aoclsparse_order     block_order,
                                      const T                   *csr_val,
                                      const aoclsparse_int      *csr_row_ptr,
                                      const aoclsparse_int      *csr_col_ind,
@@ -456,6 +457,18 @@ aoclsparse_status aoclsparse_create_csr(aoclsparse_matrix    *mat,
                                         aoclsparse_int       *csr_row_ptr,
                                         aoclsparse_int       *csr_col_ptr,
                                         T                    *csr_val);
+
+template <typename T>
+aoclsparse_status aoclsparse_create_bsr(aoclsparse_matrix    *mat,
+                                        aoclsparse_index_base base,
+                                        aoclsparse_order      order,
+                                        aoclsparse_int        bM,
+                                        aoclsparse_int        bN,
+                                        aoclsparse_int        block_dim,
+                                        aoclsparse_int       *row_ptr,
+                                        aoclsparse_int       *col_idx,
+                                        T                    *val,
+                                        bool                  fast_chck);
 
 template <typename T>
 aoclsparse_status aoclsparse_create_tcsr(aoclsparse_matrix    *mat,
@@ -571,4 +584,4 @@ aoclsparse_status aoclsparse_itsol_rci_solve(aoclsparse_itsol_handle   handle,
                                              T                        *x,
                                              tolerance_t<T>            rinfo[100]);
 
-#endif /*AOCLSPARSE_HPP*/
+#endif /*AOCLSPARSE_INTERFACE_HPP*/

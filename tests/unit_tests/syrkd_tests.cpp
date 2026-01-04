@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,8 +23,8 @@
 #include "aoclsparse.h"
 #include "common_data_utils.h"
 #include "gtest/gtest.h"
-#include "aoclsparse.hpp"
 #include "aoclsparse_init.hpp"
+#include "aoclsparse_interface.hpp"
 
 #include <complex>
 #include <iostream>
@@ -35,9 +35,10 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wtype-limits"
 #include "blis.hh"
-#pragma GCC diagnostic pop
 #include "cblas.hh"
+#pragma GCC diagnostic pop
 
 namespace
 {
@@ -349,6 +350,12 @@ namespace
                 alpha = {1, 0};
                 beta  = {0, 0};
                 break;
+            default:
+                alpha = {std::numeric_limits<double>::quiet_NaN(),
+                         std::numeric_limits<double>::quiet_NaN()};
+                beta  = {std::numeric_limits<double>::quiet_NaN(),
+                         std::numeric_limits<double>::quiet_NaN()};
+                break;
             }
         }
         else
@@ -374,6 +381,10 @@ namespace
             case 4:
                 alpha = 1.;
                 beta  = 0.0;
+                break;
+            default:
+                alpha = std::numeric_limits<double>::quiet_NaN();
+                beta  = std::numeric_limits<double>::quiet_NaN();
                 break;
             }
         }
