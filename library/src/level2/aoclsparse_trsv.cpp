@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,10 +21,10 @@
  *
  * ************************************************************************ */
 
-#include "aoclsparse_context.h"
 #include "aoclsparse_descr.h"
 #include "aoclsparse.hpp"
 #include "aoclsparse_cntx_dispatcher.hpp"
+#include "aoclsparse_context.hpp"
 #include "aoclsparse_csr_util.hpp"
 #include "aoclsparse_l2_kt.hpp"
 #include "aoclsparse_mtx_dispatcher.hpp"

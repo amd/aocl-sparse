@@ -1,6 +1,6 @@
 
 /* ************************************************************************
- * Copyright (c) 2021-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2021-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,6 @@
 #ifndef AOCLSPARSE_CSRMM_HPP
 #define AOCLSPARSE_CSRMM_HPP
 #include "aoclsparse.h"
-#include "aoclsparse_context.h"
 #include "aoclsparse_descr.h"
 #include "aoclsparse_cntx_dispatcher.hpp"
 #include "aoclsparse_convert.hpp"

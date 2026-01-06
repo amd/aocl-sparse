@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2021-2025 Advanced Micro Devices, Inc.
+ * Copyright (c) 2021-2026 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,7 +22,7 @@
  * ************************************************************************ */
 
 #include "aoclsparse.h"
-#include "aoclsparse_context.h"
+#include "aoclsparse_context.hpp"
 
 #include <cstdlib>
 
