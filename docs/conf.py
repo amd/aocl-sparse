@@ -25,10 +25,10 @@
 
 # -- Project information -----------------------------------------------------
 project = 'AOCL-Sparse'
-copyright = '2020-2025, Advanced Micro Devices, Inc'
+copyright = '2020-2026, Advanced Micro Devices, Inc'
 author = 'Advanced Micro Devices, Inc'
 version = ''
-release ='5.1.0'
+release ='5.2.1'
 
 # -- General configuration ---------------------------------------------------
 extensions = ['sphinxcontrib.bibtex', 'breathe', 'sphinx_collapse']
