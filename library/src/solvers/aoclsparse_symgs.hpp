@@ -103,8 +103,19 @@ aoclsparse_status symgs_ref(aoclsparse_operation       trans,
 
     aoclsparse_int    avxversion;
     aoclsparse_status status;
-    std::vector<T>    r_temp(A->m);
-    std::vector<T>    q_temp(A->m);
+    std::vector<T>    r_temp;
+    std::vector<T>    q_temp;
+
+    // Try to allocate temporary buffers
+    try
+    {
+        r_temp.resize(A->m);
+        q_temp.resize(A->m);
+    }
+    catch(const std::exception &e)
+    {
+        return aoclsparse_status_memory_error;
+    }
 
     T *r         = r_temp.data();
     T *q         = q_temp.data();
