@@ -964,17 +964,12 @@ aoclsparse_status aoclsparse_tcsr_optimize(aoclsparse_matrix A, aoclsparse::tcsr
     {
         aoclsparse::tcsr *temp_opt_mat = dynamic_cast<aoclsparse::tcsr *>(A->mats[i]);
 
-        if(temp_opt_mat && temp_opt_mat->is_optimized)
-        {
-            // If the optimized matrix is found, return it
-            opt_tcsr_mat = temp_opt_mat;
-
-            return aoclsparse_status_success;
-        }
-        else if(temp_opt_mat && !temp_opt_mat->is_optimized && src_mat == nullptr)
+        // TCSR optimization is done in-place. So if the matrix were optimized earlier, this would be the same.
+        if(temp_opt_mat)
         {
             // Use the first non-optimized matrix as source
             src_mat = temp_opt_mat;
+            break;
         }
     }
 
@@ -984,6 +979,13 @@ aoclsparse_status aoclsparse_tcsr_optimize(aoclsparse_matrix A, aoclsparse::tcsr
 
     if(!src_mat->row_ptr_L || !src_mat->row_ptr_U)
         return aoclsparse_status_invalid_pointer;
+
+    // Check if the first TCSR matrix is already optimized
+    if(src_mat && src_mat->is_optimized)
+    {
+        opt_tcsr_mat = src_mat;
+        return aoclsparse_status_success;
+    }
 
     // Stores optimized csr ptr
     opt_tcsr_mat = nullptr;
