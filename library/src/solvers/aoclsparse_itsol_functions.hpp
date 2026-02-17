@@ -1657,8 +1657,7 @@ aoclsparse_status handle_parse_option(aoclsparse_options::OptionRegistry<T> &opt
         flag = opts.SetOption(name, iset, byuser);
         break;
     case 2: // real
-        if constexpr(std::is_same_v<T, double> || std::is_same_v<T, double>
-                     || std::is_same_v<T, aoclsparse_double_complex>)
+        if constexpr(std::is_same_v<T, double> || std::is_same_v<T, aoclsparse_double_complex>)
         {
             rset = std::stod(value);
         }
@@ -1690,14 +1689,10 @@ aoclsparse_status handle_parse_option(aoclsparse_options::OptionRegistry<T> &opt
     case 1: // option value is out-of-range // provide new status code?
     case 2: // option value is incorrect // provide new status code?
     case 3: // Option not found
-        return aoclsparse_status_invalid_value;
-        break;
     case 4: // Options are locked, cannot set
         return aoclsparse_status_invalid_value;
-        break;
     default:
         return aoclsparse_status_internal_error;
-        break;
     }
     return aoclsparse_status_internal_error; // never reached
 }
