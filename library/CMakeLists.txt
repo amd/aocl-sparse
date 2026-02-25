@@ -1,5 +1,5 @@
 # ########################################################################
-# Copyright (c) 2020-2025 Advanced Micro Devices, Inc.
+# Copyright (c) 2020-2026 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -72,7 +72,7 @@ function(aoclsparse_add_dependency OBJ_NAME)
  # Define -Daoclsparse_ILP64 when ILP64 libraries are built. For LP64, this is an empty string.
  target_compile_definitions(${OBJ_NAME} PRIVATE ${AOCLSPARSE_ILP64})
 
- # Sets -fPIC flag
+ # Sets -fPIC flag, symbol visibility to hidden
  set_target_properties(${OBJ_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endfunction()
 
@@ -122,7 +122,6 @@ endif()
 # Target properties
 set_target_properties(aoclsparse PROPERTIES SOVERSION ${AOCLSPARSE_VERSION} )
 set_target_properties(aoclsparse PROPERTIES VERSION ${AOCLSPARSE_VERSION})
-set_target_properties(aoclsparse PROPERTIES CXX_VISIBILITY_PRESET "hidden" VISIBILITY_INLINES_HIDDEN ON)
 set_target_properties(aoclsparse PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/library")
 set_target_properties(aoclsparse PROPERTIES DEBUG_POSTFIX "-d")
 
