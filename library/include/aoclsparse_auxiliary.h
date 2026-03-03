@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2025 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020-2026 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -45,6 +45,25 @@ extern "C" {
  */
 DLL_PUBLIC
 const char *aoclsparse_get_version();
+
+/*! \ingroup aux_module
+ *  \par AOCL_ENABLE_INSTRUCTIONS
+ *  Environment variable that sets the ISA code-path preference for kernels
+ *  that have more than one implementation. Read at library initialization;
+ *  can be re-applied at run time by calling \ref aoclsparse_enable_instructions(ENV).
+ *
+ *  Valid values (case-insensitive):
+ *  - \b GENERIC — Use the generic (scalar) code path; runs on any supported x86 CPU.
+ *  - \b AVX2 — Prefer AVX2 (256-bit SIMD) kernels. If the CPU does not support AVX2,
+ *    the library falls back to GENERIC.
+ *  - \b AVX512 — Prefer AVX-512 (512-bit SIMD) kernels. If the CPU does not support
+ *    AVX-512, the library falls back to AVX2, then to GENERIC.
+ *
+ *  Any other value (including misspellings) is silently ignored and the library
+ *  uses its default auto-detected ISA path.
+ *
+ *  The same preference can be set at runtime via aoclsparse_enable_instructions().
+ */
 
 /*! \ingroup aux_module
  *  \brief Set ISA code-path preference.
