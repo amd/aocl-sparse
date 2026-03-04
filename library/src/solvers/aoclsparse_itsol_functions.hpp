@@ -810,7 +810,11 @@ aoclsparse_status aoclsparse_cg_rci_solve(aoclsparse_itsol_data<T> *itsol,
             for(i = 0; i < n; i++)
                 pq += cg->p[i] * cg->q[i];
             //bli_ddotv(BLIS_NO_CONJUGATE, BLIS_NO_CONJUGATE, handle->n, cgd->p, 1, cgd->q, 1, &pq);
-            if(aoclsparse_is_negative_or_nearzero(pq)) // system matrix A is not positive definite
+            // Check for zero/near-zero to prevent division by zero
+            // Note: aoclsparse_is_negative_or_nearzero checks value <= eps_tolerance;
+            // explicit zero check added as fallback
+            if(aoclsparse_is_negative_or_nearzero(pq)
+               || pq == aoclsparse_numeric::zero<T>()) // system matrix A is not positive definite
                 return aoclsparse_status_numerical_error;
             cg->alpha = cg->rz / pq;
             for(i = 0; i < n; i++)

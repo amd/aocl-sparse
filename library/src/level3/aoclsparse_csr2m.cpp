@@ -373,7 +373,8 @@ inline aoclsparse_status aoclsparse_csr2m_finalize(aoclsparse_int             m_
     {
         m = (*C)->n;
         n = (*C)->m;
-        if((csc_mat->ptr == nullptr) || (csc_mat->ind == nullptr) || (csc_mat->val == nullptr))
+        if((csc_mat == nullptr) || (csc_mat->ptr == nullptr) || (csc_mat->ind == nullptr)
+           || (csc_mat->val == nullptr))
             return aoclsparse_status_invalid_pointer;
         csr_row_ptr_C = csc_mat->ptr;
         csr_col_ind_C = csc_mat->ind;
@@ -734,6 +735,11 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
             }
         }
     }
+
+    // Validate that CSR matrices were found in both A and B
+    if(csr_src_A == nullptr || csr_src_B == nullptr)
+        return aoclsparse_status_invalid_pointer;
+
     aoclsparse::csr *csr_A = nullptr, *csr_B = nullptr;
 
     // A * B , Retrieve A and B CSR arrays
@@ -833,6 +839,11 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
         m_a                       = n_b;
         n_b                       = t;
     }
+
+    // Guard against null csr member within the csr_data structure
+    // (should not happen if aoclsparse_matrix is well-formed)
+    if(csr_A == nullptr || csr_B == nullptr)
+        return aoclsparse_status_invalid_pointer;
 
     aoclsparse_index_base baseA = descrA_t.base;
     aoclsparse_index_base baseB = descrB_t.base;

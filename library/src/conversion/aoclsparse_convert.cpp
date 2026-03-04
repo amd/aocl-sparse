@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -110,8 +110,12 @@ aoclsparse_int aoclsparse_opt_blksize(aoclsparse_int        m,
         }
 
         total_nBlk[i] = total_num_blks;
-        perBlk[i]     = double(nnz) / double(total_num_blks);
-        blkUtil[i]    = (perBlk[i] / ((double)nBlk_factor[i] * 8)) * 100;
+        // Guard against division by zero when no blocks are found;
+        // return 0 to indicate block optimization is not applicable
+        if(total_num_blks == 0)
+            return 0;
+        perBlk[i]  = double(nnz) / double(total_num_blks);
+        blkUtil[i] = (perBlk[i] / ((double)nBlk_factor[i] * 8)) * 100;
 
         if((nnzpr < 30 && blkUtil[0] < 40) || (nnzpr > 30 && blkUtil[0] < 50))
             return 0;
