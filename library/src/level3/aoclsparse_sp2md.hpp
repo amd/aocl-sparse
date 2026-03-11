@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -342,8 +342,11 @@ inline aoclsparse_status aoclsparse_sp2md_t(const aoclsparse_operation      opA,
     {
         try
         {
-            B_op = new aoclsparse::csr(
-                B->n, B->m, B->nnz, aoclsparse_csr_mat, descrB->base, B_csr->val_type);
+            // B_op stores B^T: rows = B->n (cols of B), cols = B->m (rows of B)
+            const aoclsparse_int B_op_m = B->n; // rows of B^T = cols of B
+            const aoclsparse_int B_op_n = B->m; // cols of B^T = rows of B
+            B_op                        = new aoclsparse::csr(
+                B_op_m, B_op_n, B->nnz, aoclsparse_csr_mat, descrB->base, B_csr->val_type);
         }
         catch(std::bad_alloc &)
         {

@@ -125,14 +125,14 @@ class oftrans
     const aoclsparse_int *irend = NULL;
 
     // row end offset - access all elements up to 'irend[]-e_offset'
-    aoclsparse_int e_offset;
+    aoclsparse_int e_offset = 0;
 
     // column indices of the matrix in CSR order
     // Row 'i' we want to transpose is icol[irstart[i]...irend[i]-e_offset-1]
     const aoclsparse_int *icol = NULL;
 
     // 0/1-base for icol indices
-    aoclsparse_index_base base;
+    aoclsparse_index_base base = aoclsparse_index_base_zero;
 
     // linked list with head implemented as arrays used to track what rows
     // have their first nonzero in what column

@@ -64,7 +64,7 @@ aoclsparse_int aoclsparse_opt_blksize(aoclsparse_int        m,
     double pc_blks_inc[2];
     double pc_diff_blks    = 0;
     double pc_diff_blkutil = 0;
-    double nnzpr           = nnz / m;
+    double nnzpr           = static_cast<double>(nnz) / m;
 
     for(int i = 0; i < 3; i++)
     {
