@@ -241,7 +241,8 @@ typedef enum aoclsparse_matrix_format_type_
     aoclsparse_coo_mat = 7, ///< @rst :ref:`COO<storage_coo>` format. @endrst
     aoclsparse_tcsr_mat = 8, ///< @rst :ref:`TCSR<storage_tcsr>` format. @endrst
     aoclsparse_blkcsr_mat = 9, ///< @rst :ref:`BLKCSR<storage_blk_csr>` format. @endrst
-    aoclsparse_bsr_mat = 10 ///< @rst :ref:`BSR<storage_bsr>` format. @endrst
+    aoclsparse_bsr_mat = 10, ///< @rst :ref:`BSR<storage_bsr>` format. @endrst
+    aoclsparse_uninitialized_mat ///< Uninitialized matrix format.
     // clang-format on
 } aoclsparse_matrix_format_type;
 

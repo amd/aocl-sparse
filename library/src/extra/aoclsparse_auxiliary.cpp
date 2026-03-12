@@ -26,6 +26,7 @@
 #include "aoclsparse.hpp"
 #include "aoclsparse_auxiliary.hpp"
 #include "aoclsparse_context.hpp"
+#include "aoclsparse_magic_box.hpp"
 #include "aoclsparse_mat_structures.hpp"
 
 #include <cstring>
@@ -946,6 +947,20 @@ aoclsparse_int aoclsparse_debug_dispatcher(const char                  dispatche
     }
 
     return -1000;
+}
+
+aoclsparse_int aoclsparse_debug_doid_score(aoclsparse_int  mat_doid,
+                                           aoclsparse_int  req_d_id,
+                                           aoclsparse_int *eff_doid)
+{
+    aoclsparse::doid mat = static_cast<aoclsparse::doid>(mat_doid);
+    aoclsparse::doid req = static_cast<aoclsparse::doid>(req_d_id);
+    aoclsparse::doid eff = aoclsparse::get_effective_doid(mat, req);
+
+    if(eff_doid)
+        *eff_doid = static_cast<aoclsparse_int>(eff);
+
+    return aoclsparse::get_doid_score(eff);
 }
 
 #ifdef __cplusplus

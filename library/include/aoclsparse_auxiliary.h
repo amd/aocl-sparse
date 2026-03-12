@@ -1115,6 +1115,11 @@ aoclsparse_int aoclsparse_debug_dispatcher(const char                  name[],
                                            aoclsparse_int              kid);
 
 DLL_PUBLIC
+aoclsparse_int aoclsparse_debug_doid_score(aoclsparse_int  mat_doid,
+                                           aoclsparse_int  req_d_id,
+                                           aoclsparse_int *eff_doid);
+
+DLL_PUBLIC
 aoclsparse_int aoclsparse_is_avx512_build();
 
 #ifdef __cplusplus

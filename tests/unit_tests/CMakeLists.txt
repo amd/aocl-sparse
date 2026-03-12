@@ -202,6 +202,7 @@ endif()
 
 set(GTEST_EXECUTABLES
     dispatcher_tests
+    doid_score_tests
     gmres_tests
     cg_tests
     csrmv_tests

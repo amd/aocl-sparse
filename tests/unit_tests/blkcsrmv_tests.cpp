@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -432,9 +432,10 @@ namespace
         EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
     }
+    // Tests both aoclsparse_blkcsrmv and aoclsparse_mv with the same baseOne Block CSR data.
     template <typename T>
-    void test_blkcsrmv_baseOneBlkCSRInput(aoclsparse_status blkcsrmv_status
-                                          = aoclsparse_status_success)
+    void test_blkcsrmv_and_mv_baseOneBlkCSRInput(aoclsparse_status expected_status
+                                                 = aoclsparse_status_success)
     {
         aoclsparse_status    status;
         aoclsparse_operation trans = aoclsparse_operation_none;
@@ -454,9 +455,10 @@ namespace
                                           0, 0, 0, 0,   0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
         ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
-
         ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_one),
                   aoclsparse_status_success);
+
+        // Test aoclsparse_blkcsrmv interface
         status = aoclsparse_blkcsrmv<T>(trans,
                                         &alpha,
                                         m,
@@ -471,17 +473,50 @@ namespace
                                         &beta,
                                         y,
                                         nRowsblk);
-        ASSERT_EQ(status, blkcsrmv_status) << "Test failed with unexpected return from "
+        ASSERT_EQ(status, expected_status) << "Test failed with unexpected return from "
                                               "aoclsparse_blkcsrmv with baseOne Block CSR input";
         if(status == aoclsparse_status_success)
         {
             EXPECT_ARR_NEAR(m, y, y_gold, expected_precision<T>(10.0));
         }
+
+        // Test aoclsparse_mv interface with same block CSR matrix
+        aoclsparse_matrix A          = new _aoclsparse_matrix;
+        A->m                         = m;
+        A->n                         = n;
+        A->nnz                       = nnz;
+        A->input_format              = aoclsparse_csr_mat;
+        A->val_type                  = aoclsparse_dmat;
+        A->blk_optimized             = true;
+        aoclsparse::blk_csr *blk_mat = new aoclsparse::blk_csr(m,
+                                                               n,
+                                                               nnz,
+                                                               nRowsblk,
+                                                               aoclsparse_index_base_one,
+                                                               aoclsparse_dmat,
+                                                               blk_row_ptr,
+                                                               blk_col_ind,
+                                                               blk_csr_val,
+                                                               masks);
+        blk_mat->doid                = aoclsparse::doid::gn;
+        A->mats.push_back(blk_mat);
+
+        T y_mv[6] = {0};
+        status    = aoclsparse_mv<T>(trans, &alpha, A, descr, x, &beta, y_mv);
+        ASSERT_EQ(status, expected_status)
+            << "Test failed with unexpected return from aoclsparse_mv with baseOne Block CSR input";
+        if(status == aoclsparse_status_success)
+        {
+            EXPECT_ARR_NEAR(m, y_mv, y_gold, expected_precision<T>(10.0));
+        }
+
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
     }
+    // Tests both aoclsparse_blkcsrmv and aoclsparse_mv with the same baseOne CSR data (csr2blkcsr).
     template <typename T>
-    void test_blkcsrmv_baseOneCSRInput(aoclsparse_status blkcsrmv_status
-                                       = aoclsparse_status_success)
+    void test_blkcsrmv_and_mv_baseOneCSRInput(aoclsparse_status expected_status
+                                              = aoclsparse_status_success)
     {
         aoclsparse_status    status;
         aoclsparse_operation trans = aoclsparse_operation_none;
@@ -502,8 +537,7 @@ namespace
         std::vector<aoclsparse_int> blk_row_ptr;
         std::vector<T>              blk_csr_val;
         std::vector<uint8_t>        masks;
-        //Initialize block width
-        const aoclsparse_int blk_width = 8;
+        const aoclsparse_int        blk_width = 8;
 
         csr_row_ptr.assign({1, 2, 3, 3, 11, 13, 15});
         csr_col_ind.assign({1, 1, 1, 2, 3, 4, 5, 6, 7, 8, 4, 5, 1, 2});
@@ -511,12 +545,11 @@ namespace
             {8.00, 2.00, 3.00, 3.00, 3.00, 6.00, 10.00, 9.00, 6.00, 2.00, 2.00, 3.00, 2.00, 6.00});
 
         ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
-
         ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_one),
                   aoclsparse_status_success);
 
-        aoclsparse_matrix A = nullptr;
-        ASSERT_EQ(aoclsparse_create_csr<T>(&A,
+        aoclsparse_matrix A_csr = nullptr;
+        ASSERT_EQ(aoclsparse_create_csr<T>(&A_csr,
                                            aoclsparse_index_base_one,
                                            m,
                                            n,
@@ -538,11 +571,6 @@ namespace
             std::fill(blk_csr_val.begin(), blk_csr_val.end(), 0.0);
             std::fill(masks.begin(), masks.end(), 0);
 
-            /*
-                since BlkCSR spmv is decided in Sparse-Analysis-Framework's (SAF) optimize module, direct
-                call to csr2blkcsr conversion routine below is made to write unit tests for Block-CSRMV
-                cases
-            */
             EXPECT_EQ(aoclsparse_csr2blkcsr(m,
                                             n,
                                             nnz,
@@ -557,6 +585,7 @@ namespace
                                             aoclsparse_index_base_one),
                       aoclsparse_status_success);
 
+            // Test aoclsparse_blkcsrmv interface
             status = aoclsparse_blkcsrmv<T>(trans,
                                             &alpha,
                                             m,
@@ -571,19 +600,57 @@ namespace
                                             &beta,
                                             y,
                                             nRowsblk[iB]);
-            ASSERT_EQ(status, blkcsrmv_status) << "Test failed with unexpected return from "
-                                                  "aoclsparse_blkcsrmv with baseOne CSR input";
+            ASSERT_EQ(status, expected_status)
+                << "Test failed with unexpected return from "
+                   "aoclsparse_blkcsrmv with baseOne CSR input (nRowsblk="
+                << nRowsblk[iB] << ")";
             if(status == aoclsparse_status_success)
             {
                 EXPECT_ARR_NEAR(m, y, y_gold, expected_precision<T>(10.0));
             }
+
+            // Test aoclsparse_mv interface with same block CSR matrix
+            aoclsparse_matrix A          = new _aoclsparse_matrix;
+            A->m                         = m;
+            A->n                         = n;
+            A->nnz                       = nnz;
+            A->input_format              = aoclsparse_csr_mat;
+            A->val_type                  = aoclsparse_dmat;
+            A->blk_optimized             = true;
+            aoclsparse::blk_csr *blk_mat = new aoclsparse::blk_csr(m,
+                                                                   n,
+                                                                   nnz,
+                                                                   nRowsblk[iB],
+                                                                   aoclsparse_index_base_one,
+                                                                   aoclsparse_dmat,
+                                                                   blk_row_ptr.data(),
+                                                                   blk_col_ind.data(),
+                                                                   blk_csr_val.data(),
+                                                                   masks.data());
+            blk_mat->doid                = aoclsparse::doid::gn;
+            A->mats.push_back(blk_mat);
+
+            T y_mv[6] = {0};
+            status    = aoclsparse_mv<T>(trans, &alpha, A, descr, x, &beta, y_mv);
+            ASSERT_EQ(status, expected_status)
+                << "Test failed with unexpected return from aoclsparse_mv with baseOne Block CSR "
+                   "input (nRowsblk="
+                << nRowsblk[iB] << ")";
+            if(status == aoclsparse_status_success)
+            {
+                EXPECT_ARR_NEAR(m, y_mv, y_gold, expected_precision<T>(10.0));
+            }
+
+            EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
         }
-        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
+
+        EXPECT_EQ(aoclsparse_destroy(&A_csr), aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
     }
+    // Tests both aoclsparse_blkcsrmv and aoclsparse_mv with the same baseZero CSR data (csr2blkcsr).
     template <typename T>
-    void test_blkcsrmv_baseZeroCSRInput(aoclsparse_status blkcsrmv_status
-                                        = aoclsparse_status_success)
+    void test_blkcsrmv_and_mv_baseZeroCSRInput(aoclsparse_status expected_status
+                                               = aoclsparse_status_success)
     {
         aoclsparse_status    status;
         aoclsparse_operation trans = aoclsparse_operation_none;
@@ -600,7 +667,6 @@ namespace
         T                           y[6]      = {0};
         T                           y_gold[6] = {8.00, 2.00, 0.00, 204.00, 23.00, 14.00};
 
-        //Initialize block width
         const aoclsparse_int        blk_width = 8;
         std::vector<aoclsparse_int> blk_row_ptr;
         std::vector<aoclsparse_int> blk_col_ind;
@@ -613,12 +679,11 @@ namespace
             {8.00, 2.00, 3.00, 3.00, 3.00, 6.00, 10.00, 9.00, 6.00, 2.00, 2.00, 3.00, 2.00, 6.00});
 
         ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
-
         ASSERT_EQ(aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_zero),
                   aoclsparse_status_success);
 
-        aoclsparse_matrix A = nullptr;
-        ASSERT_EQ(aoclsparse_create_csr<T>(&A,
+        aoclsparse_matrix A_csr = nullptr;
+        ASSERT_EQ(aoclsparse_create_csr<T>(&A_csr,
                                            aoclsparse_index_base_zero,
                                            m,
                                            n,
@@ -640,7 +705,6 @@ namespace
             std::fill(blk_csr_val.begin(), blk_csr_val.end(), 0.0);
             std::fill(masks.begin(), masks.end(), 0);
 
-            //Function to convert csr to blkcsr
             EXPECT_EQ(aoclsparse_csr2blkcsr(m,
                                             n,
                                             nnz,
@@ -655,6 +719,7 @@ namespace
                                             aoclsparse_index_base_zero),
                       aoclsparse_status_success);
 
+            // Test aoclsparse_blkcsrmv interface
             status = aoclsparse_blkcsrmv<T>(trans,
                                             &alpha,
                                             m,
@@ -669,17 +734,54 @@ namespace
                                             &beta,
                                             y,
                                             nRowsblk[iB]);
-            ASSERT_EQ(status, blkcsrmv_status) << "Test failed with unexpected return from "
-                                                  "aoclsparse_blkcsrmv with baseZero CSR input";
+            ASSERT_EQ(status, expected_status)
+                << "Test failed with unexpected return from "
+                   "aoclsparse_blkcsrmv with baseZero CSR input (nRowsblk="
+                << nRowsblk[iB] << ")";
             if(status == aoclsparse_status_success)
             {
                 EXPECT_ARR_NEAR(m, y, y_gold, expected_precision<T>(10.0));
             }
+
+            // Test aoclsparse_mv interface with same block CSR matrix
+            aoclsparse_matrix A          = new _aoclsparse_matrix;
+            A->m                         = m;
+            A->n                         = n;
+            A->nnz                       = nnz;
+            A->input_format              = aoclsparse_csr_mat;
+            A->val_type                  = aoclsparse_dmat;
+            A->blk_optimized             = true;
+            aoclsparse::blk_csr *blk_mat = new aoclsparse::blk_csr(m,
+                                                                   n,
+                                                                   nnz,
+                                                                   nRowsblk[iB],
+                                                                   aoclsparse_index_base_zero,
+                                                                   aoclsparse_dmat,
+                                                                   blk_row_ptr.data(),
+                                                                   blk_col_ind.data(),
+                                                                   blk_csr_val.data(),
+                                                                   masks.data());
+            blk_mat->doid                = aoclsparse::doid::gn;
+            A->mats.push_back(blk_mat);
+
+            T y_mv[6] = {0};
+            status    = aoclsparse_mv<T>(trans, &alpha, A, descr, x, &beta, y_mv);
+            ASSERT_EQ(status, expected_status)
+                << "Test failed with unexpected return from aoclsparse_mv with baseZero Block CSR "
+                   "input (nRowsblk="
+                << nRowsblk[iB] << ")";
+            if(status == aoclsparse_status_success)
+            {
+                EXPECT_ARR_NEAR(m, y_mv, y_gold, expected_precision<T>(10.0));
+            }
+
+            EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
         }
 
-        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&A_csr), aoclsparse_status_success);
         EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
     }
+
     //Test cases for analysis and conversion routines
     template <typename T>
     void test_blkcsrmv_conversion()
@@ -902,23 +1004,25 @@ namespace
         test_blkcsrmv_conversion<double>();
     }
 
+    // Unified tests: same data, both aoclsparse_blkcsrmv and aoclsparse_mv interfaces
     TEST(blkcsrmv, AVX512BaseOneDoubleBlkCSRInput)
     {
-        const aoclsparse_status blkcsrmv_status
+        const aoclsparse_status expected
             = can_exec_blkcsrmv() ? aoclsparse_status_success : aoclsparse_status_not_implemented;
-        test_blkcsrmv_baseOneBlkCSRInput<double>(blkcsrmv_status);
+        test_blkcsrmv_and_mv_baseOneBlkCSRInput<double>(expected);
     }
 
     TEST(blkcsrmv, AVX512BaseOneDoubleCSRInput)
     {
-        const aoclsparse_status blkcsrmv_status
+        const aoclsparse_status expected
             = can_exec_blkcsrmv() ? aoclsparse_status_success : aoclsparse_status_not_implemented;
-        test_blkcsrmv_baseOneCSRInput<double>(blkcsrmv_status);
+        test_blkcsrmv_and_mv_baseOneCSRInput<double>(expected);
     }
+
     TEST(blkcsrmv, AVX512BaseZeroDoubleCSRInput)
     {
-        const aoclsparse_status blkcsrmv_status
+        const aoclsparse_status expected
             = can_exec_blkcsrmv() ? aoclsparse_status_success : aoclsparse_status_not_implemented;
-        test_blkcsrmv_baseZeroCSRInput<double>(blkcsrmv_status);
+        test_blkcsrmv_and_mv_baseZeroCSRInput<double>(expected);
     }
 } // namespace

@@ -171,7 +171,8 @@ aoclsparse_status aoclsparse_create_tcsr_t(aoclsparse_matrix          *mat,
     }
 
     aoclsparse_init_mat(*mat, M, N, nnz, aoclsparse_tcsr_mat);
-    (*mat)->val_type = get_data_type<T>();
+    (*mat)->val_type
+        = tcsr_mat->val_type; // set from inner matrix (already set by tcsr constructor)
     (*mat)->fulldiag = true;
     (*mat)->mat_type = aoclsparse_tcsr_mat; // Used to identify the matrix type in the mv dispatcher
     if((sort_L == aoclsparse_partially_sorted || sort_U == aoclsparse_partially_sorted))
