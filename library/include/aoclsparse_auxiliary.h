@@ -316,8 +316,12 @@ aoclsparse_diag_type aoclsparse_get_mat_diag_type(const aoclsparse_mat_descr des
  *  The change directly affects user's arrays if the matrix was created using aoclsparse_create_scsr(),
  *  aoclsparse_create_scsc(), aoclsparse_create_scoo() or other variants.
  *
- *  \note   The successful modification invalidates existing optimized data so it is desirable to call
+ *  @note   The successful modification invalidates existing optimized data so it is desirable to call
  *          aoclsparse_optimize() once all modifications are performed.
+ *
+ *  @note
+ *  These functions are not thread-safe and must not be called concurrently by multiple threads
+ *  for the same matrix object.
  *
  *  \param[inout] A             The sparse matrix to be modified.
  *  \param[in]     row_idx      The row index of the element to be updated.
@@ -708,8 +712,12 @@ aoclsparse_status aoclsparse_create_zcoo(aoclsparse_matrix          *mat,
  *  The change directly affects user's arrays if the matrix was created using aoclsparse_create_scsr(),
  *  aoclsparse_create_scsc(), aoclsparse_create_scoo() or other variants.
  *
- *  \note   The successful update invalidates existing optimized data so it is desirable to call
+ *  @note   The successful update invalidates existing optimized data so it is desirable to call
  *          aoclsparse_optimize() once all modifications are performed.
+ *
+ *  @note
+ *  These functions are not thread-safe and must not be called concurrently by multiple threads
+ *  for the same matrix object.
  *
  *  \param[inout]  A         The sparse matrix to be modified.
  *  \param[in]     len       Length of the \p val array and the number of nonzeros in the matrix.

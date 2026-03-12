@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -180,7 +180,7 @@ void aoclsparse_itsol_handle_prn_options(aoclsparse_itsol_handle handle);
  *
  * @endrst
  *
- * \note It is worth noting that only some options apply to each specific
+ * @note It is worth noting that only some options apply to each specific
  * solver, e.g. name of options that begin with "cg" affect the behaviour of the CG solver.
  *
  * \retval aoclsparse_status_success the operation completed successfully.
@@ -209,7 +209,7 @@ aoclsparse_status aoclsparse_itsol_option_set(aoclsparse_itsol_handle handle,
  * \retval aoclsparse_status_invalid_pointer the pointer to the problem handle is invalid.
  * \retval aoclsparse_status_internal_error an unexpected error occurred.
  *
- * \note Once the \p handle is no longer needed, it can be destroyed and the memory released by calling
+ * @note Once the \p handle is no longer needed, it can be destroyed and the memory released by calling
  * \ref aoclsparse_itsol_destroy.
  *@{*/
 DLL_PUBLIC
@@ -232,7 +232,7 @@ aoclsparse_status aoclsparse_itsol_c_init(aoclsparse_itsol_handle *handle);
  * \details Once the problem handle is no longer needed, calling this function to deallocate the memory is advisable
  * to avoid memory leaks.
  *
- * \note Passing a \p handle that has not been initialized by \ref aoclsparse_itsol_s_init or \ref aoclsparse_itsol_d_init
+ * @note Passing a \p handle that has not been initialized by \ref aoclsparse_itsol_s_init or \ref aoclsparse_itsol_d_init
  * may have unpredictable results.
  *
  * @param[inout] handle pointer to a problem handle.
@@ -246,7 +246,7 @@ void aoclsparse_itsol_destroy(aoclsparse_itsol_handle *handle);
  * \details This function needs to be called before the reverse communication interface iterative solver is called.
  * It registers the linear system's dimension \p n, and stores the right-hand side vector \p b.
  *
- * \note
+ * @note
  * This function does not need to be called if the forward communication interface is used.
  *
  * @param[inout] handle problem \p handle. Needs to be initialized by calling \ref aoclsparse_itsol_s_init or
@@ -330,7 +330,7 @@ aoclsparse_status aoclsparse_itsol_c_rci_input(aoclsparse_itsol_handle         h
  *                \ref anchor_rinfo. This parameter can be used to monitor progress and define a custom stopping criterion when
  *               the solver returns control to user with \p ircomm = \ref aoclsparse_rci_stopping_criterion.
  *
- * \note
+ * @note
  * This function returns control back to the user under certain circumstances. The table in \ref aoclsparse_itsol_rci_job
  * indicates what actions are required to be performed by the user.
  *
@@ -741,7 +741,7 @@ aoclsparse_status aoclsparse_zsorv(aoclsparse_sor_type              sor_type,
  *  Refer Yousef Saad's Iterative Methods for Sparse Linear Systems 2nd Edition, Theorem 4.9
  *  and related literature for mathematical theory.
  *
- *  \note
+ *  @note
  *
  *  1. If the matrix descriptor \p descr specifies that the matrix \f$A\f$ is to be regarded as
  *     having a unitary diagonal, then the main diagonal entries of matrix \f$A\f$ are not accessed and

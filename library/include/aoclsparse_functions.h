@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -47,7 +47,7 @@ extern "C" {
  *     y_{I_{x_{i}}} = a\,x_i + y_{I_{x_{i}}}, \quad i\in\{1,\ldots,{\bf\mathsf{nnz}}\}.
  *  \f]
  *
- *  \note The contents of the vectors are not checked for NaNs.
+ *  @note The contents of the vectors are not checked for NaNs.
  *
  *  @param[in]
  *  nnz     The number of elements in \f$x\f$ and \p indx.
@@ -112,7 +112,7 @@ aoclsparse_status aoclsparse_saxpyi(
  *    {\bf\mathsf{dot}} = \sum_{i=0}^{{\bf\mathsf{nnz}}-1} \overline{\,x_i\,} \cdot y_{I_{x_i}}.
  *  \f]
  *
- *  \note The contents of the vectors are not checked for NaNs.
+ *  @note The contents of the vectors are not checked for NaNs.
  *
  *  @param[in]
  *  nnz       The number of elements (length) of vectors \p x and \p indx.
@@ -164,7 +164,7 @@ aoclsparse_status aoclsparse_zdotci(
  *    {\bf\mathsf{dot}} = \sum_{i=0}^{{\bf\mathsf{nnz}}-1} x_{i} \cdot y_{I_{x_i}}.
  *  \f]
  *
- *  \note The contents of the vectors are not checked for NaNs.
+ *  @note The contents of the vectors are not checked for NaNs.
  *
  *  @param[in]
  *  nnz       The number of elements (length) of vectors \f$x\f$ and \f$indx\f$.
@@ -217,7 +217,7 @@ aoclsparse_status aoclsparse_cdotui(
  *    {\bf\mathsf{dot}} = \sum_{i=0}^{{\bf\mathsf{nnz}}-1} x_{i} \cdot y_{I_{x_i}}.
  *  \f]
  *
- *  \note The contents of the vectors are not checked for NaNs.
+ *  @note The contents of the vectors are not checked for NaNs.
  *
  *  @param[in]
  *  nnz       The number of elements to access in vectors \p x and \p indx.
@@ -260,7 +260,7 @@ float aoclsparse_sdoti(const aoclsparse_int  nnz,
  *     y_{I_{x_{i}}} = x_i, \quad i\in\{1,\ldots,{\bf\mathsf{nnz}}\}.
  *  \f]
  *
- *  \note The contents of the vectors are not checked for NaNs.
+ *  @note The contents of the vectors are not checked for NaNs.
  *
  *  @param[in]
  *  nnz       The number of elements to use from \f$x\f$ and \f${\bf\mathsf{indx}}\f$.
@@ -323,7 +323,7 @@ aoclsparse_status aoclsparse_ssctr(const aoclsparse_int  nnz,
  *  \p stride be a striding distance, then
  *  \f[ y_{{\bf\mathsf{stride}} \times i} = x_i,\quad i\in\{1,\ldots,{\bf\mathsf{nnz}}\}.\f]
  *
- *  \note Contents of the vector \p x are accessed but not checked.
+ *  @note Contents of the vector \p x are accessed but not checked.
  *
  *  @param[in]
  *  nnz       Number of nonzero elements to access in \f$x\f$.
@@ -376,7 +376,7 @@ aoclsparse_status
  *
  *  for \f$i\in 1, \ldots, {\bf\mathsf{nnz}}\f$. The elements \p c, \p s are scalars.
  *
- *  \note The contents of the vectors are not checked for NaNs.
+ *  @note The contents of the vectors are not checked for NaNs.
  *
  *  @param[in]
  *  nnz       The number of elements to use from \f$x\f$ and \f${\bf\mathsf{indx}}\f$.
@@ -470,7 +470,7 @@ aoclsparse_status aoclsparse_sroti(const aoclsparse_int  nnz,
  *              \p x or \p indx is invalid
  *  \retval     aoclsparse_status_invalid_index_value at least one of the indices
  *              in \p indx is negative
- *  \note
+ *  @note
  *  These functions assume that the indices stored in \p indx are less than \f$m\f$ without
  *  duplicate elements, and
  *  that \p x and \p indx are pointers to vectors of size at least \p nnz.
@@ -549,7 +549,7 @@ aoclsparse_status
  *              \p x or \p indx is invalid
  *  \retval     aoclsparse_status_invalid_index_value at least one of the indices
  *              in \p indx is negative
- *  \note
+ *  @note
  *  These functions assume that the indices stored in \p indx are less than \f$m\f$ without
  *  duplicate elements, and
  *  that \p x and \p indx are pointers to vectors of size at least \p nnz.
@@ -743,7 +743,7 @@ aoclsparse_status aoclsparse_scsrmv(aoclsparse_operation       trans,
  *    \right.
  *  \f]
  *
- *  \note
+ *  @note
  *  Currently, only \p trans = \ref aoclsparse_operation_none is supported.
  *
  *  @param[in]
@@ -923,7 +923,7 @@ aoclsparse_status aoclsparse_dblkcsrmv(aoclsparse_operation       trans,
  *    \right.
  *  \f]
  *
- *  \note
+ *  @note
  *  Currently, only \p trans = \ref aoclsparse_operation_none is supported.
  *
  *  @param[in]
@@ -1016,7 +1016,7 @@ aoclsparse_status aoclsparse_sdiamv(aoclsparse_operation       trans,
 *    \right.
 *  \f]
 *
-*  \note
+*  @note
 *  Only \p trans = \ref aoclsparse_operation_none is supported.
 *
 *  @param[in]
@@ -1222,10 +1222,10 @@ aoclsparse_status aoclsparse_smv(aoclsparse_operation       op,
  *    \right.
  *  \f]
  *
- *  \note
+ *  @note
  *  Only \p trans = \ref aoclsparse_operation_none is supported.
  *
- *  \note
+ *  @note
  *  The input matrix has to be sparse upper or lower triangular matrix
  *  with unit or non-unit main diagonal. Matrix has to be sorted.
  *  No diagonal element can be omitted from a sparse storage
@@ -2193,10 +2193,10 @@ aoclsparse_status aoclsparse_spmm(aoclsparse_operation    opA,
  *  non-zero elements were modified (e.g., by a call to aoclsparse_supdate_values()
  *  and variants).
  *
- *  \note <tt>aoclsparse_sypr</tt> supports only matrices in CSR format which have sorted column
+ *  @note <tt>aoclsparse_sypr</tt> supports only matrices in CSR format which have sorted column
  *  indices in each row. If the matrices are unsorted, you might want to call
  *  aoclsparse_order_mat().
- *  \note
+ *  @note
  *  Currently, \p opA = \ref aoclsparse_operation_transpose is supported only for real data types.
  *
  *  @param[in]
@@ -2714,7 +2714,7 @@ aoclsparse_status aoclsparse_dcsr2m(aoclsparse_operation       trans_A,
  *  if \p op = \ref aoclsparse_operation_none. Otherwise \f$A\f$ is \f$n \times m\f$
  *  and the result matrix \f$C\f$ has the same dimension as \f$B\f$.
  *
- *  \note Only matrices in CSR format are supported in this release.
+ *  @note Only matrices in CSR format are supported in this release.
  *
  *  @param[in]  op      matrix \f$A\f$ operation type.
  *  @param[in]  alpha   scalar with same precision as \f$A\f$ and \f$B\f$ matrix
@@ -2917,11 +2917,11 @@ aoclsparse_status aoclsparse_zsyprd(const aoclsparse_operation       op,
  * (for complex matrices). The output matrix \f$C\f$ is a sparse symmetric (or Hermitian) matrix stored as an
  *  upper triangular matrix in CSR format.
  *
- *  \note <tt>aoclsparse_syrk</tt> assumes that the input CSR matrix has sorted column
+ *  @note <tt>aoclsparse_syrk</tt> assumes that the input CSR matrix has sorted column
  *  indices in each row. If not, call aoclsparse_order_mat() before calling
  *  <tt>aoclsparse_syrk</tt>.
  *
- *  \note <tt>aoclsparse_syrk</tt> currently does not support \ref aoclsparse_operation_transpose for complex \p A.
+ *  @note <tt>aoclsparse_syrk</tt> currently does not support \ref aoclsparse_operation_transpose for complex \p A.
  *
  *  @param[in]
  *  opA     Matrix \f$A\f$ operation type.
@@ -2991,14 +2991,14 @@ aoclsparse_status aoclsparse_syrk(const aoclsparse_operation opA,
  * (for complex matrices). The output matrix \f$C\f$ is a dense symmetric (or Hermitian) matrix stored as an
  *  upper triangular matrix.
  *
- *  \note <tt>aoclsparse_syrkd</tt> assumes that the input CSR matrix has sorted column
+ *  @note <tt>aoclsparse_syrkd</tt> assumes that the input CSR matrix has sorted column
  *  indices in each row. If not, call aoclsparse_order_mat() before calling
  *  <tt>aoclsparse_syrkd</tt>.
  *
- *  \note For complex type, only the real parts of \f$\alpha\f$ and \f$\beta\f$ are taken
+ *  @note For complex type, only the real parts of \f$\alpha\f$ and \f$\beta\f$ are taken
  *  into account to preserve Hermitian \f$C\f$.
  *
- *  \note <tt>aoclsparse_syrkd</tt> currently does not support \ref aoclsparse_operation_transpose for complex \p A.
+ *  @note <tt>aoclsparse_syrkd</tt> currently does not support \ref aoclsparse_operation_transpose for complex \p A.
  *
  *  @param[in]
  *  opA     Matrix \f$A\f$ operation type.
