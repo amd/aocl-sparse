@@ -23,7 +23,6 @@
  */
 #ifndef AOCLSPARSE_SYRK_HPP
 #define AOCLSPARSE_SYRK_HPP
-#endif
 
 #include "aoclsparse.h"
 #include "aoclsparse_auxiliary.hpp"
@@ -145,29 +144,50 @@ aoclsparse_status aoclsparse_syrk_t(const aoclsparse_operation      op,
        && (op == aoclsparse_operation_transpose))
         return aoclsparse_status_not_implemented;
 
-    // we need fully sorted rows if we apply on-fly transposition
-    if(A->sort != aoclsparse_fully_sorted && op != aoclsparse_operation_none)
-        return aoclsparse_status_unsorted_input;
-
-    aoclsparse_int    m = A->m, n = A->n;
     aoclsparse_status status;
 
     aoclsparse::csr *A_csr = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
     if(!A_csr)
         return aoclsparse_status_not_implemented;
-    // Only CSR matrix format is supported
-    if(A_csr->doid != aoclsparse::doid::gn)
+    // Read correct matrix dimensions irrespective of CSR (doid::gn) and CSC(doid::gt)
+    aoclsparse_int m = A_csr->m, n = A_csr->n;
+    // Only CSR matrix (doid::gn) and CSC(doid::gt) formats are supported
+    bool is_doid_gt = (A_csr->doid == aoclsparse::doid::gt);
+    if(!is_doid_gt && A_csr->doid != aoclsparse::doid::gn)
         return aoclsparse_status_not_implemented;
+
+    // For CSC (doid::gt), internal storage is A^T. Flip op so the unchanged CSR
+    // compute paths see the correct mathematical semantics. conj_flip=true signals
+    // that conjugation falls on the B factor in the op_t/h atb call, and that the
+    // pre-conjugation loop in the op_none path must be skipped.
+    //
+    // After the flip, eff_op drives the same two compute branches for both formats:
+    //   eff_op=none : CSR op_none → A·A^T (real),       A·A^H (complex)
+    //                 CSC op_t/h  → A·A^T (real),  conj(A)·A^T (complex)
+    //   eff_op=t/h  : CSR op_t/h  → A^T·A (real),       A^H·A (complex)
+    //                 CSC op_none → A^T·A (real), A^T·conj(A) (complex)
+    aoclsparse_operation eff_op    = op;
+    bool                 conj_flip = false;
+    if(is_doid_gt)
+    {
+        eff_op    = (op == aoclsparse_operation_none) ? aoclsparse_operation_conjugate_transpose
+                                                      : aoclsparse_operation_none;
+        conj_flip = true;
+    }
+    // we need fully sorted rows if we apply on-fly transposition
+    if(A->sort != aoclsparse_fully_sorted && eff_op != aoclsparse_operation_none)
+        return aoclsparse_status_unsorted_input;
+
     aoclsparse_int *icrowA = A_csr->ptr;
     aoclsparse_int *icolA  = A_csr->ind;
     T              *valA   = (T *)A_csr->val;
 
     // overestimate size of the output and allocate the memory
     aoclsparse_int nnz_C;
-    status = estimate_nnz(op, A_csr->base, m, n, icrowA, icolA, nnz_C);
+    status = estimate_nnz(eff_op, A_csr->base, m, n, icrowA, icolA, nnz_C);
     if(status != aoclsparse_status_success)
         return status;
-    aoclsparse_int   m_C   = op == aoclsparse_operation_none ? m : n;
+    aoclsparse_int   m_C   = eff_op == aoclsparse_operation_none ? m : n;
     aoclsparse::csr *C_csr = nullptr;
     try
     {
@@ -196,16 +216,20 @@ aoclsparse_status aoclsparse_syrk_t(const aoclsparse_operation      op,
         return aoclsparse_status_success;
     }
 
-    if(op == aoclsparse_operation_none) // A*A'
+    if(eff_op == aoclsparse_operation_none) // C = A·A^T (real) / A·A^H (complex)
     {
-        // These conditions are based on very basic benchmarking, need to be updated later
-        if((m < 3000) && (m < n) && (A->nnz <= m * 10))
+        // These conditions are based on very basic benchmarking, need to be updated later;
+        // skip for CSC (conj_flip=true): aat_dense_row hardcodes A·A^H on literal values,
+        // but CSC internal storage is A^T, so it would wrongly compute A^T·(A^T)^H instead of A^H·A.
+        if(!conj_flip && ((m < 3000) && (m < n) && (A->nnz <= m * 10)))
         {
+            // CSR only: C = A·A^T (real) / A·A^H (complex) via dense-row multiply
             status = aoclsparse_aat_dense_row(m, n, A_csr->base, icrowA, icolA, valA, nnz_C, *C);
         }
         else
         {
-            // For this algorithm, first need to convert A to CSC and then pass that to ref1
+            // CSR op_none: transpose A to get A^T, then conjugate for Hermitian (A^H)
+            // CSC op_t/h:  transpose A^T to recover plain A (no conjugation needed)
             std::vector<aoclsparse_int> icolAt;
             std::vector<aoclsparse_int> icrowAt;
             std::vector<T>              valAt;
@@ -237,9 +261,11 @@ aoclsparse_status aoclsparse_syrk_t(const aoclsparse_operation      op,
                 return status;
             }
 
-            // we need Hermitian, so far we transposed so now conjugate
-            for(aoclsparse_int idx = 0; idx < A->nnz; idx++)
-                valAt[idx] = aoclsparse::conj(valAt[idx]);
+            // CSR op_none: valAt holds A^T; conjugate to form A^H for A·A^H.
+            // CSC op_t/h (conj_flip=true): valAt holds A; CONJ_A=true in atb conjugates in-kernel.
+            if(!conj_flip)
+                for(aoclsparse_int idx = 0; idx < A->nnz; idx++)
+                    valAt[idx] = aoclsparse::conj(valAt[idx]);
 
             status = aoclsparse_sp2m_online_atb<T, aoclsparse_stage_full_computation, true>(
                 n,
@@ -260,25 +286,52 @@ aoclsparse_status aoclsparse_syrk_t(const aoclsparse_operation      op,
                 &nnz_C);
         }
     }
-    else // A'*A
+    else // C = A^T·A (real) / A^H·A (complex)
     {
-        status = aoclsparse_sp2m_online_atb<T, aoclsparse_stage_full_computation, true>(
-            m,
-            n,
-            n,
-            A_csr->base,
-            icrowA,
-            icolA,
-            valA,
-            A_csr->base,
-            icrowA,
-            icolA,
-            valA,
-            A_csr->base,
-            C_csr->ptr,
-            C_csr->ind,
-            (T *)C_csr->val,
-            &nnz_C);
+        // CSR op_t/h  (conj_flip=false): atb(A,  A,  CONJ_A=true,  CONJ_B=false) → A^T·A / A^H·A
+        // CSC op_none (conj_flip=true):  atb(A^T,A^T,CONJ_A=false, CONJ_B=true)  → A^T·A / A^T·conj(A)
+        if(conj_flip)
+            status = aoclsparse_sp2m_online_atb<T,
+                                                aoclsparse_stage_full_computation,
+                                                true,
+                                                false, // CONJ_A
+                                                true>( // CONJ_B
+                m,
+                n,
+                n,
+                A_csr->base,
+                icrowA,
+                icolA,
+                valA,
+                A_csr->base,
+                icrowA,
+                icolA,
+                valA,
+                A_csr->base,
+                C_csr->ptr,
+                C_csr->ind,
+                (T *)C_csr->val,
+                &nnz_C);
+        else
+            status = aoclsparse_sp2m_online_atb<T,
+                                                aoclsparse_stage_full_computation,
+                                                true>( // CONJ_A=true, CONJ_B=false (defaults)
+                m,
+                n,
+                n,
+                A_csr->base,
+                icrowA,
+                icolA,
+                valA,
+                A_csr->base,
+                icrowA,
+                icolA,
+                valA,
+                A_csr->base,
+                C_csr->ptr,
+                C_csr->ind,
+                (T *)C_csr->val,
+                &nnz_C);
     }
     if(status != aoclsparse_status_success)
     {
@@ -290,3 +343,5 @@ aoclsparse_status aoclsparse_syrk_t(const aoclsparse_operation      op,
     (*C)->val_type = get_data_type<T>();
     return aoclsparse_status_success;
 }
+
+#endif // AOCLSPARSE_SYRK_HPP

@@ -51,8 +51,9 @@
  * if full computation is done, icolC[] must be big enough.
  * By default all elements are build but it is possible to build only the upper
  * triangle (BUILD_ONLY_U=true).
+ * If CONJ_W=true, conjugate W values during multiplication (used for CSC A path).
  */
-template <typename T, aoclsparse_request REQUEST, bool BUILD_ONLY_U = false>
+template <typename T, aoclsparse_request REQUEST, bool BUILD_ONLY_U = false, bool CONJ_W = false>
 void inline add_sprow(aoclsparse_int               i,
                       T                            alpha,
                       aoclsparse_int               iwstart,
@@ -86,18 +87,25 @@ void inline add_sprow(aoclsparse_int               i,
         }
         else
         {
+            // Get the W value, optionally conjugated for CSC A path
+            T valW_eff;
+            if constexpr(CONJ_W)
+                valW_eff = aoclsparse::conj(valW[idxW]);
+            else
+                valW_eff = valW[idxW];
+
             if(nnz[j] != i)
             {
                 // newly created nonzero
                 nnz[j]       = i;
                 icolC[*nnzC] = j;
                 (*nnzC)++;
-                val[j] = alpha * valW[idxW];
+                val[j] = alpha * valW_eff;
             }
             else
             {
                 // compute values
-                val[j] += alpha * valW[idxW];
+                val[j] += alpha * valW_eff;
             }
         }
     }
@@ -243,8 +251,9 @@ public:
  * If REQUEST=aoclsparse_stage_nnz_count, only icrowC and nnzC is built,
  * irowC[k+1] needs to be already allocated.
  * Otherwise all C arrays need to be allocated to big enough size (not checked).
+ * If CONJ_B=true, conjugate B values during multiplication (used for CSC A path).
  */
-template <typename T, aoclsparse_request REQUEST>
+template <typename T, aoclsparse_request REQUEST, bool CONJ_B = false>
 aoclsparse_status aoclsparse_sp2m_online_symab(aoclsparse_int        m,
                                                aoclsparse_int        k,
                                                aoclsparse_int        n,
@@ -331,17 +340,17 @@ aoclsparse_status aoclsparse_sp2m_online_symab(aoclsparse_int        m,
         for(idxa = irstart[i] - s_offset; idxa < irend[i] - e_offset; ++idxa)
         {
             colA = icolA[idxa] - baseA;
-            add_sprow<T, REQUEST, false>(i,
-                                         valA[idxa],
-                                         icrowB[colA] - baseB,
-                                         icrowB[colA + 1] - baseB,
-                                         icolB,
-                                         valB,
-                                         baseB,
-                                         nnz,
-                                         val,
-                                         icolC,
-                                         nnzC);
+            add_sprow<T, REQUEST, false, CONJ_B>(i,
+                                                 valA[idxa],
+                                                 icrowB[colA] - baseB,
+                                                 icrowB[colA + 1] - baseB,
+                                                 icolB,
+                                                 valB,
+                                                 baseB,
+                                                 nnz,
+                                                 val,
+                                                 icolC,
+                                                 nnzC);
         }
 
         // Multiply the other half of the symmetric or hermitian matrix,
@@ -353,17 +362,17 @@ aoclsparse_status aoclsparse_sp2m_online_symab(aoclsparse_int        m,
             idxa    = oft.ridx(row);
             T val_A = aoclsparse::conj(valA[idxa]);
 
-            add_sprow<T, REQUEST, false>(i,
-                                         val_A,
-                                         icrowB[row] - baseB,
-                                         icrowB[row + 1] - baseB,
-                                         icolB,
-                                         valB,
-                                         baseB,
-                                         nnz,
-                                         val,
-                                         icolC,
-                                         nnzC);
+            add_sprow<T, REQUEST, false, CONJ_B>(i,
+                                                 val_A,
+                                                 icrowB[row] - baseB,
+                                                 icrowB[row + 1] - baseB,
+                                                 icolB,
+                                                 valB,
+                                                 baseB,
+                                                 nnz,
+                                                 val,
+                                                 icolC,
+                                                 nnzC);
 
             row = oft.rnext(row);
         }
@@ -388,8 +397,15 @@ aoclsparse_status aoclsparse_sp2m_online_symab(aoclsparse_int        m,
  * irowC[k+1] needs to be already allocated.
  * Otherwise all C arrays need to be allocated to big enough size (not checked).
  * BUILD_ONLY_U=true creates only upper triangle, otherwise full matrix.
+ * If CONJ_A=true, conjugate A values during multiplication (default for A^H*B).
+ * If CONJ_A=false, do not conjugate A values.
+ * If CONJ_B=true, conjugate B values during multiplication.
  */
-template <typename T, aoclsparse_request REQUEST, bool BUILD_ONLY_U = false>
+template <typename T,
+          aoclsparse_request REQUEST,
+          bool               BUILD_ONLY_U = false,
+          bool               CONJ_A       = true,
+          bool               CONJ_B       = false>
 aoclsparse_status aoclsparse_sp2m_online_atb(aoclsparse_int        m,
                                              aoclsparse_int        k,
                                              aoclsparse_int        n,
@@ -449,20 +465,24 @@ aoclsparse_status aoclsparse_sp2m_online_atb(aoclsparse_int        m,
         row = oft.rfirst(i);
         while(row >= 0)
         {
-            idxa    = oft.ridx(row);
-            T val_A = aoclsparse::conj(valA[idxa]);
+            idxa = oft.ridx(row);
+            T val_A;
+            if constexpr(CONJ_A)
+                val_A = aoclsparse::conj(valA[idxa]);
+            else
+                val_A = valA[idxa];
 
-            add_sprow<T, REQUEST, BUILD_ONLY_U>(i,
-                                                val_A,
-                                                icrowB[row] - baseB,
-                                                icrowB[row + 1] - baseB,
-                                                icolB,
-                                                valB,
-                                                baseB,
-                                                nnz,
-                                                val,
-                                                icolC,
-                                                nnzC);
+            add_sprow<T, REQUEST, BUILD_ONLY_U, CONJ_B>(i,
+                                                        val_A,
+                                                        icrowB[row] - baseB,
+                                                        icrowB[row + 1] - baseB,
+                                                        icolB,
+                                                        valB,
+                                                        baseB,
+                                                        nnz,
+                                                        val,
+                                                        icolC,
+                                                        nnzC);
 
             row = oft.rnext(row);
         }
@@ -537,9 +557,52 @@ aoclsparse_status aoclsparse_sypr_t(aoclsparse_operation       opA,
         return aoclsparse_status_not_implemented;
     }
     // Only CSR matrix format is supported
-    if((A->mats[0]->doid != aoclsparse::doid::gn) || (B->mats[0]->doid != aoclsparse::doid::gn))
+    bool is_doid_gt = (A->mats[0]->doid == aoclsparse::doid::gt);
+    if((!is_doid_gt && A->mats[0]->doid != aoclsparse::doid::gn)
+       || B->mats[0]->doid != aoclsparse::doid::gn)
         return aoclsparse_status_not_implemented;
 
+    // C = op(A)·B·op(A)^H is Hermitian only when op is none or conj_trans.
+    // op_transpose with complex types would give C = A^T·B·A which is NOT Hermitian — block it.
+    if((A->val_type == aoclsparse_cmat || A->val_type == aoclsparse_zmat)
+       && opA == aoclsparse_operation_transpose)
+        return aoclsparse_status_not_implemented;
+
+    // For CSC (doid::gt), internal storage is A^T. Flip op so the unchanged CSR
+    // compute paths see the correct mathematical semantics. conj_flip=true signals
+    // that conjugation moves from the pre-loop into kernel CONJ_B/CONJ_A template
+    // parameters (complex CSC+op_none case only).
+    //
+    // Supported operations by format and type (C = op(A)·B·op(A)^H):
+    //   CSR (doid::gn)  Real:    op_none → A·B·A^T,           op_t → A^T·B·A
+    //   CSR (doid::gn)  Complex: op_none → A·B·A^H,           op_h → A^H·B·A
+    //   CSC (doid::gt)  Real:    op_none → A^T·B·A,           op_t → A·B·A^T
+    //   CSC (doid::gt)  Complex: op_none → A^T·B·conj(A),     op_h → conj(A)·B·A^T
+    //
+    // After the op-flip, eff_op drives the same two compute branches for both formats:
+    //   eff_op=t/h:  CSR op_t/h  → A^T·B·A (real),           A^H·B·A (complex)
+    //                CSC op_none → A^T·B·A (real), A^T·B·conj(A) (complex) [conj_flip=true]
+    //   eff_op=none: CSR op_none → A·B·A^T (real),            A·B·A^H (complex)
+    //                CSC op_t/h  → A·B·A^T (real),     conj(A)·B·A^T (complex)
+    aoclsparse_operation eff_op    = opA;
+    bool                 conj_flip = false;
+    if(is_doid_gt)
+    {
+        if(opA == aoclsparse_operation_none)
+        {
+            // CSC op_none → use op_t path (A^T data used directly, no allocation)
+            eff_op    = aoclsparse_operation_transpose;
+            conj_flip = (A->val_type == aoclsparse_cmat || A->val_type == aoclsparse_zmat);
+            //           ^^^^ true only for complex — flips CONJ_A/CONJ_B in kernels
+        }
+        else
+        {
+            // CSC op_t (real) / op_h (all) → use op_none path (csr2csc recovers A).
+            // conj_flip stays false: csr2csc recovers A with plain values; atb<CONJ_A=true>
+            // handles A^H in-kernel. Pre-loop conjugation is skipped via is_doid_gt guard below.
+            eff_op = aoclsparse_operation_none;
+        }
+    }
     if(A->val_type != get_data_type<T>())
     {
         return aoclsparse_status_wrong_type;
@@ -649,7 +712,7 @@ aoclsparse_status aoclsparse_sypr_t(aoclsparse_operation       opA,
 
     // we need fully sorted rows if we apply on-fly transposition, thus B needs
     // to be sorted every time and A when we don't explicitly transpose
-    if((A->sort != aoclsparse_fully_sorted && opA != aoclsparse_operation_none)
+    if((A->sort != aoclsparse_fully_sorted && eff_op != aoclsparse_operation_none)
        || B->sort != aoclsparse_fully_sorted)
         return aoclsparse_status_unsorted_input;
 
@@ -659,7 +722,8 @@ aoclsparse_status aoclsparse_sypr_t(aoclsparse_operation       opA,
     // Extract CSR arrays of matrix A as is
     // We will perform B * A first to generate intermediate product T matrix
     // And then perform At * T, without explicitly transposing A matrix.
-    if((opA == aoclsparse_operation_transpose) || (opA == aoclsparse_operation_conjugate_transpose))
+    if((eff_op == aoclsparse_operation_transpose)
+       || (eff_op == aoclsparse_operation_conjugate_transpose))
     {
         icrowA = A_csr->ptr;
         icolA  = A_csr->ind;
@@ -675,7 +739,7 @@ aoclsparse_status aoclsparse_sypr_t(aoclsparse_operation       opA,
     {
         try
         {
-            icrowAt.resize(A->n + 1);
+            icrowAt.resize(A_csr->n + 1);
             icolAt.resize(A->nnz);
             valAt.resize(A->nnz);
             icrowA = icrowAt.data();
@@ -687,8 +751,8 @@ aoclsparse_status aoclsparse_sypr_t(aoclsparse_operation       opA,
             return aoclsparse_status_memory_error;
         }
 
-        status = aoclsparse_csr2csc_template(A->m,
-                                             A->n,
+        status = aoclsparse_csr2csc_template(A_csr->m,
+                                             A_csr->n,
                                              A->nnz,
                                              A_csr->base,
                                              A_csr->base,
@@ -701,9 +765,12 @@ aoclsparse_status aoclsparse_sypr_t(aoclsparse_operation       opA,
         if(status != aoclsparse_status_success)
             return aoclsparse_status_memory_error;
 
-        // we need Hermition, so far we transposed so now conjugate
-        for(aoclsparse_int idx = 0; idx < A->nnz; idx++)
-            valA[idx] = aoclsparse::conj(valA[idx]);
+        // For CSR op_none: must conjugate — pre-loop produces A^H for correct Hermitian output.
+        // For CSC op_h/op_t (is_doid_gt=true): csr2csc(A^T)=A with plain values;
+        // atb<CONJ_A=true> handles A^H in-kernel — skip pre-loop.
+        if(!is_doid_gt)
+            for(aoclsparse_int idx = 0; idx < A->nnz; idx++)
+                valA[idx] = aoclsparse::conj(valA[idx]);
     }
 
     status = aoclsparse_csr_csc_optimize<T>(B, B_opt_csr);
@@ -740,24 +807,48 @@ aoclsparse_status aoclsparse_sypr_t(aoclsparse_operation       opA,
         return aoclsparse_status_memory_error;
     }
 
-    // We will perform B * At  or B * A first to generate intermediate product T matrix
-    status = aoclsparse_sp2m_online_symab<T, aoclsparse_stage_nnz_count>(m,
-                                                                         m,
-                                                                         n,
-                                                                         baseB,
-                                                                         icrowB,
-                                                                         B_opt_csr->idiag,
-                                                                         icolB,
-                                                                         valB,
-                                                                         baseA,
-                                                                         icrowA,
-                                                                         icolA,
-                                                                         valA,
-                                                                         islower,
-                                                                         icrowT.data(),
-                                                                         icolT.data(),
-                                                                         valT.data(),
-                                                                         &nnzT);
+    // Stage 1 — count nnz of T = sym(B)·A
+    // T = sym(B)·A: CSC (doid::gt) Complex op_none → CONJ_B=true: B·conj(A^T); all others → CONJ_B=false: B·A
+    if(conj_flip)
+        status = aoclsparse_sp2m_online_symab<T, aoclsparse_stage_nnz_count, true>( // CONJ_B=true
+            m,
+            m,
+            n,
+            baseB,
+            icrowB,
+            B_opt_csr->idiag,
+            icolB,
+            valB,
+            baseA,
+            icrowA,
+            icolA,
+            valA,
+            islower,
+            icrowT.data(),
+            icolT.data(),
+            valT.data(),
+            &nnzT);
+    else
+        status = aoclsparse_sp2m_online_symab<T,
+                                              aoclsparse_stage_nnz_count,
+                                              false>( // CONJ_B=false (default)
+            m,
+            m,
+            n,
+            baseB,
+            icrowB,
+            B_opt_csr->idiag,
+            icolB,
+            valB,
+            baseA,
+            icrowA,
+            icolA,
+            valA,
+            islower,
+            icrowT.data(),
+            icolT.data(),
+            valT.data(),
+            &nnzT);
     if(status != aoclsparse_status_success)
         return status;
 
@@ -771,23 +862,49 @@ aoclsparse_status aoclsparse_sypr_t(aoclsparse_operation       opA,
     {
         return aoclsparse_status_memory_error;
     }
-    status = aoclsparse_sp2m_online_symab<T, aoclsparse_stage_finalize>(m,
-                                                                        m,
-                                                                        n,
-                                                                        baseB,
-                                                                        icrowB,
-                                                                        B_opt_csr->idiag,
-                                                                        icolB,
-                                                                        valB,
-                                                                        baseA,
-                                                                        icrowA,
-                                                                        icolA,
-                                                                        valA,
-                                                                        islower,
-                                                                        icrowT.data(),
-                                                                        icolT.data(),
-                                                                        valT.data(),
-                                                                        &nnzT);
+    // Stage 1 — compute values of T = sym(B)·A
+    // T = sym(B)·A: CSC (doid::gt) Complex op_none → CONJ_B=true: B·conj(A^T); all others → CONJ_B=false: B·A
+    if(conj_flip)
+        status = aoclsparse_sp2m_online_symab<T, aoclsparse_stage_finalize, true>( // CONJ_B=true
+            m,
+            m,
+            n,
+            baseB,
+            icrowB,
+            B_opt_csr->idiag,
+            icolB,
+            valB,
+            baseA,
+            icrowA,
+            icolA,
+            valA,
+            islower,
+            icrowT.data(),
+            icolT.data(),
+            valT.data(),
+            &nnzT);
+    else
+        status = aoclsparse_sp2m_online_symab<T,
+                                              aoclsparse_stage_finalize,
+                                              false>( // CONJ_B=false (default)
+            m,
+            m,
+            n,
+            baseB,
+            icrowB,
+            B_opt_csr->idiag,
+            icolB,
+            valB,
+            baseA,
+            icrowA,
+            icolA,
+            valA,
+            islower,
+            icrowT.data(),
+            icolT.data(),
+            valT.data(),
+            &nnzT);
+
     if(status != aoclsparse_status_success)
         return status;
 
@@ -811,23 +928,49 @@ aoclsparse_status aoclsparse_sypr_t(aoclsparse_operation       opA,
             aoclsparse_destroy(C);
             return aoclsparse_status_memory_error;
         }
-        status = aoclsparse_sp2m_online_atb<T, aoclsparse_stage_nnz_count, true>(
-            m,
-            n,
-            n,
-            baseA,
-            icrowA,
-            icolA,
-            valA,
-            aoclsparse_index_base_zero,
-            icrowT.data(),
-            icolT.data(),
-            valT.data(),
-            aoclsparse_index_base_zero,
-            icrowC,
-            NULL,
-            nullT,
-            &nnzC);
+        // Stage 2 — count nnz of C = op(A)^H·T
+        // C = op(A)^H·T: CSC (doid::gt) Complex op_none → CONJ_A=false: A^T·T; all others → CONJ_A=true: A^H·T
+        if(conj_flip)
+            status = aoclsparse_sp2m_online_atb<T,
+                                                aoclsparse_stage_nnz_count,
+                                                true,
+                                                false>( // CONJ_A=false
+                m,
+                n,
+                n,
+                baseA,
+                icrowA,
+                icolA,
+                valA,
+                aoclsparse_index_base_zero,
+                icrowT.data(),
+                icolT.data(),
+                valT.data(),
+                aoclsparse_index_base_zero,
+                icrowC,
+                NULL,
+                nullT,
+                &nnzC);
+        else
+            status = aoclsparse_sp2m_online_atb<T,
+                                                aoclsparse_stage_nnz_count,
+                                                true>( // CONJ_A=true (default)
+                m,
+                n,
+                n,
+                baseA,
+                icrowA,
+                icolA,
+                valA,
+                aoclsparse_index_base_zero,
+                icrowT.data(),
+                icolT.data(),
+                valT.data(),
+                aoclsparse_index_base_zero,
+                icrowC,
+                NULL,
+                nullT,
+                &nnzC);
         if(status != aoclsparse_status_success)
         {
             aoclsparse_destroy(C); // C is incomplete, so destroy it
@@ -850,23 +993,50 @@ aoclsparse_status aoclsparse_sypr_t(aoclsparse_operation       opA,
 
     if(request == aoclsparse_stage_full_computation || request == aoclsparse_stage_finalize)
     {
-        status = aoclsparse_sp2m_online_atb<T, aoclsparse_stage_finalize, true>(
-            m,
-            n,
-            n,
-            baseA,
-            icrowA,
-            icolA,
-            valA,
-            aoclsparse_index_base_zero,
-            icrowT.data(),
-            icolT.data(),
-            valT.data(),
-            aoclsparse_index_base_zero,
-            C_csr->ptr,
-            C_csr->ind,
-            (T *)(C_csr->val),
-            &nnzC);
+        // Stage 2 — compute values of C = op(A)^H·T
+        // C = op(A)^H·T: CSC (doid::gt) Complex op_none → CONJ_A=false: A^T·T; all others → CONJ_A=true: A^H·T
+        if(conj_flip)
+            status = aoclsparse_sp2m_online_atb<T,
+                                                aoclsparse_stage_finalize,
+                                                true,
+                                                false>( // CONJ_A=false
+                m,
+                n,
+                n,
+                baseA,
+                icrowA,
+                icolA,
+                valA,
+                aoclsparse_index_base_zero,
+                icrowT.data(),
+                icolT.data(),
+                valT.data(),
+                aoclsparse_index_base_zero,
+                C_csr->ptr,
+                C_csr->ind,
+                (T *)(C_csr->val),
+                &nnzC);
+        else
+            status = aoclsparse_sp2m_online_atb<T,
+                                                aoclsparse_stage_finalize,
+                                                true>( // CONJ_A=true (default)
+                m,
+                n,
+                n,
+                baseA,
+                icrowA,
+                icolA,
+                valA,
+                aoclsparse_index_base_zero,
+                icrowT.data(),
+                icolT.data(),
+                valT.data(),
+                aoclsparse_index_base_zero,
+                C_csr->ptr,
+                C_csr->ind,
+                (T *)(C_csr->val),
+                &nnzC);
+
         if(status != aoclsparse_status_success)
         {
             if(request == aoclsparse_stage_full_computation)
