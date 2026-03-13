@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2025 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,7 +29,9 @@
 #include <cstring>
 
 #if defined(_WIN32) || defined(_WIN64)
+#ifndef _HAS_STD_BYTE
 #define _HAS_STD_BYTE 0
+#endif
 #include <windows.h>
 #else
 #include <time.h>
@@ -91,9 +93,6 @@ std::string aoclsparse_exepath()
 /* ============================================================================================ */
 /*  timing:*/
 
-/*! \brief  CPU Timer(in second) return wall time */
-static double gtod_ref_time_sec = 0.0;
-
 double aoclsparse_clock(void)
 {
     return aoclsparse_clock_helper();
@@ -134,7 +133,7 @@ double aoclsparse_clock_diff(double time_start)
 
 double aoclsparse_clock_helper()
 {
-    LARGE_INTEGER clock_freq = {0};
+    LARGE_INTEGER clock_freq = {{0}};
     LARGE_INTEGER clock_val;
     BOOL          r_val;
 
@@ -157,6 +156,8 @@ double aoclsparse_clock_helper()
 
 // --- End Windows build definitions -------------------------------------------
 #else
+/*! \brief  CPU Timer(in second) return wall time */
+static double gtod_ref_time_sec = 0.0;
 // --- Begin Linux build definitions -------------------------------------------
 
 double aoclsparse_clock_helper()

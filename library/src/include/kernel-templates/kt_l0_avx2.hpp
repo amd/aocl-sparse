@@ -41,8 +41,10 @@ namespace kernel_templates
     {
         if constexpr(kt_is_base_t_float<SUF>())
             return _mm256_setzero_ps();
-        else
+        else if constexpr(kt_is_base_t_double<SUF>())
             return _mm256_setzero_pd();
+        else if constexpr(kt_is_base_t_int<SUF>())
+            return _mm256_setzero_si256();
     };
 
     // Fill vector with a scalar value
@@ -73,6 +75,10 @@ namespace kernel_templates
             // Note that loading is end -> start <=> [d c b a] <=> [i1, r1, i0, r0]
             return _mm256_set_ps(i, r, i, r, i, r, i, r);
         }
+        else if constexpr(std::is_same_v<SUF, int64_t>)
+            return _mm256_set1_epi64x(x);
+        else if constexpr(std::is_same_v<SUF, int32_t>)
+            return _mm256_set1_epi32(x);
     };
 
     // Unaligned set (load) to AVX register with indirect memory access
@@ -100,6 +106,15 @@ namespace kernel_templates
                                  v[(*(b + 2U))].imag(), v[(*(b + 2U))].real(),
                                  v[(*(b + 1U))].imag(), v[(*(b + 1U))].real(),
                                  v[(*(b + 0U))].imag(), v[(*(b + 0U))].real());
+        }
+        else if constexpr(std::is_same_v<SUF, int64_t>)
+        {
+            return _mm256_set_epi64x(v[*(b + 3U)], v[*(b + 2U)], v[*(b + 1U)], v[*(b + 0U)]);
+        }
+        else if constexpr(std::is_same_v<SUF, int32_t>)
+        {
+            return _mm256_set_epi32(v[*(b + 7U)], v[*(b + 6U)], v[*(b + 5U)], v[*(b + 4U)],
+                                    v[*(b + 3U)], v[*(b + 2U)], v[*(b + 1U)], v[*(b + 0U)]);
         }
     };
 
@@ -180,8 +195,11 @@ namespace kernel_templates
     {
         if constexpr(kt_is_base_t_float<SUF>())
             return _mm256_load_ps(reinterpret_cast<const float *>(a));
-        else
+        else if constexpr(kt_is_base_t_double<SUF>())
             return _mm256_load_pd(reinterpret_cast<const double *>(a));
+        else if constexpr(kt_is_base_t_int<SUF>())
+            return _mm256_load_si256(reinterpret_cast<__m256i const*>(a));
+
     };
 
     // Dense direct (un)aligned load to AVX register
@@ -191,8 +209,10 @@ namespace kernel_templates
     {
         if constexpr(kt_is_base_t_float<SUF>())
             return _mm256_loadu_ps(reinterpret_cast<const float *>(a));
-        else
+        else if constexpr(kt_is_base_t_double<SUF>())
             return _mm256_loadu_pd(reinterpret_cast<const double *>(a));
+        else if constexpr(kt_is_base_t_int<SUF>())
+            return _mm256_loadu_si256(reinterpret_cast<__m256i const *>(a));
     };
 
     // Stores the values in an AVX register to a memory location (Memory does not have to be aligned)

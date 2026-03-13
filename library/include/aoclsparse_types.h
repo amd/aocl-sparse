@@ -119,7 +119,7 @@ typedef struct _aoclsparse_mat_descr *aoclsparse_mat_descr;
  *  \details
  *  This structure holds the matrix data.
  *  It is initialized using e.g. \ref aoclsparse_create_scsr
- *  (or other variants, see table bellow). The returned
+ *  (or other variants, see table below). The returned
  *  matrix object needs be passed to all subsequent library calls that
  *  involve the matrix.
  *  It should be destroyed at the end using \ref aoclsparse_destroy.

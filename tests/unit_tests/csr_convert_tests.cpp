@@ -36,7 +36,7 @@
 
 namespace
 {
-    typedef struct
+    typedef struct ConvertCSRParamStruct
     {
         const char                   *testname;
         aoclsparse_operation          op;

@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,10 +23,10 @@
 #ifndef AOCLSPARESE_ELLMV_K_HPP
 #define AOCLSPARESE_ELLMV_K_HPP
 #include "aoclsparse.h"
-#include "aoclsparse_context.h"
 #include "aoclsparse_descr.h"
 
 #include <immintrin.h>
+#include <new>
 
 aoclsparse_status aoclsparse_dellmv_avx512(const double                    alpha,
                                            aoclsparse_int                  m,

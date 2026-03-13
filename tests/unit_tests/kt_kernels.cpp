@@ -56,6 +56,11 @@ namespace TestsKT
         std::complex<double> vz[8]{  {1.5, -12},     {0.5, -21.0},    {0.125, -13.0},  {3.5,   -4.5},
                                      {5.25, -8.125},  {8.5, -6.75},    {9.5, -7.25},    {2.125, -3.0}};
 
+        int32_t  bi32[32]{3,  1,  0,  2,  4,  7,  5,  6,  8, 15, 13,  9, 11, 10, 12, 14,
+                         90, 19, 18, 31, 20, 23, 22, 25, 24, 16, 21, 26, 27, 30, 28, 17};
+
+        int64_t  bi64[16]{13,  12,  90,  2,  4,  17,  25,  6, 80, 19, 18, 31, 20, 23, 22, 25};
+
         template <typename T>
         constexpr const T* get_data() const noexcept
         {
@@ -67,6 +72,10 @@ namespace TestsKT
                 return reinterpret_cast<const T*>(vc);
             else if constexpr(std::is_same_v<T, cdouble>)
                 return reinterpret_cast<const T*>(vz);
+            else if constexpr(std::is_same_v<T, int32_t>)
+                return bi32;
+            else if constexpr(std::is_same_v<T, int64_t>)
+                return bi64;
             else
                 return nullptr; // Unsupported type
         }
@@ -84,6 +93,10 @@ namespace TestsKT
             return "std::complex<float>";
         else if constexpr(std::is_same_v<T, cdouble>)
             return "std::complex<double>";
+        else if constexpr(std::is_same_v<T, int32_t>)
+            return "int32_t";
+        else if constexpr(std::is_same_v<T, int64_t>)
+            return "int64_t";
     }
 
     const KTTCommonData D;
@@ -487,14 +500,48 @@ namespace TestsKT
     }
 
     template <bsz SZ, typename SUF>
+    void kt_load_p_test()
+    {
+        const auto sz    = tsz_v<SZ, SUF>;
+        size_t     align = 32; // Default alignment for AVX is 32 bytes
+
+        if constexpr(SZ == bsz::b512) // 512 instruction expect the data to be 64 byte aligned
+            align = 64;
+        else if constexpr(SZ == bsz::b128) // 128 instruction expect the data to be 16 byte aligned
+            align = 16;
+
+        SUF *aligned_data
+            = static_cast<SUF *>(::operator new(sizeof(SUF) * sz, std::align_val_t{align}));
+
+        // Initialize the aligned memory
+        for(size_t i = 0; i < sz; ++i)
+        {
+            aligned_data[i] = D.get_data<SUF>()[i];
+        }
+
+        SUF                 *c;
+        avxvector_t<SZ, SUF> w;
+        w = kt_load_p<SZ, SUF>(aligned_data);
+        c = reinterpret_cast<SUF *>(&w);
+
+        EXPECT_EQ_VEC(sz, c, aligned_data);
+
+        if(::testing::Test::HasFailure())
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
+
+        ::operator delete(aligned_data, std::align_val_t{align});
+    }
+
+    template <bsz SZ, typename SUF>
     void kt_setzero_p_test()
     {
-        using base_t = typename kt_dt<SUF>::base_type;
-
         const size_t sz = tsz_v<SZ, SUF>;
         const SUF    zero_v[sz]{};
 
-        EXPECT_EQ_VEC(sz, (kt_setzero_p<SZ, SUF>()), zero_v);
+        auto v = kt_setzero_p<SZ, SUF>();
+        auto c = reinterpret_cast<SUF *>(&v);
+
+        EXPECT_EQ_VEC(sz, c, zero_v);
 
         if(::testing::Test::HasFailure())
             std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
@@ -1387,7 +1434,7 @@ namespace TestsKT
 
             // In case of complex number, the real and complex
             // parts are set to the result of pow2.
-            for(int i = 0; i < sz; i++)
+            for(size_t i = 0; i < sz; i++)
             {
                 base_t temp = (data[i].real() * data[i].real()) + (data[i].imag() * data[i].imag());
 
@@ -1398,6 +1445,55 @@ namespace TestsKT
             auto res_ptr = reinterpret_cast<base_t *>(&s);
             expect_eq_vec<base_t>(sz * 2, res_ptr, refs);
         }
+
+        if(::testing::Test::HasFailure())
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
+    }
+
+    template <bsz SZ, typename SUF>
+    void kt_scatter_p_test()
+    {
+        constexpr size_t     sz = tsz_v<SZ, SUF>;
+        avxvector_t<SZ, SUF> v;
+        const SUF           *data = D.get_data<SUF>();
+        const size_t        *idx  = D.map;
+
+        size_t max_idx = 0;
+
+        // Get the maximum index from idx array
+        // This maximum index is used to size the output array
+        for(size_t i = 0; i < sz; ++i)
+        {
+            max_idx = (std::max)(max_idx, *(idx + i));
+        }
+
+        // Output and reference arrays
+        // 3 output arrays to test fused add, sub and no op
+        // Size of the array is max_idx + 1 to accommodate the maximum index element
+        std::vector<std::vector<SUF>> out(3, std::vector<SUF>(max_idx + 1, 0)),
+            ref(3, std::vector<SUF>(max_idx + 1, 0));
+
+        // Load vector from data
+        v = kt_loadu_p<SZ, SUF>(data);
+
+        // Scatter to out using idx
+        kt_scatter_p<SZ, SUF, fused_op::ADD>(v, out[0].data(), idx);
+        kt_scatter_p<SZ, SUF, fused_op::SUB>(v, out[1].data(), idx);
+        kt_scatter_p<SZ, SUF>(v, out[2].data(), idx);
+
+        // Reference: out[idx[i]] (op)= data[i]
+        // Reference scatter with fused add and sub
+        // Copy the contents of the vector (data) to the reference
+        for(size_t i = 0; i < sz; i++)
+        {
+            ref[0][idx[i]] += data[i];
+            ref[1][idx[i]] -= data[i];
+            ref[2][idx[i]] = data[i];
+        }
+
+        expect_eq_vec(ref[0].size(), out[0].data(), ref[0].data());
+        expect_eq_vec(ref[1].size(), out[1].data(), ref[1].data());
+        expect_eq_vec(ref[2].size(), out[2].data(), ref[2].data());
 
         if(::testing::Test::HasFailure())
             std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
@@ -1419,6 +1515,10 @@ namespace TestsKT
     KT_TEST_INSTANTIATE_FOR_REAL(func, SZ)          \
     KT_TEST_INSTANTIATE_FOR_COMPLEX(func, SZ)
 
+#define KT_TEST_INSTANTIATE_FOR_INT(func, SZ) \
+    template void func<SZ, int32_t>();        \
+    template void func<SZ, int64_t>();
+
 // Test instantiation macros for all data types during AVX2 build
 #ifdef KT_AVX2_BUILD
 #define KT_INSTANTIATE_TEST(func)                       \
@@ -1428,14 +1528,21 @@ namespace TestsKT
 #define KT_INSTANTIATE_TEST_REAL(func)             \
     KT_TEST_INSTANTIATE_FOR_REAL(func, bsz::b128); \
     KT_TEST_INSTANTIATE_FOR_REAL(func, get_bsz());
+
+#define KT_INSTANTIATE_TEST_INT(func)             \
+    KT_TEST_INSTANTIATE_FOR_INT(func, bsz::b128); \
+    KT_TEST_INSTANTIATE_FOR_INT(func, get_bsz());
 #else
 // Test instantiation macros for all data types during AVX512 build
 #define KT_INSTANTIATE_TEST(func) KT_TEST_INSTANTIATE_FOR_ALL_TYPES(func, get_bsz());
 
 #define KT_INSTANTIATE_TEST_REAL(func) KT_TEST_INSTANTIATE_FOR_REAL(func, get_bsz());
+
+#define KT_INSTANTIATE_TEST_INT(func) KT_TEST_INSTANTIATE_FOR_INT(func, get_bsz());
 #endif
 
 KT_INSTANTIATE_TEST(TestsKT::kt_loadu_p_test);
+KT_INSTANTIATE_TEST(TestsKT::kt_load_p_test);
 KT_INSTANTIATE_TEST(TestsKT::kt_setzero_p_test);
 KT_INSTANTIATE_TEST(TestsKT::kt_set1_p_test);
 KT_INSTANTIATE_TEST(TestsKT::kt_add_p_test);
@@ -1452,7 +1559,15 @@ KT_INSTANTIATE_TEST(TestsKT::kt_storeu_p_test);
 KT_INSTANTIATE_TEST(TestsKT::kt_fmadd_B_test);
 KT_INSTANTIATE_TEST(TestsKT::kt_hsum_B_test);
 KT_INSTANTIATE_TEST(TestsKT::kt_div_p_test);
-KT_INSTANTIATE_TEST(TestsKT::kt_pow2_p_test)
+KT_INSTANTIATE_TEST(TestsKT::kt_pow2_p_test);
+KT_INSTANTIATE_TEST(TestsKT::kt_scatter_p_test);
 
 // Operations that only support real types
 KT_INSTANTIATE_TEST_REAL(TestsKT::kt_max_p_test);
+
+// Operations that support integer types
+KT_INSTANTIATE_TEST_INT(TestsKT::kt_loadu_p_test);
+KT_INSTANTIATE_TEST_INT(TestsKT::kt_load_p_test);
+KT_INSTANTIATE_TEST_INT(TestsKT::kt_setzero_p_test);
+KT_INSTANTIATE_TEST_INT(TestsKT::kt_set1_p_test);
+KT_INSTANTIATE_TEST_INT(TestsKT::kt_set_p_test);

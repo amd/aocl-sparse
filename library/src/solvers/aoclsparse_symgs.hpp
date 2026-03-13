@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,6 @@
 #ifndef AOCLSPARSE_SYMGS_HPP
 #define AOCLSPARSE_SYMGS_HPP
 
-#include "aoclsparse_context.h"
 #include "aoclsparse_descr.h"
 #include "aoclsparse.hpp"
 #include "aoclsparse_analysis.hpp"
@@ -50,8 +49,6 @@
  * GMRES (Generalized Minimal Residual) to accelerate the convergence rate. A
  * flag 'fuse_mv' controls whether the final sparse product is computed using
  * the 'x' estimate.
- * Note: The SYMGS operation requires 2 working buffers which are allocated
- * as part of aoclsparse_optimize_symgs()
  *
  */
 
@@ -106,10 +103,24 @@ aoclsparse_status symgs_ref(aoclsparse_operation       trans,
 
     aoclsparse_int    avxversion;
     aoclsparse_status status;
-    T                *r         = (T *)A->symgs_info.r;
-    T                *q         = (T *)A->symgs_info.q;
-    T                 beta      = aoclsparse_numeric::zero<T>();
-    T                 alpha_one = (T)1;
+    std::vector<T>    r_temp;
+    std::vector<T>    q_temp;
+
+    // Try to allocate temporary buffers
+    try
+    {
+        r_temp.resize(A->m);
+        q_temp.resize(A->m);
+    }
+    catch(const std::exception &e)
+    {
+        return aoclsparse_status_memory_error;
+    }
+
+    T *r         = r_temp.data();
+    T *q         = q_temp.data();
+    T  beta      = aoclsparse_numeric::zero<T>();
+    T  alpha_one = (T)1;
 
     aoclsparse_copy_mat_descr(&descr_cpy, descr);
     // Use default AVX extension
@@ -352,18 +363,6 @@ aoclsparse_status aoclsparse_symgs(
         return status;
     if(!A_opt_csr)
         return aoclsparse_status_internal_error;
-    if(A->symgs_info.sgs_ready == false)
-    {
-        /*
-            currently optimize API allocates working buffers needed for SGS
-            functionality. SGS Optimize functionality to be extended in future
-        */
-        status = aoclsparse_optimize_symgs(A);
-        if(status != aoclsparse_status_success)
-        {
-            return status;
-        }
-    }
 
     const bool unit = descr->diag_type == aoclsparse_diag_type_unit;
     if(!A->opt_csr_full_diag && !unit) // not of full rank, linear system cannot be solved

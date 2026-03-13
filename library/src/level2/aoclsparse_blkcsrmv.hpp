@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,9 +23,9 @@
 #ifndef AOCLSPARSE_BLKCSRMV_HPP
 #define AOCLSPARSE_BLKCSRMV_HPP
 #include "aoclsparse.h"
-#include "aoclsparse_context.h"
 #include "aoclsparse_descr.h"
 #include "aoclsparse_blkcsrmv_avx512.hpp"
+#include "aoclsparse_context.hpp"
 
 // This routine performs sparse-matrix multiplication on matrices stored in blocked CSR format for double.
 // Supports blocking factors of size 1x8, 2x8 and 4x8. Blocking size is chosen depending on the matrix characteristics.

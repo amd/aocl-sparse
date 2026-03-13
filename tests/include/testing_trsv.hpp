@@ -161,19 +161,24 @@ int testing_trsv(const Arguments &arg)
 
     aoclsparse_seedrand();
     // Sample matrix
-    aoclsparse_init_csr_matrix(td.csr_row_ptrA,
-                               td.csr_col_indA,
-                               td.csr_valA,
-                               td.m,
-                               td.n,
-                               td.nnzA,
-                               base,
-                               mat,
-                               filename.c_str(),
-                               issymm,
-                               true,
-                               sort);
+    aoclsparse_status status_init = aoclsparse_init_csr_matrix(td.csr_row_ptrA,
+                                                               td.csr_col_indA,
+                                                               td.csr_valA,
+                                                               td.m,
+                                                               td.n,
+                                                               td.nnzA,
+                                                               base,
+                                                               mat,
+                                                               filename.c_str(),
+                                                               issymm,
+                                                               true,
+                                                               sort);
 
+    if(status_init != aoclsparse_status_success)
+    {
+        std::cerr << "Error: could not initialize the matrix for TRSV." << std::endl;
+        return -2;
+    }
     // Allocate memory for vectors
     aoclsparse_int m, n;
     m = td.m;

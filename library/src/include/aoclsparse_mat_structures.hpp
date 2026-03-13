@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2025 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022-2026 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -740,19 +740,6 @@ struct _aoclsparse_ilu
 };
 
 /********************************************************************************
- * \brief _aoclsparse_symgs is a structure holding data members for SYMGS operation.
- * It holds working buffers such as residual buffer for Gauss Seidel operatoin
- * It should be destroyed at the end using aoclsparse_destroy_symgs().
- *******************************************************************************/
-struct _aoclsparse_symgs
-{
-    void *r = NULL; //residual
-    void *q = NULL; //temporary buffer
-    // true: SGS Optimization/Working-Buffer-Allocation already done, else needs to be performed
-    bool sgs_ready = false;
-};
-
-/********************************************************************************
  * \brief _aoclsparse_matrix is a structure holding generic aoclsparse matrices.
  * It should be used by all the sparse routines to initialize the sparse matrices.
  * It should be destroyed at the end using aoclsparse_destroy().
@@ -778,9 +765,6 @@ struct _aoclsparse_matrix
 
     //ilu members
     struct _aoclsparse_ilu ilu_info;
-
-    //symgs
-    struct _aoclsparse_symgs symgs_info;
 
     // the original matrix had full (nonzero) diagonal, so the matrix
     // is safe for TRSVs
