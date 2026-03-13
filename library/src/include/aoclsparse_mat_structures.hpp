@@ -482,8 +482,8 @@ namespace aoclsparse
                 row_ptr_U = new aoclsparse_int[m + 1];
                 col_idx_L = new aoclsparse_int[nnz];
                 col_idx_U = new aoclsparse_int[nnz];
-                val_L     = ::operator new[](sz);
-                val_U     = ::operator new[](sz);
+                val_L     = ::operator new(sz);
+                val_U     = ::operator new(sz);
             }
             catch(...)
             {
