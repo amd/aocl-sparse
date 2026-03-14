@@ -2769,7 +2769,7 @@ aoclsparse_status aoclsparse_sadd(const aoclsparse_operation op,
  *
  *  \details
  *  <tt>aoclsparse_?syprd</tt> performs product of a scalar \f$\alpha\f$, with the
- *  symmetric triple product of a sparse\f$m \times k\f$ matrix \f$A\f$, defined in CSR format,
+ *  symmetric triple product of a sparse \f$m \times k\f$ matrix \f$A\f$, defined in CSR or CSC format,
  *  with a \f$k \times k\f$ symmetric dense (or Hermitian) matrix \f$B\f$, and a \f$k \times m\f$ \f$op(A)\f$.
  *  Adds the resulting matrix to \f$m \times m\f$ symmetric dense (or Hermitian)  matrix \f$C\f$ that is multiplied
  *  by a scalar \f$\beta\f$, such that
@@ -2803,10 +2803,14 @@ aoclsparse_status aoclsparse_sadd(const aoclsparse_operation op,
  *
  * 4. Complex dense matrices are assumed to be Hermitian matrices.
  *
+ * 5. Both CSR and CSC storage formats are accepted. For CSC input, the stored
+ *    data is interpreted as \f$A^T\f$; the operation is remapped internally so
+ *    the result is mathematically identical to the CSR path.
+ *
  *  @param[in]
  *  op          Matrix \f$A\f$ operation type.
  *  @param[in]
- *  A           Sparse CSR matrix \f$A\f$ structure.
+ *  A           Sparse CSR or CSC matrix \f$A\f$ structure.
  *  @param[in]
  *  B           Array of dimension \f$ldb \times ldb\f$.
  *              Only the upper triangular matrix is used for computation.
@@ -2831,15 +2835,17 @@ aoclsparse_status aoclsparse_sadd(const aoclsparse_operation op,
  *              \f$op(A) = A^H\f$).
  *
  *  \retval     aoclsparse_status_success The operation completed successfully.
- *  \retval     aoclsparse_invalid_operation The operation is invalid if the matrix B and C has a
+ *  \retval     aoclsparse_status_invalid_operation The operation is invalid if the matrix B and C has a
  *              different layout ordering.
  *  \retval     aoclsparse_status_wrong_type The data type of the matrices are not matching
  *              or invalid.
- *  \retval     aoclsparse_status_invalid_size The value of \p m, \p k, \p nnz, \p ldb or \p ldc
+ *  \retval     aoclsparse_status_invalid_size The value of \p m, \p k, \p ldb or \p ldc
  *              is invalid.
  *  \retval     aoclsparse_status_invalid_pointer The pointer \p A, \p B, or \p C
  *              is invalid.
- *  \retval     aoclsparse_status_not_implemented The values of \p orderB and \p orderC are different.
+ *  \retval     aoclsparse_status_not_implemented The input matrix \p A is not CSR or CSC , or
+ *              \p op is aoclsparse_operation_transpose and \p A has complex values.
+ *  \retval     aoclsparse_status_memory_error Memory allocation failure.
  *
 */
 /**@{*/
@@ -2979,7 +2985,7 @@ aoclsparse_status aoclsparse_syrk(const aoclsparse_operation opA,
 /*! \ingroup level3_module
  *  \brief Multiplication of a sparse matrix and its transpose (or conjugate transpose) for all data types.
  *  \details
- *  <tt>aoclsparse_syrkd</tt> multiplies a sparse matrix with its transpose (or conjugate transpose) in CSR storage format.
+ *  <tt>aoclsparse_syrkd</tt> multiplies a sparse matrix with its transpose (or conjugate transpose) in CSR or CSC storage format.
  *  The result is stored in a dense format, such that
   \f[
  *    C := \alpha \cdot A \cdot op(A) + \beta \cdot C
@@ -3005,9 +3011,9 @@ aoclsparse_status aoclsparse_syrk(const aoclsparse_operation opA,
  * (for complex matrices). The output matrix \f$C\f$ is a dense symmetric (or Hermitian) matrix stored as an
  *  upper triangular matrix.
  *
- *  @note <tt>aoclsparse_syrkd</tt> assumes that the input CSR matrix has sorted column
- *  indices in each row. If not, call aoclsparse_order_mat() before calling
- *  <tt>aoclsparse_syrkd</tt>.
+ *  \note <tt>aoclsparse_syrkd</tt> assumes that the input matrix has sorted indices
+ *  (column indices per row for CSR; row indices per column for CSC). If not, call
+ *  aoclsparse_order_mat() before calling <tt>aoclsparse_syrkd</tt>.
  *
  *  @note For complex type, only the real parts of \f$\alpha\f$ and \f$\beta\f$ are taken
  *  into account to preserve Hermitian \f$C\f$.
@@ -3017,7 +3023,7 @@ aoclsparse_status aoclsparse_syrk(const aoclsparse_operation opA,
  *  @param[in]
  *  opA     Matrix \f$A\f$ operation type.
  *  @param[in]
- *  A        Sorted sparse CSR matrix \f$A\f$.
+ *  A        Sorted sparse CSR or CSC matrix \f$A\f$.
  *  @param[in]
  *  alpha       Scalar \f$\alpha\f$.
  *  @param[in]
@@ -3034,7 +3040,7 @@ aoclsparse_status aoclsparse_syrk(const aoclsparse_operation opA,
  *  \retval     aoclsparse_status_success The operation completed successfully.
  *  \retval     aoclsparse_status_invalid_pointer \p A, \p C is invalid.
  *  \retval     aoclsparse_status_wrong_type \p A and its operation type do not match.
- *  \retval     aoclsparse_status_not_implemented The input matrix is not in the CSR format or
+ *  \retval     aoclsparse_status_not_implemented The input matrix is not in CSR or CSC format, or
  *              \p opA is aoclsparse_operation_transpose and \p A has complex values.
  *  \retval     aoclsparse_status_invalid_value The value of \p opA, \p orderC or \p ldc is invalid.
  *  \retval     aoclsparse_status_unsorted_input Input matrix is not sorted.

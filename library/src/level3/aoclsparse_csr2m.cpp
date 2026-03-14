@@ -575,7 +575,11 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
     {
         return aoclsparse_status_not_implemented;
     }
-
+    // Only CSR matrix format is supported
+    if(A->mats[0]->doid != aoclsparse::doid::gn || B->mats[0]->doid != aoclsparse::doid::gn)
+    {
+        return aoclsparse_status_not_implemented;
+    }
     if(A->val_type != get_data_type<T>())
     {
         return aoclsparse_status_wrong_type;

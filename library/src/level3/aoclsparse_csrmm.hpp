@@ -479,6 +479,9 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
     aoclsparse::csr *csr_mat = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
     if(!csr_mat)
         return aoclsparse_status_not_implemented;
+    // Only CSR matrix format is supported
+    if(csr_mat->doid != aoclsparse::doid::gn)
+        return aoclsparse_status_not_implemented;
     const aoclsparse_int *csr_col_ind = csr_mat->ind;
     const aoclsparse_int *csr_row_ptr = csr_mat->ptr;
     const T              *csr_val     = static_cast<T *>(csr_mat->val);

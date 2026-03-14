@@ -348,6 +348,9 @@ aoclsparse_status aoclsparse_add_t(const aoclsparse_operation op,
 
     if(!A_csr || !B_csr)
         return aoclsparse_status_not_implemented;
+    // Only CSR matrix format is supported
+    if(A_csr->doid != aoclsparse::doid::gn || B_csr->doid != aoclsparse::doid::gn)
+        return aoclsparse_status_not_implemented;
 
     T *A_val = reinterpret_cast<T *>(A_csr->val);
     T *B_val = reinterpret_cast<T *>(B_csr->val);
