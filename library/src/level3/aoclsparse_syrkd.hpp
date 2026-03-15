@@ -33,7 +33,6 @@
 #include "aoclsparse_utils.hpp"
 
 #include <complex>
-#include <iostream>
 #include <vector>
 
 template <typename T>
@@ -258,6 +257,15 @@ inline aoclsparse_status aoclsparse_syrkd_t(const aoclsparse_operation      op,
     aoclsparse_int m_C = eff_op == aoclsparse_operation_none ? m : n;
     if(ldc < m_C)
         return aoclsparse_status_invalid_value;
+
+    // Overflow check for dense matrix C offset computations in LP64 mode
+    // SYRKD computes a symmetric m_C x m_C output matrix (upper triangle)
+    // Kernels compute: C[i * ldc + j] (row-major) or C[i + j * ldc] (col-major)
+    // With ldc >= m_C, the maximum dense index is bounded by m_C * ldc.
+    if(aoclsparse_lp64_product_overflow(m_C, ldc))
+    {
+        return aoclsparse_status_invalid_size;
+    }
 
     if(beta != zero)
     {

@@ -706,10 +706,20 @@ extern "C" aoclsparse_status aoclsparse_csr2bsr_nnz(aoclsparse_int             m
     }
 
     // Exclusive sum to obtain BCSR row pointers while preserving the base-index
-    bsr_row_ptr[0] = base;
+    // Use int64_t running_sum to avoid signed overflow UB in prefix-sum computation
+    bsr_row_ptr[0]      = base;
+    int64_t running_sum = base;
     for(aoclsparse_int i = 0; i < mb; ++i)
     {
-        bsr_row_ptr[i + 1] += bsr_row_ptr[i];
+        running_sum += bsr_row_ptr[i + 1];
+        // Truncation assignment is defined behavior; overflow check happens post-loop
+        bsr_row_ptr[i + 1] = static_cast<aoclsparse_int>(running_sum);
+    }
+
+    // Check for overflow AFTER loop (no UB occurred since all arithmetic was 64-bit)
+    if(running_sum > aoclsparse_numeric::int_max)
+    {
+        return aoclsparse_status_invalid_size;
     }
 
     // Extract BCSR nnz

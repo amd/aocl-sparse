@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024-2025 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024-2026 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -337,6 +337,10 @@ namespace aoclsparse_numeric
             return value;
         }
     };
+
+    /* Provide max/min for aoclsparse_int (safe from Windows min/max macro collision) */
+    inline constexpr aoclsparse_int int_max = (std::numeric_limits<aoclsparse_int>::max)();
+    inline constexpr aoclsparse_int int_min = (std::numeric_limits<aoclsparse_int>::min)();
 }
 
 /* Convenience operator for comparing with zero<T>

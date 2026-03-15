@@ -25,6 +25,7 @@
 #define AOCLSPARSE_CSRMM_HPP
 #include "aoclsparse.h"
 #include "aoclsparse_descr.h"
+#include "aoclsparse_auxiliary.hpp"
 #include "aoclsparse_cntx_dispatcher.hpp"
 #include "aoclsparse_convert.hpp"
 #include "aoclsparse_csr_util.hpp"
@@ -567,6 +568,30 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
     aoclsparse::doid d_id = aoclsparse::get_doid<T>(descr, op);
     mb                    = m; //Number of rows in matrix A
 
+    // Overflow check for dense matrix B and C offset computations in LP64 mode
+    // Kernels compute indices like: i + j * ld (col-major) or i * ld + j (row-major).
+    // The maximum index is strictly less than dim * ld, so we validate dim * ld.
+    {
+        aoclsparse_int c_dim, b_dim;
+        aoclsparse_int b_rows = (op == aoclsparse_operation_none) ? k : m;
+
+        if(order == aoclsparse_order_column)
+        {
+            c_dim = n;
+            b_dim = n;
+        }
+        else // row major
+        {
+            c_dim = m_c;
+            b_dim = b_rows;
+        }
+        if(aoclsparse_lp64_product_overflow(c_dim, ldc)
+           || aoclsparse_lp64_product_overflow(b_dim, ldb))
+        {
+            return aoclsparse_status_invalid_size;
+        }
+    }
+
     // To support early return cases for alpha == zero scenario
     if(alpha == zero)
     {
@@ -575,6 +600,7 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
     }
     if(A->input_format != aoclsparse_csr_mat)
         return aoclsparse_status_not_implemented;
+
     /*
          * This loop iterates over the list of optimized matrices in A->mats and selects the one that matches
          * the required operation (doid). If found, it sets the pointers to the optimized matrix data and marks

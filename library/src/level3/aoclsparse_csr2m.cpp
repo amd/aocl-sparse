@@ -225,9 +225,20 @@ inline aoclsparse_status aoclsparse_csr2m_nnz_count(aoclsparse_int             m
     }
     if(status == aoclsparse_status_success)
     {
+        // Single-pass prefix sum with 64-bit accumulation to avoid UB on overflow
+        // Truncation assignment is defined behavior; overflow check happens after loop
+        int64_t running_sum = 0; // note that C is always 0-base, csr_C->ptr[0]=0 already
         for(aoclsparse_int i = 1; i < m + 1; i++)
         {
-            csr_C->ptr[i] += csr_C->ptr[i - 1];
+            running_sum += csr_C->ptr[i];
+            csr_C->ptr[i] = static_cast<aoclsparse_int>(running_sum);
+        }
+
+        // Check for overflow AFTER loop (no UB occurred since all arithmetic was 64-bit)
+        if(running_sum > aoclsparse_numeric::int_max)
+        {
+            delete csr_C;
+            return aoclsparse_status_invalid_size;
         }
 
         // Number of non-zeroes of resultant matrix C

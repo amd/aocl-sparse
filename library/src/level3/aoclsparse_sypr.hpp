@@ -35,8 +35,8 @@
 #include <cmath>
 #include <complex>
 #include <cstring>
+#include <limits>
 #include <vector>
-
 /* Add alpha-multiplication of a sparse row of W matrix to a dense vector
  * representing row 'i', but keeping track of the filled indices and their number.
  *
@@ -64,7 +64,8 @@ void inline add_sprow(aoclsparse_int               i,
                       std::vector<aoclsparse_int> &nnz,
                       std::vector<T>              &val,
                       aoclsparse_int              *icolC,
-                      aoclsparse_int              *nnzC)
+                      aoclsparse_int              *nnzC,
+                      int64_t                     *total_nnz)
 {
 
     for(aoclsparse_int idxW = iwstart; idxW < iwend; ++idxW)
@@ -82,7 +83,7 @@ void inline add_sprow(aoclsparse_int               i,
             {
                 // newly created nonzero
                 nnz[j] = i;
-                (*nnzC)++;
+                (*total_nnz)++;
             }
         }
         else
@@ -97,9 +98,9 @@ void inline add_sprow(aoclsparse_int               i,
             if(nnz[j] != i)
             {
                 // newly created nonzero
-                nnz[j]       = i;
-                icolC[*nnzC] = j;
-                (*nnzC)++;
+                nnz[j]            = i;
+                icolC[*total_nnz] = j;
+                (*total_nnz)++;
                 val[j] = alpha * valW_eff;
             }
             else
@@ -109,6 +110,7 @@ void inline add_sprow(aoclsparse_int               i,
             }
         }
     }
+    *nnzC = static_cast<aoclsparse_int>(*total_nnz);
 }
 
 /* On Fly Transposition of m x n sorted CSR matrix
@@ -329,8 +331,9 @@ aoclsparse_status aoclsparse_sp2m_online_symab(aoclsparse_int        m,
     if(status != aoclsparse_status_success)
         return status;
 
-    *nnzC     = 0;
-    icrowC[0] = 0;
+    *nnzC             = 0;
+    icrowC[0]         = 0;
+    int64_t total_nnz = 0;
     // Build i-th row of C, thus pass i-th row of A and symmetrize it
     for(aoclsparse_int i = 0; i < k; i++)
     {
@@ -350,7 +353,8 @@ aoclsparse_status aoclsparse_sp2m_online_symab(aoclsparse_int        m,
                                                  nnz,
                                                  val,
                                                  icolC,
-                                                 nnzC);
+                                                 nnzC,
+                                                 &total_nnz);
         }
 
         // Multiply the other half of the symmetric or hermitian matrix,
@@ -372,7 +376,8 @@ aoclsparse_status aoclsparse_sp2m_online_symab(aoclsparse_int        m,
                                                  nnz,
                                                  val,
                                                  icolC,
-                                                 nnzC);
+                                                 nnzC,
+                                                 &total_nnz);
 
             row = oft.rnext(row);
         }
@@ -387,6 +392,12 @@ aoclsparse_status aoclsparse_sp2m_online_symab(aoclsparse_int        m,
                 val[icolC[idx]] = 0.;
             }
         }
+    }
+    if constexpr(REQUEST == aoclsparse_stage_nnz_count)
+    {
+        // Check for overflow AFTER loop (no UB occurred since all arithmetic was 64-bit)
+        if(total_nnz > aoclsparse_numeric::int_max)
+            return aoclsparse_status_invalid_size;
     }
     return aoclsparse_status_success;
 }
@@ -457,8 +468,9 @@ aoclsparse_status aoclsparse_sp2m_online_atb(aoclsparse_int        m,
     if(status != aoclsparse_status_success)
         return status;
 
-    *nnzC     = 0;
-    icrowC[0] = 0;
+    *nnzC             = 0;
+    icrowC[0]         = 0;
+    int64_t total_nnz = 0;
     // Build i-th row of C, thus pass i-th column of A
     for(aoclsparse_int i = 0; i < k; i++)
     {
@@ -482,7 +494,8 @@ aoclsparse_status aoclsparse_sp2m_online_atb(aoclsparse_int        m,
                                                         nnz,
                                                         val,
                                                         icolC,
-                                                        nnzC);
+                                                        nnzC,
+                                                        &total_nnz);
 
             row = oft.rnext(row);
         }
@@ -499,6 +512,13 @@ aoclsparse_status aoclsparse_sp2m_online_atb(aoclsparse_int        m,
                 val[icolC[idx]] = 0.;
             }
         }
+    }
+
+    if constexpr(REQUEST == aoclsparse_stage_nnz_count)
+    {
+        // Check for overflow AFTER loop (no UB occurred since all arithmetic was 64-bit)
+        if(total_nnz > aoclsparse_numeric::int_max)
+            return aoclsparse_status_invalid_size;
     }
     // correct base if needed, by default it is 0-based
     if(baseC == aoclsparse_index_base_one)

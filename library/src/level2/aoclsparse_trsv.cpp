@@ -23,6 +23,7 @@
 
 #include "aoclsparse_descr.h"
 #include "aoclsparse.hpp"
+#include "aoclsparse_auxiliary.hpp"
 #include "aoclsparse_cntx_dispatcher.hpp"
 #include "aoclsparse_context.hpp"
 #include "aoclsparse_csr_util.hpp"
@@ -394,6 +395,17 @@ aoclsparse_status
         ilend = iurow;
     default:
         break;
+    }
+
+    // Overflow check for pointer offset computations in LP64 mode
+    // Kernels compute: x[i * incx], b[i * incb] where i ranges from 0 to m-1
+    // Note: Regular aoclsparse_[sdcz]trsv() APIs hardcode incb=incx=1, so overflow
+    // cannot occur for those. This check protects the _strided API variants where
+    // users can provide large stride values that may cause (m-1)*inc to overflow.
+    if(aoclsparse_lp64_product_overflow(m - 1, incx)
+       || aoclsparse_lp64_product_overflow(m - 1, incb))
+    {
+        return aoclsparse_status_invalid_size;
     }
 
     // icol the column indices

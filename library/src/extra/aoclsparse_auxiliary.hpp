@@ -31,6 +31,7 @@
 #include "aoclsparse_utils.hpp"
 
 #include <cmath>
+#include <cstdint>
 #include <limits>
 
 aoclsparse_status aoclsparse_destroy_ilu(_aoclsparse_ilu *ilu_info);
@@ -40,6 +41,8 @@ void              set_symgs_matrix_properties(aoclsparse_mat_descr  descr_dest,
                                               aoclsparse_fill_mode &fmode,
                                               aoclsparse_diag_type &dtype,
                                               aoclsparse_operation &trans);
+
+bool aoclsparse_lp64_product_overflow(aoclsparse_int a, aoclsparse_int b);
 
 void aoclsparse_init_mat(aoclsparse_matrix             A,
                          aoclsparse_int                M,

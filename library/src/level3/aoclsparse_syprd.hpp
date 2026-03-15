@@ -392,6 +392,16 @@ aoclsparse_status aoclsparse_syprd(aoclsparse_operation            op,
         return aoclsparse_status_invalid_size;
     }
 
+    // Overflow check for dense matrix B and C offset computations in LP64 mode
+    // B is symmetric (check_ldb × check_ldb), C is symmetric (check_ldc × check_ldc)
+    // Kernels compute: row * ld + col (row-major) or row + col * ld (col-major)
+    // Ensure the full dense range (strictly less than check_ld * ld) fits in aoclsparse_int.
+    if(aoclsparse_lp64_product_overflow(check_ldc, ldc)
+       || aoclsparse_lp64_product_overflow(check_ldb, ldb))
+    {
+        return aoclsparse_status_invalid_size;
+    }
+
     // CONJLEFT=true when complex type AND user op is op_conj_trans.
     // This rule is format-independent: CSR op_h and CSC op_h both set conjleft=true.
     // conjleft drives the kernel template instantiation — no heap allocation needed.

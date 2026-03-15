@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -73,9 +73,9 @@ aoclsparse_status estimate_nnz(const aoclsparse_operation op,
      * 'row_length[i]-1' and add +1 at the end. Also the matrix is symmetric
      * so half the estimate.
      */
-    nnz = 0;
-
-    csr_col_ind_A = csr_col_ind_A - base;
+    nnz               = 0;
+    int64_t total_nnz = 0;
+    csr_col_ind_A     = csr_col_ind_A - base;
     if(op == aoclsparse_operation_none) // AA'
     {
         std::vector<aoclsparse_int> nnz_count; // stores #nnz per A column (A' row)
@@ -104,8 +104,9 @@ aoclsparse_status estimate_nnz(const aoclsparse_operation op,
                 nnz_row += nnz_count[csr_col_ind_A[idx] - base] - 1;
             if(nnz_row > m - 1)
                 nnz_row = m - 1;
-            nnz += (nnz_row + 1) / 2 + 1; // only 1 triangle and add the diagonal
+            total_nnz += (nnz_row + 1) / 2 + 1; // only 1 triangle and add the diagonal
         }
+        nnz = static_cast<aoclsparse_int>(total_nnz);
     }
     else // A'A
     {
@@ -137,8 +138,15 @@ aoclsparse_status estimate_nnz(const aoclsparse_operation op,
         {
             if(nnz_row[j] > n - 1)
                 nnz_row[j] = n - 1;
-            nnz += (nnz_row[j] + 1) / 2 + 1; // only 1 triangle and add the diagonal
+            total_nnz += (nnz_row[j] + 1) / 2 + 1; // only 1 triangle and add the diagonal
         }
+        nnz = static_cast<aoclsparse_int>(total_nnz);
+    }
+
+    // Check for overflow AFTER loop (no UB occurred since all arithmetic was 64-bit)
+    if(total_nnz > aoclsparse_numeric::int_max)
+    {
+        return aoclsparse_status_invalid_size;
     }
 
     return aoclsparse_status_success;

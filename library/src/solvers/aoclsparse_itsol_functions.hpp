@@ -109,12 +109,28 @@ aoclsparse_status aoclsparse_gmres_data_init(const aoclsparse_int               
 
     (*gmres)->v = (*gmres)->z = (*gmres)->h = (*gmres)->g = (*gmres)->s = nullptr;
     (*gmres)->c                                                         = nullptr;
+
+    /*
+        Check for overflow BEFORE computing sizes: if krylov_basis_size or hessenberg_size
+        would overflow aoclsparse_int range, reject early
+    */
+    if(aoclsparse_lp64_product_overflow(m + 1, n) || aoclsparse_lp64_product_overflow(m, m))
+    {
+        aoclsparse_gmres_data_free(*gmres);
+        *gmres = nullptr;
+        return aoclsparse_status_invalid_size;
+    }
+
+    // Safe to compute now - overflow check passed
+    aoclsparse_int krylov_basis_size = (m + 1) * n;
+    aoclsparse_int hessenberg_size   = m * m;
+
     try
     {
         // Allocate and initialise arrays to 0
-        (*gmres)->v = new T[(m + 1) * n]();
-        (*gmres)->z = new T[(m + 1) * n]();
-        (*gmres)->h = new T[m * m]();
+        (*gmres)->v = new T[krylov_basis_size]();
+        (*gmres)->z = new T[krylov_basis_size]();
+        (*gmres)->h = new T[hessenberg_size]();
         (*gmres)->g = new T[m + 1]();
         (*gmres)->c = new tolerance_t<T>[m]();
         (*gmres)->s = new T[m]();

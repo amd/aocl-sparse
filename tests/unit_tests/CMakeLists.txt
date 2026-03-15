@@ -248,6 +248,7 @@ set(GTEST_EXECUTABLES
     rng_tests
     context_tests
     extreme_value_tests
+    lp64_overflow_tests
     createtcsr_tests
     tcsrmv_tests
     createbsr_tests

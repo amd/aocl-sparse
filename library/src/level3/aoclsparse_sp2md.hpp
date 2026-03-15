@@ -33,7 +33,6 @@
 #include "aoclsparse_utils.hpp"
 
 #include <complex>
-#include <iostream>
 #include <vector>
 
 // Computes the product of two sparse matrices and stores the output
@@ -324,6 +323,18 @@ inline aoclsparse_status aoclsparse_sp2md_t(const aoclsparse_operation      opA,
     if(ldc < ldc_min)
     {
         return aoclsparse_status_invalid_size;
+    }
+
+    // Overflow check for dense matrix C offset computations in LP64 mode
+    // Kernels compute: C[row * ldc + col] (row-major) or C[row + col * ldc] (col-major)
+    // Maximum row index = m_c - 1, maximum col index = n_c - 1
+    {
+        aoclsparse_int c_dim = (layout == aoclsparse_order_row) ? m_c : n_c;
+        // Validate full dense address range by checking c_dim * ldc
+        if(aoclsparse_lp64_product_overflow(c_dim, ldc))
+        {
+            return aoclsparse_status_invalid_size;
+        }
     }
 
     // Check if base index is consistent
