@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022-2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -39,7 +39,7 @@ void printer(double rinfo[100], bool header)
                   << "  " << std::setw(3) << std::endl;
     std::cout << std::setw(5) << std::right << (int)rinfo[30] << " " << std::setw(16) << std::right
               << std::scientific << rinfo[0] << "  " << std::endl;
-    std::resetiosflags(fmt);
+    std::cout << std::resetiosflags(fmt);
 }
 
 int main()

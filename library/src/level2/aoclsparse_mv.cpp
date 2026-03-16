@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2025 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022-2026 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -150,11 +150,11 @@ aoclsparse_status aoclsparse::mv(aoclsparse_operation       op,
     {
         if(A->input_format == aoclsparse_tcsr_mat && !aoclsparse::is_dt_complex<T>())
         {
-            status = aoclsparse_tcsr_optimize<T>(A, &opt_tcsr);
+            status = aoclsparse_tcsr_optimize<T>(A, opt_tcsr);
         }
         else
         {
-            status = aoclsparse_csr_csc_optimize<T>(A, &(opt_csr));
+            status = aoclsparse_csr_csc_optimize<T>(A, opt_csr);
         }
         if(status != aoclsparse_status_success)
             return status;

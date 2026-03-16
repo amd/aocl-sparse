@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2021-2025 Advanced Micro Devices, Inc.
+ * Copyright (c) 2021-2026 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -231,17 +231,12 @@ namespace aoclsparse
                 lib_local_arch = archs::ZEN5;
                 break;
             default:
-                // Check to see if it is a new Zen model
-                if(Cpu.isAMD()) // Assume new model
-                {
-                    lib_local_arch = archs::ZEN_NEW; // Fall-back to latest known model
-                }
-                else if(this->cpuflags[static_cast<int>(context_isa_t::AVX512F)]
-                        && this->cpuflags[static_cast<int>(context_isa_t::AVX512DQ)]
-                        && this->cpuflags[static_cast<int>(context_isa_t::AVX512VL)])
+                if(this->cpuflags[static_cast<int>(context_isa_t::AVX512F)]
+                   && this->cpuflags[static_cast<int>(context_isa_t::AVX512DQ)]
+                   && this->cpuflags[static_cast<int>(context_isa_t::AVX512VL)])
                 {
                     // Map to an equivalent Zen model...
-                    lib_local_arch = archs::ZEN_NEW;
+                    lib_local_arch = archs::ZEN4;
                 }
                 else if(this->cpuflags[static_cast<int>(context_isa_t::AVX2)])
                 {

@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,6 @@
 #ifndef AOCLSPARSE_SM_HPP
 #define AOCLSPARSE_SM_HPP
 
-#include "aoclsparse_context.h"
 #include "aoclsparse_descr.h"
 #include "aoclsparse.hpp"
 #include "aoclsparse_auxiliary.hpp"
@@ -112,11 +111,11 @@ aoclsparse_status
     aoclsparse::tcsr *A_opt_tcsr = nullptr;
     if(A->input_format == aoclsparse_csr_mat)
     {
-        status = aoclsparse_csr_csc_optimize<T>(A, &A_opt_csr);
+        status = aoclsparse_csr_csc_optimize<T>(A, A_opt_csr);
     }
     else if(A->input_format == aoclsparse_tcsr_mat)
     {
-        status = aoclsparse_tcsr_optimize<T>(A, &A_opt_tcsr);
+        status = aoclsparse_tcsr_optimize<T>(A, A_opt_tcsr);
     }
     if(status != aoclsparse_status_success)
         return status;

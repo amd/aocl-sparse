@@ -111,6 +111,13 @@ while :cpp:func:`aoclsparse_?dotci() <aoclsparse_cdotci>` references only :cpp:f
 
    storage
 
+.. toctree::
+   :maxdepth: 2
+   :caption: Migration Guide
+
+   migration
+
+
 .. a section on parallelization (OMP?)
 
 Search the documentation
@@ -118,6 +125,3 @@ Search the documentation
 
 * :ref:`genindex`
 * :ref:`search`
-
-
-

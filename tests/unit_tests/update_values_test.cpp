@@ -35,7 +35,7 @@
 #include <vector>
 namespace
 {
-    typedef struct
+    typedef struct UpdateValuesParamStruct
     {
         const char                   *testname;
         aoclsparse_index_base         base;

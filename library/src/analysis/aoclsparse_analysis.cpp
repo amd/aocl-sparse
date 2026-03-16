@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,8 +21,8 @@
  *
  * ************************************************************************ */
 #include "aoclsparse.h"
-#include "aoclsparse_context.h"
 #include "aoclsparse_analysis.hpp"
+#include "aoclsparse_context.hpp"
 #include "aoclsparse_csr_util.hpp"
 #include "aoclsparse_mat_structures.hpp"
 
@@ -384,42 +384,6 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
     return aoclsparse_status_success;
 }
 /*
-    SYMGS optimize API allocates working buffers
-*/
-aoclsparse_status aoclsparse_optimize_symgs(aoclsparse_matrix A)
-{
-    aoclsparse_status ret = aoclsparse_status_success;
-    void             *r, *q;
-    //If already allocated, then no need to reallocate. So return. Need to happen only once in the beginning
-    if(A->symgs_info.sgs_ready == true)
-    {
-        return ret;
-    }
-
-    try
-    {
-        r = ::operator new(data_size[A->val_type] * A->m);
-    }
-    catch(std::bad_alloc &)
-    {
-        return aoclsparse_status_memory_error;
-    }
-    try
-    {
-        q = ::operator new(data_size[A->val_type] * A->m);
-    }
-    catch(std::bad_alloc &)
-    {
-        ::operator delete(r);
-        return aoclsparse_status_memory_error;
-    }
-    A->symgs_info.r = r;
-    A->symgs_info.q = q;
-    //turn this flag on to indicate necessary allocations for SGS have been done
-    A->symgs_info.sgs_ready = true;
-    return ret;
-}
-/*
     ILU optimize API allocates working buffers and also
     memory for the precondtioned csr value buffer
 */
@@ -505,25 +469,20 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
     // Creates idiag ptr for lower and iurow ptr for upper triangualr matrix
     if(A->input_format == aoclsparse_tcsr_mat)
     {
-        aoclsparse::tcsr *const tcsr_mat = dynamic_cast<aoclsparse::tcsr *>(A->mats[0]);
-        if(!tcsr_mat)
-            return aoclsparse_status_not_implemented;
-        if(tcsr_mat->is_optimized)
-            return aoclsparse_status_success;
         aoclsparse::tcsr *opt_mat = nullptr;
         switch(A->val_type)
         {
         case aoclsparse_dmat:
-            ret = aoclsparse_tcsr_optimize<double>(A, &opt_mat);
+            ret = aoclsparse_tcsr_optimize<double>(A, opt_mat);
             break;
         case aoclsparse_smat:
-            ret = aoclsparse_tcsr_optimize<float>(A, &opt_mat);
+            ret = aoclsparse_tcsr_optimize<float>(A, opt_mat);
             break;
         case aoclsparse_cmat:
-            ret = aoclsparse_tcsr_optimize<std::complex<float>>(A, &opt_mat);
+            ret = aoclsparse_tcsr_optimize<std::complex<float>>(A, opt_mat);
             break;
         case aoclsparse_zmat:
-            ret = aoclsparse_tcsr_optimize<std::complex<double>>(A, &opt_mat);
+            ret = aoclsparse_tcsr_optimize<std::complex<double>>(A, opt_mat);
             break;
         }
         if(ret == aoclsparse_status_success && !opt_mat)
@@ -596,16 +555,16 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
             switch(A->val_type)
             {
             case aoclsparse_dmat:
-                ret = aoclsparse_csr_csc_optimize<double>(A, &(opt_mat));
+                ret = aoclsparse_csr_csc_optimize<double>(A, opt_mat);
                 break;
             case aoclsparse_smat:
-                ret = aoclsparse_csr_csc_optimize<float>(A, &(opt_mat));
+                ret = aoclsparse_csr_csc_optimize<float>(A, opt_mat);
                 break;
             case aoclsparse_cmat:
-                ret = aoclsparse_csr_csc_optimize<std::complex<float>>(A, &(opt_mat));
+                ret = aoclsparse_csr_csc_optimize<std::complex<float>>(A, opt_mat);
                 break;
             case aoclsparse_zmat:
-                ret = aoclsparse_csr_csc_optimize<std::complex<double>>(A, &(opt_mat));
+                ret = aoclsparse_csr_csc_optimize<std::complex<double>>(A, opt_mat);
                 break;
             }
             // This check is correct: if optimization succeeded but opt_mat is null,
@@ -624,11 +583,6 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
     {
         // Only ilu hints have been passed
         ret = aoclsparse_optimize_ilu(A);
-    }
-    else if(sgs_count)
-    {
-        // Symgs Optimize/work-array allocations
-        ret = aoclsparse_optimize_symgs(A);
     }
     return ret;
 }

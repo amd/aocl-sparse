@@ -1,0 +1,22 @@
+{
+  "csg": {
+    "server": "http://jenkinserver.amd.com:8082",
+    "projects": ["AOCL_RELEASE", "AOCL_OPENSOURCE", "AOCL_INTERNAL"],
+    "default_branch": "amd-main",
+    "default_issue_types": [],
+    "formatting": {
+      "ticket_id": "CPUPL-7601",
+      "email_recipients": [
+        "manu.shantharam@amd.com",
+        "vishwanath.chunchula@amd.com",
+        "jan.fiala@amd.com"
+        ],
+      "path_extraction_pattern": [
+        "library/.*",
+        "tests/.*"
+      ],
+      "is_csg": true
+    }
+  }
+}
+

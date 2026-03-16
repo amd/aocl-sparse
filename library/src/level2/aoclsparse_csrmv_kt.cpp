@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,7 +22,7 @@
  * ************************************************************************
  */
 #include "aoclsparse.h"
-#include "aoclsparse_context.h"
+#include "aoclsparse_context.hpp"
 #include "aoclsparse_kernel_templates.hpp"
 #include "aoclsparse_l2_kt.hpp"
 #include "aoclsparse_utils.hpp"
@@ -45,24 +45,10 @@ aoclsparse_status aoclsparse::csrmv_kt(aoclsparse_index_base base,
     const SUF            *x_fix    = x - base;
     avxvector_t<SZ, SUF>  va, vx, vb, vc;
     const size_t          k = tsz_v<SZ, SUF>;
-    // Perform (beta * y)
-    if(beta == static_cast<SUF>(0))
-    {
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(context::get_context()->get_num_threads())
-#endif
-        // if beta==0 and y contains any NaNs, we can zero y directly
-        for(aoclsparse_int i = 0; i < m; i++)
-            y[i] = 0.;
-    }
-    else if(beta != static_cast<SUF>(1))
-    {
-#ifdef _OPENMP
-#pragma omp parallel for num_threads(context::get_context()->get_num_threads())
-#endif
-        for(aoclsparse_int i = 0; i < m; i++)
-            y[i] = beta * y[i];
-    }
+
+    const bool is_beta_zero = (beta == static_cast<SUF>(0));
+    const bool is_beta_one  = (beta == static_cast<SUF>(1));
+
 #ifdef _OPENMP
 #pragma omp parallel for num_threads(context::get_context()->get_num_threads()) private( \
         va, vx, vb, vc)
@@ -97,7 +83,12 @@ aoclsparse_status aoclsparse::csrmv_kt(aoclsparse_index_base base,
 
         // Perform alpha * A * x
         result *= alpha;
-        y[i] += result;
+
+        // If beta is 0, overwrite y[i] with result.
+        // If beta is 1, perform y[i] + result and store it in y[i].
+        // Else perform (y[i] * beta) + result and store it in y[i].
+        y[i] = (is_beta_zero) ? result
+                              : ((is_beta_one) ? (y[i] + result) : ((y[i] * beta) + result));
     }
     return aoclsparse_status_success;
 }
