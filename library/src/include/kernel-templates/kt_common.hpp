@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -263,14 +263,62 @@ namespace kernel_templates
         }
     };
 
-    /*
-     *   Ensure that the custom int type used is of size 4 or 8
+    /**
+     * @brief Type trait to validate integer types for kernel template index parameters
+     *
+     * Checks if a type is a valid integer type for use as array indices in kernel templates.
+     * Valid types must be integral and have a size of either 4 or 8 bytes.
+     * This includes, for example, 32-bit and 64-bit signed and unsigned integer types.
+     *
+     * @tparam T Type to validate
+     *
+     * @par Example:
+     * @code
+     * static_assert(kt_is_valid_int<int32_t>());   // true  - 4-byte signed integer
+     * static_assert(kt_is_valid_int<uint32_t>());  // true  - 4-byte unsigned integer
+     * static_assert(kt_is_valid_int<int64_t>());   // true  - 8-byte signed integer
+     * static_assert(kt_is_valid_int<uint64_t>());  // true  - 8-byte unsigned integer
+     * static_assert(!kt_is_valid_int<int16_t>());  // false - wrong size
+     * static_assert(!kt_is_valid_int<float>());    // false - not integral
+     * @endcode
      */
     template <typename T>
-    using set_kt_int_type
-        = std::enable_if_t<std::is_integral_v<T> && (sizeof(T) == 4 || sizeof(T) == 8), T>;
+    struct kt_is_valid_int
+    {
+        /**
+         * @brief Conversion operator for boolean evaluation
+         * @return true if T is a valid kernel template integer type, false otherwise
+         */
+        constexpr operator bool() const noexcept
+        {
+            return std::is_integral_v<T> && (sizeof(T) == 4 || sizeof(T) == 8);
+        }
+    };
 
-    using kt_int_t = set_kt_int_type<kt_int_t>;
+    /**
+     * @brief SFINAE helper type alias for valid kernel template integer types
+     *
+     * Used as a non-type template parameter (defaulted to 0) to enable function
+     * templates only when the integer type IS is valid (int32_t or int64_t).
+     * This provides a cleaner alternative to verbose std::enable_if_t constraints.
+     *
+     * @tparam T Integer type to validate (must satisfy kt_is_valid_int)
+     *
+     * @par Usage:
+     * @code
+     * // Instead of:
+     * template <typename IS, typename = std::enable_if_t<kt_is_valid_int<IS>()>>
+     * void foo(IS* indices);
+     *
+     * // Use:
+     * template <typename IS, valid_kt_int<IS> = 0>
+     * void foo(IS* indices);
+     * @endcode
+     *
+     * @see kt_is_valid_int
+     */
+    template <typename T>
+    using valid_kt_int = std::enable_if_t<kt_is_valid_int<T>{}, int>;
 
     // AVX CPU instrinsic extensions to implement
     // * ANY      All targets

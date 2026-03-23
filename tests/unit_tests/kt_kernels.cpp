@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023-2025 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023-2026 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -41,8 +41,14 @@ namespace TestsKT
     {
     public:
         // clang-format off
-        size_t   map[32]{ 3,  1,  0,  2,  4,  7,  5,  6,  8, 15, 13,  9, 11, 10, 12, 14,
+        uint64_t   map[32]{ 3,  1,  0,  2,  4,  7,  5,  6,  8, 15, 13,  9, 11, 10, 12, 14,
                          29, 19, 18, 31, 20, 23, 22, 25, 24, 16, 21, 26, 27, 30, 28, 17};
+        uint32_t   map32[32]{ 3,  1,  0,  2,  4,  7,  5,  6,  8, 15, 13,  9, 11, 10, 12, 14,
+                            29, 19, 18, 31, 20, 23, 22, 25, 24, 16, 21, 26, 27, 30, 28, 17};
+        int32_t    map32_s[32]{ 3,  1,  0,  2,  4,  7,  5,  6,  8, 15, 13,  9, 11, 10, 12, 14,
+                               29, 19, 18, 31, 20, 23, 22, 25, 24, 16, 21, 26, 27, 30, 28, 17};
+        int64_t    map_s[32]{ 3,  1,  0,  2,  4,  7,  5,  6,  8, 15, 13,  9, 11, 10, 12, 14,
+                            29, 19, 18, 31, 20, 23, 22, 25, 24, 16, 21, 26, 27, 30, 28, 17};
         float    vs[32]{1.5f,    2.75f,  2.0f,   3.875f,  3.5f,   2.5f,    4.0f,    1.25f,
                         2.5f,    1.25f,  3.125f, 0.125f, -3.5f,  -1.25f,   8.125f, 10.25f,
                         3.5f,    6.25f,  7.125f, 3.0f,    6.5f,   1.226f, -2.5f,    5.0f,
@@ -79,6 +85,22 @@ namespace TestsKT
             else
                 return nullptr; // Unsupported type
         }
+
+        /** @brief Returns index array for kernel template APIs that take IS (int32_t, int64_t, uint32_t, uint64_t) */
+        template <typename IS>
+        constexpr const IS* get_indices() const noexcept
+        {
+            if constexpr(std::is_same_v<IS, int32_t>)
+                return map32_s;
+            else if constexpr(std::is_same_v<IS, int64_t>)
+                return map_s;
+            else if constexpr(std::is_same_v<IS, uint32_t>)
+                return map32;
+            else if constexpr(std::is_same_v<IS, uint64_t>)
+                return map;
+            else
+                return nullptr; // Unsupported index type
+        }
         // clang-format on
     };
 
@@ -97,6 +119,10 @@ namespace TestsKT
             return "int32_t";
         else if constexpr(std::is_same_v<T, int64_t>)
             return "int64_t";
+        else if constexpr(std::is_same_v<T, uint32_t>)
+            return "uint32_t";
+        else if constexpr(std::is_same_v<T, uint64_t>)
+            return "uint64_t";
     }
 
     const KTTCommonData D;
@@ -119,6 +145,15 @@ namespace TestsKT
         EXPECT_TRUE(kt_is_base_t_int<int64_t>());
         EXPECT_FALSE(kt_is_base_t_int<float>());
         EXPECT_FALSE(kt_is_base_t_int<double>());
+
+        EXPECT_TRUE(kt_is_valid_int<int32_t>());
+        EXPECT_TRUE(kt_is_valid_int<int64_t>());
+        EXPECT_TRUE(kt_is_valid_int<uint32_t>());
+        EXPECT_TRUE(kt_is_valid_int<uint64_t>());
+        EXPECT_TRUE(kt_is_valid_int<size_t>());
+        EXPECT_FALSE(kt_is_valid_int<int16_t>());
+        EXPECT_FALSE(kt_is_valid_int<float>());
+        EXPECT_FALSE(kt_is_valid_int<double>());
     }
 
     void kt_is_same_test()
@@ -647,15 +682,15 @@ namespace TestsKT
             std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
     }
 
-    template <bsz SZ, typename SUF>
+    template <bsz SZ, typename SUF, typename IS>
     void kt_fmadd_p_test()
     {
         size_t               sz = tsz_v<SZ, SUF>;
         avxvector_t<SZ, SUF> s, as, bs;
         SUF                  refs[sz];
 
-        const SUF    *data = D.get_data<SUF>();
-        const size_t *idx  = D.map;
+        const SUF *data = D.get_data<SUF>();
+        const IS  *idx  = D.get_indices<IS>();
 
         as = kt_loadu_p<SZ, SUF>(data + 2);
         bs = kt_set_p<SZ, SUF>(data, idx);
@@ -671,18 +706,19 @@ namespace TestsKT
         expect_eq_vec(sz, res_ptr, refs);
 
         if(::testing::Test::HasFailure())
-            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>()
+                      << ", index: " << get_typename<IS>() << std::endl;
     }
 
-    template <bsz SZ, typename SUF>
+    template <bsz SZ, typename SUF, typename IS>
     void kt_fmsub_p_test()
     {
         size_t               sz = tsz_v<SZ, SUF>;
         avxvector_t<SZ, SUF> s, as, bs;
         SUF                  refs[sz];
 
-        const SUF    *data = D.get_data<SUF>();
-        const size_t *idx  = D.map;
+        const SUF *data = D.get_data<SUF>();
+        const IS  *idx  = D.get_indices<IS>();
 
         as = kt_loadu_p<SZ, SUF>(data);
         bs = kt_set_p<SZ, SUF>(data, idx);
@@ -698,18 +734,19 @@ namespace TestsKT
         expect_eq_vec(sz, res_ptr, refs);
 
         if(::testing::Test::HasFailure())
-            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>()
+                      << ", index: " << get_typename<IS>() << std::endl;
     }
 
-    template <bsz SZ, typename SUF>
+    template <bsz SZ, typename SUF, typename IS>
     void kt_set_p_test()
     {
         const size_t         sz = tsz_v<SZ, SUF>;
         avxvector_t<SZ, SUF> s;
         SUF                  refs[sz];
 
-        const SUF    *data = D.get_data<SUF>();
-        const size_t *idx  = D.map;
+        const SUF *data = D.get_data<SUF>();
+        const IS  *idx  = D.get_indices<IS>();
 
         s = kt_set_p<SZ, SUF>(data, idx + 2);
 
@@ -722,7 +759,8 @@ namespace TestsKT
         EXPECT_EQ_VEC(sz, res_ptr, refs);
 
         if(::testing::Test::HasFailure())
-            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>()
+                      << ", index: " << get_typename<IS>() << std::endl;
     }
 
     /*
@@ -730,77 +768,91 @@ namespace TestsKT
      * 2 (cdouble), 4 (cfloat), 4 (double), 8 (floats) length vectors.
      * K specifies the how much zero-padding is done
      * at the end of the vector, so K = 1 for 256d vector would load [0 x3 x2 x1]
+     * B is the base offset into the source data array from which the load begins
+     * IS: index type for scalar offset (int32_t or int64_t) - deduced from argument
      */
-#define kt_maskz_set_p_param_dir(SZ, SUF, S, EXT, K, B)                                 \
-    {                                                                                   \
-        const size_t         n = tsz_v<SZ, SUF>;                                        \
-        avxvector_t<SZ, SUF> v = kt_maskz_set_p<SZ, SUF, EXT, K>(D.v##S, (size_t)B##U); \
-        SUF                  ve[n];                                                     \
-        SUF                 *pv = nullptr;                                              \
-        for(size_t i = 0; i < n; i++)                                                   \
-        {                                                                               \
-            if(int(i - K) >= 0)                                                         \
-                ve[i] = 0;                                                              \
-            else                                                                        \
-                ve[i] = D.v##S[B + i];                                                  \
-        }                                                                               \
-        pv = reinterpret_cast<SUF *>(&v);                                               \
-        if constexpr(std::is_same_v<SUF, cdouble> || std::is_same_v<SUF, cfloat>)       \
-        {                                                                               \
-            EXPECT_COMPLEX_EQ_VEC(n, pv, ve);                                           \
-        }                                                                               \
-        else                                                                            \
-        {                                                                               \
-            EXPECT_EQ_VEC(n, pv, ve);                                                   \
-        }                                                                               \
+#define kt_maskz_set_p_param_dir(SZ, SUF, S, EXT, K, B, IS)                        \
+    {                                                                              \
+        const size_t         n = tsz_v<SZ, SUF>;                                   \
+        avxvector_t<SZ, SUF> v = kt_maskz_set_p<SZ, SUF, EXT, K>(D.v##S, (IS)(B)); \
+        SUF                  ve[n];                                                \
+        SUF                 *pv = nullptr;                                         \
+        for(size_t i = 0; i < n; i++)                                              \
+        {                                                                          \
+            if(int(i - K) >= 0)                                                    \
+                ve[i] = 0;                                                         \
+            else                                                                   \
+                ve[i] = D.v##S[B + i];                                             \
+        }                                                                          \
+        pv = reinterpret_cast<SUF *>(&v);                                          \
+        if constexpr(std::is_same_v<SUF, cdouble> || std::is_same_v<SUF, cfloat>)  \
+        {                                                                          \
+            EXPECT_COMPLEX_EQ_VEC(n, pv, ve);                                      \
+        }                                                                          \
+        else                                                                       \
+        {                                                                          \
+            EXPECT_EQ_VEC(n, pv, ve);                                              \
+        }                                                                          \
     }
+
+/* Invoke direct test for both 64-bit and 32-bit index types (IS deduced from argument) */
+#define kt_maskz_set_p_param_dir_64_32(SZ, SUF, S, EXT, K, B) \
+    kt_maskz_set_p_param_dir(SZ, SUF, S, EXT, K, B, int64_t); \
+    kt_maskz_set_p_param_dir(SZ, SUF, S, EXT, K, B, int32_t);
+
     /*
      * Test "maskz_set" zero-masked version of "set" to indirectly load
      * 2 (cdouble), 4 (cfloat), 4 (double), 8 (floats) length vectors.
      * K specifies the how much zero-padding is done
      * at the end of the vector, so K = 1 for 256d vector would load
      * [0 x[m[3]] x[m[2]] x[m[1]]
+     * B is the base offset into the index/map array from which indirect loads begin
      * Note: for indirect addressing EXT can be ANY
+     * IDX_ARR: index array (D.map for 64-bit, D.map32 for 32-bit)
      */
-#define kt_maskz_set_p_param_indir(SZ, SUF, S, EXT, K, B)                            \
-    {                                                                                \
-        const size_t n = tsz_v<SZ, SUF>;                                             \
-                                                                                     \
-        avxvector_t<SZ, SUF> v = kt_maskz_set_p<SZ, SUF, EXT, K>(D.v##S, &D.map[B]); \
-        SUF                  ve[n];                                                  \
-        SUF                 *pv = nullptr;                                           \
-        for(size_t i = 0; i < n; i++)                                                \
-        {                                                                            \
-            if(int(i - K) >= 0)                                                      \
-                ve[i] = 0;                                                           \
-            else                                                                     \
-                ve[i] = D.v##S[D.map[B + i]];                                        \
-        }                                                                            \
-        pv = reinterpret_cast<SUF *>(&v);                                            \
-        if constexpr(std::is_same_v<SUF, cdouble> || std::is_same_v<SUF, cfloat>)    \
-        {                                                                            \
-            EXPECT_COMPLEX_EQ_VEC(n, pv, ve);                                        \
-        }                                                                            \
-        else                                                                         \
-        {                                                                            \
-            EXPECT_EQ_VEC(n, v, ve);                                                 \
-        }                                                                            \
+#define kt_maskz_set_p_param_indir(SZ, SUF, S, EXT, K, B, IDX_ARR)                     \
+    {                                                                                  \
+        const size_t n = tsz_v<SZ, SUF>;                                               \
+                                                                                       \
+        avxvector_t<SZ, SUF> v = kt_maskz_set_p<SZ, SUF, EXT, K>(D.v##S, &IDX_ARR[B]); \
+        SUF                  ve[n];                                                    \
+        SUF                 *pv = nullptr;                                             \
+        for(size_t i = 0; i < n; i++)                                                  \
+        {                                                                              \
+            if(int(i - K) >= 0)                                                        \
+                ve[i] = 0;                                                             \
+            else                                                                       \
+                ve[i] = D.v##S[IDX_ARR[B + i]];                                        \
+        }                                                                              \
+        pv = reinterpret_cast<SUF *>(&v);                                              \
+        if constexpr(std::is_same_v<SUF, cdouble> || std::is_same_v<SUF, cfloat>)      \
+        {                                                                              \
+            EXPECT_COMPLEX_EQ_VEC(n, pv, ve);                                          \
+        }                                                                              \
+        else                                                                           \
+        {                                                                              \
+            EXPECT_EQ_VEC(n, pv, ve);                                                  \
+        }                                                                              \
     }
+
+/* Invoke indirect test for both 64-bit and 32-bit index types */
+#define kt_maskz_set_p_param_indir_64_32(SZ, SUF, S, EXT, K, B) \
+    kt_maskz_set_p_param_indir(SZ, SUF, S, EXT, K, B, D.map);   \
+    kt_maskz_set_p_param_indir(SZ, SUF, S, EXT, K, B, D.map32);
 
     /*
      * Test out of bound access in mask indirect access
+     * MOCK_IDX_TYPE: uint64_t or uint32_t for 64/32-bit index type
      */
-#define kt_maskz_set_p_param_indir_out_of_bound(SZ, SUF, S, EXT)                             \
+#define kt_maskz_set_p_param_indir_out_of_bound(SZ, SUF, S, EXT, MOCK_IDX_TYPE)              \
     {                                                                                        \
         const size_t         n        = tsz_v<SZ, SUF>;                                      \
-        size_t               mock_idx = 1000000;                                             \
+        MOCK_IDX_TYPE        mock_idx = 1000000;                                             \
         avxvector_t<SZ, SUF> v        = kt_maskz_set_p<SZ, SUF, EXT, -1>(D.v##S, &mock_idx); \
         SUF                  ve[n];                                                          \
         SUF                 *pv = nullptr;                                                   \
         for(size_t i = 0; i < n; i++)                                                        \
-                                                                                             \
             ve[i] = 0;                                                                       \
-                                                                                             \
         pv = reinterpret_cast<SUF *>(&v);                                                    \
         if constexpr(std::is_same_v<SUF, cdouble> || std::is_same_v<SUF, cfloat>)            \
         {                                                                                    \
@@ -808,9 +860,23 @@ namespace TestsKT
         }                                                                                    \
         else                                                                                 \
         {                                                                                    \
-            EXPECT_EQ_VEC(n, v, ve);                                                         \
+            EXPECT_EQ_VEC(n, pv, ve);                                                        \
         }                                                                                    \
     }
+
+/* Invoke out-of-bound test for both 64-bit and 32-bit index types */
+// Enable tests for unsigned integer types by enabling KT_TEST_UINT macro
+#ifdef KT_TEST_UINT
+#define kt_maskz_set_p_param_indir_out_of_bound_64_32(SZ, SUF, S, EXT)  \
+    kt_maskz_set_p_param_indir_out_of_bound(SZ, SUF, S, EXT, int64_t);  \
+    kt_maskz_set_p_param_indir_out_of_bound(SZ, SUF, S, EXT, int32_t);  \
+    kt_maskz_set_p_param_indir_out_of_bound(SZ, SUF, S, EXT, uint64_t); \
+    kt_maskz_set_p_param_indir_out_of_bound(SZ, SUF, S, EXT, uint32_t);
+#else
+#define kt_maskz_set_p_param_indir_out_of_bound_64_32(SZ, SUF, S, EXT) \
+    kt_maskz_set_p_param_indir_out_of_bound(SZ, SUF, S, EXT, int64_t); \
+    kt_maskz_set_p_param_indir_out_of_bound(SZ, SUF, S, EXT, int32_t);
+#endif
 
 #ifdef KT_AVX2_BUILD
     void kt_maskz_set_p_128_avx()
@@ -819,58 +885,58 @@ namespace TestsKT
         // DIRECT (can have any extension other than AVX512VL)
         //====================================================
         // bsz::b128/float -> 4
-        kt_maskz_set_p_param_dir(bsz::b128, float, s, AVX, 1, 1);
-        kt_maskz_set_p_param_dir(bsz::b128, float, s, AVX2, 2, 0);
-        kt_maskz_set_p_param_dir(bsz::b128, float, s, AVX512F, 3, 2);
-        kt_maskz_set_p_param_dir(bsz::b128, float, s, AVX, 4, 1);
+        kt_maskz_set_p_param_dir_64_32(bsz::b128, float, s, AVX, 1, 1);
+        kt_maskz_set_p_param_dir_64_32(bsz::b128, float, s, AVX2, 2, 0);
+        kt_maskz_set_p_param_dir_64_32(bsz::b128, float, s, AVX512F, 3, 2);
+        kt_maskz_set_p_param_dir_64_32(bsz::b128, float, s, AVX, 4, 1);
 
         // This must trigger a warning under AVX512F (bsz::b128 bit __mask8)
-        // kt_maskz_set_p_param_dir(bsz::b128, float, s, AVX, 9);
+        // kt_maskz_set_p_param_dir_64_32(bsz::b128, float, s, AVX, 9);
         // Test to ensure the memory is not touched
-        kt_maskz_set_p_param_dir(bsz::b128, float, s, AVX, -1, 10000000);
+        kt_maskz_set_p_param_dir_64_32(bsz::b128, float, s, AVX, -1, 10000000);
 
         // bsz::b128 double -> 2
-        kt_maskz_set_p_param_dir(bsz::b128, double, d, AVX512DQ, 1, 0);
-        kt_maskz_set_p_param_dir(bsz::b128, double, d, AVX512F, 2, 1);
+        kt_maskz_set_p_param_dir_64_32(bsz::b128, double, d, AVX512DQ, 1, 0);
+        kt_maskz_set_p_param_dir_64_32(bsz::b128, double, d, AVX512F, 2, 1);
         // This also triggers a warning
-        // kt_maskz_set_p_param_dir(bsz::b128, double, d, AVX, 5);
+        // kt_maskz_set_p_param_dir_64_32(bsz::b128, double, d, AVX, 5);
         // Test to ensure the memory is not touched
-        kt_maskz_set_p_param_dir(bsz::b128, double, d, AVX, -1, 10000000);
+        kt_maskz_set_p_param_dir_64_32(bsz::b128, double, d, AVX, -1, 10000000);
 
         // bsz::b128 cfloat -> 2
-        kt_maskz_set_p_param_dir(bsz::b128, cfloat, c, AVX2, 1, 1);
-        kt_maskz_set_p_param_dir(bsz::b128, cfloat, c, AVX, 2, 0);
+        kt_maskz_set_p_param_dir_64_32(bsz::b128, cfloat, c, AVX2, 1, 1);
+        kt_maskz_set_p_param_dir_64_32(bsz::b128, cfloat, c, AVX, 2, 0);
 
         // Test to ensure the memory is not touched
-        kt_maskz_set_p_param_dir(bsz::b128, cfloat, c, AVX512F, -1, 10000000);
+        kt_maskz_set_p_param_dir_64_32(bsz::b128, cfloat, c, AVX512F, -1, 10000000);
 
         // bsz::b128 cdouble -> 1
-        kt_maskz_set_p_param_dir(bsz::b128, cdouble, z, AVX, 1, 0);
+        kt_maskz_set_p_param_dir_64_32(bsz::b128, cdouble, z, AVX, 1, 0);
 
         // Test to ensure the memory is not touched
-        kt_maskz_set_p_param_dir(bsz::b128, cdouble, z, AVX2, -1, 10000000);
+        kt_maskz_set_p_param_dir_64_32(bsz::b128, cdouble, z, AVX2, -1, 10000000);
 
         // =================================
-        // INDIRECT (can have any extension)
+        // INDIRECT (can have any extension) - test both 64-bit and 32-bit index types
         // =================================
-        kt_maskz_set_p_param_indir(bsz::b128, float, s, AVX, 1, 0);
-        kt_maskz_set_p_param_indir(bsz::b128, float, s, AVX512F, 2, 1);
-        kt_maskz_set_p_param_indir(bsz::b128, float, s, AVX512VL, 3, 0);
-        kt_maskz_set_p_param_indir(bsz::b128, float, s, AVX, 4, 1);
+        kt_maskz_set_p_param_indir_64_32(bsz::b128, float, s, AVX, 1, 0);
+        kt_maskz_set_p_param_indir_64_32(bsz::b128, float, s, AVX512F, 2, 1);
+        kt_maskz_set_p_param_indir_64_32(bsz::b128, float, s, AVX512VL, 3, 0);
+        kt_maskz_set_p_param_indir_64_32(bsz::b128, float, s, AVX, 4, 1);
 
-        kt_maskz_set_p_param_indir(bsz::b128, double, d, AVX, 1, 0);
-        kt_maskz_set_p_param_indir(bsz::b128, double, d, AVX512DQ, 2, 1);
+        kt_maskz_set_p_param_indir_64_32(bsz::b128, double, d, AVX, 1, 0);
+        kt_maskz_set_p_param_indir_64_32(bsz::b128, double, d, AVX512DQ, 2, 1);
 
-        kt_maskz_set_p_param_indir(bsz::b128, cfloat, c, AVX, 1, 0);
-        kt_maskz_set_p_param_indir(bsz::b128, cfloat, c, AVX512F, 2, 1);
+        kt_maskz_set_p_param_indir_64_32(bsz::b128, cfloat, c, AVX, 1, 0);
+        kt_maskz_set_p_param_indir_64_32(bsz::b128, cfloat, c, AVX512F, 2, 1);
 
-        kt_maskz_set_p_param_indir(bsz::b128, cdouble, z, AVX, 1, 1);
+        kt_maskz_set_p_param_indir_64_32(bsz::b128, cdouble, z, AVX, 1, 1);
 
-        // Out of bound access tests
-        kt_maskz_set_p_param_indir_out_of_bound(bsz::b128, float, s, AVX);
-        kt_maskz_set_p_param_indir_out_of_bound(bsz::b128, double, d, AVX);
-        kt_maskz_set_p_param_indir_out_of_bound(bsz::b128, cfloat, c, AVX);
-        kt_maskz_set_p_param_indir_out_of_bound(bsz::b128, cdouble, z, AVX);
+        // Out of bound access tests - both 64-bit and 32-bit index types
+        kt_maskz_set_p_param_indir_out_of_bound_64_32(bsz::b128, float, s, AVX);
+        kt_maskz_set_p_param_indir_out_of_bound_64_32(bsz::b128, double, d, AVX);
+        kt_maskz_set_p_param_indir_out_of_bound_64_32(bsz::b128, cfloat, c, AVX);
+        kt_maskz_set_p_param_indir_out_of_bound_64_32(bsz::b128, cdouble, z, AVX);
     }
 
     void kt_maskz_set_p_256_avx()
@@ -879,195 +945,195 @@ namespace TestsKT
         // DIRECT
         //================
         // bsz::b256/float -> 8
-        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 1, 1);
-        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 2, 0);
-        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 3, 2);
-        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 4, 1);
-        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 5, 0);
-        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 6, 1);
-        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 7, 0);
-        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 8, 1);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, float, s, AVX, 1, 1);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, float, s, AVX, 2, 0);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, float, s, AVX, 3, 2);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, float, s, AVX, 4, 1);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, float, s, AVX, 5, 0);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, float, s, AVX, 6, 1);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, float, s, AVX, 7, 0);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, float, s, AVX, 8, 1);
         // This must trigger a warning under AVX512F (bsz::b256 bit __mask8)
-        // kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, 9);
+        // kt_maskz_set_p_param_dir_64_32(bsz::b256, float, s, AVX, 9);
         // Test to ensure the memory is not touched
-        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX, -1, 10000000);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, float, s, AVX, -1, 10000000);
 
         // bsz::b256 double -> 4
-        kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX, 1, 0);
-        kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX, 2, 1);
-        kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX, 3, 3);
-        kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX, 4, 2);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, double, d, AVX, 1, 0);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, double, d, AVX, 2, 1);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, double, d, AVX, 3, 3);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, double, d, AVX, 4, 2);
         // This also triggers a warning
-        // kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX, 5);
+        // kt_maskz_set_p_param_dir_64_32(bsz::b256, double, d, AVX, 5);
         // Test to ensure the memory is not touched
-        kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX, -1, 10000000);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, double, d, AVX, -1, 10000000);
 
         // bsz::b256 cfloat -> 4
-        kt_maskz_set_p_param_dir(bsz::b256, cfloat, c, AVX, 1, 1);
-        kt_maskz_set_p_param_dir(bsz::b256, cfloat, c, AVX, 2, 0);
-        kt_maskz_set_p_param_dir(bsz::b256, cfloat, c, AVX, 3, 4);
-        kt_maskz_set_p_param_dir(bsz::b256, cfloat, c, AVX, 4, 0);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, cfloat, c, AVX, 1, 1);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, cfloat, c, AVX, 2, 0);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, cfloat, c, AVX, 3, 4);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, cfloat, c, AVX, 4, 0);
 
         // Test to ensure the memory is not touched
-        kt_maskz_set_p_param_dir(bsz::b256, cfloat, c, AVX, -1, 10000000);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, cfloat, c, AVX, -1, 10000000);
 
         // bsz::b256 cdouble -> 2
-        kt_maskz_set_p_param_dir(bsz::b256, cdouble, z, AVX, 1, 0);
-        kt_maskz_set_p_param_dir(bsz::b256, cdouble, z, AVX, 2, 4);
-        kt_maskz_set_p_param_dir(bsz::b256, cdouble, z, AVX, 2, 0);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, cdouble, z, AVX, 1, 0);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, cdouble, z, AVX, 2, 4);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, cdouble, z, AVX, 2, 0);
 
         // Test to ensure the memory is not touched
-        kt_maskz_set_p_param_dir(bsz::b256, cdouble, z, AVX, -1, 10000000);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, cdouble, z, AVX, -1, 10000000);
 
         // =================================
-        // INDIRECT (can have any extension)
+        // INDIRECT (can have any extension) - test both 64-bit and 32-bit index types
         // =================================
-        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX, 1, 0);
-        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX512F, 2, 1);
-        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX512VL, 3, 0);
-        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX, 4, 1);
-        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX, 5, 0);
-        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX, 6, 2);
-        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX, 7, 0);
-        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX, 8, 0);
-        kt_maskz_set_p_param_indir(bsz::b256, float, s, AVX, 9, 0);
+        kt_maskz_set_p_param_indir_64_32(bsz::b256, float, s, AVX, 1, 0);
+        kt_maskz_set_p_param_indir_64_32(bsz::b256, float, s, AVX512F, 2, 1);
+        kt_maskz_set_p_param_indir_64_32(bsz::b256, float, s, AVX512VL, 3, 0);
+        kt_maskz_set_p_param_indir_64_32(bsz::b256, float, s, AVX, 4, 1);
+        kt_maskz_set_p_param_indir_64_32(bsz::b256, float, s, AVX, 5, 0);
+        kt_maskz_set_p_param_indir_64_32(bsz::b256, float, s, AVX, 6, 2);
+        kt_maskz_set_p_param_indir_64_32(bsz::b256, float, s, AVX, 7, 0);
+        kt_maskz_set_p_param_indir_64_32(bsz::b256, float, s, AVX, 8, 0);
+        kt_maskz_set_p_param_indir_64_32(bsz::b256, float, s, AVX, 9, 0);
 
-        kt_maskz_set_p_param_indir(bsz::b256, double, d, AVX, 1, 0);
-        kt_maskz_set_p_param_indir(bsz::b256, double, d, AVX512DQ, 0, 1);
-        kt_maskz_set_p_param_indir(bsz::b256, double, d, AVX, 3, 0);
-        kt_maskz_set_p_param_indir(bsz::b256, double, d, AVX, 4, 3);
-        kt_maskz_set_p_param_indir(bsz::b256, double, d, AVX, 5, 0);
+        kt_maskz_set_p_param_indir_64_32(bsz::b256, double, d, AVX, 1, 0);
+        kt_maskz_set_p_param_indir_64_32(bsz::b256, double, d, AVX512DQ, 0, 1);
+        kt_maskz_set_p_param_indir_64_32(bsz::b256, double, d, AVX, 3, 0);
+        kt_maskz_set_p_param_indir_64_32(bsz::b256, double, d, AVX, 4, 3);
+        kt_maskz_set_p_param_indir_64_32(bsz::b256, double, d, AVX, 5, 0);
 
-        kt_maskz_set_p_param_indir(bsz::b256, cfloat, c, AVX, 1, 0);
-        kt_maskz_set_p_param_indir(bsz::b256, cfloat, c, AVX512F, 2, 1);
-        kt_maskz_set_p_param_indir(bsz::b256, cfloat, c, AVX512VL, 0, 0);
-        kt_maskz_set_p_param_indir(bsz::b256, cfloat, c, AVX, 4, 1);
-        kt_maskz_set_p_param_indir(bsz::b256, cfloat, c, AVX, 3, 3);
+        kt_maskz_set_p_param_indir_64_32(bsz::b256, cfloat, c, AVX, 1, 0);
+        kt_maskz_set_p_param_indir_64_32(bsz::b256, cfloat, c, AVX512F, 2, 1);
+        kt_maskz_set_p_param_indir_64_32(bsz::b256, cfloat, c, AVX512VL, 0, 0);
+        kt_maskz_set_p_param_indir_64_32(bsz::b256, cfloat, c, AVX, 4, 1);
+        kt_maskz_set_p_param_indir_64_32(bsz::b256, cfloat, c, AVX, 3, 3);
 
-        kt_maskz_set_p_param_indir(bsz::b256, cdouble, z, AVX, 1, 1);
-        kt_maskz_set_p_param_indir(bsz::b256, cdouble, z, AVX512DQ, 2, 0);
-        kt_maskz_set_p_param_indir(bsz::b256, cdouble, z, AVX, 1, 0);
-        kt_maskz_set_p_param_indir(bsz::b256, cdouble, z, AVX, 2, 2);
-        kt_maskz_set_p_param_indir(bsz::b256, cdouble, z, AVX512DQ, 0, 0);
+        kt_maskz_set_p_param_indir_64_32(bsz::b256, cdouble, z, AVX, 1, 1);
+        kt_maskz_set_p_param_indir_64_32(bsz::b256, cdouble, z, AVX512DQ, 2, 0);
+        kt_maskz_set_p_param_indir_64_32(bsz::b256, cdouble, z, AVX, 1, 0);
+        kt_maskz_set_p_param_indir_64_32(bsz::b256, cdouble, z, AVX, 2, 2);
+        kt_maskz_set_p_param_indir_64_32(bsz::b256, cdouble, z, AVX512DQ, 0, 0);
 
-        // Out of bound access tests
-        kt_maskz_set_p_param_indir_out_of_bound(bsz::b256, float, s, AVX2);
-        kt_maskz_set_p_param_indir_out_of_bound(bsz::b256, double, d, AVX2);
-        kt_maskz_set_p_param_indir_out_of_bound(bsz::b256, cfloat, c, AVX2);
-        kt_maskz_set_p_param_indir_out_of_bound(bsz::b256, cdouble, z, AVX2);
+        // Out of bound access tests - both 64-bit and 32-bit index types
+        kt_maskz_set_p_param_indir_out_of_bound_64_32(bsz::b256, float, s, AVX2);
+        kt_maskz_set_p_param_indir_out_of_bound_64_32(bsz::b256, double, d, AVX2);
+        kt_maskz_set_p_param_indir_out_of_bound_64_32(bsz::b256, cfloat, c, AVX2);
+        kt_maskz_set_p_param_indir_out_of_bound_64_32(bsz::b256, cdouble, z, AVX2);
     }
 #else
     void kt_maskz_set_p_256_AVX512vl()
     {
-        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX512VL, 1, 0);
-        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX512VL, 2, 5);
-        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX512VL, 3, 1);
-        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX512VL, 4, 0);
-        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX512VL, 5, 1);
-        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX512VL, 6, 2);
-        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX512VL, 7, 1);
-        kt_maskz_set_p_param_dir(bsz::b256, float, s, AVX512VL, 8, 0);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, float, s, AVX512VL, 1, 0);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, float, s, AVX512VL, 2, 5);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, float, s, AVX512VL, 3, 1);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, float, s, AVX512VL, 4, 0);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, float, s, AVX512VL, 5, 1);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, float, s, AVX512VL, 6, 2);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, float, s, AVX512VL, 7, 1);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, float, s, AVX512VL, 8, 0);
 
-        kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX512VL, 1, 1);
-        kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX512VL, 2, 0);
-        kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX512VL, 3, 1);
-        kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX512VL, 4, 2);
-        kt_maskz_set_p_param_dir(bsz::b256, double, d, AVX512VL, 5, 1);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, double, d, AVX512VL, 1, 1);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, double, d, AVX512VL, 2, 0);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, double, d, AVX512VL, 3, 1);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, double, d, AVX512VL, 4, 2);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, double, d, AVX512VL, 5, 1);
 
-        kt_maskz_set_p_param_dir(bsz::b256, cfloat, c, AVX512VL, 1, 0);
-        kt_maskz_set_p_param_dir(bsz::b256, cfloat, c, AVX512VL, 2, 5);
-        kt_maskz_set_p_param_dir(bsz::b256, cfloat, c, AVX512VL, 3, 2);
-        kt_maskz_set_p_param_dir(bsz::b256, cfloat, c, AVX512VL, 4, 0);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, cfloat, c, AVX512VL, 1, 0);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, cfloat, c, AVX512VL, 2, 5);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, cfloat, c, AVX512VL, 3, 2);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, cfloat, c, AVX512VL, 4, 0);
 
-        kt_maskz_set_p_param_dir(bsz::b256, cdouble, z, AVX512VL, 1, 1);
-        kt_maskz_set_p_param_dir(bsz::b256, cdouble, z, AVX512VL, 2, 0);
-        kt_maskz_set_p_param_dir(bsz::b256, cdouble, z, AVX512VL, 3, 4);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, cdouble, z, AVX512VL, 1, 1);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, cdouble, z, AVX512VL, 2, 0);
+        kt_maskz_set_p_param_dir_64_32(bsz::b256, cdouble, z, AVX512VL, 3, 4);
     }
 
     void kt_maskz_set_p_512_AVX512f()
     {
         // Direct
-        kt_maskz_set_p_param_dir(bsz::b512, float, s, AVX512F, 1, 0);
-        kt_maskz_set_p_param_dir(bsz::b512, float, s, AVX512F, 2, 0);
-        kt_maskz_set_p_param_dir(bsz::b512, float, s, AVX512F, 3, 1);
-        kt_maskz_set_p_param_dir(bsz::b512, float, s, AVX512F, 4, 1);
-        kt_maskz_set_p_param_dir(bsz::b512, float, s, AVX512F, 6, 1);
-        kt_maskz_set_p_param_dir(bsz::b512, float, s, AVX512F, 7, 1);
-        kt_maskz_set_p_param_dir(bsz::b512, float, s, AVX512F, 8, 1);
-        kt_maskz_set_p_param_dir(bsz::b512, float, s, AVX512F, 9, 1);
-        kt_maskz_set_p_param_dir(bsz::b512, float, s, AVX512F, 9, 1);
-        kt_maskz_set_p_param_dir(bsz::b512, float, s, AVX512F, 10, 0);
-        kt_maskz_set_p_param_dir(bsz::b512, float, s, AVX512F, 11, 0);
-        kt_maskz_set_p_param_dir(bsz::b512, float, s, AVX512F, 12, 0);
-        kt_maskz_set_p_param_dir(bsz::b512, float, s, AVX512F, 13, 0);
-        kt_maskz_set_p_param_dir(bsz::b512, float, s, AVX512F, 14, 0);
-        kt_maskz_set_p_param_dir(bsz::b512, float, s, AVX512F, 15, 0);
-        kt_maskz_set_p_param_dir(bsz::b512, float, s, AVX512F, 16, 0);
+        kt_maskz_set_p_param_dir_64_32(bsz::b512, float, s, AVX512F, 1, 0);
+        kt_maskz_set_p_param_dir_64_32(bsz::b512, float, s, AVX512F, 2, 0);
+        kt_maskz_set_p_param_dir_64_32(bsz::b512, float, s, AVX512F, 3, 1);
+        kt_maskz_set_p_param_dir_64_32(bsz::b512, float, s, AVX512F, 4, 1);
+        kt_maskz_set_p_param_dir_64_32(bsz::b512, float, s, AVX512F, 6, 1);
+        kt_maskz_set_p_param_dir_64_32(bsz::b512, float, s, AVX512F, 7, 1);
+        kt_maskz_set_p_param_dir_64_32(bsz::b512, float, s, AVX512F, 8, 1);
+        kt_maskz_set_p_param_dir_64_32(bsz::b512, float, s, AVX512F, 9, 1);
+        kt_maskz_set_p_param_dir_64_32(bsz::b512, float, s, AVX512F, 9, 1);
+        kt_maskz_set_p_param_dir_64_32(bsz::b512, float, s, AVX512F, 10, 0);
+        kt_maskz_set_p_param_dir_64_32(bsz::b512, float, s, AVX512F, 11, 0);
+        kt_maskz_set_p_param_dir_64_32(bsz::b512, float, s, AVX512F, 12, 0);
+        kt_maskz_set_p_param_dir_64_32(bsz::b512, float, s, AVX512F, 13, 0);
+        kt_maskz_set_p_param_dir_64_32(bsz::b512, float, s, AVX512F, 14, 0);
+        kt_maskz_set_p_param_dir_64_32(bsz::b512, float, s, AVX512F, 15, 0);
+        kt_maskz_set_p_param_dir_64_32(bsz::b512, float, s, AVX512F, 16, 0);
 
-        kt_maskz_set_p_param_dir(bsz::b512, double, d, AVX512F, 1, 3);
-        kt_maskz_set_p_param_dir(bsz::b512, double, d, AVX512F, 2, 2);
-        kt_maskz_set_p_param_dir(bsz::b512, double, d, AVX512F, 3, 4);
-        kt_maskz_set_p_param_dir(bsz::b512, double, d, AVX512F, 4, 0);
-        kt_maskz_set_p_param_dir(bsz::b512, double, d, AVX512F, 5, 1);
-        kt_maskz_set_p_param_dir(bsz::b512, double, d, AVX512F, 6, 0);
-        kt_maskz_set_p_param_dir(bsz::b512, double, d, AVX512F, 7, 0);
-        kt_maskz_set_p_param_dir(bsz::b512, double, d, AVX512F, 8, 0);
+        kt_maskz_set_p_param_dir_64_32(bsz::b512, double, d, AVX512F, 1, 3);
+        kt_maskz_set_p_param_dir_64_32(bsz::b512, double, d, AVX512F, 2, 2);
+        kt_maskz_set_p_param_dir_64_32(bsz::b512, double, d, AVX512F, 3, 4);
+        kt_maskz_set_p_param_dir_64_32(bsz::b512, double, d, AVX512F, 4, 0);
+        kt_maskz_set_p_param_dir_64_32(bsz::b512, double, d, AVX512F, 5, 1);
+        kt_maskz_set_p_param_dir_64_32(bsz::b512, double, d, AVX512F, 6, 0);
+        kt_maskz_set_p_param_dir_64_32(bsz::b512, double, d, AVX512F, 7, 0);
+        kt_maskz_set_p_param_dir_64_32(bsz::b512, double, d, AVX512F, 8, 0);
 
-        kt_maskz_set_p_param_dir(bsz::b512, cfloat, c, AVX512F, 1, 5);
-        kt_maskz_set_p_param_dir(bsz::b512, cfloat, c, AVX512F, 2, 0);
-        kt_maskz_set_p_param_dir(bsz::b512, cfloat, c, AVX512F, 3, 2);
-        kt_maskz_set_p_param_dir(bsz::b512, cfloat, c, AVX512F, 4, 0);
+        kt_maskz_set_p_param_dir_64_32(bsz::b512, cfloat, c, AVX512F, 1, 5);
+        kt_maskz_set_p_param_dir_64_32(bsz::b512, cfloat, c, AVX512F, 2, 0);
+        kt_maskz_set_p_param_dir_64_32(bsz::b512, cfloat, c, AVX512F, 3, 2);
+        kt_maskz_set_p_param_dir_64_32(bsz::b512, cfloat, c, AVX512F, 4, 0);
 
-        kt_maskz_set_p_param_dir(bsz::b512, cdouble, z, AVX512F, 1, 0);
-        kt_maskz_set_p_param_dir(bsz::b512, cdouble, z, AVX512F, 2, 2);
-        kt_maskz_set_p_param_dir(bsz::b512, cdouble, z, AVX512F, 3, 2);
+        kt_maskz_set_p_param_dir_64_32(bsz::b512, cdouble, z, AVX512F, 1, 0);
+        kt_maskz_set_p_param_dir_64_32(bsz::b512, cdouble, z, AVX512F, 2, 2);
+        kt_maskz_set_p_param_dir_64_32(bsz::b512, cdouble, z, AVX512F, 3, 2);
 
-        // Indirect
-        kt_maskz_set_p_param_indir(bsz::b512, float, s, AVX512F, 1, 1);
-        kt_maskz_set_p_param_indir(bsz::b512, float, s, AVX512F, 2, 1);
-        kt_maskz_set_p_param_indir(bsz::b512, float, s, AVX512F, 3, 3);
-        kt_maskz_set_p_param_indir(bsz::b512, float, s, AVX512F, 4, 0);
-        kt_maskz_set_p_param_indir(bsz::b512, float, s, AVX512F, 5, 1);
-        kt_maskz_set_p_param_indir(bsz::b512, float, s, AVX512F, 6, 0);
-        kt_maskz_set_p_param_indir(bsz::b512, float, s, AVX512F, 7, 0);
-        kt_maskz_set_p_param_indir(bsz::b512, float, s, AVX512F, 8, 3);
-        kt_maskz_set_p_param_indir(bsz::b512, float, s, AVX512F, 9, 0);
-        kt_maskz_set_p_param_indir(bsz::b512, float, s, AVX512F, 10, 0);
-        kt_maskz_set_p_param_indir(bsz::b512, float, s, AVX512F, 11, 5);
-        kt_maskz_set_p_param_indir(bsz::b512, float, s, AVX512F, 12, 0);
-        kt_maskz_set_p_param_indir(bsz::b512, float, s, AVX512F, 13, 2);
-        kt_maskz_set_p_param_indir(bsz::b512, float, s, AVX512F, 14, 0);
-        kt_maskz_set_p_param_indir(bsz::b512, float, s, AVX512F, 15, 0);
-        kt_maskz_set_p_param_indir(bsz::b512, float, s, AVX512F, 16, 0);
+        // Indirect - test both 64-bit and 32-bit index types
+        kt_maskz_set_p_param_indir_64_32(bsz::b512, float, s, AVX512F, 1, 1);
+        kt_maskz_set_p_param_indir_64_32(bsz::b512, float, s, AVX512F, 2, 1);
+        kt_maskz_set_p_param_indir_64_32(bsz::b512, float, s, AVX512F, 3, 3);
+        kt_maskz_set_p_param_indir_64_32(bsz::b512, float, s, AVX512F, 4, 0);
+        kt_maskz_set_p_param_indir_64_32(bsz::b512, float, s, AVX512F, 5, 1);
+        kt_maskz_set_p_param_indir_64_32(bsz::b512, float, s, AVX512F, 6, 0);
+        kt_maskz_set_p_param_indir_64_32(bsz::b512, float, s, AVX512F, 7, 0);
+        kt_maskz_set_p_param_indir_64_32(bsz::b512, float, s, AVX512F, 8, 3);
+        kt_maskz_set_p_param_indir_64_32(bsz::b512, float, s, AVX512F, 9, 0);
+        kt_maskz_set_p_param_indir_64_32(bsz::b512, float, s, AVX512F, 10, 0);
+        kt_maskz_set_p_param_indir_64_32(bsz::b512, float, s, AVX512F, 11, 5);
+        kt_maskz_set_p_param_indir_64_32(bsz::b512, float, s, AVX512F, 12, 0);
+        kt_maskz_set_p_param_indir_64_32(bsz::b512, float, s, AVX512F, 13, 2);
+        kt_maskz_set_p_param_indir_64_32(bsz::b512, float, s, AVX512F, 14, 0);
+        kt_maskz_set_p_param_indir_64_32(bsz::b512, float, s, AVX512F, 15, 0);
+        kt_maskz_set_p_param_indir_64_32(bsz::b512, float, s, AVX512F, 16, 0);
 
-        kt_maskz_set_p_param_indir(bsz::b512, double, d, AVX512F, 1, 5);
-        kt_maskz_set_p_param_indir(bsz::b512, double, d, AVX512F, 2, 3);
-        kt_maskz_set_p_param_indir(bsz::b512, double, d, AVX512F, 3, 0);
-        kt_maskz_set_p_param_indir(bsz::b512, double, d, AVX512F, 4, 1);
-        kt_maskz_set_p_param_indir(bsz::b512, double, d, AVX512F, 5, 2);
-        kt_maskz_set_p_param_indir(bsz::b512, double, d, AVX512F, 6, 4);
-        kt_maskz_set_p_param_indir(bsz::b512, double, d, AVX512F, 7, 2);
-        kt_maskz_set_p_param_indir(bsz::b512, double, d, AVX512F, 8, 0);
+        kt_maskz_set_p_param_indir_64_32(bsz::b512, double, d, AVX512F, 1, 5);
+        kt_maskz_set_p_param_indir_64_32(bsz::b512, double, d, AVX512F, 2, 3);
+        kt_maskz_set_p_param_indir_64_32(bsz::b512, double, d, AVX512F, 3, 0);
+        kt_maskz_set_p_param_indir_64_32(bsz::b512, double, d, AVX512F, 4, 1);
+        kt_maskz_set_p_param_indir_64_32(bsz::b512, double, d, AVX512F, 5, 2);
+        kt_maskz_set_p_param_indir_64_32(bsz::b512, double, d, AVX512F, 6, 4);
+        kt_maskz_set_p_param_indir_64_32(bsz::b512, double, d, AVX512F, 7, 2);
+        kt_maskz_set_p_param_indir_64_32(bsz::b512, double, d, AVX512F, 8, 0);
 
-        kt_maskz_set_p_param_indir(bsz::b512, cfloat, c, AVX512F, 1, 0);
-        kt_maskz_set_p_param_indir(bsz::b512, cfloat, c, AVX512F, 2, 1);
-        kt_maskz_set_p_param_indir(bsz::b512, cfloat, c, AVX512F, 3, 1);
-        kt_maskz_set_p_param_indir(bsz::b512, cfloat, c, AVX512F, 4, 3);
-        kt_maskz_set_p_param_indir(bsz::b512, cfloat, c, AVX512F, 5, 1);
-        kt_maskz_set_p_param_indir(bsz::b512, cfloat, c, AVX512F, 6, 0);
-        kt_maskz_set_p_param_indir(bsz::b512, cfloat, c, AVX512F, 7, 1);
-        kt_maskz_set_p_param_indir(bsz::b512, cfloat, c, AVX512F, 8, 2);
+        kt_maskz_set_p_param_indir_64_32(bsz::b512, cfloat, c, AVX512F, 1, 0);
+        kt_maskz_set_p_param_indir_64_32(bsz::b512, cfloat, c, AVX512F, 2, 1);
+        kt_maskz_set_p_param_indir_64_32(bsz::b512, cfloat, c, AVX512F, 3, 1);
+        kt_maskz_set_p_param_indir_64_32(bsz::b512, cfloat, c, AVX512F, 4, 3);
+        kt_maskz_set_p_param_indir_64_32(bsz::b512, cfloat, c, AVX512F, 5, 1);
+        kt_maskz_set_p_param_indir_64_32(bsz::b512, cfloat, c, AVX512F, 6, 0);
+        kt_maskz_set_p_param_indir_64_32(bsz::b512, cfloat, c, AVX512F, 7, 1);
+        kt_maskz_set_p_param_indir_64_32(bsz::b512, cfloat, c, AVX512F, 8, 2);
 
-        kt_maskz_set_p_param_indir(bsz::b512, cdouble, z, AVX512F, 1, 0);
-        kt_maskz_set_p_param_indir(bsz::b512, cdouble, z, AVX512F, 2, 1);
-        kt_maskz_set_p_param_indir(bsz::b512, cdouble, z, AVX512F, 3, 0);
-        kt_maskz_set_p_param_indir(bsz::b512, cdouble, z, AVX512F, 4, 3);
+        kt_maskz_set_p_param_indir_64_32(bsz::b512, cdouble, z, AVX512F, 1, 0);
+        kt_maskz_set_p_param_indir_64_32(bsz::b512, cdouble, z, AVX512F, 2, 1);
+        kt_maskz_set_p_param_indir_64_32(bsz::b512, cdouble, z, AVX512F, 3, 0);
+        kt_maskz_set_p_param_indir_64_32(bsz::b512, cdouble, z, AVX512F, 4, 3);
 
         // Out of bound access tests
-        kt_maskz_set_p_param_indir_out_of_bound(bsz::b512, float, s, AVX512F);
-        kt_maskz_set_p_param_indir_out_of_bound(bsz::b512, double, d, AVX512F);
-        kt_maskz_set_p_param_indir_out_of_bound(bsz::b512, cfloat, c, AVX512F);
-        kt_maskz_set_p_param_indir_out_of_bound(bsz::b512, cdouble, z, AVX512F);
+        kt_maskz_set_p_param_indir_out_of_bound_64_32(bsz::b512, float, s, AVX512F);
+        kt_maskz_set_p_param_indir_out_of_bound_64_32(bsz::b512, double, d, AVX512F);
+        kt_maskz_set_p_param_indir_out_of_bound_64_32(bsz::b512, cfloat, c, AVX512F);
+        kt_maskz_set_p_param_indir_out_of_bound_64_32(bsz::b512, cdouble, z, AVX512F);
     }
 #endif
 
@@ -1200,7 +1266,7 @@ namespace TestsKT
         // to test the kt_fmadd_B, because the latter is not implemented
         if constexpr(SZ == bsz::b128 && !kt_type_is_real<SUF>())
         {
-            return kt_fmadd_p_test<SZ, SUF>();
+            return kt_fmadd_p_test<SZ, SUF, uint64_t>();
         }
 
         // Blocked fmadd_B tests work differently for real and complex types
@@ -1450,13 +1516,13 @@ namespace TestsKT
             std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
     }
 
-    template <bsz SZ, typename SUF>
+    template <bsz SZ, typename SUF, typename IS>
     void kt_scatter_p_test()
     {
         constexpr size_t     sz = tsz_v<SZ, SUF>;
         avxvector_t<SZ, SUF> v;
         const SUF           *data = D.get_data<SUF>();
-        const size_t        *idx  = D.map;
+        const IS            *idx  = D.get_indices<IS>();
 
         size_t max_idx = 0;
 
@@ -1464,7 +1530,7 @@ namespace TestsKT
         // This maximum index is used to size the output array
         for(size_t i = 0; i < sz; ++i)
         {
-            max_idx = (std::max)(max_idx, *(idx + i));
+            max_idx = (std::max)(max_idx, static_cast<size_t>(*(idx + i)));
         }
 
         // Output and reference arrays
@@ -1477,9 +1543,9 @@ namespace TestsKT
         v = kt_loadu_p<SZ, SUF>(data);
 
         // Scatter to out using idx
-        kt_scatter_p<SZ, SUF, fused_op::ADD>(v, out[0].data(), idx);
-        kt_scatter_p<SZ, SUF, fused_op::SUB>(v, out[1].data(), idx);
-        kt_scatter_p<SZ, SUF>(v, out[2].data(), idx);
+        kt_scatter_p<SZ, SUF, IS, fused_op::ADD>(v, out[0].data(), idx);
+        kt_scatter_p<SZ, SUF, IS, fused_op::SUB>(v, out[1].data(), idx);
+        kt_scatter_p<SZ, SUF, IS>(v, out[2].data(), idx);
 
         // Reference: out[idx[i]] (op)= data[i]
         // Reference scatter with fused add and sub
@@ -1496,7 +1562,8 @@ namespace TestsKT
         expect_eq_vec(ref[2].size(), out[2].data(), ref[2].data());
 
         if(::testing::Test::HasFailure())
-            std::cerr << __func__ << " failing for type: " << get_typename<SUF>() << std::endl;
+            std::cerr << __func__ << " failing for type: " << get_typename<SUF>()
+                      << ", index: " << get_typename<IS>() << std::endl;
     }
 }
 
@@ -1519,6 +1586,19 @@ namespace TestsKT
     template void func<SZ, int32_t>();        \
     template void func<SZ, int64_t>();
 
+// Test instantiation for index-type templated APIs (kt_set_p, kt_scatter_p, kt_fmadd_p, kt_fmsub_p)
+#define KT_TEST_INSTANTIATE_FOR_INDEX_TYPES(func, SZ, SUF) \
+    template void func<SZ, SUF, int32_t>();                \
+    template void func<SZ, SUF, int64_t>();                \
+    template void func<SZ, SUF, uint32_t>();               \
+    template void func<SZ, SUF, uint64_t>();
+
+#define KT_TEST_INSTANTIATE_FOR_ALL_TYPES_AND_INDEX(func, SZ) \
+    KT_TEST_INSTANTIATE_FOR_INDEX_TYPES(func, SZ, float);     \
+    KT_TEST_INSTANTIATE_FOR_INDEX_TYPES(func, SZ, double);    \
+    KT_TEST_INSTANTIATE_FOR_INDEX_TYPES(func, SZ, cfloat);    \
+    KT_TEST_INSTANTIATE_FOR_INDEX_TYPES(func, SZ, cdouble);
+
 // Test instantiation macros for all data types during AVX2 build
 #ifdef KT_AVX2_BUILD
 #define KT_INSTANTIATE_TEST(func)                       \
@@ -1532,6 +1612,10 @@ namespace TestsKT
 #define KT_INSTANTIATE_TEST_INT(func)             \
     KT_TEST_INSTANTIATE_FOR_INT(func, bsz::b128); \
     KT_TEST_INSTANTIATE_FOR_INT(func, get_bsz());
+
+#define KT_INSTANTIATE_TEST_INDEX(func)                           \
+    KT_TEST_INSTANTIATE_FOR_ALL_TYPES_AND_INDEX(func, bsz::b128); \
+    KT_TEST_INSTANTIATE_FOR_ALL_TYPES_AND_INDEX(func, get_bsz());
 #else
 // Test instantiation macros for all data types during AVX512 build
 #define KT_INSTANTIATE_TEST(func) KT_TEST_INSTANTIATE_FOR_ALL_TYPES(func, get_bsz());
@@ -1539,6 +1623,9 @@ namespace TestsKT
 #define KT_INSTANTIATE_TEST_REAL(func) KT_TEST_INSTANTIATE_FOR_REAL(func, get_bsz());
 
 #define KT_INSTANTIATE_TEST_INT(func) KT_TEST_INSTANTIATE_FOR_INT(func, get_bsz());
+
+#define KT_INSTANTIATE_TEST_INDEX(func) \
+    KT_TEST_INSTANTIATE_FOR_ALL_TYPES_AND_INDEX(func, get_bsz());
 #endif
 
 KT_INSTANTIATE_TEST(TestsKT::kt_loadu_p_test);
@@ -1548,9 +1635,9 @@ KT_INSTANTIATE_TEST(TestsKT::kt_set1_p_test);
 KT_INSTANTIATE_TEST(TestsKT::kt_add_p_test);
 KT_INSTANTIATE_TEST(TestsKT::kt_sub_p_test);
 KT_INSTANTIATE_TEST(TestsKT::kt_mul_p_test);
-KT_INSTANTIATE_TEST(TestsKT::kt_fmadd_p_test);
-KT_INSTANTIATE_TEST(TestsKT::kt_fmsub_p_test);
-KT_INSTANTIATE_TEST(TestsKT::kt_set_p_test);
+KT_INSTANTIATE_TEST_INDEX(TestsKT::kt_fmadd_p_test);
+KT_INSTANTIATE_TEST_INDEX(TestsKT::kt_fmsub_p_test);
+KT_INSTANTIATE_TEST_INDEX(TestsKT::kt_set_p_test);
 KT_INSTANTIATE_TEST(TestsKT::kt_hsum_p_test);
 KT_INSTANTIATE_TEST(TestsKT::kt_conj_p_test);
 KT_INSTANTIATE_TEST(TestsKT::kt_dot_p_test);
@@ -1560,7 +1647,7 @@ KT_INSTANTIATE_TEST(TestsKT::kt_fmadd_B_test);
 KT_INSTANTIATE_TEST(TestsKT::kt_hsum_B_test);
 KT_INSTANTIATE_TEST(TestsKT::kt_div_p_test);
 KT_INSTANTIATE_TEST(TestsKT::kt_pow2_p_test);
-KT_INSTANTIATE_TEST(TestsKT::kt_scatter_p_test);
+KT_INSTANTIATE_TEST_INDEX(TestsKT::kt_scatter_p_test);
 
 // Operations that only support real types
 KT_INSTANTIATE_TEST_REAL(TestsKT::kt_max_p_test);
@@ -1570,4 +1657,3 @@ KT_INSTANTIATE_TEST_INT(TestsKT::kt_loadu_p_test);
 KT_INSTANTIATE_TEST_INT(TestsKT::kt_load_p_test);
 KT_INSTANTIATE_TEST_INT(TestsKT::kt_setzero_p_test);
 KT_INSTANTIATE_TEST_INT(TestsKT::kt_set1_p_test);
-KT_INSTANTIATE_TEST_INT(TestsKT::kt_set_p_test);

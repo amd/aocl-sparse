@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023-2025 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023-2026 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -50,6 +50,26 @@ using namespace kernel_templates;
     CALL_FOR_REAL_TYPES(func, SZ)    \
     CALL_FOR_COMPLEX_TYPES(func, SZ);
 
+// Macro to invoke index-templated test functions (int32_t, int64_t, uint32_t, uint64_t) for each type
+// Enable tests for unsigned integer types by enabling KT_TEST_UINT macro
+#ifdef KT_TEST_UINT
+#define CALL_FOR_INDEX_TYPES(func, SZ, SUF) \
+    func<SZ, SUF, int32_t>();               \
+    func<SZ, SUF, int64_t>();               \
+    func<SZ, SUF, uint32_t>();              \
+    func<SZ, SUF, uint64_t>();
+#else
+#define CALL_FOR_INDEX_TYPES(func, SZ, SUF) \
+    func<SZ, SUF, int32_t>();               \
+    func<SZ, SUF, int64_t>();
+#endif
+
+#define CALL_FOR_ALL_TYPES_AND_INDEX(func, SZ) \
+    CALL_FOR_INDEX_TYPES(func, SZ, float);     \
+    CALL_FOR_INDEX_TYPES(func, SZ, double);    \
+    CALL_FOR_INDEX_TYPES(func, SZ, cfloat);    \
+    CALL_FOR_INDEX_TYPES(func, SZ, cdouble);
+
 namespace TestsKT
 {
     // Test function declaration
@@ -91,13 +111,13 @@ namespace TestsKT
     template <bsz SZ, typename SUF>
     void kt_mul_p_test();
 
-    template <bsz SZ, typename SUF>
+    template <bsz SZ, typename SUF, typename IS>
     void kt_fmadd_p_test();
 
-    template <bsz SZ, typename SUF>
+    template <bsz SZ, typename SUF, typename IS>
     void kt_fmsub_p_test();
 
-    template <bsz SZ, typename SUF>
+    template <bsz SZ, typename SUF, typename IS>
     void kt_set_p_test();
 
     void kt_maskz_set_p_128_avx();
@@ -138,7 +158,7 @@ namespace TestsKT
     template <bsz SZ, typename SUF>
     void kt_pow2_p_test();
 
-    template <bsz SZ, typename SUF>
+    template <bsz SZ, typename SUF, typename IS>
     void kt_scatter_p_test();
     // -------------------------
 
@@ -350,66 +370,69 @@ namespace TestsKT
     /*
      * Test fmadd intrinsic to fuse-multiply-add three
      * 2 (cdouble), 4 (cfloat), 4 (double), 8 (floats) length vectors
+     * Tests int32_t, int64_t, uint32_t, uint64_t index types
      */
     TEST(KT_L0, kt_fmadd_p_128)
     {
-        CALL_FOR_ALL_TYPES(kt_fmadd_p_test, bsz::b128);
+        CALL_FOR_ALL_TYPES_AND_INDEX(kt_fmadd_p_test, bsz::b128);
     }
 
     TEST(KT_L0, kt_fmadd_p_256)
     {
-        CALL_FOR_ALL_TYPES(kt_fmadd_p_test, bsz::b256);
+        CALL_FOR_ALL_TYPES_AND_INDEX(kt_fmadd_p_test, bsz::b256);
     }
 
     TEST(KT_L0, kt_fmadd_p_512)
     {
         if(can_exec_avx512_tests())
         {
-            CALL_FOR_ALL_TYPES(kt_fmadd_p_test, bsz::b512);
+            CALL_FOR_ALL_TYPES_AND_INDEX(kt_fmadd_p_test, bsz::b512);
         }
     }
 
     /*
      * Test fmsub intrinsic to fused-multiply-subtract three
      * 2 (cdouble), 4 (cfloat), 4 (double), 8 (floats) length vectors
+     * Tests int32_t, int64_t, uint32_t, uint64_t index types
      */
     TEST(KT_L0, kt_fmsub_p_128)
     {
-        CALL_FOR_ALL_TYPES(kt_fmsub_p_test, bsz::b128);
+        CALL_FOR_ALL_TYPES_AND_INDEX(kt_fmsub_p_test, bsz::b128);
     }
 
     TEST(KT_L0, kt_fmsub_p_256)
     {
-        CALL_FOR_ALL_TYPES(kt_fmsub_p_test, bsz::b256);
+        CALL_FOR_ALL_TYPES_AND_INDEX(kt_fmsub_p_test, bsz::b256);
     }
 
     TEST(KT_L0, kt_fmsub_p_512)
     {
         if(can_exec_avx512_tests())
         {
-            CALL_FOR_ALL_TYPES(kt_fmsub_p_test, bsz::b512);
+            CALL_FOR_ALL_TYPES_AND_INDEX(kt_fmsub_p_test, bsz::b512);
         }
     }
 
     /*
      * Test "set" intrinsic to indirectly load using a "map"
      * 2 (cdouble), 4 (cfloat), 4 (double), 8 (floats) length vectors
+     * Tests int32_t, int64_t, uint32_t, uint64_t index types
      */
     TEST(KT_L0, kt_set_p_128)
     {
-        CALL_FOR_ALL_TYPES(kt_set_p_test, bsz::b128);
+        CALL_FOR_ALL_TYPES_AND_INDEX(kt_set_p_test, bsz::b128);
     }
 
     TEST(KT_L0, kt_set_p_256)
     {
-        CALL_FOR_ALL_TYPES(kt_set_p_test, bsz::b256);
+        CALL_FOR_ALL_TYPES_AND_INDEX(kt_set_p_test, bsz::b256);
     }
 
     TEST(KT_L0, kt_set_p_512)
     {
         if(can_exec_avx512_tests())
         {
-            CALL_FOR_ALL_TYPES(kt_set_p_test, bsz::b512);
+            CALL_FOR_ALL_TYPES_AND_INDEX(kt_set_p_test, bsz::b512);
         }
     }
 
@@ -657,14 +680,14 @@ namespace TestsKT
 
     TEST(KT_L0, kt_scatter_p_256)
     {
-        CALL_FOR_ALL_TYPES(kt_scatter_p_test, bsz::b256);
+        CALL_FOR_ALL_TYPES_AND_INDEX(kt_scatter_p_test, bsz::b256);
     }
 
     TEST(KT_L0, kt_scatter_p_512)
     {
         if(can_exec_avx512_tests())
         {
-            CALL_FOR_ALL_TYPES(kt_scatter_p_test, bsz::b512);
+            CALL_FOR_ALL_TYPES_AND_INDEX(kt_scatter_p_test, bsz::b512);
         }
     }
 }

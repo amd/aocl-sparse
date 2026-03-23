@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -78,9 +78,9 @@ namespace kernel_templates
     };
 
     // Unaligned set (load) to AVX register with indirect memory access
-    template <bsz SZ, typename SUF>
+    template <bsz SZ, typename SUF, typename IS, valid_kt_int<IS>>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, avxvector_t<SZ, SUF>>
-                    kt_set_p(const SUF *v, const kt_int_t *b) noexcept
+                    kt_set_p(const SUF *v, const IS *b) noexcept
     {
 
         if constexpr(std::is_same<SUF, double>::value)
@@ -128,11 +128,11 @@ namespace kernel_templates
     };
 
     // Unaligned load to AVX register with zero mask direct memory model.
-    template <bsz SZ, typename SUF, kt_avxext EXT, int L>
+    template <bsz SZ, typename SUF, kt_avxext EXT, int L, typename IS, valid_kt_int<IS>>
     KT_FORCE_INLINE
         std::enable_if_t<EXT == kt_avxext::AVX512VL || SZ == bsz::b512,
                          avxvector_t<SZ, SUF>>
-        kt_maskz_set_p(const SUF *v, const kt_int_t b) noexcept
+        kt_maskz_set_p(const SUF *v, const IS b) noexcept
     {
         if constexpr(SZ == bsz::b256)
         {
@@ -167,46 +167,46 @@ namespace kernel_templates
     };
 
     // Unaligned load to AVX register with zero mask indirect memory model.
-    template <bsz SZ, typename SUF, kt_avxext, int L>
+    template <bsz SZ, typename SUF, kt_avxext, int L, typename IS, valid_kt_int<IS>>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, avxvector_t<SZ, SUF>>
-                    kt_maskz_set_p(const SUF *v, const kt_int_t *b) noexcept
+                    kt_maskz_set_p(const SUF *v, const IS *b) noexcept
     {
 
         if constexpr(kt_is_same<bsz::b512, SZ, double, SUF>())
         {
-            return _mm512_set_pd(pz<SUF, L - 8>(v, b, 7), pz<SUF, L - 7>(v, b, 6U),
-                                 pz<SUF, L - 6>(v, b, 5), pz<SUF, L - 5>(v, b, 4U),
-                                 pz<SUF, L - 4>(v, b, 3), pz<SUF, L - 3>(v, b, 2U),
-                                 pz<SUF, L - 2>(v, b, 1), pz<SUF, L - 1>(v, b, 0U));
+            return _mm512_set_pd(pz<SUF, L - 8, IS>(v, b, 7), pz<SUF, L - 7, IS>(v, b, 6U),
+                                 pz<SUF, L - 6, IS>(v, b, 5), pz<SUF, L - 5, IS>(v, b, 4U),
+                                 pz<SUF, L - 4, IS>(v, b, 3), pz<SUF, L - 3, IS>(v, b, 2U),
+                                 pz<SUF, L - 2, IS>(v, b, 1), pz<SUF, L - 1, IS>(v, b, 0U));
         }
         else if constexpr(kt_is_same<bsz::b512, SZ, float, SUF>())
         {
-            return _mm512_set_ps(pz<SUF, L - 16>(v, b, 15), pz<SUF, L - 15>(v, b, 14),
-                                 pz<SUF, L - 14>(v, b, 13), pz<SUF, L - 13>(v, b, 12),
-                                 pz<SUF, L - 12>(v, b, 11), pz<SUF, L - 11>(v, b, 10),
-                                 pz<SUF, L - 10>(v, b, 9),  pz<SUF, L - 9> (v, b, 8),
-                                 pz<SUF, L - 8> (v, b, 7),  pz<SUF, L - 7> (v, b, 6),
-                                 pz<SUF, L - 6> (v, b, 5),  pz<SUF, L - 5> (v, b, 4),
-                                 pz<SUF, L - 4> (v, b, 3),  pz<SUF, L - 3> (v, b, 2),
-                                 pz<SUF, L - 2> (v, b, 1),  pz<SUF, L - 1> (v, b, 0));
+            return _mm512_set_ps(pz<SUF, L - 16, IS>(v, b, 15), pz<SUF, L - 15, IS>(v, b, 14),
+                                 pz<SUF, L - 14, IS>(v, b, 13), pz<SUF, L - 13, IS>(v, b, 12),
+                                 pz<SUF, L - 12, IS>(v, b, 11), pz<SUF, L - 11, IS>(v, b, 10),
+                                 pz<SUF, L - 10, IS>(v, b, 9),  pz<SUF, L - 9, IS> (v, b, 8),
+                                 pz<SUF, L - 8, IS> (v, b, 7),  pz<SUF, L - 7, IS> (v, b, 6),
+                                 pz<SUF, L - 6, IS> (v, b, 5),  pz<SUF, L - 5, IS> (v, b, 4),
+                                 pz<SUF, L - 4, IS> (v, b, 3),  pz<SUF, L - 3, IS> (v, b, 2),
+                                 pz<SUF, L - 2, IS> (v, b, 1),  pz<SUF, L - 1, IS> (v, b, 0));
         }
         else if constexpr(kt_is_same<bsz::b512, SZ, cdouble, SUF>())
         {
-            return _mm512_set_pd(pz<SUF, L - 4, false>(v, b, 3), pz<SUF, L - 4, true> (v, b, 3),
-                                 pz<SUF, L - 3, false>(v, b, 2), pz<SUF, L - 3, true> (v, b, 2),
-                                 pz<SUF, L - 2, false>(v, b, 1), pz<SUF, L - 2, true> (v, b, 1),
-                                 pz<SUF, L - 1, false>(v, b, 0), pz<SUF, L - 1, true> (v, b, 0));
+            return _mm512_set_pd(pz<SUF, L - 4, IS, false>(v, b, 3), pz<SUF, L - 4, IS, true> (v, b, 3),
+                                 pz<SUF, L - 3, IS, false>(v, b, 2), pz<SUF, L - 3, IS, true> (v, b, 2),
+                                 pz<SUF, L - 2, IS, false>(v, b, 1), pz<SUF, L - 2, IS, true> (v, b, 1),
+                                 pz<SUF, L - 1, IS, false>(v, b, 0), pz<SUF, L - 1, IS, true> (v, b, 0));
         }
         else if constexpr(kt_is_same<bsz::b512, SZ, cfloat, SUF>())
         {
-            return _mm512_set_ps(pz<SUF, L - 8, false>(v, b, 7), pz<SUF, L - 8, true> (v, b, 7),
-                                 pz<SUF, L - 7, false>(v, b, 6), pz<SUF, L - 7, true> (v, b, 6),
-                                 pz<SUF, L - 6, false>(v, b, 5), pz<SUF, L - 6, true> (v, b, 5),
-                                 pz<SUF, L - 5, false>(v, b, 4), pz<SUF, L - 5, true> (v, b, 4),
-                                 pz<SUF, L - 4, false>(v, b, 3), pz<SUF, L - 4, true> (v, b, 3),
-                                 pz<SUF, L - 3, false>(v, b, 2), pz<SUF, L - 3, true> (v, b, 2),
-                                 pz<SUF, L - 2, false>(v, b, 1), pz<SUF, L - 2, true> (v, b, 1),
-                                 pz<SUF, L - 1, false>(v, b, 0), pz<SUF, L - 1, true> (v, b, 0));
+            return _mm512_set_ps(pz<SUF, L - 8, IS, false>(v, b, 7), pz<SUF, L - 8, IS, true> (v, b, 7),
+                                 pz<SUF, L - 7, IS, false>(v, b, 6), pz<SUF, L - 7, IS, true> (v, b, 6),
+                                 pz<SUF, L - 6, IS, false>(v, b, 5), pz<SUF, L - 6, IS, true> (v, b, 5),
+                                 pz<SUF, L - 5, IS, false>(v, b, 4), pz<SUF, L - 5, IS, true> (v, b, 4),
+                                 pz<SUF, L - 4, IS, false>(v, b, 3), pz<SUF, L - 4, IS, true> (v, b, 3),
+                                 pz<SUF, L - 3, IS, false>(v, b, 2), pz<SUF, L - 3, IS, true> (v, b, 2),
+                                 pz<SUF, L - 2, IS, false>(v, b, 1), pz<SUF, L - 2, IS, true> (v, b, 1),
+                                 pz<SUF, L - 1, IS, false>(v, b, 0), pz<SUF, L - 1, IS, true> (v, b, 0));
         }
     };
 

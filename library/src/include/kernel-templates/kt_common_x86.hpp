@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -115,8 +115,8 @@ namespace kernel_templates
     // --------------------------------------------------------------------------------------
 
     // Specialization for REAL and COMPLEX space PZ with offset
-    template <typename T, int L, bool get_real_part = false>
-    constexpr auto pz(const T *x, const kt_int_t *idx, kt_int_t offset) noexcept
+    template <typename T, int L, typename IS, bool get_real_part = false, valid_kt_int<IS> = 0>
+    constexpr auto pz(const T *x, const IS *idx, IS offset) noexcept
     {
         if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
         {
@@ -144,8 +144,8 @@ namespace kernel_templates
     };
 
     // Specialization for REAL and COMPLEX space PZ without offset
-    template <typename T, int L, bool get_real_part = false>
-    constexpr auto pz(const T *x, kt_int_t idx) noexcept
+    template <typename T, int L, typename IS, bool get_real_part = false, valid_kt_int<IS> = 0>
+    constexpr auto pz(const T *x, IS idx) noexcept
     {
         if constexpr(std::is_same_v<T, float> || std::is_same_v<T, double>)
         {
@@ -353,6 +353,7 @@ namespace kernel_templates
      *
      * @tparam SZ Vector size in bits (bsz::b128, bsz::b256, or bsz::b512)
      * @tparam SUF Suffix of working type (float, double, int, std::complex<float>, std::complex<double>, etc.)
+     * @tparam IS Integer type for indices (any 32-bit or 64-bit integral type, e.g., int32_t/int64_t/uint32_t/uint64_t)
      *
      * @param[in] v Dense array containing the source data
      * @param[in] b Pointer to index array specifying which elements from v to load
@@ -365,13 +366,13 @@ namespace kernel_templates
      *       - SZ == bsz::b128: SSE 128-bit vectors
      *       - SZ == bsz::b256: AVX 256-bit vectors
      *       - SZ == bsz::b512: AVX-512 512-bit vectors
-     * @note Supported data types: float, double, int, std::complex<float>, std::complex<double>
+     * @note Supported data types: float, double, int32, int64, std::complex<float>, std::complex<double>
      *
      * @par Example:
      * @code
      * // Load 4 doubles from v using indices in b
      * double v[10] = {0.0, 1.1, 2.2, 3.3, 4.4, 5.5, 6.6, 7.7, 8.8, 9.9};
-     * kt_int_t b[4] = {1, 3, 5, 7};
+     * int64_t b[4] = {1, 3, 5, 7};
      * avxvector_t<bsz::b256, double> vec = kt_set_p<bsz::b256, double>(v, b);
      * // Equivalent to: vec = _mm256_set_pd(v[*(b+3)], v[*(b+2)], v[*(b+1)], v[*(b+0)])
      * //                    = _mm256_set_pd(v[7], v[5], v[3], v[1])
@@ -379,22 +380,22 @@ namespace kernel_templates
      *
      * // Load 4 floats using indirect addressing
      * float a[8] = {0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f};
-     * kt_int_t idx[4] = {0, 2, 4, 6};
+     * int32_t idx[4] = {0, 2, 4, 6};
      * avxvector_t<bsz::b128, float> w = kt_set_p<bsz::b128, float>(a, idx);
      * // w contains {a[0], a[2], a[4], a[6]} = {0.0f, 2.0f, 4.0f, 6.0f}
      * @endcode
      */
-    template <bsz SZ, typename SUF>
+    template <bsz SZ, typename SUF, typename IS, valid_kt_int<IS> = 0>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b128, avxvector_t<SZ, SUF>>
-                    kt_set_p(const SUF *v, const kt_int_t *b) noexcept;
+                    kt_set_p(const SUF *v, const IS *b) noexcept;
 
-    template <bsz SZ, typename SUF>
+    template <bsz SZ, typename SUF, typename IS, valid_kt_int<IS> = 0>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b256, avxvector_t<SZ, SUF>>
-                    kt_set_p(const SUF *v, const kt_int_t *b) noexcept;
+                    kt_set_p(const SUF *v, const IS *b) noexcept;
 
-    template <bsz SZ, typename SUF>
+    template <bsz SZ, typename SUF, typename IS, valid_kt_int<IS> = 0>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, avxvector_t<SZ, SUF>>
-                    kt_set_p(const SUF *v, const kt_int_t *b) noexcept;
+                    kt_set_p(const SUF *v, const IS *b) noexcept;
 
     // -----------------------------------------------------------------------
 
@@ -415,6 +416,7 @@ namespace kernel_templates
      * @tparam SUF Suffix of working type (float, double, int, std::complex<float>, std::complex<double>, etc.)
      * @tparam EXT AVX extension type (kt_avxext::AVX2, kt_avxext::AVX512VL, etc.)
      * @tparam L Number of elements to load from array (compile-time constant, must be ≤ vector capacity)
+     * @tparam IS Integer type for index (any 4- or 8-byte integral type; e.g., int32_t, uint32_t, int64_t, uint64_t)
      *
      * @param[in] v Dense array containing the source data
      * @param[in] b Starting index within array v (loads from v[b], v[b+1], ..., v[b+L-1])
@@ -429,7 +431,7 @@ namespace kernel_templates
      *       - SZ == bsz::b128: SSE 128-bit vectors
      *       - SZ == bsz::b256 with EXT == AVX2: AVX 256-bit vectors (element-wise)
      *       - SZ == bsz::b256 with EXT == AVX512VL or SZ == bsz::b512: Masked load
-     * @note Supported data types: float, double, int, std::complex<float>, std::complex<double>
+     * @note Supported data types: float, double, int32, int64, std::complex<float>, std::complex<double>
      *
      * @par Example:
      * @code
@@ -447,19 +449,19 @@ namespace kernel_templates
      * //                  = {v[2], v[3], v[4], 0.0} = {2.2, 3.3, 4.4, 0.0}
      * @endcode
      */
-    template <bsz SZ, typename SUF, kt_avxext, int L>
+    template <bsz SZ, typename SUF, kt_avxext, int L, typename IS, valid_kt_int<IS> = 0>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b128, avxvector_t<SZ, SUF>>
-                    kt_maskz_set_p(const SUF *v, const kt_int_t b) noexcept;
+                    kt_maskz_set_p(const SUF *v, const IS b) noexcept;
 
-    template <bsz SZ, typename SUF, kt_avxext EXT, int L>
+    template <bsz SZ, typename SUF, kt_avxext EXT, int L, typename IS, valid_kt_int<IS> = 0>
     KT_FORCE_INLINE
         std::enable_if_t<(SZ == bsz::b256 && EXT == kt_avxext::AVX2), avxvector_t<SZ, SUF>>
-        kt_maskz_set_p(const SUF *v, const kt_int_t b) noexcept;
+        kt_maskz_set_p(const SUF *v, const IS b) noexcept;
 
-    template <bsz SZ, typename SUF, kt_avxext EXT, int L>
+    template <bsz SZ, typename SUF, kt_avxext EXT, int L, typename IS, valid_kt_int<IS> = 0>
     KT_FORCE_INLINE
         std::enable_if_t<EXT == kt_avxext::AVX512VL || SZ == bsz::b512, avxvector_t<SZ, SUF>>
-        kt_maskz_set_p(const SUF *v, const kt_int_t b) noexcept;
+        kt_maskz_set_p(const SUF *v, const IS b) noexcept;
 
     // -----------------------------------------------------------------------
 
@@ -480,6 +482,7 @@ namespace kernel_templates
      * @tparam SUF Suffix of working type (float, double, int, std::complex<float>, std::complex<double>, etc.)
      * @tparam EXT AVX extension type (kt_avxext::AVX2, kt_avxext::AVX512F, etc.)
      * @tparam L Number of elements to load from array (compile-time constant, must be ≤ vector capacity)
+     * @tparam IS Integer type for indices: any 4- or 8-byte integral type satisfying valid_kt_int<IS> (typically int32_t or int64_t)
      *
      * @param[in] v Dense array containing the source data
      * @param[in] b Pointer to index array (loads v[b[0]], v[b[1]], ..., v[b[L-1]])
@@ -494,13 +497,13 @@ namespace kernel_templates
      *       - SZ == bsz::b128: SSE 128-bit vectors
      *       - SZ == bsz::b256: AVX 256-bit vectors
      *       - SZ == bsz::b512: AVX-512 512-bit vectors
-     * @note Supported data types: float, double, int, std::complex<float>, std::complex<double>
+     * @note Supported data types: float, double, int32, int64, std::complex<float>, std::complex<double>
      *
      * @par Example:
      * @code
      * // Load 2 doubles using indirect addressing, pad rest with zeros
      * double v[10] = {0.0, 1.1, 2.2, 3.3, 4.4, 5.5, 6.6, 7.7, 8.8, 9.9};
-     * kt_int_t indices[4] = {1, 5, 7, 9};
+     * int64_t indices[4] = {1, 5, 7, 9};
      * avxvector_t<bsz::b256, double> vec = kt_maskz_set_p<bsz::b256, double, kt_avxext::AVX2, 2>(v, indices);
      * // Expands to: _mm256_set_pd(pz<double,2-4>(v,indices,3), pz<double,2-3>(v,indices,2),
      * //                            pz<double,2-2>(v,indices,1), pz<double,2-1>(v,indices,0))
@@ -512,24 +515,24 @@ namespace kernel_templates
      *
      * // Load 3 out of 8 floats with zero-padding
      * float a[12] = {0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f, 10.0f, 11.0f};
-     * kt_int_t idx[8] = {0, 3, 6, 9, 2, 5, 8, 11};
+     * int32_t idx[8] = {0, 3, 6, 9, 2, 5, 8, 11};
      * avxvector_t<bsz::b256, float> w = kt_maskz_set_p<bsz::b256, float, kt_avxext::AVX2, 3>(a, idx);
      * // w contains {a[idx[0]], a[idx[1]], a[idx[2]], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}
      * //           = {a[0], a[3], a[6], 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}
      * //           = {0.0f, 3.0f, 6.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f}
      * @endcode
      */
-    template <bsz SZ, typename SUF, kt_avxext, int L>
+    template <bsz SZ, typename SUF, kt_avxext, int L, typename IS, valid_kt_int<IS> = 0>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b128, avxvector_t<SZ, SUF>>
-                    kt_maskz_set_p(const SUF *v, const kt_int_t *b) noexcept;
+                    kt_maskz_set_p(const SUF *v, const IS *b) noexcept;
 
-    template <bsz SZ, typename SUF, kt_avxext, int L>
+    template <bsz SZ, typename SUF, kt_avxext, int L, typename IS, valid_kt_int<IS> = 0>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b256, avxvector_t<SZ, SUF>>
-                    kt_maskz_set_p(const SUF *v, const kt_int_t *b) noexcept;
+                    kt_maskz_set_p(const SUF *v, const IS *b) noexcept;
 
-    template <bsz SZ, typename SUF, kt_avxext, int L>
+    template <bsz SZ, typename SUF, kt_avxext, int L, typename IS, valid_kt_int<IS> = 0>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, avxvector_t<SZ, SUF>>
-                    kt_maskz_set_p(const SUF *v, const kt_int_t *b) noexcept;
+                    kt_maskz_set_p(const SUF *v, const IS *b) noexcept;
 
     // -----------------------------------------------------------------------
 
@@ -1665,5 +1668,63 @@ namespace kernel_templates
     template <bsz SZ, typename SUF>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, avxvector_t<SZ, SUF>>
                     kt_div_p(const avxvector_t<SZ, SUF> a, const avxvector_t<SZ, SUF> b) noexcept;
+
+    /**
+     * @brief Scatter SIMD vector elements to memory using indirect addressing with optional fused operations
+     *
+     * Stores elements from a SIMD vector to non-contiguous memory locations specified by an index array.
+     * Optionally performs a fused operation (add, subtract, or none) when storing. This function iterates
+     * through each element in the vector and writes it to v[b[k]] where k is the element index.
+     *
+     * @tparam SZ Vector size in bits (bsz::b128, bsz::b256, or bsz::b512)
+     * @tparam SUF Suffix of working type (float, double, std::complex<float>, std::complex<double>, etc.)
+     * @tparam IS Integer type for indices (any 32- or 64-bit type satisfying valid_kt_int<IS>, e.g. signed or unsigned)
+     * @tparam OP Fused operation to perform during scatter (default: fused_op::NONE)
+     *
+     * @param[in] a SIMD vector containing values to scatter
+     * @param[in,out] v Destination array where values will be scattered
+     * @param[in] b Index array specifying scatter locations (v[b[k]] = a[k] or v[b[k]] op= a[k])
+     *
+     * @note This function is force-inlined for optimal performance
+     * @note Fused operations available:
+     *       - fused_op::NONE: Direct store v[b[k]] = a[k]
+     *       - fused_op::ADD: Add and store v[b[k]] += a[k]
+     *       - fused_op::SUB: Subtract and store v[b[k]] -= a[k]
+     * @note The function processes tsz_v<SZ, SUF> elements (type size, not pack size for complex)
+     * @note For complex types, real and imaginary parts are stored as separate consecutive elements
+     * @note Supported data types: float, double, std::complex<float>, std::complex<double>
+     *
+     * @par Example:
+     * @code
+     * // Basic scatter without fused operation
+     * double data[4] = {1.1, 2.2, 3.3, 4.4};
+     * avxvector_t<bsz::b256, double> v = kt_loadu_p<bsz::b256, double>(data);
+     * int64_t indices[4] = {2, 5, 1, 8};
+     * double output[10] = {0};
+     * kt_scatter_p<bsz::b256, double, int64_t>(v, output, indices);
+     * // output[2] = 1.1, output[5] = 2.2, output[1] = 3.3, output[8] = 4.4
+     *
+     * // Scatter with fused add operation
+     * double dest[10] = {10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0};
+     * kt_scatter_p<bsz::b256, double, int64_t, fused_op::ADD>(v, dest, indices);
+     * // dest[2] = 11.1, dest[5] = 12.2, dest[1] = 13.3, dest[8] = 14.4
+     *
+     * // Scatter with fused subtract operation
+     * float fdata[8] = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f};
+     * avxvector_t<bsz::b256, float> vf = kt_loadu_p<bsz::b256, float>(fdata);
+     * int32_t idx[8] = {0, 2, 4, 6, 1, 3, 5, 7};
+     * float result[8] = {10.0f, 10.0f, 10.0f, 10.0f, 10.0f, 10.0f, 10.0f, 10.0f};
+     * kt_scatter_p<bsz::b256, float, int32_t, fused_op::SUB>(vf, result, idx);
+     * // result[0] = 9.0f, result[2] = 8.0f, result[4] = 7.0f, etc.
+     * @endcode
+     *
+     * <b>Implementation Details:</b>
+     * - Uses element-by-element scatter loop (no direct SIMD intrinsic equivalent)
+     * - Reinterprets vector as array of SUF elements for access
+     * - Supports read-modify-write operations with fused_op::ADD and fused_op::SUB
+     * - For complex types, each complex number occupies 2 consecutive real elements
+     */
+    template <bsz SZ, typename SUF, typename IS, fused_op OP = fused_op::NONE, valid_kt_int<IS> = 0>
+    KT_FORCE_INLINE void kt_scatter_p(const avxvector_t<SZ, SUF> a, SUF *v, const IS *b) noexcept;
 }
 #endif

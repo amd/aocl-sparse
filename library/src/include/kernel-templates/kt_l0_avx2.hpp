@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -82,9 +82,9 @@ namespace kernel_templates
     };
 
     // Unaligned set (load) to AVX register with indirect memory access
-    template <bsz SZ, typename SUF>
+    template <bsz SZ, typename SUF, typename IS, valid_kt_int<IS>>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b256, avxvector_t<SZ, SUF>>
-                    kt_set_p(const SUF *v, const kt_int_t *b) noexcept
+                    kt_set_p(const SUF *v, const IS *b) noexcept
     {
         if constexpr(std::is_same<SUF, double>::value)
         {
@@ -119,10 +119,10 @@ namespace kernel_templates
     };
 
     // Unaligned load to AVX register with zero mask direct memory model.
-    template <bsz SZ, typename SUF, kt_avxext EXT, int L>
+    template <bsz SZ, typename SUF, kt_avxext EXT, int L, typename IS, valid_kt_int<IS>>
     KT_FORCE_INLINE
         std::enable_if_t<(SZ == bsz::b256 && EXT == kt_avxext::AVX2),avxvector_t<SZ, SUF>>
-        kt_maskz_set_p(const SUF *v, const kt_int_t b) noexcept
+        kt_maskz_set_p(const SUF *v, const IS b) noexcept
     {
         if constexpr(kt_is_same<bsz::b256, SZ, double, SUF>())
         {
@@ -138,53 +138,53 @@ namespace kernel_templates
         }
         else if constexpr(kt_is_same<bsz::b256, SZ, cdouble, SUF>())
         {
-            return _mm256_set_pd(pz<SUF, L - 2, false>(v, b + 1), pz<SUF, L - 2, true> (v, b + 1),
-                                 pz<SUF, L - 1, false>(v, b + 0), pz<SUF, L - 1, true> (v, b + 0));
+            return _mm256_set_pd(pz<SUF, L - 2, IS, false>(v, b + 1), pz<SUF, L - 2, IS, true> (v, b + 1),
+                                 pz<SUF, L - 1, IS, false>(v, b + 0), pz<SUF, L - 1, IS, true> (v, b + 0));
         }
         else if constexpr(kt_is_same<bsz::b256, SZ, cfloat, SUF>())
         {
-            return _mm256_set_ps(pz<SUF, L - 4, false>(v, b + 3), pz<SUF, L - 4, true>(v, b + 3),
-                                 pz<SUF, L - 3, false>(v, b + 2), pz<SUF, L - 3, true>(v, b + 2),
-                                 pz<SUF, L - 2, false>(v, b + 1), pz<SUF, L - 2, true>(v, b + 1),
-                                 pz<SUF, L - 1, false>(v, b + 0), pz<SUF, L - 1, true>(v, b + 0));
+            return _mm256_set_ps(pz<SUF, L - 4, IS, false>(v, b + 3), pz<SUF, L - 4, IS, true>(v, b + 3),
+                                 pz<SUF, L - 3, IS, false>(v, b + 2), pz<SUF, L - 3, IS, true>(v, b + 2),
+                                 pz<SUF, L - 2, IS, false>(v, b + 1), pz<SUF, L - 2, IS, true>(v, b + 1),
+                                 pz<SUF, L - 1, IS, false>(v, b + 0), pz<SUF, L - 1, IS, true>(v, b + 0));
 
         }
     };
 
     // Unaligned load to AVX register with zero mask indirect memory model.
-    template <bsz SZ, typename SUF, kt_avxext, int L>
+    template <bsz SZ, typename SUF, kt_avxext, int L, typename IS, valid_kt_int<IS>>
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b256, avxvector_t<SZ, SUF>>
-                    kt_maskz_set_p(const SUF *v, const kt_int_t *b) noexcept
+                    kt_maskz_set_p(const SUF *v, const IS *b) noexcept
     {
         if constexpr(kt_is_same<bsz::b256, SZ, double, SUF>())
         {
-            return _mm256_set_pd(pz<SUF, L - 4>(v, b, 3), pz<SUF, L - 3>(v, b, 2),
-                                 pz<SUF, L - 2>(v, b, 1), pz<SUF, L - 1>(v, b, 0));
+            return _mm256_set_pd(pz<SUF, L - 4, IS>(v, b, 3), pz<SUF, L - 3, IS>(v, b, 2),
+                                 pz<SUF, L - 2, IS>(v, b, 1), pz<SUF, L - 1, IS>(v, b, 0));
         }
         else if constexpr(kt_is_same<bsz::b256, SZ, float, SUF>())
         {
-            return _mm256_set_ps(pz<SUF, L - 8>(v, b, 7), pz<SUF, L - 7>(v, b, 6),
-                                 pz<SUF, L - 6>(v, b, 5), pz<SUF, L - 5>(v, b, 4),
-                                 pz<SUF, L - 4>(v, b, 3), pz<SUF, L - 3>(v, b, 2),
-                                 pz<SUF, L - 2>(v, b, 1), pz<SUF, L - 1>(v, b, 0));
+            return _mm256_set_ps(pz<SUF, L - 8, IS>(v, b, 7), pz<SUF, L - 7, IS>(v, b, 6),
+                                 pz<SUF, L - 6, IS>(v, b, 5), pz<SUF, L - 5, IS>(v, b, 4),
+                                 pz<SUF, L - 4, IS>(v, b, 3), pz<SUF, L - 3, IS>(v, b, 2),
+                                 pz<SUF, L - 2, IS>(v, b, 1), pz<SUF, L - 1, IS>(v, b, 0));
         }
         else if constexpr(kt_is_same<bsz::b256, SZ, cdouble, SUF>())
         {
-            return _mm256_set_pd(pz<std::complex<double>, L - 2, false>(v,b,1),
-                                 pz<std::complex<double>, L - 2, true> (v,b,1),
-                                 pz<std::complex<double>, L - 1, false>(v,b,0),
-                                 pz<std::complex<double>, L - 1, true> (v,b,0));
+            return _mm256_set_pd(pz<std::complex<double>, L - 2, IS, false>(v,b,1),
+                                 pz<std::complex<double>, L - 2, IS, true> (v,b,1),
+                                 pz<std::complex<double>, L - 1, IS, false>(v,b,0),
+                                 pz<std::complex<double>, L - 1, IS, true> (v,b,0));
         }
         else if constexpr(kt_is_same<bsz::b256, SZ, cfloat, SUF>())
         {
-            return _mm256_set_ps(pz<std::complex<float>, L - 4, false>(v, b, 3),
-                                 pz<std::complex<float>, L - 4, true> (v, b, 3),
-                                 pz<std::complex<float>, L - 3, false>(v, b, 2),
-                                 pz<std::complex<float>, L - 3, true> (v, b, 2),
-                                 pz<std::complex<float>, L - 2, false>(v, b, 1),
-                                 pz<std::complex<float>, L - 2, true> (v, b, 1),
-                                 pz<std::complex<float>, L - 1, false>(v, b, 0),
-                                 pz<std::complex<float>, L - 1, true> (v, b, 0));
+            return _mm256_set_ps(pz<std::complex<float>, L - 4, IS, false>(v, b, 3),
+                                 pz<std::complex<float>, L - 4, IS, true> (v, b, 3),
+                                 pz<std::complex<float>, L - 3, IS, false>(v, b, 2),
+                                 pz<std::complex<float>, L - 3, IS, true> (v, b, 2),
+                                 pz<std::complex<float>, L - 2, IS, false>(v, b, 1),
+                                 pz<std::complex<float>, L - 2, IS, true> (v, b, 1),
+                                 pz<std::complex<float>, L - 1, IS, false>(v, b, 0),
+                                 pz<std::complex<float>, L - 1, IS, true> (v, b, 0));
         }
     };
 

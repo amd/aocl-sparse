@@ -67,9 +67,6 @@ Table Reusable Kernel Templates μkernels list.
 //FILENAME: kt_example_axpyi.cpp
 #include <cstdint>
 
-// Set the kt_int
-using kt_int_t = int64_t; // or int32_t
-
 #include "kernel-templates/kernel_templates.hpp"
 
 using namespace kernel_templates;
