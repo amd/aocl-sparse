@@ -178,10 +178,11 @@ aoclsparse_status aoclsparse_add_csr_ref(const aoclsparse_int        M,
     // - running multi-threaded (each thread needs exact row boundaries
     //   where to start, i.e., C_row_ptr[i]), or
     // - rough estimate of C_nnz as A_nnz + B_nnz would overflow aoclsparse_int
-    // In other cases, nnz is can be overestimated and the exact nnz and
+    // In other cases, nnz can be overestimated and, the exact nnz and
     // C_row_ptr[] is built in the main computation loop.
-    bool cptr_computed
-        = (num_of_threads != 1) || ((int64_t)A_nnz + (int64_t)B_nnz > aoclsparse_numeric::int_max);
+    bool cptr_computed = (num_of_threads != 1)
+                         || (static_cast<uint64_t>(A_nnz) + static_cast<uint64_t>(B_nnz)
+                             > static_cast<uint64_t>(aoclsparse_numeric::int_max));
 
     if(cptr_computed)
     {
