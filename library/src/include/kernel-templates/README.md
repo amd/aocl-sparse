@@ -246,6 +246,10 @@ The above example can be compiled as follows:
 g++ -o compare_kernels compare_kernels.cpp kt_axpyi_avx2.o kt_axpyi_avx512.o  # Generate the executable for the application
 ```
 
+## Contributing
+
+For guidance on extending the Kernel Templates library -- adding new datatypes, L0/L1 micro kernels, and writing tests -- see [CONTRIBUTE.md](CONTRIBUTE.md).
+
 ## Documentation
 
 ### Generating Documentation
