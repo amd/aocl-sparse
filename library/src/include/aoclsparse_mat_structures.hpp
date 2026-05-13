@@ -457,9 +457,8 @@ namespace aoclsparse
         // For TCSR matrix, idiag points to the position of diagonals in the lower triangular part of the matrix.
         aoclsparse_int *idiag = nullptr;
         // For TCSR matrix, iurow points to the position of upper triangle element in the upper triangular part of the matrix.
+        // Both idiag and iurow are allocated at construction and filled in during the creation.
         aoclsparse_int *iurow = nullptr;
-        // if optimized, set true
-        bool is_optimized = false;
 
         /* Parameterized constructor:
         Initializes the matrix with the specified parameters and allocates memory for the Block CSR data arrays.
@@ -484,6 +483,8 @@ namespace aoclsparse
                 col_idx_U = new aoclsparse_int[nnz];
                 val_L     = ::operator new(sz);
                 val_U     = ::operator new(sz);
+                idiag     = new aoclsparse_int[m];
+                iurow     = new aoclsparse_int[m];
             }
             catch(...)
             {
@@ -494,6 +495,8 @@ namespace aoclsparse
                 delete[] col_idx_U;
                 ::operator delete(val_L);
                 ::operator delete(val_U);
+                delete[] idiag;
+                delete[] iurow;
                 throw;
             }
         }
@@ -519,6 +522,17 @@ namespace aoclsparse
             , val_L(val_L)
             , val_U(val_U)
         {
+            try
+            {
+                idiag = new aoclsparse_int[m];
+                iurow = new aoclsparse_int[m];
+            }
+            catch(...)
+            {
+                delete[] idiag;
+                delete[] iurow;
+                throw;
+            }
         }
 
         // Destructor
@@ -776,6 +790,19 @@ struct _aoclsparse_matrix
 
     // Holds all matrices, regardless of type, including internally created matrices and copies
     std::vector<aoclsparse::base_mtx *> mats;
+
+    // Return the first matrix of the requested type, or nullptr if none exists
+    template <typename T>
+    T *get_mtx()
+    {
+        for(auto *m : mats)
+        {
+            T *p = dynamic_cast<T *>(m);
+            if(p)
+                return p;
+        }
+        return nullptr;
+    }
 
     //ilu members
     struct _aoclsparse_ilu ilu_info;

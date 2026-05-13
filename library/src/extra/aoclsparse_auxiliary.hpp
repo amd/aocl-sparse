@@ -173,11 +173,22 @@ aoclsparse_status aoclsparse_create_tcsr_t(aoclsparse_matrix          *mat,
         return aoclsparse_status_memory_error;
     }
 
+    for(aoclsparse_int i = 0; i < M; i++)
+    {
+        // Diagonal is at the end of each row in the lower triangular part
+        tcsr_mat->idiag[i] = row_ptr_L[i + 1] - 1;
+        // Diagonal is at the beginning of each row in the upper triangular part
+        // Increment row_ptr_U to get the position of the upper triangle element
+        tcsr_mat->iurow[i] = row_ptr_U[i] + 1;
+    }
+
     aoclsparse_init_mat(*mat, M, N, nnz, aoclsparse_tcsr_mat);
     (*mat)->val_type
         = tcsr_mat->val_type; // set from inner matrix (already set by tcsr constructor)
-    (*mat)->fulldiag = true;
+    (*mat)->fulldiag          = true;
+    (*mat)->opt_csr_full_diag = true;
     (*mat)->mat_type = aoclsparse_tcsr_mat; // Used to identify the matrix type in the mv dispatcher
+    (*mat)->optimized = true;
     if((sort_L == aoclsparse_partially_sorted || sort_U == aoclsparse_partially_sorted))
         (*mat)->sort = aoclsparse_partially_sorted;
     else

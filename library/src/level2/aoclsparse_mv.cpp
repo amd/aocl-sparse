@@ -140,23 +140,9 @@ aoclsparse_status aoclsparse::mv(aoclsparse_operation       op,
         mtx_t    = best_mtx->mat_type;
     }
 
-    // Get a runnable format: use best matrix, or TCSR optimize, or CSR/CSC optimize for symm/herm/tri.
-    // TCSR: Optimize if the best matrix is TCSR and not optimized.
+    // Get a runnable format: use best matrix, or CSR/CSC optimize for symm/herm/tri.
     // CSR/CSC: symm/herm/tri and best matrix is CSR but unoptimized and wrong doid.
-
-    if(mtx_t == aoclsparse_tcsr_mat)
-    {
-        if(auto *tcsr_mat = dynamic_cast<aoclsparse::tcsr *>(best_mtx);
-           tcsr_mat && !tcsr_mat->is_optimized)
-        {
-            status = aoclsparse_tcsr_optimize<T>(A, tcsr_mat);
-            if(status != aoclsparse_status_success)
-                return status;
-
-            best_mtx = tcsr_mat;
-        }
-    }
-    else if(descr->type != aoclsparse_matrix_type_general)
+    if(descr->type != aoclsparse_matrix_type_general && mtx_t != aoclsparse_tcsr_mat)
     {
         aoclsparse::csr *best_csr = dynamic_cast<aoclsparse::csr *>(best_mtx);
         const bool       best_needs_csr_optimize

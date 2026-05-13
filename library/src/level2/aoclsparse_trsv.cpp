@@ -115,18 +115,20 @@ aoclsparse_status
     // Unpack A and check
     aoclsparse::tcsr *tcsr_mat = nullptr;
     aoclsparse::csr  *opt_mat  = nullptr;
-    // user did not check the matrix, call optimize
-    aoclsparse_status status;
-    // Optimize TCSR matrix
+    aoclsparse_status status   = aoclsparse_status_success;
+
     if(A->input_format == aoclsparse_tcsr_mat)
-        status = aoclsparse_tcsr_optimize<T>(A, tcsr_mat);
+    {
+        tcsr_mat = A->get_mtx<aoclsparse::tcsr>();
+        if(!tcsr_mat)
+            return aoclsparse_status_internal_error;
+    }
     else
     {
-        // Optimize CSR/CSC matrix
         status = aoclsparse_csr_csc_optimize<T>(A, opt_mat);
+        if(status != aoclsparse_status_success)
+            return status; // LCOV_EXCL_LINE
     }
-    if(status != aoclsparse_status_success)
-        return status; // LCOV_EXCL_LINE
 
     const bool unit = descr->diag_type == aoclsparse_diag_type_unit;
     if(!A->opt_csr_full_diag && !unit) // not of full rank, linear system cannot be solved
