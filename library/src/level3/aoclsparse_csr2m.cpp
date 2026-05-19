@@ -225,9 +225,20 @@ inline aoclsparse_status aoclsparse_csr2m_nnz_count(aoclsparse_int             m
     }
     if(status == aoclsparse_status_success)
     {
+        // Single-pass prefix sum with 64-bit accumulation to avoid UB on overflow
+        // Truncation assignment is defined behavior; overflow check happens after loop
+        int64_t running_sum = 0; // note that C is always 0-base, csr_C->ptr[0]=0 already
         for(aoclsparse_int i = 1; i < m + 1; i++)
         {
-            csr_C->ptr[i] += csr_C->ptr[i - 1];
+            running_sum += csr_C->ptr[i];
+            csr_C->ptr[i] = static_cast<aoclsparse_int>(running_sum);
+        }
+
+        // Check for overflow AFTER loop (no UB occurred since all arithmetic was 64-bit)
+        if(running_sum > aoclsparse_numeric::int_max)
+        {
+            delete csr_C;
+            return aoclsparse_status_invalid_size;
         }
 
         // Number of non-zeroes of resultant matrix C
@@ -373,7 +384,8 @@ inline aoclsparse_status aoclsparse_csr2m_finalize(aoclsparse_int             m_
     {
         m = (*C)->n;
         n = (*C)->m;
-        if((csc_mat->ptr == nullptr) || (csc_mat->ind == nullptr) || (csc_mat->val == nullptr))
+        if((csc_mat == nullptr) || (csc_mat->ptr == nullptr) || (csc_mat->ind == nullptr)
+           || (csc_mat->val == nullptr))
             return aoclsparse_status_invalid_pointer;
         csr_row_ptr_C = csc_mat->ptr;
         csr_col_ind_C = csc_mat->ind;
@@ -574,7 +586,11 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
     {
         return aoclsparse_status_not_implemented;
     }
-
+    // Only CSR matrix format is supported
+    if(A->mats[0]->doid != aoclsparse::doid::gn || B->mats[0]->doid != aoclsparse::doid::gn)
+    {
+        return aoclsparse_status_not_implemented;
+    }
     if(A->val_type != get_data_type<T>())
     {
         return aoclsparse_status_wrong_type;
@@ -734,6 +750,11 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
             }
         }
     }
+
+    // Validate that CSR matrices were found in both A and B
+    if(csr_src_A == nullptr || csr_src_B == nullptr)
+        return aoclsparse_status_invalid_pointer;
+
     aoclsparse::csr *csr_A = nullptr, *csr_B = nullptr;
 
     // A * B , Retrieve A and B CSR arrays
@@ -833,6 +854,11 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
         m_a                       = n_b;
         n_b                       = t;
     }
+
+    // Guard against null csr member within the csr_data structure
+    // (should not happen if aoclsparse_matrix is well-formed)
+    if(csr_A == nullptr || csr_B == nullptr)
+        return aoclsparse_status_invalid_pointer;
 
     aoclsparse_index_base baseA = descrA_t.base;
     aoclsparse_index_base baseB = descrB_t.base;

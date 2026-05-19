@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -535,6 +535,174 @@ namespace
         aoclsparse_destroy_mat_descr(descrB);
         aoclsparse_destroy(&B);
         aoclsparse_destroy(&C);
+    }
+    // CSC input not implemented for sp2m
+    template <typename T>
+    void test_sp2m_csc_not_impl()
+    {
+        aoclsparse_index_base base    = aoclsparse_index_base_zero;
+        aoclsparse_operation  op_a    = aoclsparse_operation_none;
+        aoclsparse_operation  op_b    = aoclsparse_operation_none;
+        aoclsparse_request    request = aoclsparse_stage_full_computation;
+
+        // Small 3x3 matrix with 4 nnz
+        aoclsparse_int m = 3, n = 3, nnz = 4;
+        std::vector<T> val;
+        if constexpr(std::is_same_v<T, aoclsparse_double_complex>
+                     || std::is_same_v<T, aoclsparse_float_complex>)
+            val.assign({{1, 1}, {1, 2}, {2, 3}, {4, 2}});
+        else
+            val.assign({1, 2, 3, 4});
+
+        // CSC arrays
+        std::vector<aoclsparse_int> row_ind = {0, 2, 1, 2};
+        std::vector<aoclsparse_int> col_ptr = {0, 2, 3, 4};
+        // CSR arrays (same sparsity, different layout)
+        std::vector<aoclsparse_int> col_ind = {0, 1, 0, 2};
+        std::vector<aoclsparse_int> row_ptr = {0, 2, 3, 4};
+
+        aoclsparse_mat_descr descrA, descrB;
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descrA), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descrB), aoclsparse_status_success);
+
+        // Test 1: A=CSC, B=CSR
+        aoclsparse_matrix A_csc, B_csr, C = NULL;
+        ASSERT_EQ(aoclsparse_create_csc<T>(
+                      &A_csc, base, m, n, nnz, col_ptr.data(), row_ind.data(), val.data()),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_create_csr<T>(
+                      &B_csr, base, m, n, nnz, row_ptr.data(), col_ind.data(), val.data()),
+                  aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_sp2m(op_a, descrA, A_csc, op_b, descrB, B_csr, request, &C),
+                  aoclsparse_status_not_implemented);
+        aoclsparse_destroy(&A_csc);
+        aoclsparse_destroy(&B_csr);
+        aoclsparse_destroy(&C);
+
+        // Test 2: A=CSR, B=CSC
+        C = NULL;
+        aoclsparse_matrix A_csr, B_csc;
+        ASSERT_EQ(aoclsparse_create_csr<T>(
+                      &A_csr, base, m, n, nnz, row_ptr.data(), col_ind.data(), val.data()),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_create_csc<T>(
+                      &B_csc, base, m, n, nnz, col_ptr.data(), row_ind.data(), val.data()),
+                  aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_sp2m(op_a, descrA, A_csr, op_b, descrB, B_csc, request, &C),
+                  aoclsparse_status_not_implemented);
+        aoclsparse_destroy(&A_csr);
+        aoclsparse_destroy(&B_csc);
+        aoclsparse_destroy(&C);
+
+        aoclsparse_destroy_mat_descr(descrA);
+        aoclsparse_destroy_mat_descr(descrB);
+    }
+
+    // Test to verify sp2m actual functionality with CSC input (double only).
+    // Uses a non-symmetric 3x3 matrix so CSR vs CSC interpretation gives
+    // different results. The mathematically correct result of
+    //   C = A * B  (with both A and B given as CSC)
+    // is compared against the actual output from sp2m.
+    // Note: test_sp2m_success uses random matrices + blis::gemm reference;
+    //       here we use a hand-computed reference for a small known matrix.
+    void test_sp2m_csc_functionality()
+    {
+        aoclsparse_index_base base    = aoclsparse_index_base_zero;
+        aoclsparse_operation  op_a    = aoclsparse_operation_none;
+        aoclsparse_operation  op_b    = aoclsparse_operation_none;
+        aoclsparse_request    request = aoclsparse_stage_full_computation;
+
+        // Define a non-symmetric 3x3 CSC matrix A:
+        //     [1  3  0]
+        // A = [0  2  0]
+        //     [0  0  4]
+        // CSC: col_ptr={0,1,3,4}, row_ind={0,0,1,2}, val={1,3,2,4}
+        aoclsparse_int              m = 3, n = 3, nnz = 4;
+        std::vector<double>         val_a     = {1, 3, 2, 4};
+        std::vector<aoclsparse_int> col_ptr_a = {0, 1, 3, 4};
+        std::vector<aoclsparse_int> row_ind_a = {0, 0, 1, 2};
+
+        // B = 3x3 identity in CSR for simplicity, so C = A * I = A
+        aoclsparse_int              nnz_b     = 3;
+        std::vector<double>         val_b     = {1, 1, 1};
+        std::vector<aoclsparse_int> col_ind_b = {0, 1, 2};
+        std::vector<aoclsparse_int> row_ptr_b = {0, 1, 2, 3};
+
+        // Correct dense result: A * I = A
+        //     [1  3  0]
+        //     [0  2  0]
+        //     [0  0  4]
+        // Flattened row-major:
+        std::vector<double> dense_c_exp = {1, 3, 0, 0, 2, 0, 0, 0, 4};
+
+        // If sp2m misinterprets CSC A as CSR (reads A^T as A), it computes
+        // A^T * I = A^T:
+        //     [1  0  0]
+        //     [3  2  0]   <-- incorrect
+        //     [0  0  4]
+
+        aoclsparse_mat_descr descrA, descrB;
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descrA), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descrB), aoclsparse_status_success);
+
+        aoclsparse_matrix A;
+        ASSERT_EQ(aoclsparse_create_csc<double>(
+                      &A, base, m, n, nnz, col_ptr_a.data(), row_ind_a.data(), val_a.data()),
+                  aoclsparse_status_success);
+
+        aoclsparse_matrix B;
+        ASSERT_EQ(aoclsparse_create_csr<double>(
+                      &B, base, m, n, nnz_b, row_ptr_b.data(), col_ind_b.data(), val_b.data()),
+                  aoclsparse_status_success);
+
+        aoclsparse_matrix C      = NULL;
+        aoclsparse_status status = aoclsparse_sp2m(op_a, descrA, A, op_b, descrB, B, request, &C);
+
+        // If sp2m rejects CSC input (after DOID guard is enabled), expect not_implemented.
+        // If sp2m processes CSC input, validate output against correct reference.
+        if(status == aoclsparse_status_success)
+        {
+            // Export and convert C to dense for comparison
+            aoclsparse_int        m_c, n_c, nnz_c;
+            aoclsparse_int       *row_ptr_c = NULL;
+            aoclsparse_int       *col_ind_c = NULL;
+            double               *val_c     = NULL;
+            aoclsparse_index_base base_c;
+
+            ASSERT_EQ(aoclsparse_export_csr(
+                          C, &base_c, &m_c, &n_c, &nnz_c, &row_ptr_c, &col_ind_c, &val_c),
+                      aoclsparse_status_success);
+
+            aoclsparse_mat_descr descrC;
+            ASSERT_EQ(aoclsparse_create_mat_descr(&descrC), aoclsparse_status_success);
+            ASSERT_EQ(aoclsparse_set_mat_index_base(descrC, base_c), aoclsparse_status_success);
+
+            std::vector<double> dense_c(m_c * n_c, 0.0);
+            aoclsparse_csr2dense(m_c,
+                                 n_c,
+                                 descrC,
+                                 val_c,
+                                 row_ptr_c,
+                                 col_ind_c,
+                                 dense_c.data(),
+                                 n_c,
+                                 aoclsparse_order_row);
+
+            tolerance_t<double> abserr = sqrt(std::numeric_limits<tolerance_t<double>>::epsilon());
+            EXPECT_ARR_NEAR(m_c * n_c, dense_c.data(), dense_c_exp.data(), abserr);
+
+            aoclsparse_destroy_mat_descr(descrC);
+        }
+        else
+        {
+            EXPECT_EQ(status, aoclsparse_status_not_implemented);
+        }
+
+        aoclsparse_destroy(&C);
+        aoclsparse_destroy_mat_descr(descrA);
+        aoclsparse_destroy_mat_descr(descrB);
+        aoclsparse_destroy(&A);
+        aoclsparse_destroy(&B);
     }
 
     void test_sp2m_wrong_datatype()
@@ -1278,6 +1446,15 @@ namespace
                                                             aoclsparse_operation_none,
                                                             aoclsparse_operation_none,
                                                             1);
+    }
+    TEST(sp2m, CSCNotImpl)
+    {
+        test_sp2m_csc_not_impl<double>();
+        test_sp2m_csc_not_impl<aoclsparse_double_complex>();
+    }
+    TEST(sp2m, CSCFunctionalityDouble)
+    {
+        test_sp2m_csc_functionality();
     }
     TEST(sp2m, WrongType)
     {

@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2025 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022-2026 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,6 +30,7 @@
 #include "aoclsparse_ellmv.hpp"
 #include "aoclsparse_error_check.hpp"
 #include "aoclsparse_l2_kt.hpp"
+#include "aoclsparse_magic_box.hpp"
 #include "aoclsparse_mat_structures.hpp"
 #include "aoclsparse_mv_helpers.hpp"
 #include "aoclsparse_tcsr.hpp"
@@ -123,56 +124,103 @@ aoclsparse_status aoclsparse::mv(aoclsparse_operation       op,
     }
 
     aoclsparse_status status;
-    aoclsparse_int    kid  = -1;
     aoclsparse::doid  d_id = aoclsparse::get_doid<T>(descr, op);
+    aoclsparse_int    kid  = aoclsparse::get_kid(A->optim_data, d_id, aoclsparse_action_mv);
 
-    aoclsparse_optimize_data *ptr = A->optim_data;
+    // By default we will use our input format
+    aoclsparse_matrix_format_type mtx_t = aoclsparse_uninitialized_mat;
 
-    while(ptr != nullptr)
+    aoclsparse_int best_mtx_idx = aoclsparse::get_best_matrix<T>(A, d_id, mtx_t);
+
+    aoclsparse::base_mtx *best_mtx = nullptr;
+
+    if(best_mtx_idx != -1)
     {
-        // The hint and doid should match
-        if(ptr->act == aoclsparse_action_mv && d_id == ptr->doid)
-        {
-            kid = A->optim_data->kid;
-            break;
-        }
-
-        ptr = ptr->next;
+        best_mtx = A->mats[best_mtx_idx];
+        mtx_t    = best_mtx->mat_type;
     }
 
-    /*
-     *  Optimize is called only for triangular,
-     *  symmetric and Hermitian matrices.
-     */
-    aoclsparse::csr  *opt_csr  = nullptr;
-    aoclsparse::tcsr *opt_tcsr = nullptr;
-    if(descr->type != aoclsparse_matrix_type_general)
+    // Get a runnable format: use best matrix, or TCSR optimize, or CSR/CSC optimize for symm/herm/tri.
+    // TCSR: Optimize if the best matrix is TCSR and not optimized.
+    // CSR/CSC: symm/herm/tri and best matrix is CSR but unoptimized and wrong doid.
+
+    if(mtx_t == aoclsparse_tcsr_mat)
     {
-        if(A->input_format == aoclsparse_tcsr_mat && !aoclsparse::is_dt_complex<T>())
+        if(auto *tcsr_mat = dynamic_cast<aoclsparse::tcsr *>(best_mtx);
+           tcsr_mat && !tcsr_mat->is_optimized)
         {
-            status = aoclsparse_tcsr_optimize<T>(A, &opt_tcsr);
+            status = aoclsparse_tcsr_optimize<T>(A, tcsr_mat);
+            if(status != aoclsparse_status_success)
+                return status;
+
+            best_mtx = tcsr_mat;
+        }
+    }
+    else if(descr->type != aoclsparse_matrix_type_general)
+    {
+        aoclsparse::csr *best_csr = dynamic_cast<aoclsparse::csr *>(best_mtx);
+        const bool       best_needs_csr_optimize
+            = (best_csr != nullptr && !best_csr->is_optimized && best_csr->doid != d_id);
+
+        if(best_needs_csr_optimize)
+        {
+            aoclsparse::csr *opt_csr = nullptr;
+            status                   = aoclsparse_csr_csc_optimize<T>(A, opt_csr);
+            if(status != aoclsparse_status_success)
+                return status;
+            best_mtx = opt_csr;
+            mtx_t    = aoclsparse_csr_mat;
+        }
+    }
+
+    // Common DOID and descriptor adjustment for all matrix formats.
+    // This block is placed before the format-specific switch/case so that every
+    // format (CSR, BLKCSR, BSR, TCSR, etc.) receives consistently adjusted
+    // descriptor and DOID values. Previously this logic lived only in the CSR
+    // case, leading to duplication and inconsistency for other formats.
+    //
+    // We work on a local copy (descr_t) to avoid modifying the caller's descriptor.
+    _aoclsparse_mat_descr descr_t;
+    aoclsparse_copy_mat_descr(&descr_t, descr);
+    bool exact_match = false;
+
+    if(best_mtx)
+    {
+        // Align base indexing with the matrix's stored base (0-based or 1-based)
+        descr_t.base = best_mtx->base;
+
+        if(best_mtx->doid == d_id)
+        {
+            // Exact match: the matrix was optimized/stored for exactly the requested
+            // operation+type. The kernel can treat it as a plain general (gn) matrix
+            // with no special symmetry/triangular handling, since those properties
+            // are already baked into the stored data. Reset all descriptor fields to
+            // neutral values to reflect this.
+            exact_match       = true;
+            op                = aoclsparse_operation_none;
+            descr_t.type      = aoclsparse_matrix_type_general;
+            descr_t.fill_mode = aoclsparse_fill_mode_lower;
+            descr_t.diag_type = aoclsparse_diag_type_non_unit;
+            d_id              = doid::gn;
         }
         else
         {
-            status = aoclsparse_csr_csc_optimize<T>(A, &(opt_csr));
-        }
-        if(status != aoclsparse_status_success)
-            return status;
-        if(!opt_csr && !opt_tcsr)
-            return aoclsparse_status_internal_error;
-    }
+            // Non-exact match: compute the kernel dispatch DOID from the stored
+            // matrix's DOID and the requested DOID.
+            d_id = aoclsparse::get_effective_doid(best_mtx->doid, d_id);
 
-    // By default we will use our input format
-    // but double and general SPMV might be optimized to a different format
-    aoclsparse_matrix_format_type mtx_t = A->input_format;
-    if constexpr(std::is_same_v<T, double>)
-    {
-        if(d_id == doid::gn)
-        {
-            if(A->mat_type == aoclsparse_csr_mat && A->blk_optimized)
-                mtx_t = aoclsparse_blkcsr_mat;
-            else
-                mtx_t = A->mat_type;
+            // When the matrix is stored in transposed form (CSC = gt, or conj-transposed
+            // = gh), the physical row/column layout is swapped relative to the logical
+            // layout. This means upper triangle data is physically in the lower triangle
+            // and vice versa, so we flip fill_mode to match the physical layout that
+            // the kernel will traverse.
+            if(best_mtx->doid == doid::gt || best_mtx->doid == doid::gh)
+            {
+                if(descr_t.fill_mode == aoclsparse_fill_mode_upper)
+                    descr_t.fill_mode = aoclsparse_fill_mode_lower;
+                else if(descr_t.fill_mode == aoclsparse_fill_mode_lower)
+                    descr_t.fill_mode = aoclsparse_fill_mode_upper;
+            }
         }
     }
 
@@ -180,68 +228,28 @@ aoclsparse_status aoclsparse::mv(aoclsparse_operation       op,
     {
     case aoclsparse_csr_mat:
     {
-        aoclsparse::csr *csr_mat = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
+        aoclsparse::csr *csr_mat = dynamic_cast<aoclsparse::csr *>(best_mtx);
+
         if(!csr_mat)
+        {
             return aoclsparse_status_not_implemented;
-
-        aoclsparse::csr *copy_csr = nullptr;
-
-        // Search for a matrix copy matching our descriptor/operation (DOID)
-        for(size_t i = 1; i < A->mats.size(); i++)
-        {
-            aoclsparse::csr *csr_m = dynamic_cast<aoclsparse::csr *>(A->mats[i]);
-            if(csr_m && csr_m->mat_type == mtx_t)
-            {
-                if(csr_m->doid == d_id)
-                {
-                    copy_csr = csr_m;
-                    break;
-                }
-            }
         }
 
-        _aoclsparse_mat_descr descr_t;
-        aoclsparse_copy_mat_descr(&descr_t, descr);
-        // If a matching matrix was found, update parameters accordingly
-        if(copy_csr)
+        // CSR-specific diagonal adjustment for exact-match matrices.
+        // When the matrix was stored for the exact requested DOID (e.g., symmetric-lower
+        // with unit diagonal), the diagonal values in the CSR data may need to be
+        // materialized or zeroed to match the descriptor's diag_type (unit vs zero vs
+        // non-unit). This is only needed when the stored diag type (csr_mat->mtx_diag)
+        // differs from what the user requested (descr->diag_type).
+        // N.B. We compare against the *original* descr->diag_type (not descr_t) because
+        // descr_t.diag_type was already reset to non_unit in the exact-match block above.
+        if(exact_match && descr->diag_type != csr_mat->mtx_diag)
         {
-            csr_mat = copy_csr;
-            if(descr_t.diag_type != csr_mat->mtx_diag)
-            {
-                status = aoclsparse_set_mat_diag<T>(A->m, descr_t, csr_mat);
-                if(status != aoclsparse_status_success)
-                    return status;
-            }
-            op                = aoclsparse_operation_none;
-            descr_t.type      = aoclsparse_matrix_type_general;
-            descr_t.fill_mode = aoclsparse_fill_mode_lower;
-            descr_t.diag_type = aoclsparse_diag_type_non_unit;
-            descr_t.base      = copy_csr->base;
-            d_id              = doid::gn;
-        }
-        // Otherwise, use optimized matrix for non-general matrices
-        else if(!(d_id == doid::gn || d_id == doid::gt || d_id == doid::gh || d_id == doid::gc)
-                && opt_csr)
-        {
-            csr_mat      = opt_csr;
-            descr_t.base = opt_csr->base;
+            status = aoclsparse_set_mat_diag<T>(A->m, *descr, csr_mat);
+            if(status != aoclsparse_status_success)
+                return status;
         }
 
-        // Transpose doid if matrix is stored in CSC format (doid::gt), exclude this for copy_csr
-        if(!copy_csr && csr_mat->doid == doid::gt)
-            d_id = trans_doid(d_id);
-
-        // trans_doid alters the uplo value for CSC Matrix; update descr_t.fill_mode accordingly.
-        // NOTE: This check will be removed once symm & hermitian types only allow symm or herm mats, not all square mats.
-        if(csr_mat->doid == doid::gt)
-        {
-            if(descr_t.fill_mode == aoclsparse_fill_mode_upper)
-                descr_t.fill_mode = aoclsparse_fill_mode_lower;
-            else if(descr_t.fill_mode == aoclsparse_fill_mode_lower)
-                descr_t.fill_mode = aoclsparse_fill_mode_upper;
-        }
-
-        // Invoke CSRMV interface with do_check set to false
         return aoclsparse_csrmv_t<T, false>(op,
                                             alpha,
                                             csr_mat->m,
@@ -262,29 +270,22 @@ aoclsparse_status aoclsparse::mv(aoclsparse_operation       op,
     case aoclsparse_blkcsr_mat:
         if constexpr(std::is_same_v<T, double>)
         {
-            if(A->blk_optimized)
+            if(auto *blk_csr_mat = dynamic_cast<aoclsparse::blk_csr *>(best_mtx))
             {
-                for(auto *mat : A->mats)
-                {
-                    if(auto *blk_csr_mat = dynamic_cast<aoclsparse::blk_csr *>(mat))
-                    {
-                        return aoclsparse_blkcsrmv_t<T>(op,
-                                                        alpha,
-                                                        A->m,
-                                                        A->n,
-                                                        A->nnz,
-                                                        blk_csr_mat->masks,
-                                                        (T *)blk_csr_mat->blk_val,
-                                                        blk_csr_mat->blk_col_ptr,
-                                                        blk_csr_mat->blk_row_ptr,
-                                                        descr,
-                                                        x,
-                                                        beta,
-                                                        y,
-                                                        blk_csr_mat->nRowsblk);
-                    }
-                }
-                return aoclsparse_status_invalid_pointer;
+                return aoclsparse_blkcsrmv_t<T>(op,
+                                                alpha,
+                                                A->m,
+                                                A->n,
+                                                A->nnz,
+                                                blk_csr_mat->masks,
+                                                (T *)blk_csr_mat->blk_val,
+                                                blk_csr_mat->blk_col_ptr,
+                                                blk_csr_mat->blk_row_ptr,
+                                                &descr_t,
+                                                x,
+                                                beta,
+                                                y,
+                                                blk_csr_mat->nRowsblk);
             }
         }
         return aoclsparse_status_not_implemented;
@@ -312,7 +313,7 @@ aoclsparse_status aoclsparse::mv(aoclsparse_operation       op,
                                                   csr_mat->ind,
                                                   nullptr,
                                                   ell_csr_hyb_mat->csr_row_id_map,
-                                                  descr,
+                                                  &descr_t,
                                                   x,
                                                   beta,
                                                   y));
@@ -323,30 +324,20 @@ aoclsparse_status aoclsparse::mv(aoclsparse_operation       op,
     case aoclsparse_csr_mat_br4:
         if constexpr(std::is_same_v<T, double>)
         {
-            return (aoclsparse_dcsr_mat_br4(op, *alpha, A, descr, x, *beta, y));
+            return (aoclsparse_dcsr_mat_br4(op, *alpha, A, &descr_t, x, *beta, y));
         }
         else
         {
             return aoclsparse_status_not_implemented;
         }
     case aoclsparse_tcsr_mat:
-        return aoclsparse::tcsrmv(descr, alpha, A, x, beta, y, d_id, kid);
+    {
+        return aoclsparse::tcsrmv(&descr_t, alpha, A, x, beta, y, d_id, kid);
+    }
     case aoclsparse_bsr_mat:
     {
-        aoclsparse::bsr *bsr_m = nullptr;
-
-        // Search for a matrix copy matching our descriptor/operation (DOID)
-        for(base_mtx *m : A->mats)
-        {
-            auto mtx = dynamic_cast<aoclsparse::bsr *>(m);
-
-            // If the cast succeeds, check the mtx type
-            if(mtx && mtx->mat_type == mtx_t)
-            {
-                bsr_m = mtx;
-                break;
-            }
-        }
+        // Use the best matrix found
+        aoclsparse::bsr *bsr_m = dynamic_cast<aoclsparse::bsr *>(best_mtx);
 
         // nullptr check
         if(!bsr_m)
@@ -369,7 +360,7 @@ aoclsparse_status aoclsparse::mv(aoclsparse_operation       op,
                                     static_cast<const T *>(bsr_m->val),
                                     bsr_m->ind,
                                     bsr_m->ptr,
-                                    descr,
+                                    &descr_t,
                                     x,
                                     beta,
                                     y);

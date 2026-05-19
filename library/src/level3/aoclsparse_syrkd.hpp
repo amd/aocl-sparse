@@ -23,7 +23,6 @@
  */
 #ifndef AOCLSPARSE_SYRKD_HPP
 #define AOCLSPARSE_SYRKD_HPP
-#endif
 
 #include "aoclsparse.h"
 #include "aoclsparse_descr.h"
@@ -34,7 +33,6 @@
 #include "aoclsparse_utils.hpp"
 
 #include <complex>
-#include <iostream>
 #include <vector>
 
 template <typename T>
@@ -45,7 +43,7 @@ struct syrkd_params
     aoclsparse_int   ldc_p;
 };
 
-template <typename T, aoclsparse_order layout>
+template <typename T, aoclsparse_order layout, bool CONJLEFT>
 void inline compute_output_row(aoclsparse_int         i,
                                T                      val_A,
                                aoclsparse_int         iwstart,
@@ -60,7 +58,6 @@ void inline compute_output_row(aoclsparse_int         i,
 
     for(aoclsparse_int idxW = iwstart; idxW < iwend; ++idxW)
     {
-        // mark all the nonzeroes in the flag array
         aoclsparse_int j = icolW[idxW] - baseW;
 
         if(j < i) // L triangle element, skip
@@ -68,19 +65,29 @@ void inline compute_output_row(aoclsparse_int         i,
 
         if constexpr(layout == aoclsparse_order_row)
         {
-            C[i * ldc + j] += val_A * valW[idxW];
+            if constexpr(CONJLEFT)
+                C[i * ldc + j] += val_A * valW[idxW];
+            else
+                C[i * ldc + j] += val_A * aoclsparse::conj(valW[idxW]);
         }
         else
         {
-            C[i + j * ldc] += val_A * valW[idxW];
+            if constexpr(CONJLEFT)
+                C[i + j * ldc] += val_A * valW[idxW];
+            else
+                C[i + j * ldc] += val_A * aoclsparse::conj(valW[idxW]);
         }
     }
 }
 
-/* Computes C = A^T*A (or A^H*A for complex types) where A is sorted CSR m x k,
- * and the result C is a dense matrix of dimension k x k.
+/* Computes C += alpha * op(M) * op(M)^H into the upper triangle of dense C.
+ * M is a sorted CSR matrix of dimension m x k; C output is k x k.
+ *
+ * CONJLEFT=true  (default): C += alpha * M^H * M   (left factor conjugated)
+ * CONJLEFT=false          : C += alpha * M^T * conj(M) (right factor conjugated)
+ * For real types both are equivalent since conj() is a no-op.
  */
-template <typename T>
+template <typename T, bool CONJLEFT = true>
 aoclsparse_status aoclsparse_syrkd_online_atb(aoclsparse_int         m,
                                               aoclsparse_int         k,
                                               aoclsparse_index_base  baseA,
@@ -112,18 +119,22 @@ aoclsparse_status aoclsparse_syrkd_online_atb(aoclsparse_int         m,
             row = oft.rfirst(i);
             while(row >= 0)
             {
-                idxa    = oft.ridx(row);
-                T val_A = params.alpha_p * aoclsparse::conj(valA[idxa]);
+                idxa = oft.ridx(row);
+                T val_A;
+                if constexpr(CONJLEFT)
+                    val_A = params.alpha_p * aoclsparse::conj(valA[idxa]);
+                else
+                    val_A = params.alpha_p * valA[idxa];
 
-                compute_output_row<T, aoclsparse_order_row>(i,
-                                                            val_A,
-                                                            icrowA[row] - baseA,
-                                                            icrowA[row + 1] - baseA,
-                                                            icolA,
-                                                            valA,
-                                                            baseA,
-                                                            params,
-                                                            C);
+                compute_output_row<T, aoclsparse_order_row, CONJLEFT>(i,
+                                                                      val_A,
+                                                                      icrowA[row] - baseA,
+                                                                      icrowA[row + 1] - baseA,
+                                                                      icolA,
+                                                                      valA,
+                                                                      baseA,
+                                                                      params,
+                                                                      C);
                 row = oft.rnext(row);
             }
         }
@@ -135,18 +146,22 @@ aoclsparse_status aoclsparse_syrkd_online_atb(aoclsparse_int         m,
             row = oft.rfirst(i);
             while(row >= 0)
             {
-                idxa    = oft.ridx(row);
-                T val_A = params.alpha_p * aoclsparse::conj(valA[idxa]);
+                idxa = oft.ridx(row);
+                T val_A;
+                if constexpr(CONJLEFT)
+                    val_A = params.alpha_p * aoclsparse::conj(valA[idxa]);
+                else
+                    val_A = params.alpha_p * valA[idxa];
 
-                compute_output_row<T, aoclsparse_order_column>(i,
-                                                               val_A,
-                                                               icrowA[row] - baseA,
-                                                               icrowA[row + 1] - baseA,
-                                                               icolA,
-                                                               valA,
-                                                               baseA,
-                                                               params,
-                                                               C);
+                compute_output_row<T, aoclsparse_order_column, CONJLEFT>(i,
+                                                                         val_A,
+                                                                         icrowA[row] - baseA,
+                                                                         icrowA[row + 1] - baseA,
+                                                                         icolA,
+                                                                         valA,
+                                                                         baseA,
+                                                                         params,
+                                                                         C);
                 row = oft.rnext(row);
             }
         }
@@ -182,24 +197,52 @@ inline aoclsparse_status aoclsparse_syrkd_t(const aoclsparse_operation      op,
     if(A->val_type != get_data_type<T>())
         return aoclsparse_status_wrong_type;
 
-    // Verify op and matrix types match
+    // Complex + op_transpose unsupported regardless of format (CSR/CSC);
+    // uses original op, not eff_op.
     if(((A->val_type == aoclsparse_cmat) || (A->val_type == aoclsparse_zmat))
        && (op == aoclsparse_operation_transpose))
         return aoclsparse_status_not_implemented;
 
-    // we need fully sorted rows if we apply on-fly transposition
-    if(A->sort != aoclsparse_fully_sorted && op != aoclsparse_operation_none)
-        return aoclsparse_status_unsorted_input;
-
-    aoclsparse_int    m = A->m, n = A->n;
     aoclsparse_status status;
 
     aoclsparse::csr *csr_mat = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
     if(!csr_mat)
         return aoclsparse_status_not_implemented;
-    // Only CSR matrix format is supported
-    if(csr_mat->doid != aoclsparse::doid::gn)
+
+    // For CSR (doid::gn): csr_mat->m == A->m, csr_mat->n == A->n.
+    // For CSC (doid::gt): csr_mat->m == A->n (n_user), csr_mat->n == A->m (m_user).
+    // Reading from csr_mat is correct for both — it gives the dimensions of the
+    // matrix as actually stored in memory (A^T for CSC).
+    aoclsparse_int m = csr_mat->m, n = csr_mat->n;
+
+    /* Dispatch table — CSR (doid::gn) and CSC (doid::gt, stores A^T internally):
+     *   CSR | op_none      : β·C + α·A·A^H   (real: A·A^T)
+     *   CSR | op_t / op_h  : β·C + α·A^H·A   (real: A^T·A)
+     *   CSC | op_none      : β·C + α·A^T·conj(A)  (real: A^T·A);  eff_op=op_h,    conj_flip=true
+     *   CSC | op_t / op_h  : β·C + α·conj(A)·A^T  (real: A·A^T);  eff_op=op_none, conj_flip=true
+     */
+    // Accept CSR (gn) and CSC-stored-as-transposed-CSR (gt);
+    // reject all other doid values
+    bool is_doid_gt = (csr_mat->doid == aoclsparse::doid::gt);
+    if(!is_doid_gt && csr_mat->doid != aoclsparse::doid::gn)
         return aoclsparse_status_not_implemented;
+
+    // For CSC (doid::gt), internal storage is A^T. Flip op so the unchanged CSR
+    // compute paths produce correct results. conj_flip=true signals that conjugation
+    // shifts to the right factor in the else-branch atb call, and that the
+    // pre-conjugation loop in the eff_op==op_none path must be skipped.
+    aoclsparse_operation eff_op    = op;
+    bool                 conj_flip = false;
+    if(is_doid_gt)
+    {
+        eff_op    = (op == aoclsparse_operation_none) ? aoclsparse_operation_conjugate_transpose
+                                                      : aoclsparse_operation_none;
+        conj_flip = true;
+    }
+
+    // we need fully sorted rows if we apply on-fly transposition
+    if(A->sort != aoclsparse_fully_sorted && eff_op != aoclsparse_operation_none)
+        return aoclsparse_status_unsorted_input;
 
     aoclsparse_int        *csr_row_ptr_A = csr_mat->ptr;
     aoclsparse_int        *csr_col_ind_A = csr_mat->ind;
@@ -211,9 +254,18 @@ inline aoclsparse_status aoclsparse_syrkd_t(const aoclsparse_operation      op,
     params.layout_p = layout;
     params.ldc_p    = ldc;
 
-    aoclsparse_int m_C = op == aoclsparse_operation_none ? m : n;
+    aoclsparse_int m_C = eff_op == aoclsparse_operation_none ? m : n;
     if(ldc < m_C)
         return aoclsparse_status_invalid_value;
+
+    // Overflow check for dense matrix C offset computations in LP64 mode
+    // SYRKD computes a symmetric m_C x m_C output matrix (upper triangle)
+    // Kernels compute: C[i * ldc + j] (row-major) or C[i + j * ldc] (col-major)
+    // With ldc >= m_C, the maximum dense index is bounded by m_C * ldc.
+    if(aoclsparse_lp64_product_overflow(m_C, ldc))
+    {
+        return aoclsparse_status_invalid_size;
+    }
 
     if(beta != zero)
     {
@@ -271,7 +323,7 @@ inline aoclsparse_status aoclsparse_syrkd_t(const aoclsparse_operation      op,
         return aoclsparse_status_success;
     }
 
-    if(op == aoclsparse_operation_none)
+    if(eff_op == aoclsparse_operation_none)
     {
 
         // For this algorithm, first need to convert A to CSC and then pass that to ref1
@@ -304,24 +356,56 @@ inline aoclsparse_status aoclsparse_syrkd_t(const aoclsparse_operation      op,
             return status;
         }
 
-        // we need Hermitian, so far we transposed so now conjugate
-        for(aoclsparse_int idx = 0; idx < A->nnz; idx++)
-            csc_val_A[idx] = aoclsparse::conj(csc_val_A[idx]);
-
-        status = aoclsparse_syrkd_online_atb(n,
-                                             m,
-                                             csr_mat->base,
-                                             csc_col_ptr_A.data(),
-                                             csc_row_ind_A.data(),
-                                             csc_val_A.data(),
-                                             params,
-                                             C);
+        if(conj_flip)
+            // CSC op_h: β·C + α·A^H·A  (real: β·C + α·A^T·A)
+            // CSC op_h    (conj_flip=true):  CONJLEFT=true  → csr2csc(A^T)=A,  atb computes A^H·A
+            status = aoclsparse_syrkd_online_atb<T, true>(n,
+                                                          m,
+                                                          csr_mat->base,
+                                                          csc_col_ptr_A.data(),
+                                                          csc_row_ind_A.data(),
+                                                          csc_val_A.data(),
+                                                          params,
+                                                          C);
+        else
+            // CSR op_none (conj_flip=false): CONJLEFT=false → csr2csc(A)=A^T, atb computes A·A^H
+            // CSR op_none: β·C + α·A·A^H  (real: β·C + α·A·A^T)
+            status = aoclsparse_syrkd_online_atb<T, false>(n,
+                                                           m,
+                                                           csr_mat->base,
+                                                           csc_col_ptr_A.data(),
+                                                           csc_row_ind_A.data(),
+                                                           csc_val_A.data(),
+                                                           params,
+                                                           C);
     }
     else
     {
-        // As the matrix with op is already in CSC, we can call ref directtly by interchaning m and n
-        status = aoclsparse_syrkd_online_atb(
-            m, n, csr_mat->base, csr_row_ptr_A, csr_col_ind_A, csr_val_A, params, C);
+        if(conj_flip)
+            // CSC op_none: β·C + α·A·A^H  (real: β·C + α·A·A^T)
+            status = aoclsparse_syrkd_online_atb<
+                T,
+                false>( // CONJLEFT=false: α·M^T·conj(M) on internal A^T
+                m,
+                n,
+                csr_mat->base,
+                csr_row_ptr_A,
+                csr_col_ind_A,
+                csr_val_A,
+                params,
+                C);
+        else
+            // CSR op_h/op_t: β·C + α·A^H·A  (real: β·C + α·A^T·A)
+            status = aoclsparse_syrkd_online_atb<T, true>( // CONJLEFT=true: α·M^H·M (default)
+                m,
+                n,
+                csr_mat->base,
+                csr_row_ptr_A,
+                csr_col_ind_A,
+                csr_val_A,
+                params,
+                C);
     }
     return status;
 }
+#endif // AOCLSPARSE_SYRKD_HPP

@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -324,7 +324,8 @@ aoclsparse_status aoclsparse_generate_coo_matrix(std::vector<aoclsparse_int> &ro
         //reset check[] array that indicates all the column index entries for a row
         std::fill(check.begin(), check.end(), false);
         // Partially sort column indices
-        std::sort((&col_ind[0] + idxstart), (&col_ind[0] + idxend));
+        // Use .data() instead of &vec[0] to avoid Undefined Behavior on empty vectors (nnz==0)
+        std::sort((col_ind.data() + idxstart), (col_ind.data() + idxend));
     }
 
     if(full_diag)
@@ -787,7 +788,9 @@ inline void aoclsparse_full_shuffle(aoclsparse_matrix_format_type mtype,
     }
     else if(mtype == aoclsparse_coo_mat)
     {
-        aoclsparse_shuffle_core(0, nnz, &col_ind[0], &val[0], &row_ptr[0]);
+        // Guard against empty vectors (nnz==0)
+        if(nnz > 0)
+            aoclsparse_shuffle_core(0, nnz, col_ind.data(), val.data(), row_ptr.data());
     }
 }
 /* ==================================================================================== */

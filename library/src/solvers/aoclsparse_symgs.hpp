@@ -358,7 +358,7 @@ aoclsparse_status aoclsparse_symgs(
     }
     aoclsparse::csr *A_opt_csr = nullptr;
     // call optimize
-    status = aoclsparse_csr_csc_optimize<T>(A, &A_opt_csr);
+    status = aoclsparse_csr_csc_optimize<T>(A, A_opt_csr);
     if(status != aoclsparse_status_success)
         return status;
     if(!A_opt_csr)

@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2025 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022-2026 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -109,12 +109,28 @@ aoclsparse_status aoclsparse_gmres_data_init(const aoclsparse_int               
 
     (*gmres)->v = (*gmres)->z = (*gmres)->h = (*gmres)->g = (*gmres)->s = nullptr;
     (*gmres)->c                                                         = nullptr;
+
+    /*
+        Check for overflow BEFORE computing sizes: if krylov_basis_size or hessenberg_size
+        would overflow aoclsparse_int range, reject early
+    */
+    if(aoclsparse_lp64_product_overflow(m + 1, n) || aoclsparse_lp64_product_overflow(m, m))
+    {
+        aoclsparse_gmres_data_free(*gmres);
+        *gmres = nullptr;
+        return aoclsparse_status_invalid_size;
+    }
+
+    // Safe to compute now - overflow check passed
+    aoclsparse_int krylov_basis_size = (m + 1) * n;
+    aoclsparse_int hessenberg_size   = m * m;
+
     try
     {
         // Allocate and initialise arrays to 0
-        (*gmres)->v = new T[(m + 1) * n]();
-        (*gmres)->z = new T[(m + 1) * n]();
-        (*gmres)->h = new T[m * m]();
+        (*gmres)->v = new T[krylov_basis_size]();
+        (*gmres)->z = new T[krylov_basis_size]();
+        (*gmres)->h = new T[hessenberg_size]();
         (*gmres)->g = new T[m + 1]();
         (*gmres)->c = new tolerance_t<T>[m]();
         (*gmres)->s = new T[m]();
@@ -574,7 +590,7 @@ aoclsparse_status aoclsparse_itsol_solve(
 
     aoclsparse::csr *opt_csr = nullptr;
     // CG needs opt_csr to run
-    status = aoclsparse_csr_csc_optimize<T>(mat, &opt_csr);
+    status = aoclsparse_csr_csc_optimize<T>(mat, opt_csr);
     if(status != aoclsparse_status_success)
         return status;
     if(!opt_csr)
@@ -810,7 +826,11 @@ aoclsparse_status aoclsparse_cg_rci_solve(aoclsparse_itsol_data<T> *itsol,
             for(i = 0; i < n; i++)
                 pq += cg->p[i] * cg->q[i];
             //bli_ddotv(BLIS_NO_CONJUGATE, BLIS_NO_CONJUGATE, handle->n, cgd->p, 1, cgd->q, 1, &pq);
-            if(aoclsparse_is_negative_or_nearzero(pq)) // system matrix A is not positive definite
+            // Check for zero/near-zero to prevent division by zero
+            // Note: aoclsparse_is_negative_or_nearzero checks value <= eps_tolerance;
+            // explicit zero check added as fallback
+            if(aoclsparse_is_negative_or_nearzero(pq)
+               || pq == aoclsparse_numeric::zero<T>()) // system matrix A is not positive definite
                 return aoclsparse_status_numerical_error;
             cg->alpha = cg->rz / pq;
             for(i = 0; i < n; i++)
@@ -1657,8 +1677,7 @@ aoclsparse_status handle_parse_option(aoclsparse_options::OptionRegistry<T> &opt
         flag = opts.SetOption(name, iset, byuser);
         break;
     case 2: // real
-        if constexpr(std::is_same_v<T, double> || std::is_same_v<T, double>
-                     || std::is_same_v<T, aoclsparse_double_complex>)
+        if constexpr(std::is_same_v<T, double> || std::is_same_v<T, aoclsparse_double_complex>)
         {
             rset = std::stod(value);
         }
@@ -1690,14 +1709,10 @@ aoclsparse_status handle_parse_option(aoclsparse_options::OptionRegistry<T> &opt
     case 1: // option value is out-of-range // provide new status code?
     case 2: // option value is incorrect // provide new status code?
     case 3: // Option not found
-        return aoclsparse_status_invalid_value;
-        break;
     case 4: // Options are locked, cannot set
         return aoclsparse_status_invalid_value;
-        break;
     default:
         return aoclsparse_status_internal_error;
-        break;
     }
     return aoclsparse_status_internal_error; // never reached
 }

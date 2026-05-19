@@ -469,25 +469,20 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
     // Creates idiag ptr for lower and iurow ptr for upper triangualr matrix
     if(A->input_format == aoclsparse_tcsr_mat)
     {
-        aoclsparse::tcsr *const tcsr_mat = dynamic_cast<aoclsparse::tcsr *>(A->mats[0]);
-        if(!tcsr_mat)
-            return aoclsparse_status_not_implemented;
-        if(tcsr_mat->is_optimized)
-            return aoclsparse_status_success;
         aoclsparse::tcsr *opt_mat = nullptr;
         switch(A->val_type)
         {
         case aoclsparse_dmat:
-            ret = aoclsparse_tcsr_optimize<double>(A, &opt_mat);
+            ret = aoclsparse_tcsr_optimize<double>(A, opt_mat);
             break;
         case aoclsparse_smat:
-            ret = aoclsparse_tcsr_optimize<float>(A, &opt_mat);
+            ret = aoclsparse_tcsr_optimize<float>(A, opt_mat);
             break;
         case aoclsparse_cmat:
-            ret = aoclsparse_tcsr_optimize<std::complex<float>>(A, &opt_mat);
+            ret = aoclsparse_tcsr_optimize<std::complex<float>>(A, opt_mat);
             break;
         case aoclsparse_zmat:
-            ret = aoclsparse_tcsr_optimize<std::complex<double>>(A, &opt_mat);
+            ret = aoclsparse_tcsr_optimize<std::complex<double>>(A, opt_mat);
             break;
         }
         if(ret == aoclsparse_status_success && !opt_mat)
@@ -560,16 +555,16 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
             switch(A->val_type)
             {
             case aoclsparse_dmat:
-                ret = aoclsparse_csr_csc_optimize<double>(A, &(opt_mat));
+                ret = aoclsparse_csr_csc_optimize<double>(A, opt_mat);
                 break;
             case aoclsparse_smat:
-                ret = aoclsparse_csr_csc_optimize<float>(A, &(opt_mat));
+                ret = aoclsparse_csr_csc_optimize<float>(A, opt_mat);
                 break;
             case aoclsparse_cmat:
-                ret = aoclsparse_csr_csc_optimize<std::complex<float>>(A, &(opt_mat));
+                ret = aoclsparse_csr_csc_optimize<std::complex<float>>(A, opt_mat);
                 break;
             case aoclsparse_zmat:
-                ret = aoclsparse_csr_csc_optimize<std::complex<double>>(A, &(opt_mat));
+                ret = aoclsparse_csr_csc_optimize<std::complex<double>>(A, opt_mat);
                 break;
             }
             // This check is correct: if optimization succeeded but opt_mat is null,

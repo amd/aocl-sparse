@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -437,7 +437,7 @@ aoclsparse_status aoclsparse_zcsr2bsr(aoclsparse_int                   m,
 *  can also be used to convert a CSC matrix into a CSR matrix. The index base can be
 *  modified during the conversion.
 *
-*  \note
+*  @note
 *  The resulting matrix can also be seen as the transpose of the input matrix.
 *
 *  @param[in]

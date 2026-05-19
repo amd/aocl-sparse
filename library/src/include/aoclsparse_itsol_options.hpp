@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022-2026 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -120,11 +120,11 @@ namespace aoclsparse_options
 
     protected:
         std::string       name; // name i.e. "Iteration Limit"
-        aoclsparse_int    id; // unique id (not used for now)
+        aoclsparse_int    id = 0; // unique id (not used for now)
         std::string       desc; // brief description (free text)
-        aoclsparse_int    setby; // 0 default, 1 user, 2 solver
-        bool              hidden; // option is hidden to the user (not used)
-        aoclsparse_int    pgrp; // printing group (pretty print options, not used)
+        aoclsparse_int    setby      = 0; // 0 default, 1 user, 2 solver
+        bool              hidden     = false; // option is hidden to the user (not used)
+        aoclsparse_int    pgrp       = 0; // printing group (pretty print options, not used)
         const std::string setby_l[3] = {"(default)", "(user)", "(solver)"};
         OptionBase(){};
         void SetName(std::string str)

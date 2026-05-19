@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -417,7 +417,140 @@ namespace
         EXPECT_EQ(aoclsparse_destroy(&C), aoclsparse_status_success);
         delete val;
     }
+    TEST(AddValidationSuite, CSCInputNotImpl)
+    {
+        aoclsparse_matrix           A = nullptr, B = nullptr, C = nullptr;
+        std::vector<aoclsparse_int> row_ptr(6, 0), col_ptr(1, 0);
+        aoclsparse_int              m = 5, n = 5, nnz = 0;
+        aoclsparse_index_base       base = aoclsparse_index_base_zero;
+        float                      *val  = new float;
 
+        // Test 1: A=CSC, B=CSR — expect not_implemented
+        EXPECT_EQ(aoclsparse_create_csc(&A, base, m, n, nnz, row_ptr.data(), col_ptr.data(), val),
+                  aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_create_csr(&B, base, m, n, nnz, row_ptr.data(), col_ptr.data(), val),
+                  aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_add(aoclsparse_operation_none, A, 0.1f, B, &C),
+                  aoclsparse_status_not_implemented);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&B), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&C), aoclsparse_status_success);
+
+        // Test 2: A=CSR, B=CSC — expect not_implemented
+        A = nullptr;
+        B = nullptr;
+        C = nullptr;
+        EXPECT_EQ(aoclsparse_create_csr(&A, base, m, n, nnz, row_ptr.data(), col_ptr.data(), val),
+                  aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_create_csc(&B, base, m, n, nnz, row_ptr.data(), col_ptr.data(), val),
+                  aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_add(aoclsparse_operation_none, A, 0.1f, B, &C),
+                  aoclsparse_status_not_implemented);
+        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&B), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_destroy(&C), aoclsparse_status_success);
+
+        delete val;
+    }
+
+    // Test to verify add actual functionality with CSC input (double only).
+    // Uses a non-symmetric 3x3 matrix so CSR vs CSC interpretation gives
+    // different results.  add computes C = op(A) + alpha * B.
+    // With A stored as CSC (internally A^T with doid::gt), if add treats it
+    // as CSR it will compute A^T + alpha*B instead of A + alpha*B.
+    void test_csr_add_csc_functionality()
+    {
+        aoclsparse_index_base base  = aoclsparse_index_base_zero;
+        aoclsparse_operation  op    = aoclsparse_operation_none;
+        double                alpha = 1.0;
+
+        // Define a non-symmetric 3x3 CSC matrix A:
+        //     [1  3  0]
+        // A = [0  2  0]
+        //     [0  0  4]
+        // CSC: col_ptr={0,1,3,4}, row_ind={0,0,1,2}, val={1,3,2,4}
+        aoclsparse_int              m = 3, n = 3, nnz_a = 4;
+        std::vector<double>         val_a     = {1, 3, 2, 4};
+        std::vector<aoclsparse_int> col_ptr_a = {0, 1, 3, 4};
+        std::vector<aoclsparse_int> row_ind_a = {0, 0, 1, 2};
+
+        // B = 3x3 identity in CSR, so C = A + 1.0*I
+        aoclsparse_int              nnz_b     = 3;
+        std::vector<double>         val_b     = {1, 1, 1};
+        std::vector<aoclsparse_int> col_ind_b = {0, 1, 2};
+        std::vector<aoclsparse_int> row_ptr_b = {0, 1, 2, 3};
+
+        // Correct dense result: A + I
+        //     [2  3  0]
+        //     [0  3  0]
+        //     [0  0  5]
+        // Flattened row-major:
+        std::vector<double> dense_c_exp = {2, 3, 0, 0, 3, 0, 0, 0, 5};
+
+        // If add misinterprets CSC A as CSR (reads A^T as A), it computes
+        // A^T + I:
+        //     [2  0  0]
+        //     [3  3  0]   <-- incorrect
+        //     [0  0  5]
+
+        aoclsparse_matrix A = nullptr, B = nullptr, C = nullptr;
+        ASSERT_EQ(aoclsparse_create_csc<double>(
+                      &A, base, m, n, nnz_a, col_ptr_a.data(), row_ind_a.data(), val_a.data()),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_create_csr<double>(
+                      &B, base, m, n, nnz_b, row_ptr_b.data(), col_ind_b.data(), val_b.data()),
+                  aoclsparse_status_success);
+
+        aoclsparse_status status = aoclsparse_add(op, A, alpha, B, &C);
+
+        // If add rejects CSC input (after DOID guard is enabled), accept not_implemented.
+        // If add processes CSC input, validate output against correct reference.
+        if(status == aoclsparse_status_success)
+        {
+            // Export C and convert to dense for comparison
+            aoclsparse_int        m_c, n_c, nnz_c;
+            aoclsparse_int       *row_ptr_c = NULL;
+            aoclsparse_int       *col_ind_c = NULL;
+            double               *val_c     = NULL;
+            aoclsparse_index_base base_c;
+
+            ASSERT_EQ(aoclsparse_export_csr(
+                          C, &base_c, &m_c, &n_c, &nnz_c, &row_ptr_c, &col_ind_c, &val_c),
+                      aoclsparse_status_success);
+
+            aoclsparse_mat_descr descrC;
+            ASSERT_EQ(aoclsparse_create_mat_descr(&descrC), aoclsparse_status_success);
+            ASSERT_EQ(aoclsparse_set_mat_index_base(descrC, base_c), aoclsparse_status_success);
+
+            std::vector<double> dense_c(m_c * n_c, 0.0);
+            aoclsparse_csr2dense(m_c,
+                                 n_c,
+                                 descrC,
+                                 val_c,
+                                 row_ptr_c,
+                                 col_ind_c,
+                                 dense_c.data(),
+                                 n_c,
+                                 aoclsparse_order_row);
+
+            EXPECT_DOUBLE_EQ_VEC(m_c * n_c, dense_c, dense_c_exp);
+
+            aoclsparse_destroy_mat_descr(descrC);
+        }
+        else
+        {
+            EXPECT_EQ(status, aoclsparse_status_not_implemented);
+        }
+
+        aoclsparse_destroy(&C);
+        aoclsparse_destroy(&A);
+        aoclsparse_destroy(&B);
+    }
+
+    TEST(AddValidationSuite, CSCFunctionalityDouble)
+    {
+        test_csr_add_csc_functionality();
+    }
     TEST(AddValidationSuite, WrongMatrixTypeTest)
     {
         aoclsparse_matrix           A = nullptr, B = nullptr, C = nullptr;

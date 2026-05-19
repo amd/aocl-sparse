@@ -101,12 +101,25 @@ aoclsparse_status aoclsparse_add_csr_count_nnz(const aoclsparse_int        M,
     }
     if(status == aoclsparse_status_success)
     {
+        int64_t running_sum = base_A;
         for(aoclsparse_int i = 1; i < M + 1; i++)
         {
-            C_row_ptr[i] += C_row_ptr[i - 1];
+            running_sum += C_row_ptr[i];
+            C_row_ptr[i] = static_cast<aoclsparse_int>(running_sum);
         }
 
-        C_nnz = C_row_ptr[M] - base_A;
+        // Check for overflow: if running_sum exceeds aoclsparse_int range,
+        // the prefix sum has overflowed. This check happens after safe 64-bit
+        // computation (no Undefined Behavior), and truncated values
+        // in C_row_ptr are discarded.
+        if(running_sum > aoclsparse_numeric::int_max)
+        {
+            status = aoclsparse_status_invalid_size;
+        }
+        else
+        {
+            C_nnz = C_row_ptr[M] - base_A;
+        }
     }
     return (aoclsparse_status)status;
 }
@@ -161,14 +174,19 @@ aoclsparse_status aoclsparse_add_csr_ref(const aoclsparse_int        M,
 
     aoclsparse_int num_of_threads = context::get_context()->get_num_threads();
 
-    // Count the exact nnz in first stage before computation when we are using
-    // multiple threads as each thread will be computing a different row so need
-    // to know exactly where to store the results (C_row_ptr[i]).
-    // For single thread, nnz is can be overestimated and the exact nnz and
+    // Compute exact NNZ (and C_row_ptr) in the first stage when:
+    // - running multi-threaded (each thread needs exact row boundaries
+    //   where to start, i.e., C_row_ptr[i]), or
+    // - rough estimate of C_nnz as A_nnz + B_nnz would overflow aoclsparse_int
+    // In other cases, nnz can be overestimated and, the exact nnz and
     // C_row_ptr[] is built in the main computation loop.
-    if(num_of_threads != 1)
+    bool cptr_computed = (num_of_threads != 1)
+                         || (static_cast<uint64_t>(A_nnz) + static_cast<uint64_t>(B_nnz)
+                             > static_cast<uint64_t>(aoclsparse_numeric::int_max));
+
+    if(cptr_computed)
     {
-        // For multiple threads: first allocate C with just the row pointer array
+        // First allocate C with just the row pointer array
         try
         {
             *C = new aoclsparse::csr(M, N, -1, aoclsparse_csr_mat, base_A, get_data_type<T>());
@@ -204,7 +222,7 @@ aoclsparse_status aoclsparse_add_csr_ref(const aoclsparse_int        M,
     }
     else
     {
-        // For single thread: overestimate nnz and allocate C matrix directly
+        // Single thread, no overflow risk: overestimate nnz and allocate C matrix directly
         C_nnz = A_nnz + B_nnz;
         try
         {
@@ -254,7 +272,7 @@ aoclsparse_status aoclsparse_add_csr_ref(const aoclsparse_int        M,
             {
                 aoclsparse_int start = A_row_ptr[i] - base_A;
                 aoclsparse_int end   = A_row_ptr[i + 1] - base_A;
-                if(num_of_threads != 1)
+                if(cptr_computed)
                     C_idx = C_row_ptr[i] - base_A;
 
                 for(aoclsparse_int j = start; j < end; j++)
@@ -281,7 +299,7 @@ aoclsparse_status aoclsparse_add_csr_ref(const aoclsparse_int        M,
                         C_val[col_rec[col_B]] += B_val[j];
                     }
                 }
-                if(num_of_threads == 1)
+                if(!cptr_computed)
                 {
                     C_row_ptr[i + 1] = C_idx + base_A;
                 }
@@ -290,7 +308,7 @@ aoclsparse_status aoclsparse_add_csr_ref(const aoclsparse_int        M,
     }
     if(status == aoclsparse_status_success)
     {
-        if(num_of_threads == 1)
+        if(!cptr_computed)
         {
             C_nnz     = C_row_ptr[M] - base_A;
             (*C)->nnz = C_nnz;
@@ -347,6 +365,9 @@ aoclsparse_status aoclsparse_add_t(const aoclsparse_operation op,
     aoclsparse::csr *B_csr = dynamic_cast<aoclsparse::csr *>(B->mats[0]);
 
     if(!A_csr || !B_csr)
+        return aoclsparse_status_not_implemented;
+    // Only CSR matrix format is supported
+    if(A_csr->doid != aoclsparse::doid::gn || B_csr->doid != aoclsparse::doid::gn)
         return aoclsparse_status_not_implemented;
 
     T *A_val = reinterpret_cast<T *>(A_csr->val);

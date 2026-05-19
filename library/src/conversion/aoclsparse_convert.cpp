@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -64,7 +64,7 @@ aoclsparse_int aoclsparse_opt_blksize(aoclsparse_int        m,
     double pc_blks_inc[2];
     double pc_diff_blks    = 0;
     double pc_diff_blkutil = 0;
-    double nnzpr           = nnz / m;
+    double nnzpr           = static_cast<double>(nnz) / m;
 
     for(int i = 0; i < 3; i++)
     {
@@ -110,8 +110,12 @@ aoclsparse_int aoclsparse_opt_blksize(aoclsparse_int        m,
         }
 
         total_nBlk[i] = total_num_blks;
-        perBlk[i]     = double(nnz) / double(total_num_blks);
-        blkUtil[i]    = (perBlk[i] / ((double)nBlk_factor[i] * 8)) * 100;
+        // Guard against division by zero when no blocks are found;
+        // return 0 to indicate block optimization is not applicable
+        if(total_num_blks == 0)
+            return 0;
+        perBlk[i]  = double(nnz) / double(total_num_blks);
+        blkUtil[i] = (perBlk[i] / ((double)nBlk_factor[i] * 8)) * 100;
 
         if((nnzpr < 30 && blkUtil[0] < 40) || (nnzpr > 30 && blkUtil[0] < 50))
             return 0;
@@ -702,10 +706,20 @@ extern "C" aoclsparse_status aoclsparse_csr2bsr_nnz(aoclsparse_int             m
     }
 
     // Exclusive sum to obtain BCSR row pointers while preserving the base-index
-    bsr_row_ptr[0] = base;
+    // Use int64_t running_sum to avoid signed overflow UB in prefix-sum computation
+    bsr_row_ptr[0]      = base;
+    int64_t running_sum = base;
     for(aoclsparse_int i = 0; i < mb; ++i)
     {
-        bsr_row_ptr[i + 1] += bsr_row_ptr[i];
+        running_sum += bsr_row_ptr[i + 1];
+        // Truncation assignment is defined behavior; overflow check happens post-loop
+        bsr_row_ptr[i + 1] = static_cast<aoclsparse_int>(running_sum);
+    }
+
+    // Check for overflow AFTER loop (no UB occurred since all arithmetic was 64-bit)
+    if(running_sum > aoclsparse_numeric::int_max)
+    {
+        return aoclsparse_status_invalid_size;
     }
 
     // Extract BCSR nnz
