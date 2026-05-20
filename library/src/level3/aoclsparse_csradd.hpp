@@ -337,11 +337,6 @@ aoclsparse_status aoclsparse_add_t(const aoclsparse_operation op,
         return aoclsparse_status_invalid_pointer;
     }
 
-    if(A->mats.empty() || B->mats.empty())
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-
     if(A->input_format != aoclsparse_csr_mat || B->input_format != aoclsparse_csr_mat)
         return aoclsparse_status_not_implemented;
 
@@ -361,8 +356,8 @@ aoclsparse_status aoclsparse_add_t(const aoclsparse_operation op,
 
     aoclsparse_int C_nnz = 0;
 
-    aoclsparse::csr *A_csr = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
-    aoclsparse::csr *B_csr = dynamic_cast<aoclsparse::csr *>(B->mats[0]);
+    aoclsparse::csr *A_csr = A->get_first_mtx_if_valid<aoclsparse::csr>();
+    aoclsparse::csr *B_csr = B->get_first_mtx_if_valid<aoclsparse::csr>();
 
     if(!A_csr || !B_csr)
         return aoclsparse_status_not_implemented;

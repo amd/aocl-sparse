@@ -32,6 +32,7 @@
 #include <cstdint>
 #include <cstring>
 #include <map>
+#include <shared_mutex>
 #include <string>
 
 static const char *aoclsparse_version = AOCLSPARSE_VERSION_STRING;
@@ -440,10 +441,10 @@ aoclsparse_status aoclsparse_create_ell_csr_hyb(aoclsparse_matrix mat,
                                                 aoclsparse_int   *csr_row_id_map,
                                                 void             *ell_val)
 {
-    if(!mat || mat->mats.empty() || !ell_col_ind || !csr_row_id_map || !ell_val)
+    if(!mat || !ell_col_ind || !csr_row_id_map || !ell_val)
         return aoclsparse_status_invalid_pointer;
 
-    aoclsparse::csr *csr_mat = dynamic_cast<aoclsparse::csr *>(mat->mats[0]);
+    aoclsparse::csr *csr_mat = mat->get_first_mtx_if_valid<aoclsparse::csr>();
     if(!csr_mat)
         return aoclsparse_status_not_implemented;
 
@@ -1211,20 +1212,23 @@ aoclsparse_status aoclsparse_copy_coo(const aoclsparse::coo *src, aoclsparse::co
 template <typename T>
 aoclsparse_status aoclsparse_copy_mat(const aoclsparse_matrix src, aoclsparse_matrix dest)
 {
-    if(!src || src->mats.empty() || !src->mats[0])
+    if(!src)
         return aoclsparse_status_invalid_pointer;
 
-    aoclsparse_status     status   = aoclsparse_status_success;
-    aoclsparse::base_mtx *dest_mat = nullptr;
+    aoclsparse_status     status    = aoclsparse_status_success;
+    aoclsparse::base_mtx *dest_mat  = nullptr;
+    aoclsparse::base_mtx *src_first = src->get_first_mtx_if_valid<aoclsparse::base_mtx>();
+    if(!src_first)
+        return aoclsparse_status_invalid_pointer;
 
-    switch(src->mats[0]->mat_type)
+    switch(src_first->mat_type)
     {
     case aoclsparse_csr_mat:
-        status = aoclsparse_copy_csr<T>(dynamic_cast<aoclsparse::csr *>(src->mats[0]),
+        status = aoclsparse_copy_csr<T>(dynamic_cast<aoclsparse::csr *>(src_first),
                                         reinterpret_cast<aoclsparse::csr *&>(dest_mat));
         break;
     case aoclsparse_coo_mat:
-        status = aoclsparse_copy_coo<T>(dynamic_cast<aoclsparse::coo *>(src->mats[0]),
+        status = aoclsparse_copy_coo<T>(dynamic_cast<aoclsparse::coo *>(src_first),
                                         reinterpret_cast<aoclsparse::coo *&>(dest_mat));
         break;
     default:
@@ -1258,10 +1262,10 @@ aoclsparse_status aoclsparse_sort_mat(aoclsparse_matrix mat)
     std::vector<T>              temp_val;
     aoclsparse_status           status = aoclsparse_status_success;
 
-    if(!mat || mat->mats.empty())
+    if(!mat)
         return aoclsparse_status_invalid_pointer;
 
-    aoclsparse::csr *src_mat = dynamic_cast<aoclsparse::csr *>(mat->mats[0]);
+    aoclsparse::csr *src_mat = mat->get_first_mtx_if_valid<aoclsparse::csr>();
     if(!src_mat)
         return aoclsparse_status_not_implemented;
     if(!src_mat->ptr || !src_mat->ind || !src_mat->val)
@@ -1305,9 +1309,8 @@ aoclsparse_status aoclsparse_export_csr_t(const aoclsparse_matrix mat,
                                           aoclsparse_int        **col_ind,
                                           T                     **val)
 {
-    if((mat == nullptr) || mat->mats.empty() || (base == nullptr) || (m == nullptr)
-       || (n == nullptr) || (nnz == nullptr) || (row_ptr == nullptr) || (col_ind == nullptr)
-       || (val == nullptr))
+    if((mat == nullptr) || (base == nullptr) || (m == nullptr) || (n == nullptr) || (nnz == nullptr)
+       || (row_ptr == nullptr) || (col_ind == nullptr) || (val == nullptr))
     {
         return aoclsparse_status_invalid_pointer;
     }
@@ -1317,16 +1320,23 @@ aoclsparse_status aoclsparse_export_csr_t(const aoclsparse_matrix mat,
         return aoclsparse_status_wrong_type;
     }
 
+    if(!mat->get_first_mtx_if_valid<aoclsparse::base_mtx>())
+        return aoclsparse_status_invalid_pointer;
+
     aoclsparse::csr *csr_mat = nullptr;
-    for(auto *mat_rep : mat->mats)
     {
-        aoclsparse::csr *temp_mat = dynamic_cast<aoclsparse::csr *>(mat_rep);
-        if(temp_mat && temp_mat->ptr && temp_mat->ind && temp_mat->val
-           && temp_mat->doid != aoclsparse::doid::gt)
+        std::shared_lock<std::shared_mutex> rlock(mat->mats_guard);
+
+        for(auto *mat_rep : mat->mats)
         {
-            csr_mat = temp_mat; // Valid CSR
-            if(temp_mat->is_optimized)
-                break; // Found the optimized csr matrix
+            aoclsparse::csr *temp_mat = dynamic_cast<aoclsparse::csr *>(mat_rep);
+            if(temp_mat && temp_mat->ptr && temp_mat->ind && temp_mat->val
+               && temp_mat->doid != aoclsparse::doid::gt)
+            {
+                csr_mat = temp_mat; // Valid CSR
+                if(temp_mat->is_optimized)
+                    break; // Found the optimized csr matrix
+            }
         }
     }
     if(!csr_mat)
@@ -1358,9 +1368,8 @@ aoclsparse_status aoclsparse_export_csc_t(const aoclsparse_matrix mat,
                                           T                     **val)
 {
     // Input validation
-    if((mat == nullptr) || mat->mats.empty() || (base == nullptr) || (m == nullptr)
-       || (n == nullptr) || (nnz == nullptr) || (col_ptr == nullptr) || (row_idx == nullptr)
-       || (val == nullptr))
+    if((mat == nullptr) || (base == nullptr) || (m == nullptr) || (n == nullptr) || (nnz == nullptr)
+       || (col_ptr == nullptr) || (row_idx == nullptr) || (val == nullptr))
     {
         return aoclsparse_status_invalid_pointer;
     }
@@ -1370,16 +1379,23 @@ aoclsparse_status aoclsparse_export_csc_t(const aoclsparse_matrix mat,
         return aoclsparse_status_wrong_type;
     }
     // Find the valid csc matrix
+    if(!mat->get_first_mtx_if_valid<aoclsparse::base_mtx>())
+        return aoclsparse_status_invalid_pointer;
+
     aoclsparse::csr *csc_mat = nullptr;
-    for(auto *mat_rep : mat->mats)
     {
-        auto *temp_mat = dynamic_cast<aoclsparse::csr *>(mat_rep);
-        if(temp_mat && temp_mat->doid == aoclsparse::doid::gt && temp_mat->ptr && temp_mat->ind
-           && temp_mat->val)
+        std::shared_lock<std::shared_mutex> rlock(mat->mats_guard);
+
+        for(auto *mat_rep : mat->mats)
         {
-            csc_mat = temp_mat; // Valid CSC
-            if(temp_mat->is_optimized)
-                break; // Found the optimized CSC matrix
+            auto *temp_mat = dynamic_cast<aoclsparse::csr *>(mat_rep);
+            if(temp_mat && temp_mat->doid == aoclsparse::doid::gt && temp_mat->ptr && temp_mat->ind
+               && temp_mat->val)
+            {
+                csc_mat = temp_mat; // Valid CSC
+                if(temp_mat->is_optimized)
+                    break; // Found the optimized CSC matrix
+            }
         }
     }
     if(!csc_mat)

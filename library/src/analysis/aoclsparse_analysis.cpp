@@ -39,7 +39,7 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
     // 2) matrix dimensions are <= 1
     // 3) matrix is not stored in the csr format
     // 4) ToDo: add more exceptions
-    if(!A || A->mats.empty())
+    if(!A)
         return aoclsparse_status_invalid_pointer;
 
     if(A->val_type != aoclsparse_dmat || A->mat_type != aoclsparse_csr_mat || A->m <= 1
@@ -50,7 +50,7 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
     }
 
     // The user-given matrix should be located at the first position in A->mats
-    aoclsparse::csr *csr_mat = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
+    aoclsparse::csr *csr_mat = A->get_first_mtx_if_valid<aoclsparse::csr>();
     if(!csr_mat)
         return aoclsparse_status_not_implemented;
     if(!csr_mat->ptr || !csr_mat->ind || !csr_mat->val)
@@ -389,10 +389,10 @@ aoclsparse_status aoclsparse_optimize_mv(aoclsparse_matrix A)
 */
 aoclsparse_status aoclsparse_optimize_ilu(aoclsparse_matrix A)
 {
-    if(!A || A->mats.empty())
+    if(!A)
         return aoclsparse_status_invalid_pointer;
 
-    aoclsparse::csr *csr_mat = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
+    aoclsparse::csr *csr_mat = A->get_first_mtx_if_valid<aoclsparse::csr>();
     if(!csr_mat)
         return aoclsparse_status_not_implemented;
     if(!csr_mat->val)
@@ -438,7 +438,7 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
     {
         return aoclsparse_status_invalid_size;
     }
-    if(A->mats.empty())
+    if(!A->get_first_mtx_if_valid<aoclsparse::base_mtx>())
         return aoclsparse_status_invalid_pointer;
 
     // Investigate potential optimized copies
@@ -573,7 +573,7 @@ aoclsparse_status aoclsparse_set_hint(aoclsparse_matrix          mat,
                                       aoclsparse_int             kid = -1)
 {
     // Check matrix and descriptor
-    if(!mat || mat->mats.empty() || !mat->mats[0] || (descr == nullptr))
+    if(!mat || !mat->get_first_mtx_if_valid<aoclsparse::base_mtx>() || (descr == nullptr))
     {
         return aoclsparse_status_invalid_pointer;
     }
@@ -582,10 +582,7 @@ aoclsparse_status aoclsparse_set_hint(aoclsparse_matrix          mat,
     {
         return aoclsparse_status_invalid_value;
     }
-    // Check for base index incompatibility
-    // There is an issue that zero-based indexing is defined in two separate places and
-    // can lead to ambiguity, we check that both are consistent.
-    if(mat->mats[0]->base != descr->base)
+    if(!mat->is_descr_matching(descr))
     {
         return aoclsparse_status_invalid_value;
     }

@@ -33,6 +33,7 @@
 #include <cmath>
 #include <complex>
 #include <immintrin.h>
+#include <shared_mutex>
 #include <vector>
 
 #if defined(_WIN32) || defined(_WIN64)
@@ -277,7 +278,7 @@ aoclsparse_status aoclsparse_syprd(aoclsparse_operation            op,
                                    aoclsparse_int                  ldc,
                                    [[maybe_unused]] aoclsparse_int kid)
 {
-    if(A == nullptr || A->mats.empty() || B == nullptr || C == nullptr)
+    if(A == nullptr || B == nullptr || C == nullptr)
         return aoclsparse_status_invalid_pointer;
 
     if(op != aoclsparse_operation_none && op != aoclsparse_operation_transpose
@@ -300,9 +301,9 @@ aoclsparse_status aoclsparse_syprd(aoclsparse_operation            op,
 
     aoclsparse_int   m     = A->m;
     aoclsparse_int   k     = A->n;
-    aoclsparse::csr *A_csr = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
+    aoclsparse::csr *A_csr = A->get_first_mtx_if_valid<aoclsparse::csr>();
     if(!A_csr)
-        return aoclsparse_status_not_implemented;
+        return aoclsparse_status_invalid_pointer;
 
     /* Dispatch table — CSR (doid::gn) and CSC (doid::gt, stores A^T internally):
      *   CSR | op_none      : β·C + α·A·B·A^H    (real: A·B·A^T)       conjleft=false

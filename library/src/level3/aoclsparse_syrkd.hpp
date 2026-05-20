@@ -205,7 +205,7 @@ inline aoclsparse_status aoclsparse_syrkd_t(const aoclsparse_operation      op,
 
     aoclsparse_status status;
 
-    aoclsparse::csr *csr_mat = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
+    aoclsparse::csr *csr_mat = A->get_first_mtx_if_valid<aoclsparse::csr>();
     if(!csr_mat)
         return aoclsparse_status_not_implemented;
 

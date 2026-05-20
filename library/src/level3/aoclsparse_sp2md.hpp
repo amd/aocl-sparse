@@ -253,7 +253,7 @@ inline aoclsparse_status aoclsparse_sp2md_t(const aoclsparse_operation      opA,
 
     // All validations
     // Input validations
-    if(!A || A->mats.empty() || !B || B->mats.empty() || !C)
+    if(!A || !B || !C)
     {
         return aoclsparse_status_invalid_pointer;
     }
@@ -262,8 +262,8 @@ inline aoclsparse_status aoclsparse_sp2md_t(const aoclsparse_operation      opA,
         return aoclsparse_status_not_implemented;
     }
 
-    aoclsparse::csr *A_csr = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
-    aoclsparse::csr *B_csr = dynamic_cast<aoclsparse::csr *>(B->mats[0]);
+    aoclsparse::csr *A_csr = A->get_first_mtx_if_valid<aoclsparse::csr>();
+    aoclsparse::csr *B_csr = B->get_first_mtx_if_valid<aoclsparse::csr>();
     // Holds data related to opB(B)
     aoclsparse::csr *B_op = nullptr;
     // Check if A_csr and B_csr are valid and not of type CSC ("gt" transposed)

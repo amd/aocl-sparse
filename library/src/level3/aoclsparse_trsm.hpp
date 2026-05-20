@@ -29,6 +29,8 @@
 #include "aoclsparse_auxiliary.hpp"
 #include "aoclsparse_csr_util.hpp"
 
+#include <shared_mutex>
+
 /*
  * TRSM dispatcher
  * ===============
@@ -52,8 +54,12 @@ aoclsparse_status
     // Quick initial checks
     if(!A || !X || !B || !descr)
         return aoclsparse_status_invalid_pointer;
-    if(A->mats.empty() || !A->mats[0])
+
+    if(!A->get_first_mtx_if_valid<aoclsparse::base_mtx>())
         return aoclsparse_status_invalid_pointer;
+
+    if(!A->is_descr_matching(descr))
+        return aoclsparse_status_invalid_value;
 
     // Only CSR, CSC, TCSR input format supported
     // Internally, CSC is stored as CSR with rows and columns swapped.
@@ -79,14 +85,6 @@ aoclsparse_status
     if(ldb < 0 || ldx < 0) //invalid leading dimension
     {
         return aoclsparse_status_invalid_size;
-    }
-
-    // Check for base index incompatibility
-    // There is an issue that zero-based indexing is defined in two separate places and
-    // can lead to ambiguity, we check that both are consistent.
-    if(A->mats[0]->base != descr->base)
-    {
-        return aoclsparse_status_invalid_value;
     }
     // Check if descriptor's index-base is valid (and A's index-base must be the same)
     if(descr->base != aoclsparse_index_base_zero && descr->base != aoclsparse_index_base_one)

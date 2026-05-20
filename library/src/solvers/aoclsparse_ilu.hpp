@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,6 +32,7 @@
 
 #include <immintrin.h>
 #include <iostream>
+#include <shared_mutex>
 
 template <typename T>
 aoclsparse_status aoclsparse_ilu_template(aoclsparse_operation       op,
@@ -51,8 +52,12 @@ aoclsparse_status aoclsparse_ilu_template(aoclsparse_operation       op,
     {
         return aoclsparse_status_invalid_pointer;
     }
-    if(A->mats.empty() || !A->mats[0])
+
+    if(!A->get_first_mtx_if_valid<aoclsparse::base_mtx>())
         return aoclsparse_status_invalid_pointer;
+
+    if(!A->is_descr_matching(descr))
+        return aoclsparse_status_invalid_value;
 
     if(op != aoclsparse_operation_none)
     {
@@ -77,15 +82,6 @@ aoclsparse_status aoclsparse_ilu_template(aoclsparse_operation       op,
     if(A->val_type != get_data_type<T>())
     {
         return aoclsparse_status_wrong_type;
-    }
-    if((A->mats[0]->base != aoclsparse_index_base_zero)
-       && (A->mats[0]->base != aoclsparse_index_base_one))
-    {
-        return aoclsparse_status_invalid_value;
-    }
-    if(A->mats[0]->base != descr->base)
-    {
-        return aoclsparse_status_invalid_value;
     }
 
     // Check sizes (only square matrices are supported)
@@ -114,7 +110,7 @@ aoclsparse_status aoclsparse_ilu_template(aoclsparse_operation       op,
     {
     case aoclsparse_ilu0:
     {
-        aoclsparse::csr *csr_mat = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
+        aoclsparse::csr *csr_mat = A->get_first_mtx_if_valid<aoclsparse::csr>();
         if(!csr_mat)
             return aoclsparse_status_not_implemented;
         //Invoke ILU0 API for CSR storage format

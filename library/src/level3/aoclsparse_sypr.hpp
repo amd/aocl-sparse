@@ -565,10 +565,6 @@ aoclsparse_status aoclsparse_sypr_t(aoclsparse_operation       opA,
     {
         return aoclsparse_status_invalid_pointer;
     }
-    if(A->mats.empty() || !A->mats[0] || B->mats.empty() || !B->mats[0])
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
     if(request != aoclsparse_stage_finalize)
         *C = NULL; // unless it is second stage, we don't expect anything on input
 
@@ -577,10 +573,19 @@ aoclsparse_status aoclsparse_sypr_t(aoclsparse_operation       opA,
         return aoclsparse_status_not_implemented;
     }
     // Only CSR matrix format is supported
-    bool is_doid_gt = (A->mats[0]->doid == aoclsparse::doid::gt);
-    if((!is_doid_gt && A->mats[0]->doid != aoclsparse::doid::gn)
-       || B->mats[0]->doid != aoclsparse::doid::gn)
+    aoclsparse::csr *A_csr = A->get_first_mtx_if_valid<aoclsparse::csr>();
+    if(!A_csr)
+        return aoclsparse_status_invalid_pointer;
+    bool is_doid_gt = (A_csr->doid == aoclsparse::doid::gt);
+    if(!is_doid_gt && A_csr->doid != aoclsparse::doid::gn)
         return aoclsparse_status_not_implemented;
+    {
+        aoclsparse::csr *B_csr_first = B->get_first_mtx_if_valid<aoclsparse::csr>();
+        if(!B_csr_first)
+            return aoclsparse_status_invalid_pointer;
+        if(B_csr_first->doid != aoclsparse::doid::gn)
+            return aoclsparse_status_not_implemented;
+    }
 
     // C = op(A)·B·op(A)^H is Hermitian only when op is none or conj_trans.
     // op_transpose with complex types would give C = A^T·B·A which is NOT Hermitian — block it.
@@ -632,11 +637,8 @@ aoclsparse_status aoclsparse_sypr_t(aoclsparse_operation       opA,
     {
         return aoclsparse_status_wrong_type;
     }
-    if(descrB->base != aoclsparse_index_base_zero && descrB->base != aoclsparse_index_base_one)
-    {
-        return aoclsparse_status_invalid_value;
-    }
-    if(B->mats[0]->base != descrB->base)
+
+    if(!B->is_descr_matching(descrB))
         return aoclsparse_status_invalid_value;
     if constexpr(std::is_same_v<T, double> || std::is_same_v<T, float>)
     {
@@ -678,18 +680,13 @@ aoclsparse_status aoclsparse_sypr_t(aoclsparse_operation       opA,
             return aoclsparse_status_invalid_size;
     }
 
-    aoclsparse::csr *A_csr = nullptr, *B_opt_csr = nullptr, *C_csr = nullptr;
-    A_csr = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
-    if(!A_csr)
-        return aoclsparse_status_not_implemented;
-    // Check index base
+    aoclsparse::csr *B_opt_csr = nullptr;
+    aoclsparse::csr *C_csr     = nullptr;
     if(A_csr->base != aoclsparse_index_base_zero && A_csr->base != aoclsparse_index_base_one)
-    {
         return aoclsparse_status_invalid_value;
-    }
-    if((*C) && !(*C)->mats.empty())
+    if(*C)
     {
-        C_csr = dynamic_cast<aoclsparse::csr *>((*C)->mats[0]);
+        C_csr = (*C)->get_first_mtx_if_valid<aoclsparse::csr>();
     }
 
     // Basic check if 2nd stage was called without the first

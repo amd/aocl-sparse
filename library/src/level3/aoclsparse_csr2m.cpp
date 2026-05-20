@@ -31,6 +31,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <shared_mutex>
 #include <vector>
 /*
  * This function performs the first stage of matrix-matrix multiplication,
@@ -343,7 +344,7 @@ inline aoclsparse_status aoclsparse_csr2m_finalize(aoclsparse_int             m_
         return aoclsparse_status_invalid_pointer;
     }
 
-    if((*C)->mats.empty())
+    if(!(*C)->get_first_mtx_if_valid<aoclsparse::base_mtx>())
         return aoclsparse_status_invalid_pointer;
 
     aoclsparse::csr *csr_mat = nullptr, *csc_mat = nullptr;
@@ -575,8 +576,12 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
     {
         return aoclsparse_status_invalid_pointer;
     }
-    if(A->mats.empty() || !A->mats[0] || B->mats.empty() || !B->mats[0])
+
+    aoclsparse::base_mtx *A_first = A->get_first_mtx_if_valid<aoclsparse::base_mtx>();
+    aoclsparse::base_mtx *B_first = B->get_first_mtx_if_valid<aoclsparse::base_mtx>();
+    if(!A_first || !B_first)
         return aoclsparse_status_invalid_pointer;
+
     // Initialise *C to nullptr for full_computation & first stage
     if(request != aoclsparse_stage_finalize)
     {
@@ -587,7 +592,7 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
         return aoclsparse_status_not_implemented;
     }
     // Only CSR matrix format is supported
-    if(A->mats[0]->doid != aoclsparse::doid::gn || B->mats[0]->doid != aoclsparse::doid::gn)
+    if(A_first->doid != aoclsparse::doid::gn || B_first->doid != aoclsparse::doid::gn)
     {
         return aoclsparse_status_not_implemented;
     }
@@ -601,20 +606,10 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
         return aoclsparse_status_wrong_type;
     }
 
-    // Check index base
-    if(descrA->base != aoclsparse_index_base_zero && descrA->base != aoclsparse_index_base_one)
-    {
-        return aoclsparse_status_invalid_value;
-    }
-    if(descrB->base != aoclsparse_index_base_zero && descrB->base != aoclsparse_index_base_one)
-    {
-        return aoclsparse_status_invalid_value;
-    }
-
-    if(A->mats[0]->base != descrA->base)
+    if(!A->is_descr_matching(descrA))
         return aoclsparse_status_invalid_value;
 
-    if(B->mats[0]->base != descrB->base)
+    if(!B->is_descr_matching(descrB))
         return aoclsparse_status_invalid_value;
 
     if((descrA->type != aoclsparse_matrix_type_general)
@@ -726,27 +721,40 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
     aoclsparse_copy_mat_descr(&descrA_t, descrA);
     _aoclsparse_mat_descr descrB_t;
     aoclsparse_copy_mat_descr(&descrB_t, descrB);
-    // Locate the first CSR matrix object in the mats vector of A and B
+    // The mats vector may contain multiple matrix representations (e.g. CSR,
+    // CSC, ELL) created during optimisation. We need the original CSR copy
+    // (mat_type == aoclsparse_csr_mat) for the SpGEMM computation.
+    // Each search acquires its own shared lock on mats_guard so that a
+    // concurrent push_back (from an implicit optimisation on another thread)
+    // does not cause a data race on the vector. The lock is released as soon
+    // as the pointer is extracted; the pointed-to csr object itself remains
+    // valid and stable after the lock is released.
     aoclsparse::csr *csr_src_A = nullptr, *csr_src_B = nullptr;
-    for(auto *mat : A->mats)
     {
-        if(auto *temp = dynamic_cast<aoclsparse::csr *>(mat))
+        std::shared_lock<std::shared_mutex> rlock_A(A->mats_guard);
+        for(auto *mat : A->mats)
         {
-            if(temp->mat_type == aoclsparse_csr_mat)
+            if(auto *temp = dynamic_cast<aoclsparse::csr *>(mat))
             {
-                csr_src_A = temp;
-                break;
+                if(temp->mat_type == aoclsparse_csr_mat)
+                {
+                    csr_src_A = temp;
+                    break;
+                }
             }
         }
     }
-    for(auto *mat : B->mats)
     {
-        if(auto *temp = dynamic_cast<aoclsparse::csr *>(mat))
+        std::shared_lock<std::shared_mutex> rlock_B(B->mats_guard);
+        for(auto *mat : B->mats)
         {
-            if(temp->mat_type == aoclsparse_csr_mat)
+            if(auto *temp = dynamic_cast<aoclsparse::csr *>(mat))
             {
-                csr_src_B = temp;
-                break;
+                if(temp->mat_type == aoclsparse_csr_mat)
+                {
+                    csr_src_B = temp;
+                    break;
+                }
             }
         }
     }
