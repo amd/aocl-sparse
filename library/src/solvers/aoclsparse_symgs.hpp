@@ -24,12 +24,8 @@
 #ifndef AOCLSPARSE_SYMGS_HPP
 #define AOCLSPARSE_SYMGS_HPP
 
-#include "aoclsparse_descr.h"
 #include "aoclsparse.hpp"
-#include "aoclsparse_analysis.hpp"
 #include "aoclsparse_auxiliary.hpp"
-#include "aoclsparse_csr_util.hpp"
-#include "aoclsparse_utils.hpp"
 
 #include <immintrin.h>
 #include <shared_mutex>

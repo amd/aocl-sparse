@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022-2026 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,6 @@
 #ifndef AOCLSPARSE_ITSOL_DATA_HPP_
 #define AOCLSPARSE_ITSOL_DATA_HPP_
 
-#include "aoclsparse.h"
 #include "aoclsparse_itsol_options.hpp"
 
 /*

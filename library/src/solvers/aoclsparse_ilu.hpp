@@ -23,12 +23,8 @@
 #ifndef AOCLSPARSE_ILU_HPP
 #define AOCLSPARSE_ILU_HPP
 
-#include "aoclsparse.h"
-#include "aoclsparse_descr.h"
-#include "aoclsparse_types.h"
 #include "aoclsparse_analysis.hpp"
 #include "aoclsparse_ilu0.hpp"
-#include "aoclsparse_mat_structures.hpp"
 
 #include <immintrin.h>
 #include <iostream>

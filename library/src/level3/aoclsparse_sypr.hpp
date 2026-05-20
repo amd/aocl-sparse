@@ -24,12 +24,7 @@
 #ifndef AOCLSPARSE_SYPR_HPP
 #define AOCLSPARSE_SYPR_HPP
 
-#include "aoclsparse.h"
-#include "aoclsparse_descr.h"
 #include "aoclsparse_auxiliary.hpp"
-#include "aoclsparse_convert.hpp"
-#include "aoclsparse_csr_util.hpp"
-#include "aoclsparse_mat_structures.hpp"
 
 #include <algorithm>
 #include <cmath>

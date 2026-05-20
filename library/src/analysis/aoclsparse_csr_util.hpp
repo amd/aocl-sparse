@@ -23,12 +23,7 @@
 #ifndef AOCLSPARSE_INPUT_CHECK_HPP
 #define AOCLSPARSE_INPUT_CHECK_HPP
 
-#include "aoclsparse.h"
-#include "aoclsparse_descr.h"
-#include "aoclsparse_types.h"
 #include "aoclsparse_convert.hpp"
-#include "aoclsparse_mat_structures.hpp"
-#include "aoclsparse_utils.hpp"
 
 #include <algorithm>
 #include <cstring>

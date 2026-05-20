@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,9 +23,7 @@
 #ifndef AOCLSPARSE_ILU0_HPP
 #define AOCLSPARSE_ILU0_HPP
 
-#include "aoclsparse.h"
 #include "aoclsparse_descr.h"
-#include "aoclsparse_types.h"
 #include "aoclsparse_utils.hpp"
 
 #if defined(_WIN32) || defined(_WIN64)

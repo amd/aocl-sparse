@@ -22,11 +22,8 @@
  * ************************************************************************ */
 #ifndef AOCLSPARSE_TCSR_HPP
 #define AOCLSPARSE_TCSR_HPP
-#include "aoclsparse.h"
-#include "aoclsparse_descr.h"
 #include "aoclsparse_l2_kt.hpp"
 #include "aoclsparse_mat_structures.hpp"
-#include "aoclsparse_mtx_dispatcher.hpp"
 
 // Kernels
 // ----------------------------------------------------------------------------

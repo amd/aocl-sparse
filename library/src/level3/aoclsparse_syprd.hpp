@@ -23,8 +23,6 @@
 
 #ifndef AOCLSPARSE_SYPRD_HPP
 #define AOCLSPARSE_SYPRD_HPP
-#include "aoclsparse.h"
-#include "aoclsparse_descr.h"
 #include "aoclsparse_auxiliary.hpp"
 #include "aoclsparse_convert.hpp"
 #include "aoclsparse_utils.hpp"

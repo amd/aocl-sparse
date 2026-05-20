@@ -23,9 +23,6 @@
 #ifndef AOCLSPARSE_CONVERT_HPP
 #define AOCLSPARSE_CONVERT_HPP
 
-#include "aoclsparse.h"
-#include "aoclsparse_descr.h"
-#include "aoclsparse_types.h"
 #include "aoclsparse_mat_structures.hpp"
 #include "aoclsparse_utils.hpp"
 

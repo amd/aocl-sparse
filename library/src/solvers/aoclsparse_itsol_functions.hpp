@@ -23,19 +23,11 @@
 #ifndef AOCLSPARSE_ITSOL_FUNCTIONS_HPP_
 #define AOCLSPARSE_ITSOL_FUNCTIONS_HPP_
 
-#include "aoclsparse.h"
-#include "aoclsparse_descr.h"
-#include "aoclsparse_solvers.h"
 #include "aoclsparse.hpp"
 #include "aoclsparse_auxiliary.hpp"
-#include "aoclsparse_csr_util.hpp"
 #include "aoclsparse_ilu.hpp"
-#include "aoclsparse_itsol_data.hpp"
 #include "aoclsparse_itsol_list_options.hpp"
-#include "aoclsparse_itsol_options.hpp"
 #include "aoclsparse_lapack.hpp"
-#include "aoclsparse_mat_structures.hpp"
-#include "aoclsparse_utils.hpp"
 
 #include <shared_mutex>
 

@@ -24,10 +24,8 @@
 #ifndef AOCLSPARSE_SM_HPP
 #define AOCLSPARSE_SM_HPP
 
-#include "aoclsparse_descr.h"
 #include "aoclsparse.hpp"
 #include "aoclsparse_auxiliary.hpp"
-#include "aoclsparse_csr_util.hpp"
 
 #include <shared_mutex>
 

@@ -23,12 +23,7 @@
 #ifndef AOCLSPARSE_SORV_HPP
 #define AOCLSPARSE_SORV_HPP
 
-#include "aoclsparse.h"
-#include "aoclsparse_descr.h"
-#include "aoclsparse_types.h"
 #include "aoclsparse_csr_util.hpp"
-#include "aoclsparse_mat_structures.hpp"
-#include "aoclsparse_utils.hpp"
 
 #include <complex>
 #include <shared_mutex>

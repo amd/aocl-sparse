@@ -24,10 +24,7 @@
 #ifndef AOCLSPARSE_SYRK_HPP
 #define AOCLSPARSE_SYRK_HPP
 
-#include "aoclsparse.h"
 #include "aoclsparse_auxiliary.hpp"
-#include "aoclsparse_convert.hpp"
-#include "aoclsparse_mat_structures.hpp"
 #include "aoclsparse_sypr.hpp"
 
 #include <complex>

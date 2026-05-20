@@ -21,11 +21,9 @@
  *
  * ************************************************************************ */
 
-#pragma once
 #ifndef AOCLSPARSE_MAT_STRUCTS_H
 #define AOCLSPARSE_MAT_STRUCTS_H
 
-#include "aoclsparse.h"
 #include "aoclsparse_mtx_dispatcher.hpp"
 
 #include <shared_mutex>

@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,11 +24,8 @@
 #ifndef AOCLSPARSE_GTHR_HPP
 #define AOCLSPARSE_GTHR_HPP
 
-#include "aoclsparse.h"
 #include "aoclsparse_cntx_dispatcher.hpp"
-#include "aoclsparse_kernel_templates.hpp"
 #include "aoclsparse_l1_kt.hpp"
-#include "aoclsparse_utils.hpp"
 
 /* Gather and gather_zero reference implementations with stride or indexing
  * It is assumed that all pointers and data are valid.

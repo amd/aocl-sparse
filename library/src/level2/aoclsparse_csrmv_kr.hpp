@@ -23,7 +23,6 @@
 #ifndef AOCLSPARSE_CSRMV_KERNELS_HPP
 #define AOCLSPARSE_CSRMV_KERNELS_HPP
 
-#include "aoclsparse.h"
 #include "aoclsparse_descr.h"
 #include "aoclsparse_context.hpp"
 #include "aoclsparse_mat_structures.hpp"

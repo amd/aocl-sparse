@@ -22,7 +22,6 @@
  * ************************************************************************ */
 #ifndef AOCLSPARSE_BLKCSRMV_HPP
 #define AOCLSPARSE_BLKCSRMV_HPP
-#include "aoclsparse.h"
 #include "aoclsparse_descr.h"
 #include "aoclsparse_blkcsrmv_avx512.hpp"
 #include "aoclsparse_context.hpp"

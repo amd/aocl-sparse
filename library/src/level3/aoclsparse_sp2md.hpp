@@ -23,14 +23,9 @@
  */
 #ifndef AOCLSPARSE_SP2MD_HPP
 #define AOCLSPARSE_SP2MD_HPP
-#endif
 
-#include "aoclsparse_descr.h"
 #include "aoclsparse.hpp"
 #include "aoclsparse_auxiliary.hpp"
-#include "aoclsparse_convert.hpp"
-#include "aoclsparse_mat_structures.hpp"
-#include "aoclsparse_utils.hpp"
 
 #include <complex>
 #include <vector>
@@ -438,3 +433,5 @@ inline aoclsparse_status aoclsparse_sp2md_t(const aoclsparse_operation      opA,
     }
     return status;
 }
+
+#endif // AOCLSPARSE_SP2MD_HPP

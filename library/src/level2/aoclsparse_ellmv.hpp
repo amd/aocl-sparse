@@ -23,7 +23,6 @@
 #ifndef AOCLSPARSE_ELLMV_HPP
 #define AOCLSPARSE_ELLMV_HPP
 
-#include "aoclsparse.h"
 #include "aoclsparse_descr.h"
 #include "aoclsparse_context.hpp"
 #include "aoclsparse_ellmv_avx512.hpp"

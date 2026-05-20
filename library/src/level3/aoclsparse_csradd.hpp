@@ -20,11 +20,10 @@
  * THE SOFTWARE.
  *
  * ************************************************************************ */
-#include "aoclsparse.h"
+#ifndef AOCLSPARSE_CSRADD_HPP
+#define AOCLSPARSE_CSRADD_HPP
+
 #include "aoclsparse_auxiliary.hpp"
-#include "aoclsparse_convert.hpp"
-#include "aoclsparse_mat_structures.hpp"
-#include "aoclsparse_utils.hpp"
 
 #include <algorithm>
 #include <cstring>
@@ -475,3 +474,5 @@ aoclsparse_status aoclsparse_add_t(const aoclsparse_operation op,
         return status;
     }
 }
+
+#endif // AOCLSPARSE_CSRADD_HPP
