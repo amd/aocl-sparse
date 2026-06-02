@@ -26,8 +26,9 @@
 #include "aoclsparse_context.hpp"
 #include "aoclsparse_kernel_templates.hpp"
 #include "aoclsparse_l3_kt.hpp"
+#include "aoclsparse_utils.hpp"
 
-template <kernel_templates::bsz SZ, typename SUF>
+template <kernel_templates::bsz SZ, typename SUF, bool CONJ_VAL>
 aoclsparse_status aoclsparse::csrmm_col_kt(const SUF                  alpha,
                                            const aoclsparse_mat_descr descr,
                                            const SUF *__restrict__ csr_val,
@@ -134,7 +135,10 @@ aoclsparse_status aoclsparse::csrmm_col_kt(const SUF                  alpha,
                     for(aoclsparse_int idx = csr_row_ptr[i]; idx < idxend - rem; idx += psz)
                     {
                         // Sequential 4x8 matrix-vector multiplication
-                        avec  = kt_loadu_p<SZ, SUF>(&csr_val_fix[idx]);
+                        avec = kt_loadu_p<SZ, SUF>(&csr_val_fix[idx]);
+                        // Zero-overhead: false branch eliminated at compile time
+                        if constexpr(CONJ_VAL)
+                            avec = kt_conj_p<SZ, SUF>(avec);
                         bvec0 = kt_set_p<SZ, SUF>(bcol0, &csr_col_ind_fix[idx]);
                         bvec1 = kt_set_p<SZ, SUF>(bcol1, &csr_col_ind_fix[idx]);
                         bvec2 = kt_set_p<SZ, SUF>(bcol2, &csr_col_ind_fix[idx]);
@@ -157,10 +161,12 @@ aoclsparse_status aoclsparse::csrmm_col_kt(const SUF                  alpha,
                 {
                     for(aoclsparse_int idx = idxend - rem; idx < idxend; idx++)
                     {
-                        cij += csr_val_fix[idx] * bcol0[csr_col_ind_fix[idx]];
-                        cijp1 += csr_val_fix[idx] * bcol1[csr_col_ind_fix[idx]];
-                        cijp2 += csr_val_fix[idx] * bcol2[csr_col_ind_fix[idx]];
-                        cijp3 += csr_val_fix[idx] * bcol3[csr_col_ind_fix[idx]];
+                        const auto aval
+                            = CONJ_VAL ? aoclsparse::conj(csr_val_fix[idx]) : csr_val_fix[idx];
+                        cij += aval * bcol0[csr_col_ind_fix[idx]];
+                        cijp1 += aval * bcol1[csr_col_ind_fix[idx]];
+                        cijp2 += aval * bcol2[csr_col_ind_fix[idx]];
+                        cijp3 += aval * bcol3[csr_col_ind_fix[idx]];
                     }
                 }
                 switch(blkr)
@@ -190,7 +196,7 @@ aoclsparse_status aoclsparse::csrmm_col_kt(const SUF                  alpha,
     return aoclsparse_status_success;
 }
 
-template <kernel_templates::bsz SZ, typename SUF>
+template <kernel_templates::bsz SZ, typename SUF, bool CONJ_VAL>
 aoclsparse_status aoclsparse::csrmm_row_kt(const SUF                  alpha,
                                            const aoclsparse_mat_descr descr,
                                            const SUF *__restrict__ csr_val,
@@ -279,13 +285,17 @@ aoclsparse_status aoclsparse::csrmm_row_kt(const SUF                  alpha,
                 aoclsparse_int idx_B2 = csr_col_ind_fix[idx2] * ldb;
                 aoclsparse_int idx_B3 = csr_col_ind_fix[idx3] * ldb;
 
-                // Broadcast four non-zeros into the four vectors
-                avec  = kt_set1_p<SZ, SUF>(alpha * csr_val_fix[idx0]);
-                avec1 = kt_set1_p<SZ, SUF>(alpha * csr_val_fix[idx1]);
-                avec2 = kt_set1_p<SZ, SUF>(alpha * csr_val_fix[idx2]);
-                avec3 = kt_set1_p<SZ, SUF>(alpha * csr_val_fix[idx3]);
-                mul   = n / psz;
-                rem   = n - psz * mul;
+                // Zero-overhead: false branches eliminated at compile time
+                const SUF sv0 = CONJ_VAL ? aoclsparse::conj(csr_val_fix[idx0]) : csr_val_fix[idx0];
+                const SUF sv1 = CONJ_VAL ? aoclsparse::conj(csr_val_fix[idx1]) : csr_val_fix[idx1];
+                const SUF sv2 = CONJ_VAL ? aoclsparse::conj(csr_val_fix[idx2]) : csr_val_fix[idx2];
+                const SUF sv3 = CONJ_VAL ? aoclsparse::conj(csr_val_fix[idx3]) : csr_val_fix[idx3];
+                avec          = kt_set1_p<SZ, SUF>(alpha * sv0);
+                avec1         = kt_set1_p<SZ, SUF>(alpha * sv1);
+                avec2         = kt_set1_p<SZ, SUF>(alpha * sv2);
+                avec3         = kt_set1_p<SZ, SUF>(alpha * sv3);
+                mul           = n / psz;
+                rem           = n - psz * mul;
                 for(aoclsparse_int j = 0; j < n - rem; j += psz)
                 {
                     cvec0 = kt_loadu_p<SZ, SUF>(&C[idx_C + j]);
@@ -326,22 +336,22 @@ aoclsparse_status aoclsparse::csrmm_row_kt(const SUF                  alpha,
                         switch(blkr)
                         {
                         case 4:
-                            C[idx_C + j] += csr_val_fix[idx0] * B_fix[idx_B + j] * alpha;
-                            C[idx_C + j] += csr_val_fix[idx1] * B_fix[idx_B1 + j] * alpha;
-                            C[idx_C + j] += csr_val_fix[idx2] * B_fix[idx_B2 + j] * alpha;
-                            C[idx_C + j] += csr_val_fix[idx3] * B_fix[idx_B3 + j] * alpha;
+                            C[idx_C + j] += sv0 * B_fix[idx_B + j] * alpha;
+                            C[idx_C + j] += sv1 * B_fix[idx_B1 + j] * alpha;
+                            C[idx_C + j] += sv2 * B_fix[idx_B2 + j] * alpha;
+                            C[idx_C + j] += sv3 * B_fix[idx_B3 + j] * alpha;
                             break;
                         case 3:
-                            C[idx_C + j] += csr_val_fix[idx0] * B_fix[idx_B + j] * alpha;
-                            C[idx_C + j] += csr_val_fix[idx1] * B_fix[idx_B1 + j] * alpha;
-                            C[idx_C + j] += csr_val_fix[idx2] * B_fix[idx_B2 + j] * alpha;
+                            C[idx_C + j] += sv0 * B_fix[idx_B + j] * alpha;
+                            C[idx_C + j] += sv1 * B_fix[idx_B1 + j] * alpha;
+                            C[idx_C + j] += sv2 * B_fix[idx_B2 + j] * alpha;
                             break;
                         case 2:
-                            C[idx_C + j] += csr_val_fix[idx0] * B_fix[idx_B + j] * alpha;
-                            C[idx_C + j] += csr_val_fix[idx1] * B_fix[idx_B1 + j] * alpha;
+                            C[idx_C + j] += sv0 * B_fix[idx_B + j] * alpha;
+                            C[idx_C + j] += sv1 * B_fix[idx_B1 + j] * alpha;
                             break;
                         case 1:
-                            C[idx_C + j] += csr_val_fix[idx0] * B_fix[idx_B + j] * alpha;
+                            C[idx_C + j] += sv0 * B_fix[idx_B + j] * alpha;
                             break;
                         }
                     }
@@ -352,35 +362,43 @@ aoclsparse_status aoclsparse::csrmm_row_kt(const SUF                  alpha,
     return aoclsparse_status_success;
 }
 
-#define CSRMM_COL_TEMPLATE_DECLARATION(BSZ, SUF)                   \
-    template aoclsparse_status aoclsparse::csrmm_col_kt<BSZ, SUF>( \
-        const SUF                  alpha,                          \
-        const aoclsparse_mat_descr descr,                          \
-        const SUF *__restrict__ csr_val,                           \
-        const aoclsparse_int *__restrict__ csr_col_ind,            \
-        const aoclsparse_int *__restrict__ csr_row_ptr,            \
-        aoclsparse_int m,                                          \
-        const SUF     *B,                                          \
-        aoclsparse_int n,                                          \
-        aoclsparse_int ldb,                                        \
-        SUF            beta,                                       \
-        SUF           *C,                                          \
+#define CSRMM_COL_TEMPLATE_DECLARATION(BSZ, SUF, CV)                   \
+    template aoclsparse_status aoclsparse::csrmm_col_kt<BSZ, SUF, CV>( \
+        const SUF                  alpha,                              \
+        const aoclsparse_mat_descr descr,                              \
+        const SUF *__restrict__ csr_val,                               \
+        const aoclsparse_int *__restrict__ csr_col_ind,                \
+        const aoclsparse_int *__restrict__ csr_row_ptr,                \
+        aoclsparse_int m,                                              \
+        const SUF     *B,                                              \
+        aoclsparse_int n,                                              \
+        aoclsparse_int ldb,                                            \
+        SUF            beta,                                           \
+        SUF           *C,                                              \
         aoclsparse_int ldc);
 
-#define CSRMM_ROW_TEMPLATE_DECLARATION(BSZ, SUF)                   \
-    template aoclsparse_status aoclsparse::csrmm_row_kt<BSZ, SUF>( \
-        const SUF                  alpha,                          \
-        const aoclsparse_mat_descr descr,                          \
-        const SUF *__restrict__ csr_val,                           \
-        const aoclsparse_int *__restrict__ csr_col_ind,            \
-        const aoclsparse_int *__restrict__ csr_row_ptr,            \
-        aoclsparse_int m,                                          \
-        const SUF     *B,                                          \
-        aoclsparse_int n,                                          \
-        aoclsparse_int ldb,                                        \
-        SUF            beta,                                       \
-        SUF           *C,                                          \
+#define CSRMM_ROW_TEMPLATE_DECLARATION(BSZ, SUF, CV)                   \
+    template aoclsparse_status aoclsparse::csrmm_row_kt<BSZ, SUF, CV>( \
+        const SUF                  alpha,                              \
+        const aoclsparse_mat_descr descr,                              \
+        const SUF *__restrict__ csr_val,                               \
+        const aoclsparse_int *__restrict__ csr_col_ind,                \
+        const aoclsparse_int *__restrict__ csr_row_ptr,                \
+        aoclsparse_int m,                                              \
+        const SUF     *B,                                              \
+        aoclsparse_int n,                                              \
+        aoclsparse_int ldb,                                            \
+        SUF            beta,                                           \
+        SUF           *C,                                              \
         aoclsparse_int ldc);
 
-KT_INSTANTIATE(CSRMM_COL_TEMPLATE_DECLARATION, kernel_templates::get_bsz());
-KT_INSTANTIATE(CSRMM_ROW_TEMPLATE_DECLARATION, kernel_templates::get_bsz());
+// Wrapper macros: fix CV so KT_INSTANTIATE (2-arg expander) can emit both variants
+#define CSRMM_COL_PLAIN(BSZ, SUF) CSRMM_COL_TEMPLATE_DECLARATION(BSZ, SUF, false)
+#define CSRMM_COL_CONJ(BSZ, SUF) CSRMM_COL_TEMPLATE_DECLARATION(BSZ, SUF, true)
+#define CSRMM_ROW_PLAIN(BSZ, SUF) CSRMM_ROW_TEMPLATE_DECLARATION(BSZ, SUF, false)
+#define CSRMM_ROW_CONJ(BSZ, SUF) CSRMM_ROW_TEMPLATE_DECLARATION(BSZ, SUF, true)
+
+KT_INSTANTIATE(CSRMM_COL_PLAIN, kernel_templates::get_bsz());
+KT_INSTANTIATE(CSRMM_COL_CONJ, kernel_templates::get_bsz());
+KT_INSTANTIATE(CSRMM_ROW_PLAIN, kernel_templates::get_bsz());
+KT_INSTANTIATE(CSRMM_ROW_CONJ, kernel_templates::get_bsz());

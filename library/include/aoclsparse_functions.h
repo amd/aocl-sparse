@@ -2268,11 +2268,11 @@ aoclsparse_status aoclsparse_sypr(aoclsparse_operation       opA,
                                   const aoclsparse_request   request);
 
 /*! \ingroup level3_module
- *  \brief Sparse matrix dense matrix multiplication using CSR storage format.
+ *  \brief Sparse matrix dense matrix multiplication using CSR or CSC storage format.
  *
  *  \details
  *  <tt>aoclsparse_?csrmm</tt> multiplies a scalar \f$\alpha\f$ with a sparse \f$m \times k\f$
- *  matrix \f$A\f$, defined in CSR storage format, and a dense \f$k \times n\f$
+ *  matrix \f$A\f$, defined in CSR or CSC storage format, and a dense \f$k \times n\f$
  *  matrix \f$B\f$ and adds the result to the dense \f$m \times n\f$ matrix \f$C\f$ that
  *  is multiplied by a scalar \f$\beta\f$, such that
  *  \f[
@@ -2292,12 +2292,12 @@ aoclsparse_status aoclsparse_sypr(aoclsparse_operation       opA,
  *  @param[in]
  *  alpha       Scalar \f$\alpha\f$.
  *  @param[in]
- *  A           Sparse CSR matrix \f$A\f$ structure.
+ *  A           Sparse CSR or CSC matrix \f$A\f$ structure.
  *  @param[in]
- *  descr       descriptor of the sparse CSR matrix \f$A\f$. Currently, supports
+ *  descr       descriptor of the sparse CSR or CSC matrix \f$A\f$. Currently, supports
  *              \ref aoclsparse_matrix_type_general, \ref aoclsparse_matrix_type_symmetric,
  *              and \ref aoclsparse_matrix_type_hermitian matrices. Both, base-zero and
- *              base-one input arrays of CSR matrix are supported.
+ *              base-one input arrays of CSR and CSC matrices are supported.
  *  @param[in]
  *  order       \ref aoclsparse_order_row / \ref aoclsparse_order_column for dense matrix
  *  @param[in]
@@ -2328,7 +2328,7 @@ aoclsparse_status aoclsparse_sypr(aoclsparse_operation       opA,
  *  \retval     aoclsparse_status_not_implemented
  *              \ref aoclsparse_matrix_type is not one of these: \ref aoclsparse_matrix_type_general,
  *              \ref aoclsparse_matrix_type_symmetric, \ref aoclsparse_matrix_type_hermitian  or
- *              input matrix \p A is not in CSR format
+ *              input matrix \p A is not in CSR or CSC format
  *
  * @rst
  * .. collapse:: Example (tests/examples/sample_csrmm.cpp)

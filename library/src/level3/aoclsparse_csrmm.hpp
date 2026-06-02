@@ -33,7 +33,7 @@
 #include <shared_mutex>
 #include <vector>
 
-template <typename T>
+template <typename T, bool CONJ_VAL = false>
 aoclsparse_status aoclsparse_csrmm_col_major_ref(T                          alpha,
                                                  const aoclsparse_mat_descr descr,
                                                  const T *__restrict__ csr_val,
@@ -76,7 +76,9 @@ aoclsparse_status aoclsparse_csrmm_col_major_ref(T                          alph
                 for(aoclsparse_int k = row_begin; k < row_end; ++k)
                 {
                     aoclsparse_int idx_B = (csr_col_ind_fix[k] + j * ldb);
-                    sum                  = csr_val_fix[k] * B_fix[idx_B] + sum;
+                    // Zero-overhead: false branch eliminated at compile time
+                    const T aval = CONJ_VAL ? aoclsparse::conj(csr_val_fix[k]) : csr_val_fix[k];
+                    sum          = aval * B_fix[idx_B] + sum;
                 }
                 C[idx_C] = (beta * C[idx_C]) + (alpha * sum);
             }
@@ -84,7 +86,7 @@ aoclsparse_status aoclsparse_csrmm_col_major_ref(T                          alph
     }
     return aoclsparse_status_success;
 }
-template <typename T>
+template <typename T, bool CONJ_VAL = false>
 aoclsparse_status aoclsparse_csrmm_row_major_ref(T                          alpha,
                                                  const aoclsparse_mat_descr descr,
                                                  const T *__restrict__ csr_val,
@@ -129,9 +131,11 @@ aoclsparse_status aoclsparse_csrmm_row_major_ref(T                          alph
             for(aoclsparse_int j = row_begin; j < row_end; ++j)
             {
                 aoclsparse_int idx_B = csr_col_ind_fix[j] * ldb;
+                // Zero-overhead: false branch eliminated at compile time
+                const T aval = CONJ_VAL ? aoclsparse::conj(csr_val_fix[j]) : csr_val_fix[j];
                 for(aoclsparse_int k = 0; k < n; ++k)
                 {
-                    C[idx_C + k] += csr_val_fix[j] * B_fix[idx_B + k] * alpha;
+                    C[idx_C + k] += aval * B_fix[idx_B + k] * alpha;
                 }
             }
         }
@@ -141,7 +145,7 @@ aoclsparse_status aoclsparse_csrmm_row_major_ref(T                          alph
 
 // The parameter HERM specifies if the input csr matrix described by
 // <descr, csr_val, csr_col_ind and csr_row_ptr> is hermitian.
-template <typename T, bool HERM = false>
+template <typename T, bool HERM = false, bool CONJ_VAL = false>
 aoclsparse_status aoclsparse_csrmm_sym_row_ref(T                          alpha,
                                                const aoclsparse_mat_descr descr,
                                                const T *__restrict__ csr_val,
@@ -174,14 +178,16 @@ aoclsparse_status aoclsparse_csrmm_sym_row_ref(T                          alpha,
         }
         for(int k = row_begin; k < row_end; k++)
         {
-            bool is_diag = (i == (csr_col_ind[k] - base));
+            // Zero-overhead: false branch eliminated at compile time
+            const T v       = CONJ_VAL ? aoclsparse::conj(csr_val[k]) : csr_val[k];
+            bool    is_diag = (i == (csr_col_ind[k] - base));
             if(is_diag && (diag == aoclsparse_diag_type_non_unit))
             {
                 for(int j = 0; j < n; j++)
                 {
                     aoclsparse_int idx_c = i * ldc + j;
                     aoclsparse_int idx_b = (csr_col_ind[k] - base) * ldb + j;
-                    C[idx_c] += csr_val[k] * B[idx_b] * alpha;
+                    C[idx_c] += v * B[idx_b] * alpha;
                 }
             }
             else
@@ -199,16 +205,16 @@ aoclsparse_status aoclsparse_csrmm_sym_row_ref(T                          alpha,
                         // ToDo: sort matrix A by column indices to get rid of the conditional
                         if(i > (csr_col_ind[k] - base))
                         {
-                            C[idx_c] += csr_val[k] * B[idx_b] * alpha;
+                            C[idx_c] += v * B[idx_b] * alpha;
                             idx_b = i * ldb + j;
                             idx_c = (csr_col_ind[k] - base) * ldc + j;
                             if constexpr(HERM)
                             {
-                                C[idx_c] += aoclsparse::conj(csr_val[k]) * (B[idx_b]) * alpha;
+                                C[idx_c] += aoclsparse::conj(v) * (B[idx_b]) * alpha;
                             }
                             else
                             {
-                                C[idx_c] += csr_val[k] * (B[idx_b]) * alpha;
+                                C[idx_c] += v * (B[idx_b]) * alpha;
                             }
                         }
                     }
@@ -224,16 +230,16 @@ aoclsparse_status aoclsparse_csrmm_sym_row_ref(T                          alpha,
                         // ToDo: sort matrix A by column indices to get rid of the conditional
                         if(i < (csr_col_ind[k] - base))
                         {
-                            C[idx_c] += csr_val[k] * B[idx_b] * alpha;
+                            C[idx_c] += v * B[idx_b] * alpha;
                             idx_b = i * ldb + j;
                             idx_c = (csr_col_ind[k] - base) * ldc + j;
                             if constexpr(HERM)
                             {
-                                C[idx_c] += aoclsparse::conj(csr_val[k]) * (B[idx_b]) * alpha;
+                                C[idx_c] += aoclsparse::conj(v) * (B[idx_b]) * alpha;
                             }
                             else
                             {
-                                C[idx_c] += csr_val[k] * (B[idx_b]) * alpha;
+                                C[idx_c] += v * (B[idx_b]) * alpha;
                             }
                         }
                     }
@@ -246,7 +252,7 @@ aoclsparse_status aoclsparse_csrmm_sym_row_ref(T                          alpha,
 
 // The parameter HERM specifies if the input csr matrix described by
 // <descr, csr_val, csr_col_ind and csr_row_ptr> is hermitian.
-template <typename T, bool HERM = false>
+template <typename T, bool HERM = false, bool CONJ_VAL = false>
 aoclsparse_status aoclsparse_csrmm_sym_col_ref(T                          alpha,
                                                const aoclsparse_mat_descr descr,
                                                const T *__restrict__ csr_val,
@@ -279,14 +285,16 @@ aoclsparse_status aoclsparse_csrmm_sym_col_ref(T                          alpha,
         }
         for(int k = row_begin; k < row_end; k++)
         {
-            bool is_diag = (i == (csr_col_ind[k] - base));
+            // Zero-overhead: false branch eliminated at compile time
+            const T v       = CONJ_VAL ? aoclsparse::conj(csr_val[k]) : csr_val[k];
+            bool    is_diag = (i == (csr_col_ind[k] - base));
             if(is_diag && (diag == aoclsparse_diag_type_non_unit))
             {
                 for(int j = 0; j < n; j++)
                 {
                     aoclsparse_int idx_c = i + j * ldc;
                     aoclsparse_int idx_b = (csr_col_ind[k] - base) + j * ldb;
-                    C[idx_c] += csr_val[k] * B[idx_b] * alpha;
+                    C[idx_c] += v * B[idx_b] * alpha;
                 }
             }
             else
@@ -304,16 +312,16 @@ aoclsparse_status aoclsparse_csrmm_sym_col_ref(T                          alpha,
                         // ToDo: sort matrix A by column indices to get rid of the conditional
                         if(i > (csr_col_ind[k] - base))
                         {
-                            C[idx_c] += csr_val[k] * B[idx_b] * alpha;
+                            C[idx_c] += v * B[idx_b] * alpha;
                             idx_b = i + j * ldb;
                             idx_c = (csr_col_ind[k] - base) + j * ldc;
                             if constexpr(HERM)
                             {
-                                C[idx_c] += aoclsparse::conj(csr_val[k]) * (B[idx_b]) * alpha;
+                                C[idx_c] += aoclsparse::conj(v) * (B[idx_b]) * alpha;
                             }
                             else
                             {
-                                C[idx_c] += csr_val[k] * (B[idx_b]) * alpha;
+                                C[idx_c] += v * (B[idx_b]) * alpha;
                             }
                         }
                     }
@@ -329,16 +337,16 @@ aoclsparse_status aoclsparse_csrmm_sym_col_ref(T                          alpha,
                         // ToDo: sort matrix A by column indices to get rid of the conditional
                         if(i < (csr_col_ind[k] - base))
                         {
-                            C[idx_c] += csr_val[k] * B[idx_b] * alpha;
+                            C[idx_c] += v * B[idx_b] * alpha;
                             idx_b = i + j * ldb;
                             idx_c = (csr_col_ind[k] - base) + j * ldc;
                             if constexpr(HERM)
                             {
-                                C[idx_c] += aoclsparse::conj(csr_val[k]) * (B[idx_b]) * alpha;
+                                C[idx_c] += aoclsparse::conj(v) * (B[idx_b]) * alpha;
                             }
                             else
                             {
-                                C[idx_c] += csr_val[k] * (B[idx_b]) * alpha;
+                                C[idx_c] += v * (B[idx_b]) * alpha;
                             }
                         }
                     }
@@ -484,8 +492,15 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
     aoclsparse::csr *csr_mat = A->get_first_mtx_if_valid<aoclsparse::csr>();
     if(!csr_mat)
         return aoclsparse_status_not_implemented;
-    // Only CSR matrix format is supported
-    if(csr_mat->doid != aoclsparse::doid::gn)
+
+    // CSR and CSC are supported via the internal doid convention:
+    //   - doid::gn : CSR
+    //   - doid::gt : CSC stored internally in CSR layout (raw->m = A->n, raw->n = A->m)
+    // Other doid values are not supported here.
+    // Note: A->input_format alone is not sufficient to distinguish CSR vs CSC — doid is authoritative.
+    bool is_doid_gt = (csr_mat->doid == aoclsparse::doid::gt);
+    if(!is_doid_gt && csr_mat->doid != aoclsparse::doid::gn)
+
         return aoclsparse_status_not_implemented;
     const aoclsparse_int *csr_col_ind = csr_mat->ind;
     const aoclsparse_int *csr_row_ptr = csr_mat->ptr;
@@ -512,6 +527,34 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
     {
         return aoclsparse_status_invalid_pointer;
     }
+
+    T                          *val_A;
+    aoclsparse_int             *col_ind_A;
+    aoclsparse_int             *row_ptr_A;
+    std::vector<aoclsparse_int> csr_row_ptr_A;
+    std::vector<aoclsparse_int> csr_col_ind_A;
+    std::vector<T>              csr_val_A;
+    aoclsparse_int              mb;
+    aoclsparse_status           status;
+    // If mat_found is set, pointers already reference the optimized matrix in A->mats.
+    bool                  mat_found = false;
+    _aoclsparse_mat_descr descr_t;
+    aoclsparse_copy_mat_descr(&descr_t, descr);
+    // req_doid: doid of the logical operation the user requested on logical matrix A.
+    // eff_doid: doid of the in-memory layout; trans_doid() maps gn↔gt, gh↔gc,
+    //           sl↔su, slc↔suc, hl↔huc, hu↔hlc — encodes all CSR↔CSC and fill flips.
+    // conj_flip: true when the kernel must conjugate values (general gc/gh path only).
+    aoclsparse::doid req_doid = aoclsparse::get_doid<T>(descr, op);
+    aoclsparse::doid eff_doid = is_doid_gt ? aoclsparse::trans_doid(req_doid) : req_doid;
+    bool conj_flip        = (eff_doid == aoclsparse::doid::gc || eff_doid == aoclsparse::doid::gh);
+    aoclsparse::doid d_id = eff_doid;
+    // For sym/herm CSC: A^T flips lower↔upper — remap descr_t.fill_mode to match stored layout.
+    if(is_doid_gt && descr->type != aoclsparse_matrix_type_general)
+        descr_t.fill_mode = (descr->fill_mode == aoclsparse_fill_mode_lower)
+                                ? aoclsparse_fill_mode_upper
+                                : aoclsparse_fill_mode_lower;
+    mb = m; //Number of rows in matrix A
+
     // Check leading dimension of B
     aoclsparse_int check_ldb;
     if(op == aoclsparse_operation_none)
@@ -543,21 +586,6 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
     }
     n_c = n;
 
-    T                          *val_A;
-    aoclsparse_int             *col_ind_A;
-    aoclsparse_int             *row_ptr_A;
-    std::vector<aoclsparse_int> csr_row_ptr_A;
-    std::vector<aoclsparse_int> csr_col_ind_A;
-    std::vector<T>              csr_val_A;
-    aoclsparse_int              mb;
-    aoclsparse_status           status;
-    // If mat_found is set, pointers already reference the optimized matrix in A->mats.
-    bool                  mat_found = false;
-    _aoclsparse_mat_descr descr_t;
-    aoclsparse_copy_mat_descr(&descr_t, descr);
-    aoclsparse::doid d_id = aoclsparse::get_doid<T>(descr, op);
-    mb                    = m; //Number of rows in matrix A
-
     // Overflow check for dense matrix B and C offset computations in LP64 mode
     // Kernels compute indices like: i + j * ld (col-major) or i * ld + j (row-major).
     // The maximum index is strictly less than dim * ld, so we validate dim * ld.
@@ -588,9 +616,6 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
         status = scale_dense_matrix(order, C, m_c, n_c, ldc, beta);
         return status; // Early return
     }
-    if(A->input_format != aoclsparse_csr_mat)
-        return aoclsparse_status_not_implemented;
-
     /*
          * This loop iterates over the list of optimized matrices in A->mats and selects the one that matches
          * the required operation (doid). If found, it sets the pointers to the optimized matrix data and marks
@@ -601,7 +626,7 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
         for(auto mat : A->mats)
         {
             aoclsparse::csr *csr_m = dynamic_cast<aoclsparse::csr *>(mat);
-            if(csr_m != nullptr && mat->doid == d_id)
+            if(csr_m != nullptr && mat->doid == req_doid)
             {
                 // Extract the matrix
                 val_A     = (T *)csr_m->val;
@@ -609,8 +634,9 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
                 row_ptr_A = csr_m->ptr;
                 mb        = csr_m->m;
 
-                //Call set_mat_diag to set unit/zero diag types
-                if(descr_t.diag_type != mat->mtx_diag)
+                // diag adjustment only meaningful for sym/herm; general type has no diag_val
+                if(descr_t.diag_type != mat->mtx_diag
+                   && descr_t.type != aoclsparse_matrix_type_general)
                 {
                     status = aoclsparse_set_mat_diag<T>(A->m, descr_t, csr_m);
                     if(status != aoclsparse_status_success)
@@ -622,12 +648,19 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
                 descr_t.fill_mode = aoclsparse_fill_mode_lower;
                 descr_t.base      = csr_m->base;
                 mat_found         = true;
-                // reset doid
-                d_id = doid::gn;
+                // reset doid and conjugation: optimized matrix is already the correct form
+                d_id      = doid::gn;
+                conj_flip = false;
                 break;
             }
         }
     }
+
+    // Conjugated doids capture all cases where values must be
+    // conjugated (sym conj-trans, herm CSR, herm CSC — all encoded by trans_doid()).
+    // mat_found path resets d_id to gn and op to none — conj_sym is false there (general).
+    const bool conj_sym
+        = (d_id == doid::slc || d_id == doid::suc || d_id == doid::hlc || d_id == doid::huc);
 
     switch(d_id)
     {
@@ -635,6 +668,28 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
     case doid::su:
     case doid::slc:
     case doid::suc:
+        status = scale_dense_matrix(order, C, m_c, n_c, ldc, beta);
+        if(status != aoclsparse_status_success)
+            return status;
+
+        if(order == aoclsparse_order_column)
+        {
+            if(conj_sym)
+                return aoclsparse_csrmm_sym_col_ref<T, false, true>(
+                    alpha, &descr_t, csr_val, csr_col_ind, csr_row_ptr, k, B, n, ldb, C, ldc);
+            else
+                return aoclsparse_csrmm_sym_col_ref<T, false, false>(
+                    alpha, &descr_t, csr_val, csr_col_ind, csr_row_ptr, k, B, n, ldb, C, ldc);
+        }
+        else
+        {
+            if(conj_sym)
+                return aoclsparse_csrmm_sym_row_ref<T, false, true>(
+                    alpha, &descr_t, csr_val, csr_col_ind, csr_row_ptr, k, B, n, ldb, C, ldc);
+            else
+                return aoclsparse_csrmm_sym_row_ref<T, false, false>(
+                    alpha, &descr_t, csr_val, csr_col_ind, csr_row_ptr, k, B, n, ldb, C, ldc);
+        }
     case doid::hl:
     case doid::hu:
     case doid::hlc:
@@ -643,64 +698,25 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
         if(status != aoclsparse_status_success)
             return status;
 
-        val_A = const_cast<T *>(csr_val);
-        if(op != aoclsparse_operation_none)
+        if(order == aoclsparse_order_column)
         {
-            try
-            {
-                csr_val_A.resize(A->nnz);
-            }
-            catch(std::bad_alloc &)
-            {
-                return aoclsparse_status_memory_error;
-            }
-            // For symmetric and hermitian matrices, we only use:
-            // 1. Orginal row pointers and column indices,
-            // 2. Apply conjugate on original value array(non-transposed csr_val), because of the following reasons:
-            //    - Symmetric matrices are equal to its transpose.
-            //    - Hertmitian matrices are equal to its conjugate transpose.
-            // This enables kernel to process only the required triangle of the matrix (either upper or lower triangle)
-            // using the orignal row pointers and column indices. This is useful only in Hermitian matrices.
-            // Apply conjugate on transposed value array.
-            for(aoclsparse_int idx = 0; idx < A->nnz; idx++)
-            {
-                if constexpr(std::is_same_v<T, std::complex<double>>
-                             || std::is_same_v<T, std::complex<float>>)
-                {
-                    if(d_id == doid::slc || d_id == doid::suc || d_id == doid::hlc
-                       || d_id == doid::huc)
-                    {
-                        csr_val_A[idx] = aoclsparse::conj(csr_val[idx]);
-                    }
-                    else
-                        csr_val_A[idx] = csr_val[idx];
-                }
-                else
-                {
-                    csr_val_A[idx] = csr_val[idx];
-                }
-            }
-            val_A = csr_val_A.data();
+            if(conj_sym)
+                return aoclsparse_csrmm_sym_col_ref<T, true, true>(
+                    alpha, &descr_t, csr_val, csr_col_ind, csr_row_ptr, k, B, n, ldb, C, ldc);
+            else
+                return aoclsparse_csrmm_sym_col_ref<T, true, false>(
+                    alpha, &descr_t, csr_val, csr_col_ind, csr_row_ptr, k, B, n, ldb, C, ldc);
         }
-        if(mat_type == aoclsparse_matrix_type_symmetric)
+        else
         {
-            if(order == aoclsparse_order_column)
-                return aoclsparse_csrmm_sym_col_ref<T>(
-                    alpha, descr, val_A, csr_col_ind, csr_row_ptr, k, B, n, ldb, C, ldc);
-            else // order == aoclsparse_order_row
-                return aoclsparse_csrmm_sym_row_ref<T>(
-                    alpha, descr, val_A, csr_col_ind, csr_row_ptr, k, B, n, ldb, C, ldc);
+            if(conj_sym)
+                return aoclsparse_csrmm_sym_row_ref<T, true, true>(
+                    alpha, &descr_t, csr_val, csr_col_ind, csr_row_ptr, k, B, n, ldb, C, ldc);
+            else
+                return aoclsparse_csrmm_sym_row_ref<T, true, false>(
+                    alpha, &descr_t, csr_val, csr_col_ind, csr_row_ptr, k, B, n, ldb, C, ldc);
         }
-        else // mat_type == aoclsparse_matrix_type_hermitian
-        {
-            if(order == aoclsparse_order_column)
-                return aoclsparse_csrmm_sym_col_ref<T, true>(
-                    alpha, descr, val_A, csr_col_ind, csr_row_ptr, k, B, n, ldb, C, ldc);
-            else // order == aoclsparse_order_row
-                return aoclsparse_csrmm_sym_row_ref<T, true>(
-                    alpha, descr, val_A, csr_col_ind, csr_row_ptr, k, B, n, ldb, C, ldc);
-        }
-        break;
+    case doid::gc: // conj path (gc/gh): conj_flip=true, CONJ_VAL=true kernel handles conjugation
     case doid::gn:
     case doid::gt:
     case doid::gh:
@@ -716,14 +732,15 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
         row_ptr_A = const_cast<aoclsparse_int *>(csr_row_ptr);
         col_ind_A = const_cast<aoclsparse_int *>(csr_col_ind);
         val_A     = const_cast<T *>(csr_val);
-        mb        = m;
+        mb        = csr_mat->m;
 
         if(d_id == doid::gt || d_id == doid::gh)
         {
             try
             {
                 csr_col_ind_A.resize(A->nnz);
-                csr_row_ptr_A.resize(A->n + 1);
+                // csr2csc(csr_mat->m, csr_mat->n) writes csr_mat->n + 1 entries to row_ptr output
+                csr_row_ptr_A.resize(csr_mat->n + 1);
                 csr_val_A.resize(A->nnz);
             }
             catch(std::bad_alloc &)
@@ -731,8 +748,9 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
                 return aoclsparse_status_memory_error;
             }
 
-            aoclsparse_status status = aoclsparse_csr2csc_template(A->m,
-                                                                   A->n,
+            // csr_mat holds the raw input; csr_mat->m/n are its stored dimensions
+            aoclsparse_status status = aoclsparse_csr2csc_template(csr_mat->m,
+                                                                   csr_mat->n,
                                                                    A->nnz,
                                                                    descr->base,
                                                                    descr->base,
@@ -744,16 +762,12 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
                                                                    csr_val_A.data());
             if(status != aoclsparse_status_success)
                 return aoclsparse_status_internal_error;
-            // Apply conjugate on transposed value array.
             if(d_id == doid::gh)
-            {
-                for(aoclsparse_int idx = 0; idx < A->nnz; idx++)
-                    csr_val_A[idx] = aoclsparse::conj(csr_val_A[idx]);
-            }
+                conj_flip = true; // delegate conjugation to CONJ_VAL=true kernel
             row_ptr_A = csr_row_ptr_A.data();
             col_ind_A = csr_col_ind_A.data();
             val_A     = csr_val_A.data();
-            mb        = k;
+            mb        = csr_mat->n;
         }
         break;
     default:
@@ -762,21 +776,27 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
     if(order == aoclsparse_order_column)
     {
         // Column order
-        using K = decltype(&aoclsparse_csrmm_col_major_ref<T>);
+        using K = decltype(&aoclsparse_csrmm_col_major_ref<T, false>);
 
         // clang-format off
-            // Table of available kernels
-            static constexpr Table<K> tbl[]{
-            {aoclsparse_csrmm_col_major_ref<T>, context_isa_t::GENERIC, 0U | archs::ALL},
-            {csrmm_col_kt<bsz::b256, T>,        context_isa_t::AVX2,    0U | archs::ALL},
-     ORL<K>({csrmm_col_kt<bsz::b256, T>,        context_isa_t::AVX512VL,0U | archs::ALL}),
-     ORL<K>({csrmm_col_kt<bsz::b512, T>,        context_isa_t::AVX512F, 0U | archs::ALL})
-            };
+        // Plain (CONJ_VAL=false) and conjugated (CONJ_VAL=true) are two separate 4-entry tables.
+        static constexpr Table<K> tbl_plain[]{
+            {aoclsparse_csrmm_col_major_ref<T, false>,         context_isa_t::GENERIC,   0U | archs::ALL},
+            {csrmm_col_kt<bsz::b256, T, false>,                context_isa_t::AVX2,      0U | archs::ALL},
+     ORL<K>({csrmm_col_kt<bsz::b256, T, false>,               context_isa_t::AVX512VL,  0U | archs::ALL}),
+     ORL<K>({csrmm_col_kt<bsz::b512, T, false>,               context_isa_t::AVX512F,   0U | archs::ALL}),
+        };
+        static constexpr Table<K> tbl_conj[]{
+            {aoclsparse_csrmm_col_major_ref<T, true>,          context_isa_t::GENERIC,   0U | archs::ALL},
+            {csrmm_col_kt<bsz::b256, T, true>,                 context_isa_t::AVX2,      0U | archs::ALL},
+     ORL<K>({csrmm_col_kt<bsz::b256, T, true>,                context_isa_t::AVX512VL,  0U | archs::ALL}),
+     ORL<K>({csrmm_col_kt<bsz::b512, T, true>,                context_isa_t::AVX512F,   0U | archs::ALL}),
+        };
         // clang-format on
 
-        // Thread local kernel cache
-        thread_local K kache  = nullptr;
-        K              kernel = Oracle<K>(tbl, kache, kid);
+        thread_local K kache_plain = nullptr, kache_conj = nullptr;
+        K             &kache  = conj_flip ? kache_conj : kache_plain;
+        K              kernel = Oracle<K>(conj_flip ? tbl_conj : tbl_plain, kache, kid, 0, 4);
 
         if(!kernel)
             return aoclsparse_status_invalid_kid;
@@ -787,21 +807,27 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
     else
     {
         // Row order
-        using K = decltype(&aoclsparse_csrmm_row_major_ref<T>);
+        using K = decltype(&aoclsparse_csrmm_row_major_ref<T, false>);
 
         // clang-format off
-            // Table of available kernels
-            static constexpr Table<K> tbl[]{
-            {aoclsparse_csrmm_row_major_ref<T>, context_isa_t::GENERIC, 0U | archs::ALL},
-            {csrmm_row_kt<bsz::b256, T>,        context_isa_t::AVX2,    0U | archs::ALL},
-     ORL<K>({csrmm_row_kt<bsz::b256, T>,        context_isa_t::AVX512VL,0U | archs::ALL}),
-     ORL<K>({csrmm_row_kt<bsz::b512, T>,        context_isa_t::AVX512F, 0U | archs::ALL})
-            };
+        // Plain (CONJ_VAL=false) and conjugated (CONJ_VAL=true) are two separate 4-entry tables.
+        static constexpr Table<K> tbl_plain[]{
+            {aoclsparse_csrmm_row_major_ref<T, false>,         context_isa_t::GENERIC,   0U | archs::ALL},
+            {csrmm_row_kt<bsz::b256, T, false>,                context_isa_t::AVX2,      0U | archs::ALL},
+     ORL<K>({csrmm_row_kt<bsz::b256, T, false>,               context_isa_t::AVX512VL,  0U | archs::ALL}),
+     ORL<K>({csrmm_row_kt<bsz::b512, T, false>,               context_isa_t::AVX512F,   0U | archs::ALL}),
+        };
+        static constexpr Table<K> tbl_conj[]{
+            {aoclsparse_csrmm_row_major_ref<T, true>,          context_isa_t::GENERIC,   0U | archs::ALL},
+            {csrmm_row_kt<bsz::b256, T, true>,                 context_isa_t::AVX2,      0U | archs::ALL},
+     ORL<K>({csrmm_row_kt<bsz::b256, T, true>,                context_isa_t::AVX512VL,  0U | archs::ALL}),
+     ORL<K>({csrmm_row_kt<bsz::b512, T, true>,                context_isa_t::AVX512F,   0U | archs::ALL}),
+        };
         // clang-format on
 
-        // Thread local kernel cache
-        thread_local K kache  = nullptr;
-        K              kernel = Oracle<K>(tbl, kache, kid);
+        thread_local K kache_plain = nullptr, kache_conj = nullptr;
+        K             &kache  = conj_flip ? kache_conj : kache_plain;
+        K              kernel = Oracle<K>(conj_flip ? tbl_conj : tbl_plain, kache, kid, 0, 4);
 
         if(!kernel)
             return aoclsparse_status_invalid_kid;
