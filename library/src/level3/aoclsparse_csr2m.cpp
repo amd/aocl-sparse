@@ -27,6 +27,7 @@
 #include "aoclsparse_context.hpp"
 #include "aoclsparse_convert.hpp"
 #include "aoclsparse_mat_structures.hpp"
+#include "aoclsparse_mtx_dispatcher.hpp"
 #include "aoclsparse_utils.hpp"
 
 #include <algorithm>
@@ -591,11 +592,6 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
     {
         return aoclsparse_status_not_implemented;
     }
-    // Only CSR matrix format is supported
-    if(A_first->doid != aoclsparse::doid::gn || B_first->doid != aoclsparse::doid::gn)
-    {
-        return aoclsparse_status_not_implemented;
-    }
     if(A->val_type != get_data_type<T>())
     {
         return aoclsparse_status_wrong_type;
@@ -636,33 +632,30 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
     // A * B
     if((opA == aoclsparse_operation_none) && (opB == aoclsparse_operation_none))
     {
-        m_a    = A->m;
-        n_a    = A->n;
-        m_b    = B->m;
-        n_b    = B->n;
-        opflag = 0;
+        m_a = A->m;
+        n_a = A->n;
+        m_b = B->m;
+        n_b = B->n;
     }
     // At * B
     else if(((opA == aoclsparse_operation_transpose)
              || (opA == aoclsparse_operation_conjugate_transpose))
             && (opB == aoclsparse_operation_none))
     {
-        m_a    = A->n;
-        n_a    = A->m;
-        m_b    = B->m;
-        n_b    = B->n;
-        opflag = 1;
+        m_a = A->n;
+        n_a = A->m;
+        m_b = B->m;
+        n_b = B->n;
     }
     // A * Bt
     else if((opA == aoclsparse_operation_none)
             && ((opB == aoclsparse_operation_transpose)
                 || (opB == aoclsparse_operation_conjugate_transpose)))
     {
-        m_a    = A->m;
-        n_a    = A->n;
-        m_b    = B->n;
-        n_b    = B->m;
-        opflag = 2;
+        m_a = A->m;
+        n_a = A->n;
+        m_b = B->n;
+        n_b = B->m;
     }
     // At * Bt
     else if(((opA == aoclsparse_operation_transpose)
@@ -670,11 +663,10 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
             && ((opB == aoclsparse_operation_transpose)
                 || (opB == aoclsparse_operation_conjugate_transpose)))
     {
-        m_a    = A->n;
-        n_a    = A->m;
-        m_b    = B->n;
-        n_b    = B->m;
-        opflag = 3;
+        m_a = A->n;
+        n_a = A->m;
+        m_b = B->n;
+        n_b = B->m;
     }
     // Invalid operation value
     else
@@ -721,26 +713,22 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
     aoclsparse_copy_mat_descr(&descrA_t, descrA);
     _aoclsparse_mat_descr descrB_t;
     aoclsparse_copy_mat_descr(&descrB_t, descrB);
-    // The mats vector may contain multiple matrix representations (e.g. CSR,
-    // CSC, ELL) created during optimisation. We need the original CSR copy
-    // (mat_type == aoclsparse_csr_mat) for the SpGEMM computation.
-    // Each search acquires its own shared lock on mats_guard so that a
-    // concurrent push_back (from an implicit optimisation on another thread)
-    // does not cause a data race on the vector. The lock is released as soon
-    // as the pointer is extracted; the pointed-to csr object itself remains
-    // valid and stable after the lock is released.
-    aoclsparse::csr *csr_src_A = nullptr, *csr_src_B = nullptr;
+    // The mats vector may contain multiple matrix representations (e.g. CSR, CSC, ELL)
+    // created during optimisation. We need the first csr-derived object — either a plain
+    // CSR (doid::gn) or a CSC stored as A^T (doid::gt) — for the SpGEMM computation.
+    // Each search acquires its own shared lock on mats_guard so that a concurrent
+    // push_back (from an implicit optimisation on another thread) does not cause a data
+    // race on the vector. The lock is released as soon as the pointer is extracted;
+    // the pointed-to object itself remains valid and stable after the lock is released.
+    aoclsparse::csr *raw_A = nullptr, *raw_B = nullptr;
     {
         std::shared_lock<std::shared_mutex> rlock_A(A->mats_guard);
         for(auto *mat : A->mats)
         {
             if(auto *temp = dynamic_cast<aoclsparse::csr *>(mat))
             {
-                if(temp->mat_type == aoclsparse_csr_mat)
-                {
-                    csr_src_A = temp;
-                    break;
-                }
+                raw_A = temp;
+                break;
             }
         }
     }
@@ -750,123 +738,135 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
         {
             if(auto *temp = dynamic_cast<aoclsparse::csr *>(mat))
             {
-                if(temp->mat_type == aoclsparse_csr_mat)
-                {
-                    csr_src_B = temp;
-                    break;
-                }
+                raw_B = temp;
+                break;
             }
         }
     }
 
     // Validate that CSR matrices were found in both A and B
-    if(csr_src_A == nullptr || csr_src_B == nullptr)
+    if(raw_A == nullptr || raw_B == nullptr)
         return aoclsparse_status_invalid_pointer;
 
-    aoclsparse::csr *csr_A = nullptr, *csr_B = nullptr;
+    // Validate base consistency using the discovered raw matrices
+    if(raw_A->base != descrA->base)
+        return aoclsparse_status_invalid_value;
+    if(raw_B->base != descrB->base)
+        return aoclsparse_status_invalid_value;
 
-    // A * B , Retrieve A and B CSR arrays
-    if(opflag == 0)
-    {
-        csr_A = csr_src_A;
-        csr_B = csr_src_B;
-    }
-    // At * B , Transpose A CSR arrays
-    // Retrieve B CSR arrays
-    else if(opflag == 1)
-    {
+    // Permit gn (plain CSR) and gt (CSC stored as A^T); reject all other doids
+    if((raw_A->doid != aoclsparse::doid::gn && raw_A->doid != aoclsparse::doid::gt)
+       || (raw_B->doid != aoclsparse::doid::gn && raw_B->doid != aoclsparse::doid::gt))
+        return aoclsparse_status_not_implemented;
+
+    // Map user op to request doid for general matrices
+    auto op_to_req_doid = [](aoclsparse_operation op) -> aoclsparse::doid {
+        static constexpr aoclsparse_int bits[] = {0, 2, 3}; // gn, gt, gh
+        return static_cast<aoclsparse::doid>(bits[op - 111]);
+    };
+
+    const aoclsparse::doid eff_doid_A
+        = aoclsparse::get_effective_doid(raw_A->doid, op_to_req_doid(opA));
+    const aoclsparse::doid eff_doid_B
+        = aoclsparse::get_effective_doid(raw_B->doid, op_to_req_doid(opB));
+
+    // Extract structural-transpose and conjugation flags from effective doids
+    const bool eff_trans_A = (static_cast<int>(eff_doid_A) & 2) != 0;
+    const bool eff_trans_B = (static_cast<int>(eff_doid_B) & 2) != 0;
+    bool       conj_A      = (static_cast<int>(eff_doid_A) & 1) != 0;
+    bool       conj_B      = (static_cast<int>(eff_doid_B) & 1) != 0;
+
+    // Derive opflag from effective structural bits (accounts for CSC automatically)
+    opflag = (eff_trans_A ? 1 : 0) | (eff_trans_B ? 2 : 0);
+
+    bool owns_mat_A = false, owns_mat_B = false;
+
+    // Transposes src (rows↔cols swapped); handles both CSR→A^T and CSC→A.
+    aoclsparse::csr *transposed      = nullptr;
+    auto             make_transposed = [&](aoclsparse::csr *src) -> aoclsparse_status {
         try
         {
-            csr_A = new aoclsparse::csr(A->n,
-                                        A->m,
-                                        A->nnz,
-                                        aoclsparse_csr_mat,
-                                        aoclsparse_index_base_zero,
-                                        get_data_type<T>());
+            transposed = new aoclsparse::csr(
+                src->n, src->m, src->nnz, aoclsparse_csr_mat, src->base, get_data_type<T>());
         }
         catch(std::bad_alloc &)
         {
-            /* Memory  allocation fail*/
             return aoclsparse_status_memory_error;
         }
-
-        aoclsparse_status status = aoclsparse_csr2csc_template(A->m,
-                                                               A->n,
-                                                               A->nnz,
-                                                               csr_src_A->base,
-                                                               csr_src_A->base,
-                                                               csr_src_A->ptr,
-                                                               csr_src_A->ind,
-                                                               (const T *)csr_src_A->val,
-                                                               csr_A->ind,
-                                                               csr_A->ptr,
-                                                               (T *)csr_A->val);
-        if(status != aoclsparse_status_success)
+        aoclsparse_status st = aoclsparse_csr2csc_template(src->m,
+                                                           src->n,
+                                                           src->nnz,
+                                                           src->base,
+                                                           src->base,
+                                                           src->ptr,
+                                                           src->ind,
+                                                           (const T *)src->val,
+                                                           transposed->ind,
+                                                           transposed->ptr,
+                                                           (T *)transposed->val);
+        if(st != aoclsparse_status_success)
         {
-            delete csr_A;
-            return aoclsparse_status_memory_error;
+            delete transposed;
+            transposed = nullptr;
+            return st;
         }
-        csr_B = csr_src_B;
-    }
-    // A * Bt , Transpose B CSR arrays
-    // Retrieve A CSR arrays
-    else if(opflag == 2)
+        return aoclsparse_status_success;
+    };
+
+    aoclsparse::csr *mat_A = nullptr, *mat_B = nullptr;
+
+    if(opflag == 3)
     {
-        csr_A = csr_src_A;
-        try
+        // A_eff^T × B_eff^T = (B_eff · A_eff)^T — swap roles, no transpose needed
+        mat_A = raw_B;
+        mat_B = raw_A;
         {
-            csr_B = new aoclsparse::csr(B->n,
-                                        B->m,
-                                        B->nnz,
-                                        aoclsparse_csr_mat,
-                                        aoclsparse_index_base_zero,
-                                        get_data_type<T>());
+            _aoclsparse_mat_descr tmp = descrA_t;
+            descrA_t                  = descrB_t;
+            descrB_t                  = tmp;
         }
-        catch(std::bad_alloc &)
         {
-            /* Memory  allocation fail*/
-            return aoclsparse_status_memory_error;
+            aoclsparse_operation temp = opA;
+            opA                       = opB;
+            opB                       = temp;
         }
-
-        aoclsparse_status status = aoclsparse_csr2csc_template(B->m,
-                                                               B->n,
-                                                               B->nnz,
-                                                               csr_src_B->base,
-                                                               csr_src_B->base,
-                                                               csr_src_B->ptr,
-                                                               csr_src_B->ind,
-                                                               (const T *)csr_src_B->val,
-                                                               csr_B->ind,
-                                                               csr_B->ptr,
-                                                               (T *)csr_B->val);
-        if(status != aoclsparse_status_success)
         {
-            delete csr_B;
-            return aoclsparse_status_memory_error;
+            aoclsparse_int t = m_a;
+            m_a              = n_b;
+            n_b              = t;
         }
+        std::swap(conj_A, conj_B);
     }
-    // At * Bt, Swap A and B matrix arrays as At*Bt = (B*A)t
-    // Swap descriptors and operations of A and B
-    else if(opflag == 3)
+    else
     {
-        csr_A = csr_src_B;
-        csr_B = csr_src_A;
-        _aoclsparse_mat_descr tmp;
-        tmp                       = descrA_t;
-        descrA_t                  = descrB_t;
-        descrB_t                  = tmp;
-        aoclsparse_operation temp = opA;
-        opA                       = opB;
-        opB                       = temp;
-        aoclsparse_int t          = m_a;
-        m_a                       = n_b;
-        n_b                       = t;
+        mat_A = raw_A;
+        mat_B = raw_B;
+        if(eff_trans_A)
+        {
+            if(make_transposed(raw_A) != aoclsparse_status_success)
+                return aoclsparse_status_memory_error;
+            mat_A      = transposed;
+            owns_mat_A = true;
+        }
+        if(eff_trans_B)
+        {
+            if(make_transposed(raw_B) != aoclsparse_status_success)
+            {
+                if(owns_mat_A)
+                {
+                    delete mat_A;
+                    mat_A = nullptr;
+                }
+                return aoclsparse_status_memory_error;
+            }
+            mat_B      = transposed;
+            owns_mat_B = true;
+        }
     }
 
-    // Guard against null csr member within the csr_data structure
-    // (should not happen if aoclsparse_matrix is well-formed)
-    if(csr_A == nullptr || csr_B == nullptr)
-        return aoclsparse_status_invalid_pointer;
+    // Set opA/opB to reflect effective conjugation for the finalize kernel
+    opA = conj_A ? aoclsparse_operation_conjugate_transpose : aoclsparse_operation_none;
+    opB = conj_B ? aoclsparse_operation_conjugate_transpose : aoclsparse_operation_none;
 
     aoclsparse_index_base baseA = descrA_t.base;
     aoclsparse_index_base baseB = descrB_t.base;
@@ -881,11 +881,11 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
             status = aoclsparse_csr2m_nnz_count<T, false, false>(m_a,
                                                                  n_b,
                                                                  &descrA_t,
-                                                                 csr_A->ptr,
-                                                                 csr_A->ind,
+                                                                 mat_A->ptr,
+                                                                 mat_A->ind,
                                                                  &descrB_t,
-                                                                 csr_B->ptr,
-                                                                 csr_B->ind,
+                                                                 mat_B->ptr,
+                                                                 mat_B->ind,
                                                                  C,
                                                                  opflag);
         }
@@ -894,11 +894,11 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
             status = aoclsparse_csr2m_nnz_count<T, true, false>(m_a,
                                                                 n_b,
                                                                 &descrA_t,
-                                                                csr_A->ptr,
-                                                                csr_A->ind,
+                                                                mat_A->ptr,
+                                                                mat_A->ind,
                                                                 &descrB_t,
-                                                                csr_B->ptr,
-                                                                csr_B->ind,
+                                                                mat_B->ptr,
+                                                                mat_B->ind,
                                                                 C,
                                                                 opflag);
         }
@@ -907,11 +907,11 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
             status = aoclsparse_csr2m_nnz_count<T, false, true>(m_a,
                                                                 n_b,
                                                                 &descrA_t,
-                                                                csr_A->ptr,
-                                                                csr_A->ind,
+                                                                mat_A->ptr,
+                                                                mat_A->ind,
                                                                 &descrB_t,
-                                                                csr_B->ptr,
-                                                                csr_B->ind,
+                                                                mat_B->ptr,
+                                                                mat_B->ind,
                                                                 C,
                                                                 opflag);
         }
@@ -920,11 +920,11 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
             status = aoclsparse_csr2m_nnz_count<T, true, true>(m_a,
                                                                n_b,
                                                                &descrA_t,
-                                                               csr_A->ptr,
-                                                               csr_A->ind,
+                                                               mat_A->ptr,
+                                                               mat_A->ind,
                                                                &descrB_t,
-                                                               csr_B->ptr,
-                                                               csr_B->ind,
+                                                               mat_B->ptr,
+                                                               mat_B->ind,
                                                                C,
                                                                opflag);
         }
@@ -939,14 +939,14 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
                                                                 n_b,
                                                                 opA,
                                                                 &descrA_t,
-                                                                csr_A->ptr,
-                                                                csr_A->ind,
-                                                                (T *)csr_A->val,
+                                                                mat_A->ptr,
+                                                                mat_A->ind,
+                                                                (T *)mat_A->val,
                                                                 opB,
                                                                 &descrB_t,
-                                                                csr_B->ptr,
-                                                                csr_B->ind,
-                                                                (T *)csr_B->val,
+                                                                mat_B->ptr,
+                                                                mat_B->ind,
+                                                                (T *)mat_B->val,
                                                                 C,
                                                                 opflag);
         }
@@ -956,14 +956,14 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
                                                                n_b,
                                                                opA,
                                                                &descrA_t,
-                                                               csr_A->ptr,
-                                                               csr_A->ind,
-                                                               (T *)csr_A->val,
+                                                               mat_A->ptr,
+                                                               mat_A->ind,
+                                                               (T *)mat_A->val,
                                                                opB,
                                                                &descrB_t,
-                                                               csr_B->ptr,
-                                                               csr_B->ind,
-                                                               (T *)csr_B->val,
+                                                               mat_B->ptr,
+                                                               mat_B->ind,
+                                                               (T *)mat_B->val,
                                                                C,
                                                                opflag);
         }
@@ -973,14 +973,14 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
                                                                n_b,
                                                                opA,
                                                                &descrA_t,
-                                                               csr_A->ptr,
-                                                               csr_A->ind,
-                                                               (T *)csr_A->val,
+                                                               mat_A->ptr,
+                                                               mat_A->ind,
+                                                               (T *)mat_A->val,
                                                                opB,
                                                                &descrB_t,
-                                                               csr_B->ptr,
-                                                               csr_B->ind,
-                                                               (T *)csr_B->val,
+                                                               mat_B->ptr,
+                                                               mat_B->ind,
+                                                               (T *)mat_B->val,
                                                                C,
                                                                opflag);
         }
@@ -990,14 +990,14 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
                                                               n_b,
                                                               opA,
                                                               &descrA_t,
-                                                              csr_A->ptr,
-                                                              csr_A->ind,
-                                                              (T *)csr_A->val,
+                                                              mat_A->ptr,
+                                                              mat_A->ind,
+                                                              (T *)mat_A->val,
                                                               opB,
                                                               &descrB_t,
-                                                              csr_B->ptr,
-                                                              csr_B->ind,
-                                                              (T *)csr_B->val,
+                                                              mat_B->ptr,
+                                                              mat_B->ind,
+                                                              (T *)mat_B->val,
                                                               C,
                                                               opflag);
         }
@@ -1010,11 +1010,11 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
             status = aoclsparse_csr2m_nnz_count<T, false, false>(m_a,
                                                                  n_b,
                                                                  &descrA_t,
-                                                                 csr_A->ptr,
-                                                                 csr_A->ind,
+                                                                 mat_A->ptr,
+                                                                 mat_A->ind,
                                                                  &descrB_t,
-                                                                 csr_B->ptr,
-                                                                 csr_B->ind,
+                                                                 mat_B->ptr,
+                                                                 mat_B->ind,
                                                                  C,
                                                                  opflag);
 
@@ -1024,14 +1024,14 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
                                                                     n_b,
                                                                     opA,
                                                                     &descrA_t,
-                                                                    csr_A->ptr,
-                                                                    csr_A->ind,
-                                                                    (T *)csr_A->val,
+                                                                    mat_A->ptr,
+                                                                    mat_A->ind,
+                                                                    (T *)mat_A->val,
                                                                     opB,
                                                                     &descrB_t,
-                                                                    csr_B->ptr,
-                                                                    csr_B->ind,
-                                                                    (T *)csr_B->val,
+                                                                    mat_B->ptr,
+                                                                    mat_B->ind,
+                                                                    (T *)mat_B->val,
                                                                     C,
                                                                     opflag);
             }
@@ -1041,11 +1041,11 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
             status = aoclsparse_csr2m_nnz_count<T, false, true>(m_a,
                                                                 n_b,
                                                                 &descrA_t,
-                                                                csr_A->ptr,
-                                                                csr_A->ind,
+                                                                mat_A->ptr,
+                                                                mat_A->ind,
                                                                 &descrB_t,
-                                                                csr_B->ptr,
-                                                                csr_B->ind,
+                                                                mat_B->ptr,
+                                                                mat_B->ind,
                                                                 C,
                                                                 opflag);
 
@@ -1055,14 +1055,14 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
                                                                    n_b,
                                                                    opA,
                                                                    &descrA_t,
-                                                                   csr_A->ptr,
-                                                                   csr_A->ind,
-                                                                   (T *)csr_A->val,
+                                                                   mat_A->ptr,
+                                                                   mat_A->ind,
+                                                                   (T *)mat_A->val,
                                                                    opB,
                                                                    &descrB_t,
-                                                                   csr_B->ptr,
-                                                                   csr_B->ind,
-                                                                   (T *)csr_B->val,
+                                                                   mat_B->ptr,
+                                                                   mat_B->ind,
+                                                                   (T *)mat_B->val,
                                                                    C,
                                                                    opflag);
             }
@@ -1072,11 +1072,11 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
             status = aoclsparse_csr2m_nnz_count<T, true, false>(m_a,
                                                                 n_b,
                                                                 &descrA_t,
-                                                                csr_A->ptr,
-                                                                csr_A->ind,
+                                                                mat_A->ptr,
+                                                                mat_A->ind,
                                                                 &descrB_t,
-                                                                csr_B->ptr,
-                                                                csr_B->ind,
+                                                                mat_B->ptr,
+                                                                mat_B->ind,
                                                                 C,
                                                                 opflag);
 
@@ -1086,14 +1086,14 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
                                                                    n_b,
                                                                    opA,
                                                                    &descrA_t,
-                                                                   csr_A->ptr,
-                                                                   csr_A->ind,
-                                                                   (T *)csr_A->val,
+                                                                   mat_A->ptr,
+                                                                   mat_A->ind,
+                                                                   (T *)mat_A->val,
                                                                    opB,
                                                                    &descrB_t,
-                                                                   csr_B->ptr,
-                                                                   csr_B->ind,
-                                                                   (T *)csr_B->val,
+                                                                   mat_B->ptr,
+                                                                   mat_B->ind,
+                                                                   (T *)mat_B->val,
                                                                    C,
                                                                    opflag);
             }
@@ -1103,11 +1103,11 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
             status = aoclsparse_csr2m_nnz_count<T, true, true>(m_a,
                                                                n_b,
                                                                &descrA_t,
-                                                               csr_A->ptr,
-                                                               csr_A->ind,
+                                                               mat_A->ptr,
+                                                               mat_A->ind,
                                                                &descrB_t,
-                                                               csr_B->ptr,
-                                                               csr_B->ind,
+                                                               mat_B->ptr,
+                                                               mat_B->ind,
                                                                C,
                                                                opflag);
 
@@ -1117,14 +1117,14 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
                                                                   n_b,
                                                                   opA,
                                                                   &descrA_t,
-                                                                  csr_A->ptr,
-                                                                  csr_A->ind,
-                                                                  (T *)csr_A->val,
+                                                                  mat_A->ptr,
+                                                                  mat_A->ind,
+                                                                  (T *)mat_A->val,
                                                                   opB,
                                                                   &descrB_t,
-                                                                  csr_B->ptr,
-                                                                  csr_B->ind,
-                                                                  (T *)csr_B->val,
+                                                                  mat_B->ptr,
+                                                                  mat_B->ind,
+                                                                  (T *)mat_B->val,
                                                                   C,
                                                                   opflag);
             }
@@ -1134,15 +1134,10 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
     default:
         status = aoclsparse_status_invalid_value;
     }
-    // Memory free of local arrays
-    if(opflag == 1)
-    {
-        delete csr_A;
-    }
-    else if(opflag == 2)
-    {
-        delete csr_B;
-    }
+    if(owns_mat_A)
+        delete mat_A;
+    if(owns_mat_B)
+        delete mat_B;
     return status;
 }
 

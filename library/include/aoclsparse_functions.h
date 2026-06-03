@@ -1989,8 +1989,9 @@ aoclsparse_status aoclsparse_strsm_kid(const aoclsparse_operation trans,
 /*! \ingroup level3_module
  *  \brief Sparse matrix Sparse matrix multiplication for real and complex datatypes.
  *  \details
- *  <tt>aoclsparse_sp2m</tt> multiplies two sparse matrices in CSR storage format. The
- *  result is stored in a newly allocated sparse matrix in CSR format, such that
+ *  <tt>aoclsparse_sp2m</tt> multiplies two sparse matrices. Both \p A and \p B may be
+ *  provided in CSR or CSC storage format. The result is stored in a newly allocated
+ *  sparse matrix in CSR format, such that
  *  \f[
  *    C =  op(A) \, op(B),
  *  \f]
@@ -2035,17 +2036,17 @@ aoclsparse_status aoclsparse_strsm_kid(const aoclsparse_operation trans,
  *  @param[in]
  *  opA     matrix \f$A\f$ operation type.
  *  @param[in]
- *  descrA      descriptor of the sparse CSR matrix \f$A\f$. Currently, only
+ *  descrA      descriptor of the sparse CSR or CSC matrix \f$A\f$. Currently, only
  *              \ref aoclsparse_matrix_type_general is supported.
  *  @param[in]
- *  A        sparse CSR matrix \f$A\f$ .
+ *  A        sparse matrix \f$A\f$ in CSR or CSC format.
  *  @param[in]
  *  opB     matrix \f$B\f$ operation type.
  *  @param[in]
- *  descrB      descriptor of the sparse CSR matrix \f$B\f$. Currently, only
+ *  descrB      descriptor of the sparse CSR or CSC matrix \f$B\f$. Currently, only
  *              \ref aoclsparse_matrix_type_general is supported.
  *  @param[in]
- *  B        sparse CSR matrix \f$B\f$ .
+ *  B        sparse matrix \f$B\f$ in CSR or CSC format.
  *  @param[in]
  *  request     Specifies full computation or two-stage algorithm
  *              \ref aoclsparse_stage_nnz_count , Only rowIndex array of the
@@ -2072,7 +2073,7 @@ aoclsparse_status aoclsparse_strsm_kid(const aoclsparse_operation trans,
  *  \retval     aoclsparse_status_memory_error Memory allocation failure.
  *  \retval     aoclsparse_status_not_implemented
  *              \ref aoclsparse_matrix_type is not \ref aoclsparse_matrix_type_general or
- *              input matrices \p A or \p B is not in CSR format
+ *              input matrices \p A or \p B are not in CSR or CSC format
  * @rst
  * .. collapse:: Example - Complex space (tests/examples/sample_zsp2m.cpp)
  *
@@ -2096,8 +2097,9 @@ aoclsparse_status aoclsparse_sp2m(aoclsparse_operation       opA,
 /*! \ingroup level3_module
  *  \brief Sparse matrix Sparse matrix multiplication for real and complex datatypes.
  *  \details
- *  <tt>aoclsparse_?spmm</tt> multiplies two sparse matrices in CSR storage format. The
- *  result is stored in a newly allocated sparse matrix in CSR format, such that
+ *  <tt>aoclsparse_?spmm</tt> multiplies two sparse matrices. Both \p A and \p B may be
+ *  in CSR or CSC storage format. The result is stored in a newly allocated sparse matrix
+ *  in CSR format, such that
  * @rst
  * .. math::
  *    C =  op(A) \cdot B,
@@ -2119,10 +2121,10 @@ aoclsparse_status aoclsparse_sp2m(aoclsparse_operation       opA,
  *  opA     matrix \f$A\f$ operation type.
  *
  *  @param[in]
- *  A        sparse CSR matrix \f$A\f$.
+ *  A        sparse matrix \f$A\f$ in CSR or CSC format.
  *
  *  @param[in]
- *  B        sparse CSR matrix \f$B\f$.
+ *  B        sparse matrix \f$B\f$ in CSR or CSC format.
  *
  *  @param[out]
  *  *C        Pointer to sparse CSR matrix \f$C\f$ .
@@ -2136,7 +2138,7 @@ aoclsparse_status aoclsparse_sp2m(aoclsparse_operation       opA,
  *  \retval     aoclsparse_status_invalid_value input parameters contain an invalid value.
  *  \retval     aoclsparse_status_wrong_type \p A and \p B matrix data types do not match.
  *  \retval     aoclsparse_status_memory_error Memory allocation failure.
- *  \retval     aoclsparse_status_not_implemented Input matrices \p A or \p B is not in CSR format
+ *  \retval     aoclsparse_status_not_implemented Input matrices \p A or \p B are not in CSR or CSC format
  */
 DLL_PUBLIC
 aoclsparse_status aoclsparse_spmm(aoclsparse_operation    opA,
