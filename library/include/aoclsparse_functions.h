@@ -2721,12 +2721,12 @@ aoclsparse_status aoclsparse_dcsr2m(aoclsparse_operation       trans_A,
  *  if \p op = \ref aoclsparse_operation_none. Otherwise \f$A\f$ is \f$n \times m\f$
  *  and the result matrix \f$C\f$ has the same dimension as \f$B\f$.
  *
- *  @note Only matrices in CSR format are supported in this release.
+ *  @note Both \f$A\f$ and \f$B\f$ support CSR and CSC storage formats.
  *
  *  @param[in]  op      matrix \f$A\f$ operation type.
  *  @param[in]  alpha   scalar with same precision as \f$A\f$ and \f$B\f$ matrix
- *  @param[in]  A       source sparse matrix \f$A\f$
- *  @param[in]  B       source sparse matrix \f$B\f$
+ *  @param[in]  A       source sparse matrix \f$A\f$ in CSR or CSC storage format
+ *  @param[in]  B       source sparse matrix \f$B\f$ in CSR or CSC storage format
  *  @param[out] *C      pointer to the sparse output matrix \f$C\f$
  *
  *  \retval     aoclsparse_status_success               The operation completed successfully.
@@ -2734,7 +2734,7 @@ aoclsparse_status aoclsparse_dcsr2m(aoclsparse_operation       trans_A,
  *  \retval     aoclsparse_status_invalid_size          The dimensions of \p A and \p B are not compatible.
  *  \retval     aoclsparse_status_internal_error        Internal Error Occurred
  *  \retval     aoclsparse_status_memory_error          Memory allocation failure.
- *  \retval     aoclsparse_status_not_implemented       Matrices are not in CSR format.
+ *  \retval     aoclsparse_status_not_implemented       \f$A\f$ or \f$B\f$ is not in CSR or CSC format.
  * @{
  */
 DLL_PUBLIC

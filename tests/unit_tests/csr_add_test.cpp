@@ -48,6 +48,8 @@ namespace
         aoclsparse_int        N;
         aoclsparse_int        nnzA;
         aoclsparse_int        nnzB;
+        bool                  is_csr_a = true; // true=CSR, false=CSC
+        bool                  is_csr_b = true; // true=CSR, false=CSC
     } AddCSRParam;
 
     template <typename T>
@@ -57,7 +59,9 @@ namespace
                       aoclsparse_int        M,
                       aoclsparse_int        N,
                       aoclsparse_int        nnz_A,
-                      aoclsparse_int        nnz_B)
+                      aoclsparse_int        nnz_B,
+                      bool                  is_csr_a = true,
+                      bool                  is_csr_b = true)
     {
         aoclsparse_matrix           src_mat_A = nullptr, src_mat_B = nullptr, dest_mat = nullptr;
         std::vector<aoclsparse_int> A_row, A_col, B_row, B_col, C_row_ref, C_col_ref;
@@ -83,9 +87,57 @@ namespace
                                              general,
                                              sort),
                   aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_create_csr(
-                      &src_mat_A, base_A, M, N, nnz_A, A_row.data(), A_col.data(), A_val.data()),
-                  aoclsparse_status_success);
+        // Declared at function scope so they outlive src_mat_A/B (create_csc stores raw pointers).
+        std::vector<aoclsparse_int> csc_col_ptr, csc_row_ind;
+        std::vector<T>              csc_val;
+        if(is_csr_a)
+        {
+            ASSERT_EQ(
+                aoclsparse_create_csr(
+                    &src_mat_A, base_A, M, N, nnz_A, A_row.data(), A_col.data(), A_val.data()),
+                aoclsparse_status_success);
+        }
+        else
+        {
+            // Convert CSR A to CSC arrays, create CSC handle.
+            // ref_add/csrmat_check operate on the logical CSR arrays (A_row/A_col/A_val) unchanged.
+            aoclsparse_mat_descr descr_conv;
+            csc_col_ptr.resize(N + 1);
+            csc_row_ind.resize((std::max)(nnz_A, (aoclsparse_int)1));
+            csc_val.resize((std::max)(nnz_A, (aoclsparse_int)1));
+            ASSERT_EQ(aoclsparse_create_mat_descr(&descr_conv), aoclsparse_status_success);
+            ASSERT_EQ(aoclsparse_set_mat_index_base(descr_conv, base_A), aoclsparse_status_success);
+            if(nnz_A > 0)
+            {
+                ASSERT_EQ(aoclsparse_csr2csc(M,
+                                             N,
+                                             nnz_A,
+                                             descr_conv,
+                                             base_A,
+                                             A_row.data(),
+                                             A_col.data(),
+                                             A_val.data(),
+                                             csc_row_ind.data(),
+                                             csc_col_ptr.data(),
+                                             csc_val.data()),
+                          aoclsparse_status_success);
+            }
+            else
+            {
+                aoclsparse_int b = (base_A == aoclsparse_index_base_one) ? 1 : 0;
+                std::fill(csc_col_ptr.begin(), csc_col_ptr.end(), b);
+            }
+            aoclsparse_destroy_mat_descr(descr_conv);
+            ASSERT_EQ(aoclsparse_create_csc<T>(&src_mat_A,
+                                               base_A,
+                                               M,
+                                               N,
+                                               nnz_A,
+                                               csc_col_ptr.data(),
+                                               csc_row_ind.data(),
+                                               csc_val.data()),
+                      aoclsparse_status_success);
+        }
 
         if(op != aoclsparse_operation_none)
         {
@@ -105,10 +157,55 @@ namespace
                                              general,
                                              sort),
                   aoclsparse_status_success);
-        ASSERT_EQ(
-            aoclsparse_create_csr(
-                &src_mat_B, base_B, B_m, B_n, nnz_B, B_row.data(), B_col.data(), B_val.data()),
-            aoclsparse_status_success);
+        std::vector<aoclsparse_int> csc_col_ptr_b, csc_row_ind_b;
+        std::vector<T>              csc_val_b;
+        if(is_csr_b)
+        {
+            ASSERT_EQ(
+                aoclsparse_create_csr(
+                    &src_mat_B, base_B, B_m, B_n, nnz_B, B_row.data(), B_col.data(), B_val.data()),
+                aoclsparse_status_success);
+        }
+        else
+        {
+            aoclsparse_mat_descr descr_conv_b;
+            csc_col_ptr_b.resize(B_n + 1);
+            csc_row_ind_b.resize((std::max)(nnz_B, (aoclsparse_int)1));
+            csc_val_b.resize((std::max)(nnz_B, (aoclsparse_int)1));
+            ASSERT_EQ(aoclsparse_create_mat_descr(&descr_conv_b), aoclsparse_status_success);
+            ASSERT_EQ(aoclsparse_set_mat_index_base(descr_conv_b, base_B),
+                      aoclsparse_status_success);
+            if(nnz_B > 0)
+            {
+                ASSERT_EQ(aoclsparse_csr2csc(B_m,
+                                             B_n,
+                                             nnz_B,
+                                             descr_conv_b,
+                                             base_B,
+                                             B_row.data(),
+                                             B_col.data(),
+                                             B_val.data(),
+                                             csc_row_ind_b.data(),
+                                             csc_col_ptr_b.data(),
+                                             csc_val_b.data()),
+                          aoclsparse_status_success);
+            }
+            else
+            {
+                aoclsparse_int bb = (base_B == aoclsparse_index_base_one) ? 1 : 0;
+                std::fill(csc_col_ptr_b.begin(), csc_col_ptr_b.end(), bb);
+            }
+            aoclsparse_destroy_mat_descr(descr_conv_b);
+            ASSERT_EQ(aoclsparse_create_csc<T>(&src_mat_B,
+                                               base_B,
+                                               B_m,
+                                               B_n,
+                                               nnz_B,
+                                               csc_col_ptr_b.data(),
+                                               csc_row_ind_b.data(),
+                                               csc_val_b.data()),
+                      aoclsparse_status_success);
+        }
 
         C_row_ref.resize(B_m + 1);
         if(C_nnz > 0)
@@ -182,7 +279,9 @@ namespace
                                          10,
                                          11,
                                          15,
-                                         5},
+                                         5,
+                                         true,
+                                         true},
                                         {"CSR_10B_dense",
                                          aoclsparse_operation_none,
                                          aoclsparse_index_base_one,
@@ -190,7 +289,9 @@ namespace
                                          10,
                                          11,
                                          95,
-                                         50},
+                                         50,
+                                         true,
+                                         true},
                                         {"CSR_01B_thin",
                                          aoclsparse_operation_none,
                                          aoclsparse_index_base_zero,
@@ -198,7 +299,9 @@ namespace
                                          1,
                                          100,
                                          6,
-                                         12},
+                                         12,
+                                         true,
+                                         true},
                                         {"CSR_11B_tall",
                                          aoclsparse_operation_none,
                                          aoclsparse_index_base_one,
@@ -206,7 +309,9 @@ namespace
                                          97,
                                          1,
                                          25,
-                                         93},
+                                         93,
+                                         true,
+                                         true},
                                         {"CSR_00B_0nnzA",
                                          aoclsparse_operation_none,
                                          aoclsparse_index_base_zero,
@@ -214,7 +319,9 @@ namespace
                                          3,
                                          4,
                                          0,
-                                         2},
+                                         2,
+                                         true,
+                                         true},
                                         {"CSR_11B_0nnzB",
                                          aoclsparse_operation_none,
                                          aoclsparse_index_base_one,
@@ -222,7 +329,9 @@ namespace
                                          4,
                                          9,
                                          34,
-                                         0},
+                                         0,
+                                         true,
+                                         true},
                                         {"CSRT_00B",
                                          aoclsparse_operation_transpose,
                                          aoclsparse_index_base_zero,
@@ -230,7 +339,9 @@ namespace
                                          6,
                                          4,
                                          5,
-                                         22},
+                                         22,
+                                         true,
+                                         true},
                                         {"CSRT_10B_tall",
                                          aoclsparse_operation_transpose,
                                          aoclsparse_index_base_one,
@@ -238,7 +349,9 @@ namespace
                                          67,
                                          3,
                                          60,
-                                         10},
+                                         10,
+                                         true,
+                                         true},
                                         {"CSRT_01B_very_sparse",
                                          aoclsparse_operation_transpose,
                                          aoclsparse_index_base_zero,
@@ -246,7 +359,9 @@ namespace
                                          31,
                                          43,
                                          5,
-                                         6},
+                                         6,
+                                         true,
+                                         true},
                                         {"CSRT_11B_0nnzA",
                                          aoclsparse_operation_transpose,
                                          aoclsparse_index_base_one,
@@ -254,7 +369,9 @@ namespace
                                          13,
                                          9,
                                          0,
-                                         34},
+                                         34,
+                                         true,
+                                         true},
                                         {"CSRT_10B_0nnz_both",
                                          aoclsparse_operation_transpose,
                                          aoclsparse_index_base_one,
@@ -262,7 +379,9 @@ namespace
                                          2,
                                          2,
                                          0,
-                                         0},
+                                         0,
+                                         true,
+                                         true},
                                         {"CSRT_11B_1x1",
                                          aoclsparse_operation_transpose,
                                          aoclsparse_index_base_one,
@@ -270,7 +389,9 @@ namespace
                                          1,
                                          1,
                                          1,
-                                         1},
+                                         1,
+                                         true,
+                                         true},
                                         {"CSRCT_00B_0nnzB",
                                          aoclsparse_operation_conjugate_transpose,
                                          aoclsparse_index_base_zero,
@@ -278,7 +399,9 @@ namespace
                                          8,
                                          7,
                                          5,
-                                         0},
+                                         0,
+                                         true,
+                                         true},
                                         {"CSRCT_01B",
                                          aoclsparse_operation_conjugate_transpose,
                                          aoclsparse_index_base_one,
@@ -286,7 +409,9 @@ namespace
                                          5,
                                          9,
                                          15,
-                                         23},
+                                         23,
+                                         true,
+                                         true},
                                         {"CSRCT_11B_square",
                                          aoclsparse_operation_conjugate_transpose,
                                          aoclsparse_index_base_one,
@@ -294,7 +419,9 @@ namespace
                                          9,
                                          9,
                                          70,
-                                         53},
+                                         53,
+                                         true,
+                                         true},
                                         {"CSRT_11B_tiny",
                                          aoclsparse_operation_transpose,
                                          aoclsparse_index_base_zero,
@@ -302,7 +429,132 @@ namespace
                                          1,
                                          4,
                                          1,
-                                         0}};
+                                         0,
+                                         true,
+                                         true},
+                                        // CSC-A, CSR-B entries
+                                        {"CSCT_00B_csc_A",
+                                         aoclsparse_operation_transpose,
+                                         aoclsparse_index_base_zero,
+                                         aoclsparse_index_base_zero,
+                                         6,
+                                         4,
+                                         5,
+                                         22,
+                                         false,
+                                         true},
+                                        {"CSCT_10B_csc_A",
+                                         aoclsparse_operation_transpose,
+                                         aoclsparse_index_base_one,
+                                         aoclsparse_index_base_zero,
+                                         67,
+                                         3,
+                                         60,
+                                         10,
+                                         false,
+                                         true},
+                                        {"CSRCT_00B_csc_A",
+                                         aoclsparse_operation_conjugate_transpose,
+                                         aoclsparse_index_base_zero,
+                                         aoclsparse_index_base_zero,
+                                         8,
+                                         7,
+                                         5,
+                                         0,
+                                         false,
+                                         true},
+                                        {"CSRCT_01B_csc_A",
+                                         aoclsparse_operation_conjugate_transpose,
+                                         aoclsparse_index_base_one,
+                                         aoclsparse_index_base_zero,
+                                         5,
+                                         9,
+                                         15,
+                                         23,
+                                         false,
+                                         true},
+                                        {"CSR_00B_csc_A",
+                                         aoclsparse_operation_none,
+                                         aoclsparse_index_base_zero,
+                                         aoclsparse_index_base_zero,
+                                         10,
+                                         11,
+                                         15,
+                                         5,
+                                         false,
+                                         true},
+                                        {"CSR_10B_csc_A",
+                                         aoclsparse_operation_none,
+                                         aoclsparse_index_base_one,
+                                         aoclsparse_index_base_zero,
+                                         10,
+                                         11,
+                                         95,
+                                         50,
+                                         false,
+                                         true},
+                                        // CSR-A, CSC-B entries (cases 7-9)
+                                        {"CSC_B_00_none",
+                                         aoclsparse_operation_none,
+                                         aoclsparse_index_base_zero,
+                                         aoclsparse_index_base_zero,
+                                         10,
+                                         11,
+                                         15,
+                                         5,
+                                         true,
+                                         false},
+                                        {"CSC_B_01_trans",
+                                         aoclsparse_operation_transpose,
+                                         aoclsparse_index_base_zero,
+                                         aoclsparse_index_base_zero,
+                                         6,
+                                         4,
+                                         5,
+                                         22,
+                                         true,
+                                         false},
+                                        {"CSC_B_10_conj",
+                                         aoclsparse_operation_conjugate_transpose,
+                                         aoclsparse_index_base_zero,
+                                         aoclsparse_index_base_zero,
+                                         8,
+                                         7,
+                                         5,
+                                         0,
+                                         true,
+                                         false},
+                                        // CSC-A, CSC-B entries (cases 10-12)
+                                        {"CSC_AB_00_none",
+                                         aoclsparse_operation_none,
+                                         aoclsparse_index_base_zero,
+                                         aoclsparse_index_base_zero,
+                                         10,
+                                         11,
+                                         15,
+                                         5,
+                                         false,
+                                         false},
+                                        {"CSC_AB_01_trans",
+                                         aoclsparse_operation_transpose,
+                                         aoclsparse_index_base_zero,
+                                         aoclsparse_index_base_zero,
+                                         6,
+                                         4,
+                                         5,
+                                         22,
+                                         false,
+                                         false},
+                                        {"CSC_AB_10_conj",
+                                         aoclsparse_operation_conjugate_transpose,
+                                         aoclsparse_index_base_zero,
+                                         aoclsparse_index_base_zero,
+                                         8,
+                                         7,
+                                         5,
+                                         0,
+                                         false,
+                                         false}};
 
     // It is used to when testing::PrintToString(GetParam()) to generate test name for ctest
     void PrintTo(const AddCSRParam &param, std::ostream *os)
@@ -318,32 +570,60 @@ namespace
     TEST_P(CSR, Double)
     {
         const AddCSRParam &param = GetParam();
-        test_csr_add<double>(
-            param.op, param.base_A, param.base_B, param.M, param.N, param.nnzA, param.nnzB);
+        test_csr_add<double>(param.op,
+                             param.base_A,
+                             param.base_B,
+                             param.M,
+                             param.N,
+                             param.nnzA,
+                             param.nnzB,
+                             param.is_csr_a,
+                             param.is_csr_b);
     }
 
     // tests with float type
     TEST_P(CSR, Float)
     {
         const AddCSRParam &param = GetParam();
-        test_csr_add<float>(
-            param.op, param.base_A, param.base_B, param.M, param.N, param.nnzA, param.nnzB);
+        test_csr_add<float>(param.op,
+                            param.base_A,
+                            param.base_B,
+                            param.M,
+                            param.N,
+                            param.nnzA,
+                            param.nnzB,
+                            param.is_csr_a,
+                            param.is_csr_b);
     }
 
-    // tests with comlex double type
+    // tests with complex double type
     TEST_P(CSR, ComplexDouble)
     {
         const AddCSRParam &param = GetParam();
-        test_csr_add<aoclsparse_double_complex>(
-            param.op, param.base_A, param.base_B, param.M, param.N, param.nnzA, param.nnzB);
+        test_csr_add<aoclsparse_double_complex>(param.op,
+                                                param.base_A,
+                                                param.base_B,
+                                                param.M,
+                                                param.N,
+                                                param.nnzA,
+                                                param.nnzB,
+                                                param.is_csr_a,
+                                                param.is_csr_b);
     }
 
     // tests with complex float type
     TEST_P(CSR, ComplexFloat)
     {
         const AddCSRParam &param = GetParam();
-        test_csr_add<aoclsparse_float_complex>(
-            param.op, param.base_A, param.base_B, param.M, param.N, param.nnzA, param.nnzB);
+        test_csr_add<aoclsparse_float_complex>(param.op,
+                                               param.base_A,
+                                               param.base_B,
+                                               param.M,
+                                               param.N,
+                                               param.nnzA,
+                                               param.nnzB,
+                                               param.is_csr_a,
+                                               param.is_csr_b);
     }
 
     INSTANTIATE_TEST_SUITE_P(AddTestSuite, CSR, testing::ValuesIn(AddCSRValues));
@@ -417,139 +697,34 @@ namespace
         EXPECT_EQ(aoclsparse_destroy(&C), aoclsparse_status_success);
         delete val;
     }
-    TEST(AddValidationSuite, CSCInputNotImpl)
+    // Verifies CSC-A correctness: square 3x3 so CSR-vs-CSC misinterpretation
+    // yields wrong values (A^T + alpha*B instead of A + alpha*B).
+    TEST(AddValidationSuite, CSCFunctionalityDoubleSquare)
     {
-        aoclsparse_matrix           A = nullptr, B = nullptr, C = nullptr;
-        std::vector<aoclsparse_int> row_ptr(6, 0), col_ptr(1, 0);
-        aoclsparse_int              m = 5, n = 5, nnz = 0;
-        aoclsparse_index_base       base = aoclsparse_index_base_zero;
-        float                      *val  = new float;
-
-        // Test 1: A=CSC, B=CSR — expect not_implemented
-        EXPECT_EQ(aoclsparse_create_csc(&A, base, m, n, nnz, row_ptr.data(), col_ptr.data(), val),
-                  aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_create_csr(&B, base, m, n, nnz, row_ptr.data(), col_ptr.data(), val),
-                  aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_add(aoclsparse_operation_none, A, 0.1f, B, &C),
-                  aoclsparse_status_not_implemented);
-        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(&B), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(&C), aoclsparse_status_success);
-
-        // Test 2: A=CSR, B=CSC — expect not_implemented
-        A = nullptr;
-        B = nullptr;
-        C = nullptr;
-        EXPECT_EQ(aoclsparse_create_csr(&A, base, m, n, nnz, row_ptr.data(), col_ptr.data(), val),
-                  aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_create_csc(&B, base, m, n, nnz, row_ptr.data(), col_ptr.data(), val),
-                  aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_add(aoclsparse_operation_none, A, 0.1f, B, &C),
-                  aoclsparse_status_not_implemented);
-        EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(&B), aoclsparse_status_success);
-        EXPECT_EQ(aoclsparse_destroy(&C), aoclsparse_status_success);
-
-        delete val;
+        test_csr_add<double>(aoclsparse_operation_none,
+                             aoclsparse_index_base_zero,
+                             aoclsparse_index_base_zero,
+                             3,
+                             3,
+                             4,
+                             3,
+                             /*is_csr_a=*/false,
+                             /*is_csr_b=*/true);
     }
 
-    // Test to verify add actual functionality with CSC input (double only).
-    // Uses a non-symmetric 3x3 matrix so CSR vs CSC interpretation gives
-    // different results.  add computes C = op(A) + alpha * B.
-    // With A stored as CSC (internally A^T with doid::gt), if add treats it
-    // as CSR it will compute A^T + alpha*B instead of A + alpha*B.
-    void test_csr_add_csc_functionality()
+    // Verifies CSC-A correctness: non-square 3x5 so misinterpreting CSC as CSR
+    // also yields wrong dimensions in addition to wrong values.
+    TEST(AddValidationSuite, CSCFunctionalityDoubleRect)
     {
-        aoclsparse_index_base base  = aoclsparse_index_base_zero;
-        aoclsparse_operation  op    = aoclsparse_operation_none;
-        double                alpha = 1.0;
-
-        // Define a non-symmetric 3x3 CSC matrix A:
-        //     [1  3  0]
-        // A = [0  2  0]
-        //     [0  0  4]
-        // CSC: col_ptr={0,1,3,4}, row_ind={0,0,1,2}, val={1,3,2,4}
-        aoclsparse_int              m = 3, n = 3, nnz_a = 4;
-        std::vector<double>         val_a     = {1, 3, 2, 4};
-        std::vector<aoclsparse_int> col_ptr_a = {0, 1, 3, 4};
-        std::vector<aoclsparse_int> row_ind_a = {0, 0, 1, 2};
-
-        // B = 3x3 identity in CSR, so C = A + 1.0*I
-        aoclsparse_int              nnz_b     = 3;
-        std::vector<double>         val_b     = {1, 1, 1};
-        std::vector<aoclsparse_int> col_ind_b = {0, 1, 2};
-        std::vector<aoclsparse_int> row_ptr_b = {0, 1, 2, 3};
-
-        // Correct dense result: A + I
-        //     [2  3  0]
-        //     [0  3  0]
-        //     [0  0  5]
-        // Flattened row-major:
-        std::vector<double> dense_c_exp = {2, 3, 0, 0, 3, 0, 0, 0, 5};
-
-        // If add misinterprets CSC A as CSR (reads A^T as A), it computes
-        // A^T + I:
-        //     [2  0  0]
-        //     [3  3  0]   <-- incorrect
-        //     [0  0  5]
-
-        aoclsparse_matrix A = nullptr, B = nullptr, C = nullptr;
-        ASSERT_EQ(aoclsparse_create_csc<double>(
-                      &A, base, m, n, nnz_a, col_ptr_a.data(), row_ind_a.data(), val_a.data()),
-                  aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_create_csr<double>(
-                      &B, base, m, n, nnz_b, row_ptr_b.data(), col_ind_b.data(), val_b.data()),
-                  aoclsparse_status_success);
-
-        aoclsparse_status status = aoclsparse_add(op, A, alpha, B, &C);
-
-        // If add rejects CSC input (after DOID guard is enabled), accept not_implemented.
-        // If add processes CSC input, validate output against correct reference.
-        if(status == aoclsparse_status_success)
-        {
-            // Export C and convert to dense for comparison
-            aoclsparse_int        m_c, n_c, nnz_c;
-            aoclsparse_int       *row_ptr_c = NULL;
-            aoclsparse_int       *col_ind_c = NULL;
-            double               *val_c     = NULL;
-            aoclsparse_index_base base_c;
-
-            ASSERT_EQ(aoclsparse_export_csr(
-                          C, &base_c, &m_c, &n_c, &nnz_c, &row_ptr_c, &col_ind_c, &val_c),
-                      aoclsparse_status_success);
-
-            aoclsparse_mat_descr descrC;
-            ASSERT_EQ(aoclsparse_create_mat_descr(&descrC), aoclsparse_status_success);
-            ASSERT_EQ(aoclsparse_set_mat_index_base(descrC, base_c), aoclsparse_status_success);
-
-            std::vector<double> dense_c(m_c * n_c, 0.0);
-            aoclsparse_csr2dense(m_c,
-                                 n_c,
-                                 descrC,
-                                 val_c,
-                                 row_ptr_c,
-                                 col_ind_c,
-                                 dense_c.data(),
-                                 n_c,
-                                 aoclsparse_order_row);
-
-            EXPECT_DOUBLE_EQ_VEC(m_c * n_c, dense_c, dense_c_exp);
-
-            aoclsparse_destroy_mat_descr(descrC);
-        }
-        else
-        {
-            EXPECT_EQ(status, aoclsparse_status_not_implemented);
-        }
-
-        aoclsparse_destroy(&C);
-        aoclsparse_destroy(&A);
-        aoclsparse_destroy(&B);
-    }
-
-    TEST(AddValidationSuite, CSCFunctionalityDouble)
-    {
-        test_csr_add_csc_functionality();
+        test_csr_add<double>(aoclsparse_operation_none,
+                             aoclsparse_index_base_zero,
+                             aoclsparse_index_base_zero,
+                             3,
+                             5,
+                             6,
+                             4,
+                             /*is_csr_a=*/false,
+                             /*is_csr_b=*/true);
     }
     TEST(AddValidationSuite, WrongMatrixTypeTest)
     {
