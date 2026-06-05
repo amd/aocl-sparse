@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,6 +23,7 @@
 #include "aoclsparse.h"
 #include "common_data_utils.h"
 
+#include <cpuid.h>
 #include <iostream>
 #include <vector>
 
@@ -108,4 +109,11 @@ bool can_exec_avx512_tests()
 {
     Au::X86Cpu Cpu = {0};
     return Cpu.hasFlag(Au::ECpuidFlag::avx512f) && aoclsparse_is_avx512_build();
+}
+
+// Returns 'true' if the CPU supports AVX512-FP16.
+bool can_exec_avx512fp16_tests()
+{
+    Au::X86Cpu Cpu = {0};
+    return Cpu.hasFlag(Au::ECpuidFlag::avx512_fp16) && aoclsparse_is_avx512_build();
 }
