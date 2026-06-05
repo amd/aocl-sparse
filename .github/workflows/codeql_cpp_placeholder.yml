@@ -54,9 +54,7 @@ jobs:
       shell: bash
       run: |
         # Remove broken Python cmake wrapper from PATH; ensure real cmake is used
-        export PATH=/usr/bin:$(echo $PATH | tr ':' '
-' | grep -v '/home/amd/.local/bin' | tr '
-' ':')
+        export PATH=/usr/bin:$(echo $PATH | tr ':' '\n' | grep -v '/home/amd/.local/bin' | tr '\n' ':')
         # Allow config files to reference unbound variables
         set +u
 
