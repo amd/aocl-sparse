@@ -11,7 +11,7 @@ on:
 
 jobs:
   analyze:
-    name: Analyze (${{ matrix.language }} - ${{ matrix.compiler }})
+    name: Analyze (${{ matrix.compiler || matrix.language }})
     runs-on: amd_linux
     permissions:
       # required for all workflows
@@ -29,6 +29,9 @@ jobs:
         - language: c-cpp
           build-mode: manual
           compiler: gcc
+        - language: c-cpp
+          build-mode: manual
+          compiler: aocc
         - language: python
           build-mode: none
           compiler: none
@@ -45,32 +48,33 @@ jobs:
         build-mode: ${{ matrix.build-mode }}
         queries: security-and-quality
 
-    # Build with GCC (MT)
-    - name: Build with GCC (MT)
-      if: matrix.build-mode == 'manual' && matrix.compiler == 'gcc'
+    # Build
+    - name: Build
+      if: matrix['build-mode'] == 'manual'
       shell: bash
       run: |
-        export PATH=/usr/local/bin:$PATH
-        scp -r amd@10.86.9.164:/home/amd/aocl-daily-lib/aocl-linux-gcc-daily.tar.gz .
-        tar -xf aocl-linux-gcc-daily.tar.gz
-        cd aocl-linux-gcc-daily
-        ./install.sh -t . -l blis libflame utils -i lp64
-        cd $GITHUB_WORKSPACE
-        source ./aocl-linux-gcc-daily/./daily/gcc/MT/amd-libs.cfg
-        cmake -S . -B out_sparse -DBUILD_ILP64=OFF -DCMAKE_INSTALL_PREFIX=$PWD/aocl-sparse && cmake --build out_sparse --target install --config Release --parallel $(nproc)
+        # Remove broken Python cmake wrapper from PATH; ensure real cmake is used
+        export PATH=/usr/bin:$(echo $PATH | tr ':' '
+' | grep -v '/home/amd/.local/bin' | tr '
+' ':')
+        # Allow config files to reference unbound variables
+        set +u
 
-    # Build with GCC (ST)
-    - name: Build with GCC (ST)
-      if: matrix.build-mode == 'manual' && matrix.compiler == 'gcc'
-      shell: bash
-      run: |
-        export PATH=/usr/local/bin:$PATH
-        cd $GITHUB_WORKSPACE
-        rm -rf out_sparse/
-        source ./aocl-linux-gcc-daily/daily/gcc/ST/amd-libs.cfg
-        cmake -S . -B out_sparse -DSUPPORT_OMP=OFF -DBUILD_ILP64=OFF -DCMAKE_INSTALL_PREFIX=$PWD/aocl-sparse && cmake --build out_sparse --target install --config Release --parallel $(nproc)
+        if [ "${{ matrix.compiler }}" = "gcc" ]; then
+          source /home/amd/AOCL_5.3/5.3.0/gcc/ST/amd-libs.cfg
+        else
+          source /home/amd/setenv_AOCC.sh
+          source /home/amd/AOCL_5.3/5.3.0/aocc/ST/amd-libs.cfg
+        fi
+
+        cmake -S . -B out_sparse -DSUPPORT_OMP=OFF -DBUILD_ILP64=OFF -DCMAKE_INSTALL_PREFIX=$PWD/aocl-sparse
+        cmake --build out_sparse --target install --config Release --parallel $(nproc)
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
       with:
-        category: "/language:${{matrix.language}}/compiler:${{matrix.compiler}}"
+        category: "/language:${{ matrix.language }}/compiler:${{ matrix.compiler }}"
+
+    - name: Cleanup workspace
+      if: always()
+      run: rm -rf "$GITHUB_WORKSPACE"
