@@ -203,6 +203,31 @@ The updated documentation can be found under the `aocl-sparse/docs/sphinx` direc
 **Note** The document generation process requires a recent copy of `Doxygen`, a
 LaTeX distribution with `pdflatex`,`sed`, python with `rocm-docs-core`, `breathe`, `sphinx` and `sphinxcontrib.bibtex`
 
+## Runtime environment variables
+
+The following environment variable influences library behavior at runtime:
+
+| Variable | Description | Valid values |
+|----------|-------------|--------------|
+| `AOCL_ENABLE_INSTRUCTIONS` | Sets the ISA code-path preference for kernels that have more than one implementation. Controls which instruction set is used when multiple paths are available. | `AVX2`, `AVX512`, `GENERIC` |
+
+**Value meanings:**
+- **`GENERIC`** — Use the generic (scalar/reference) code path. Runs on any supported x86 CPU; no SIMD acceleration.
+- **`AVX2`** — Prefer kernels that use AVX2 (256-bit SIMD). Requires a CPU with AVX2 support (e.g. AMD Zen 1 and later).
+- **`AVX512`** — Prefer kernels that use AVX-512 (512-bit SIMD). Requires a CPU with AVX-512 support (e.g. AMD Zen 4 and later). If the CPU does not support AVX-512, the library falls back to AVX2 or GENERIC as appropriate.
+
+Example (Linux):
+```bash
+export AOCL_ENABLE_INSTRUCTIONS=AVX512
+```
+
+Example (Windows):
+```cmd
+set AOCL_ENABLE_INSTRUCTIONS=AVX512
+```
+
+The same preference can be set programmatically via `aoclsparse_enable_instructions()`; the API also supports the value `ENV` to re-read this environment variable at runtime.
+
 ## Minimum architecture support
 
 This library requires a minimum of x86 architecture with AVX2 extensions.

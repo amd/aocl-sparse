@@ -464,31 +464,9 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
             return ret;
     }
 
-    // Optimize TCSR matrix
-    // Check if the matrix is valid
-    // Creates idiag ptr for lower and iurow ptr for upper triangualr matrix
+    // TCSR matrix is already optimized at creation time
     if(A->input_format == aoclsparse_tcsr_mat)
-    {
-        aoclsparse::tcsr *opt_mat = nullptr;
-        switch(A->val_type)
-        {
-        case aoclsparse_dmat:
-            ret = aoclsparse_tcsr_optimize<double>(A, opt_mat);
-            break;
-        case aoclsparse_smat:
-            ret = aoclsparse_tcsr_optimize<float>(A, opt_mat);
-            break;
-        case aoclsparse_cmat:
-            ret = aoclsparse_tcsr_optimize<std::complex<float>>(A, opt_mat);
-            break;
-        case aoclsparse_zmat:
-            ret = aoclsparse_tcsr_optimize<std::complex<double>>(A, opt_mat);
-            break;
-        }
-        if(ret == aoclsparse_status_success && !opt_mat)
-            return aoclsparse_status_internal_error;
-        return ret;
-    }
+        return aoclsparse_status_success;
 
     // CSR matrix checks
     aoclsparse::csr *csr_mat = dynamic_cast<aoclsparse::csr *>(A->mats[0]);

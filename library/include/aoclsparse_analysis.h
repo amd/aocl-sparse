@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2022-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -40,6 +40,10 @@ extern "C" {
 *  In aoclsparse_optimize() sparse matrices are restructured based on matrix analysis,
 *   into different storage formats to improve data access and thus performance.
 *
+*  @note
+*  This function is not thread-safe and must not be called concurrently by multiple threads
+*  for the same matrix object.
+*
 *  @param[in]
 *  mat         sparse matrix in CSR format and sparse format information inside
 *
@@ -60,6 +64,10 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix mat);
 *  Any of the <tt>aoclsparse_set_</tt>*_hint functions may be used to indicate that a given number of calls to the same
 *  Sparse BLAS API will be performed. When aoclsparse_optimize() is invoked, the input matrix might be
 *  tuned to accelerate the hinted calls.
+*
+*  @note
+*  These functions are not thread-safe and must not be called concurrently by multiple threads
+*  for the same matrix object.
 *
 *  @param[in]
 *  mat         Input sparse matrix to be tuned.
@@ -117,6 +125,10 @@ aoclsparse_status aoclsparse_set_2m_hint(aoclsparse_matrix          mat,
 *  this can also include hints for "fused" operations that accelerate two operations in a
 *  single call.
 *
+*  @note
+*  These functions are not thread-safe and must not be called concurrently by multiple threads
+*  for the same matrix object.
+*
 *  @param[in]
 *  mat         A sparse matrix
 *  @param[in]
@@ -162,6 +174,10 @@ aoclsparse_status aoclsparse_set_dotmv_hint(aoclsparse_matrix          mat,
 *  but also other (matrix) parameters. The hinted matrix should not be modified
 *  after the call to optimize and before the call to the solver.
 *
+*  @note
+*  This function is not thread-safe and must not be called concurrently by multiple threads
+*  for the same matrix object.
+*
 *  @param[in]
 *  mat         Input sparse matrix to be tuned.
 *  @param[in]
@@ -202,6 +218,10 @@ aoclsparse_status aoclsparse_set_sm_hint(aoclsparse_matrix          mat,
 *  The hints include not only the estimated number of the API calls
 *  but also their other parameters which should match the actual calls.
 *
+*  @note
+*  This function is not thread-safe and must not be called concurrently by multiple threads
+*  for the same matrix object.
+*
 *  @param[in]
 *  mat         Input sparse matrix to be tuned.
 *  @param[in]
@@ -240,6 +260,10 @@ aoclsparse_status aoclsparse_set_sorv_hint(aoclsparse_matrix          mat,
 *  which have not been processed by aoclsparse_optimize() yet.
 *  The optimizations from any previous calls are unaffected. Note that
 *  the memory policy is only an indication rather than rule.
+*
+*  @note
+*  This function is not thread-safe and must not be called concurrently by multiple threads
+*  for the same matrix object.
 *
 *  @param[in]
 *  mat         Input sparse matrix to be tuned.

@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -1673,6 +1673,159 @@ namespace
         aoclsparse_destroy_mat_descr(descr);
         aoclsparse_destroy(&A);
     }
+    // CSC input not implemented for csrmm
+    template <typename T>
+    void test_csrmm_csc_not_impl()
+    {
+        aoclsparse_index_base       base = aoclsparse_index_base_zero;
+        aoclsparse_operation        op   = aoclsparse_operation_none;
+        aoclsparse_order            order;
+        aoclsparse_int              kid = 0;
+        aoclsparse_int              m, k, n, nnz;
+        std::vector<T>              csr_val;
+        std::vector<aoclsparse_int> csr_col_ind;
+        std::vector<aoclsparse_int> csr_row_ptr;
+        T                           alpha, beta;
+        std::vector<T>              B;
+        std::vector<T>              C;
+        std::vector<T>              C_exp;
+
+        init<T>(op,
+                order,
+                m,
+                k,
+                n,
+                nnz,
+                csr_val,
+                csr_col_ind,
+                csr_row_ptr,
+                alpha,
+                beta,
+                B,
+                C,
+                C_exp,
+                base,
+                6);
+        aoclsparse_mat_descr descr;
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+
+        // Create a small CSC matrix
+        aoclsparse_int m_a = 3, n_a = 3, nnz_a = 4;
+        std::vector<T> val_a;
+        if constexpr(std::is_same_v<T, aoclsparse_double_complex>
+                     || std::is_same_v<T, aoclsparse_float_complex>)
+            val_a.assign({{1, 1}, {1, 2}, {2, 3}, {4, 2}});
+        else
+            val_a.assign({1, 2, 3, 4});
+        std::vector<aoclsparse_int> row_ind_a = {0, 2, 1, 2};
+        std::vector<aoclsparse_int> col_ptr_a = {0, 2, 3, 4};
+        std::vector<T>              B_local(n_a * n, T{1});
+        std::vector<T>              C_local(m_a * n, T{0});
+
+        aoclsparse_matrix A;
+        ASSERT_EQ(aoclsparse_create_csc<T>(
+                      &A, base, m_a, n_a, nnz_a, col_ptr_a.data(), row_ind_a.data(), val_a.data()),
+                  aoclsparse_status_success);
+
+        EXPECT_EQ(
+            aoclsparse_csrmm<T>(
+                op, alpha, A, descr, order, B_local.data(), n, n_a, beta, C_local.data(), m_a, kid),
+            aoclsparse_status_not_implemented);
+
+        aoclsparse_destroy_mat_descr(descr);
+        aoclsparse_destroy(&A);
+    }
+
+    // Test to verify csrmm actual functionality with CSC input (double only).
+    // Uses a non-symmetric 3x3 matrix so CSR vs CSC interpretation gives
+    // different results.  csrmm computes C = alpha * op(A) * B + beta * C.
+    // With A stored as CSC (internally A^T with doid::gt), if csrmm treats it
+    // as CSR it will compute A^T * B instead of A * B.
+    void test_csrmm_csc_functionality()
+    {
+        aoclsparse_index_base base  = aoclsparse_index_base_zero;
+        aoclsparse_operation  op    = aoclsparse_operation_none;
+        aoclsparse_order      order = aoclsparse_order_row;
+        aoclsparse_int        kid   = 0;
+        double                alpha = 1.0;
+        double                beta  = 0.0;
+
+        // Define a non-symmetric 3x3 CSC matrix A:
+        //     [1  3  0]
+        // A = [0  2  0]
+        //     [0  0  4]
+        // CSC: col_ptr={0,1,3,4}, row_ind={0,0,1,2}, val={1,3,2,4}
+        aoclsparse_int              m_a = 3, n_a = 3, nnz_a = 4;
+        std::vector<double>         val_a     = {1, 3, 2, 4};
+        std::vector<aoclsparse_int> col_ptr_a = {0, 1, 3, 4};
+        std::vector<aoclsparse_int> row_ind_a = {0, 0, 1, 2};
+
+        // B = 3x3 identity (dense, row-major), so C = alpha*A*I + 0 = A
+        aoclsparse_int      n = 3;
+        std::vector<double> B = {1, 0, 0, 0, 1, 0, 0, 0, 1};
+        std::vector<double> C(m_a * n, 0.0);
+
+        // Correct dense result: A * I = A, flattened row-major:
+        //     [1  3  0]
+        //     [0  2  0]
+        //     [0  0  4]
+        std::vector<double> C_exp = {1, 3, 0, 0, 2, 0, 0, 0, 4};
+
+        // If csrmm misinterprets CSC A as CSR (reads A^T as A), it computes
+        // A^T * I = A^T:
+        //     [1  0  0]
+        //     [3  2  0]   <-- incorrect
+        //     [0  0  4]
+
+        aoclsparse_mat_descr descr;
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+
+        aoclsparse_matrix A;
+        ASSERT_EQ(aoclsparse_create_csc<double>(
+                      &A, base, m_a, n_a, nnz_a, col_ptr_a.data(), row_ind_a.data(), val_a.data()),
+                  aoclsparse_status_success);
+
+        aoclsparse_int ldb = n; // row-major: ldb = number of columns of B
+        aoclsparse_int ldc = n; // row-major: ldc = number of columns of C
+
+        aoclsparse_status status = aoclsparse_csrmm<double>(
+            op, alpha, A, descr, order, B.data(), n, ldb, beta, C.data(), ldc, kid);
+
+        // If csrmm rejects CSC input (after DOID guard is enabled), accept not_implemented.
+        // If csrmm processes CSC input, validate output against correct reference.
+        if(status == aoclsparse_status_success)
+        {
+            /*
+            // print C and C_exp for debugging in matrix form
+            std::cout << "C:" << std::endl;
+            for(aoclsparse_int i = 0; i < m_a; i++)
+            {
+                for(aoclsparse_int j = 0; j < n; j++)
+                {
+                    std::cout << C[i * n + j] << " ";
+                }
+                std::cout << std::endl;
+            }
+            std::cout << "C_exp:" << std::endl;
+            for(aoclsparse_int i = 0; i < m_a; i++)
+            {
+                for(aoclsparse_int j = 0; j < n; j++)
+                {
+                    std::cout << C_exp[i * n + j] << " ";
+                }
+                std::cout << std::endl;
+            }
+            */
+            EXPECT_DOUBLE_EQ_VEC(m_a * n, C, C_exp);
+        }
+        else
+        {
+            EXPECT_EQ(status, aoclsparse_status_not_implemented);
+        }
+
+        aoclsparse_destroy_mat_descr(descr);
+        aoclsparse_destroy(&A);
+    }
 
     // zero matrix size is valid - just do nothing
     template <typename T>
@@ -2827,7 +2980,14 @@ namespace
     {
         test_csrmm_not_implemented<float>();
     }
-
+    TEST(csrmm, CSCNotImplDouble)
+    {
+        test_csrmm_csc_not_impl<double>();
+    }
+    TEST(csrmm, CSCFunctionalityDouble)
+    {
+        test_csrmm_csc_functionality();
+    }
     TEST(csrmm, DoNothingDouble)
     {
         test_csrmm_do_nothing<double>();

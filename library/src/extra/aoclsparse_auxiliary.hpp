@@ -31,6 +31,7 @@
 #include "aoclsparse_utils.hpp"
 
 #include <cmath>
+#include <cstdint>
 #include <limits>
 
 aoclsparse_status aoclsparse_destroy_ilu(_aoclsparse_ilu *ilu_info);
@@ -40,6 +41,8 @@ void              set_symgs_matrix_properties(aoclsparse_mat_descr  descr_dest,
                                               aoclsparse_fill_mode &fmode,
                                               aoclsparse_diag_type &dtype,
                                               aoclsparse_operation &trans);
+
+bool aoclsparse_lp64_product_overflow(aoclsparse_int a, aoclsparse_int b);
 
 void aoclsparse_init_mat(aoclsparse_matrix             A,
                          aoclsparse_int                M,
@@ -170,10 +173,22 @@ aoclsparse_status aoclsparse_create_tcsr_t(aoclsparse_matrix          *mat,
         return aoclsparse_status_memory_error;
     }
 
+    for(aoclsparse_int i = 0; i < M; i++)
+    {
+        // Diagonal is at the end of each row in the lower triangular part
+        tcsr_mat->idiag[i] = row_ptr_L[i + 1] - 1;
+        // Diagonal is at the beginning of each row in the upper triangular part
+        // Increment row_ptr_U to get the position of the upper triangle element
+        tcsr_mat->iurow[i] = row_ptr_U[i] + 1;
+    }
+
     aoclsparse_init_mat(*mat, M, N, nnz, aoclsparse_tcsr_mat);
-    (*mat)->val_type = get_data_type<T>();
-    (*mat)->fulldiag = true;
+    (*mat)->val_type
+        = tcsr_mat->val_type; // set from inner matrix (already set by tcsr constructor)
+    (*mat)->fulldiag          = true;
+    (*mat)->opt_csr_full_diag = true;
     (*mat)->mat_type = aoclsparse_tcsr_mat; // Used to identify the matrix type in the mv dispatcher
+    (*mat)->optimized = true;
     if((sort_L == aoclsparse_partially_sorted || sort_U == aoclsparse_partially_sorted))
         (*mat)->sort = aoclsparse_partially_sorted;
     else

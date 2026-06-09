@@ -67,6 +67,37 @@ namespace Dispatch
             return avx2_f;
     }
 
+    // Function that takes an initializer list of ISA candidates and returns the best supported one
+    inline aoclsparse::context_isa_t
+        get_supported(std::initializer_list<aoclsparse::context_isa_t> isa_list)
+    {
+        using namespace aoclsparse;
+
+        context_isa_t  supported = context_isa_t::UNSET;
+        aoclsparse_int score     = 0;
+
+        for(const auto &isa : isa_list)
+        {
+            if(context::get_context()->supports(isa))
+            {
+                // Calculate the score as the integer value of the enum
+                aoclsparse_int isa_score = (static_cast<aoclsparse_int>(isa));
+
+                // Skip AVX512 ISAs when the build does not support AVX512
+                if(isa_score > 2 && !aoclsparse_is_avx512_build())
+                    continue;
+
+                if(isa_score >= score)
+                {
+                    score     = isa_score;
+                    supported = isa;
+                }
+            }
+        }
+
+        return supported;
+    }
+
     template <typename K>
     constexpr Table<K> ORL([[maybe_unused]] Table<K> T)
     {

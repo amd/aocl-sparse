@@ -1,5 +1,5 @@
 # ########################################################################
-# Copyright (c) 2023-2025 Advanced Micro Devices, Inc.
+# Copyright (c) 2023-2026 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -47,7 +47,6 @@ if (BUILD_SPARSE_TESTS_OUTOFSRCTREE)
     OPTION(BUILD_SHARED_LIBS "Build aocl-sparse as a shared library" ON)
     OPTION(BUILD_ILP64 "ILP64 Support" OFF)
     OPTION(SUPPORT_OMP "Compile with OpenMP support." ON)
-    set(SUPPORT_OMP ON)
     OPTION(USE_AVX512 "AVX512 Support" ON)
     OPTION(COVERAGE "Do source code coverage (only GCC/Debug build)" OFF)
     OPTION(ASAN "Enable Address SANitizer (only Debug/Linux build)" OFF)
@@ -203,6 +202,7 @@ endif()
 
 set(GTEST_EXECUTABLES
     dispatcher_tests
+    doid_score_tests
     gmres_tests
     cg_tests
     csrmv_tests
@@ -248,6 +248,7 @@ set(GTEST_EXECUTABLES
     rng_tests
     context_tests
     extreme_value_tests
+    lp64_overflow_tests
     createtcsr_tests
     tcsrmv_tests
     createbsr_tests

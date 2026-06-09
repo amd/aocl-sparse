@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2025 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020-2026 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -45,6 +45,25 @@ extern "C" {
  */
 DLL_PUBLIC
 const char *aoclsparse_get_version();
+
+/*! \ingroup aux_module
+ *  \par AOCL_ENABLE_INSTRUCTIONS
+ *  Environment variable that sets the ISA code-path preference for kernels
+ *  that have more than one implementation. Read at library initialization;
+ *  can be re-applied at run time by calling \ref aoclsparse_enable_instructions(ENV).
+ *
+ *  Valid values (case-insensitive):
+ *  - \b GENERIC — Use the generic (scalar) code path; runs on any supported x86 CPU.
+ *  - \b AVX2 — Prefer AVX2 (256-bit SIMD) kernels. If the CPU does not support AVX2,
+ *    the library falls back to GENERIC.
+ *  - \b AVX512 — Prefer AVX-512 (512-bit SIMD) kernels. If the CPU does not support
+ *    AVX-512, the library falls back to AVX2, then to GENERIC.
+ *
+ *  Any other value (including misspellings) is silently ignored and the library
+ *  uses its default auto-detected ISA path.
+ *
+ *  The same preference can be set at runtime via aoclsparse_enable_instructions().
+ */
 
 /*! \ingroup aux_module
  *  \brief Set ISA code-path preference.
@@ -297,8 +316,12 @@ aoclsparse_diag_type aoclsparse_get_mat_diag_type(const aoclsparse_mat_descr des
  *  The change directly affects user's arrays if the matrix was created using aoclsparse_create_scsr(),
  *  aoclsparse_create_scsc(), aoclsparse_create_scoo() or other variants.
  *
- *  \note   The successful modification invalidates existing optimized data so it is desirable to call
+ *  @note   The successful modification invalidates existing optimized data so it is desirable to call
  *          aoclsparse_optimize() once all modifications are performed.
+ *
+ *  @note
+ *  These functions are not thread-safe and must not be called concurrently by multiple threads
+ *  for the same matrix object.
  *
  *  \param[inout] A             The sparse matrix to be modified.
  *  \param[in]     row_idx      The row index of the element to be updated.
@@ -689,8 +712,12 @@ aoclsparse_status aoclsparse_create_zcoo(aoclsparse_matrix          *mat,
  *  The change directly affects user's arrays if the matrix was created using aoclsparse_create_scsr(),
  *  aoclsparse_create_scsc(), aoclsparse_create_scoo() or other variants.
  *
- *  \note   The successful update invalidates existing optimized data so it is desirable to call
+ *  @note   The successful update invalidates existing optimized data so it is desirable to call
  *          aoclsparse_optimize() once all modifications are performed.
+ *
+ *  @note
+ *  These functions are not thread-safe and must not be called concurrently by multiple threads
+ *  for the same matrix object.
  *
  *  \param[inout]  A         The sparse matrix to be modified.
  *  \param[in]     len       Length of the \p val array and the number of nonzeros in the matrix.
@@ -1086,6 +1113,11 @@ DLL_PUBLIC
 aoclsparse_int aoclsparse_debug_dispatcher(const char                  name[],
                                            aoclsparse_matrix_data_type dt,
                                            aoclsparse_int              kid);
+
+DLL_PUBLIC
+aoclsparse_int aoclsparse_debug_doid_score(aoclsparse_int  mat_doid,
+                                           aoclsparse_int  req_d_id,
+                                           aoclsparse_int *eff_doid);
 
 DLL_PUBLIC
 aoclsparse_int aoclsparse_is_avx512_build();

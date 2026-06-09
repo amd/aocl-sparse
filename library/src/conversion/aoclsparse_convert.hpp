@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,6 +28,10 @@
 #include "aoclsparse_types.h"
 #include "aoclsparse_mat_structures.hpp"
 #include "aoclsparse_utils.hpp"
+
+// Forward declaration to avoid circular include:
+// aoclsparse_auxiliary.hpp -> aoclsparse_csr_util.hpp -> aoclsparse_convert.hpp
+bool aoclsparse_lp64_product_overflow(aoclsparse_int a, aoclsparse_int b);
 
 #include <algorithm>
 #include <cmath>
@@ -733,6 +737,16 @@ aoclsparse_status aoclsparse_csr2dense_template(aoclsparse_int             m,
     }
     aoclsparse_index_base base      = descr->base;
     aoclsparse_diag_type  diag_type = descr->diag_type;
+
+    // Overflow check for dense matrix A offset computations in LP64 mode
+    // Column major: A[row + ld * col], overflow risk in ld * col where col ∈ [0, n-1]
+    // Row major: A[row * ld + col], overflow risk in row * ld where row ∈ [0, m-1]
+    aoclsparse_int a_dim = (order == aoclsparse_order_column) ? n : m;
+    // Validate the full dense range: maximum index is strictly less than a_dim * ld
+    if(aoclsparse_lp64_product_overflow(a_dim, ld))
+    {
+        return aoclsparse_status_invalid_size;
+    }
 
     if(order == aoclsparse_order_column)
     {

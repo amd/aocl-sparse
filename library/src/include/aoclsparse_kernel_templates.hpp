@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,9 +25,6 @@
 #define AOCLSPARSE_KERNEL_TEMPLATES_T_HPP
 
 #include "aoclsparse.h"
-
-// Set the kt_int
-using kt_int_t = aoclsparse_int;
 
 #ifdef AOCLSPARSE_AVX2_INSTANT
 #define KT_AVX2_BUILD

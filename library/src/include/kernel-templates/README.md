@@ -67,9 +67,6 @@ Table Reusable Kernel Templates μkernels list.
 //FILENAME: kt_example_axpyi.cpp
 #include <cstdint>
 
-// Set the kt_int
-using kt_int_t = int64_t; // or int32_t
-
 #include "kernel-templates/kernel_templates.hpp"
 
 using namespace kernel_templates;
@@ -248,6 +245,10 @@ The above example can be compiled as follows:
 ```bash
 g++ -o compare_kernels compare_kernels.cpp kt_axpyi_avx2.o kt_axpyi_avx512.o  # Generate the executable for the application
 ```
+
+## Contributing
+
+For guidance on extending the Kernel Templates library -- adding new datatypes, L0/L1 micro kernels, and writing tests -- see [CONTRIBUTE.md](CONTRIBUTE.md).
 
 ## Documentation
 

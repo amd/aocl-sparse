@@ -1,5 +1,5 @@
 # ########################################################################
-# Copyright (c) 2020-2025 Advanced Micro Devices, Inc.
+# Copyright (c) 2020-2026 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -100,5 +100,15 @@ set(DOUBLE_COMPILATION
   src/level2/aoclsparse_trsv_kt.cpp
   src/level3/aoclsparse_csrmm_kt.cpp
 )
+
+# Workaround: GCC >=15 SLP vectorizer emits chained sign-extend sequences for complex<double>
+# that the instruction combiner folds incorrectly, causing silent data corruption
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
+   AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "15")
+  set_source_files_properties(
+      src/level3/aoclsparse_csrmm_kt.cpp
+      PROPERTIES COMPILE_FLAGS "-fno-tree-slp-vectorize"
+  )
+endif()
 
 include(Suppressions)

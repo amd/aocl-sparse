@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -47,7 +47,7 @@ extern "C" {
  *     y_{I_{x_{i}}} = a\,x_i + y_{I_{x_{i}}}, \quad i\in\{1,\ldots,{\bf\mathsf{nnz}}\}.
  *  \f]
  *
- *  \note The contents of the vectors are not checked for NaNs.
+ *  @note The contents of the vectors are not checked for NaNs.
  *
  *  @param[in]
  *  nnz     The number of elements in \f$x\f$ and \p indx.
@@ -112,7 +112,7 @@ aoclsparse_status aoclsparse_saxpyi(
  *    {\bf\mathsf{dot}} = \sum_{i=0}^{{\bf\mathsf{nnz}}-1} \overline{\,x_i\,} \cdot y_{I_{x_i}}.
  *  \f]
  *
- *  \note The contents of the vectors are not checked for NaNs.
+ *  @note The contents of the vectors are not checked for NaNs.
  *
  *  @param[in]
  *  nnz       The number of elements (length) of vectors \p x and \p indx.
@@ -164,7 +164,7 @@ aoclsparse_status aoclsparse_zdotci(
  *    {\bf\mathsf{dot}} = \sum_{i=0}^{{\bf\mathsf{nnz}}-1} x_{i} \cdot y_{I_{x_i}}.
  *  \f]
  *
- *  \note The contents of the vectors are not checked for NaNs.
+ *  @note The contents of the vectors are not checked for NaNs.
  *
  *  @param[in]
  *  nnz       The number of elements (length) of vectors \f$x\f$ and \f$indx\f$.
@@ -217,7 +217,7 @@ aoclsparse_status aoclsparse_cdotui(
  *    {\bf\mathsf{dot}} = \sum_{i=0}^{{\bf\mathsf{nnz}}-1} x_{i} \cdot y_{I_{x_i}}.
  *  \f]
  *
- *  \note The contents of the vectors are not checked for NaNs.
+ *  @note The contents of the vectors are not checked for NaNs.
  *
  *  @param[in]
  *  nnz       The number of elements to access in vectors \p x and \p indx.
@@ -260,7 +260,7 @@ float aoclsparse_sdoti(const aoclsparse_int  nnz,
  *     y_{I_{x_{i}}} = x_i, \quad i\in\{1,\ldots,{\bf\mathsf{nnz}}\}.
  *  \f]
  *
- *  \note The contents of the vectors are not checked for NaNs.
+ *  @note The contents of the vectors are not checked for NaNs.
  *
  *  @param[in]
  *  nnz       The number of elements to use from \f$x\f$ and \f${\bf\mathsf{indx}}\f$.
@@ -323,7 +323,7 @@ aoclsparse_status aoclsparse_ssctr(const aoclsparse_int  nnz,
  *  \p stride be a striding distance, then
  *  \f[ y_{{\bf\mathsf{stride}} \times i} = x_i,\quad i\in\{1,\ldots,{\bf\mathsf{nnz}}\}.\f]
  *
- *  \note Contents of the vector \p x are accessed but not checked.
+ *  @note Contents of the vector \p x are accessed but not checked.
  *
  *  @param[in]
  *  nnz       Number of nonzero elements to access in \f$x\f$.
@@ -376,7 +376,7 @@ aoclsparse_status
  *
  *  for \f$i\in 1, \ldots, {\bf\mathsf{nnz}}\f$. The elements \p c, \p s are scalars.
  *
- *  \note The contents of the vectors are not checked for NaNs.
+ *  @note The contents of the vectors are not checked for NaNs.
  *
  *  @param[in]
  *  nnz       The number of elements to use from \f$x\f$ and \f${\bf\mathsf{indx}}\f$.
@@ -470,7 +470,7 @@ aoclsparse_status aoclsparse_sroti(const aoclsparse_int  nnz,
  *              \p x or \p indx is invalid
  *  \retval     aoclsparse_status_invalid_index_value at least one of the indices
  *              in \p indx is negative
- *  \note
+ *  @note
  *  These functions assume that the indices stored in \p indx are less than \f$m\f$ without
  *  duplicate elements, and
  *  that \p x and \p indx are pointers to vectors of size at least \p nnz.
@@ -549,7 +549,7 @@ aoclsparse_status
  *              \p x or \p indx is invalid
  *  \retval     aoclsparse_status_invalid_index_value at least one of the indices
  *              in \p indx is negative
- *  \note
+ *  @note
  *  These functions assume that the indices stored in \p indx are less than \f$m\f$ without
  *  duplicate elements, and
  *  that \p x and \p indx are pointers to vectors of size at least \p nnz.
@@ -743,7 +743,7 @@ aoclsparse_status aoclsparse_scsrmv(aoclsparse_operation       trans,
  *    \right.
  *  \f]
  *
- *  \note
+ *  @note
  *  Currently, only \p trans = \ref aoclsparse_operation_none is supported.
  *
  *  @param[in]
@@ -923,7 +923,7 @@ aoclsparse_status aoclsparse_dblkcsrmv(aoclsparse_operation       trans,
  *    \right.
  *  \f]
  *
- *  \note
+ *  @note
  *  Currently, only \p trans = \ref aoclsparse_operation_none is supported.
  *
  *  @param[in]
@@ -1016,7 +1016,7 @@ aoclsparse_status aoclsparse_sdiamv(aoclsparse_operation       trans,
 *    \right.
 *  \f]
 *
-*  \note
+*  @note
 *  Only \p trans = \ref aoclsparse_operation_none is supported.
 *
 *  @param[in]
@@ -1222,10 +1222,10 @@ aoclsparse_status aoclsparse_smv(aoclsparse_operation       op,
  *    \right.
  *  \f]
  *
- *  \note
+ *  @note
  *  Only \p trans = \ref aoclsparse_operation_none is supported.
  *
- *  \note
+ *  @note
  *  The input matrix has to be sparse upper or lower triangular matrix
  *  with unit or non-unit main diagonal. Matrix has to be sorted.
  *  No diagonal element can be omitted from a sparse storage
@@ -2147,7 +2147,8 @@ aoclsparse_status aoclsparse_spmm(aoclsparse_operation    opA,
 /*! \ingroup level3_module
  *  \brief Symmetric product of three sparse matrices for real and complex datatypes stored as a sparse matrix.
  *  \details
- *  <tt>aoclsparse_sypr</tt> multiplies three sparse matrices in CSR storage format. The result
+ *  <tt>aoclsparse_sypr</tt> multiplies three sparse matrices. Matrix \p A may be provided in
+ *  CSR or CSC format; matrix \p B must be in CSR format. The result
  *  is returned in a newly allocated symmetric or Hermitian sparse matrix stored as an upper
  *  triangle in CSR format.
  *
@@ -2193,16 +2194,19 @@ aoclsparse_status aoclsparse_spmm(aoclsparse_operation    opA,
  *  non-zero elements were modified (e.g., by a call to aoclsparse_supdate_values()
  *  and variants).
  *
- *  \note <tt>aoclsparse_sypr</tt> supports only matrices in CSR format which have sorted column
- *  indices in each row. If the matrices are unsorted, you might want to call
- *  aoclsparse_order_mat().
+ *  \note <tt>aoclsparse_sypr</tt> requires sorted indices. For CSR \p A, sorting is
+ *  required when \p opA is \ref aoclsparse_operation_transpose or
+ *  \ref aoclsparse_operation_conjugate_transpose; For CSC \p A, sorting is
+ *  required with \p opA = \ref aoclsparse_operation_none. Other cases are exempt.
+ *  Matrix \p B must always be sorted. If a matrix is unsorted, call aoclsparse_order_mat().
  *  \note
  *  Currently, \p opA = \ref aoclsparse_operation_transpose is supported only for real data types.
  *
  *  @param[in]
  *  opA     matrix \f$A\f$ operation type.
  *  @param[in]
- *  A        sorted sparse CSR matrix \f$A\f$.
+ *  A        sparse matrix \f$A\f$ in CSR or CSC format. Sorting requirements depend on
+ *           \p opA and the input format; see the note on sorted input above.
  *  @param[in]
  *  B        sorted sparse CSR matrix \f$B\f$ to be interpreted as symmetric (or Hermitian).
  *  @param[in]
@@ -2240,7 +2244,8 @@ aoclsparse_status aoclsparse_spmm(aoclsparse_operation    opA,
  *              or \p opA or \p request is not recognized.
  *  \retval     aoclsparse_status_wrong_type \p A and \p B matrix data types do not match.
  *  \retval     aoclsparse_status_not_implemented
- *              Input matrix \p A or \p B is not in CSR format.
+ *              Input matrix \p A is not in CSR or CSC format, or \p B is not in CSR format,
+ *              or \p opA is aoclsparse_operation_transpose with complex \p A (result would not be symmetric).
  *  \retval     aoclsparse_status_unsorted_input Input matrices are not sorted.
  *  \retval     aoclsparse_status_memory_error Memory allocation failure.
  *
@@ -2714,7 +2719,7 @@ aoclsparse_status aoclsparse_dcsr2m(aoclsparse_operation       trans_A,
  *  if \p op = \ref aoclsparse_operation_none. Otherwise \f$A\f$ is \f$n \times m\f$
  *  and the result matrix \f$C\f$ has the same dimension as \f$B\f$.
  *
- *  \note Only matrices in CSR format are supported in this release.
+ *  @note Only matrices in CSR format are supported in this release.
  *
  *  @param[in]  op      matrix \f$A\f$ operation type.
  *  @param[in]  alpha   scalar with same precision as \f$A\f$ and \f$B\f$ matrix
@@ -2764,7 +2769,7 @@ aoclsparse_status aoclsparse_sadd(const aoclsparse_operation op,
  *
  *  \details
  *  <tt>aoclsparse_?syprd</tt> performs product of a scalar \f$\alpha\f$, with the
- *  symmetric triple product of a sparse\f$m \times k\f$ matrix \f$A\f$, defined in CSR format,
+ *  symmetric triple product of a sparse \f$m \times k\f$ matrix \f$A\f$, defined in CSR or CSC format,
  *  with a \f$k \times k\f$ symmetric dense (or Hermitian) matrix \f$B\f$, and a \f$k \times m\f$ \f$op(A)\f$.
  *  Adds the resulting matrix to \f$m \times m\f$ symmetric dense (or Hermitian)  matrix \f$C\f$ that is multiplied
  *  by a scalar \f$\beta\f$, such that
@@ -2798,10 +2803,14 @@ aoclsparse_status aoclsparse_sadd(const aoclsparse_operation op,
  *
  * 4. Complex dense matrices are assumed to be Hermitian matrices.
  *
+ * 5. Both CSR and CSC storage formats are accepted. For CSC input, the stored
+ *    data is interpreted as \f$A^T\f$; the operation is remapped internally so
+ *    the result is mathematically identical to the CSR path.
+ *
  *  @param[in]
  *  op          Matrix \f$A\f$ operation type.
  *  @param[in]
- *  A           Sparse CSR matrix \f$A\f$ structure.
+ *  A           Sparse CSR or CSC matrix \f$A\f$ structure.
  *  @param[in]
  *  B           Array of dimension \f$ldb \times ldb\f$.
  *              Only the upper triangular matrix is used for computation.
@@ -2826,15 +2835,17 @@ aoclsparse_status aoclsparse_sadd(const aoclsparse_operation op,
  *              \f$op(A) = A^H\f$).
  *
  *  \retval     aoclsparse_status_success The operation completed successfully.
- *  \retval     aoclsparse_invalid_operation The operation is invalid if the matrix B and C has a
+ *  \retval     aoclsparse_status_invalid_operation The operation is invalid if the matrix B and C has a
  *              different layout ordering.
  *  \retval     aoclsparse_status_wrong_type The data type of the matrices are not matching
  *              or invalid.
- *  \retval     aoclsparse_status_invalid_size The value of \p m, \p k, \p nnz, \p ldb or \p ldc
+ *  \retval     aoclsparse_status_invalid_size The value of \p m, \p k, \p ldb or \p ldc
  *              is invalid.
  *  \retval     aoclsparse_status_invalid_pointer The pointer \p A, \p B, or \p C
  *              is invalid.
- *  \retval     aoclsparse_status_not_implemented The values of \p orderB and \p orderC are different.
+ *  \retval     aoclsparse_status_not_implemented The input matrix \p A is not CSR or CSC , or
+ *              \p op is aoclsparse_operation_transpose and \p A has complex values.
+ *  \retval     aoclsparse_status_memory_error Memory allocation failure.
  *
 */
 /**@{*/
@@ -2890,8 +2901,9 @@ aoclsparse_status aoclsparse_zsyprd(const aoclsparse_operation       op,
 /*! \ingroup level3_module
  *  \brief Multiplication of a sparse matrix and its transpose (or conjugate transpose) stored as a sparse matrix.
  *  \details
- *  <tt>aoclsparse_syrk</tt> multiplies a sparse matrix with its transpose (or conjugate transpose) in CSR storage format.
- *  The result is stored in a newly allocated sparse matrix in CSR format, such that
+ *  <tt>aoclsparse_syrk</tt> multiplies a sparse matrix with its transpose (or conjugate transpose).
+ *  Matrix \p A may be provided in CSR or CSC format. The result is stored in a newly allocated
+ *  sparse matrix in CSR format, such that
   \f[
  *    C := A \cdot op(A)
  *  \f]
@@ -2917,17 +2929,25 @@ aoclsparse_status aoclsparse_zsyprd(const aoclsparse_operation       op,
  * (for complex matrices). The output matrix \f$C\f$ is a sparse symmetric (or Hermitian) matrix stored as an
  *  upper triangular matrix in CSR format.
  *
- *  \note <tt>aoclsparse_syrk</tt> assumes that the input CSR matrix has sorted column
- *  indices in each row. If not, call aoclsparse_order_mat() before calling
- *  <tt>aoclsparse_syrk</tt>.
+ *  \note <tt>aoclsparse_syrk</tt> requires sorted indices of the input matrix. Specifically:
+ *  CSR \p A with \p opA = \ref aoclsparse_operation_transpose or
+ *  \ref aoclsparse_operation_conjugate_transpose must be sorted;
+ *  CSC \p A with \p opA = \ref aoclsparse_operation_none must be sorted.
+ *  CSR \p A with \p opA = \ref aoclsparse_operation_none and CSC \p A with
+ *  \p opA = \ref aoclsparse_operation_transpose or
+ *  \ref aoclsparse_operation_conjugate_transpose are exempt.
+ *  If unsorted, call aoclsparse_order_mat() before calling <tt>aoclsparse_syrk</tt>.
  *
- *  \note <tt>aoclsparse_syrk</tt> currently does not support \ref aoclsparse_operation_transpose for complex \p A.
+ *  \note <tt>aoclsparse_syrk</tt> currently does not support \ref aoclsparse_operation_transpose
+ *  for complex \p A. For CSC format \p A with real data types,
+ *  \ref aoclsparse_operation_transpose is supported and is algebraically equivalent to
+ *  \ref aoclsparse_operation_conjugate_transpose (conjugation is a no-op for real scalars).
  *
  *  @param[in]
  *  opA     Matrix \f$A\f$ operation type.
  *  @param[in]
- *  A        Sorted sparse CSR matrix \f$A\f$.
-
+ *  A        Sparse matrix \f$A\f$ in CSR or CSC format. Sorting requirements depend on
+ *           \p opA and the input format; see the note on sorted input above.
  *
  *  @param[out]
  *  *C        Pointer to the new sparse CSR symmetric/Hermitian matrix \f$C\f$.
@@ -2937,8 +2957,8 @@ aoclsparse_status aoclsparse_zsyprd(const aoclsparse_operation       op,
  *
  *  \retval     aoclsparse_status_success The operation completed successfully.
  *  \retval     aoclsparse_status_invalid_pointer \p A, \p C is invalid.
- *  \retval     aoclsparse_status_wrong_type A and its operation type do not match.
- *  \retval     aoclsparse_status_not_implemented The input matrix is not in the CSR format or
+ *  \retval     aoclsparse_status_wrong_type \ref aoclsparse_matrix_data_type of \p A does not match the precision of the instantiated function.
+ *  \retval     aoclsparse_status_not_implemented The input matrix \p A is not in CSR or CSC format, or
  *              \p opA is aoclsparse_operation_transpose and \p A has complex values.
  *  \retval     aoclsparse_status_invalid_value The value of opA is invalid.
  *  \retval     aoclsparse_status_unsorted_input Input matrices are not sorted.
@@ -2965,7 +2985,7 @@ aoclsparse_status aoclsparse_syrk(const aoclsparse_operation opA,
 /*! \ingroup level3_module
  *  \brief Multiplication of a sparse matrix and its transpose (or conjugate transpose) for all data types.
  *  \details
- *  <tt>aoclsparse_syrkd</tt> multiplies a sparse matrix with its transpose (or conjugate transpose) in CSR storage format.
+ *  <tt>aoclsparse_syrkd</tt> multiplies a sparse matrix with its transpose (or conjugate transpose) in CSR or CSC storage format.
  *  The result is stored in a dense format, such that
   \f[
  *    C := \alpha \cdot A \cdot op(A) + \beta \cdot C
@@ -2991,19 +3011,19 @@ aoclsparse_status aoclsparse_syrk(const aoclsparse_operation opA,
  * (for complex matrices). The output matrix \f$C\f$ is a dense symmetric (or Hermitian) matrix stored as an
  *  upper triangular matrix.
  *
- *  \note <tt>aoclsparse_syrkd</tt> assumes that the input CSR matrix has sorted column
- *  indices in each row. If not, call aoclsparse_order_mat() before calling
- *  <tt>aoclsparse_syrkd</tt>.
+ *  \note <tt>aoclsparse_syrkd</tt> assumes that the input matrix has sorted indices
+ *  (column indices per row for CSR; row indices per column for CSC). If not, call
+ *  aoclsparse_order_mat() before calling <tt>aoclsparse_syrkd</tt>.
  *
- *  \note For complex type, only the real parts of \f$\alpha\f$ and \f$\beta\f$ are taken
+ *  @note For complex type, only the real parts of \f$\alpha\f$ and \f$\beta\f$ are taken
  *  into account to preserve Hermitian \f$C\f$.
  *
- *  \note <tt>aoclsparse_syrkd</tt> currently does not support \ref aoclsparse_operation_transpose for complex \p A.
+ *  @note <tt>aoclsparse_syrkd</tt> currently does not support \ref aoclsparse_operation_transpose for complex \p A.
  *
  *  @param[in]
  *  opA     Matrix \f$A\f$ operation type.
  *  @param[in]
- *  A        Sorted sparse CSR matrix \f$A\f$.
+ *  A        Sorted sparse CSR or CSC matrix \f$A\f$.
  *  @param[in]
  *  alpha       Scalar \f$\alpha\f$.
  *  @param[in]
@@ -3020,7 +3040,7 @@ aoclsparse_status aoclsparse_syrk(const aoclsparse_operation opA,
  *  \retval     aoclsparse_status_success The operation completed successfully.
  *  \retval     aoclsparse_status_invalid_pointer \p A, \p C is invalid.
  *  \retval     aoclsparse_status_wrong_type \p A and its operation type do not match.
- *  \retval     aoclsparse_status_not_implemented The input matrix is not in the CSR format or
+ *  \retval     aoclsparse_status_not_implemented The input matrix is not in CSR or CSC format, or
  *              \p opA is aoclsparse_operation_transpose and \p A has complex values.
  *  \retval     aoclsparse_status_invalid_value The value of \p opA, \p orderC or \p ldc is invalid.
  *  \retval     aoclsparse_status_unsorted_input Input matrix is not sorted.

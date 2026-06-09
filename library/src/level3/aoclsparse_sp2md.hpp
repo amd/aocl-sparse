@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,7 +33,6 @@
 #include "aoclsparse_utils.hpp"
 
 #include <complex>
-#include <iostream>
 #include <vector>
 
 // Computes the product of two sparse matrices and stores the output
@@ -326,6 +325,18 @@ inline aoclsparse_status aoclsparse_sp2md_t(const aoclsparse_operation      opA,
         return aoclsparse_status_invalid_size;
     }
 
+    // Overflow check for dense matrix C offset computations in LP64 mode
+    // Kernels compute: C[row * ldc + col] (row-major) or C[row + col * ldc] (col-major)
+    // Maximum row index = m_c - 1, maximum col index = n_c - 1
+    {
+        aoclsparse_int c_dim = (layout == aoclsparse_order_row) ? m_c : n_c;
+        // Validate full dense address range by checking c_dim * ldc
+        if(aoclsparse_lp64_product_overflow(c_dim, ldc))
+        {
+            return aoclsparse_status_invalid_size;
+        }
+    }
+
     // Check if base index is consistent
     if((A_csr->base != descrA->base) || (B_csr->base != descrB->base))
     {
@@ -342,8 +353,11 @@ inline aoclsparse_status aoclsparse_sp2md_t(const aoclsparse_operation      opA,
     {
         try
         {
-            B_op = new aoclsparse::csr(
-                B->n, B->m, B->nnz, aoclsparse_csr_mat, descrB->base, B_csr->val_type);
+            // B_op stores B^T: rows = B->n (cols of B), cols = B->m (rows of B)
+            const aoclsparse_int B_op_m = B->n; // rows of B^T = cols of B
+            const aoclsparse_int B_op_n = B->m; // cols of B^T = rows of B
+            B_op                        = new aoclsparse::csr(
+                B_op_m, B_op_n, B->nnz, aoclsparse_csr_mat, descrB->base, B_csr->val_type);
         }
         catch(std::bad_alloc &)
         {

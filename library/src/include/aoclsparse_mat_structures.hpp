@@ -289,14 +289,18 @@ namespace aoclsparse
             aoclsparse_int               *ptr,
             aoclsparse_int               *ind,
             void                         *val,
-            bool                          is_internal = false)
+            bool                          is_internal = false,
+            aoclsparse::doid              doid
+            = aoclsparse::doid::gn // Default and only support doid for BSR is general no-transpose
+            )
             : base_mtx(bm * block_dim,
                        bn * block_dim,
                        bnnz * block_dim * block_dim,
                        mat_type,
                        base,
                        val_type,
-                       is_internal)
+                       is_internal,
+                       doid)
             , block_dim(block_dim)
             , order(order)
             , ptr(ptr)
@@ -347,8 +351,9 @@ namespace aoclsparse
                 aoclsparse_index_base       base,
                 aoclsparse_matrix_data_type val_type,
                 aoclsparse_int              blk_width,
-                aoclsparse_int              total_blks)
-            : base_mtx(m, n, nnz, aoclsparse_blkcsr_mat, base, val_type, true)
+                aoclsparse_int              total_blks,
+                aoclsparse::doid            doid = aoclsparse::doid::gn)
+            : base_mtx(m, n, nnz, aoclsparse_blkcsr_mat, base, val_type, true, doid)
             , nRowsblk(nRowsblk)
         {
             // Validate dimensions before allocation
@@ -381,8 +386,9 @@ namespace aoclsparse
                 aoclsparse_int             *blk_row_ptr,
                 aoclsparse_int             *blk_col_ptr,
                 void                       *blk_val,
-                uint8_t                    *masks)
-            : base_mtx(m, n, nnz, aoclsparse_blkcsr_mat, base, val_type, false)
+                uint8_t                    *masks,
+                aoclsparse::doid            doid = aoclsparse::doid::gn)
+            : base_mtx(m, n, nnz, aoclsparse_blkcsr_mat, base, val_type, false, doid)
             , blk_row_ptr(blk_row_ptr)
             , blk_col_ptr(blk_col_ptr)
             , blk_val(blk_val)
@@ -451,9 +457,8 @@ namespace aoclsparse
         // For TCSR matrix, idiag points to the position of diagonals in the lower triangular part of the matrix.
         aoclsparse_int *idiag = nullptr;
         // For TCSR matrix, iurow points to the position of upper triangle element in the upper triangular part of the matrix.
+        // Both idiag and iurow are allocated at construction and filled in during the creation.
         aoclsparse_int *iurow = nullptr;
-        // if optimized, set true
-        bool is_optimized = false;
 
         /* Parameterized constructor:
         Initializes the matrix with the specified parameters and allocates memory for the Block CSR data arrays.
@@ -464,18 +469,22 @@ namespace aoclsparse
              aoclsparse_int              nnz,
              aoclsparse_index_base       base,
              aoclsparse_matrix_data_type val_type)
-            : base_mtx(m, n, nnz, aoclsparse_tcsr_mat, base, val_type, true)
+            : base_mtx(m, n, nnz, aoclsparse_tcsr_mat, base, val_type, true, aoclsparse::doid::gn)
         {
             if(nnz < 0)
                 throw std::bad_array_new_length();
             try
             {
+                const size_t sz = data_size[val_type] * nnz;
+
                 row_ptr_L = new aoclsparse_int[m + 1];
                 row_ptr_U = new aoclsparse_int[m + 1];
                 col_idx_L = new aoclsparse_int[nnz];
                 col_idx_U = new aoclsparse_int[nnz];
-                val_L     = ::operator new[](nnz *data_size[val_type]);
-                val_U     = ::operator new[](nnz *data_size[val_type]);
+                val_L     = ::operator new(sz);
+                val_U     = ::operator new(sz);
+                idiag     = new aoclsparse_int[m];
+                iurow     = new aoclsparse_int[m];
             }
             catch(...)
             {
@@ -486,11 +495,14 @@ namespace aoclsparse
                 delete[] col_idx_U;
                 ::operator delete(val_L);
                 ::operator delete(val_U);
+                delete[] idiag;
+                delete[] iurow;
                 throw;
             }
         }
 
         // Parameterized constructor
+        // TCSR stores both triangles (full matrix); doid::gn so get_best_matrix can select it for mv.
         tcsr(aoclsparse_int              m,
              aoclsparse_int              n,
              aoclsparse_int              nnz,
@@ -502,7 +514,7 @@ namespace aoclsparse
              aoclsparse_int             *col_idx_U,
              void                       *val_L,
              void                       *val_U)
-            : base_mtx(m, n, nnz, aoclsparse_tcsr_mat, base, val_type, false)
+            : base_mtx(m, n, nnz, aoclsparse_tcsr_mat, base, val_type, false, aoclsparse::doid::gn)
             , row_ptr_L(row_ptr_L)
             , row_ptr_U(row_ptr_U)
             , col_idx_L(col_idx_L)
@@ -510,6 +522,17 @@ namespace aoclsparse
             , val_L(val_L)
             , val_U(val_U)
         {
+            try
+            {
+                idiag = new aoclsparse_int[m];
+                iurow = new aoclsparse_int[m];
+            }
+            catch(...)
+            {
+                delete[] idiag;
+                delete[] iurow;
+                throw;
+            }
         }
 
         // Destructor
@@ -551,8 +574,9 @@ namespace aoclsparse
             aoclsparse_matrix_data_type val_type,
             aoclsparse_int              ell_width,
             aoclsparse_int             *ell_col_ind,
-            void                       *ell_val)
-            : base_mtx(m, n, nnz, aoclsparse_ell_mat, base, val_type, false)
+            void                       *ell_val,
+            aoclsparse::doid            doid = aoclsparse::doid::gn)
+            : base_mtx(m, n, nnz, aoclsparse_ell_mat, base, val_type, false, doid)
             , ell_width(ell_width)
             , ell_col_ind(ell_col_ind)
             , ell_val(ell_val)
@@ -597,8 +621,9 @@ namespace aoclsparse
                     aoclsparse_index_base       base,
                     aoclsparse_matrix_data_type val_type,
                     aoclsparse_int              ell_width,
-                    aoclsparse_int              ell_m)
-            : base_mtx(m, n, nnz, aoclsparse_ellt_csr_hyb_mat, base, val_type, true)
+                    aoclsparse_int              ell_m,
+                    aoclsparse::doid            doid = aoclsparse::doid::gn)
+            : base_mtx(m, n, nnz, aoclsparse_ellt_csr_hyb_mat, base, val_type, true, doid)
             , ell_width(ell_width)
             , ell_m(ell_m)
         {
@@ -632,8 +657,9 @@ namespace aoclsparse
                     void                       *ell_val,
                     aoclsparse_int             *csr_row_id_map,
                     aoclsparse_int             *csr_col_ptr,
-                    void                       *csr_val)
-            : base_mtx(m, n, nnz, aoclsparse_ellt_csr_hyb_mat, base, val_type, false)
+                    void                       *csr_val,
+                    aoclsparse::doid            doid = aoclsparse::doid::gn)
+            : base_mtx(m, n, nnz, aoclsparse_ellt_csr_hyb_mat, base, val_type, false, doid)
             , ell_width(ell_width)
             , ell_m(ell_m)
             , ell_col_ind(ell_col_ind)
@@ -674,8 +700,9 @@ namespace aoclsparse
             aoclsparse_int              n,
             aoclsparse_int              nnz,
             aoclsparse_index_base       base,
-            aoclsparse_matrix_data_type val_type)
-            : base_mtx(m, n, nnz, aoclsparse_coo_mat, base, val_type, true)
+            aoclsparse_matrix_data_type val_type,
+            aoclsparse::doid            doid = aoclsparse::doid::gn)
+            : base_mtx(m, n, nnz, aoclsparse_coo_mat, base, val_type, true, doid)
         {
             // Validate dimensions before allocation
             if(nnz < 0)
@@ -703,8 +730,9 @@ namespace aoclsparse
             aoclsparse_matrix_data_type val_type,
             aoclsparse_int             *row_ind,
             aoclsparse_int             *col_ind,
-            void                       *val)
-            : base_mtx(m, n, nnz, aoclsparse_coo_mat, base, val_type, false)
+            void                       *val,
+            aoclsparse::doid            doid = aoclsparse::doid::gn)
+            : base_mtx(m, n, nnz, aoclsparse_coo_mat, base, val_type, false, doid)
             , row_ind(row_ind)
             , col_ind(col_ind)
             , val(val)
@@ -762,6 +790,19 @@ struct _aoclsparse_matrix
 
     // Holds all matrices, regardless of type, including internally created matrices and copies
     std::vector<aoclsparse::base_mtx *> mats;
+
+    // Return the first matrix of the requested type, or nullptr if none exists
+    template <typename T>
+    T *get_mtx()
+    {
+        for(auto *m : mats)
+        {
+            T *p = dynamic_cast<T *>(m);
+            if(p)
+                return p;
+        }
+        return nullptr;
+    }
 
     //ilu members
     struct _aoclsparse_ilu ilu_info;

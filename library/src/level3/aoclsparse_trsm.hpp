@@ -106,19 +106,18 @@ aoclsparse_status
        && descr->fill_mode != aoclsparse_fill_mode_upper)
         return aoclsparse_status_not_implemented;
 
-    // call optimize
     aoclsparse::csr  *A_opt_csr  = nullptr;
     aoclsparse::tcsr *A_opt_tcsr = nullptr;
     if(A->input_format == aoclsparse_csr_mat)
     {
         status = aoclsparse_csr_csc_optimize<T>(A, A_opt_csr);
+        if(status != aoclsparse_status_success)
+            return status;
     }
     else if(A->input_format == aoclsparse_tcsr_mat)
     {
-        status = aoclsparse_tcsr_optimize<T>(A, A_opt_tcsr);
+        A_opt_tcsr = A->get_mtx<aoclsparse::tcsr>();
     }
-    if(status != aoclsparse_status_success)
-        return status;
     if(!A_opt_csr && !A_opt_tcsr)
         return aoclsparse_status_internal_error;
 
@@ -141,6 +140,12 @@ aoclsparse_status
     else // Early return for invalid order
     {
         return aoclsparse_status_invalid_value;
+    }
+    // Check for LP64 integer overflow in dense matrix offset computations
+    if(aoclsparse_lp64_product_overflow(n, b_offset)
+       || aoclsparse_lp64_product_overflow(n, x_offset))
+    {
+        return aoclsparse_status_invalid_size;
     }
 
     using namespace aoclsparse;

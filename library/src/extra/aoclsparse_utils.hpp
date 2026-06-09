@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024-2025 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024-2026 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -91,46 +91,56 @@ namespace aoclsparse_numeric
     struct zero
     {
         static constexpr T value{0};
+        // clang-format off
         constexpr operator T() const noexcept
         {
             return value;
         }
+        // clang-format on
     };
     template <>
     struct zero<aoclsparse_float_complex>
     {
         static constexpr aoclsparse_float_complex value{0, 0};
+        // clang-format off
         constexpr operator aoclsparse_float_complex() const noexcept
         {
             return value;
         }
+        // clang-format on
     };
     template <>
     struct zero<aoclsparse_double_complex>
     {
         static constexpr aoclsparse_double_complex value{0, 0};
+        // clang-format off
         constexpr operator aoclsparse_double_complex() const noexcept
         {
             return value;
         }
+        // clang-format on
     };
     template <>
     struct zero<std::complex<float>>
     {
         static constexpr std::complex<float> value{0, 0};
+        // clang-format off
         constexpr operator std::complex<float>() const noexcept
         {
             return value;
         }
+        // clang-format on
     };
     template <>
     struct zero<std::complex<double>>
     {
         static constexpr std::complex<double> value{0, 0};
+        // clang-format off
         constexpr operator std::complex<double>() const noexcept
         {
             return value;
         }
+        // clang-format on
     };
     /* Provide a quiet_NaN for all floating point data types */
     /* Default definition handles real/std types */
@@ -138,50 +148,60 @@ namespace aoclsparse_numeric
     struct quiet_NaN
     {
         static constexpr T value{std::numeric_limits<T>::quiet_NaN()};
+        // clang-format off
         constexpr operator T() const noexcept
         {
             return value;
         }
+        // clang-format on
     };
     template <>
     struct quiet_NaN<aoclsparse_float_complex>
     {
         static constexpr aoclsparse_float_complex value{std::numeric_limits<float>::quiet_NaN(),
                                                         std::numeric_limits<float>::quiet_NaN()};
+        // clang-format off
         constexpr operator aoclsparse_float_complex() const noexcept
         {
             return value;
         }
+        // clang-format on
     };
     template <>
     struct quiet_NaN<std::complex<float>>
     {
         static constexpr std::complex<float> value{std::numeric_limits<float>::quiet_NaN(),
                                                    std::numeric_limits<float>::quiet_NaN()};
+        // clang-format off
         constexpr operator std::complex<float>() const noexcept
         {
             return value;
         }
+        // clang-format on
     };
     template <>
     struct quiet_NaN<aoclsparse_double_complex>
     {
         static constexpr aoclsparse_double_complex value{std::numeric_limits<double>::quiet_NaN(),
                                                          std::numeric_limits<double>::quiet_NaN()};
+        // clang-format off
         constexpr operator aoclsparse_double_complex() const noexcept
         {
             return value;
         }
+        // clang-format on
     };
     template <>
     struct quiet_NaN<std::complex<double>>
     {
         static constexpr std::complex<double> value{std::numeric_limits<double>::quiet_NaN(),
                                                     std::numeric_limits<double>::quiet_NaN()};
+        // clang-format off
         constexpr operator std::complex<double>() const noexcept
         {
             return value;
         }
+        // clang-format on
     };
     /* Provide a infinity for all floating point data types */
     /* Default definition handles real/std types */
@@ -189,50 +209,60 @@ namespace aoclsparse_numeric
     struct infinity
     {
         static constexpr T value{std::numeric_limits<T>::infinity()};
+        // clang-format off
         constexpr operator T() const noexcept
         {
             return value;
         }
+        // clang-format on
     };
     template <>
     struct infinity<aoclsparse_float_complex>
     {
         static constexpr aoclsparse_float_complex value{std::numeric_limits<float>::infinity(),
                                                         std::numeric_limits<float>::infinity()};
+        // clang-format off
         constexpr operator aoclsparse_float_complex() const noexcept
         {
             return value;
         }
+        // clang-format on
     };
     template <>
     struct infinity<std::complex<float>>
     {
         static constexpr std::complex<float> value{std::numeric_limits<float>::infinity(),
                                                    std::numeric_limits<float>::infinity()};
+        // clang-format off
         constexpr operator std::complex<float>() const noexcept
         {
             return value;
         }
+        // clang-format on
     };
     template <>
     struct infinity<aoclsparse_double_complex>
     {
         static constexpr aoclsparse_double_complex value{std::numeric_limits<double>::infinity(),
                                                          std::numeric_limits<double>::infinity()};
+        // clang-format off
         constexpr operator aoclsparse_double_complex() const noexcept
         {
             return value;
         }
+        // clang-format on
     };
     template <>
     struct infinity<std::complex<double>>
     {
         static constexpr std::complex<double> value{std::numeric_limits<double>::infinity(),
                                                     std::numeric_limits<double>::infinity()};
+        // clang-format off
         constexpr operator std::complex<double>() const noexcept
         {
             return value;
         }
+        // clang-format on
     };
 
     /* Provide a minimum for all floating point data types */
@@ -241,50 +271,60 @@ namespace aoclsparse_numeric
     struct minimum
     {
         static constexpr T value{(std::numeric_limits<T>::min)()};
+        // clang-format off
         constexpr operator T() const noexcept
         {
             return value;
         }
+        // clang-format on
     };
     template <>
     struct minimum<aoclsparse_float_complex>
     {
         static constexpr aoclsparse_float_complex value{(std::numeric_limits<float>::min)(),
                                                         (std::numeric_limits<float>::min)()};
+        // clang-format off
         constexpr operator aoclsparse_float_complex() const noexcept
         {
             return value;
         }
+        // clang-format on
     };
     template <>
     struct minimum<std::complex<float>>
     {
         static constexpr std::complex<float> value{(std::numeric_limits<float>::min)(),
                                                    (std::numeric_limits<float>::min)()};
+        // clang-format off
         constexpr operator std::complex<float>() const noexcept
         {
             return value;
         }
+        // clang-format on
     };
     template <>
     struct minimum<aoclsparse_double_complex>
     {
         static constexpr aoclsparse_double_complex value{(std::numeric_limits<double>::min)(),
                                                          (std::numeric_limits<double>::min)()};
+        // clang-format off
         constexpr operator aoclsparse_double_complex() const noexcept
         {
             return value;
         }
+        // clang-format on
     };
     template <>
     struct minimum<std::complex<double>>
     {
         static constexpr std::complex<double> value{(std::numeric_limits<double>::min)(),
                                                     (std::numeric_limits<double>::min)()};
+        // clang-format off
         constexpr operator std::complex<double>() const noexcept
         {
             return value;
         }
+        // clang-format on
     };
     /* Provide a Maximum for all floating point data types */
     /* Default definition handles real/std types */
@@ -292,51 +332,65 @@ namespace aoclsparse_numeric
     struct maximum
     {
         static constexpr T value{(std::numeric_limits<T>::max)()};
+        // clang-format off
         constexpr operator T() const noexcept
         {
             return value;
         }
+        // clang-format on
     };
     template <>
     struct maximum<aoclsparse_float_complex>
     {
         static constexpr aoclsparse_float_complex value{(std::numeric_limits<float>::max)(),
                                                         (std::numeric_limits<float>::max)()};
+        // clang-format off
         constexpr operator aoclsparse_float_complex() const noexcept
         {
             return value;
         }
+        // clang-format on
     };
     template <>
     struct maximum<std::complex<float>>
     {
         static constexpr std::complex<float> value{(std::numeric_limits<float>::max)(),
                                                    (std::numeric_limits<float>::max)()};
+        // clang-format off
         constexpr operator std::complex<float>() const noexcept
         {
             return value;
         }
+        // clang-format on
     };
     template <>
     struct maximum<aoclsparse_double_complex>
     {
         static constexpr aoclsparse_double_complex value{(std::numeric_limits<double>::max)(),
                                                          (std::numeric_limits<double>::max)()};
+        // clang-format off
         constexpr operator aoclsparse_double_complex() const noexcept
         {
             return value;
         }
+        // clang-format on
     };
     template <>
     struct maximum<std::complex<double>>
     {
         static constexpr std::complex<double> value{(std::numeric_limits<double>::max)(),
                                                     (std::numeric_limits<double>::max)()};
+        // clang-format off
         constexpr operator std::complex<double>() const noexcept
         {
             return value;
         }
+        // clang-format on
     };
+
+    /* Provide max/min for aoclsparse_int (safe from Windows min/max macro collision) */
+    inline constexpr aoclsparse_int int_max = (std::numeric_limits<aoclsparse_int>::max)();
+    inline constexpr aoclsparse_int int_min = (std::numeric_limits<aoclsparse_int>::min)();
 }
 
 /* Convenience operator for comparing with zero<T>

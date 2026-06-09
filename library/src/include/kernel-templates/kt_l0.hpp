@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,9 +34,8 @@
 namespace kernel_templates
 {
     // Scatter kernel
-    template <bsz SZ, typename SUF, fused_op OP = fused_op::NONE>
-    KT_FORCE_INLINE void
-        kt_scatter_p(const avxvector_t<SZ, SUF> a, SUF *v, const kt_int_t *b) noexcept
+    template <bsz SZ, typename SUF, typename IS, fused_op OP, valid_kt_int<IS>>
+    KT_FORCE_INLINE void kt_scatter_p(const avxvector_t<SZ, SUF> a, SUF *v, const IS *b) noexcept
     {
         const SUF *acast = reinterpret_cast<const SUF *>(&a);
         for(size_t k = 0; k < tsz_v<SZ, SUF>; k++)
