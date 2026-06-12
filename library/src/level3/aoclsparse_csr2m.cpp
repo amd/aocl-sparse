@@ -32,7 +32,6 @@
 
 #include <algorithm>
 #include <cstring>
-#include <shared_mutex>
 #include <vector>
 /*
  * This function performs the first stage of matrix-matrix multiplication,
@@ -45,32 +44,25 @@
  * 0 based index format.
  * */
 template <typename T, bool BASEA = false, bool BASEB = false>
-inline aoclsparse_status aoclsparse_csr2m_nnz_count(aoclsparse_int             m,
-                                                    aoclsparse_int             n,
-                                                    const aoclsparse_mat_descr descrA,
-                                                    const aoclsparse_int      *csr_row_ptr_A,
-                                                    const aoclsparse_int      *csr_col_ind_A,
-                                                    const aoclsparse_mat_descr descrB,
-                                                    const aoclsparse_int      *csr_row_ptr_B,
-                                                    const aoclsparse_int      *csr_col_ind_B,
-                                                    aoclsparse_matrix         *C,
-                                                    aoclsparse_int             opflag)
+inline aoclsparse_status aoclsparse_csr2m_nnz_count(aoclsparse_int        m,
+                                                    aoclsparse_int        n,
+                                                    const aoclsparse_int *csr_row_ptr_A,
+                                                    const aoclsparse_int *csr_col_ind_A,
+                                                    const aoclsparse_int *csr_row_ptr_B,
+                                                    const aoclsparse_int *csr_col_ind_B,
+                                                    aoclsparse_matrix    *C,
+                                                    aoclsparse_int        opflag)
 
 {
     using namespace aoclsparse;
     aoclsparse_int status = aoclsparse_status_success;
-    // Check for valid matrix descriptors
-    if((descrA == nullptr) || (descrB == nullptr))
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
     if((csr_row_ptr_A == nullptr) || (csr_col_ind_A == nullptr) || (csr_row_ptr_B == nullptr)
        || (csr_col_ind_B == nullptr))
     {
         return aoclsparse_status_invalid_pointer;
     }
-    aoclsparse_index_base baseA = descrA->base;
-    aoclsparse_index_base baseB = descrB->base;
+    constexpr aoclsparse_int baseA = BASEA ? 1 : 0;
+    constexpr aoclsparse_int baseB = BASEB ? 1 : 0;
 
     aoclsparse_int   nnz_C = 0;
     aoclsparse::csr *csr_C = nullptr;
@@ -316,26 +308,24 @@ inline aoclsparse_status aoclsparse_csr2m_nnz_count(aoclsparse_int             m
 // matrices are in 0 or 1 based index format. The default value is set to
 // 0 based index format.
 template <typename T, bool BASEA = false, bool BASEB = false>
-inline aoclsparse_status aoclsparse_csr2m_finalize(aoclsparse_int             m_a,
-                                                   aoclsparse_int             n_b,
-                                                   aoclsparse_operation       opA,
-                                                   const aoclsparse_mat_descr descrA,
-                                                   const aoclsparse_int      *csr_row_ptr_A,
-                                                   const aoclsparse_int      *csr_col_ind_A,
-                                                   const T                   *csr_val_A,
-                                                   aoclsparse_operation       opB,
-                                                   const aoclsparse_mat_descr descrB,
-                                                   const aoclsparse_int      *csr_row_ptr_B,
-                                                   const aoclsparse_int      *csr_col_ind_B,
-                                                   const T                   *csr_val_B,
-                                                   aoclsparse_matrix         *C,
-                                                   aoclsparse_int             opflag)
+inline aoclsparse_status aoclsparse_csr2m_finalize(aoclsparse_int        m_a,
+                                                   aoclsparse_int        n_b,
+                                                   aoclsparse_operation  opA,
+                                                   const aoclsparse_int *csr_row_ptr_A,
+                                                   const aoclsparse_int *csr_col_ind_A,
+                                                   const T              *csr_val_A,
+                                                   aoclsparse_operation  opB,
+                                                   const aoclsparse_int *csr_row_ptr_B,
+                                                   const aoclsparse_int *csr_col_ind_B,
+                                                   const T              *csr_val_B,
+                                                   aoclsparse_matrix    *C,
+                                                   aoclsparse_int        opflag)
 {
     using namespace aoclsparse;
     aoclsparse_int status = aoclsparse_status_success;
 
     // Check for valid pointers
-    if((descrA == nullptr) || (descrB == nullptr) || (*C == nullptr))
+    if((*C == nullptr))
     {
         return aoclsparse_status_invalid_pointer;
     }
@@ -408,13 +398,9 @@ inline aoclsparse_status aoclsparse_csr2m_finalize(aoclsparse_int             m_
     if((m != m_a) || (n != n_b))
         return aoclsparse_status_invalid_size;
 
-    // Check for valid matrix descriptors
-    if((descrA == nullptr) || (descrB == nullptr))
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-    aoclsparse_index_base baseA = descrA->base;
-    aoclsparse_index_base baseB = descrB->base;
+    constexpr aoclsparse_int baseA = BASEA ? 1 : 0;
+    constexpr aoclsparse_int baseB = BASEB ? 1 : 0;
+
 #ifdef _OPENMP
 #pragma omp parallel num_threads(context::get_context()->get_num_threads()) reduction(max : status)
 #endif
@@ -556,6 +542,53 @@ inline aoclsparse_status aoclsparse_csr2m_finalize(aoclsparse_int             m_
     return (aoclsparse_status)status;
 }
 
+// Helper: dispatches to nnz_count and/or finalize for a fixed BASEA/BASEB pair,
+// collapsing the per-stage base-combination dispatch into a single call site.
+template <typename T, bool BASEA, bool BASEB>
+inline aoclsparse_status sp2m_dispatch(aoclsparse_operation   opA,
+                                       const aoclsparse::csr *mat_A,
+                                       aoclsparse_operation   opB,
+                                       const aoclsparse::csr *mat_B,
+                                       aoclsparse_matrix     *C,
+                                       aoclsparse_int         opflag,
+                                       aoclsparse_request     request)
+{
+    // mat_A and mat_B are already in the correct orientation for the computation
+    // (transpositions have been resolved by the caller), so their dimensions
+    // directly give the output shape: mat_A->m rows × mat_B->n columns.
+    const aoclsparse_int  m_a   = mat_A->m;
+    const aoclsparse_int  n_b   = mat_B->n;
+    const aoclsparse_int *ptr_A = mat_A->ptr;
+    const aoclsparse_int *ind_A = mat_A->ind;
+    const T              *val_A = static_cast<const T *>(mat_A->val);
+    const aoclsparse_int *ptr_B = mat_B->ptr;
+    const aoclsparse_int *ind_B = mat_B->ind;
+    const T              *val_B = static_cast<const T *>(mat_B->val);
+
+    aoclsparse_status status;
+    switch(request)
+    {
+    case aoclsparse_stage_nnz_count:
+        return aoclsparse_csr2m_nnz_count<T, BASEA, BASEB>(
+            m_a, n_b, ptr_A, ind_A, ptr_B, ind_B, C, opflag);
+
+    case aoclsparse_stage_finalize:
+        return aoclsparse_csr2m_finalize<T, BASEA, BASEB>(
+            m_a, n_b, opA, ptr_A, ind_A, val_A, opB, ptr_B, ind_B, val_B, C, opflag);
+
+    case aoclsparse_stage_full_computation:
+        status = aoclsparse_csr2m_nnz_count<T, BASEA, BASEB>(
+            m_a, n_b, ptr_A, ind_A, ptr_B, ind_B, C, opflag);
+        if(status == aoclsparse_status_success)
+            status = aoclsparse_csr2m_finalize<T, BASEA, BASEB>(
+                m_a, n_b, opA, ptr_A, ind_A, val_A, opB, ptr_B, ind_B, val_B, C, opflag);
+        return status;
+
+    default:
+        return aoclsparse_status_invalid_value;
+    }
+}
+
 template <typename T>
 aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
                                    const aoclsparse_mat_descr descrA,
@@ -578,11 +611,6 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
         return aoclsparse_status_invalid_pointer;
     }
 
-    aoclsparse::base_mtx *A_first = A->get_first_mtx_if_valid<aoclsparse::base_mtx>();
-    aoclsparse::base_mtx *B_first = B->get_first_mtx_if_valid<aoclsparse::base_mtx>();
-    if(!A_first || !B_first)
-        return aoclsparse_status_invalid_pointer;
-
     // Initialise *C to nullptr for full_computation & first stage
     if(request != aoclsparse_stage_finalize)
     {
@@ -592,20 +620,28 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
     {
         return aoclsparse_status_not_implemented;
     }
+
     if(A->val_type != get_data_type<T>())
-    {
         return aoclsparse_status_wrong_type;
-    }
-
     if(B->val_type != get_data_type<T>())
-    {
         return aoclsparse_status_wrong_type;
-    }
 
-    if(!A->is_descr_matching(descrA))
+    // Exctract first CSR (CSC) matrices to use for the computation
+    aoclsparse::csr *raw_A = A->get_mtx<aoclsparse::csr>();
+    aoclsparse::csr *raw_B = B->get_mtx<aoclsparse::csr>();
+    if(!raw_A || !raw_B)
+        return aoclsparse_status_invalid_pointer;
+
+    // Validate that descriptor bases are legal values
+    if(descrA->base != aoclsparse_index_base_zero && descrA->base != aoclsparse_index_base_one)
+        return aoclsparse_status_invalid_value;
+    if(descrB->base != aoclsparse_index_base_zero && descrB->base != aoclsparse_index_base_one)
         return aoclsparse_status_invalid_value;
 
-    if(!B->is_descr_matching(descrB))
+    // Validate base consistency using the discovered raw matrices
+    if(raw_A->base != descrA->base)
+        return aoclsparse_status_invalid_value;
+    if(raw_B->base != descrB->base)
         return aoclsparse_status_invalid_value;
 
     if((descrA->type != aoclsparse_matrix_type_general)
@@ -613,18 +649,6 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
     {
         // TODO
         return aoclsparse_status_not_implemented;
-    }
-    // For double and float , conjugate transpose is same as transpose
-    if constexpr(std::is_same_v<T, double> || std::is_same_v<T, float>)
-    {
-        if(opA == aoclsparse_operation_conjugate_transpose)
-        {
-            opA = aoclsparse_operation_transpose;
-        }
-        if(opB == aoclsparse_operation_conjugate_transpose)
-        {
-            opB = aoclsparse_operation_transpose;
-        }
     }
 
     aoclsparse_int m_a, n_a, m_b, n_b;
@@ -709,66 +733,17 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
         }
         return aoclsparse_status_success;
     }
-    _aoclsparse_mat_descr descrA_t;
-    aoclsparse_copy_mat_descr(&descrA_t, descrA);
-    _aoclsparse_mat_descr descrB_t;
-    aoclsparse_copy_mat_descr(&descrB_t, descrB);
-    // The mats vector may contain multiple matrix representations (e.g. CSR, CSC, ELL)
-    // created during optimisation. We need the first csr-derived object — either a plain
-    // CSR (doid::gn) or a CSC stored as A^T (doid::gt) — for the SpGEMM computation.
-    // Each search acquires its own shared lock on mats_guard so that a concurrent
-    // push_back (from an implicit optimisation on another thread) does not cause a data
-    // race on the vector. The lock is released as soon as the pointer is extracted;
-    // the pointed-to object itself remains valid and stable after the lock is released.
-    aoclsparse::csr *raw_A = nullptr, *raw_B = nullptr;
-    {
-        std::shared_lock<std::shared_mutex> rlock_A(A->mats_guard);
-        for(auto *mat : A->mats)
-        {
-            if(auto *temp = dynamic_cast<aoclsparse::csr *>(mat))
-            {
-                raw_A = temp;
-                break;
-            }
-        }
-    }
-    {
-        std::shared_lock<std::shared_mutex> rlock_B(B->mats_guard);
-        for(auto *mat : B->mats)
-        {
-            if(auto *temp = dynamic_cast<aoclsparse::csr *>(mat))
-            {
-                raw_B = temp;
-                break;
-            }
-        }
-    }
-
-    // Validate that CSR matrices were found in both A and B
-    if(raw_A == nullptr || raw_B == nullptr)
-        return aoclsparse_status_invalid_pointer;
-
-    // Validate base consistency using the discovered raw matrices
-    if(raw_A->base != descrA->base)
-        return aoclsparse_status_invalid_value;
-    if(raw_B->base != descrB->base)
-        return aoclsparse_status_invalid_value;
 
     // Permit gn (plain CSR) and gt (CSC stored as A^T); reject all other doids
     if((raw_A->doid != aoclsparse::doid::gn && raw_A->doid != aoclsparse::doid::gt)
        || (raw_B->doid != aoclsparse::doid::gn && raw_B->doid != aoclsparse::doid::gt))
         return aoclsparse_status_not_implemented;
 
-    // Map user op to request doid for general matrices
-    auto op_to_req_doid = [](aoclsparse_operation op) -> aoclsparse::doid {
-        static constexpr aoclsparse_int bits[] = {0, 2, 3}; // gn, gt, gh
-        return static_cast<aoclsparse::doid>(bits[op - 111]);
-    };
-
+    // get_doid<T> folds conj_transpose -> transpose for real T and yields gn/gt/gh.
     const aoclsparse::doid eff_doid_A
-        = aoclsparse::get_effective_doid(raw_A->doid, op_to_req_doid(opA));
+        = aoclsparse::get_effective_doid(raw_A->doid, aoclsparse::get_doid<T>(descrA, opA));
     const aoclsparse::doid eff_doid_B
-        = aoclsparse::get_effective_doid(raw_B->doid, op_to_req_doid(opB));
+        = aoclsparse::get_effective_doid(raw_B->doid, aoclsparse::get_doid<T>(descrB, opB));
 
     // Extract structural-transpose and conjugation flags from effective doids
     const bool eff_trans_A = (static_cast<int>(eff_doid_A) & 2) != 0;
@@ -820,21 +795,6 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
         // A_eff^T × B_eff^T = (B_eff · A_eff)^T — swap roles, no transpose needed
         mat_A = raw_B;
         mat_B = raw_A;
-        {
-            _aoclsparse_mat_descr tmp = descrA_t;
-            descrA_t                  = descrB_t;
-            descrB_t                  = tmp;
-        }
-        {
-            aoclsparse_operation temp = opA;
-            opA                       = opB;
-            opB                       = temp;
-        }
-        {
-            aoclsparse_int t = m_a;
-            m_a              = n_b;
-            n_b              = t;
-        }
         std::swap(conj_A, conj_B);
     }
     else
@@ -843,21 +803,23 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
         mat_B = raw_B;
         if(eff_trans_A)
         {
-            if(make_transposed(raw_A) != aoclsparse_status_success)
-                return aoclsparse_status_memory_error;
+            aoclsparse_status st = make_transposed(raw_A);
+            if(st != aoclsparse_status_success)
+                return st;
             mat_A      = transposed;
             owns_mat_A = true;
         }
         if(eff_trans_B)
         {
-            if(make_transposed(raw_B) != aoclsparse_status_success)
+            aoclsparse_status st = make_transposed(raw_B);
+            if(st != aoclsparse_status_success)
             {
                 if(owns_mat_A)
                 {
                     delete mat_A;
                     mat_A = nullptr;
                 }
-                return aoclsparse_status_memory_error;
+                return st;
             }
             mat_B      = transposed;
             owns_mat_B = true;
@@ -868,271 +830,25 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
     opA = conj_A ? aoclsparse_operation_conjugate_transpose : aoclsparse_operation_none;
     opB = conj_B ? aoclsparse_operation_conjugate_transpose : aoclsparse_operation_none;
 
-    aoclsparse_index_base baseA = descrA_t.base;
-    aoclsparse_index_base baseB = descrB_t.base;
-
-    switch(request)
+    // Encode base combination as index: bit1=baseA, bit0=baseB (range 0..3)
+    const int baseidx = (mat_A->base == aoclsparse_index_base_one ? 2 : 0)
+                        + (mat_B->base == aoclsparse_index_base_one ? 1 : 0);
+    switch(baseidx)
     {
-
-    case aoclsparse_stage_nnz_count:
-    {
-        if(baseA == aoclsparse_index_base_zero && baseB == aoclsparse_index_base_zero)
-        {
-            status = aoclsparse_csr2m_nnz_count<T, false, false>(m_a,
-                                                                 n_b,
-                                                                 &descrA_t,
-                                                                 mat_A->ptr,
-                                                                 mat_A->ind,
-                                                                 &descrB_t,
-                                                                 mat_B->ptr,
-                                                                 mat_B->ind,
-                                                                 C,
-                                                                 opflag);
-        }
-        else if(baseA == aoclsparse_index_base_one && baseB == aoclsparse_index_base_zero)
-        {
-            status = aoclsparse_csr2m_nnz_count<T, true, false>(m_a,
-                                                                n_b,
-                                                                &descrA_t,
-                                                                mat_A->ptr,
-                                                                mat_A->ind,
-                                                                &descrB_t,
-                                                                mat_B->ptr,
-                                                                mat_B->ind,
-                                                                C,
-                                                                opflag);
-        }
-        else if(baseA == aoclsparse_index_base_zero && baseB == aoclsparse_index_base_one)
-        {
-            status = aoclsparse_csr2m_nnz_count<T, false, true>(m_a,
-                                                                n_b,
-                                                                &descrA_t,
-                                                                mat_A->ptr,
-                                                                mat_A->ind,
-                                                                &descrB_t,
-                                                                mat_B->ptr,
-                                                                mat_B->ind,
-                                                                C,
-                                                                opflag);
-        }
-        else if(baseA == aoclsparse_index_base_one && baseB == aoclsparse_index_base_one)
-        {
-            status = aoclsparse_csr2m_nnz_count<T, true, true>(m_a,
-                                                               n_b,
-                                                               &descrA_t,
-                                                               mat_A->ptr,
-                                                               mat_A->ind,
-                                                               &descrB_t,
-                                                               mat_B->ptr,
-                                                               mat_B->ind,
-                                                               C,
-                                                               opflag);
-        }
+    case 0: // BASEA=false, BASEB=false
+        status = sp2m_dispatch<T, false, false>(opA, mat_A, opB, mat_B, C, opflag, request);
         break;
-    }
-    case aoclsparse_stage_finalize:
-    {
-
-        if(baseA == aoclsparse_index_base_zero && baseB == aoclsparse_index_base_zero)
-        {
-            status = aoclsparse_csr2m_finalize<T, false, false>(m_a,
-                                                                n_b,
-                                                                opA,
-                                                                &descrA_t,
-                                                                mat_A->ptr,
-                                                                mat_A->ind,
-                                                                (T *)mat_A->val,
-                                                                opB,
-                                                                &descrB_t,
-                                                                mat_B->ptr,
-                                                                mat_B->ind,
-                                                                (T *)mat_B->val,
-                                                                C,
-                                                                opflag);
-        }
-        else if(baseA == aoclsparse_index_base_one && baseB == aoclsparse_index_base_zero)
-        {
-            status = aoclsparse_csr2m_finalize<T, true, false>(m_a,
-                                                               n_b,
-                                                               opA,
-                                                               &descrA_t,
-                                                               mat_A->ptr,
-                                                               mat_A->ind,
-                                                               (T *)mat_A->val,
-                                                               opB,
-                                                               &descrB_t,
-                                                               mat_B->ptr,
-                                                               mat_B->ind,
-                                                               (T *)mat_B->val,
-                                                               C,
-                                                               opflag);
-        }
-        else if(baseA == aoclsparse_index_base_zero && baseB == aoclsparse_index_base_one)
-        {
-            status = aoclsparse_csr2m_finalize<T, false, true>(m_a,
-                                                               n_b,
-                                                               opA,
-                                                               &descrA_t,
-                                                               mat_A->ptr,
-                                                               mat_A->ind,
-                                                               (T *)mat_A->val,
-                                                               opB,
-                                                               &descrB_t,
-                                                               mat_B->ptr,
-                                                               mat_B->ind,
-                                                               (T *)mat_B->val,
-                                                               C,
-                                                               opflag);
-        }
-        else if(baseA == aoclsparse_index_base_one && baseB == aoclsparse_index_base_one)
-        {
-            status = aoclsparse_csr2m_finalize<T, true, true>(m_a,
-                                                              n_b,
-                                                              opA,
-                                                              &descrA_t,
-                                                              mat_A->ptr,
-                                                              mat_A->ind,
-                                                              (T *)mat_A->val,
-                                                              opB,
-                                                              &descrB_t,
-                                                              mat_B->ptr,
-                                                              mat_B->ind,
-                                                              (T *)mat_B->val,
-                                                              C,
-                                                              opflag);
-        }
+    case 1: // BASEA=false, BASEB=true
+        status = sp2m_dispatch<T, false, true>(opA, mat_A, opB, mat_B, C, opflag, request);
         break;
-    }
-    case aoclsparse_stage_full_computation:
-    {
-        if(baseA == aoclsparse_index_base_zero && baseB == aoclsparse_index_base_zero)
-        {
-            status = aoclsparse_csr2m_nnz_count<T, false, false>(m_a,
-                                                                 n_b,
-                                                                 &descrA_t,
-                                                                 mat_A->ptr,
-                                                                 mat_A->ind,
-                                                                 &descrB_t,
-                                                                 mat_B->ptr,
-                                                                 mat_B->ind,
-                                                                 C,
-                                                                 opflag);
-
-            if(status == aoclsparse_status_success)
-            {
-                status = aoclsparse_csr2m_finalize<T, false, false>(m_a,
-                                                                    n_b,
-                                                                    opA,
-                                                                    &descrA_t,
-                                                                    mat_A->ptr,
-                                                                    mat_A->ind,
-                                                                    (T *)mat_A->val,
-                                                                    opB,
-                                                                    &descrB_t,
-                                                                    mat_B->ptr,
-                                                                    mat_B->ind,
-                                                                    (T *)mat_B->val,
-                                                                    C,
-                                                                    opflag);
-            }
-        }
-        else if(baseA == aoclsparse_index_base_zero && baseB == aoclsparse_index_base_one)
-        {
-            status = aoclsparse_csr2m_nnz_count<T, false, true>(m_a,
-                                                                n_b,
-                                                                &descrA_t,
-                                                                mat_A->ptr,
-                                                                mat_A->ind,
-                                                                &descrB_t,
-                                                                mat_B->ptr,
-                                                                mat_B->ind,
-                                                                C,
-                                                                opflag);
-
-            if(status == aoclsparse_status_success)
-            {
-                status = aoclsparse_csr2m_finalize<T, false, true>(m_a,
-                                                                   n_b,
-                                                                   opA,
-                                                                   &descrA_t,
-                                                                   mat_A->ptr,
-                                                                   mat_A->ind,
-                                                                   (T *)mat_A->val,
-                                                                   opB,
-                                                                   &descrB_t,
-                                                                   mat_B->ptr,
-                                                                   mat_B->ind,
-                                                                   (T *)mat_B->val,
-                                                                   C,
-                                                                   opflag);
-            }
-        }
-        else if(baseA == aoclsparse_index_base_one && baseB == aoclsparse_index_base_zero)
-        {
-            status = aoclsparse_csr2m_nnz_count<T, true, false>(m_a,
-                                                                n_b,
-                                                                &descrA_t,
-                                                                mat_A->ptr,
-                                                                mat_A->ind,
-                                                                &descrB_t,
-                                                                mat_B->ptr,
-                                                                mat_B->ind,
-                                                                C,
-                                                                opflag);
-
-            if(status == aoclsparse_status_success)
-            {
-                status = aoclsparse_csr2m_finalize<T, true, false>(m_a,
-                                                                   n_b,
-                                                                   opA,
-                                                                   &descrA_t,
-                                                                   mat_A->ptr,
-                                                                   mat_A->ind,
-                                                                   (T *)mat_A->val,
-                                                                   opB,
-                                                                   &descrB_t,
-                                                                   mat_B->ptr,
-                                                                   mat_B->ind,
-                                                                   (T *)mat_B->val,
-                                                                   C,
-                                                                   opflag);
-            }
-        }
-        else if(baseA == aoclsparse_index_base_one && baseB == aoclsparse_index_base_one)
-        {
-            status = aoclsparse_csr2m_nnz_count<T, true, true>(m_a,
-                                                               n_b,
-                                                               &descrA_t,
-                                                               mat_A->ptr,
-                                                               mat_A->ind,
-                                                               &descrB_t,
-                                                               mat_B->ptr,
-                                                               mat_B->ind,
-                                                               C,
-                                                               opflag);
-
-            if(status == aoclsparse_status_success)
-            {
-                status = aoclsparse_csr2m_finalize<T, true, true>(m_a,
-                                                                  n_b,
-                                                                  opA,
-                                                                  &descrA_t,
-                                                                  mat_A->ptr,
-                                                                  mat_A->ind,
-                                                                  (T *)mat_A->val,
-                                                                  opB,
-                                                                  &descrB_t,
-                                                                  mat_B->ptr,
-                                                                  mat_B->ind,
-                                                                  (T *)mat_B->val,
-                                                                  C,
-                                                                  opflag);
-            }
-        }
+    case 2: // BASEA=true, BASEB=false
+        status = sp2m_dispatch<T, true, false>(opA, mat_A, opB, mat_B, C, opflag, request);
         break;
-    }
+    case 3: // BASEA=true, BASEB=true
+        status = sp2m_dispatch<T, true, true>(opA, mat_A, opB, mat_B, C, opflag, request);
+        break;
     default:
-        status = aoclsparse_status_invalid_value;
+        status = aoclsparse_status_internal_error;
     }
     if(owns_mat_A)
         delete mat_A;
