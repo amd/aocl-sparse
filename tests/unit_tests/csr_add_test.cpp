@@ -32,6 +32,7 @@
 #include "aoclsparse_random.hpp"
 #include "aoclsparse_reference.hpp"
 #include "aoclsparse_utility.hpp"
+#include "level3_test_common.hpp"
 
 #include <algorithm>
 #include <vector>

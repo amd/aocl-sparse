@@ -35,8 +35,15 @@
 #include "cblas.hh"
 #pragma GCC diagnostic pop
 
+#include <algorithm>
+#include <complex>
 #include <numeric>
 #include <sstream>
+#include <string>
+#include <type_traits>
+#include <typeinfo>
+#include <utility>
+#include <vector>
 
 // CSR arrays always populated; CSC arrays filled on demand when use_csr=false.
 template <typename T>

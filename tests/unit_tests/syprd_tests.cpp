@@ -23,7 +23,9 @@
 #include "aoclsparse.h"
 #include "common_data_utils.h"
 #include "gtest/gtest.h"
+#include "aoclsparse_init.hpp"
 #include "aoclsparse_interface.hpp"
+#include "level3_test_common.hpp"
 
 #include <type_traits>
 

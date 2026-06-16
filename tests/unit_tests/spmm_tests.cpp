@@ -38,7 +38,6 @@
 #include "blis.hh"
 #include "cblas.hh"
 #pragma GCC diagnostic pop
-
 #include "level3_test_common.hpp"
 
 namespace

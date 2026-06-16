@@ -2398,10 +2398,10 @@ aoclsparse_status aoclsparse_scsrmm(aoclsparse_operation       op,
 
 //-------------------------------------------------------------------------------------------
 /*! \ingroup level3_module
- *  \brief Matrix multiplication of two sparse matrices stored in the CSR storage format. The output matrix is stored in a dense format.
+ *  \brief Matrix multiplication of two sparse matrices stored in CSR or CSC storage format. The output matrix is stored in a dense format.
  *  \details
  *  <tt>aoclsparse_?spmmd</tt> multiplies a sparse
- *  matrix \f$A\f$  and a sparse matrix \f$B\f$, both stored in the CSR storage format, and saves the result in a dense  matrix \f$C\f$, such that
+ *  matrix \f$A\f$  and a sparse matrix \f$B\f$, both stored in CSR or CSC storage format, and saves the result in a dense  matrix \f$C\f$, such that
  *  \f[
  *    C := op(A) \cdot B,
  *  \f]
@@ -2420,9 +2420,9 @@ aoclsparse_status aoclsparse_scsrmm(aoclsparse_operation       op,
  *  @param[in]
  *  op     Operation to perform on matrix \f$A\f$.
  *  @param[in]
- *  A      Matrix structure containing sparse matrix \f$A\f$ of size \f$m \times k\f$.
+ *  A      Matrix structure containing sparse matrix \f$A\f$ of size \f$m \times k\f$ in CSR or CSC format.
  *  @param[in]
- *  B      Matrix structure containing sparse matrix \f$B\f$ of size \f$k \times n\f$ if \p op is \ref aoclsparse_operation_none otherwise of size \f$m \times n\f$.
+ *  B      Matrix structure containing sparse matrix \f$B\f$ of size \f$k \times n\f$ if \p op is \ref aoclsparse_operation_none otherwise of size \f$m \times n\f$ in CSR or CSC format.
  *  @param[in]
  *  layout Ordering of the dense output matrix: valid values are \ref aoclsparse_order_row and \ref aoclsparse_order_column.
  *  @param[inout]
@@ -2437,7 +2437,7 @@ aoclsparse_status aoclsparse_scsrmm(aoclsparse_operation       op,
  *  \retval     aoclsparse_status_invalid_pointer \p A, \p B or \p C pointer is not valid.
  *  \retval     aoclsparse_status_wrong_type \ref aoclsparse_matrix_data_type does not match the precision type.
  *  \retval     aoclsparse_status_not_implemented
- *              \ref aoclsparse_matrix_format_type is not \ref aoclsparse_csr_mat.
+ *              \ref aoclsparse_matrix_format_type is not in CSR or CSC format.
  *
 */
 /**@{*/
@@ -2477,10 +2477,10 @@ aoclsparse_status aoclsparse_zspmmd(const aoclsparse_operation op,
 
 //-------------------------------------------------------------------------------------------
 /*! \ingroup level3_module
- *  \brief A variant of matrix multiplication of two sparse matrices stored in the CSR storage format. The output matrix is stored in a dense format. Supports operations on both sparse matrices.
+ *  \brief A variant of matrix multiplication of two sparse matrices stored in CSR or CSC storage format. The output matrix is stored in a dense format. Supports operations on both sparse matrices.
  *  \details
  *  <tt>aoclsparse_?sp2md</tt> multiplies a sparse
- *  matrix \f$A\f$  and a sparse matrix \f$B\f$, both stored in the CSR storage format, and saves the result in a dense matrix \f$C\f$, such that
+ *  matrix \f$A\f$  and a sparse matrix \f$B\f$, both stored in CSR or CSC storage format, and saves the result in a dense matrix \f$C\f$, such that
  *  \f[
  *    C := \alpha \cdot op(A) \cdot op(B) + \beta \cdot C,
  *  \f]
@@ -2511,14 +2511,14 @@ aoclsparse_status aoclsparse_zspmmd(const aoclsparse_operation op,
  *  descrA  Descriptor of A. Only \ref aoclsparse_matrix_type_general is supported at present.
  *          As a consequence, all other parameters within the descriptor are ignored.
  *  @param[in]
- *  A     Matrix structure containing sparse matrix \f$A\f$ of size \f$m \times k\f$.
+ *  A     Matrix structure containing sparse matrix \f$A\f$ of size \f$m \times k\f$ in CSR or CSC format.
  *  @param[in]
  *  opB     Operation to perform on matrix \f$B\f$.
  *  @param[in]
  *  descrB  Descriptor of B. Only \ref aoclsparse_matrix_type_general is supported at present.
  *          As a consequence, all other parameters within the descriptor are ignored.
  *  @param[in]
- *  B      Matrix structure containing sparse matrix \f$B\f$ of size \f$k \times n\f$ if \p op is \ref aoclsparse_operation_none otherwise of size \f$m \times n\f$.
+ *  B      Matrix structure containing sparse matrix \f$B\f$ of size \f$k \times n\f$ if \p op is \ref aoclsparse_operation_none otherwise of size \f$m \times n\f$ in CSR or CSC format.
  *  @param[in]
  *  alpha  Value of \f$ \alpha\f$.
  *  @param[in]
@@ -2537,7 +2537,7 @@ aoclsparse_status aoclsparse_zspmmd(const aoclsparse_operation op,
  *  \retval     aoclsparse_status_invalid_pointer \p A, \p B or \p C pointer is not valid.
  *  \retval     aoclsparse_status_wrong_type \ref aoclsparse_matrix_data_type does not match the precision type.
  *  \retval     aoclsparse_status_not_implemented
- *              \ref aoclsparse_matrix_format_type is not \ref aoclsparse_csr_mat.
+ *              \ref aoclsparse_matrix_format_type is not in CSR or CSC format.
  *  \retval     aoclsparse_status_internal_error An internal error occurred.
  *
  */

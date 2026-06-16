@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023-2025 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023-2026 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,17 @@
 #include "aoclsparse.h"
 #include "common_data_utils.h"
 #include "gtest/gtest.h"
+#include "aoclsparse_init.hpp"
 #include "aoclsparse_interface.hpp"
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wtype-limits"
+#include "blis.hh"
+#include "cblas.hh"
+#pragma GCC diagnostic pop
+
+#include "level3_test_common.hpp"
 
 #include <complex>
 #include <limits>
@@ -279,6 +289,246 @@ namespace
         aoclsparse_destroy(&B);
     }
 
+    // Tests spmmd with A in CSC format (CSR B). Mirrors spmmd_testall but uses
+    // aoclsparse_create_csc for A to exercise the CSC input path.
+    template <typename T>
+    void spmmd_csc_testall(aoclsparse_int ba,
+                           aoclsparse_int bb,
+                           aoclsparse_int row_maj,
+                           aoclsparse_int ldc = -1)
+    {
+        aoclsparse_index_base base_a = aoclsparse_index_base_zero;
+        aoclsparse_index_base base_b = aoclsparse_index_base_zero;
+        aoclsparse_order      layout = aoclsparse_order_row;
+        aoclsparse_matrix     A;
+        aoclsparse_matrix     B;
+        aoclsparse_int        m, n, k, nnz_A, nnz_B;
+        m     = 3;
+        k     = 3;
+        nnz_A = 6;
+        nnz_B = 4;
+        std::vector<aoclsparse_int> row_ptr_a, col_ind_a, row_ptr_b, col_ind_b;
+        std::vector<T>              val_a, val_b;
+        std::vector<T>              c(64);
+        std::vector<T>              c_exp(64);
+        std::vector<T>              c_t_exp(64);
+        std::vector<T>              c_h_exp(64);
+        std::vector<T>              t1(64);
+        std::vector<T>              t2(64);
+        std::vector<T>              t3(64);
+
+        memset((void *)c_exp.data(), 0, sizeof(T) * 64);
+        memset((void *)c_t_exp.data(), 0, sizeof(T) * 64);
+        memset((void *)c_h_exp.data(), 0, sizeof(T) * 64);
+
+        tolerance_t<T> abserr = sqrt(std::numeric_limits<tolerance_t<T>>::epsilon());
+
+        if(ba)
+            base_a = aoclsparse_index_base_one;
+        if(bb)
+            base_b = aoclsparse_index_base_one;
+        if(!row_maj)
+            layout = aoclsparse_order_column;
+
+        if constexpr(std::is_same_v<T, std::complex<double>>
+                     || std::is_same_v<T, std::complex<float>>
+                     || std::is_same_v<T, aoclsparse_double_complex>
+                     || std::is_same_v<T, aoclsparse_float_complex>)
+        {
+            n = 2;
+            // Matrix A (3x3)
+            //  1+2i    i       2-i
+            //  0       2i      0
+            //  0       0.1+4i  3
+            row_ptr_a.assign({0 + ba, 3 + ba, 4 + ba, 6 + ba});
+            col_ind_a.assign({0 + ba, 1 + ba, 2 + ba, 1 + ba, 1 + ba, 2 + ba});
+            val_a.assign({{1, 2}, {0, 1}, {2, -1}, {0, 2}, {0.1, 4}, {3, 0}});
+
+            // Matrix B (3x2)
+            //  1-i    0
+            //  0      i
+            //  4+2i   3
+            row_ptr_b.assign({0 + bb, 1 + bb, 2 + bb, 4 + bb});
+            col_ind_b.assign({0 + bb, 1 + bb, 0 + bb, 1 + bb});
+            val_b.assign({{1, -1}, {0, 1}, {4, 2}, {3, 0}});
+
+            // expected outputs (same as spmmd_testall)
+            t1.assign({{13, 1}, {5, -3}, {0, 0}, {-2, 0}, {12, 6}, {5, 0.1}});
+            t2.assign({{3, 1}, {0, 0}, {-6.6, 17.2}, {-1.7, 12}, {13, 3}, {9, 0}});
+            t3.assign({{-1, -3}, {0, 0}, {7.4, -16.8}, {2.3, -12}, {15, 5}, {9, 0}});
+        }
+        else
+        {
+            n = 3;
+            // Matrix A (3x3)
+            //  1  0  2
+            //  0  0  3
+            //  4  5  6
+            row_ptr_a.assign({0 + ba, 2 + ba, 3 + ba, 6 + ba});
+            col_ind_a.assign({0 + ba, 2 + ba, 2 + ba, 0 + ba, 1 + ba, 2 + ba});
+            val_a.assign({1, 2, 3, 4, 5, 6});
+
+            // Matrix B (3x3)
+            //  1  2  0
+            //  0  0  3
+            //  0  4  0
+            row_ptr_b.assign({0 + bb, 2 + bb, 3 + bb, 4 + bb});
+            col_ind_b.assign({0 + bb, 1 + bb, 2 + bb, 1 + bb});
+            val_b.assign({1, 2, 3, 4});
+
+            // expected outputs (same as spmmd_testall)
+            t1.assign({1, 10, 0, 0, 12, 0, 4, 32, 15});
+            t2.assign({1, 18, 0, 0, 20, 0, 2, 28, 9});
+            t3 = t2;
+        }
+        if(ldc == -1)
+        {
+            if(row_maj)
+                ldc = n;
+            else
+                ldc = m;
+        }
+        if(!row_maj)
+        {
+            for(aoclsparse_int i = 0; i < m; i++)
+            {
+                for(aoclsparse_int j = 0; j < n; j++)
+                {
+                    c_exp[i + ldc * j]   = t1[i * n + j];
+                    c_t_exp[i + ldc * j] = t2[i * n + j];
+                    c_h_exp[i + ldc * j] = t3[i * n + j];
+                }
+            }
+        }
+        else
+        {
+            for(aoclsparse_int i = 0; i < m; i++)
+            {
+                for(aoclsparse_int j = 0; j < n; j++)
+                {
+                    c_exp[i * ldc + j]   = t1[i * n + j];
+                    c_t_exp[i * ldc + j] = t2[i * n + j];
+                    c_h_exp[i * ldc + j] = t3[i * n + j];
+                }
+            }
+        }
+        // Convert CSR A to CSC for the CSC-input test.
+        std::vector<aoclsparse_int> csc_col_ptr_a(k + 1), csc_row_ind_a(nnz_A);
+        std::vector<T>              csc_val_a(nnz_A);
+        aoclsparse_mat_descr        descr_conv;
+        EXPECT_EQ(aoclsparse_create_mat_descr(&descr_conv), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_set_mat_index_base(descr_conv, base_a), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_csr2csc(m,
+                                     k,
+                                     nnz_A,
+                                     descr_conv,
+                                     base_a,
+                                     row_ptr_a.data(),
+                                     col_ind_a.data(),
+                                     val_a.data(),
+                                     csc_row_ind_a.data(),
+                                     csc_col_ptr_a.data(),
+                                     csc_val_a.data()),
+                  aoclsparse_status_success);
+        aoclsparse_destroy_mat_descr(descr_conv);
+        EXPECT_EQ(aoclsparse_create_csc<T>(&A,
+                                           base_a,
+                                           m,
+                                           k,
+                                           nnz_A,
+                                           csc_col_ptr_a.data(),
+                                           csc_row_ind_a.data(),
+                                           csc_val_a.data()),
+                  aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_create_csr<T>(
+                      &B, base_b, k, n, nnz_B, row_ptr_b.data(), col_ind_b.data(), val_b.data()),
+                  aoclsparse_status_success);
+
+        for(aoclsparse_operation op : {aoclsparse_operation_none,
+                                       aoclsparse_operation_transpose,
+                                       aoclsparse_operation_conjugate_transpose})
+        {
+            if constexpr(std::is_same_v<T, std::complex<double>>
+                         || std::is_same_v<T, std::complex<float>>
+                         || std::is_same_v<T, aoclsparse_double_complex>
+                         || std::is_same_v<T, aoclsparse_float_complex>)
+            {
+                EXPECT_EQ((aoclsparse_spmmd<T>(op, A, B, layout, c.data(), ldc, -1)),
+                          aoclsparse_status_success);
+
+                if constexpr(std::is_same_v<T, std::complex<float>>
+                             || std::is_same_v<T, aoclsparse_float_complex>)
+                {
+                    if(op == aoclsparse_operation_none)
+                    {
+                        EXPECT_COMPLEX_ARR_NEAR(64,
+                                                ((std::complex<float> *)c.data()),
+                                                ((std::complex<float> *)c_exp.data()),
+                                                abserr);
+                    }
+                    else if(op == aoclsparse_operation_transpose)
+                    {
+                        EXPECT_COMPLEX_ARR_NEAR(64,
+                                                ((std::complex<float> *)c.data()),
+                                                ((std::complex<float> *)c_t_exp.data()),
+                                                abserr);
+                    }
+                    else if(op == aoclsparse_operation_conjugate_transpose)
+                    {
+                        EXPECT_COMPLEX_ARR_NEAR(64,
+                                                ((std::complex<float> *)c.data()),
+                                                ((std::complex<float> *)c_h_exp.data()),
+                                                abserr);
+                    }
+                }
+                if constexpr(std::is_same_v<T, std::complex<double>>
+                             || std::is_same_v<T, aoclsparse_double_complex>)
+                {
+                    if(op == aoclsparse_operation_none)
+                    {
+                        EXPECT_COMPLEX_ARR_NEAR(64,
+                                                ((std::complex<double> *)c.data()),
+                                                ((std::complex<double> *)c_exp.data()),
+                                                abserr);
+                    }
+                    else if(op == aoclsparse_operation_transpose)
+                    {
+                        EXPECT_COMPLEX_ARR_NEAR(64,
+                                                ((std::complex<double> *)c.data()),
+                                                ((std::complex<double> *)c_t_exp.data()),
+                                                abserr);
+                    }
+                    else if(op == aoclsparse_operation_conjugate_transpose)
+                    {
+                        EXPECT_COMPLEX_ARR_NEAR(64,
+                                                ((std::complex<double> *)c.data()),
+                                                ((std::complex<double> *)c_h_exp.data()),
+                                                abserr);
+                    }
+                }
+            }
+            else if constexpr(std::is_same_v<T, double> || std::is_same_v<T, float>)
+            {
+                EXPECT_EQ((aoclsparse_spmmd<T>(op, A, B, layout, c.data(), ldc, -1)),
+                          aoclsparse_status_success);
+                if(op == aoclsparse_operation_none)
+                {
+                    EXPECT_ARR_NEAR(64, c.data(), c_exp.data(), abserr);
+                }
+                else if(op == aoclsparse_operation_transpose)
+                {
+                    EXPECT_ARR_NEAR(64, c.data(), c_t_exp.data(), abserr);
+                }
+                else if(op == aoclsparse_operation_conjugate_transpose)
+                {
+                    EXPECT_ARR_NEAR(64, c.data(), c_h_exp.data(), abserr);
+                }
+            }
+        }
+        aoclsparse_destroy(&A);
+        aoclsparse_destroy(&B);
+    }
+
     TEST(spmmd, row_A0B0)
     {
         spmmd_testall<float>(0, 0, 1);
@@ -356,4 +606,11 @@ namespace
         spmmd_testall<aoclsparse_double_complex>(1, 1, 1, 4);
     }
 */
+    TEST(spmmd, CSCInputSuccess)
+    {
+        spmmd_csc_testall<float>(0, 0, 1);
+        spmmd_csc_testall<double>(0, 0, 1);
+        spmmd_csc_testall<aoclsparse_float_complex>(0, 0, 1);
+        spmmd_csc_testall<aoclsparse_double_complex>(0, 0, 1);
+    }
 } // namespace

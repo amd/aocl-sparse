@@ -23,9 +23,8 @@
  */
 
 #include "aoclsparse.h"
+#include "aoclsparse_descr.h"
 #include "aoclsparse_sp2md.hpp"
-
-#include <shared_mutex>
 
 /*
  *===========================================================================
@@ -34,8 +33,8 @@
  */
 
 /*
- * Computes the product of two sparse matrices stored in compressed sparse row (CSR) format
- * and stores the result in a dense format. Supports s/d/c/z data types.
+ * Computes the product of two sparse matrices (CSR or CSC format) and stores
+ * the result in a dense matrix. Supports s/d/c/z data types.
  */
 extern "C" aoclsparse_status aoclsparse_sspmmd(const aoclsparse_operation op,
                                                const aoclsparse_matrix    A,
@@ -46,42 +45,23 @@ extern "C" aoclsparse_status aoclsparse_sspmmd(const aoclsparse_operation op,
 {
     const aoclsparse_int kid = -1; /* auto */
     if((nullptr == A) || (nullptr == B))
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-
-    auto *first_A = A->get_first_mtx_if_valid<aoclsparse::base_mtx>();
-    auto *first_B = B->get_first_mtx_if_valid<aoclsparse::base_mtx>();
-    if(!first_A || !first_B)
         return aoclsparse_status_invalid_pointer;
 
-    aoclsparse_status    status;
-    aoclsparse_mat_descr descrA;
-    status = aoclsparse_create_mat_descr(&descrA);
-    if(status != aoclsparse_status_success)
-        return status;
-    descrA->type = aoclsparse_matrix_type_general;
-    aoclsparse_mat_descr descrB;
-    status = aoclsparse_create_mat_descr(&descrB);
-    if(status != aoclsparse_status_success)
-        return status;
-    descrB->type = aoclsparse_matrix_type_general;
+    aoclsparse::csr *raw_A_w = A->get_first_mtx_if_valid<aoclsparse::csr>();
+    aoclsparse::csr *raw_B_w = B->get_first_mtx_if_valid<aoclsparse::csr>();
+    if(!raw_A_w || !raw_B_w)
+        return aoclsparse_status_not_implemented;
 
-    status = aoclsparse_set_mat_index_base(descrA, first_A->base);
-    if(status != aoclsparse_status_success)
-        return status;
-    status = aoclsparse_set_mat_index_base(descrB, first_B->base);
-    if(status != aoclsparse_status_success)
-        return status;
+    _aoclsparse_mat_descr descrA;
+    descrA.base = raw_A_w->base;
+    _aoclsparse_mat_descr descrB;
+    descrB.base = raw_B_w->base;
 
-    aoclsparse_operation op_B  = aoclsparse_operation_none;
-    float                alpha = 1.0;
-    float                beta  = 0.0;
+    const aoclsparse_operation op_B  = aoclsparse_operation_none;
+    const float                alpha = 1.0f;
+    const float                beta  = 0.0f;
 
-    status = aoclsparse_sp2md_t(op, descrA, A, op_B, descrB, B, alpha, beta, C, layout, ldc, kid);
-    aoclsparse_destroy_mat_descr(descrA);
-    aoclsparse_destroy_mat_descr(descrB);
-    return status;
+    return aoclsparse_sp2md_t(op, &descrA, A, op_B, &descrB, B, alpha, beta, C, layout, ldc, kid);
 }
 
 extern "C" aoclsparse_status aoclsparse_dspmmd(const aoclsparse_operation op,
@@ -93,42 +73,23 @@ extern "C" aoclsparse_status aoclsparse_dspmmd(const aoclsparse_operation op,
 {
     const aoclsparse_int kid = -1; /* auto */
     if((nullptr == A) || (nullptr == B))
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-
-    auto *first_A = A->get_first_mtx_if_valid<aoclsparse::base_mtx>();
-    auto *first_B = B->get_first_mtx_if_valid<aoclsparse::base_mtx>();
-    if(!first_A || !first_B)
         return aoclsparse_status_invalid_pointer;
 
-    aoclsparse_status    status;
-    aoclsparse_mat_descr descrA;
-    status = aoclsparse_create_mat_descr(&descrA);
-    if(status != aoclsparse_status_success)
-        return status;
-    descrA->type = aoclsparse_matrix_type_general;
-    aoclsparse_mat_descr descrB;
-    status = aoclsparse_create_mat_descr(&descrB);
-    if(status != aoclsparse_status_success)
-        return status;
-    descrB->type = aoclsparse_matrix_type_general;
+    aoclsparse::csr *raw_A_w = A->get_first_mtx_if_valid<aoclsparse::csr>();
+    aoclsparse::csr *raw_B_w = B->get_first_mtx_if_valid<aoclsparse::csr>();
+    if(!raw_A_w || !raw_B_w)
+        return aoclsparse_status_not_implemented;
 
-    status = aoclsparse_set_mat_index_base(descrA, first_A->base);
-    if(status != aoclsparse_status_success)
-        return status;
-    status = aoclsparse_set_mat_index_base(descrB, first_B->base);
-    if(status != aoclsparse_status_success)
-        return status;
+    _aoclsparse_mat_descr descrA;
+    descrA.base = raw_A_w->base;
+    _aoclsparse_mat_descr descrB;
+    descrB.base = raw_B_w->base;
 
-    aoclsparse_operation op_B  = aoclsparse_operation_none;
-    double               alpha = 1.0;
-    double               beta  = 0.0;
+    const aoclsparse_operation op_B  = aoclsparse_operation_none;
+    const double               alpha = 1.0;
+    const double               beta  = 0.0;
 
-    status = aoclsparse_sp2md_t(op, descrA, A, op_B, descrB, B, alpha, beta, C, layout, ldc, kid);
-    aoclsparse_destroy_mat_descr(descrA);
-    aoclsparse_destroy_mat_descr(descrB);
-    return status;
+    return aoclsparse_sp2md_t(op, &descrA, A, op_B, &descrB, B, alpha, beta, C, layout, ldc, kid);
 }
 
 extern "C" aoclsparse_status aoclsparse_cspmmd(const aoclsparse_operation op,
@@ -140,43 +101,24 @@ extern "C" aoclsparse_status aoclsparse_cspmmd(const aoclsparse_operation op,
 {
     const aoclsparse_int kid = -1; /* auto */
     if((nullptr == A) || (nullptr == B))
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-
-    auto *first_A = A->get_first_mtx_if_valid<aoclsparse::base_mtx>();
-    auto *first_B = B->get_first_mtx_if_valid<aoclsparse::base_mtx>();
-    if(!first_A || !first_B)
         return aoclsparse_status_invalid_pointer;
 
-    aoclsparse_status    status;
-    aoclsparse_mat_descr descrA;
-    status = aoclsparse_create_mat_descr(&descrA);
-    if(status != aoclsparse_status_success)
-        return status;
-    descrA->type = aoclsparse_matrix_type_general;
-    aoclsparse_mat_descr descrB;
-    status = aoclsparse_create_mat_descr(&descrB);
-    if(status != aoclsparse_status_success)
-        return status;
-    descrB->type = aoclsparse_matrix_type_general;
+    aoclsparse::csr *raw_A_w = A->get_first_mtx_if_valid<aoclsparse::csr>();
+    aoclsparse::csr *raw_B_w = B->get_first_mtx_if_valid<aoclsparse::csr>();
+    if(!raw_A_w || !raw_B_w)
+        return aoclsparse_status_not_implemented;
 
-    status = aoclsparse_set_mat_index_base(descrA, first_A->base);
-    if(status != aoclsparse_status_success)
-        return status;
-    status = aoclsparse_set_mat_index_base(descrB, first_B->base);
-    if(status != aoclsparse_status_success)
-        return status;
+    _aoclsparse_mat_descr descrA;
+    descrA.base = raw_A_w->base;
+    _aoclsparse_mat_descr descrB;
+    descrB.base = raw_B_w->base;
 
-    aoclsparse_operation op_B  = aoclsparse_operation_none;
-    std::complex<float>  alpha = 1.0;
-    std::complex<float>  beta  = 0.0;
+    const aoclsparse_operation op_B  = aoclsparse_operation_none;
+    const std::complex<float>  alpha = 1.0f;
+    const std::complex<float>  beta  = 0.0f;
 
-    status = aoclsparse_sp2md_t(
-        op, descrA, A, op_B, descrB, B, alpha, beta, (std::complex<float> *)C, layout, ldc, kid);
-    aoclsparse_destroy_mat_descr(descrA);
-    aoclsparse_destroy_mat_descr(descrB);
-    return status;
+    return aoclsparse_sp2md_t(
+        op, &descrA, A, op_B, &descrB, B, alpha, beta, (std::complex<float> *)C, layout, ldc, kid);
 }
 
 extern "C" aoclsparse_status aoclsparse_zspmmd(const aoclsparse_operation op,
@@ -188,41 +130,22 @@ extern "C" aoclsparse_status aoclsparse_zspmmd(const aoclsparse_operation op,
 {
     const aoclsparse_int kid = -1; /* auto */
     if((nullptr == A) || (nullptr == B))
-    {
-        return aoclsparse_status_invalid_pointer;
-    }
-
-    auto *first_A = A->get_first_mtx_if_valid<aoclsparse::base_mtx>();
-    auto *first_B = B->get_first_mtx_if_valid<aoclsparse::base_mtx>();
-    if(!first_A || !first_B)
         return aoclsparse_status_invalid_pointer;
 
-    aoclsparse_status    status;
-    aoclsparse_mat_descr descrA;
-    status = aoclsparse_create_mat_descr(&descrA);
-    if(status != aoclsparse_status_success)
-        return status;
-    descrA->type = aoclsparse_matrix_type_general;
-    aoclsparse_mat_descr descrB;
-    status = aoclsparse_create_mat_descr(&descrB);
-    if(status != aoclsparse_status_success)
-        return status;
-    descrB->type = aoclsparse_matrix_type_general;
+    aoclsparse::csr *raw_A_w = A->get_first_mtx_if_valid<aoclsparse::csr>();
+    aoclsparse::csr *raw_B_w = B->get_first_mtx_if_valid<aoclsparse::csr>();
+    if(!raw_A_w || !raw_B_w)
+        return aoclsparse_status_not_implemented;
 
-    status = aoclsparse_set_mat_index_base(descrA, first_A->base);
-    if(status != aoclsparse_status_success)
-        return status;
-    status = aoclsparse_set_mat_index_base(descrB, first_B->base);
-    if(status != aoclsparse_status_success)
-        return status;
+    _aoclsparse_mat_descr descrA;
+    descrA.base = raw_A_w->base;
+    _aoclsparse_mat_descr descrB;
+    descrB.base = raw_B_w->base;
 
-    aoclsparse_operation op_B  = aoclsparse_operation_none;
-    std::complex<double> alpha = 1.0;
-    std::complex<double> beta  = 0.0;
+    const aoclsparse_operation op_B  = aoclsparse_operation_none;
+    const std::complex<double> alpha = 1.0;
+    const std::complex<double> beta  = 0.0;
 
-    status = aoclsparse_sp2md_t(
-        op, descrA, A, op_B, descrB, B, alpha, beta, (std::complex<double> *)C, layout, ldc, kid);
-    aoclsparse_destroy_mat_descr(descrA);
-    aoclsparse_destroy_mat_descr(descrB);
-    return status;
+    return aoclsparse_sp2md_t(
+        op, &descrA, A, op_B, &descrB, B, alpha, beta, (std::complex<double> *)C, layout, ldc, kid);
 }
