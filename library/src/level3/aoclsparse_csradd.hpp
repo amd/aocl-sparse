@@ -111,11 +111,11 @@ aoclsparse_status aoclsparse_add_csr_count_nnz(const aoclsparse_int        M,
         // the prefix sum has overflowed. This check happens after safe 64-bit
         // computation (no Undefined Behavior), and truncated values
         // in C_row_ptr are discarded.
-        if(running_sum > aoclsparse_numeric::int_max)
+        if(aoclsparse_numeric::aoclsparse_int_sum_overflow(running_sum))
         {
             status = aoclsparse_status_invalid_size;
         }
-        else
+        if(status == aoclsparse_status_success)
         {
             C_nnz = C_row_ptr[M] - base_A;
         }
@@ -156,7 +156,8 @@ aoclsparse_status aoclsparse_add_csr_ref(const aoclsparse_int        M,
     *C = nullptr;
 
     // Handle empty matrix case - allocate 0-nnz matrix via constructor
-    if(M == 0 || N == 0 || (A_nnz + B_nnz) == 0)
+    // Since `A_nnz` and `B_nnz` are non-negative by construction, `A_nnz + B_nnz == 0` iff both are zero.
+    if(M == 0 || N == 0 || (A_nnz == 0 && B_nnz == 0))
     {
         try
         {
@@ -179,6 +180,8 @@ aoclsparse_status aoclsparse_add_csr_ref(const aoclsparse_int        M,
     // - rough estimate of C_nnz as A_nnz + B_nnz would overflow aoclsparse_int
     // In other cases, nnz can be overestimated and, the exact nnz and
     // C_row_ptr[] is built in the main computation loop.
+    // uint64_t cast: avoids signed tautology in ILP64 (where int64_t cast would give
+    // int64_t > INT64_MAX which is always false). Unsigned wrapping is well-defined.
     bool cptr_computed = (num_of_threads != 1)
                          || (static_cast<uint64_t>(A_nnz) + static_cast<uint64_t>(B_nnz)
                              > static_cast<uint64_t>(aoclsparse_numeric::int_max));

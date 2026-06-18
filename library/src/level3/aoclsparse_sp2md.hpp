@@ -292,7 +292,7 @@ inline aoclsparse_status aoclsparse_sp2md_t(const aoclsparse_operation      opA,
     {
         aoclsparse_int c_dim = (layout == aoclsparse_order_row) ? m_c : n_c;
         // Validate full dense address range by checking c_dim * ldc
-        if(aoclsparse_lp64_product_overflow(c_dim, ldc))
+        if(aoclsparse_numeric::aoclsparse_int_product_overflow(c_dim, ldc))
         {
             return aoclsparse_status_invalid_size;
         }

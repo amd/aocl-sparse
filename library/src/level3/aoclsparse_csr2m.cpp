@@ -228,8 +228,8 @@ inline aoclsparse_status aoclsparse_csr2m_nnz_count(aoclsparse_int        m,
             csr_C->ptr[i] = static_cast<aoclsparse_int>(running_sum);
         }
 
-        // Check for overflow AFTER loop (no UB occurred since all arithmetic was 64-bit)
-        if(running_sum > aoclsparse_numeric::int_max)
+        // Overflow check: running_sum is int64_t; safe to call after the 64-bit prefix sum.
+        if(aoclsparse_numeric::aoclsparse_int_sum_overflow(running_sum))
         {
             delete csr_C;
             return aoclsparse_status_invalid_size;
@@ -759,10 +759,13 @@ aoclsparse_status aoclsparse::sp2m(aoclsparse_operation       opA,
     // Transposes src (rows↔cols swapped); handles both CSR→A^T and CSC→A.
     aoclsparse::csr *transposed      = nullptr;
     auto             make_transposed = [&](aoclsparse::csr *src) -> aoclsparse_status {
+        // Named intermediates prevent SWAPPED_ARGUMENTS false positive (same pattern as sp2md).
+        const aoclsparse_int t_m = src->n; // transposed rows = original cols
+        const aoclsparse_int t_n = src->m; // transposed cols = original rows
         try
         {
             transposed = new aoclsparse::csr(
-                src->n, src->m, src->nnz, aoclsparse_csr_mat, src->base, get_data_type<T>());
+                t_m, t_n, src->nnz, aoclsparse_csr_mat, src->base, get_data_type<T>());
         }
         catch(std::bad_alloc &)
         {

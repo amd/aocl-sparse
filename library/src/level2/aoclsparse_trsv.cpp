@@ -404,8 +404,8 @@ aoclsparse_status
     // Note: Regular aoclsparse_[sdcz]trsv() APIs hardcode incb=incx=1, so overflow
     // cannot occur for those. This check protects the _strided API variants where
     // users can provide large stride values that may cause (m-1)*inc to overflow.
-    if(aoclsparse_lp64_product_overflow(m - 1, incx)
-       || aoclsparse_lp64_product_overflow(m - 1, incb))
+    if(aoclsparse_numeric::aoclsparse_int_product_overflow(m - 1, incx)
+       || aoclsparse_numeric::aoclsparse_int_product_overflow(m - 1, incb))
     {
         return aoclsparse_status_invalid_size;
     }

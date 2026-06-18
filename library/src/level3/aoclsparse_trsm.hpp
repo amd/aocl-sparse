@@ -138,8 +138,8 @@ aoclsparse_status
         return aoclsparse_status_invalid_value;
     }
     // Check for LP64 integer overflow in dense matrix offset computations
-    if(aoclsparse_lp64_product_overflow(n, b_offset)
-       || aoclsparse_lp64_product_overflow(n, x_offset))
+    if(aoclsparse_numeric::aoclsparse_int_product_overflow(n, b_offset)
+       || aoclsparse_numeric::aoclsparse_int_product_overflow(n, x_offset))
     {
         return aoclsparse_status_invalid_size;
     }

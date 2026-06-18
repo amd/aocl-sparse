@@ -108,7 +108,8 @@ aoclsparse_status aoclsparse_gmres_data_init(const aoclsparse_int               
         Check for overflow BEFORE computing sizes: if krylov_basis_size or hessenberg_size
         would overflow aoclsparse_int range, reject early
     */
-    if(aoclsparse_lp64_product_overflow(m + 1, n) || aoclsparse_lp64_product_overflow(m, m))
+    if(aoclsparse_numeric::aoclsparse_int_product_overflow(m + 1, n)
+       || aoclsparse_numeric::aoclsparse_int_product_overflow(m, m))
     {
         aoclsparse_gmres_data_free(*gmres);
         *gmres = nullptr;

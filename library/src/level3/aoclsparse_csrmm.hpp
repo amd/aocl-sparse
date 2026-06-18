@@ -603,8 +603,8 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
             c_dim = m_c;
             b_dim = b_rows;
         }
-        if(aoclsparse_lp64_product_overflow(c_dim, ldc)
-           || aoclsparse_lp64_product_overflow(b_dim, ldb))
+        if(aoclsparse_numeric::aoclsparse_int_product_overflow(c_dim, ldc)
+           || aoclsparse_numeric::aoclsparse_int_product_overflow(b_dim, ldb))
         {
             return aoclsparse_status_invalid_size;
         }

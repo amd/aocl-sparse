@@ -395,8 +395,8 @@ aoclsparse_status aoclsparse_syprd(aoclsparse_operation            op,
     // B is symmetric (check_ldb × check_ldb), C is symmetric (check_ldc × check_ldc)
     // Kernels compute: row * ld + col (row-major) or row + col * ld (col-major)
     // Ensure the full dense range (strictly less than check_ld * ld) fits in aoclsparse_int.
-    if(aoclsparse_lp64_product_overflow(check_ldc, ldc)
-       || aoclsparse_lp64_product_overflow(check_ldb, ldb))
+    if(aoclsparse_numeric::aoclsparse_int_product_overflow(check_ldc, ldc)
+       || aoclsparse_numeric::aoclsparse_int_product_overflow(check_ldb, ldb))
     {
         return aoclsparse_status_invalid_size;
     }

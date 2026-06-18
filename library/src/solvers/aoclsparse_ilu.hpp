@@ -71,7 +71,13 @@ aoclsparse_status aoclsparse_ilu_template(aoclsparse_operation       op,
     // Matrix need to be at least partially sorted with all diagonal elements
     if(A->sort != aoclsparse_fully_sorted && A->sort != aoclsparse_partially_sorted)
         return aoclsparse_status_unsorted_input;
-    if(!A->fulldiag)
+    // Read fulldiag under shared lock — mats_guard guards all fields written during optimize.
+    bool fulldiag;
+    {
+        std::shared_lock<std::shared_mutex> rlock(A->mats_guard);
+        fulldiag = A->fulldiag;
+    }
+    if(!fulldiag)
         return aoclsparse_status_numerical_error;
 
     // Check consistency

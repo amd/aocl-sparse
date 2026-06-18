@@ -391,7 +391,7 @@ aoclsparse_status aoclsparse_sp2m_online_symab(aoclsparse_int        m,
     if constexpr(REQUEST == aoclsparse_stage_nnz_count)
     {
         // Check for overflow AFTER loop (no UB occurred since all arithmetic was 64-bit)
-        if(total_nnz > aoclsparse_numeric::int_max)
+        if(aoclsparse_numeric::aoclsparse_int_sum_overflow(total_nnz))
             return aoclsparse_status_invalid_size;
     }
     return aoclsparse_status_success;
@@ -512,7 +512,7 @@ aoclsparse_status aoclsparse_sp2m_online_atb(aoclsparse_int        m,
     if constexpr(REQUEST == aoclsparse_stage_nnz_count)
     {
         // Check for overflow AFTER loop (no UB occurred since all arithmetic was 64-bit)
-        if(total_nnz > aoclsparse_numeric::int_max)
+        if(aoclsparse_numeric::aoclsparse_int_sum_overflow(total_nnz))
             return aoclsparse_status_invalid_size;
     }
     // correct base if needed, by default it is 0-based
