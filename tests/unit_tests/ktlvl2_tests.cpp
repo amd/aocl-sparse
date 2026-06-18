@@ -27,7 +27,6 @@
 #include <complex>
 #include <limits>
 #include <type_traits>
-#include <vector>
 
 namespace TestsKT
 {

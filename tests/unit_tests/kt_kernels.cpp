@@ -28,6 +28,7 @@
 #include <complex>
 #include <iostream>
 #include <memory>
+#include <string>
 #include <typeinfo>
 
 #define KT_TEST_VERBOSE 0
@@ -36,31 +37,14 @@ namespace TestsKT
 {
     using namespace kernel_templates;
 
+#ifdef __AVX512F__
+    using namespace common_data_utils_avx512;
+#endif
+
     template <typename T>
     std::string get_typename()
     {
-        if constexpr(std::is_same_v<T, float>)
-            return "float";
-        else if constexpr(std::is_same_v<T, double>)
-            return "double";
-        else if constexpr(std::is_same_v<T, cfloat>)
-            return "std::complex<float>";
-        else if constexpr(std::is_same_v<T, cdouble>)
-            return "std::complex<double>";
-        else if constexpr(std::is_same_v<T, int32_t>)
-            return "int32_t";
-        else if constexpr(std::is_same_v<T, int64_t>)
-            return "int64_t";
-        else if constexpr(std::is_same_v<T, _Float16>)
-            return "fp16";
-        else if constexpr(std::is_same_v<T, fp16>)
-            return "fp16_fake";
-        else if constexpr(std::is_same_v<T, uint32_t>)
-            return "uint32_t";
-        else if constexpr(std::is_same_v<T, uint64_t>)
-            return "uint64_t";
-        else
-            static_assert(false, "Unsupported type");
+        return typeid(T).name();
     }
 
     class KTTCommonData
@@ -520,7 +504,7 @@ namespace TestsKT
         /*
         * These bsz::b512 bit tests check that the correct complex data type
         * and packed sizes are "returned".
-        * ADD SUPPORT for std::complex<_Float16>
+        * ADD SUPPORT for std::complex<fp16>
         */
         // bsz::b512 cfloat
         EXPECT_EQ(typeid(avxvector<bsz::b512, cfloat>::type), typeid(__m512));
@@ -584,8 +568,8 @@ namespace TestsKT
 #endif
     }
 
-    // add all type (and ctypes for all vector length for _Float16 x [128, 256]
-    // note that _Float16 x 512 is already tested above
+    // add all type (and ctypes for all vector length for fp16 x [128, 256]
+    // note that fp16 x 512 is already tested above
     void kt_types_128_fp16()
     {
 #ifdef __AVX512FP16__
@@ -612,7 +596,7 @@ namespace TestsKT
 
     void kt_ctypes_128_fp16()
     {
-        GTEST_SKIP() << "No support for std::complex<_Float16>.";
+        GTEST_SKIP() << "No support for std::complex<fp16>.";
     }
 
     void kt_types_256_fp16()
@@ -641,7 +625,7 @@ namespace TestsKT
 
     void kt_ctypes_256_fp16()
     {
-        GTEST_SKIP() << "No support for std::complex<_Float16>.";
+        GTEST_SKIP() << "No support for std::complex<fp16>.";
     }
 #endif
 
@@ -1631,7 +1615,7 @@ namespace TestsKT
         for(size_t i = 0; i < sz; i++)
             refs += data[0 + i] * data[1 + i];
 #ifdef __AVX512FP16__
-        if constexpr(std::is_same_v<SUF, _Float16>)
+        if constexpr(std::is_same_v<SUF, fp16>)
             expect_eq_ULP<SUF, int16_t>(sdot, refs, 1);
         else
             expect_eq<SUF>(sdot, refs);
@@ -1665,7 +1649,7 @@ namespace TestsKT
         }
 
 #ifdef __AVX512FP16__
-        if constexpr(std::is_same_v<SUF, _Float16>)
+        if constexpr(std::is_same_v<SUF, fp16>)
             expect_eq_ULP<SUF, int16_t>(sdot, refs, 1);
         else
             expect_eq<SUF>(sdot, refs);
@@ -1731,8 +1715,6 @@ namespace TestsKT
 
             const SUF    *data = D.get_data<SUF>();
             const size_t *idx  = D.map;
-
-            std::vector<SUF> refs_(sz, data[2]);
 
             as = kt_loadu_p<SZ, SUF>(data);
             bs = kt_set_p<SZ, SUF>(data, idx);
@@ -1845,7 +1827,7 @@ namespace TestsKT
             }
 
 #ifdef __AVX512FP16__
-            if constexpr(std::is_same_v<SUF, _Float16>)
+            if constexpr(std::is_same_v<SUF, fp16>)
                 expect_eq_ULP<SUF, int16_t>(sums, refs, 2);
             else
                 expect_eq(sums, refs);
@@ -2016,30 +1998,43 @@ namespace TestsKT
         // Output and reference arrays
         // 3 output arrays to test fused add, sub and no op
         // Size of the array is max_idx + 1 to accommodate the maximum index element
-        std::vector<std::vector<SUF>> out(3, std::vector<SUF>(max_idx + 1, 0)),
-            ref(3, std::vector<SUF>(max_idx + 1, 0));
+        // All arrays are value-initialized with 0.
+        const size_t nout{max_idx + 1};
+        SUF         *out_add = new SUF[nout]();
+        SUF         *out_sub = new SUF[nout]();
+        SUF         *out     = new SUF[nout]();
+        SUF         *ref_add = new SUF[nout]();
+        SUF         *ref_sub = new SUF[nout]();
+        SUF         *ref     = new SUF[nout]();
 
         // Load vector from data
         v = kt_loadu_p<SZ, SUF>(data);
 
         // Scatter to out using idx
-        kt_scatter_p<SZ, SUF, IS, fused_op::ADD>(v, out[0].data(), idx);
-        kt_scatter_p<SZ, SUF, IS, fused_op::SUB>(v, out[1].data(), idx);
-        kt_scatter_p<SZ, SUF, IS>(v, out[2].data(), idx);
+        kt_scatter_p<SZ, SUF, IS, fused_op::ADD>(v, out_add, idx);
+        kt_scatter_p<SZ, SUF, IS, fused_op::SUB>(v, out_sub, idx);
+        kt_scatter_p<SZ, SUF, IS>(v, out, idx);
 
         // Reference: out[idx[i]] (op)= data[i]
         // Reference scatter with fused add and sub
         // Copy the contents of the vector (data) to the reference
         for(size_t i = 0; i < sz; i++)
         {
-            ref[0][idx[i]] += data[i];
-            ref[1][idx[i]] -= data[i];
-            ref[2][idx[i]] = data[i];
+            ref_add[idx[i]] += data[i];
+            ref_sub[idx[i]] -= data[i];
+            ref[idx[i]] = data[i];
         }
 
-        expect_eq_vec(ref[0].size(), out[0].data(), ref[0].data());
-        expect_eq_vec(ref[1].size(), out[1].data(), ref[1].data());
-        expect_eq_vec(ref[2].size(), out[2].data(), ref[2].data());
+        expect_eq_vec(nout, out_add, ref_add);
+        expect_eq_vec(nout, out_sub, ref_sub);
+        expect_eq_vec(nout, out, ref);
+
+        delete[] out_add;
+        delete[] out_sub;
+        delete[] out;
+        delete[] ref_add;
+        delete[] ref_sub;
+        delete[] ref;
 
         if(::testing::Test::HasFailure())
             std::cerr << __func__ << " failing for type: " << get_typename<SUF>()

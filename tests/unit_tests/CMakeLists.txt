@@ -421,18 +421,18 @@ ktlvl2_kernels.cpp
 )
 
 # Double compilation of KT test kernels
+add_library(KT_KERNELS_AVX2 OBJECT ${KT_KERNELS})
+target_compile_options(KT_KERNELS_AVX2 PRIVATE "-mno-avx512f;" -DKT_AVX2_BUILD ${AOCLSPARSE_GENERIC_FLAGS})
+target_link_libraries(KT_KERNELS_AVX2 PRIVATE aoclsparse GTest::gtest_main)
+target_include_directories(KT_KERNELS_AVX2 PRIVATE ${AOCLSPARSE_TEST_HEADER_DEPENDENCIES})
+
 add_library(KT_KERNELS_AVX512 OBJECT ${KT_KERNELS})
 target_compile_options(KT_KERNELS_AVX512 PRIVATE ${AOCLSPARSE_AVX512_FLAGS}${COMPILER_FLAGS_DEBUG})
 target_link_libraries(KT_KERNELS_AVX512 PRIVATE aoclsparse GTest::gtest_main)
 target_include_directories(KT_KERNELS_AVX512 PRIVATE ${AOCLSPARSE_TEST_HEADER_DEPENDENCIES})
 
-add_library(KT_KERNELS_AVX2 OBJECT ${KT_KERNELS})
-target_compile_options(KT_KERNELS_AVX2 PUBLIC "-mno-avx512f;" -DKT_AVX2_BUILD ${AOCLSPARSE_GENERIC_FLAGS})
-target_link_libraries(KT_KERNELS_AVX2 PUBLIC aoclsparse GTest::gtest_main)
-target_include_directories(KT_KERNELS_AVX2 PUBLIC ${AOCLSPARSE_TEST_HEADER_DEPENDENCIES})
-
-list(APPEND AOCLSPARSE_TEST_DEPENDENCIES $<TARGET_OBJECTS:KT_KERNELS_AVX512>)
 list(APPEND AOCLSPARSE_TEST_DEPENDENCIES $<TARGET_OBJECTS:KT_KERNELS_AVX2>)
+list(APPEND AOCLSPARSE_TEST_DEPENDENCIES $<TARGET_OBJECTS:KT_KERNELS_AVX512>)
 
 # End of build KT tests logic
 # -----------------------------------------------------------------------

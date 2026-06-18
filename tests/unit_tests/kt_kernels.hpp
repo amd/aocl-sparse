@@ -107,36 +107,36 @@
 
 #else
 // Test instantiation macros for all data types during AVX512 build
-// b128 _Float16
-// b256 _Float16
-// b512 _Float16 float double cfloat cdouble int32_t int64_t
-#define KT_TEST_DO_REAL_COMPLEX(func)                    \
-    PASTE(KT_TEST_DO3, KT_FP16_E)(func, b128, _Float16); \
-    PASTE(KT_TEST_DO3, KT_FP16_E)(func, b256, _Float16); \
-    PASTE(KT_TEST_DO3, KT_FP16_E)(func, b512, _Float16); \
-    KT_TEST_DO3(func, b512, float);                      \
-    KT_TEST_DO3(func, b512, double);                     \
-    KT_TEST_DO3(func, b512, cfloat);                     \
+// b128 fp16
+// b256 fp16
+// b512 fp16 float double cfloat cdouble int32_t int64_t
+#define KT_TEST_DO_REAL_COMPLEX(func)                \
+    PASTE(KT_TEST_DO3, KT_FP16_E)(func, b128, fp16); \
+    PASTE(KT_TEST_DO3, KT_FP16_E)(func, b256, fp16); \
+    PASTE(KT_TEST_DO3, KT_FP16_E)(func, b512, fp16); \
+    KT_TEST_DO3(func, b512, float);                  \
+    KT_TEST_DO3(func, b512, double);                 \
+    KT_TEST_DO3(func, b512, cfloat);                 \
     KT_TEST_DO3(func, b512, cdouble);
 
-#define KT_TEST_DO_REAL(func)                            \
-    PASTE(KT_TEST_DO3, KT_FP16_E)(func, b128, _Float16); \
-    PASTE(KT_TEST_DO3, KT_FP16_E)(func, b256, _Float16); \
-    PASTE(KT_TEST_DO3, KT_FP16_E)(func, b512, _Float16); \
-    KT_TEST_DO3(func, b512, float);                      \
+#define KT_TEST_DO_REAL(func)                        \
+    PASTE(KT_TEST_DO3, KT_FP16_E)(func, b128, fp16); \
+    PASTE(KT_TEST_DO3, KT_FP16_E)(func, b256, fp16); \
+    PASTE(KT_TEST_DO3, KT_FP16_E)(func, b512, fp16); \
+    KT_TEST_DO3(func, b512, float);                  \
     KT_TEST_DO3(func, b512, double);
 
 #define KT_TEST_DO_INTEGER(func)      \
     KT_TEST_DO3(func, b512, int32_t); \
     KT_TEST_DO3(func, b512, int64_t);
 
-#define KT_TEST_DO_INDEX(func)                                          \
-    PASTE(KT_TEST_DO_ALL_INDEX_TYPES, KT_FP16_E)(func, b128, _Float16); \
-    PASTE(KT_TEST_DO_ALL_INDEX_TYPES, KT_FP16_E)(func, b256, _Float16); \
-    PASTE(KT_TEST_DO_ALL_INDEX_TYPES, KT_FP16_E)(func, b512, _Float16); \
-    KT_TEST_DO_ALL_INDEX_TYPES(func, b512, float);                      \
-    KT_TEST_DO_ALL_INDEX_TYPES(func, b512, double);                     \
-    KT_TEST_DO_ALL_INDEX_TYPES(func, b512, cfloat);                     \
+#define KT_TEST_DO_INDEX(func)                                      \
+    PASTE(KT_TEST_DO_ALL_INDEX_TYPES, KT_FP16_E)(func, b128, fp16); \
+    PASTE(KT_TEST_DO_ALL_INDEX_TYPES, KT_FP16_E)(func, b256, fp16); \
+    PASTE(KT_TEST_DO_ALL_INDEX_TYPES, KT_FP16_E)(func, b512, fp16); \
+    KT_TEST_DO_ALL_INDEX_TYPES(func, b512, float);                  \
+    KT_TEST_DO_ALL_INDEX_TYPES(func, b512, double);                 \
+    KT_TEST_DO_ALL_INDEX_TYPES(func, b512, cfloat);                 \
     KT_TEST_DO_ALL_INDEX_TYPES(func, b512, cdouble);
 
 #endif
@@ -145,7 +145,7 @@
 // -----------------------------------------------------------------------------
 namespace TestsKT
 {
-    // Test that support _Float16, float, double, [cfp16], cfloat, cdouble
+    // Test that support fp16, float, double, [cfp16], cfloat, cdouble
     // Also test that support int32_t and int64_t
     // Any new ukernel test driver is to be added here and in kt_kernels.cpp
     KT_TEST_DO_REAL_COMPLEX(kt_loadu_p_test);
