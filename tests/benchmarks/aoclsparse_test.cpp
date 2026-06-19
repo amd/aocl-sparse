@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2025 Advanced Micro Devices, Inc.All rights reserved.
+ * Copyright (c) 2020-2026 Advanced Micro Devices, Inc.All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -104,6 +104,7 @@ int main(int argc, char *argv[])
     arg.stage      = 0;
     arg.output     = 'S';
     arg.kid_list.push_back(-1);
+    arg.diamv_mode = -1;
 
     char precision = 'd';
     char transA    = 'N';
@@ -218,6 +219,9 @@ int main(int argc, char *argv[])
             "--kid=<kernel ID> \t Indicates the comma-separated list of kernel that will be "
             "benchmarked (e.g., \"0,2\"; default: -1), -1 is auto."
             "\n\t"
+            "--diamv-mode=<mode> \t DIAMV-only kernel-family selector for testing: -1=auto, "
+            "0=reference, 1=row-major, 2=diagonal-major (default: -1)."
+            "\n\t"
             "--matrix=<R/D/T/H> if .mtx input is not provided, then this option indicates the type "
             "of "
             "random matrix that is generated. Options are:"
@@ -268,6 +272,7 @@ int main(int argc, char *argv[])
     args.aoclsparse_get_cmdline_argument("order", order);
     args.aoclsparse_get_cmdline_argument("stage", arg.stage);
     args.aoclsparse_get_cmdline_arguments("kid", arg.kid_list);
+    args.aoclsparse_get_cmdline_argument("diamv-mode", arg.diamv_mode);
     args.aoclsparse_get_cmdline_argument("matrix", matrix);
     args.aoclsparse_get_cmdline_argument("sort", sort);
     args.aoclsparse_get_cmdline_argument("mem", mem);
@@ -275,6 +280,12 @@ int main(int argc, char *argv[])
     if(precision != 's' && precision != 'd' && precision != 'c' && precision != 'z')
     {
         std::cerr << "Invalid value for --precision" << std::endl;
+        return -1;
+    }
+
+    if(arg.diamv_mode < -1 || arg.diamv_mode > 2)
+    {
+        std::cerr << "Invalid value for --diamv-mode (expected one of: -1,0,1,2)" << std::endl;
         return -1;
     }
 
@@ -522,9 +533,9 @@ int main(int argc, char *argv[])
     else if(strcmp(arg.function, "diamv") == 0)
     {
         if(precision == 's')
-            testing_diamv<float>(arg);
+            return testing_diamv<float>(arg);
         else if(precision == 'd')
-            testing_diamv<double>(arg);
+            return testing_diamv<double>(arg);
     }
     else if(strcmp(arg.function, "bsrmv") == 0)
     {

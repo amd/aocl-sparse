@@ -994,6 +994,120 @@ aoclsparse_status aoclsparse_sdiamv(aoclsparse_operation       trans,
 /**@}*/
 
 /*! \ingroup level2_module
+ *  \brief Real single and double precision sparse matrix vector product using DIA
+ *  storage format (kernel/mode selection variation).
+ *
+ *  \details
+ *  This variation of <tt>aoclsparse_?diamv</tt>, namely with a suffix of \p _kid, performs the
+ *  same operation as <tt>aoclsparse_?diamv()</tt> but additionally allows the caller to select
+ *  the kernel family and the kernel implementation (ISA) used internally. It computes
+ *  \f[
+ *    y = \alpha \, op(A) \, x + \beta \, y,
+ *  \f]
+ *  with
+ *  \f[
+ *    op(A) = \left\{
+ *    \begin{array}{ll}
+ *         A,   & \text{if } {\bf\mathsf{trans}} = \text{aoclsparse}\_\text{operation}\_\text{none} \\
+ *         A^T, & \text{if } {\bf\mathsf{trans}} = \text{aoclsparse}\_\text{operation}\_\text{transpose} \\
+ *         A^H, & \text{if } {\bf\mathsf{trans}} = \text{aoclsparse}\_\text{operation}\_\text{conjugate}\_\text{transpose}
+ *    \end{array}
+ *    \right.
+ *  \f]
+ *
+ *  @note
+ *  Currently, only \p trans = \ref aoclsparse_operation_none is supported.
+ *
+ *  @param[in]
+ *  trans       matrix operation type.
+ *  @param[in]
+ *  alpha       scalar \f$\alpha\f$.
+ *  @param[in]
+ *  m           number of rows of the  matrix.
+ *  @param[in]
+ *  n           number of columns of the  matrix.
+ *  @param[in]
+ *  nnz         number of non-zero entries of the  matrix.
+ *  @param[in]
+ *  dia_val     array that contains the elements of the  matrix. Padded
+ *              elements should be zero.
+ *  @param[in]
+ *  dia_offset  array that contains the offsets of each diagonal of the matrix.
+ *  @param[in]
+ *  dia_num_diag  number of diagonals in the matrix.
+ *  @param[in]
+ *  descr       descriptor of the sparse DIA matrix.
+ *  @param[in]
+ *  x           array of \p n elements (\f$op(A) = A\f$) or \p m elements
+ *              (\f$op(A) = A^T\f$ or \f$op(A) = A^H\f$).
+ *  @param[in]
+ *  beta        scalar \f$\beta\f$.
+ *  @param[inout]
+ *  y           array of \p m elements (\f$op(A) = A\f$) or \p n elements
+ *              (\f$op(A) = A^T\f$ or \f$op(A) = A^H\f$).
+ *  @param[in]
+ *  diamv_mode  kernel-family selection hint:
+ *              \li \c -1 : automatic, the kernel family is chosen by an internal heuristic.
+ *              \li \c  0 : reference implementation (no explicit AVX instructions).
+ *              \li \c  1 : row-major kernel family.
+ *              \li \c  2 : diagonal-major kernel family.
+ *              Any other value is treated as \c -1 (automatic).
+ *  @param[in]
+ *  diamv_kid   Kernel ID, hints which kernel implementation (ISA) to use within the
+ *              selected family:
+ *              \li \c -1 : automatic ISA selection.
+ *              \li \c  0 : reference implementation.
+ *              \li \c  1 : AVX2 (256-bit) kernel template.
+ *              \li \c  2 : AVX2 (256-bit) kernel template.
+ *              \li \c  3 : AVX512 (512-bit) kernel template.
+ *              When \p diamv_mode = 0 (reference), \p diamv_kid is ignored.
+ *
+ *  \retval     aoclsparse_status_success the operation completed successfully.
+ *  \retval     aoclsparse_status_invalid_size \p m, \p n or \p dia_num_diag is invalid.
+ *  \retval     aoclsparse_status_invalid_pointer \p descr, \p alpha, \p dia_val,
+ *              \p dia_offset, \p x, \p beta or \p y pointer is invalid.
+ *  \retval     aoclsparse_status_invalid_value the index base in \p descr is neither
+ *              \ref aoclsparse_index_base_zero nor \ref aoclsparse_index_base_one.
+ *  \retval     aoclsparse_status_invalid_kid the requested \p diamv_kid is not available.
+ *  \retval     aoclsparse_status_not_implemented
+ *              \p trans is not \ref aoclsparse_operation_none, or
+ *              \ref aoclsparse_matrix_type is not \ref aoclsparse_matrix_type_general.
+ * @{
+ */
+DLL_PUBLIC
+aoclsparse_status aoclsparse_ddiamv_kid(aoclsparse_operation       trans,
+                                        const double              *alpha,
+                                        aoclsparse_int             m,
+                                        aoclsparse_int             n,
+                                        aoclsparse_int             nnz,
+                                        const double              *dia_val,
+                                        const aoclsparse_int      *dia_offset,
+                                        aoclsparse_int             dia_num_diag,
+                                        const aoclsparse_mat_descr descr,
+                                        const double              *x,
+                                        const double              *beta,
+                                        double                    *y,
+                                        aoclsparse_int             diamv_mode,
+                                        aoclsparse_int             diamv_kid);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_sdiamv_kid(aoclsparse_operation       trans,
+                                        const float               *alpha,
+                                        aoclsparse_int             m,
+                                        aoclsparse_int             n,
+                                        aoclsparse_int             nnz,
+                                        const float               *dia_val,
+                                        const aoclsparse_int      *dia_offset,
+                                        aoclsparse_int             dia_num_diag,
+                                        const aoclsparse_mat_descr descr,
+                                        const float               *x,
+                                        const float               *beta,
+                                        float                     *y,
+                                        aoclsparse_int             diamv_mode,
+                                        aoclsparse_int             diamv_kid);
+/**@}*/
+
+/*! \ingroup level2_module
 *  \brief Real single and double precision matrix vector product using BSR storage format.
 *
 *  \details

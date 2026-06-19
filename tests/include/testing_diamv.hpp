@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,148 +27,299 @@
 
 #include "aoclsparse_arguments.hpp"
 #include "aoclsparse_check.hpp"
-#include "aoclsparse_flops.hpp"
-#include "aoclsparse_gbyte.hpp"
 #include "aoclsparse_init.hpp"
 #include "aoclsparse_interface.hpp"
 #include "aoclsparse_random.hpp"
+#include "aoclsparse_reference.hpp"
+#include "aoclsparse_stats.hpp"
 #include "aoclsparse_test.hpp"
 #include "aoclsparse_utility.hpp"
 
-template <typename T>
-void testing_diamv(const Arguments &arg)
-{
-    aoclsparse_int         M     = arg.M;
-    aoclsparse_int         N     = arg.N;
-    aoclsparse_int         nnz   = arg.nnz;
-    aoclsparse_matrix_init mat   = arg.matrix;
-    aoclsparse_operation   trans = arg.transA;
-    aoclsparse_index_base  base  = arg.baseA;
-    bool                   issymm;
-    std::string            filename = arg.filename;
+#include <limits>
+#include <string>
+#include <type_traits>
 
-    T alpha = static_cast<T>(arg.alpha);
-    T beta  = static_cast<T>(arg.beta);
+#ifdef EXT_BENCHMARKING
+#include "ext_benchmarking.hpp"
+#else
+#include "aoclsparse_no_ext_benchmarking.hpp"
+#endif
+
+template <typename T>
+int testing_diamv_aocl(const Arguments &arg,
+                       testdata<T>     &td,
+                       double           timings[],
+                       aoclsparse_int   diamv_mode = -1,
+                       aoclsparse_int   diamv_kid  = -1)
+{
+    int                   status = 0;
+    aoclsparse_int        m      = td.m;
+    aoclsparse_int        n      = td.n;
+    aoclsparse_operation  trans  = arg.transA;
+    aoclsparse_index_base base   = arg.baseA;
 
     // Create matrix descriptor
     aoclsparse_local_mat_descr descr;
+    try
+    {
+        // Set matrix index base
+        NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mat_index_base(descr, base));
 
-    // Set matrix index base
-    CHECK_AOCLSPARSE_ERROR(aoclsparse_set_mat_index_base(descr, base));
+        // DIA format arrays
+        std::vector<aoclsparse_int> dia_offset;
+        std::vector<T>              dia_val;
+        aoclsparse_int              dia_num_diag;
 
-    // Allocate memory for matrix
-    std::vector<aoclsparse_int> csr_row_ptr;
-    std::vector<aoclsparse_int> csr_col_ind;
-    std::vector<T>              csr_val;
-    std::vector<aoclsparse_int> dia_offset;
-    std::vector<T>              dia_val;
-    aoclsparse_int              dia_num_diag;
+        // Convert CSR matrix to DIA
+        NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_csr2dia_ndiag(
+            m, n, descr, td.nnzA, td.csr_row_ptrA.data(), td.csr_col_indA.data(), &dia_num_diag));
+        aoclsparse_int size = (m > n) ? m : n;
+        if(size < 0 || dia_num_diag < 0)
+        {
+            return 1;
+        }
+
+        size_t nnz_dia = static_cast<size_t>(size);
+        if(static_cast<size_t>(dia_num_diag) > 0
+           && nnz_dia > (std::numeric_limits<size_t>::max() / static_cast<size_t>(dia_num_diag)))
+        {
+            return 1;
+        }
+        nnz_dia *= static_cast<size_t>(dia_num_diag);
+        // Allocate DIA matrix
+        dia_offset.resize(dia_num_diag);
+        dia_val.resize(nnz_dia);
+
+        // Convert CSR matrix to DIA
+        NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_csr2dia(m,
+                                                      n,
+                                                      descr,
+                                                      td.csr_row_ptrA.data(),
+                                                      td.csr_col_indA.data(),
+                                                      td.csr_valA.data(),
+                                                      dia_num_diag,
+                                                      dia_offset.data(),
+                                                      dia_val.data()));
+
+        // Performance run
+        int number_hot_calls = arg.iters;
+        for(int iter = 0; iter < number_hot_calls; ++iter)
+        {
+            td.y                  = td.y_in;
+            double cpu_time_start = aoclsparse_clock();
+            if(diamv_mode < 0 && diamv_kid < 0)
+            {
+                NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_diamv(trans,
+                                                            &(td.alpha),
+                                                            m,
+                                                            n,
+                                                            td.nnzA,
+                                                            dia_val.data(),
+                                                            dia_offset.data(),
+                                                            dia_num_diag,
+                                                            descr,
+                                                            td.x.data(),
+                                                            &(td.beta),
+                                                            td.y.data()));
+            }
+            else if constexpr(std::is_same_v<T, float>)
+            {
+                NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_sdiamv_kid(trans,
+                                                                 &(td.alpha),
+                                                                 m,
+                                                                 n,
+                                                                 td.nnzA,
+                                                                 dia_val.data(),
+                                                                 dia_offset.data(),
+                                                                 dia_num_diag,
+                                                                 descr,
+                                                                 td.x.data(),
+                                                                 &(td.beta),
+                                                                 td.y.data(),
+                                                                 diamv_mode,
+                                                                 diamv_kid));
+            }
+            else if constexpr(std::is_same_v<T, double>)
+            {
+                NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_ddiamv_kid(trans,
+                                                                 &(td.alpha),
+                                                                 m,
+                                                                 n,
+                                                                 td.nnzA,
+                                                                 dia_val.data(),
+                                                                 dia_offset.data(),
+                                                                 dia_num_diag,
+                                                                 descr,
+                                                                 td.x.data(),
+                                                                 &(td.beta),
+                                                                 td.y.data(),
+                                                                 diamv_mode,
+                                                                 diamv_kid));
+            }
+            else
+            {
+                NEW_CHECK_AOCLSPARSE_ERROR(aoclsparse_status_not_implemented);
+            }
+            timings[iter] = aoclsparse_clock_diff(cpu_time_start);
+        }
+    }
+    catch(BenchmarkException &)
+    {
+        status = 1;
+    }
+    catch(std::bad_alloc &)
+    {
+        status = 1;
+    }
+    return status;
+}
+
+template <typename T>
+int testing_diamv(const Arguments &arg)
+{
+    int                    status   = 0;
+    aoclsparse_operation   trans    = arg.transA;
+    aoclsparse_index_base  base     = arg.baseA;
+    aoclsparse_matrix_init mat      = arg.matrix;
+    std::string            filename = arg.filename;
+    aoclsparse_matrix_sort sort     = arg.sort;
+    bool                   issymm;
+
+    // The queue of test functions to run, normally it would be just one API
+    // unless more tests are registered via EXT_BENCHMARKING
+    std::vector<testsetting<T>> testqueue;
+
+    std::vector<aoclsparse_int> mode_list;
+    if(arg.diamv_mode >= 0)
+        mode_list.push_back(arg.diamv_mode);
+    else
+        mode_list.push_back(-1);
+
+    const std::vector<aoclsparse_int> &kid_list = arg.kid_list;
+    for(auto mode : mode_list)
+    {
+        for(auto kid : kid_list)
+        {
+            std::string name;
+            name = "aocl";
+            if(mode >= 0)
+                name += "/diamv-mode=" + std::to_string(mode);
+            if(kid >= 0)
+                name += "/kid=" + std::to_string(kid);
+
+            testqueue.push_back(
+                {name, [mode, kid](const Arguments &arg, testdata<T> &td, double timings[]) -> int {
+                     return testing_diamv_aocl<T>(arg, td, timings, mode, kid);
+                 }});
+        }
+    }
+
+    register_tests_diamv(testqueue);
+
+    // create relevant test data for this API
+    testdata<T> td;
+    td.m    = arg.M;
+    td.n    = arg.N;
+    td.nnzA = arg.nnz;
+
+    // space for the API time measurements
+    std::vector<double> timings(arg.iters);
+    // space for statistics
+    std::vector<data_stats> tstats(testqueue.size());
+
+    td.alpha = static_cast<T>(arg.alpha);
+    td.beta  = static_cast<T>(arg.beta);
+
     aoclsparse_seedrand();
-#if 0
-    // Print aoclsparse version
-    std::cout << aoclsparse_get_version() << std::endl;
-#endif
 
     // Sample matrix
-    aoclsparse_init_csr_matrix(
-        csr_row_ptr, csr_col_ind, csr_val, M, N, nnz, base, mat, filename.c_str(), issymm, true);
+    aoclsparse_init_csr_matrix(td.csr_row_ptrA,
+                               td.csr_col_indA,
+                               td.csr_valA,
+                               td.m,
+                               td.n,
+                               td.nnzA,
+                               base,
+                               mat,
+                               filename.c_str(),
+                               issymm,
+                               true,
+                               sort);
 
     // Allocate memory for vectors
-    std::vector<T> x(N);
-    std::vector<T> y(M);
-    std::vector<T> y_gold(M);
+    aoclsparse_int xdim, ydim;
+    if(trans == aoclsparse_operation_none)
+    {
+        xdim = td.n;
+        ydim = td.m;
+    }
+    else
+    {
+        xdim = td.m;
+        ydim = td.n;
+    }
+
+    td.x.resize(xdim);
+    td.y.resize(ydim);
+    td.y_in.resize(ydim);
+    std::vector<T> y_gold(ydim); // reference result
 
     // Initialize data
-    aoclsparse_init<T>(x, 1, N, 1);
-    aoclsparse_init<T>(y, 1, M, 1);
-    y_gold = y;
-    // Convert CSR matrix to DIA
-    CHECK_AOCLSPARSE_ERROR(aoclsparse_csr2dia_ndiag(
-        M, N, descr, nnz, csr_row_ptr.data(), csr_col_ind.data(), &dia_num_diag));
-    aoclsparse_int size    = (M > N) ? M : N;
-    aoclsparse_int nnz_dia = size * dia_num_diag;
-    // Allocate DIA matrix
-    dia_offset.resize(dia_num_diag);
-    dia_val.resize(nnz_dia);
-
-    // Convert CSR matrix to DIA
-    CHECK_AOCLSPARSE_ERROR(aoclsparse_csr2dia(M,
-                                              N,
-                                              descr,
-                                              csr_row_ptr.data(),
-                                              csr_col_ind.data(),
-                                              csr_val.data(),
-                                              dia_num_diag,
-                                              dia_offset.data(),
-                                              dia_val.data()));
+    aoclsparse_init<T>(td.x, 1, xdim, 1);
+    aoclsparse_init<T>(td.y_in, 1, ydim, 1);
+    y_gold = td.y_in;
+    td.y   = td.y_in;
 
     if(arg.unit_check)
     {
-        CHECK_AOCLSPARSE_ERROR(aoclsparse_diamv(trans,
-                                                &alpha,
-                                                M,
-                                                N,
-                                                nnz,
-                                                dia_val.data(),
-                                                dia_offset.data(),
-                                                dia_num_diag,
-                                                descr,
-                                                x.data(),
-                                                &beta,
-                                                y.data()));
-        // Reference SPMV CSR implementation
-        for(int i = 0; i < M; i++)
-        {
-            T result = 0.0;
-            for(int j = csr_row_ptr[i] - base; j < csr_row_ptr[i + 1] - base; j++)
-            {
-                result += alpha * csr_val[j] * x[csr_col_ind[j] - base];
-            }
-            y_gold[i] = (beta * y_gold[i]) + result;
-        }
-        if(near_check_general<T>(1, M, 1, y_gold.data(), y.data()))
-            return;
+        CHECK_AOCLSPARSE_ERROR(ref_csrmv(trans,
+                                         td.alpha,
+                                         td.m,
+                                         td.n,
+                                         td.csr_valA.data(),
+                                         td.csr_col_indA.data(),
+                                         td.csr_row_ptrA.data(),
+                                         arg.mattypeA,
+                                         arg.uplo,
+                                         arg.diag,
+                                         base,
+                                         td.x.data(),
+                                         td.beta,
+                                         y_gold.data()));
     }
-    int number_hot_calls = arg.iters;
 
-    double cpu_time_used = DBL_MAX;
+    std::string prob_name = gen_problem_name(arg, td);
 
-    // Performance run
-    for(int iter = 0; iter < number_hot_calls; ++iter)
+    for(unsigned itest = 0; itest < testqueue.size(); ++itest)
     {
-        double cpu_time_start = aoclsparse_clock();
-        CHECK_AOCLSPARSE_ERROR(aoclsparse_diamv(trans,
-                                                &alpha,
-                                                M,
-                                                N,
-                                                nnz,
-                                                dia_val.data(),
-                                                dia_offset.data(),
-                                                dia_num_diag,
-                                                descr,
-                                                x.data(),
-                                                &beta,
-                                                y.data()));
-        cpu_time_used = aoclsparse_clock_min_diff(cpu_time_used, cpu_time_start);
+        // Run the test loop
+        int run_status = testqueue[itest].tf(arg, td, timings.data());
+        status += run_status;
+
+        // Check the results against the reference result
+        int verify = 0; // assume not tested
+        if(arg.unit_check && run_status == 0)
+        {
+            verify = 1; // assume pass
+            if(near_check_general<T>(1, ydim, 1, y_gold.data(), td.y.data()))
+            {
+                status++;
+                verify = 2;
+            }
+        }
+        compute_stats(timings.data(), timings.size(), tstats[itest]);
+        twosample_test_result cmp, *pcmp = NULL;
+
+        // compare the run against the first run (AOCL)
+        if(itest > 0)
+        {
+            cmp  = twosample_test(tstats[itest], tstats[0]);
+            pcmp = &cmp;
+        }
+        print_results(
+            testqueue[itest].name, prob_name.c_str(), verify, tstats[itest], pcmp, itest == 0);
     }
-
-    double cpu_gflops = spmv_gflop_count<T>(M, nnz, beta != static_cast<T>(0)) / cpu_time_used;
-    double cpu_gbyte  = csrmv_gbyte_count<T>(M, N, nnz, beta != static_cast<T>(0)) / cpu_time_used;
-
-    std::cout.precision(2);
-    std::cout.setf(std::ios::fixed);
-    std::cout.setf(std::ios::left);
-
-    std::cout << std::setw(12) << "M" << std::setw(12) << "N" << std::setw(12) << "nnz"
-              << std::setw(12) << "alpha" << std::setw(12) << "beta" << std::setw(12) << "GFlop/s"
-              << std::setw(12) << "GB/s" << std::setw(12) << "msec" << std::setw(12) << "iter"
-              << std::setw(12) << "verified" << std::endl;
-
-    std::cout << std::setw(12) << M << std::setw(12) << N << std::setw(12) << nnz << std::setw(12)
-              << alpha << std::setw(12) << beta << std::setw(12) << cpu_gflops << std::setw(12)
-              << cpu_gbyte << std::setw(12) << std::scientific << cpu_time_used * 1e3
-              << std::setw(12) << number_hot_calls << std::setw(12)
-              << (arg.unit_check ? "yes" : "no") << std::endl;
+    return status;
 }
 
 #endif // TESTING_DIAMV_HPP

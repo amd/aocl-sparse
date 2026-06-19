@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -122,6 +122,10 @@ void register_tests_gmres([[maybe_unused]] std::vector<testsetting<T>> &testqueu
 }
 template <typename T>
 void register_tests_cscmv([[maybe_unused]] std::vector<testsetting<T>> &testqueue)
+{
+}
+template <typename T>
+void register_tests_diamv([[maybe_unused]] std::vector<testsetting<T>> &testqueue)
 {
 }
 #endif
