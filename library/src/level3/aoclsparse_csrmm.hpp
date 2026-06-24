@@ -23,18 +23,14 @@
  * ************************************************************************ */
 #ifndef AOCLSPARSE_CSRMM_HPP
 #define AOCLSPARSE_CSRMM_HPP
-#include "aoclsparse.h"
-#include "aoclsparse_descr.h"
-#include "aoclsparse_auxiliary.hpp"
 #include "aoclsparse_cntx_dispatcher.hpp"
-#include "aoclsparse_convert.hpp"
 #include "aoclsparse_csr_util.hpp"
 #include "aoclsparse_l3_kt.hpp"
-#include "aoclsparse_utils.hpp"
 
 #include <algorithm>
 #include <cmath>
 #include <complex>
+#include <shared_mutex>
 #include <vector>
 
 template <typename T>
@@ -441,10 +437,11 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
     using namespace kernel_templates;
 
     // Check for valid matrix, descriptor
-    if(A == nullptr || A->mats.empty() || B == nullptr || C == nullptr || descr == nullptr)
+    if(A == nullptr || B == nullptr || C == nullptr || descr == nullptr)
     {
         return aoclsparse_status_invalid_pointer;
     }
+
     // Only CSR input format supported
     if(A->input_format != aoclsparse_csr_mat)
     {
@@ -470,6 +467,13 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
     if(order != aoclsparse_order_row && order != aoclsparse_order_column)
         return aoclsparse_status_invalid_value;
 
+    // Verify the matrix types and T are consistent
+    if(A->val_type != get_data_type<T>())
+        return aoclsparse_status_wrong_type;
+
+    if(!A->is_descr_matching(descr))
+        return aoclsparse_status_invalid_value;
+
     T zero{0.0};
     T one{1.0};
 
@@ -477,7 +481,7 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
     aoclsparse_int k = A->n;
     aoclsparse_int m_c{0}, n_c{0};
 
-    aoclsparse::csr *csr_mat = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
+    aoclsparse::csr *csr_mat = A->get_first_mtx_if_valid<aoclsparse::csr>();
     if(!csr_mat)
         return aoclsparse_status_not_implemented;
     // Only CSR matrix format is supported
@@ -489,20 +493,6 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
 
     // Variables to identify the type of the matrix
     const aoclsparse_matrix_type mat_type = descr->type;
-
-    // Verify the matrix types and T are consistent
-    if(A->val_type != get_data_type<T>())
-        return aoclsparse_status_wrong_type;
-    // Check index base
-    if(descr->base != aoclsparse_index_base_zero && descr->base != aoclsparse_index_base_one)
-    {
-        return aoclsparse_status_invalid_value;
-    }
-    // Check for base index incompatibility
-    if(csr_mat->base != descr->base)
-    {
-        return aoclsparse_status_invalid_value;
-    }
     // Check sizes
     if(m < 0 || n < 0 || k < 0)
     {
@@ -606,37 +596,36 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
          * the required operation (doid). If found, it sets the pointers to the optimized matrix data and marks
          * mat_found as true for direct kernel invocation.
          */
-    for(auto mat : A->mats)
     {
-        aoclsparse::csr *csr_m = dynamic_cast<aoclsparse::csr *>(mat);
-        if(csr_m != nullptr && mat->doid == d_id)
+        std::shared_lock<std::shared_mutex> rlock(A->mats_guard);
+        for(auto mat : A->mats)
         {
-            // Extract the matrix
-            val_A     = (T *)csr_m->val;
-            col_ind_A = csr_m->ind;
-            row_ptr_A = csr_m->ptr;
-            mb        = csr_m->m;
-
-            //Call set_mat_diag to set unit/zero diag types
-            if(descr_t.diag_type != mat->mtx_diag)
+            aoclsparse::csr *csr_m = dynamic_cast<aoclsparse::csr *>(mat);
+            if(csr_m != nullptr && mat->doid == d_id)
             {
-                status = aoclsparse_set_mat_diag<T>(A->m, descr_t, csr_m);
-                if(status != aoclsparse_status_success)
-                    return status;
+                // Extract the matrix
+                val_A     = (T *)csr_m->val;
+                col_ind_A = csr_m->ind;
+                row_ptr_A = csr_m->ptr;
+                mb        = csr_m->m;
+
+                //Call set_mat_diag to set unit/zero diag types
+                if(descr_t.diag_type != mat->mtx_diag)
+                {
+                    status = aoclsparse_set_mat_diag<T>(A->m, descr_t, csr_m);
+                    if(status != aoclsparse_status_success)
+                        return status;
+                }
+                // reset op & descr
+                op                = aoclsparse_operation_none;
+                descr_t.type      = aoclsparse_matrix_type_general;
+                descr_t.fill_mode = aoclsparse_fill_mode_lower;
+                descr_t.base      = csr_m->base;
+                mat_found         = true;
+                // reset doid
+                d_id = doid::gn;
+                break;
             }
-            // reset op & descr
-            op                = aoclsparse_operation_none;
-            descr_t.type      = aoclsparse_matrix_type_general;
-            descr_t.fill_mode = aoclsparse_fill_mode_lower;
-            descr_t.base      = csr_m->base;
-            /*
-                 * The 'mat_found' flag is set to indicate that a matching optimized
-                 * matrix has been found, so the kernel can be called directly.
-                 */
-            mat_found = true;
-            // reset doid
-            d_id = doid::gn;
-            break;
         }
     }
 

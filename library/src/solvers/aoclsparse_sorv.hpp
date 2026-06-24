@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,14 +23,10 @@
 #ifndef AOCLSPARSE_SORV_HPP
 #define AOCLSPARSE_SORV_HPP
 
-#include "aoclsparse.h"
-#include "aoclsparse_descr.h"
-#include "aoclsparse_types.h"
 #include "aoclsparse_csr_util.hpp"
-#include "aoclsparse_mat_structures.hpp"
-#include "aoclsparse_utils.hpp"
 
 #include <complex>
+#include <shared_mutex>
 
 template <typename T>
 aoclsparse_status aoclsparse_csr_check_full_diag(aoclsparse_int        size,
@@ -83,7 +79,7 @@ aoclsparse_status aoclsparse_sor_forward_sol(
     const aoclsparse_matrix A, const aoclsparse_mat_descr descr, T omega, T *x, const T *b)
 {
     aoclsparse_int   i, j, idxstart, idxend;
-    aoclsparse::csr *csr_mat = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
+    aoclsparse::csr *csr_mat = A->get_first_mtx_if_valid<aoclsparse::csr>();
     if(!csr_mat)
         return aoclsparse_status_not_implemented;
     aoclsparse_int *row_ptr = csr_mat->ptr;
@@ -135,8 +131,13 @@ aoclsparse_status aoclsparse_sorv_t(aoclsparse_sor_type        sor_type,
     {
         return aoclsparse_status_invalid_pointer;
     }
-    if(A->mats.empty() || !A->mats[0])
+
+    if(!A->get_first_mtx_if_valid<aoclsparse::base_mtx>())
         return aoclsparse_status_invalid_pointer;
+
+    if(!A->is_descr_matching(descr))
+        return aoclsparse_status_invalid_value;
+
     if(A->m != A->n) // Matrix not square
     {
         return aoclsparse_status_invalid_size;
@@ -177,14 +178,6 @@ aoclsparse_status aoclsparse_sorv_t(aoclsparse_sor_type        sor_type,
         else
             return aoclsparse_status_invalid_value;
     }
-    if((descr->base != aoclsparse_index_base_zero) && (descr->base != aoclsparse_index_base_one))
-    {
-        return aoclsparse_status_invalid_value;
-    }
-    if(A->mats[0]->base != descr->base)
-    {
-        return aoclsparse_status_invalid_value;
-    }
     // fill_mode and diag_type are not applicable for general matrix.
     // if((descr->fill_mode != aoclsparse_fill_mode_lower)
     //    && (descr->fill_mode != aoclsparse_fill_mode_upper))
@@ -203,7 +196,7 @@ aoclsparse_status aoclsparse_sorv_t(aoclsparse_sor_type        sor_type,
     // Check if all diagonal elements present and are non-zero
     if(!A->opt_csr_full_diag)
     {
-        aoclsparse::csr *csr_mat = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
+        aoclsparse::csr *csr_mat = A->get_first_mtx_if_valid<aoclsparse::csr>();
         if(!csr_mat)
             return aoclsparse_status_not_implemented;
         aoclsparse_status status = aoclsparse_csr_check_full_diag<T>(A->m, descr->base, csr_mat);

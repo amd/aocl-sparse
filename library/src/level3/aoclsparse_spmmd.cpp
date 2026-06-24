@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,6 +25,8 @@
 #include "aoclsparse.h"
 #include "aoclsparse_sp2md.hpp"
 
+#include <shared_mutex>
+
 /*
  *===========================================================================
  *   C wrapper
@@ -47,10 +49,12 @@ extern "C" aoclsparse_status aoclsparse_sspmmd(const aoclsparse_operation op,
     {
         return aoclsparse_status_invalid_pointer;
     }
-    if(A->mats.empty() || !A->mats[0] || B->mats.empty() || !B->mats[0])
-    {
+
+    auto *first_A = A->get_first_mtx_if_valid<aoclsparse::base_mtx>();
+    auto *first_B = B->get_first_mtx_if_valid<aoclsparse::base_mtx>();
+    if(!first_A || !first_B)
         return aoclsparse_status_invalid_pointer;
-    }
+
     aoclsparse_status    status;
     aoclsparse_mat_descr descrA;
     status = aoclsparse_create_mat_descr(&descrA);
@@ -63,10 +67,10 @@ extern "C" aoclsparse_status aoclsparse_sspmmd(const aoclsparse_operation op,
         return status;
     descrB->type = aoclsparse_matrix_type_general;
 
-    status = aoclsparse_set_mat_index_base(descrA, A->mats[0]->base);
+    status = aoclsparse_set_mat_index_base(descrA, first_A->base);
     if(status != aoclsparse_status_success)
         return status;
-    status = aoclsparse_set_mat_index_base(descrB, B->mats[0]->base);
+    status = aoclsparse_set_mat_index_base(descrB, first_B->base);
     if(status != aoclsparse_status_success)
         return status;
 
@@ -92,10 +96,12 @@ extern "C" aoclsparse_status aoclsparse_dspmmd(const aoclsparse_operation op,
     {
         return aoclsparse_status_invalid_pointer;
     }
-    if(A->mats.empty() || !A->mats[0] || B->mats.empty() || !B->mats[0])
-    {
+
+    auto *first_A = A->get_first_mtx_if_valid<aoclsparse::base_mtx>();
+    auto *first_B = B->get_first_mtx_if_valid<aoclsparse::base_mtx>();
+    if(!first_A || !first_B)
         return aoclsparse_status_invalid_pointer;
-    }
+
     aoclsparse_status    status;
     aoclsparse_mat_descr descrA;
     status = aoclsparse_create_mat_descr(&descrA);
@@ -108,10 +114,10 @@ extern "C" aoclsparse_status aoclsparse_dspmmd(const aoclsparse_operation op,
         return status;
     descrB->type = aoclsparse_matrix_type_general;
 
-    status = aoclsparse_set_mat_index_base(descrA, A->mats[0]->base);
+    status = aoclsparse_set_mat_index_base(descrA, first_A->base);
     if(status != aoclsparse_status_success)
         return status;
-    status = aoclsparse_set_mat_index_base(descrB, B->mats[0]->base);
+    status = aoclsparse_set_mat_index_base(descrB, first_B->base);
     if(status != aoclsparse_status_success)
         return status;
 
@@ -137,10 +143,12 @@ extern "C" aoclsparse_status aoclsparse_cspmmd(const aoclsparse_operation op,
     {
         return aoclsparse_status_invalid_pointer;
     }
-    if(A->mats.empty() || !A->mats[0] || B->mats.empty() || !B->mats[0])
-    {
+
+    auto *first_A = A->get_first_mtx_if_valid<aoclsparse::base_mtx>();
+    auto *first_B = B->get_first_mtx_if_valid<aoclsparse::base_mtx>();
+    if(!first_A || !first_B)
         return aoclsparse_status_invalid_pointer;
-    }
+
     aoclsparse_status    status;
     aoclsparse_mat_descr descrA;
     status = aoclsparse_create_mat_descr(&descrA);
@@ -153,10 +161,10 @@ extern "C" aoclsparse_status aoclsparse_cspmmd(const aoclsparse_operation op,
         return status;
     descrB->type = aoclsparse_matrix_type_general;
 
-    status = aoclsparse_set_mat_index_base(descrA, A->mats[0]->base);
+    status = aoclsparse_set_mat_index_base(descrA, first_A->base);
     if(status != aoclsparse_status_success)
         return status;
-    status = aoclsparse_set_mat_index_base(descrB, B->mats[0]->base);
+    status = aoclsparse_set_mat_index_base(descrB, first_B->base);
     if(status != aoclsparse_status_success)
         return status;
 
@@ -183,10 +191,12 @@ extern "C" aoclsparse_status aoclsparse_zspmmd(const aoclsparse_operation op,
     {
         return aoclsparse_status_invalid_pointer;
     }
-    if(A->mats.empty() || !A->mats[0] || B->mats.empty() || !B->mats[0])
-    {
+
+    auto *first_A = A->get_first_mtx_if_valid<aoclsparse::base_mtx>();
+    auto *first_B = B->get_first_mtx_if_valid<aoclsparse::base_mtx>();
+    if(!first_A || !first_B)
         return aoclsparse_status_invalid_pointer;
-    }
+
     aoclsparse_status    status;
     aoclsparse_mat_descr descrA;
     status = aoclsparse_create_mat_descr(&descrA);
@@ -199,10 +209,10 @@ extern "C" aoclsparse_status aoclsparse_zspmmd(const aoclsparse_operation op,
         return status;
     descrB->type = aoclsparse_matrix_type_general;
 
-    status = aoclsparse_set_mat_index_base(descrA, A->mats[0]->base);
+    status = aoclsparse_set_mat_index_base(descrA, first_A->base);
     if(status != aoclsparse_status_success)
         return status;
-    status = aoclsparse_set_mat_index_base(descrB, B->mats[0]->base);
+    status = aoclsparse_set_mat_index_base(descrB, first_B->base);
     if(status != aoclsparse_status_success)
         return status;
 

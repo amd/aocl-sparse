@@ -33,6 +33,7 @@
 #include "aoclsparse_utils.hpp"
 
 #include <complex>
+#include <shared_mutex>
 #include <type_traits>
 
 /* Triangular Solver (TRSV) dispatcher
@@ -55,7 +56,7 @@ aoclsparse_status
                      aoclsparse_int             kid /* user request of Kernel ID (kid) to use */)
 {
     // Quick initial checks
-    if(!A || A->mats.empty() || !A->mats[0] || !x || !b || !descr)
+    if(!A || !x || !b || !descr)
         return aoclsparse_status_invalid_pointer;
 
     // Only CSR, CSC and TCSR input format supported
@@ -76,13 +77,12 @@ aoclsparse_status
         return aoclsparse_status_invalid_value;
     }
 
-    // Check for base index incompatibility
-    // There is an issue that zero-based indexing is defined in two separate places and
-    // can lead to ambiguity, we check that both are consistent.
-    if(A->mats[0]->base != descr->base)
-    {
+    if(!A->get_first_mtx_if_valid<aoclsparse::base_mtx>())
+        return aoclsparse_status_invalid_pointer;
+
+    if(!A->is_descr_matching(descr))
         return aoclsparse_status_invalid_value;
-    }
+
     // Check if descriptor's index-base is valid (and A's index-base must be the same)
     if(descr->base != aoclsparse_index_base_zero && descr->base != aoclsparse_index_base_one)
     {

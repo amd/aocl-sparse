@@ -23,7 +23,6 @@
 #ifndef AOCLSPARSE_CSRMV_KERNELS_HPP
 #define AOCLSPARSE_CSRMV_KERNELS_HPP
 
-#include "aoclsparse.h"
 #include "aoclsparse_descr.h"
 #include "aoclsparse_context.hpp"
 #include "aoclsparse_mat_structures.hpp"
@@ -1061,13 +1060,16 @@ std::enable_if_t<std::is_same_v<T, double>, aoclsparse_status>
     res = _mm256_setzero_pd();
 
     aoclsparse::csr *csr_mat_br4 = nullptr;
-    for(auto *mat : A->mats)
     {
-        if(auto *csr = dynamic_cast<aoclsparse::csr *>(mat);
-           csr && csr->mat_type == aoclsparse_csr_mat_br4)
+        std::shared_lock<std::shared_mutex> rlock(A->mats_guard);
+        for(auto *mat : A->mats)
         {
-            csr_mat_br4 = csr;
-            break;
+            if(auto *csr = dynamic_cast<aoclsparse::csr *>(mat);
+               csr && csr->mat_type == aoclsparse_csr_mat_br4)
+            {
+                csr_mat_br4 = csr;
+                break;
+            }
         }
     }
     if(!csr_mat_br4)

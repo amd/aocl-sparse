@@ -21,13 +21,12 @@
  *
  * ************************************************************************ */
 
-#pragma once
 #ifndef AOCLSPARSE_MAT_STRUCTS_H
 #define AOCLSPARSE_MAT_STRUCTS_H
 
-#include "aoclsparse.h"
 #include "aoclsparse_mtx_dispatcher.hpp"
 
+#include <shared_mutex>
 #include <vector>
 
 enum aoclsparse_hinted_action
@@ -788,13 +787,49 @@ struct _aoclsparse_matrix
     // Optimization hints linked list
     aoclsparse_optimize_data *optim_data = nullptr;
 
-    // Holds all matrices, regardless of type, including internally created matrices and copies
+    // Holds all matrices, regardless of type, including internally created matrices and copies.
+    //
+    // Lifetime invariant: once inserted, entries in mats are never moved, replaced,
+    // or deleted until aoclsparse_destroy. mats[0] (the user-provided matrix) is
+    // never modified. Non-thread-safe operations (set_value, update_values) may
+    // delete and null entries at index >= 1 but cannot run concurrently with
+    // thread-safe callers. This guarantees that raw base_mtx* pointers obtained
+    // under a shared lock remain valid after the lock is released.
     std::vector<aoclsparse::base_mtx *> mats;
+
+    // Guards concurrent access to the mats vector.
+    // Acquire shared (read) lock for read-only access, exclusive (write) lock for push_back.
+    // Functions documented as not thread-safe (optimize, set_hint, set/update_value) do not
+    // acquire this lock.
+    mutable std::shared_mutex mats_guard;
+
+    // Returns true when the descriptor's index base matches the matrix's index base.
+    // Acquires a shared (read) lock on mats_guard internally.
+    [[nodiscard]] bool is_descr_matching(const aoclsparse_mat_descr descr) const
+    {
+        if(!descr)
+            return false;
+        std::shared_lock<std::shared_mutex> rlock(mats_guard);
+        return !mats.empty() && mats[0] != nullptr && mats[0]->base == descr->base;
+    }
+
+    // Returns the first entry in mats cast to the requested type if valid, or nullptr.
+    // Returns nullptr when mats is empty, mats[0] is null, or the dynamic_cast fails.
+    // Acquires a shared (read) lock on mats_guard internally.
+    template <typename T>
+    [[nodiscard]] T *get_first_mtx_if_valid() const
+    {
+        std::shared_lock<std::shared_mutex> rlock(mats_guard);
+        if(mats.empty() || !mats[0])
+            return nullptr;
+        return dynamic_cast<T *>(mats[0]);
+    }
 
     // Return the first matrix of the requested type, or nullptr if none exists
     template <typename T>
     T *get_mtx()
     {
+        std::shared_lock<std::shared_mutex> rlock(mats_guard);
         for(auto *m : mats)
         {
             T *p = dynamic_cast<T *>(m);

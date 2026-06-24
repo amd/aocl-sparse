@@ -35,6 +35,8 @@
 #include "aoclsparse_mv_helpers.hpp"
 #include "aoclsparse_tcsr.hpp"
 
+#include <shared_mutex>
+
 /* templated SpMV for complex types - can be extended for floats and doubles*/
 template <typename T>
 aoclsparse_status aoclsparse::mv(aoclsparse_operation       op,
@@ -53,7 +55,7 @@ aoclsparse_status aoclsparse::mv(aoclsparse_operation       op,
     if(alpha == nullptr || beta == nullptr)
         return aoclsparse_status_invalid_pointer;
 
-    if(A == nullptr || A->mats.empty() || !A->mats[0])
+    if(A == nullptr)
         return aoclsparse_status_invalid_pointer;
 
     if(descr == nullptr)
@@ -63,17 +65,12 @@ aoclsparse_status aoclsparse::mv(aoclsparse_operation       op,
     if(x == nullptr || y == nullptr)
         return aoclsparse_status_invalid_pointer;
 
-    // Validate descriptor's and matrix' index base
-    if(!is_valid_base(descr->base) || !is_valid_base(A->mats[0]->base))
-    {
-        return aoclsparse_status_invalid_value;
-    }
+    if(!A->get_first_mtx_if_valid<aoclsparse::base_mtx>())
+        return aoclsparse_status_invalid_pointer;
 
-    // Make sure the base index of descriptor and aoclsparse matrix are the same
-    if(A->mats[0]->base != descr->base)
-    {
+    if(!A->is_descr_matching(descr))
         return aoclsparse_status_invalid_value;
-    }
+
     // Check transpose
     if(!is_valid_op(op))
     {
@@ -130,15 +127,7 @@ aoclsparse_status aoclsparse::mv(aoclsparse_operation       op,
     // By default we will use our input format
     aoclsparse_matrix_format_type mtx_t = aoclsparse_uninitialized_mat;
 
-    aoclsparse_int best_mtx_idx = aoclsparse::get_best_matrix<T>(A, d_id, mtx_t);
-
-    aoclsparse::base_mtx *best_mtx = nullptr;
-
-    if(best_mtx_idx != -1)
-    {
-        best_mtx = A->mats[best_mtx_idx];
-        mtx_t    = best_mtx->mat_type;
-    }
+    aoclsparse::base_mtx *best_mtx = aoclsparse::get_best_matrix<T>(A, d_id, mtx_t);
 
     // Get a runnable format: use best matrix, or CSR/CSC optimize for symm/herm/tri.
     // CSR/CSC: symm/herm/tri and best matrix is CSR but unoptimized and wrong doid.
@@ -278,9 +267,10 @@ aoclsparse_status aoclsparse::mv(aoclsparse_operation       op,
     case aoclsparse_ellt_mat:
     case aoclsparse_ellt_csr_hyb_mat:
     {
-        aoclsparse::csr *csr_mat = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
+        aoclsparse::csr *csr_mat = A->get_first_mtx_if_valid<aoclsparse::csr>();
         if(!csr_mat)
             return aoclsparse_status_not_implemented;
+        std::shared_lock<std::shared_mutex> rlock(A->mats_guard);
         for(auto *mat : A->mats)
         {
             if(auto *ell_csr_hyb_mat = dynamic_cast<aoclsparse::ell_csr_hyb *>(mat))

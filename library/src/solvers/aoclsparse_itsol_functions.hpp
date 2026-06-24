@@ -23,19 +23,13 @@
 #ifndef AOCLSPARSE_ITSOL_FUNCTIONS_HPP_
 #define AOCLSPARSE_ITSOL_FUNCTIONS_HPP_
 
-#include "aoclsparse.h"
-#include "aoclsparse_descr.h"
-#include "aoclsparse_solvers.h"
 #include "aoclsparse.hpp"
 #include "aoclsparse_auxiliary.hpp"
-#include "aoclsparse_csr_util.hpp"
 #include "aoclsparse_ilu.hpp"
-#include "aoclsparse_itsol_data.hpp"
 #include "aoclsparse_itsol_list_options.hpp"
-#include "aoclsparse_itsol_options.hpp"
 #include "aoclsparse_lapack.hpp"
-#include "aoclsparse_mat_structures.hpp"
-#include "aoclsparse_utils.hpp"
+
+#include <shared_mutex>
 
 // Define all entries for rinfo[] array
 // All solvers using rinfo need to stick to these entries
@@ -403,12 +397,15 @@ aoclsparse_status
     aoclsparse_int        avxversion, i;
     aoclsparse_status     status;
     aoclsparse::csr      *opt_csr_mat = nullptr;
-    for(auto *mat : A->mats)
     {
-        if(auto *csr = dynamic_cast<aoclsparse::csr *>(mat); csr && csr->is_optimized)
+        std::shared_lock<std::shared_mutex> rlock(A->mats_guard);
+        for(auto *mat : A->mats)
         {
-            opt_csr_mat = csr;
-            break;
+            if(auto *csr = dynamic_cast<aoclsparse::csr *>(mat); csr && csr->is_optimized)
+            {
+                opt_csr_mat = csr;
+                break;
+            }
         }
     }
 
