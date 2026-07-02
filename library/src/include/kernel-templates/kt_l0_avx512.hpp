@@ -31,6 +31,16 @@
 #define _KT_L0_AVX512_
 #include "kt_common_x86.hpp"
 
+// Intrinsic aliases for pre-GCC 10.
+#if defined(__GNUC__) && !defined(__clang__) && (__GNUC__ < 10)
+#define _mm512_loadu_epi32(p) _mm512_loadu_si512(p)
+#define _mm512_loadu_epi64(p) _mm512_loadu_si512(p)
+#define _mm512_load_epi32(p)  _mm512_load_si512(p)
+#define _mm512_load_epi64(p)  _mm512_load_si512(p)
+#endif
+
+
+
 namespace kernel_templates
 {
     // Zero out an AVX register
@@ -560,4 +570,12 @@ namespace kernel_templates
         }
     }
 }
+
+#if defined(__GNUC__) && !defined(__clang__) && (__GNUC__ < 10)
+#undef _mm512_loadu_epi32
+#undef _mm512_loadu_epi64
+#undef _mm512_load_epi32
+#undef _mm512_load_epi64
+#endif
+
 #endif
