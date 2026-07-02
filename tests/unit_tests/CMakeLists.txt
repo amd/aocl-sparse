@@ -37,7 +37,11 @@ function(check_compiler_flag_support flag_name result_var)
     set(CMAKE_TRY_COMPILE_TARGET_TYPE "EXECUTABLE")
     check_cxx_source_compiles("
     #include <immintrin.h>
+    #include <iostream>
+    #include <typeinfo>
+    #include <string>
     int main(){
+    std::cout << \"typeid support for _Float16: \" << std::string(typeid(_Float16).name());
     _Float16          three = 3;
     volatile _Float16 sink;
     __m512h v   = _mm512_set1_ph(three);
