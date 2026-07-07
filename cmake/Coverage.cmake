@@ -1,5 +1,5 @@
 ################################################################################
-# Copyright (c) 2023-2024 Advanced Micro Devices, Inc.
+# Copyright (c) 2023-2026 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files(the "Software"), to deal
@@ -58,7 +58,7 @@ add_custom_target( coverage-run
   COMMAND ${CMAKE_MAKE_PROGRAM} all
   COMMAND ${CMAKE_MAKE_PROGRAM} coverage-clean
   COMMAND CLICOLOR=0 ASAN_OPTIONS="log_path=ASANlogger" ctest --timeout 20 --output-junit Testing/Temporary/LastTest_JUnit.xml || true
-  COMMAND ${CMAKE_SOURCE_DIR}/tools/collate_asan.sh
+  COMMAND ${AOCLSPARSE_ROOT}/tools/collate_asan.sh
   WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
   COMMENT "Running Code Coverage (ctest + collate_asan)"
 )

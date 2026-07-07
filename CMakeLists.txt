@@ -25,6 +25,16 @@ cmake_minimum_required(VERSION 3.22 FATAL_ERROR)
 
 # aocl-sparse project
 project(aoclsparse LANGUAGES CXX C)
+# --- Target-based build support -------------------------------------------
+# aocl-sparse referenced ${CMAKE_SOURCE_DIR} (e.g. library/CMakeLists.txt,
+# cmake/Dependencies.cmake) to mean its own tree, which only holds when it is the
+# top-level project. Under add_subdirectory/FetchContent CMAKE_SOURCE_DIR points
+# at the parent (aocl) project. Capture this project's root once into
+# AOCLSPARSE_ROOT and use it instead (uniform with the other unified AOCL
+# components' <PKG>_ROOT pattern; a cache variable is visible in all scopes and
+# unaffected by nesting).
+set(AOCLSPARSE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}" CACHE INTERNAL "AOCL-Sparse source root")
+# --------------------------------------------------------------------------
 # Define a version for the aocl-sparse code.
 if(NOT DEFINED AOCLSPARSE_VERSION_MAJOR)
   set(AOCLSPARSE_VERSION_MAJOR 5)

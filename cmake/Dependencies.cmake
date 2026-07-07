@@ -1,5 +1,5 @@
 # ##############################################################################
-# Copyright (c) 2020-2025 Advanced Micro Devices, Inc.
+# Copyright (c) 2020-2026 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -168,10 +168,10 @@ endfunction(aocl_libs)
 # ============= openmp function ================
 function(openmp_libs)
 
-  get_property(importTargets DIRECTORY "${CMAKE_SOURCE_DIR}" PROPERTY IMPORTED_TARGETS)
+  get_property(importTargets DIRECTORY "${AOCLSPARSE_ROOT}" PROPERTY IMPORTED_TARGETS)
   # Find OpenMP package
   find_package(OpenMP)
-  get_property(OpenMP_Library DIRECTORY "${CMAKE_SOURCE_DIR}" PROPERTY IMPORTED_TARGETS)
+  get_property(OpenMP_Library DIRECTORY "${AOCLSPARSE_ROOT}" PROPERTY IMPORTED_TARGETS)
   list(REMOVE_ITEM OpenMP_Library ${importTargets})
 
   if(NOT OPENMP_FOUND)
@@ -225,9 +225,9 @@ if(SUPPORT_OMP)
 endif(SUPPORT_OMP)
 #fetch pthread library for Linux builds, irrespective of ST/MT modes
 if(NOT WIN32)
-  get_property(importTargets DIRECTORY "${CMAKE_SOURCE_DIR}" PROPERTY IMPORTED_TARGETS)
+  get_property(importTargets DIRECTORY "${AOCLSPARSE_ROOT}" PROPERTY IMPORTED_TARGETS)
   find_package(Threads REQUIRED)
-  get_property(Threads_Library DIRECTORY "${CMAKE_SOURCE_DIR}" PROPERTY IMPORTED_TARGETS)
+  get_property(Threads_Library DIRECTORY "${AOCLSPARSE_ROOT}" PROPERTY IMPORTED_TARGETS)
   list(REMOVE_ITEM Threads_Library ${importTargets})
 
   # ${Threads_Library} contains imported target extracted from the output of find_package(Threads REQUIRED)
@@ -249,17 +249,31 @@ unset(LAPACK_LIBRARY_DIR)
 unset(UTILS_LIBRARY_DIR)
 
 # find AOCL dependencies such as Blis, Libflame
-aocl_libs()
-
-set(LAPACK_LIBRARIES ${LAPACK_LIBRARY})
-set(BLIS_INCLUDE_DIRS ${AOCL_BLIS_INCLUDE_DIR})
-set(LAPACK_INCLUDE_DIRS ${AOCL_LIBFLAME_INCLUDE_DIR})
-# Utils package is built with relative header path inclusion. Finding absolute
-# path results in compilation errors in windows builds. So path is adjusted to a
-# folder under "include" that contains "alci" folder. Therefore, the below path
-# to Utils Headers is adjusted. If we can get the right path using find_path( ),
-# then we can remove this adjustment.
-set(UTILS_INCLUDE_DIRS ${AOCL_UTILS_INCLUDE_DIR}/..)
+# --- Target-based build support -------------------------------------------
+# When aocl-sparse is built inside a parent project that already provides the
+# AOCL dependencies as in-tree CMake targets, those libraries are not installed
+# at configure time, so the install-path discovery in aocl_libs() cannot find
+# them. In that case consume the targets directly: linking them propagates the
+# right usage requirements, and the parent supplies the build-tree include dirs.
+if(TARGET AOCL::BLAS AND TARGET flame AND TARGET aoclutils)
+  message(STATUS "[aocl-sparse] target-based build: using in-tree AOCL targets (flame, AOCL::BLAS, aoclutils)")
+  set(LAPACK_LIBRARIES flame AOCL::BLAS aoclutils)
+  set(BLIS_INCLUDE_DIRS ${AOCL_TB_BLAS_INCLUDE_DIR})
+  set(LAPACK_INCLUDE_DIRS ${AOCL_TB_LAPACK_INCLUDE_DIR})
+  set(UTILS_INCLUDE_DIRS ${AOCL_TB_UTILS_INCLUDE_DIRS})
+else()
+  aocl_libs()
+  set(LAPACK_LIBRARIES ${LAPACK_LIBRARY})
+  set(BLIS_INCLUDE_DIRS ${AOCL_BLIS_INCLUDE_DIR})
+  set(LAPACK_INCLUDE_DIRS ${AOCL_LIBFLAME_INCLUDE_DIR})
+  # Utils package is built with relative header path inclusion. Finding absolute
+  # path results in compilation errors in windows builds. So path is adjusted to a
+  # folder under "include" that contains "alci" folder. Therefore, the below path
+  # to Utils Headers is adjusted. If we can get the right path using find_path( ),
+  # then we can remove this adjustment.
+  set(UTILS_INCLUDE_DIRS ${AOCL_UTILS_INCLUDE_DIR}/..)
+endif()
+# --------------------------------------------------------------------------
 
 message(STATUS "Dependencies (libraries and includes)")
 message(STATUS "  \$LAPACK LIBRARIES......${LAPACK_LIBRARIES}")
