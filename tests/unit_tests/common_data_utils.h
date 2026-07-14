@@ -4616,6 +4616,43 @@ bool can_exec_avx512_tests();
  */
 bool can_exec_avx512fp16_tests();
 
+// Issue #13 (2nd symptom) shared reproduction: aoclsparse_convert_csr must set
+// the destination matrix's internal mat_type. When left uninitialized it holds a
+// stale value (e.g. aoclsparse_coo_mat) on non-zeroing allocators (Windows/MSVC),
+// which breaks the mv/sp2md dispatch with not_implemented. This guard asserts the
+// invariant; shared by the mv and sp2md suites to avoid duplicated setup.
+template <typename T>
+void test_coo2csr_mat_type_init()
+{
+    aoclsparse_int        m = 2, n = 2, nnz = 2;
+    aoclsparse_index_base base  = aoclsparse_index_base_one;
+    aoclsparse_operation  trans = aoclsparse_operation_none;
+
+    aoclsparse_int row_ind[]   = {1, 1};
+    aoclsparse_int col_ind_a[] = {1, 2};
+    aoclsparse_int col_ind_b[] = {1, 2};
+    T              val_a[]     = {2, 1};
+    T              val_b[]     = {1, 3};
+
+    aoclsparse_matrix cooA, cooB, csrA, csrB;
+    ASSERT_EQ(aoclsparse_create_coo<T>(&cooA, base, m, n, nnz, row_ind, col_ind_a, val_a),
+              aoclsparse_status_success);
+    ASSERT_EQ(aoclsparse_create_coo<T>(&cooB, base, m, n, nnz, row_ind, col_ind_b, val_b),
+              aoclsparse_status_success);
+    ASSERT_EQ(aoclsparse_convert_csr(cooA, trans, &csrA), aoclsparse_status_success);
+    ASSERT_EQ(aoclsparse_convert_csr(cooB, trans, &csrB), aoclsparse_status_success);
+
+    EXPECT_EQ(csrA->mat_type, aoclsparse_csr_mat)
+        << "convert_csr left mat_type uninitialized (A): " << csrA->mat_type;
+    EXPECT_EQ(csrB->mat_type, aoclsparse_csr_mat)
+        << "convert_csr left mat_type uninitialized (B): " << csrB->mat_type;
+
+    EXPECT_EQ(aoclsparse_destroy(&csrA), aoclsparse_status_success);
+    EXPECT_EQ(aoclsparse_destroy(&csrB), aoclsparse_status_success);
+    EXPECT_EQ(aoclsparse_destroy(&cooA), aoclsparse_status_success);
+    EXPECT_EQ(aoclsparse_destroy(&cooB), aoclsparse_status_success);
+}
+
 #ifdef __AVX512F__
 namespace common_data_utils_avx512
 {
