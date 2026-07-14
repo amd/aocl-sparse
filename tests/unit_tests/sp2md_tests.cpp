@@ -549,6 +549,15 @@ namespace
         aoclsparse_destroy_mat_descr(descrA);
         aoclsparse_destroy(&A);
     }
+    TEST(sp2md, CooToCsrMatTypeInitDouble)
+    {
+        test_coo2csr_mat_type_init<double>();
+    }
+
+    TEST(sp2md, CooToCsrMatTypeInitFloat)
+    {
+        test_coo2csr_mat_type_init<float>();
+    }
 
     TEST(sp2md, wrongSize)
     {

@@ -1160,6 +1160,7 @@ aoclsparse_status aoclsparse_convert_csr_t(const aoclsparse_matrix    src_mat,
     // creation of destination matrix depending on type of operation
     aoclsparse_init_mat(*dest_mat, m_dest, n_dest, src_mat->nnz, aoclsparse_csr_mat);
     (*dest_mat)->val_type = get_data_type<T>();
+    (*dest_mat)->mat_type = aoclsparse_csr_mat;
     return status;
 }
 
