@@ -717,7 +717,7 @@ extern "C" aoclsparse_status aoclsparse_csr2bsr_nnz(aoclsparse_int             m
     }
 
     // Check for overflow AFTER loop (no UB occurred since all arithmetic was 64-bit)
-    if(running_sum > aoclsparse_numeric::int_max)
+    if(aoclsparse_numeric::aoclsparse_int_sum_overflow(running_sum))
     {
         return aoclsparse_status_invalid_size;
     }

@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2025 Advanced Micro Devices, Inc.
+ * Copyright (c) 2020-2026 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -78,6 +78,8 @@ struct Arguments
 
     aoclsparse_int x_stride, y_stride;
     char           output;
+
+    aoclsparse_int diamv_mode;
 
     std::vector<aoclsparse_int> kid_list;
 

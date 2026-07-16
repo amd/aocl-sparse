@@ -29,6 +29,36 @@ endif()
 ## Common config
 OPTION(BUILD_SPARSE_TESTS_OUTOFSRCTREE "Allow out-of-source tree build for Sparse tests" ${ENABLE_OUTOFSRCTREE_TESTS})
 
+# Check if compiler supports -mavx512fp16 flag
+include(CheckCXXCompilerFlag)
+include(CheckCXXSourceCompiles)
+function(check_compiler_flag_support flag_name result_var)
+    set(CMAKE_REQUIRED_FLAGS "${flag_name}")
+    set(CMAKE_TRY_COMPILE_TARGET_TYPE "EXECUTABLE")
+    check_cxx_source_compiles("
+    #include <immintrin.h>
+    #include <iostream>
+    #include <typeinfo>
+    #include <string>
+    int main(){
+    std::cout << \"typeid support for _Float16: \" << std::string(typeid(_Float16).name());
+    _Float16          three = 3;
+    volatile _Float16 sink;
+    __m512h v   = _mm512_set1_ph(three);
+    __m512h v2  = _mm512_set1_ph((_Float16)2);
+    __m512h res = _mm512_fmadd_ph(v, v2, v);   // -> vfmadd132ph
+    sink        = _mm512_reduce_add_ph(res);   // -> vaddsh / vmovw
+    #if defined(__GNUC__) && !defined(_MSC_VER)
+    __asm__ volatile(\"vmovw %%xmm0, %%eax\"     : : : \"eax\");
+    __asm__ volatile(\"vucomish %%xmm0, %%xmm1\" : : : \"cc\");
+    #endif
+    return (sink > three) ? 1 : 0;
+    }
+    " ${result_var})
+    unset(CMAKE_REQUIRED_FLAGS)
+    set(${result_var} ${${result_var}} PARENT_SCOPE)
+endfunction()
+
 ## Setup the pre-requisites for out-of-source-tree build
 if (BUILD_SPARSE_TESTS_OUTOFSRCTREE)
     cmake_minimum_required(VERSION 3.22 FATAL_ERROR)
@@ -99,9 +129,13 @@ if (BUILD_SPARSE_TESTS_OUTOFSRCTREE)
     endif()
 
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CLANG_OPTIONS_STYLE STREQUAL "GNU"))
+        check_compiler_flag_support("-mavx512fp16" COMPILER_SUPPORTS_AVX512FP16)
         set(COMPILER_FLAGS_COMMON "-mavx2;-mfma;")
         set(COMPILER_FLAGS_DEBUG "-O0;-gdwarf-5;-g3;-Wall;-Wextra;")
         set(AOCLSPARSE_AVX512_FLAGS "-mavx512f;-mavx512vl;-mavx512dq;")
+        if(COMPILER_SUPPORTS_AVX512FP16)
+            set(AOCLSPARSE_AVX512_FLAGS "${AOCLSPARSE_AVX512_FLAGS}-mavx512fp16;")
+        endif()
         if(ASAN)
             set(CMAKE_CXX_FLAGS_DEBUG "-fsanitize=address")
             set(COMPILER_FLAGS_DEBUG "${COMPILER_FLAGS_DEBUG};${CMAKE_CXX_FLAGS_DEBUG}")
@@ -114,14 +148,23 @@ if (BUILD_SPARSE_TESTS_OUTOFSRCTREE)
             set(COVERAGE OFF)
         endif()
     elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CLANG_OPTIONS_STYLE STREQUAL "MSVC")
+        check_compiler_flag_support("/arch:AVX512FP16" COMPILER_SUPPORTS_AVX512FP16)
         set(COMPILER_FLAGS_COMMON "/arch:AVX2;")
         set(COMPILER_FLAGS_DEBUG "/Od;/Zi;")
         set(AOCLSPARSE_AVX512_FLAGS "/arch:AVX512;")
+        if(COMPILER_SUPPORTS_AVX512FP16)
+            set(AOCLSPARSE_AVX512_FLAGS "${AOCLSPARSE_AVX512_FLAGS}/arch:AVX512FP16;")
+        endif()
     else()
+        check_compiler_flag_support("-mavx512fp16" COMPILER_SUPPORTS_AVX512FP16)
         set(COMPILER_FLAGS_COMMON "-mavx2;-mfma;")
         set(COMPILER_FLAGS_DEBUG "-g")
         set(AOCLSPARSE_AVX512_FLAGS "-mavx512f;-mavx512vl;-mavx512dq;")
+        if(COMPILER_SUPPORTS_AVX512FP16)
+            set(AOCLSPARSE_AVX512_FLAGS "${AOCLSPARSE_AVX512_FLAGS}-mavx512fp16;")
+        endif()
     endif()
+    MESSAGE(STATUS "FP16: COMPILER_SUPPORTS_AVX512FP16=${COMPILER_SUPPORTS_AVX512FP16}")
 
     # Version definitions (missing in out-of-source builds)
     set(AOCLSPARSE_DEFS "")
@@ -164,7 +207,27 @@ if (BUILD_SPARSE_TESTS_OUTOFSRCTREE)
 
     message(STATUS "  \$SPARSE_INCLUDE_DIR......${SPARSE_INCLUDE_DIR}")
 else (BUILD_SPARSE_TESTS_OUTOFSRCTREE)
+
+    if (USE_AVX512)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CLANG_OPTIONS_STYLE STREQUAL "GNU"))
+        check_compiler_flag_support("-mavx512fp16" COMPILER_SUPPORTS_AVX512FP16)
+    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CLANG_OPTIONS_STYLE STREQUAL "MSVC")
+        check_compiler_flag_support("/arch:AVX512FP16" COMPILER_SUPPORTS_AVX512FP16)
+    else()
+        check_compiler_flag_support("-mavx512fp16" COMPILER_SUPPORTS_AVX512FP16)
+    endif()
+    endif()
+    MESSAGE(STATUS "FP16: COMPILER_SUPPORTS_AVX512FP16=${COMPILER_SUPPORTS_AVX512FP16}")
     set(SPARSE_LIBRARY "aoclsparse")
+    if(COMPILER_SUPPORTS_AVX512FP16)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CLANG_OPTIONS_STYLE STREQUAL "GNU"))
+       set(AOCLSPARSE_AVX512_FLAGS "${AOCLSPARSE_AVX512_FLAGS};-mavx512fp16;")
+    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CLANG_OPTIONS_STYLE STREQUAL "MSVC")
+       set(AOCLSPARSE_AVX512_FLAGS "${AOCLSPARSE_AVX512_FLAGS};/arch:AVX512FP16;")
+    else()
+       set(AOCLSPARSE_AVX512_FLAGS "${AOCLSPARSE_AVX512_FLAGS};-mavx512fp16;")
+    endif()
+    endif()
 endif (BUILD_SPARSE_TESTS_OUTOFSRCTREE)
 message(STATUS "  \$SPARSE_LIBRARY......${SPARSE_LIBRARY}")
 
@@ -253,10 +316,13 @@ set(GTEST_EXECUTABLES
     tcsrmv_tests
     createbsr_tests
     optimize_symm_herm_tests
+    bsr_convert_tests
+    #--------------------------------
     # KT tests
+    #--------------------------------
     kt_tests
     ktlvl2_tests
-    bsr_convert_tests
+    #--------------------------------
 )
 
 set(AOCLSPARSE_TEST_DEPENDENCIES
@@ -315,6 +381,7 @@ if(NOT BUILD_SPARSE_TESTS_OUTOFSRCTREE)
     install(FILES CMakeLists.txt DESTINATION ${TESTS_INSTALL_DIR})
     install(FILES common_data_utils.cpp DESTINATION ${TESTS_INSTALL_DIR})
     install(FILES common_data_utils.h DESTINATION ${TESTS_INSTALL_DIR}/include)
+    install(FILES level3_test_common.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
     install(FILES createcsc_ut_functions.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
     install(FILES cg_ut_functions.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
     install(FILES gmres_ut_functions.hpp DESTINATION ${TESTS_INSTALL_DIR}/include)
@@ -342,6 +409,7 @@ if(NOT BUILD_SPARSE_TESTS_OUTOFSRCTREE)
     #--------------------------------
     # Install KT kernel source files
     #--------------------------------
+    install(FILES kt_kernels.hpp DESTINATION ${TESTS_INSTALL_DIR})
     install(FILES kt_kernels.cpp DESTINATION ${TESTS_INSTALL_DIR})
     install(FILES ktlvl2_kernels.cpp DESTINATION ${TESTS_INSTALL_DIR})
     #--------------------------------
@@ -357,18 +425,18 @@ ktlvl2_kernels.cpp
 )
 
 # Double compilation of KT test kernels
+add_library(KT_KERNELS_AVX2 OBJECT ${KT_KERNELS})
+target_compile_options(KT_KERNELS_AVX2 PRIVATE "-mno-avx512f;" -DKT_AVX2_BUILD ${AOCLSPARSE_GENERIC_FLAGS})
+target_link_libraries(KT_KERNELS_AVX2 PRIVATE aoclsparse GTest::gtest_main)
+target_include_directories(KT_KERNELS_AVX2 PRIVATE ${AOCLSPARSE_TEST_HEADER_DEPENDENCIES})
+
 add_library(KT_KERNELS_AVX512 OBJECT ${KT_KERNELS})
 target_compile_options(KT_KERNELS_AVX512 PRIVATE ${AOCLSPARSE_AVX512_FLAGS}${COMPILER_FLAGS_DEBUG})
 target_link_libraries(KT_KERNELS_AVX512 PRIVATE aoclsparse GTest::gtest_main)
 target_include_directories(KT_KERNELS_AVX512 PRIVATE ${AOCLSPARSE_TEST_HEADER_DEPENDENCIES})
 
-add_library(KT_KERNELS_AVX2 OBJECT ${KT_KERNELS})
-target_compile_options(KT_KERNELS_AVX2 PUBLIC "-mno-avx512f;" -DKT_AVX2_BUILD ${AOCLSPARSE_GENERIC_FLAGS})
-target_link_libraries(KT_KERNELS_AVX2 PUBLIC aoclsparse GTest::gtest_main)
-target_include_directories(KT_KERNELS_AVX2 PUBLIC ${AOCLSPARSE_TEST_HEADER_DEPENDENCIES})
-
-list(APPEND AOCLSPARSE_TEST_DEPENDENCIES $<TARGET_OBJECTS:KT_KERNELS_AVX512>)
 list(APPEND AOCLSPARSE_TEST_DEPENDENCIES $<TARGET_OBJECTS:KT_KERNELS_AVX2>)
+list(APPEND AOCLSPARSE_TEST_DEPENDENCIES $<TARGET_OBJECTS:KT_KERNELS_AVX512>)
 
 # End of build KT tests logic
 # -----------------------------------------------------------------------
@@ -397,6 +465,7 @@ foreach(TNAME ${GTEST_EXECUTABLES})
     target_compile_definitions(${TNAME} PUBLIC ${AOCLSPARSE_ILP64})
 
     target_compile_options(${TNAME} PUBLIC $<$<CONFIG:Debug>:${COMPILER_FLAGS_DEBUG}> "-mno-avx512f;")
+
     if(NOT BUILD_SPARSE_TESTS_OUTOFSRCTREE)
         install(FILES ${TNAME}.cpp DESTINATION ${TESTS_INSTALL_DIR})
     endif()
@@ -434,4 +503,5 @@ if(BUILD_SPARSE_TESTS_OUTOFSRCTREE)
     message (STATUS  "  \$CMAKE_AOCL_ROOT.................................${CMAKE_AOCL_ROOT}")
 
 endif(BUILD_SPARSE_TESTS_OUTOFSRCTREE)
+
 

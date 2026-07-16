@@ -1429,24 +1429,6 @@ void set_symgs_matrix_properties(aoclsparse_mat_descr  descr_dest,
     return;
 }
 
-/********************************************************************************
- * \brief Detect LP64 integer overflow in a product of two aoclsparse_int values.
- *
- * Computes the product a*b entirely in 64-bit arithmetic and checks if the result
- * exceeds the representable range of aoclsparse_int. This approach avoids undefined
- * behavior that would occur if computing a*b directly in a narrower type when
- * overflow happens (signed integer overflow is UB in C/C++).
- *
- * @param[in] a  First factor (e.g., dim-1, m+1, etc.)
- * @param[in] b  Second factor (e.g., stride, leading dimension, etc.)
- * @return true if a*b overflows aoclsparse_int, false otherwise.
- ********************************************************************************/
-bool aoclsparse_lp64_product_overflow(aoclsparse_int a, aoclsparse_int b)
-{
-    int64_t product = static_cast<int64_t>(a) * static_cast<int64_t>(b);
-    return (product > aoclsparse_numeric::int_max) || (product < aoclsparse_numeric::int_min);
-}
-
 // Returns '1' if the build is AVX512 enabled. Else return '0'
 aoclsparse_int aoclsparse_is_avx512_build()
 {

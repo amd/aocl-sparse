@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2024 Advanced Micro Devices, Inc.All rights reserved.
+ * Copyright (c) 2020-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -61,4 +61,67 @@ extern "C" aoclsparse_status aoclsparse_ddiamv(aoclsparse_operation       trans,
 {
     return aoclsparse_diamv_t<double>(
         trans, alpha, m, n, nnz, dia_val, dia_offset, dia_num_diag, descr, x, beta, y);
+}
+
+// Kernel-ID wrappers for explicit DIAMV mode/kernel selection.
+extern "C" DLL_PUBLIC aoclsparse_status aoclsparse_sdiamv_kid(aoclsparse_operation  trans,
+                                                              const float          *alpha,
+                                                              aoclsparse_int        m,
+                                                              aoclsparse_int        n,
+                                                              aoclsparse_int        nnz,
+                                                              const float          *dia_val,
+                                                              const aoclsparse_int *dia_offset,
+                                                              aoclsparse_int        dia_num_diag,
+                                                              const aoclsparse_mat_descr descr,
+                                                              const float               *x,
+                                                              const float               *beta,
+                                                              float                     *y,
+                                                              aoclsparse_int             diamv_mode,
+                                                              aoclsparse_int             diamv_kid)
+{
+    return aoclsparse_diamv_t<float>(trans,
+                                     alpha,
+                                     m,
+                                     n,
+                                     nnz,
+                                     dia_val,
+                                     dia_offset,
+                                     dia_num_diag,
+                                     descr,
+                                     x,
+                                     beta,
+                                     y,
+                                     diamv_mode,
+                                     diamv_kid);
+}
+
+extern "C" DLL_PUBLIC aoclsparse_status aoclsparse_ddiamv_kid(aoclsparse_operation  trans,
+                                                              const double         *alpha,
+                                                              aoclsparse_int        m,
+                                                              aoclsparse_int        n,
+                                                              aoclsparse_int        nnz,
+                                                              const double         *dia_val,
+                                                              const aoclsparse_int *dia_offset,
+                                                              aoclsparse_int        dia_num_diag,
+                                                              const aoclsparse_mat_descr descr,
+                                                              const double              *x,
+                                                              const double              *beta,
+                                                              double                    *y,
+                                                              aoclsparse_int             diamv_mode,
+                                                              aoclsparse_int             diamv_kid)
+{
+    return aoclsparse_diamv_t<double>(trans,
+                                      alpha,
+                                      m,
+                                      n,
+                                      nnz,
+                                      dia_val,
+                                      dia_offset,
+                                      dia_num_diag,
+                                      descr,
+                                      x,
+                                      beta,
+                                      y,
+                                      diamv_mode,
+                                      diamv_kid);
 }

@@ -391,6 +391,34 @@ namespace aoclsparse_numeric
     /* Provide max/min for aoclsparse_int (safe from Windows min/max macro collision) */
     inline constexpr aoclsparse_int int_max = (std::numeric_limits<aoclsparse_int>::max)();
     inline constexpr aoclsparse_int int_min = (std::numeric_limits<aoclsparse_int>::min)();
+
+    // Returns true if accumulator v (of type AccT) exceeds the valid aoclsparse_int range.
+    // The template parameter prevents Coverity from collapsing the sizeof comparison at
+    // non-template call sites (avoids CONSTANT_EXPRESSION_RESULT false positives in ILP64).
+    template <typename AccT = int64_t>
+    [[nodiscard]] inline bool aoclsparse_int_sum_overflow(AccT v) noexcept
+    {
+        if constexpr(sizeof(AccT) > sizeof(aoclsparse_int))
+            return v > int_max;
+        (void)v;
+        return false;
+    }
+
+    // Returns true if the product a*b would overflow aoclsparse_int.
+    // Division-based: no wider type needed; correct in both LP64 and ILP64.
+    [[nodiscard]] inline bool aoclsparse_int_product_overflow(aoclsparse_int a,
+                                                              aoclsparse_int b) noexcept
+    {
+        if(b == 0 || a == 0)
+            return false;
+        if(a == int_min)
+            return (b != 1);
+        if(b == int_min)
+            return (a != 1);
+        const aoclsparse_int abs_a = (a < 0) ? -a : a;
+        const aoclsparse_int abs_b = (b < 0) ? -b : b;
+        return abs_a > int_max / abs_b;
+    }
 }
 
 /* Convenience operator for comparing with zero<T>

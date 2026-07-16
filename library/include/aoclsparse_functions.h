@@ -994,6 +994,120 @@ aoclsparse_status aoclsparse_sdiamv(aoclsparse_operation       trans,
 /**@}*/
 
 /*! \ingroup level2_module
+ *  \brief Real single and double precision sparse matrix vector product using DIA
+ *  storage format (kernel/mode selection variation).
+ *
+ *  \details
+ *  This variation of <tt>aoclsparse_?diamv</tt>, namely with a suffix of \p _kid, performs the
+ *  same operation as <tt>aoclsparse_?diamv()</tt> but additionally allows the caller to select
+ *  the kernel family and the kernel implementation (ISA) used internally. It computes
+ *  \f[
+ *    y = \alpha \, op(A) \, x + \beta \, y,
+ *  \f]
+ *  with
+ *  \f[
+ *    op(A) = \left\{
+ *    \begin{array}{ll}
+ *         A,   & \text{if } {\bf\mathsf{trans}} = \text{aoclsparse}\_\text{operation}\_\text{none} \\
+ *         A^T, & \text{if } {\bf\mathsf{trans}} = \text{aoclsparse}\_\text{operation}\_\text{transpose} \\
+ *         A^H, & \text{if } {\bf\mathsf{trans}} = \text{aoclsparse}\_\text{operation}\_\text{conjugate}\_\text{transpose}
+ *    \end{array}
+ *    \right.
+ *  \f]
+ *
+ *  @note
+ *  Currently, only \p trans = \ref aoclsparse_operation_none is supported.
+ *
+ *  @param[in]
+ *  trans       matrix operation type.
+ *  @param[in]
+ *  alpha       scalar \f$\alpha\f$.
+ *  @param[in]
+ *  m           number of rows of the  matrix.
+ *  @param[in]
+ *  n           number of columns of the  matrix.
+ *  @param[in]
+ *  nnz         number of non-zero entries of the  matrix.
+ *  @param[in]
+ *  dia_val     array that contains the elements of the  matrix. Padded
+ *              elements should be zero.
+ *  @param[in]
+ *  dia_offset  array that contains the offsets of each diagonal of the matrix.
+ *  @param[in]
+ *  dia_num_diag  number of diagonals in the matrix.
+ *  @param[in]
+ *  descr       descriptor of the sparse DIA matrix.
+ *  @param[in]
+ *  x           array of \p n elements (\f$op(A) = A\f$) or \p m elements
+ *              (\f$op(A) = A^T\f$ or \f$op(A) = A^H\f$).
+ *  @param[in]
+ *  beta        scalar \f$\beta\f$.
+ *  @param[inout]
+ *  y           array of \p m elements (\f$op(A) = A\f$) or \p n elements
+ *              (\f$op(A) = A^T\f$ or \f$op(A) = A^H\f$).
+ *  @param[in]
+ *  diamv_mode  kernel-family selection hint:
+ *              \li \c -1 : automatic, the kernel family is chosen by an internal heuristic.
+ *              \li \c  0 : reference implementation (no explicit AVX instructions).
+ *              \li \c  1 : row-major kernel family.
+ *              \li \c  2 : diagonal-major kernel family.
+ *              Any other value is treated as \c -1 (automatic).
+ *  @param[in]
+ *  diamv_kid   Kernel ID, hints which kernel implementation (ISA) to use within the
+ *              selected family:
+ *              \li \c -1 : automatic ISA selection.
+ *              \li \c  0 : reference implementation.
+ *              \li \c  1 : AVX2 (256-bit) kernel template.
+ *              \li \c  2 : AVX2 (256-bit) kernel template.
+ *              \li \c  3 : AVX512 (512-bit) kernel template.
+ *              When \p diamv_mode = 0 (reference), \p diamv_kid is ignored.
+ *
+ *  \retval     aoclsparse_status_success the operation completed successfully.
+ *  \retval     aoclsparse_status_invalid_size \p m, \p n or \p dia_num_diag is invalid.
+ *  \retval     aoclsparse_status_invalid_pointer \p descr, \p alpha, \p dia_val,
+ *              \p dia_offset, \p x, \p beta or \p y pointer is invalid.
+ *  \retval     aoclsparse_status_invalid_value the index base in \p descr is neither
+ *              \ref aoclsparse_index_base_zero nor \ref aoclsparse_index_base_one.
+ *  \retval     aoclsparse_status_invalid_kid the requested \p diamv_kid is not available.
+ *  \retval     aoclsparse_status_not_implemented
+ *              \p trans is not \ref aoclsparse_operation_none, or
+ *              \ref aoclsparse_matrix_type is not \ref aoclsparse_matrix_type_general.
+ * @{
+ */
+DLL_PUBLIC
+aoclsparse_status aoclsparse_ddiamv_kid(aoclsparse_operation       trans,
+                                        const double              *alpha,
+                                        aoclsparse_int             m,
+                                        aoclsparse_int             n,
+                                        aoclsparse_int             nnz,
+                                        const double              *dia_val,
+                                        const aoclsparse_int      *dia_offset,
+                                        aoclsparse_int             dia_num_diag,
+                                        const aoclsparse_mat_descr descr,
+                                        const double              *x,
+                                        const double              *beta,
+                                        double                    *y,
+                                        aoclsparse_int             diamv_mode,
+                                        aoclsparse_int             diamv_kid);
+
+DLL_PUBLIC
+aoclsparse_status aoclsparse_sdiamv_kid(aoclsparse_operation       trans,
+                                        const float               *alpha,
+                                        aoclsparse_int             m,
+                                        aoclsparse_int             n,
+                                        aoclsparse_int             nnz,
+                                        const float               *dia_val,
+                                        const aoclsparse_int      *dia_offset,
+                                        aoclsparse_int             dia_num_diag,
+                                        const aoclsparse_mat_descr descr,
+                                        const float               *x,
+                                        const float               *beta,
+                                        float                     *y,
+                                        aoclsparse_int             diamv_mode,
+                                        aoclsparse_int             diamv_kid);
+/**@}*/
+
+/*! \ingroup level2_module
 *  \brief Real single and double precision matrix vector product using BSR storage format.
 *
 *  \details
@@ -1989,8 +2103,9 @@ aoclsparse_status aoclsparse_strsm_kid(const aoclsparse_operation trans,
 /*! \ingroup level3_module
  *  \brief Sparse matrix Sparse matrix multiplication for real and complex datatypes.
  *  \details
- *  <tt>aoclsparse_sp2m</tt> multiplies two sparse matrices in CSR storage format. The
- *  result is stored in a newly allocated sparse matrix in CSR format, such that
+ *  <tt>aoclsparse_sp2m</tt> multiplies two sparse matrices. Both \p A and \p B may be
+ *  provided in CSR or CSC storage format. The result is stored in a newly allocated
+ *  sparse matrix in CSR format, such that
  *  \f[
  *    C =  op(A) \, op(B),
  *  \f]
@@ -2035,17 +2150,17 @@ aoclsparse_status aoclsparse_strsm_kid(const aoclsparse_operation trans,
  *  @param[in]
  *  opA     matrix \f$A\f$ operation type.
  *  @param[in]
- *  descrA      descriptor of the sparse CSR matrix \f$A\f$. Currently, only
+ *  descrA      descriptor of the sparse CSR or CSC matrix \f$A\f$. Currently, only
  *              \ref aoclsparse_matrix_type_general is supported.
  *  @param[in]
- *  A        sparse CSR matrix \f$A\f$ .
+ *  A        sparse matrix \f$A\f$ in CSR or CSC format.
  *  @param[in]
  *  opB     matrix \f$B\f$ operation type.
  *  @param[in]
- *  descrB      descriptor of the sparse CSR matrix \f$B\f$. Currently, only
+ *  descrB      descriptor of the sparse CSR or CSC matrix \f$B\f$. Currently, only
  *              \ref aoclsparse_matrix_type_general is supported.
  *  @param[in]
- *  B        sparse CSR matrix \f$B\f$ .
+ *  B        sparse matrix \f$B\f$ in CSR or CSC format.
  *  @param[in]
  *  request     Specifies full computation or two-stage algorithm
  *              \ref aoclsparse_stage_nnz_count , Only rowIndex array of the
@@ -2072,7 +2187,7 @@ aoclsparse_status aoclsparse_strsm_kid(const aoclsparse_operation trans,
  *  \retval     aoclsparse_status_memory_error Memory allocation failure.
  *  \retval     aoclsparse_status_not_implemented
  *              \ref aoclsparse_matrix_type is not \ref aoclsparse_matrix_type_general or
- *              input matrices \p A or \p B is not in CSR format
+ *              input matrices \p A or \p B are not in CSR or CSC format
  * @rst
  * .. collapse:: Example - Complex space (tests/examples/sample_zsp2m.cpp)
  *
@@ -2096,8 +2211,9 @@ aoclsparse_status aoclsparse_sp2m(aoclsparse_operation       opA,
 /*! \ingroup level3_module
  *  \brief Sparse matrix Sparse matrix multiplication for real and complex datatypes.
  *  \details
- *  <tt>aoclsparse_?spmm</tt> multiplies two sparse matrices in CSR storage format. The
- *  result is stored in a newly allocated sparse matrix in CSR format, such that
+ *  <tt>aoclsparse_?spmm</tt> multiplies two sparse matrices. Both \p A and \p B may be
+ *  in CSR or CSC storage format. The result is stored in a newly allocated sparse matrix
+ *  in CSR format, such that
  * @rst
  * .. math::
  *    C =  op(A) \cdot B,
@@ -2119,10 +2235,10 @@ aoclsparse_status aoclsparse_sp2m(aoclsparse_operation       opA,
  *  opA     matrix \f$A\f$ operation type.
  *
  *  @param[in]
- *  A        sparse CSR matrix \f$A\f$.
+ *  A        sparse matrix \f$A\f$ in CSR or CSC format.
  *
  *  @param[in]
- *  B        sparse CSR matrix \f$B\f$.
+ *  B        sparse matrix \f$B\f$ in CSR or CSC format.
  *
  *  @param[out]
  *  *C        Pointer to sparse CSR matrix \f$C\f$ .
@@ -2136,7 +2252,7 @@ aoclsparse_status aoclsparse_sp2m(aoclsparse_operation       opA,
  *  \retval     aoclsparse_status_invalid_value input parameters contain an invalid value.
  *  \retval     aoclsparse_status_wrong_type \p A and \p B matrix data types do not match.
  *  \retval     aoclsparse_status_memory_error Memory allocation failure.
- *  \retval     aoclsparse_status_not_implemented Input matrices \p A or \p B is not in CSR format
+ *  \retval     aoclsparse_status_not_implemented Input matrices \p A or \p B are not in CSR or CSC format
  */
 DLL_PUBLIC
 aoclsparse_status aoclsparse_spmm(aoclsparse_operation    opA,
@@ -2268,11 +2384,11 @@ aoclsparse_status aoclsparse_sypr(aoclsparse_operation       opA,
                                   const aoclsparse_request   request);
 
 /*! \ingroup level3_module
- *  \brief Sparse matrix dense matrix multiplication using CSR storage format.
+ *  \brief Sparse matrix dense matrix multiplication using CSR or CSC storage format.
  *
  *  \details
  *  <tt>aoclsparse_?csrmm</tt> multiplies a scalar \f$\alpha\f$ with a sparse \f$m \times k\f$
- *  matrix \f$A\f$, defined in CSR storage format, and a dense \f$k \times n\f$
+ *  matrix \f$A\f$, defined in CSR or CSC storage format, and a dense \f$k \times n\f$
  *  matrix \f$B\f$ and adds the result to the dense \f$m \times n\f$ matrix \f$C\f$ that
  *  is multiplied by a scalar \f$\beta\f$, such that
  *  \f[
@@ -2292,12 +2408,12 @@ aoclsparse_status aoclsparse_sypr(aoclsparse_operation       opA,
  *  @param[in]
  *  alpha       Scalar \f$\alpha\f$.
  *  @param[in]
- *  A           Sparse CSR matrix \f$A\f$ structure.
+ *  A           Sparse CSR or CSC matrix \f$A\f$ structure.
  *  @param[in]
- *  descr       descriptor of the sparse CSR matrix \f$A\f$. Currently, supports
+ *  descr       descriptor of the sparse CSR or CSC matrix \f$A\f$. Currently, supports
  *              \ref aoclsparse_matrix_type_general, \ref aoclsparse_matrix_type_symmetric,
  *              and \ref aoclsparse_matrix_type_hermitian matrices. Both, base-zero and
- *              base-one input arrays of CSR matrix are supported.
+ *              base-one input arrays of CSR and CSC matrices are supported.
  *  @param[in]
  *  order       \ref aoclsparse_order_row / \ref aoclsparse_order_column for dense matrix
  *  @param[in]
@@ -2328,7 +2444,7 @@ aoclsparse_status aoclsparse_sypr(aoclsparse_operation       opA,
  *  \retval     aoclsparse_status_not_implemented
  *              \ref aoclsparse_matrix_type is not one of these: \ref aoclsparse_matrix_type_general,
  *              \ref aoclsparse_matrix_type_symmetric, \ref aoclsparse_matrix_type_hermitian  or
- *              input matrix \p A is not in CSR format
+ *              input matrix \p A is not in CSR or CSC format
  *
  * @rst
  * .. collapse:: Example (tests/examples/sample_csrmm.cpp)
@@ -2396,10 +2512,10 @@ aoclsparse_status aoclsparse_scsrmm(aoclsparse_operation       op,
 
 //-------------------------------------------------------------------------------------------
 /*! \ingroup level3_module
- *  \brief Matrix multiplication of two sparse matrices stored in the CSR storage format. The output matrix is stored in a dense format.
+ *  \brief Matrix multiplication of two sparse matrices stored in CSR or CSC storage format. The output matrix is stored in a dense format.
  *  \details
  *  <tt>aoclsparse_?spmmd</tt> multiplies a sparse
- *  matrix \f$A\f$  and a sparse matrix \f$B\f$, both stored in the CSR storage format, and saves the result in a dense  matrix \f$C\f$, such that
+ *  matrix \f$A\f$  and a sparse matrix \f$B\f$, both stored in CSR or CSC storage format, and saves the result in a dense  matrix \f$C\f$, such that
  *  \f[
  *    C := op(A) \cdot B,
  *  \f]
@@ -2418,9 +2534,9 @@ aoclsparse_status aoclsparse_scsrmm(aoclsparse_operation       op,
  *  @param[in]
  *  op     Operation to perform on matrix \f$A\f$.
  *  @param[in]
- *  A      Matrix structure containing sparse matrix \f$A\f$ of size \f$m \times k\f$.
+ *  A      Matrix structure containing sparse matrix \f$A\f$ of size \f$m \times k\f$ in CSR or CSC format.
  *  @param[in]
- *  B      Matrix structure containing sparse matrix \f$B\f$ of size \f$k \times n\f$ if \p op is \ref aoclsparse_operation_none otherwise of size \f$m \times n\f$.
+ *  B      Matrix structure containing sparse matrix \f$B\f$ of size \f$k \times n\f$ if \p op is \ref aoclsparse_operation_none otherwise of size \f$m \times n\f$ in CSR or CSC format.
  *  @param[in]
  *  layout Ordering of the dense output matrix: valid values are \ref aoclsparse_order_row and \ref aoclsparse_order_column.
  *  @param[inout]
@@ -2435,7 +2551,7 @@ aoclsparse_status aoclsparse_scsrmm(aoclsparse_operation       op,
  *  \retval     aoclsparse_status_invalid_pointer \p A, \p B or \p C pointer is not valid.
  *  \retval     aoclsparse_status_wrong_type \ref aoclsparse_matrix_data_type does not match the precision type.
  *  \retval     aoclsparse_status_not_implemented
- *              \ref aoclsparse_matrix_format_type is not \ref aoclsparse_csr_mat.
+ *              \ref aoclsparse_matrix_format_type is not in CSR or CSC format.
  *
 */
 /**@{*/
@@ -2475,10 +2591,10 @@ aoclsparse_status aoclsparse_zspmmd(const aoclsparse_operation op,
 
 //-------------------------------------------------------------------------------------------
 /*! \ingroup level3_module
- *  \brief A variant of matrix multiplication of two sparse matrices stored in the CSR storage format. The output matrix is stored in a dense format. Supports operations on both sparse matrices.
+ *  \brief A variant of matrix multiplication of two sparse matrices stored in CSR or CSC storage format. The output matrix is stored in a dense format. Supports operations on both sparse matrices.
  *  \details
  *  <tt>aoclsparse_?sp2md</tt> multiplies a sparse
- *  matrix \f$A\f$  and a sparse matrix \f$B\f$, both stored in the CSR storage format, and saves the result in a dense matrix \f$C\f$, such that
+ *  matrix \f$A\f$  and a sparse matrix \f$B\f$, both stored in CSR or CSC storage format, and saves the result in a dense matrix \f$C\f$, such that
  *  \f[
  *    C := \alpha \cdot op(A) \cdot op(B) + \beta \cdot C,
  *  \f]
@@ -2509,14 +2625,14 @@ aoclsparse_status aoclsparse_zspmmd(const aoclsparse_operation op,
  *  descrA  Descriptor of A. Only \ref aoclsparse_matrix_type_general is supported at present.
  *          As a consequence, all other parameters within the descriptor are ignored.
  *  @param[in]
- *  A     Matrix structure containing sparse matrix \f$A\f$ of size \f$m \times k\f$.
+ *  A     Matrix structure containing sparse matrix \f$A\f$ of size \f$m \times k\f$ in CSR or CSC format.
  *  @param[in]
  *  opB     Operation to perform on matrix \f$B\f$.
  *  @param[in]
  *  descrB  Descriptor of B. Only \ref aoclsparse_matrix_type_general is supported at present.
  *          As a consequence, all other parameters within the descriptor are ignored.
  *  @param[in]
- *  B      Matrix structure containing sparse matrix \f$B\f$ of size \f$k \times n\f$ if \p op is \ref aoclsparse_operation_none otherwise of size \f$m \times n\f$.
+ *  B      Matrix structure containing sparse matrix \f$B\f$ of size \f$k \times n\f$ if \p op is \ref aoclsparse_operation_none otherwise of size \f$m \times n\f$ in CSR or CSC format.
  *  @param[in]
  *  alpha  Value of \f$ \alpha\f$.
  *  @param[in]
@@ -2535,7 +2651,7 @@ aoclsparse_status aoclsparse_zspmmd(const aoclsparse_operation op,
  *  \retval     aoclsparse_status_invalid_pointer \p A, \p B or \p C pointer is not valid.
  *  \retval     aoclsparse_status_wrong_type \ref aoclsparse_matrix_data_type does not match the precision type.
  *  \retval     aoclsparse_status_not_implemented
- *              \ref aoclsparse_matrix_format_type is not \ref aoclsparse_csr_mat.
+ *              \ref aoclsparse_matrix_format_type is not in CSR or CSC format.
  *  \retval     aoclsparse_status_internal_error An internal error occurred.
  *
  */
@@ -2719,12 +2835,12 @@ aoclsparse_status aoclsparse_dcsr2m(aoclsparse_operation       trans_A,
  *  if \p op = \ref aoclsparse_operation_none. Otherwise \f$A\f$ is \f$n \times m\f$
  *  and the result matrix \f$C\f$ has the same dimension as \f$B\f$.
  *
- *  @note Only matrices in CSR format are supported in this release.
+ *  @note Both \f$A\f$ and \f$B\f$ support CSR and CSC storage formats.
  *
  *  @param[in]  op      matrix \f$A\f$ operation type.
  *  @param[in]  alpha   scalar with same precision as \f$A\f$ and \f$B\f$ matrix
- *  @param[in]  A       source sparse matrix \f$A\f$
- *  @param[in]  B       source sparse matrix \f$B\f$
+ *  @param[in]  A       source sparse matrix \f$A\f$ in CSR or CSC storage format
+ *  @param[in]  B       source sparse matrix \f$B\f$ in CSR or CSC storage format
  *  @param[out] *C      pointer to the sparse output matrix \f$C\f$
  *
  *  \retval     aoclsparse_status_success               The operation completed successfully.
@@ -2732,7 +2848,7 @@ aoclsparse_status aoclsparse_dcsr2m(aoclsparse_operation       trans_A,
  *  \retval     aoclsparse_status_invalid_size          The dimensions of \p A and \p B are not compatible.
  *  \retval     aoclsparse_status_internal_error        Internal Error Occurred
  *  \retval     aoclsparse_status_memory_error          Memory allocation failure.
- *  \retval     aoclsparse_status_not_implemented       Matrices are not in CSR format.
+ *  \retval     aoclsparse_status_not_implemented       \f$A\f$ or \f$B\f$ is not in CSR or CSC format.
  * @{
  */
 DLL_PUBLIC

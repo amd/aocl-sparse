@@ -39,6 +39,7 @@
 #include "blis.hh"
 #include "cblas.hh"
 #pragma GCC diagnostic pop
+#include "level3_test_common.hpp"
 
 namespace
 {
@@ -47,91 +48,6 @@ namespace
     aoclsparse_operation  op_n = aoclsparse_operation_none;
     aoclsparse_index_base zero = aoclsparse_index_base_zero;
     aoclsparse_index_base one  = aoclsparse_index_base_one;
-
-    // Structure holding the source arrays for matrix A
-    template <typename T>
-    struct mats
-    {
-        // CSR arrays for matrix A
-        std::vector<T>              val_a;
-        std::vector<aoclsparse_int> col_ind_a;
-        std::vector<aoclsparse_int> row_ptr_a;
-        // CSC arrays for matrix A (populated when format is csc_mat)
-        std::vector<T>              csc_val_a;
-        std::vector<aoclsparse_int> csc_row_ind_a;
-        std::vector<aoclsparse_int> csc_col_ptr_a;
-    };
-
-    // Generate a random matrix A as CSR or CSC format
-    // use_csc_a: false (default CSR) or true (CSC format for matrix A)
-    template <typename T>
-    void gen_A(aoclsparse_int        m_a,
-               aoclsparse_int        n_a,
-               aoclsparse_int        nnz_a,
-               aoclsparse_index_base b_a,
-               mats<T>              &src,
-               aoclsparse_matrix    &A,
-               bool                  use_csc_a = false)
-    {
-        std::vector<aoclsparse_int> coo_row; // don't need to be preserved, we want only CSR
-        // Randomly generate A matrix as CSR first
-        aoclsparse_matrix A_csr = NULL;
-        ASSERT_EQ(aoclsparse_init_matrix_random(b_a,
-                                                m_a,
-                                                n_a,
-                                                nnz_a,
-                                                aoclsparse_csr_mat,
-                                                coo_row,
-                                                src.col_ind_a,
-                                                src.val_a,
-                                                src.row_ptr_a,
-                                                A_csr),
-                  aoclsparse_status_success);
-
-        if(use_csc_a)
-        {
-            // Convert CSR A to CSC format
-            aoclsparse_mat_descr descr_conv;
-            ASSERT_EQ(aoclsparse_create_mat_descr(&descr_conv), aoclsparse_status_success);
-            ASSERT_EQ(aoclsparse_set_mat_index_base(descr_conv, b_a), aoclsparse_status_success);
-
-            src.csc_col_ptr_a.resize(n_a + 1);
-            src.csc_row_ind_a.resize(nnz_a);
-            src.csc_val_a.resize(nnz_a);
-
-            ASSERT_EQ(aoclsparse_csr2csc(m_a,
-                                         n_a,
-                                         nnz_a,
-                                         descr_conv,
-                                         b_a,
-                                         src.row_ptr_a.data(),
-                                         src.col_ind_a.data(),
-                                         src.val_a.data(),
-                                         src.csc_row_ind_a.data(),
-                                         src.csc_col_ptr_a.data(),
-                                         src.csc_val_a.data()),
-                      aoclsparse_status_success);
-            aoclsparse_destroy_mat_descr(descr_conv);
-
-            // Create CSC matrix A
-            ASSERT_EQ(aoclsparse_create_csc(&A,
-                                            b_a,
-                                            m_a,
-                                            n_a,
-                                            nnz_a,
-                                            src.csc_col_ptr_a.data(),
-                                            src.csc_row_ind_a.data(),
-                                            src.csc_val_a.data()),
-                      aoclsparse_status_success);
-            // Destroy the temporary CSR matrix
-            aoclsparse_destroy(&A_csr);
-        }
-        else
-        {
-            // Use CSR format as-is
-            A = A_csr;
-        }
-    }
 
     // Null test
     template <typename T>
@@ -377,9 +293,9 @@ namespace
         std::vector<T> dense_a(m_a * n_a), dense_c, dense_c_exp;
         tolerance_t<T> abserr = sqrt(std::numeric_limits<tolerance_t<T>>::epsilon());
 
-        mats<T>           src;
-        aoclsparse_matrix A = NULL;
-        gen_A(m_a, n_a, nnz_a, b_a, src, A, use_csc_a);
+        sparse_mat_data<T> src;
+        aoclsparse_matrix  A = NULL;
+        gen_mat(m_a, n_a, nnz_a, b_a, src, A, nullptr, !use_csc_a);
 
         aoclsparse_mat_descr descrA;
         ASSERT_EQ(aoclsparse_create_mat_descr(&descrA), aoclsparse_status_success);
@@ -458,9 +374,9 @@ namespace
         aoclsparse_csr2dense(m_a,
                              n_a,
                              descrA,
-                             src.val_a.data(),
-                             src.row_ptr_a.data(),
-                             src.col_ind_a.data(),
+                             src.csr_val.data(),
+                             src.csr_row_ptr.data(),
+                             src.csr_col_ind.data(),
                              dense_a.data(),
                              n_a,
                              aoclsparse_order_row);

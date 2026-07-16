@@ -1,5 +1,5 @@
 ..
-   Copyright (c) 2023-2025 Advanced Micro Devices, Inc.
+   Copyright (c) 2023-2026 Advanced Micro Devices, Inc.
 ..
    Permission is hereby granted, free of charge, to any person obtaining a copy
    of this software and associated documentation files (the "Software"), to deal
@@ -264,6 +264,15 @@ aoclsparse\_?diamv()
     :project: sparse
     :outline:
 .. doxygenfunction:: aoclsparse_ddiamv
+   :project: sparse
+
+aoclsparse\_?diamv_kid()
+------------------------
+
+.. doxygenfunction:: aoclsparse_sdiamv_kid
+    :project: sparse
+    :outline:
+.. doxygenfunction:: aoclsparse_ddiamv_kid
    :project: sparse
 
 aoclsparse\_?bsrmv()

@@ -27,6 +27,7 @@
 #include "aoclsparse_interface.hpp"
 
 #include <algorithm>
+#include <sstream>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -34,6 +35,7 @@
 #include "blis.hh"
 #include "cblas.hh"
 #pragma GCC diagnostic pop
+#include "level3_test_common.hpp"
 
 namespace
 {
@@ -547,6 +549,101 @@ namespace
                     else
                         C_exp.assign({1,   -2,  3,  4, 5,  -6,   1,   -2,  3, 4,   81,  92, 1,
                                       -64, 103, 96, 1, 74, -103, 168, 119, 2, -67, -16, 18});
+                }
+                break;
+
+            // CSC datasets: csr_col_ind holds col_ptr, csr_row_ptr holds row_ind.
+            case 9:
+                // 3x3 general CSC matrix; A = [[1,3,0],[0,2,0],[0,0,4]]
+                m = 3, k = 3, n = 3, nnz = 4, alpha = 1, beta = 0;
+                csr_col_ind.assign({0, 1, 3, 4});
+                csr_row_ptr.assign({0, 0, 1, 2});
+                csr_val.assign({1, 3, 2, 4});
+                B.assign({1, 0, 0, 0, 1, 0, 0, 0, 1});
+                C.assign(9, T{});
+                transform(csr_col_ind.begin(),
+                          csr_col_ind.end(),
+                          csr_col_ind.begin(),
+                          [base](aoclsparse_int &d) { return d + base; });
+                transform(csr_row_ptr.begin(),
+                          csr_row_ptr.end(),
+                          csr_row_ptr.begin(),
+                          [base](aoclsparse_int &d) { return d + base; });
+                // op_none -> C=A; op_t/op_h -> C=A^T (same for real)
+                if(order == aoclsparse_order_column)
+                {
+                    if(op == aoclsparse_operation_none)
+                        C_exp.assign({1, 0, 0, 3, 2, 0, 0, 0, 4});
+                    else
+                        C_exp.assign({1, 3, 0, 0, 2, 0, 0, 0, 4});
+                }
+                else
+                {
+                    if(op == aoclsparse_operation_none)
+                        C_exp.assign({1, 3, 0, 0, 2, 0, 0, 0, 4});
+                    else
+                        C_exp.assign({1, 0, 0, 3, 2, 0, 0, 0, 4});
+                }
+                break;
+            case 10:
+                // 3x3 symmetric CSC (full matrix); underlying A = [[1,2,3],[4,5,6],[7,8,9]]
+                // CSC fill=upper expands upper of A; CSC fill=lower expands lower of A
+                m = 3, k = 3, n = 3, nnz = 9, alpha = 1, beta = 0;
+                csr_col_ind.assign({0, 3, 6, 9});
+                csr_row_ptr.assign({0, 1, 2, 0, 1, 2, 0, 1, 2});
+                csr_val.assign({1, 4, 7, 2, 5, 8, 3, 6, 9});
+                B.assign({1, 0, 0, 0, 1, 0, 0, 0, 1});
+                C.assign(9, T{});
+                transform(csr_col_ind.begin(),
+                          csr_col_ind.end(),
+                          csr_col_ind.begin(),
+                          [base](aoclsparse_int &d) { return d + base; });
+                transform(csr_row_ptr.begin(),
+                          csr_row_ptr.end(),
+                          csr_row_ptr.begin(),
+                          [base](aoclsparse_int &d) { return d + base; });
+                // All ops equivalent for symmetric; result symmetric so row=col C_exp
+                if(symut_non_unit)
+                    C_exp.assign({1, 2, 3, 2, 5, 6, 3, 6, 9});
+                if(symut_unit)
+                    C_exp.assign({1, 2, 3, 2, 1, 6, 3, 6, 1});
+                if(symlt_non_unit)
+                    C_exp.assign({1, 4, 7, 4, 5, 8, 7, 8, 9});
+                if(symlt_unit)
+                    C_exp.assign({1, 4, 7, 4, 1, 8, 7, 8, 1});
+                break;
+            case 11:
+                // 4x3 non-square general CSC; same A, B, C_exp as CSR id=3
+                m = 4, k = 3, n = 2, nnz = 3;
+                alpha = -4.5, beta = 11.0;
+                csr_col_ind.assign({0, 1, 2, 3}); // col_ptr for CSC
+                csr_row_ptr.assign({1, 2, 3}); // row_ind for CSC
+                csr_val.assign({2, 4, 8});
+                B.assign({3.0, 7.0, 3.0, 1.0, 5.0, 2.0, 4.0, 3.0, 1.0, 2.0, 1.0, 3.0});
+                C.assign({0});
+                transform(csr_col_ind.begin(),
+                          csr_col_ind.end(),
+                          csr_col_ind.begin(),
+                          [base](aoclsparse_int &d) { return d + base; });
+                transform(csr_row_ptr.begin(),
+                          csr_row_ptr.end(),
+                          csr_row_ptr.begin(),
+                          [base](aoclsparse_int &d) { return d + base; });
+                if(order == aoclsparse_order_column)
+                {
+                    if(op == aoclsparse_operation_none)
+                        C_exp.assign({0, -27, -126, -108, 0, -9, -90, -72});
+                    if(op == aoclsparse_operation_transpose
+                       || op == aoclsparse_operation_conjugate_transpose)
+                        C_exp.assign({-63, -54, -36, -18, -72, -108});
+                }
+                else
+                {
+                    if(op == aoclsparse_operation_none)
+                        C_exp.assign({0, 0, -27, -63, -54, -18, -180, -72});
+                    if(op == aoclsparse_operation_transpose
+                       || op == aoclsparse_operation_conjugate_transpose)
+                        C_exp.assign({-27, -9, -90, -36, -144, -108});
                 }
                 break;
             }
@@ -1409,6 +1506,300 @@ namespace
                     }
                 }
                 break;
+
+            // CSC datasets: csr_col_ind holds col_ptr, csr_row_ptr holds row_ind.
+            case 5:
+                // 3x3 general CSC, complex; A = [[(1,1),(3,0),0],[0,(2,2),0],[0,0,(4,0)]]
+                m = 3, k = 3, n = 3, nnz = 4;
+                alpha = T{1, 0}, beta = T{0, 0};
+                csr_col_ind.assign({0, 1, 3, 4});
+                csr_row_ptr.assign({0, 0, 1, 2});
+                csr_val.assign({{1, 1}, {3, 0}, {2, 2}, {4, 0}});
+                B.assign({{1, 0}, {0, 0}, {0, 0}, {0, 0}, {1, 0}, {0, 0}, {0, 0}, {0, 0}, {1, 0}});
+                C.assign(9, T{});
+                transform(csr_col_ind.begin(),
+                          csr_col_ind.end(),
+                          csr_col_ind.begin(),
+                          [base](aoclsparse_int &d) { return d + base; });
+                transform(csr_row_ptr.begin(),
+                          csr_row_ptr.end(),
+                          csr_row_ptr.begin(),
+                          [base](aoclsparse_int &d) { return d + base; });
+                // op_none -> A; op_t -> A^T; op_h -> A^H=conj(A^T)
+                if(order == aoclsparse_order_column)
+                {
+                    if(op == aoclsparse_operation_none)
+                        C_exp.assign({{1, 1},
+                                      {0, 0},
+                                      {0, 0},
+                                      {3, 0},
+                                      {2, 2},
+                                      {0, 0},
+                                      {0, 0},
+                                      {0, 0},
+                                      {4, 0}});
+                    else if(op == aoclsparse_operation_transpose)
+                        C_exp.assign({{1, 1},
+                                      {3, 0},
+                                      {0, 0},
+                                      {0, 0},
+                                      {2, 2},
+                                      {0, 0},
+                                      {0, 0},
+                                      {0, 0},
+                                      {4, 0}});
+                    else
+                        C_exp.assign({{1, -1},
+                                      {3, 0},
+                                      {0, 0},
+                                      {0, 0},
+                                      {2, -2},
+                                      {0, 0},
+                                      {0, 0},
+                                      {0, 0},
+                                      {4, 0}});
+                }
+                else
+                {
+                    if(op == aoclsparse_operation_none)
+                        C_exp.assign({{1, 1},
+                                      {3, 0},
+                                      {0, 0},
+                                      {0, 0},
+                                      {2, 2},
+                                      {0, 0},
+                                      {0, 0},
+                                      {0, 0},
+                                      {4, 0}});
+                    else if(op == aoclsparse_operation_transpose)
+                        C_exp.assign({{1, 1},
+                                      {0, 0},
+                                      {0, 0},
+                                      {3, 0},
+                                      {2, 2},
+                                      {0, 0},
+                                      {0, 0},
+                                      {0, 0},
+                                      {4, 0}});
+                    else
+                        C_exp.assign({{1, -1},
+                                      {0, 0},
+                                      {0, 0},
+                                      {3, 0},
+                                      {2, -2},
+                                      {0, 0},
+                                      {0, 0},
+                                      {0, 0},
+                                      {4, 0}});
+                }
+                break;
+            case 6:
+                // 3x3 symmetric CSC (full, real-valued complex); same A as real id=10
+                // CSC fill=upper -> upper of A; CSC fill=lower -> lower of A
+                m = 3, k = 3, n = 3, nnz = 9;
+                alpha = T{1, 0}, beta = T{0, 0};
+                csr_col_ind.assign({0, 3, 6, 9});
+                csr_row_ptr.assign({0, 1, 2, 0, 1, 2, 0, 1, 2});
+                csr_val.assign(
+                    {{1, 0}, {4, 0}, {7, 0}, {2, 0}, {5, 0}, {8, 0}, {3, 0}, {6, 0}, {9, 0}});
+                B.assign({{1, 0}, {0, 0}, {0, 0}, {0, 0}, {1, 0}, {0, 0}, {0, 0}, {0, 0}, {1, 0}});
+                C.assign(9, T{});
+                transform(csr_col_ind.begin(),
+                          csr_col_ind.end(),
+                          csr_col_ind.begin(),
+                          [base](aoclsparse_int &d) { return d + base; });
+                transform(csr_row_ptr.begin(),
+                          csr_row_ptr.end(),
+                          csr_row_ptr.begin(),
+                          [base](aoclsparse_int &d) { return d + base; });
+                // All ops equivalent for symmetric (all-real vals); row=col C_exp since result symmetric
+                if(symut_non_unit)
+                    C_exp.assign(
+                        {{1, 0}, {2, 0}, {3, 0}, {2, 0}, {5, 0}, {6, 0}, {3, 0}, {6, 0}, {9, 0}});
+                if(symut_unit)
+                    C_exp.assign(
+                        {{1, 0}, {2, 0}, {3, 0}, {2, 0}, {1, 0}, {6, 0}, {3, 0}, {6, 0}, {1, 0}});
+                if(symlt_non_unit)
+                    C_exp.assign(
+                        {{1, 0}, {4, 0}, {7, 0}, {4, 0}, {5, 0}, {8, 0}, {7, 0}, {8, 0}, {9, 0}});
+                if(symlt_unit)
+                    C_exp.assign(
+                        {{1, 0}, {4, 0}, {7, 0}, {4, 0}, {1, 0}, {8, 0}, {7, 0}, {8, 0}, {1, 0}});
+                break;
+            case 7:
+                // 3x3 hermitian CSC (full); A = [[(4,0),(2,-1),(1,2)],[(2,1),(3,0),(0,0)],[(1,-2),(0,0),(5,0)]]
+                // A^T is also Hermitian; both fill modes expand to A^T for op_none/op_h, A for op_t
+                m = 3, k = 3, n = 3, nnz = 9;
+                alpha = T{1, 0}, beta = T{0, 0};
+                csr_col_ind.assign({0, 3, 6, 9});
+                csr_row_ptr.assign({0, 1, 2, 0, 1, 2, 0, 1, 2});
+                // columns of A: col0={(4,0),(2,1),(1,-2)}, col1={(2,-1),(3,0),(0,0)}, col2={(1,2),(0,0),(5,0)}
+                csr_val.assign(
+                    {{4, 0}, {2, 1}, {1, -2}, {2, -1}, {3, 0}, {0, 0}, {1, 2}, {0, 0}, {5, 0}});
+                B.assign({{1, 0}, {0, 0}, {0, 0}, {0, 0}, {1, 0}, {0, 0}, {0, 0}, {0, 0}, {1, 0}});
+                C.assign(9, T{});
+                transform(csr_col_ind.begin(),
+                          csr_col_ind.end(),
+                          csr_col_ind.begin(),
+                          [base](aoclsparse_int &d) { return d + base; });
+                transform(csr_row_ptr.begin(),
+                          csr_row_ptr.end(),
+                          csr_row_ptr.begin(),
+                          [base](aoclsparse_int &d) { return d + base; });
+                // Both fills produce same result (A is Hermitian, A^H=A); diag=unit replaces diagonal with 1
+                // op_none/op_h: C = A*I = A; op_t: C = A^T*I = A^T
+                // row-major flat: A = {(4,0),(2,-1),(1,2),(2,1),(3,0),(0,0),(1,-2),(0,0),(5,0)}
+                // col-major flat: A = {(4,0),(2,1),(1,-2),(2,-1),(3,0),(0,0),(1,2),(0,0),(5,0)}
+                if(symut_non_unit || symlt_non_unit)
+                {
+                    if(order == aoclsparse_order_column)
+                    {
+                        if(op == aoclsparse_operation_none
+                           || op == aoclsparse_operation_conjugate_transpose)
+                            // C = A, stored col-major
+                            C_exp.assign({{4, 0},
+                                          {2, 1},
+                                          {1, -2},
+                                          {2, -1},
+                                          {3, 0},
+                                          {0, 0},
+                                          {1, 2},
+                                          {0, 0},
+                                          {5, 0}});
+                        else
+                            // C = A^T, stored col-major
+                            C_exp.assign({{4, 0},
+                                          {2, -1},
+                                          {1, 2},
+                                          {2, 1},
+                                          {3, 0},
+                                          {0, 0},
+                                          {1, -2},
+                                          {0, 0},
+                                          {5, 0}});
+                    }
+                    else
+                    {
+                        if(op == aoclsparse_operation_none
+                           || op == aoclsparse_operation_conjugate_transpose)
+                            // C = A, stored row-major
+                            C_exp.assign({{4, 0},
+                                          {2, -1},
+                                          {1, 2},
+                                          {2, 1},
+                                          {3, 0},
+                                          {0, 0},
+                                          {1, -2},
+                                          {0, 0},
+                                          {5, 0}});
+                        else
+                            // C = A^T, stored row-major
+                            C_exp.assign({{4, 0},
+                                          {2, 1},
+                                          {1, -2},
+                                          {2, -1},
+                                          {3, 0},
+                                          {0, 0},
+                                          {1, 2},
+                                          {0, 0},
+                                          {5, 0}});
+                    }
+                }
+                if(symut_unit || symlt_unit)
+                {
+                    if(order == aoclsparse_order_column)
+                    {
+                        if(op == aoclsparse_operation_none
+                           || op == aoclsparse_operation_conjugate_transpose)
+                            // C = A (unit diag), stored col-major
+                            C_exp.assign({{1, 0},
+                                          {2, 1},
+                                          {1, -2},
+                                          {2, -1},
+                                          {1, 0},
+                                          {0, 0},
+                                          {1, 2},
+                                          {0, 0},
+                                          {1, 0}});
+                        else
+                            // C = A^T (unit diag), stored col-major
+                            C_exp.assign({{1, 0},
+                                          {2, -1},
+                                          {1, 2},
+                                          {2, 1},
+                                          {1, 0},
+                                          {0, 0},
+                                          {1, -2},
+                                          {0, 0},
+                                          {1, 0}});
+                    }
+                    else
+                    {
+                        if(op == aoclsparse_operation_none
+                           || op == aoclsparse_operation_conjugate_transpose)
+                            // C = A (unit diag), stored row-major
+                            C_exp.assign({{1, 0},
+                                          {2, -1},
+                                          {1, 2},
+                                          {2, 1},
+                                          {1, 0},
+                                          {0, 0},
+                                          {1, -2},
+                                          {0, 0},
+                                          {1, 0}});
+                        else
+                            // C = A^T (unit diag), stored row-major
+                            C_exp.assign({{1, 0},
+                                          {2, 1},
+                                          {1, -2},
+                                          {2, -1},
+                                          {1, 0},
+                                          {0, 0},
+                                          {1, 2},
+                                          {0, 0},
+                                          {1, 0}});
+                    }
+                }
+                break;
+            case 8:
+                // 4x3 non-square general CSC (complex); A has entries at rows 1,2,3 cols 0,1,2
+                m = 4, k = 3, n = 2, nnz = 3;
+                alpha = {1, 0};
+                beta  = {0, 0};
+                csr_col_ind.assign({0, 1, 2, 3}); // col_ptr for CSC
+                csr_row_ptr.assign({1, 2, 3}); // row_ind for CSC
+                csr_val.assign({{2, 1}, {4, 2}, {8, 4}});
+                B.assign(12, T{1, 0});
+                C.assign({T{0, 0}});
+                transform(csr_col_ind.begin(),
+                          csr_col_ind.end(),
+                          csr_col_ind.begin(),
+                          [base](aoclsparse_int &d) { return d + base; });
+                transform(csr_row_ptr.begin(),
+                          csr_row_ptr.end(),
+                          csr_row_ptr.begin(),
+                          [base](aoclsparse_int &d) { return d + base; });
+                if(order == aoclsparse_order_column)
+                {
+                    if(op == aoclsparse_operation_none)
+                        C_exp.assign(
+                            {{0, 0}, {2, 1}, {4, 2}, {8, 4}, {0, 0}, {2, 1}, {4, 2}, {8, 4}});
+                    if(op == aoclsparse_operation_transpose)
+                        C_exp.assign({{2, 1}, {4, 2}, {8, 4}, {2, 1}, {4, 2}, {8, 4}});
+                    if(op == aoclsparse_operation_conjugate_transpose)
+                        C_exp.assign({{2, -1}, {4, -2}, {8, -4}, {2, -1}, {4, -2}, {8, -4}});
+                }
+                else
+                {
+                    if(op == aoclsparse_operation_none)
+                        C_exp.assign(
+                            {{0, 0}, {0, 0}, {2, 1}, {2, 1}, {4, 2}, {4, 2}, {8, 4}, {8, 4}});
+                    if(op == aoclsparse_operation_transpose)
+                        C_exp.assign({{2, 1}, {2, 1}, {4, 2}, {4, 2}, {8, 4}, {8, 4}});
+                    if(op == aoclsparse_operation_conjugate_transpose)
+                        C_exp.assign({{2, -1}, {2, -1}, {4, -2}, {4, -2}, {8, -4}, {8, -4}});
+                }
+                break;
             }
         }
     }
@@ -1438,471 +1829,165 @@ namespace
         ldc = (order == aoclsparse_order_column ? C_m : C_n);
     }
 
-    // Several tests in one when nullptr is passed instead
-    // of valid data
-    template <typename T>
-    void test_csrmm_nullptr()
+    // Consolidated invalid-argument and quick-return tests.
+    void test_csrmm_invalid()
     {
-        aoclsparse_index_base       base = aoclsparse_index_base_zero;
-        aoclsparse_operation        op   = aoclsparse_operation_none;
-        aoclsparse_order            order;
-        aoclsparse_int              kid = 0;
+        aoclsparse_index_base       zero      = aoclsparse_index_base_zero;
+        aoclsparse_index_base       one       = aoclsparse_index_base_one;
+        aoclsparse_operation        op_n      = aoclsparse_operation_none;
+        aoclsparse_operation        op_t      = aoclsparse_operation_transpose;
+        aoclsparse_order            col_order = aoclsparse_order_column;
         aoclsparse_int              m, k, n, nnz;
-        std::vector<T>              csr_val;
-        std::vector<aoclsparse_int> csr_col_ind;
-        std::vector<aoclsparse_int> csr_row_ptr;
-        T                           alpha, beta;
-        std::vector<T>              B;
-        std::vector<T>              C;
-        std::vector<T>              C_exp;
+        std::vector<float>          val, B, C, C_exp;
+        std::vector<aoclsparse_int> col, row;
+        float                       alpha, beta;
+        aoclsparse_mat_descr        descr;
+        aoclsparse_matrix           A;
 
-        init<T>(op,
-                order,
-                m,
-                k,
-                n,
-                nnz,
-                csr_val,
-                csr_col_ind,
-                csr_row_ptr,
-                alpha,
-                beta,
-                B,
-                C,
-                C_exp,
-                base,
-                6);
-        aoclsparse_mat_descr descr;
-        // aoclsparse_create_mat_descr sets aoclsparse_matrix_type to aoclsparse_matrix_type_general
-        // and aoclsparse_index_base to aoclsparse_index_base_zero.
+        // id=6: m=2 k=3 n=2, col-major, csr_val={42}, row_ptr={0,0,1}, col_ind={1}
+        // col-major op=none: min ldb=k=3, min ldc=m=2
+        init<float>(
+            op_n, col_order, m, k, n, nnz, val, col, row, alpha, beta, B, C, C_exp, zero, 6);
+
         ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(
+            aoclsparse_create_csr<float>(&A, zero, m, k, nnz, row.data(), col.data(), val.data()),
+            aoclsparse_status_success);
 
-        aoclsparse_matrix A;
-        ASSERT_EQ(aoclsparse_create_csr(
-                      &A, base, m, k, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data()),
-                  aoclsparse_status_success);
+        // Group 1: nullptr arguments
+        EXPECT_EQ(aoclsparse_csrmm<float>(
+                      op_n, alpha, nullptr, descr, col_order, B.data(), n, k, beta, C.data(), m, 0),
+                  aoclsparse_status_invalid_pointer)
+            << "null A";
+        EXPECT_EQ(aoclsparse_csrmm<float>(
+                      op_n, alpha, A, nullptr, col_order, B.data(), n, k, beta, C.data(), m, 0),
+                  aoclsparse_status_invalid_pointer)
+            << "null descr";
+        EXPECT_EQ(aoclsparse_csrmm<float>(
+                      op_n, alpha, A, descr, col_order, nullptr, n, k, beta, C.data(), m, 0),
+                  aoclsparse_status_invalid_pointer)
+            << "null B";
+        EXPECT_EQ(aoclsparse_csrmm<float>(
+                      op_n, alpha, A, descr, col_order, B.data(), n, k, beta, nullptr, m, 0),
+                  aoclsparse_status_invalid_pointer)
+            << "null C";
 
-        // In turns pass nullptr in every single pointer argument
-        // and expect pointer error
-        EXPECT_EQ(aoclsparse_csrmm<T>(
-                      op, alpha, A, nullptr, order, B.data(), n, k, beta, C.data(), m, kid),
-                  aoclsparse_status_invalid_pointer);
-        EXPECT_EQ(aoclsparse_csrmm<T>(
-                      op, alpha, nullptr, descr, order, B.data(), n, k, beta, C.data(), m, kid),
-                  aoclsparse_status_invalid_pointer);
+        // Group 2: invalid enum arguments
+        EXPECT_EQ(aoclsparse_csrmm<float>((aoclsparse_operation)99,
+                                          alpha,
+                                          A,
+                                          descr,
+                                          col_order,
+                                          B.data(),
+                                          n,
+                                          k,
+                                          beta,
+                                          C.data(),
+                                          m,
+                                          0),
+                  aoclsparse_status_invalid_value)
+            << "bad op";
         EXPECT_EQ(
-            aoclsparse_csrmm<T>(op, alpha, A, descr, order, nullptr, n, k, beta, C.data(), m, kid),
-            aoclsparse_status_invalid_pointer);
-        EXPECT_EQ(
-            aoclsparse_csrmm<T>(op, alpha, A, descr, order, B.data(), n, k, beta, nullptr, m, kid),
-            aoclsparse_status_invalid_pointer);
+            aoclsparse_csrmm<float>(
+                op_n, alpha, A, descr, (aoclsparse_order)2, B.data(), n, k, beta, C.data(), m, 0),
+            aoclsparse_status_invalid_value)
+            << "bad order";
 
-        aoclsparse_destroy_mat_descr(descr);
-        aoclsparse_destroy(&A);
-    }
+        // Group 3: index base mismatch — descr=one vs CSR=zero
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, one), aoclsparse_status_success);
+        EXPECT_EQ(aoclsparse_csrmm<float>(
+                      op_n, alpha, A, descr, col_order, B.data(), n, k, beta, C.data(), m, 0),
+                  aoclsparse_status_invalid_value)
+            << "base mismatch";
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, zero), aoclsparse_status_success);
 
-    // tests for Wrong size
-    template <typename T>
-    void test_csrmm_wrong_size()
-    {
-        aoclsparse_index_base       base = aoclsparse_index_base_zero;
-        aoclsparse_operation        op   = aoclsparse_operation_none;
-        aoclsparse_order            order;
-        aoclsparse_int              kid = 0;
-        aoclsparse_int              m, k, n, nnz;
-        std::vector<T>              csr_val;
-        std::vector<aoclsparse_int> csr_col_ind;
-        std::vector<aoclsparse_int> csr_row_ptr;
-        T                           alpha, beta;
-        std::vector<T>              B;
-        std::vector<T>              C;
-        std::vector<T>              C_exp;
+        // Group 4: wrong ldb/ldc for op=none col-major (min ldb=k=3, min ldc=m=2)
+        EXPECT_EQ(aoclsparse_csrmm<float>(
+                      op_n, alpha, A, descr, col_order, B.data(), n, k - 1, beta, C.data(), m, 0),
+                  aoclsparse_status_invalid_size)
+            << "ldb too small op=none";
+        EXPECT_EQ(aoclsparse_csrmm<float>(
+                      op_n, alpha, A, descr, col_order, B.data(), n, k, beta, C.data(), m - 1, 0),
+                  aoclsparse_status_invalid_size)
+            << "ldc too small op=none";
 
-        init<T>(op,
-                order,
-                m,
-                k,
-                n,
-                nnz,
-                csr_val,
-                csr_col_ind,
-                csr_row_ptr,
-                alpha,
-                beta,
-                B,
-                C,
-                C_exp,
-                base,
-                6);
-        aoclsparse_mat_descr descr;
-        // aoclsparse_create_mat_descr sets aoclsparse_matrix_type to aoclsparse_matrix_type_general
-        // and aoclsparse_index_base to aoclsparse_index_base_zero.
-        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        // Group 5: wrong ldb/ldc for op=trans col-major (min ldb=m=2, min ldc=k=3)
+        EXPECT_EQ(aoclsparse_csrmm<float>(
+                      op_t, alpha, A, descr, col_order, B.data(), n, m - 1, beta, C.data(), k, 0),
+                  aoclsparse_status_invalid_size)
+            << "ldb too small op=trans";
+        EXPECT_EQ(aoclsparse_csrmm<float>(
+                      op_t, alpha, A, descr, col_order, B.data(), n, m, beta, C.data(), k - 1, 0),
+                  aoclsparse_status_invalid_size)
+            << "ldc too small op=trans";
 
-        aoclsparse_matrix A;
-        ASSERT_EQ(aoclsparse_create_csr(
-                      &A, base, m, k, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data()),
-                  aoclsparse_status_success);
-
-        // expect invalid size for wrong ldb
-        EXPECT_EQ(aoclsparse_csrmm<T>(
-                      op, alpha, A, descr, order, B.data(), n, k - 1, beta, C.data(), m, kid),
-                  aoclsparse_status_invalid_size);
-
-        // expect invalid size for wrong ldc
-        EXPECT_EQ(aoclsparse_csrmm<T>(
-                      op, alpha, A, descr, order, B.data(), n, k, beta, C.data(), m - 1, kid),
-                  aoclsparse_status_invalid_size);
-
-        aoclsparse_destroy_mat_descr(descr);
-        aoclsparse_destroy(&A);
-    }
-
-    template <typename T>
-    void test_csrmm_baseOne()
-    {
-        aoclsparse_operation        op   = aoclsparse_operation_none;
-        aoclsparse_index_base       base = aoclsparse_index_base_one;
-        aoclsparse_int              kid  = 1;
-        aoclsparse_int              m, k, n, nnz, A_m, A_n, B_m, B_n, C_m, C_n, ldb, ldc;
-        std::vector<T>              csr_val;
-        std::vector<aoclsparse_int> csr_col_ind;
-        std::vector<aoclsparse_int> csr_row_ptr;
-        T                           alpha, beta;
-        std::vector<T>              B;
-        std::vector<T>              C;
-        std::vector<T>              C_exp;
-        if(can_exec_avx512_tests())
-            kid = 2;
-        for(aoclsparse_order order : {aoclsparse_order_row, aoclsparse_order_column})
-        {
-            init<T>(op,
-                    order,
-                    m,
-                    k,
-                    n,
-                    nnz,
-                    csr_val,
-                    csr_col_ind,
-                    csr_row_ptr,
-                    alpha,
-                    beta,
-                    B,
-                    C,
-                    C_exp,
-                    base,
-                    5);
-            // Set values of ldb, ldc and matrix dimenstions of C matrix
-            set_mm_dim(op, order, m, k, n, A_m, A_n, B_m, B_n, C_m, C_n, ldb, ldc);
-            C.resize(C_m * C_n);
-
-            aoclsparse_mat_descr descr;
-
-            ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
-            ASSERT_EQ(aoclsparse_set_mat_index_base(descr, base), aoclsparse_status_success);
-
-            aoclsparse_matrix A;
-            ASSERT_EQ(
-                aoclsparse_create_csr(
-                    &A, base, m, k, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data()),
-                aoclsparse_status_success);
-
-            EXPECT_EQ(aoclsparse_csrmm<T>(
-                          op, alpha, A, descr, order, B.data(), C_n, ldb, beta, C.data(), ldc, kid),
-                      aoclsparse_status_success);
-
-            EXPECT_ARR_NEAR((C_m * C_n), C, C_exp, expected_precision<T>(10.0));
-            EXPECT_EQ(aoclsparse_destroy_mat_descr(descr), aoclsparse_status_success);
-            EXPECT_EQ(aoclsparse_destroy(&A), aoclsparse_status_success);
-        }
-    }
-
-    // tests for settings not implemented
-    // ToDo: incorporate all not implemented cases
-    template <typename T>
-    void test_csrmm_not_implemented()
-    {
-        aoclsparse_index_base       base = aoclsparse_index_base_zero;
-        aoclsparse_operation        op   = aoclsparse_operation_none;
-        aoclsparse_order            order;
-        aoclsparse_int              kid = 0;
-        aoclsparse_int              m, k, n, nnz;
-        std::vector<T>              csr_val;
-        std::vector<aoclsparse_int> csr_col_ind;
-        std::vector<aoclsparse_int> csr_row_ptr;
-        T                           alpha, beta;
-        std::vector<T>              B;
-        std::vector<T>              C;
-        std::vector<T>              C_exp;
-
-        init<T>(op,
-                order,
-                m,
-                k,
-                n,
-                nnz,
-                csr_val,
-                csr_col_ind,
-                csr_row_ptr,
-                alpha,
-                beta,
-                B,
-                C,
-                C_exp,
-                base,
-                6);
-        aoclsparse_mat_descr descr;
-        // aoclsparse_create_mat_descr sets aoclsparse_matrix_type to aoclsparse_matrix_type_general
-        // and aoclsparse_index_base to aoclsparse_index_base_zero.
-        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
-
-        aoclsparse_matrix A;
-        ASSERT_EQ(aoclsparse_create_csr(
-                      &A, base, m, k, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data()),
-                  aoclsparse_status_success);
-
-        // expect not_implemented for input type other than csr
-        aoclsparse_set_mat_index_base(descr, aoclsparse_index_base_zero);
-        aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_symmetric);
+        // Group 6: ELL format — not_implemented; restore to CSR
         A->input_format = aoclsparse_ell_mat;
+        EXPECT_EQ(aoclsparse_csrmm<float>(
+                      op_n, alpha, A, descr, col_order, B.data(), n, k, beta, C.data(), m, 0),
+                  aoclsparse_status_not_implemented)
+            << "ELL format";
+        A->input_format = aoclsparse_csr_mat;
 
-        EXPECT_EQ(
-            aoclsparse_csrmm<T>(op, alpha, A, descr, order, B.data(), n, k, beta, C.data(), m, kid),
-            aoclsparse_status_not_implemented);
+        // Group 7 (no-op): real hermitian CSR is supported (treated as symmetric)
+        // after BLUE phase fixes; not_implemented is no longer expected here.
 
-        aoclsparse_destroy_mat_descr(descr);
-        aoclsparse_destroy(&A);
-    }
-    // CSC input not implemented for csrmm
-    template <typename T>
-    void test_csrmm_csc_not_impl()
-    {
-        aoclsparse_index_base       base = aoclsparse_index_base_zero;
-        aoclsparse_operation        op   = aoclsparse_operation_none;
-        aoclsparse_order            order;
-        aoclsparse_int              kid = 0;
-        aoclsparse_int              m, k, n, nnz;
-        std::vector<T>              csr_val;
-        std::vector<aoclsparse_int> csr_col_ind;
-        std::vector<aoclsparse_int> csr_row_ptr;
-        T                           alpha, beta;
-        std::vector<T>              B;
-        std::vector<T>              C;
-        std::vector<T>              C_exp;
-
-        init<T>(op,
-                order,
-                m,
-                k,
-                n,
-                nnz,
-                csr_val,
-                csr_col_ind,
-                csr_row_ptr,
-                alpha,
-                beta,
-                B,
-                C,
-                C_exp,
-                base,
-                6);
-        aoclsparse_mat_descr descr;
-        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
-
-        // Create a small CSC matrix
-        aoclsparse_int m_a = 3, n_a = 3, nnz_a = 4;
-        std::vector<T> val_a;
-        if constexpr(std::is_same_v<T, aoclsparse_double_complex>
-                     || std::is_same_v<T, aoclsparse_float_complex>)
-            val_a.assign({{1, 1}, {1, 2}, {2, 3}, {4, 2}});
-        else
-            val_a.assign({1, 2, 3, 4});
-        std::vector<aoclsparse_int> row_ind_a = {0, 2, 1, 2};
-        std::vector<aoclsparse_int> col_ptr_a = {0, 2, 3, 4};
-        std::vector<T>              B_local(n_a * n, T{1});
-        std::vector<T>              C_local(m_a * n, T{0});
-
-        aoclsparse_matrix A;
-        ASSERT_EQ(aoclsparse_create_csc<T>(
-                      &A, base, m_a, n_a, nnz_a, col_ptr_a.data(), row_ind_a.data(), val_a.data()),
-                  aoclsparse_status_success);
-
-        EXPECT_EQ(
-            aoclsparse_csrmm<T>(
-                op, alpha, A, descr, order, B_local.data(), n, n_a, beta, C_local.data(), m_a, kid),
-            aoclsparse_status_not_implemented);
-
-        aoclsparse_destroy_mat_descr(descr);
-        aoclsparse_destroy(&A);
-    }
-
-    // Test to verify csrmm actual functionality with CSC input (double only).
-    // Uses a non-symmetric 3x3 matrix so CSR vs CSC interpretation gives
-    // different results.  csrmm computes C = alpha * op(A) * B + beta * C.
-    // With A stored as CSC (internally A^T with doid::gt), if csrmm treats it
-    // as CSR it will compute A^T * B instead of A * B.
-    void test_csrmm_csc_functionality()
-    {
-        aoclsparse_index_base base  = aoclsparse_index_base_zero;
-        aoclsparse_operation  op    = aoclsparse_operation_none;
-        aoclsparse_order      order = aoclsparse_order_row;
-        aoclsparse_int        kid   = 0;
-        double                alpha = 1.0;
-        double                beta  = 0.0;
-
-        // Define a non-symmetric 3x3 CSC matrix A:
-        //     [1  3  0]
-        // A = [0  2  0]
-        //     [0  0  4]
-        // CSC: col_ptr={0,1,3,4}, row_ind={0,0,1,2}, val={1,3,2,4}
-        aoclsparse_int              m_a = 3, n_a = 3, nnz_a = 4;
-        std::vector<double>         val_a     = {1, 3, 2, 4};
-        std::vector<aoclsparse_int> col_ptr_a = {0, 1, 3, 4};
-        std::vector<aoclsparse_int> row_ind_a = {0, 0, 1, 2};
-
-        // B = 3x3 identity (dense, row-major), so C = alpha*A*I + 0 = A
-        aoclsparse_int      n = 3;
-        std::vector<double> B = {1, 0, 0, 0, 1, 0, 0, 0, 1};
-        std::vector<double> C(m_a * n, 0.0);
-
-        // Correct dense result: A * I = A, flattened row-major:
-        //     [1  3  0]
-        //     [0  2  0]
-        //     [0  0  4]
-        std::vector<double> C_exp = {1, 3, 0, 0, 2, 0, 0, 0, 4};
-
-        // If csrmm misinterprets CSC A as CSR (reads A^T as A), it computes
-        // A^T * I = A^T:
-        //     [1  0  0]
-        //     [3  2  0]   <-- incorrect
-        //     [0  0  4]
-
-        aoclsparse_mat_descr descr;
-        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
-
-        aoclsparse_matrix A;
-        ASSERT_EQ(aoclsparse_create_csc<double>(
-                      &A, base, m_a, n_a, nnz_a, col_ptr_a.data(), row_ind_a.data(), val_a.data()),
-                  aoclsparse_status_success);
-
-        aoclsparse_int ldb = n; // row-major: ldb = number of columns of B
-        aoclsparse_int ldc = n; // row-major: ldc = number of columns of C
-
-        aoclsparse_status status = aoclsparse_csrmm<double>(
-            op, alpha, A, descr, order, B.data(), n, ldb, beta, C.data(), ldc, kid);
-
-        // If csrmm rejects CSC input (after DOID guard is enabled), accept not_implemented.
-        // If csrmm processes CSC input, validate output against correct reference.
-        if(status == aoclsparse_status_success)
+        // Group 8: wrong scalar type — double matrix passed to scsrmm
         {
-            /*
-            // print C and C_exp for debugging in matrix form
-            std::cout << "C:" << std::endl;
-            for(aoclsparse_int i = 0; i < m_a; i++)
-            {
-                for(aoclsparse_int j = 0; j < n; j++)
-                {
-                    std::cout << C[i * n + j] << " ";
-                }
-                std::cout << std::endl;
-            }
-            std::cout << "C_exp:" << std::endl;
-            for(aoclsparse_int i = 0; i < m_a; i++)
-            {
-                for(aoclsparse_int j = 0; j < n; j++)
-                {
-                    std::cout << C_exp[i * n + j] << " ";
-                }
-                std::cout << std::endl;
-            }
-            */
-            EXPECT_DOUBLE_EQ_VEC(m_a * n, C, C_exp);
-        }
-        else
-        {
-            EXPECT_EQ(status, aoclsparse_status_not_implemented);
+            double            dval[] = {42.0};
+            aoclsparse_matrix A_d;
+            ASSERT_EQ(
+                aoclsparse_create_csr<double>(&A_d, zero, m, k, nnz, row.data(), col.data(), dval),
+                aoclsparse_status_success);
+            EXPECT_EQ(aoclsparse_scsrmm(
+                          op_n, 1.f, A_d, descr, col_order, B.data(), n, k, 0.f, C.data(), m),
+                      aoclsparse_status_wrong_type)
+                << "double matrix in scsrmm";
+            aoclsparse_destroy(&A_d);
         }
 
+        // Group 9: CSC matrix — ldb too small fires invalid_size
+        {
+            // 3x3 CSC: col-major op=none requires ldb >= 3
+            aoclsparse_int    csc_col[] = {0, 1, 3, 4};
+            aoclsparse_int    csc_row[] = {0, 0, 1, 2};
+            float             csc_val[] = {1.f, 3.f, 2.f, 4.f};
+            aoclsparse_matrix A_csc;
+            ASSERT_EQ(
+                aoclsparse_create_csc<float>(&A_csc, zero, 3, 3, 4, csc_col, csc_row, csc_val),
+                aoclsparse_status_success);
+            EXPECT_EQ(
+                aoclsparse_csrmm<float>(
+                    op_n, alpha, A_csc, descr, col_order, B.data(), n, 2, beta, C.data(), 3, 0),
+                aoclsparse_status_invalid_size)
+                << "CSC ldb too small";
+            aoclsparse_destroy(&A_csc);
+        }
+
+        // Group 10: quick returns — all must succeed
+        A->m = 0;
+        EXPECT_EQ(aoclsparse_csrmm<float>(
+                      op_n, alpha, A, descr, col_order, B.data(), n, k, beta, C.data(), m, 0),
+                  aoclsparse_status_success)
+            << "m=0";
+        A->m = m;
+        A->n = 0;
+        EXPECT_EQ(aoclsparse_csrmm<float>(
+                      op_n, alpha, A, descr, col_order, B.data(), n, k, beta, C.data(), m, 0),
+                  aoclsparse_status_success)
+            << "n=0";
+        A->n = k;
+        EXPECT_EQ(aoclsparse_csrmm<float>(
+                      op_n, alpha, A, descr, col_order, B.data(), 0, k, beta, C.data(), m, 0),
+                  aoclsparse_status_success)
+            << "n_rhs=0";
+        EXPECT_EQ(aoclsparse_csrmm<float>(
+                      op_n, 0.f, A, descr, col_order, B.data(), n, k, 1.f, C.data(), m, 0),
+                  aoclsparse_status_success)
+            << "alpha=0 beta=1";
+
         aoclsparse_destroy_mat_descr(descr);
         aoclsparse_destroy(&A);
-    }
-
-    // zero matrix size is valid - just do nothing
-    template <typename T>
-    void test_csrmm_do_nothing()
-    {
-        aoclsparse_index_base       base = aoclsparse_index_base_zero;
-        aoclsparse_operation        op   = aoclsparse_operation_none;
-        aoclsparse_order            order;
-        aoclsparse_int              kid = 0;
-        aoclsparse_int              m, k, n, nnz;
-        std::vector<T>              csr_val;
-        std::vector<aoclsparse_int> csr_col_ind;
-        std::vector<aoclsparse_int> csr_row_ptr;
-        T                           alpha, beta;
-        std::vector<T>              B;
-        std::vector<T>              C;
-        std::vector<T>              C_exp;
-
-        init<T>(op,
-                order,
-                m,
-                k,
-                n,
-                nnz,
-                csr_val,
-                csr_col_ind,
-                csr_row_ptr,
-                alpha,
-                beta,
-                B,
-                C,
-                C_exp,
-                base,
-                6);
-        aoclsparse_int       csr_row_ptr_zeros[] = {0, 0, 0};
-        aoclsparse_mat_descr descr;
-        // aoclsparse_create_mat_descr sets aoclsparse_matrix_type to aoclsparse_matrix_type_general
-        // and aoclsparse_index_base to aoclsparse_index_base_zero.
-        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
-
-        aoclsparse_matrix A;
-        // expect success for m=0
-        ASSERT_EQ(aoclsparse_create_csr(
-                      &A, base, 0, k, 0, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data()),
-                  aoclsparse_status_success);
-
-        EXPECT_EQ(
-            aoclsparse_csrmm<T>(op, alpha, A, descr, order, B.data(), n, k, beta, C.data(), m, kid),
-            aoclsparse_status_success);
-        aoclsparse_destroy(&A);
-
-        // expect success for k=0
-        ASSERT_EQ(aoclsparse_create_csr(
-                      &A, base, m, 0, 0, csr_row_ptr_zeros, csr_col_ind.data(), csr_val.data()),
-                  aoclsparse_status_success);
-        EXPECT_EQ(
-            aoclsparse_csrmm<T>(op, alpha, A, descr, order, B.data(), n, k, beta, C.data(), m, kid),
-            aoclsparse_status_success);
-        aoclsparse_destroy(&A);
-
-        // expect success for n=0
-        ASSERT_EQ(aoclsparse_create_csr(
-                      &A, base, m, k, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data()),
-                  aoclsparse_status_success);
-        EXPECT_EQ(
-            aoclsparse_csrmm<T>(op, alpha, A, descr, order, B.data(), 0, k, beta, C.data(), m, kid),
-            aoclsparse_status_success);
-
-        // expect success for alpha = 0 & beta = 1
-        alpha = 0.0;
-        beta  = 1.0;
-        EXPECT_EQ(
-            aoclsparse_csrmm<T>(op, alpha, A, descr, order, B.data(), n, k, beta, C.data(), m, kid),
-            aoclsparse_status_success);
-
-        aoclsparse_destroy(&A);
-        aoclsparse_destroy_mat_descr(descr);
     }
 
     // tests for ldb and ldc greater than minimum
@@ -1966,20 +2051,42 @@ namespace
         aoclsparse_destroy(&A);
     }
 
+    // Single inner kernel used by all csrmm success test functions.
     template <typename T>
-    void test_csrmm_wrongtype()
+    void run_csrmm_case(aoclsparse_operation    op,
+                        aoclsparse_order        order,
+                        aoclsparse_index_base   base,
+                        aoclsparse_int          kid,
+                        aoclsparse_memory_usage mem_policy,
+                        aoclsparse_matrix_type  mat_type,
+                        aoclsparse_fill_mode    fill,
+                        aoclsparse_diag_type    diag,
+                        bool                    is_csc,
+                        int                     id)
     {
-        aoclsparse_index_base       base  = aoclsparse_index_base_zero;
-        aoclsparse_operation        op    = aoclsparse_operation_none;
-        aoclsparse_order            order = aoclsparse_order_row;
-        aoclsparse_int              m, k, n, nnz;
+        // clang-format off
+        auto op_s    = op    == aoclsparse_operation_none             ? "none"
+                     : op    == aoclsparse_operation_transpose        ? "trans"
+                                                                      : "conj_trans";
+        auto ord_s   = order == aoclsparse_order_row                  ? "row"   : "col";
+        auto base_s  = base  == aoclsparse_index_base_zero            ? "zero"  : "one";
+        auto mem_s   = mem_policy == aoclsparse_memory_usage_minimal  ? "min"   : "unres";
+        auto mat_s   = mat_type == aoclsparse_matrix_type_general     ? "gen"
+                     : mat_type == aoclsparse_matrix_type_symmetric   ? "sym"   : "herm";
+        auto fill_s  = fill  == aoclsparse_fill_mode_lower            ? "lower" : "upper";
+        auto diag_s  = diag  == aoclsparse_diag_type_non_unit         ? "non_unit" : "unit";
+        // clang-format on
+        std::ostringstream trace;
+        trace << "id=" << id << " op=" << op_s << " ord=" << ord_s << " base=" << base_s
+              << " kid=" << kid << " mem=" << mem_s << " mat=" << mat_s << " fill=" << fill_s
+              << " diag=" << diag_s << " fmt=" << (is_csc ? "csc" : "csr");
+        SCOPED_TRACE(trace.str());
+
+        aoclsparse_int              m, k, n, nnz, A_m, A_n, B_m, B_n, C_m, C_n, ldb, ldc;
         std::vector<T>              csr_val;
-        std::vector<aoclsparse_int> csr_col_ind;
-        std::vector<aoclsparse_int> csr_row_ptr;
+        std::vector<aoclsparse_int> csr_col_ind, csr_row_ptr;
         T                           alpha, beta;
-        std::vector<T>              B;
-        std::vector<T>              C;
-        std::vector<T>              C_exp;
+        std::vector<T>              B, C, C_exp;
 
         init<T>(op,
                 order,
@@ -1996,679 +2103,551 @@ namespace
                 C,
                 C_exp,
                 base,
-                1);
+                id,
+                mat_type,
+                fill,
+                diag);
+        set_mm_dim(op, order, m, k, n, A_m, A_n, B_m, B_n, C_m, C_n, ldb, ldc);
+        C.resize(C_m * C_n);
+
         aoclsparse_mat_descr descr;
-        // aoclsparse_create_mat_descr sets aoclsparse_matrix_type to aoclsparse_matrix_type_general
-        // and aoclsparse_index_base to aoclsparse_index_base_zero.
         ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_type(descr, mat_type), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, base), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_fill_mode(descr, fill), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_diag_type(descr, diag), aoclsparse_status_success);
+
         aoclsparse_matrix A;
-        ASSERT_EQ(
-            aoclsparse_create_csr(
-                &A, base, m, k, nnz, csr_row_ptr.data(), csr_col_ind.data(), (T *)csr_val.data()),
-            aoclsparse_status_success);
+        if(is_csc)
+            // CSC convention in init<T>: csr_col_ind=col_ptr, csr_row_ptr=row_ind
+            ASSERT_EQ(
+                aoclsparse_create_csc<T>(
+                    &A, base, m, k, nnz, csr_col_ind.data(), csr_row_ptr.data(), csr_val.data()),
+                aoclsparse_status_success);
+        else
+            ASSERT_EQ(
+                aoclsparse_create_csr(
+                    &A, base, m, k, nnz, csr_row_ptr.data(), csr_col_ind.data(), csr_val.data()),
+                aoclsparse_status_success);
+
+        ASSERT_EQ(aoclsparse_set_memory_hint(A, mem_policy), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mm_hint(A, op, descr, 1000), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_optimize(A), aoclsparse_status_success);
+
+        EXPECT_EQ(aoclsparse_csrmm<T>(
+                      op, alpha, A, descr, order, B.data(), C_n, ldb, beta, C.data(), ldc, kid),
+                  aoclsparse_status_success);
 
         if constexpr(std::is_same_v<T, double>)
-        {
-            // expect wrong type error for invoking csrmm for single precision with double csr_val
-            EXPECT_EQ(aoclsparse_scsrmm(op,
-                                        alpha,
-                                        A,
-                                        descr,
-                                        order,
-                                        (float *)B.data(),
-                                        n,
-                                        k,
-                                        beta,
-                                        (float *)C.data(),
-                                        m),
-                      aoclsparse_status_wrong_type);
-        }
-
+            EXPECT_DOUBLE_EQ_VEC(C_m * C_n, C, C_exp);
         if constexpr(std::is_same_v<T, float>)
+            EXPECT_FLOAT_EQ_VEC(C_m * C_n, C, C_exp);
+        if constexpr(std::is_same_v<T, aoclsparse_float_complex>)
         {
-            // expect wrong type error for invoking csrmm for double precision with float csr_val
-            EXPECT_EQ(aoclsparse_dcsrmm(op,
-                                        alpha,
-                                        A,
-                                        descr,
-                                        order,
-                                        (double *)B.data(),
-                                        n,
-                                        k,
-                                        beta,
-                                        (double *)C.data(),
-                                        m),
-                      aoclsparse_status_wrong_type);
+            const aoclsparse_int       sz = C_m * C_n;
+            const std::complex<float> *res_ptr
+                = reinterpret_cast<const std::complex<float> *>(C.data());
+            const std::complex<float> *exp_ptr
+                = reinterpret_cast<const std::complex<float> *>(C_exp.data());
+            std::vector<std::complex<float>> res_c(res_ptr, res_ptr + sz);
+            std::vector<std::complex<float>> exp_c(exp_ptr, exp_ptr + sz);
+            EXPECT_COMPLEX_FLOAT_EQ_VEC(sz, res_c, exp_c);
+        }
+        if constexpr(std::is_same_v<T, aoclsparse_double_complex>)
+        {
+            const aoclsparse_int        sz = C_m * C_n;
+            const std::complex<double> *res_ptr
+                = reinterpret_cast<const std::complex<double> *>(C.data());
+            const std::complex<double> *exp_ptr
+                = reinterpret_cast<const std::complex<double> *>(C_exp.data());
+            std::vector<std::complex<double>> res_c(res_ptr, res_ptr + sz);
+            std::vector<std::complex<double>> exp_c(exp_ptr, exp_ptr + sz);
+            EXPECT_COMPLEX_DOUBLE_EQ_VEC(sz, res_c, exp_c);
         }
 
         aoclsparse_destroy_mat_descr(descr);
         aoclsparse_destroy(&A);
     }
 
+    // General CSR tests. Fixed: base=zero, kid=0. Spot-checks: base=one and kid=1.
     template <typename T>
     void test_csrmm_success()
     {
-        aoclsparse_int              m, k, n, nnz, A_m, A_n, B_m, B_n, C_m, C_n, ldb, ldc;
-        std::vector<T>              csr_val;
-        std::vector<aoclsparse_int> csr_col_ind;
-        std::vector<aoclsparse_int> csr_row_ptr;
-        T                           alpha, beta;
-        std::vector<T>              B;
-        std::vector<T>              C;
-        std::vector<T>              C_exp;
-        aoclsparse_int              kid_count = 2;
-        if(can_exec_avx512_tests())
-            kid_count = 4;
-        //Test for real types
         if constexpr(std::is_same_v<T, double> || std::is_same_v<T, float>)
         {
             for(int id = 0; id < 5; id++)
-            {
-                for(aoclsparse_order order : {aoclsparse_order_row, aoclsparse_order_column})
-                {
-                    for(aoclsparse_index_base base :
-                        {aoclsparse_index_base_zero, aoclsparse_index_base_one})
-                    {
-                        for(aoclsparse_operation op : {aoclsparse_operation_none,
-                                                       aoclsparse_operation_transpose,
-                                                       aoclsparse_operation_conjugate_transpose})
-                            for(int kid = 0; kid < kid_count; kid++)
-                            {
-                                for(aoclsparse_memory_usage mem_policy :
-                                    {aoclsparse_memory_usage_minimal,
-                                     aoclsparse_memory_usage_unrestricted})
-                                {
-                                    //Initialize inputs for test
-                                    init<T>(op,
-                                            order,
-                                            m,
-                                            k,
-                                            n,
-                                            nnz,
-                                            csr_val,
-                                            csr_col_ind,
-                                            csr_row_ptr,
-                                            alpha,
-                                            beta,
-                                            B,
-                                            C,
-                                            C_exp,
-                                            base,
-                                            id);
-
-                                    // Set values of ldb, ldc and matrix dimenstions of C matrix
-                                    set_mm_dim(
-                                        op, order, m, k, n, A_m, A_n, B_m, B_n, C_m, C_n, ldb, ldc);
-                                    C.resize(C_m * C_n);
-
-                                    aoclsparse_mat_descr descr;
-                                    ASSERT_EQ(aoclsparse_create_mat_descr(&descr),
-                                              aoclsparse_status_success);
-                                    ASSERT_EQ(aoclsparse_set_mat_type(
-                                                  descr, aoclsparse_matrix_type_general),
-                                              aoclsparse_status_success);
-                                    ASSERT_EQ(aoclsparse_set_mat_index_base(descr, base),
-                                              aoclsparse_status_success);
-
-                                    aoclsparse_matrix A;
-                                    ASSERT_EQ(aoclsparse_create_csr(&A,
-                                                                    base,
-                                                                    m,
-                                                                    k,
-                                                                    nnz,
-                                                                    csr_row_ptr.data(),
-                                                                    csr_col_ind.data(),
-                                                                    csr_val.data()),
-                                              aoclsparse_status_success);
-                                    ASSERT_EQ(aoclsparse_set_memory_hint(A, mem_policy),
-                                              aoclsparse_status_success);
-                                    ASSERT_EQ(aoclsparse_set_mm_hint(A, op, descr, 1000 /*Hint*/),
-                                              aoclsparse_status_success);
-                                    ASSERT_EQ(aoclsparse_optimize(A), aoclsparse_status_success);
-
-                                    EXPECT_EQ(aoclsparse_csrmm<T>(op,
-                                                                  alpha,
-                                                                  A,
-                                                                  descr,
-                                                                  order,
-                                                                  B.data(),
-                                                                  C_n,
-                                                                  ldb,
-                                                                  beta,
-                                                                  C.data(),
-                                                                  ldc,
-                                                                  kid),
-                                              aoclsparse_status_success);
-                                    if constexpr(std::is_same_v<T, double>)
-                                        EXPECT_DOUBLE_EQ_VEC(C_m * C_n, C, C_exp);
-                                    if constexpr(std::is_same_v<T, float>)
-                                        EXPECT_FLOAT_EQ_VEC(C_m * C_n, C, C_exp);
-
-                                    aoclsparse_destroy_mat_descr(descr);
-                                    aoclsparse_destroy(&A);
-                                }
-                            }
-                    }
-                }
-            }
+                for(aoclsparse_operation op : {aoclsparse_operation_none,
+                                               aoclsparse_operation_transpose,
+                                               aoclsparse_operation_conjugate_transpose})
+                    for(aoclsparse_order order : {aoclsparse_order_row, aoclsparse_order_column})
+                        for(aoclsparse_memory_usage mem_policy :
+                            {aoclsparse_memory_usage_minimal, aoclsparse_memory_usage_unrestricted})
+                            run_csrmm_case<T>(op,
+                                              order,
+                                              aoclsparse_index_base_zero,
+                                              0,
+                                              mem_policy,
+                                              aoclsparse_matrix_type_general,
+                                              aoclsparse_fill_mode_lower,
+                                              aoclsparse_diag_type_non_unit,
+                                              false,
+                                              id);
+            // Spot-check: one-based index
+            run_csrmm_case<T>(aoclsparse_operation_none,
+                              aoclsparse_order_row,
+                              aoclsparse_index_base_one,
+                              0,
+                              aoclsparse_memory_usage_minimal,
+                              aoclsparse_matrix_type_general,
+                              aoclsparse_fill_mode_lower,
+                              aoclsparse_diag_type_non_unit,
+                              false,
+                              0);
+            // Spot-check: kid=1 (always valid on all machines)
+            run_csrmm_case<T>(aoclsparse_operation_none,
+                              aoclsparse_order_row,
+                              aoclsparse_index_base_zero,
+                              1,
+                              aoclsparse_memory_usage_minimal,
+                              aoclsparse_matrix_type_general,
+                              aoclsparse_fill_mode_lower,
+                              aoclsparse_diag_type_non_unit,
+                              false,
+                              0);
         }
-        //Test for complex types
         if constexpr(std::is_same_v<T, aoclsparse_double_complex>
                      || std::is_same_v<T, aoclsparse_float_complex>)
         {
             for(int id = 0; id < 2; id++)
-            {
                 for(aoclsparse_operation op : {aoclsparse_operation_none,
                                                aoclsparse_operation_transpose,
                                                aoclsparse_operation_conjugate_transpose})
-                {
-                    //Initialize inputs for test
                     for(aoclsparse_order order : {aoclsparse_order_row, aoclsparse_order_column})
-                    {
-                        for(aoclsparse_index_base base :
-                            {aoclsparse_index_base_zero, aoclsparse_index_base_one})
-                            for(int kid = 0; kid < kid_count; kid++)
-                            {
-                                for(aoclsparse_memory_usage mem_policy :
-                                    {aoclsparse_memory_usage_minimal,
-                                     aoclsparse_memory_usage_unrestricted})
-                                {
-                                    init<T>(op,
-                                            order,
-                                            m,
-                                            k,
-                                            n,
-                                            nnz,
-                                            csr_val,
-                                            csr_col_ind,
-                                            csr_row_ptr,
-                                            alpha,
-                                            beta,
-                                            B,
-                                            C,
-                                            C_exp,
-                                            base,
-                                            id);
-
-                                    // Set values of ldb, ldc and matrix dimenstions of C matrix
-                                    set_mm_dim(
-                                        op, order, m, k, n, A_m, A_n, B_m, B_n, C_m, C_n, ldb, ldc);
-                                    C.resize(C_m * C_n);
-
-                                    aoclsparse_mat_descr descr;
-                                    ASSERT_EQ(aoclsparse_create_mat_descr(&descr),
-                                              aoclsparse_status_success);
-                                    ASSERT_EQ(aoclsparse_set_mat_index_base(descr, base),
-                                              aoclsparse_status_success);
-
-                                    aoclsparse_matrix A;
-
-                                    ASSERT_EQ(aoclsparse_create_csr(&A,
-                                                                    base,
-                                                                    m,
-                                                                    k,
-                                                                    nnz,
-                                                                    csr_row_ptr.data(),
-                                                                    csr_col_ind.data(),
-                                                                    (T *)csr_val.data()),
-                                              aoclsparse_status_success);
-                                    ASSERT_EQ(aoclsparse_set_memory_hint(A, mem_policy),
-                                              aoclsparse_status_success);
-                                    ASSERT_EQ(aoclsparse_set_mm_hint(A, op, descr, 1000 /*Hint*/),
-                                              aoclsparse_status_success);
-                                    ASSERT_EQ(aoclsparse_optimize(A), aoclsparse_status_success);
-
-                                    EXPECT_EQ(aoclsparse_csrmm<T>(op,
-                                                                  alpha,
-                                                                  A,
-                                                                  descr,
-                                                                  order,
-                                                                  B.data(),
-                                                                  C_n,
-                                                                  ldb,
-                                                                  beta,
-                                                                  C.data(),
-                                                                  ldc,
-                                                                  kid),
-                                              aoclsparse_status_success);
-                                    if constexpr(std::is_same_v<T, aoclsparse_float_complex>)
-                                    {
-                                        std::vector<std::complex<float>> *res, *res_exp;
-                                        res     = (std::vector<std::complex<float>> *)&C;
-                                        res_exp = (std::vector<std::complex<float>> *)&C_exp;
-                                        EXPECT_COMPLEX_FLOAT_EQ_VEC(C_m * C_n, (*res), (*res_exp));
-                                    }
-                                    if constexpr(std::is_same_v<T, aoclsparse_double_complex>)
-                                    {
-                                        std::vector<std::complex<double>> *res, *res_exp;
-                                        res     = (std::vector<std::complex<double>> *)&C;
-                                        res_exp = (std::vector<std::complex<double>> *)&C_exp;
-                                        EXPECT_COMPLEX_DOUBLE_EQ_VEC(C_m * C_n, (*res), (*res_exp));
-                                    }
-
-                                    aoclsparse_destroy_mat_descr(descr);
-                                    aoclsparse_destroy(&A);
-                                }
-                            }
-                    }
-                }
-            }
+                        for(aoclsparse_memory_usage mem_policy :
+                            {aoclsparse_memory_usage_minimal, aoclsparse_memory_usage_unrestricted})
+                            run_csrmm_case<T>(op,
+                                              order,
+                                              aoclsparse_index_base_zero,
+                                              0,
+                                              mem_policy,
+                                              aoclsparse_matrix_type_general,
+                                              aoclsparse_fill_mode_lower,
+                                              aoclsparse_diag_type_non_unit,
+                                              false,
+                                              id);
+            // Spot-check: one-based index
+            run_csrmm_case<T>(aoclsparse_operation_none,
+                              aoclsparse_order_row,
+                              aoclsparse_index_base_one,
+                              0,
+                              aoclsparse_memory_usage_minimal,
+                              aoclsparse_matrix_type_general,
+                              aoclsparse_fill_mode_lower,
+                              aoclsparse_diag_type_non_unit,
+                              false,
+                              0);
+            // Spot-check: kid=1 (always valid on all machines)
+            run_csrmm_case<T>(aoclsparse_operation_none,
+                              aoclsparse_order_row,
+                              aoclsparse_index_base_zero,
+                              1,
+                              aoclsparse_memory_usage_minimal,
+                              aoclsparse_matrix_type_general,
+                              aoclsparse_fill_mode_lower,
+                              aoclsparse_diag_type_non_unit,
+                              false,
+                              0);
         }
     }
 
+    // Symmetric and Hermitian CSR tests. Fixed: base=zero, kid=0. Spot-check: base=one per sub-type.
     template <typename T>
     void test_csrmm_symm_success()
     {
-        aoclsparse_int              m, k, n, nnz, A_m, A_n, B_m, B_n, C_m, C_n, ldb, ldc;
-        aoclsparse_int              kid = 0;
-        std::vector<T>              csr_val;
-        std::vector<aoclsparse_int> csr_col_ind;
-        std::vector<aoclsparse_int> csr_row_ptr;
-        T                           alpha, beta;
-        std::vector<T>              B;
-        std::vector<T>              C;
-        std::vector<T>              C_exp;
-
-        //Test for real types -- Symmetric matrices
+        // Real symmetric: ids 7-8
         if constexpr(std::is_same_v<T, double> || std::is_same_v<T, float>)
         {
             for(int id = 7; id < 9; id++)
-            {
-                for(aoclsparse_matrix_type mat_type : {aoclsparse_matrix_type_symmetric})
-                {
-                    for(aoclsparse_fill_mode fill :
-                        {aoclsparse_fill_mode_upper, aoclsparse_fill_mode_lower})
-                    {
-                        for(aoclsparse_diag_type diag :
-                            {aoclsparse_diag_type_non_unit, aoclsparse_diag_type_unit})
-                        {
-
-                            for(aoclsparse_order order :
-                                {aoclsparse_order_row, aoclsparse_order_column})
-                            {
-                                for(aoclsparse_index_base base :
-                                    {aoclsparse_index_base_zero, aoclsparse_index_base_one})
-                                {
-                                    for(aoclsparse_operation op :
-                                        {aoclsparse_operation_none,
-                                         aoclsparse_operation_transpose,
-                                         aoclsparse_operation_conjugate_transpose})
-                                    {
-                                        for(aoclsparse_memory_usage mem_policy :
-                                            {aoclsparse_memory_usage_minimal,
-                                             aoclsparse_memory_usage_unrestricted})
-                                        {
-                                            //Initialize inputs for test
-                                            init<T>(op,
-                                                    order,
-                                                    m,
-                                                    k,
-                                                    n,
-                                                    nnz,
-                                                    csr_val,
-                                                    csr_col_ind,
-                                                    csr_row_ptr,
-                                                    alpha,
-                                                    beta,
-                                                    B,
-                                                    C,
-                                                    C_exp,
-                                                    base,
-                                                    id,
-                                                    mat_type,
-                                                    fill,
-                                                    diag);
-
-                                            // Set values of ldb, ldc and matrix dimenstions of C matrix
-                                            set_mm_dim(op,
-                                                       order,
-                                                       m,
-                                                       k,
-                                                       n,
-                                                       A_m,
-                                                       A_n,
-                                                       B_m,
-                                                       B_n,
-                                                       C_m,
-                                                       C_n,
-                                                       ldb,
-                                                       ldc);
-                                            C.resize(C_m * C_n);
-
-                                            aoclsparse_mat_descr descr;
-                                            ASSERT_EQ(aoclsparse_create_mat_descr(&descr),
-                                                      aoclsparse_status_success);
-                                            ASSERT_EQ(aoclsparse_set_mat_type(descr, mat_type),
-                                                      aoclsparse_status_success);
-                                            ASSERT_EQ(aoclsparse_set_mat_index_base(descr, base),
-                                                      aoclsparse_status_success);
-                                            ASSERT_EQ(aoclsparse_set_mat_fill_mode(descr, fill),
-                                                      aoclsparse_status_success);
-                                            ASSERT_EQ(aoclsparse_set_mat_diag_type(descr, diag),
-                                                      aoclsparse_status_success);
-
-                                            aoclsparse_matrix A;
-                                            ASSERT_EQ(aoclsparse_create_csr(&A,
-                                                                            base,
-                                                                            m,
-                                                                            k,
-                                                                            nnz,
-                                                                            csr_row_ptr.data(),
-                                                                            csr_col_ind.data(),
-                                                                            csr_val.data()),
-                                                      aoclsparse_status_success);
-                                            ASSERT_EQ(aoclsparse_set_memory_hint(A, mem_policy),
-                                                      aoclsparse_status_success);
-                                            ASSERT_EQ(
-                                                aoclsparse_set_mm_hint(A, op, descr, 1000 /*Hint*/),
-                                                aoclsparse_status_success);
-                                            ASSERT_EQ(aoclsparse_optimize(A),
-                                                      aoclsparse_status_success);
-
-                                            EXPECT_EQ(aoclsparse_csrmm<T>(op,
-                                                                          alpha,
-                                                                          A,
-                                                                          descr,
-                                                                          order,
-                                                                          B.data(),
-                                                                          C_n,
-                                                                          ldb,
-                                                                          beta,
-                                                                          C.data(),
-                                                                          ldc,
-                                                                          kid),
-                                                      aoclsparse_status_success);
-
-                                            if constexpr(std::is_same_v<T, double>)
-                                                EXPECT_DOUBLE_EQ_VEC(C_m * C_n, C, C_exp);
-                                            if constexpr(std::is_same_v<T, float>)
-                                                EXPECT_FLOAT_EQ_VEC(C_m * C_n, C, C_exp);
-
-                                            aoclsparse_destroy_mat_descr(descr);
-                                            aoclsparse_destroy(&A);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Test for complex types --  Symmetric matrices
-        if constexpr(std::is_same_v<T, aoclsparse_double_complex>
-                     || std::is_same_v<T, aoclsparse_float_complex>)
-        {
-            for(int id = 2; id < 4; id++)
-            {
-                for(aoclsparse_matrix_type mat_type : {aoclsparse_matrix_type_symmetric})
-                {
-                    for(aoclsparse_fill_mode fill :
-                        {aoclsparse_fill_mode_upper, aoclsparse_fill_mode_lower})
-                    {
-                        for(aoclsparse_diag_type diag :
-                            {aoclsparse_diag_type_non_unit, aoclsparse_diag_type_unit})
-                        {
-                            for(aoclsparse_operation op :
-                                {aoclsparse_operation_none,
-                                 aoclsparse_operation_transpose,
-                                 aoclsparse_operation_conjugate_transpose})
-                            {
-                                //Initialize inputs for test
-                                for(aoclsparse_order order :
-                                    {aoclsparse_order_row, aoclsparse_order_column})
-                                {
-                                    for(aoclsparse_index_base base :
-                                        {aoclsparse_index_base_zero, aoclsparse_index_base_one})
-                                    {
-                                        for(aoclsparse_memory_usage mem_policy :
-                                            {aoclsparse_memory_usage_minimal,
-                                             aoclsparse_memory_usage_unrestricted})
-                                        {
-                                            init<T>(op,
-                                                    order,
-                                                    m,
-                                                    k,
-                                                    n,
-                                                    nnz,
-                                                    csr_val,
-                                                    csr_col_ind,
-                                                    csr_row_ptr,
-                                                    alpha,
-                                                    beta,
-                                                    B,
-                                                    C,
-                                                    C_exp,
-                                                    base,
-                                                    id,
-                                                    mat_type,
-                                                    fill,
-                                                    diag);
-
-                                            // Set values of ldb, ldc and matrix dimenstions of C matrix
-                                            set_mm_dim(op,
-                                                       order,
-                                                       m,
-                                                       k,
-                                                       n,
-                                                       A_m,
-                                                       A_n,
-                                                       B_m,
-                                                       B_n,
-                                                       C_m,
-                                                       C_n,
-                                                       ldb,
-                                                       ldc);
-                                            C.resize(C_m * C_n);
-
-                                            aoclsparse_mat_descr descr;
-                                            ASSERT_EQ(aoclsparse_create_mat_descr(&descr),
-                                                      aoclsparse_status_success);
-                                            ASSERT_EQ(aoclsparse_set_mat_type(descr, mat_type),
-                                                      aoclsparse_status_success);
-                                            ASSERT_EQ(aoclsparse_set_mat_index_base(descr, base),
-                                                      aoclsparse_status_success);
-                                            ASSERT_EQ(aoclsparse_set_mat_fill_mode(descr, fill),
-                                                      aoclsparse_status_success);
-                                            ASSERT_EQ(aoclsparse_set_mat_diag_type(descr, diag),
-                                                      aoclsparse_status_success);
-
-                                            aoclsparse_matrix A;
-                                            ASSERT_EQ(aoclsparse_create_csr(&A,
-                                                                            base,
-                                                                            m,
-                                                                            k,
-                                                                            nnz,
-                                                                            csr_row_ptr.data(),
-                                                                            csr_col_ind.data(),
-                                                                            (T *)csr_val.data()),
-                                                      aoclsparse_status_success);
-                                            ASSERT_EQ(aoclsparse_set_memory_hint(A, mem_policy),
-                                                      aoclsparse_status_success);
-                                            ASSERT_EQ(
-                                                aoclsparse_set_mm_hint(A, op, descr, 1000 /*Hint*/),
-                                                aoclsparse_status_success);
-                                            ASSERT_EQ(aoclsparse_optimize(A),
-                                                      aoclsparse_status_success);
-
-                                            EXPECT_EQ(aoclsparse_csrmm<T>(op,
-                                                                          alpha,
-                                                                          A,
-                                                                          descr,
-                                                                          order,
-                                                                          B.data(),
-                                                                          C_n,
-                                                                          ldb,
-                                                                          beta,
-                                                                          C.data(),
-                                                                          ldc,
-                                                                          kid),
-                                                      aoclsparse_status_success);
-
-                                            if constexpr(std::is_same_v<T,
-                                                                        aoclsparse_float_complex>)
-                                            {
-                                                std::vector<std::complex<float>> *res, *res_exp;
-                                                res = (std::vector<std::complex<float>> *)&C;
-                                                res_exp
-                                                    = (std::vector<std::complex<float>> *)&C_exp;
-                                                EXPECT_COMPLEX_FLOAT_EQ_VEC(
-                                                    C_m * C_n, (*res), (*res_exp));
-                                            }
-                                            if constexpr(std::is_same_v<T,
-                                                                        aoclsparse_double_complex>)
-                                            {
-                                                std::vector<std::complex<double>> *res, *res_exp;
-                                                res = (std::vector<std::complex<double>> *)&C;
-                                                res_exp
-                                                    = (std::vector<std::complex<double>> *)&C_exp;
-                                                EXPECT_COMPLEX_DOUBLE_EQ_VEC(
-                                                    C_m * C_n, (*res), (*res_exp));
-                                            }
-
-                                            aoclsparse_destroy_mat_descr(descr);
-                                            aoclsparse_destroy(&A);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            // Run unit test for Hermitian matrix
-            for(aoclsparse_matrix_type mat_type : {aoclsparse_matrix_type_hermitian})
-            {
                 for(aoclsparse_fill_mode fill :
                     {aoclsparse_fill_mode_upper, aoclsparse_fill_mode_lower})
-                {
                     for(aoclsparse_diag_type diag :
                         {aoclsparse_diag_type_non_unit, aoclsparse_diag_type_unit})
-                    {
                         for(aoclsparse_operation op : {aoclsparse_operation_none,
                                                        aoclsparse_operation_transpose,
                                                        aoclsparse_operation_conjugate_transpose})
-                        {
-                            //Initialize inputs for test
                             for(aoclsparse_order order :
-                                {aoclsparse_order_column, aoclsparse_order_row})
-                            {
-                                for(aoclsparse_index_base base :
-                                    {aoclsparse_index_base_zero, aoclsparse_index_base_one})
-                                {
-                                    for(aoclsparse_memory_usage mem_policy :
-                                        {aoclsparse_memory_usage_minimal,
-                                         aoclsparse_memory_usage_unrestricted})
-                                    {
-                                        init<T>(op,
-                                                order,
-                                                m,
-                                                k,
-                                                n,
-                                                nnz,
-                                                csr_val,
-                                                csr_col_ind,
-                                                csr_row_ptr,
-                                                alpha,
-                                                beta,
-                                                B,
-                                                C,
-                                                C_exp,
-                                                base,
-                                                4,
-                                                mat_type,
-                                                fill,
-                                                diag);
-
-                                        // Set values of ldb, ldc and matrix dimenstions of C matrix
-                                        set_mm_dim(op,
-                                                   order,
-                                                   m,
-                                                   k,
-                                                   n,
-                                                   A_m,
-                                                   A_n,
-                                                   B_m,
-                                                   B_n,
-                                                   C_m,
-                                                   C_n,
-                                                   ldb,
-                                                   ldc);
-                                        C.resize(C_m * C_n);
-
-                                        aoclsparse_mat_descr descr;
-                                        ASSERT_EQ(aoclsparse_create_mat_descr(&descr),
-                                                  aoclsparse_status_success);
-                                        ASSERT_EQ(aoclsparse_set_mat_type(descr, mat_type),
-                                                  aoclsparse_status_success);
-                                        ASSERT_EQ(aoclsparse_set_mat_index_base(descr, base),
-                                                  aoclsparse_status_success);
-                                        ASSERT_EQ(aoclsparse_set_mat_fill_mode(descr, fill),
-                                                  aoclsparse_status_success);
-                                        ASSERT_EQ(aoclsparse_set_mat_diag_type(descr, diag),
-                                                  aoclsparse_status_success);
-
-                                        aoclsparse_matrix A;
-                                        ASSERT_EQ(aoclsparse_create_csr(&A,
-                                                                        base,
-                                                                        m,
-                                                                        k,
-                                                                        nnz,
-                                                                        csr_row_ptr.data(),
-                                                                        csr_col_ind.data(),
-                                                                        (T *)csr_val.data()),
-                                                  aoclsparse_status_success);
-
-                                        ASSERT_EQ(aoclsparse_set_memory_hint(A, mem_policy),
-                                                  aoclsparse_status_success);
-                                        ASSERT_EQ(
-                                            aoclsparse_set_mm_hint(A, op, descr, 1000 /*Hint*/),
-                                            aoclsparse_status_success);
-                                        ASSERT_EQ(aoclsparse_optimize(A),
-                                                  aoclsparse_status_success);
-
-                                        EXPECT_EQ(aoclsparse_csrmm<T>(op,
-                                                                      alpha,
-                                                                      A,
-                                                                      descr,
-                                                                      order,
-                                                                      B.data(),
-                                                                      C_n,
-                                                                      ldb,
-                                                                      beta,
-                                                                      C.data(),
-                                                                      ldc,
-                                                                      kid),
-                                                  aoclsparse_status_success);
-
-                                        if constexpr(std::is_same_v<T, aoclsparse_float_complex>)
-                                        {
-                                            std::vector<std::complex<float>> *res, *res_exp;
-                                            res     = (std::vector<std::complex<float>> *)&C;
-                                            res_exp = (std::vector<std::complex<float>> *)&C_exp;
-                                            EXPECT_COMPLEX_FLOAT_EQ_VEC(
-                                                C_m * C_n, (*res), (*res_exp));
-                                        }
-                                        if constexpr(std::is_same_v<T, aoclsparse_double_complex>)
-                                        {
-                                            std::vector<std::complex<double>> *res, *res_exp;
-                                            res     = (std::vector<std::complex<double>> *)&C;
-                                            res_exp = (std::vector<std::complex<double>> *)&C_exp;
-                                            EXPECT_COMPLEX_DOUBLE_EQ_VEC(
-                                                C_m * C_n, (*res), (*res_exp));
-                                        }
-
-                                        aoclsparse_destroy_mat_descr(descr);
-                                        aoclsparse_destroy(&A);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+                                {aoclsparse_order_row, aoclsparse_order_column})
+                                for(aoclsparse_memory_usage mem_policy :
+                                    {aoclsparse_memory_usage_minimal,
+                                     aoclsparse_memory_usage_unrestricted})
+                                    run_csrmm_case<T>(op,
+                                                      order,
+                                                      aoclsparse_index_base_zero,
+                                                      0,
+                                                      mem_policy,
+                                                      aoclsparse_matrix_type_symmetric,
+                                                      fill,
+                                                      diag,
+                                                      false,
+                                                      id);
+            // Spot-check: one-based index
+            run_csrmm_case<T>(aoclsparse_operation_none,
+                              aoclsparse_order_row,
+                              aoclsparse_index_base_one,
+                              0,
+                              aoclsparse_memory_usage_minimal,
+                              aoclsparse_matrix_type_symmetric,
+                              aoclsparse_fill_mode_upper,
+                              aoclsparse_diag_type_non_unit,
+                              false,
+                              7);
         }
+        if constexpr(std::is_same_v<T, aoclsparse_double_complex>
+                     || std::is_same_v<T, aoclsparse_float_complex>)
+        {
+            // Complex symmetric: ids 2-3
+            for(int id = 2; id < 4; id++)
+                for(aoclsparse_fill_mode fill :
+                    {aoclsparse_fill_mode_upper, aoclsparse_fill_mode_lower})
+                    for(aoclsparse_diag_type diag :
+                        {aoclsparse_diag_type_non_unit, aoclsparse_diag_type_unit})
+                        for(aoclsparse_operation op : {aoclsparse_operation_none,
+                                                       aoclsparse_operation_transpose,
+                                                       aoclsparse_operation_conjugate_transpose})
+                            for(aoclsparse_order order :
+                                {aoclsparse_order_row, aoclsparse_order_column})
+                                for(aoclsparse_memory_usage mem_policy :
+                                    {aoclsparse_memory_usage_minimal,
+                                     aoclsparse_memory_usage_unrestricted})
+                                    run_csrmm_case<T>(op,
+                                                      order,
+                                                      aoclsparse_index_base_zero,
+                                                      0,
+                                                      mem_policy,
+                                                      aoclsparse_matrix_type_symmetric,
+                                                      fill,
+                                                      diag,
+                                                      false,
+                                                      id);
+            // Spot-check: one-based index
+            run_csrmm_case<T>(aoclsparse_operation_none,
+                              aoclsparse_order_row,
+                              aoclsparse_index_base_one,
+                              0,
+                              aoclsparse_memory_usage_minimal,
+                              aoclsparse_matrix_type_symmetric,
+                              aoclsparse_fill_mode_upper,
+                              aoclsparse_diag_type_non_unit,
+                              false,
+                              2);
+            // Complex Hermitian: id=4 hardcoded
+            for(aoclsparse_fill_mode fill :
+                {aoclsparse_fill_mode_upper, aoclsparse_fill_mode_lower})
+                for(aoclsparse_diag_type diag :
+                    {aoclsparse_diag_type_non_unit, aoclsparse_diag_type_unit})
+                    for(aoclsparse_operation op : {aoclsparse_operation_none,
+                                                   aoclsparse_operation_transpose,
+                                                   aoclsparse_operation_conjugate_transpose})
+                        for(aoclsparse_order order :
+                            {aoclsparse_order_column, aoclsparse_order_row})
+                            for(aoclsparse_memory_usage mem_policy :
+                                {aoclsparse_memory_usage_minimal,
+                                 aoclsparse_memory_usage_unrestricted})
+                                run_csrmm_case<T>(op,
+                                                  order,
+                                                  aoclsparse_index_base_zero,
+                                                  0,
+                                                  mem_policy,
+                                                  aoclsparse_matrix_type_hermitian,
+                                                  fill,
+                                                  diag,
+                                                  false,
+                                                  4);
+            // Spot-check: one-based index
+            run_csrmm_case<T>(aoclsparse_operation_none,
+                              aoclsparse_order_column,
+                              aoclsparse_index_base_one,
+                              0,
+                              aoclsparse_memory_usage_minimal,
+                              aoclsparse_matrix_type_hermitian,
+                              aoclsparse_fill_mode_upper,
+                              aoclsparse_diag_type_non_unit,
+                              false,
+                              4);
+        }
+    }
+
+    // CSC general, symmetric, and hermitian tests using datasets from init<T>().
+    template <typename T>
+    void test_csrmm_csc_success()
+    {
+        if constexpr(std::is_same_v<T, double> || std::is_same_v<T, float>)
+        {
+            // General CSC (id=9)
+            for(aoclsparse_operation op : {aoclsparse_operation_none,
+                                           aoclsparse_operation_transpose,
+                                           aoclsparse_operation_conjugate_transpose})
+                for(aoclsparse_order order : {aoclsparse_order_row, aoclsparse_order_column})
+                    for(aoclsparse_memory_usage mem :
+                        {aoclsparse_memory_usage_minimal, aoclsparse_memory_usage_unrestricted})
+                        run_csrmm_case<T>(op,
+                                          order,
+                                          aoclsparse_index_base_zero,
+                                          0,
+                                          mem,
+                                          aoclsparse_matrix_type_general,
+                                          aoclsparse_fill_mode_lower,
+                                          aoclsparse_diag_type_non_unit,
+                                          true,
+                                          9);
+            // Symmetric CSC (id=10)
+            for(aoclsparse_fill_mode fill :
+                {aoclsparse_fill_mode_upper, aoclsparse_fill_mode_lower})
+                for(aoclsparse_diag_type diag :
+                    {aoclsparse_diag_type_non_unit, aoclsparse_diag_type_unit})
+                    for(aoclsparse_operation op : {aoclsparse_operation_none,
+                                                   aoclsparse_operation_transpose,
+                                                   aoclsparse_operation_conjugate_transpose})
+                        for(aoclsparse_order order :
+                            {aoclsparse_order_row, aoclsparse_order_column})
+                            for(aoclsparse_memory_usage mem :
+                                {aoclsparse_memory_usage_minimal,
+                                 aoclsparse_memory_usage_unrestricted})
+                                run_csrmm_case<T>(op,
+                                                  order,
+                                                  aoclsparse_index_base_zero,
+                                                  0,
+                                                  mem,
+                                                  aoclsparse_matrix_type_symmetric,
+                                                  fill,
+                                                  diag,
+                                                  true,
+                                                  10);
+            // Spot-check: one-based index on general CSC
+            run_csrmm_case<T>(aoclsparse_operation_none,
+                              aoclsparse_order_row,
+                              aoclsparse_index_base_one,
+                              0,
+                              aoclsparse_memory_usage_minimal,
+                              aoclsparse_matrix_type_general,
+                              aoclsparse_fill_mode_lower,
+                              aoclsparse_diag_type_non_unit,
+                              true,
+                              9);
+            // Spot-check: one-based index on symmetric CSC
+            run_csrmm_case<T>(aoclsparse_operation_none,
+                              aoclsparse_order_row,
+                              aoclsparse_index_base_one,
+                              0,
+                              aoclsparse_memory_usage_minimal,
+                              aoclsparse_matrix_type_symmetric,
+                              aoclsparse_fill_mode_upper,
+                              aoclsparse_diag_type_non_unit,
+                              true,
+                              10);
+            // Spot-check: kid=1 on general CSC
+            run_csrmm_case<T>(aoclsparse_operation_none,
+                              aoclsparse_order_row,
+                              aoclsparse_index_base_zero,
+                              1,
+                              aoclsparse_memory_usage_minimal,
+                              aoclsparse_matrix_type_general,
+                              aoclsparse_fill_mode_lower,
+                              aoclsparse_diag_type_non_unit,
+                              true,
+                              9);
+        }
+        if constexpr(std::is_same_v<T, aoclsparse_double_complex>
+                     || std::is_same_v<T, aoclsparse_float_complex>)
+        {
+            // General CSC (id=5)
+            for(aoclsparse_operation op : {aoclsparse_operation_none,
+                                           aoclsparse_operation_transpose,
+                                           aoclsparse_operation_conjugate_transpose})
+                for(aoclsparse_order order : {aoclsparse_order_row, aoclsparse_order_column})
+                    for(aoclsparse_memory_usage mem :
+                        {aoclsparse_memory_usage_minimal, aoclsparse_memory_usage_unrestricted})
+                        run_csrmm_case<T>(op,
+                                          order,
+                                          aoclsparse_index_base_zero,
+                                          0,
+                                          mem,
+                                          aoclsparse_matrix_type_general,
+                                          aoclsparse_fill_mode_lower,
+                                          aoclsparse_diag_type_non_unit,
+                                          true,
+                                          5);
+            // Symmetric CSC (id=6)
+            for(aoclsparse_fill_mode fill :
+                {aoclsparse_fill_mode_upper, aoclsparse_fill_mode_lower})
+                for(aoclsparse_diag_type diag :
+                    {aoclsparse_diag_type_non_unit, aoclsparse_diag_type_unit})
+                    for(aoclsparse_operation op : {aoclsparse_operation_none,
+                                                   aoclsparse_operation_transpose,
+                                                   aoclsparse_operation_conjugate_transpose})
+                        for(aoclsparse_order order :
+                            {aoclsparse_order_row, aoclsparse_order_column})
+                            for(aoclsparse_memory_usage mem :
+                                {aoclsparse_memory_usage_minimal,
+                                 aoclsparse_memory_usage_unrestricted})
+                                run_csrmm_case<T>(op,
+                                                  order,
+                                                  aoclsparse_index_base_zero,
+                                                  0,
+                                                  mem,
+                                                  aoclsparse_matrix_type_symmetric,
+                                                  fill,
+                                                  diag,
+                                                  true,
+                                                  6);
+            // Hermitian CSC (id=7)
+            for(aoclsparse_fill_mode fill :
+                {aoclsparse_fill_mode_upper, aoclsparse_fill_mode_lower})
+                for(aoclsparse_diag_type diag :
+                    {aoclsparse_diag_type_non_unit, aoclsparse_diag_type_unit})
+                    for(aoclsparse_operation op : {aoclsparse_operation_none,
+                                                   aoclsparse_operation_transpose,
+                                                   aoclsparse_operation_conjugate_transpose})
+                        for(aoclsparse_order order :
+                            {aoclsparse_order_column, aoclsparse_order_row})
+                            for(aoclsparse_memory_usage mem :
+                                {aoclsparse_memory_usage_minimal,
+                                 aoclsparse_memory_usage_unrestricted})
+                                run_csrmm_case<T>(op,
+                                                  order,
+                                                  aoclsparse_index_base_zero,
+                                                  0,
+                                                  mem,
+                                                  aoclsparse_matrix_type_hermitian,
+                                                  fill,
+                                                  diag,
+                                                  true,
+                                                  7);
+            // Spot-check: one-based index on general CSC
+            run_csrmm_case<T>(aoclsparse_operation_none,
+                              aoclsparse_order_row,
+                              aoclsparse_index_base_one,
+                              0,
+                              aoclsparse_memory_usage_minimal,
+                              aoclsparse_matrix_type_general,
+                              aoclsparse_fill_mode_lower,
+                              aoclsparse_diag_type_non_unit,
+                              true,
+                              5);
+            // Spot-check: one-based index on symmetric CSC
+            run_csrmm_case<T>(aoclsparse_operation_none,
+                              aoclsparse_order_row,
+                              aoclsparse_index_base_one,
+                              0,
+                              aoclsparse_memory_usage_minimal,
+                              aoclsparse_matrix_type_symmetric,
+                              aoclsparse_fill_mode_upper,
+                              aoclsparse_diag_type_non_unit,
+                              true,
+                              6);
+            // Spot-check: one-based index on hermitian CSC
+            run_csrmm_case<T>(aoclsparse_operation_none,
+                              aoclsparse_order_row,
+                              aoclsparse_index_base_one,
+                              0,
+                              aoclsparse_memory_usage_minimal,
+                              aoclsparse_matrix_type_hermitian,
+                              aoclsparse_fill_mode_upper,
+                              aoclsparse_diag_type_non_unit,
+                              true,
+                              7);
+            // Spot-check: kid=1 on general CSC
+            run_csrmm_case<T>(aoclsparse_operation_none,
+                              aoclsparse_order_row,
+                              aoclsparse_index_base_zero,
+                              1,
+                              aoclsparse_memory_usage_minimal,
+                              aoclsparse_matrix_type_general,
+                              aoclsparse_fill_mode_lower,
+                              aoclsparse_diag_type_non_unit,
+                              true,
+                              5);
+        }
+    }
+
+    // Non-square CSC: diagonal spread across op × order × base × mem × kid.
+    template <typename T>
+    void test_csrmm_csc_nonsquare()
+    {
+        const aoclsparse_index_base zero = aoclsparse_index_base_zero;
+        const aoclsparse_index_base one  = aoclsparse_index_base_one;
+        // real id=11, complex id=8
+        const int id = (std::is_same_v<T, aoclsparse_float_complex>
+                        || std::is_same_v<T, aoclsparse_double_complex>)
+                           ? 8
+                           : 11;
+
+        // 1. none  / row / zero / unrestricted / kid=0
+        run_csrmm_case<T>(aoclsparse_operation_none,
+                          aoclsparse_order_row,
+                          zero,
+                          0,
+                          aoclsparse_memory_usage_unrestricted,
+                          aoclsparse_matrix_type_general,
+                          aoclsparse_fill_mode_lower,
+                          aoclsparse_diag_type_non_unit,
+                          true,
+                          id);
+        // 2. trans / col / one  / minimal       / kid=0
+        run_csrmm_case<T>(aoclsparse_operation_transpose,
+                          aoclsparse_order_column,
+                          one,
+                          0,
+                          aoclsparse_memory_usage_minimal,
+                          aoclsparse_matrix_type_general,
+                          aoclsparse_fill_mode_lower,
+                          aoclsparse_diag_type_non_unit,
+                          true,
+                          id);
+        // 3. conj_t / row / zero / minimal      / kid=1
+        run_csrmm_case<T>(aoclsparse_operation_conjugate_transpose,
+                          aoclsparse_order_row,
+                          zero,
+                          1,
+                          aoclsparse_memory_usage_minimal,
+                          aoclsparse_matrix_type_general,
+                          aoclsparse_fill_mode_lower,
+                          aoclsparse_diag_type_non_unit,
+                          true,
+                          id);
+        // 4. none  / col / zero / unrestricted  / kid=0
+        run_csrmm_case<T>(aoclsparse_operation_none,
+                          aoclsparse_order_column,
+                          zero,
+                          0,
+                          aoclsparse_memory_usage_unrestricted,
+                          aoclsparse_matrix_type_general,
+                          aoclsparse_fill_mode_lower,
+                          aoclsparse_diag_type_non_unit,
+                          true,
+                          id);
+        // 5. trans / row / one  / unrestricted  / kid=0
+        run_csrmm_case<T>(aoclsparse_operation_transpose,
+                          aoclsparse_order_row,
+                          one,
+                          0,
+                          aoclsparse_memory_usage_unrestricted,
+                          aoclsparse_matrix_type_general,
+                          aoclsparse_fill_mode_lower,
+                          aoclsparse_diag_type_non_unit,
+                          true,
+                          id);
+        // 6. conj_t / col / zero / minimal      / kid=0
+        run_csrmm_case<T>(aoclsparse_operation_conjugate_transpose,
+                          aoclsparse_order_column,
+                          zero,
+                          0,
+                          aoclsparse_memory_usage_minimal,
+                          aoclsparse_matrix_type_general,
+                          aoclsparse_fill_mode_lower,
+                          aoclsparse_diag_type_non_unit,
+                          true,
+                          id);
     }
 
     // Test for success and verify results against Dense GEMM results.
@@ -2945,56 +2924,9 @@ namespace
         }
     }
 
-    TEST(csrmm, NullArgDouble)
+    TEST(csrmm, InvalidChecks)
     {
-        test_csrmm_nullptr<double>();
-    }
-    TEST(csrmm, NullArgFloat)
-    {
-        test_csrmm_nullptr<float>();
-    }
-
-    TEST(csrmm, WrongSizeDouble)
-    {
-        test_csrmm_wrong_size<double>();
-    }
-    TEST(csrmm, WrongSizeFloat)
-    {
-        test_csrmm_wrong_size<float>();
-    }
-
-    TEST(csrmm, BaseOneDouble)
-    {
-        test_csrmm_baseOne<double>();
-    }
-    TEST(csrmm, BaseOneFloat)
-    {
-        test_csrmm_baseOne<float>();
-    }
-
-    TEST(csrmm, NotImplDouble)
-    {
-        test_csrmm_not_implemented<double>();
-    }
-    TEST(csrmm, NotImplFloat)
-    {
-        test_csrmm_not_implemented<float>();
-    }
-    TEST(csrmm, CSCNotImplDouble)
-    {
-        test_csrmm_csc_not_impl<double>();
-    }
-    TEST(csrmm, CSCFunctionalityDouble)
-    {
-        test_csrmm_csc_functionality();
-    }
-    TEST(csrmm, DoNothingDouble)
-    {
-        test_csrmm_do_nothing<double>();
-    }
-    TEST(csrmm, DoNothingFloat)
-    {
-        test_csrmm_do_nothing<float>();
+        test_csrmm_invalid();
     }
 
     TEST(csrmm, GreaterLDDouble)
@@ -3004,14 +2936,6 @@ namespace
     TEST(csrmm, GreaterLDFloat)
     {
         test_csrmm_greater_ld<float>();
-    }
-    TEST(csrmm, WrongTypeDouble)
-    {
-        test_csrmm_wrongtype<double>();
-    }
-    TEST(csrmm, WrongTypeFloat)
-    {
-        test_csrmm_wrongtype<float>();
     }
     TEST(csrmm, SuccessTypeDouble)
     {
@@ -3332,5 +3256,94 @@ namespace
             }
         }
         aoclsparse_destroy_mat_descr(descrA);
+    }
+
+    TEST(csrmm, CSCSuccessFloat)
+    {
+        test_csrmm_csc_success<float>();
+    }
+    TEST(csrmm, CSCSuccessDouble)
+    {
+        test_csrmm_csc_success<double>();
+    }
+    TEST(csrmm, CSCSuccessFloatComplex)
+    {
+        test_csrmm_csc_success<aoclsparse_float_complex>();
+    }
+    TEST(csrmm, CSCSuccessDoubleComplex)
+    {
+        test_csrmm_csc_success<aoclsparse_double_complex>();
+    }
+    // RED: non-square CSC — fails before fix (R-1: invalid_size for col-maj op=none; R-4: OOB under ASan)
+    TEST(csrmm, CSCNonSquareDouble)
+    {
+        test_csrmm_csc_nonsquare<double>();
+    }
+    TEST(csrmm, CSCNonSquareFloat)
+    {
+        test_csrmm_csc_nonsquare<float>();
+    }
+    TEST(csrmm, CSCNonSquareDoubleComplex)
+    {
+        test_csrmm_csc_nonsquare<aoclsparse_double_complex>();
+    }
+    TEST(csrmm, CSCNonSquareFloatComplex)
+    {
+        test_csrmm_csc_nonsquare<aoclsparse_float_complex>();
+    }
+    // Regression: general-type optimized matrix with diag mismatch must not return invalid_pointer
+    TEST(csrmm, GeneralOptimizedDiagMismatch)
+    {
+        // 3x3 general CSR matrix
+        //  [2  0  1]
+        //  [0  3  0]
+        //  [4  0  5]
+        aoclsparse_int              m = 3, k = 3, n = 1, nnz = 5;
+        std::vector<double>         val     = {2.0, 1.0, 3.0, 4.0, 5.0};
+        std::vector<aoclsparse_int> col_ind = {0, 2, 1, 0, 2};
+        std::vector<aoclsparse_int> row_ptr = {0, 2, 3, 5};
+        std::vector<double>         B(k, 1.0);
+        std::vector<double>         C(m, 0.0);
+
+        aoclsparse_mat_descr descr;
+        ASSERT_EQ(aoclsparse_create_mat_descr(&descr), aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mat_type(descr, aoclsparse_matrix_type_general),
+                  aoclsparse_status_success);
+        // unit diag differs from the default mtx_diag (non_unit) stored post-optimize,
+        // triggering aoclsparse_set_mat_diag on a general matrix whose diag_val == nullptr
+        ASSERT_EQ(aoclsparse_set_mat_diag_type(descr, aoclsparse_diag_type_unit),
+                  aoclsparse_status_success);
+
+        aoclsparse_matrix A;
+        ASSERT_EQ(aoclsparse_create_csr(&A,
+                                        aoclsparse_index_base_zero,
+                                        m,
+                                        k,
+                                        nnz,
+                                        row_ptr.data(),
+                                        col_ind.data(),
+                                        val.data()),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_set_mm_hint(A, aoclsparse_operation_none, descr, 1000),
+                  aoclsparse_status_success);
+        ASSERT_EQ(aoclsparse_optimize(A), aoclsparse_status_success);
+
+        // Must return success, not aoclsparse_status_invalid_pointer
+        EXPECT_EQ(aoclsparse_csrmm(aoclsparse_operation_none,
+                                   1.0,
+                                   A,
+                                   descr,
+                                   aoclsparse_order_column,
+                                   B.data(),
+                                   n,
+                                   k,
+                                   0.0,
+                                   C.data(),
+                                   m,
+                                   0),
+                  aoclsparse_status_success);
+
+        aoclsparse_destroy(&A);
+        aoclsparse_destroy_mat_descr(descr);
     }
 } // namespace

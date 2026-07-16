@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,6 +20,16 @@
  * THE SOFTWARE.
  *
  * ************************************************************************ */
+
+// before GTest
+#ifdef __AVX512FP16__
+#include <ostream>
+inline std::ostream &operator<<(std::ostream &os, const _Float16 &h)
+{
+    return os << static_cast<float>(h);
+}
+#endif
+
 #include "aoclsparse.h"
 #include "aoclsparse_descr.h"
 #include "gtest/gtest.h"
@@ -121,33 +131,23 @@ void __coverity_panic__(void); // modeled as no-return
             << " values are: " << std::imag(x) << " and " << std::imag(y); \
     } while(0)
 
-// Template function to compare a single value irrespective of type =================================
-template <typename T>
-void expect_eq(T res, T ref)
-{
-    if constexpr(std::is_same_v<T, double>)
-        EXPECT_DOUBLE_EQ(res, ref);
-    else if constexpr(std::is_same_v<T, float>)
-        EXPECT_FLOAT_EQ(res, ref);
-    else if constexpr(std::is_same_v<T, std::complex<double>>)
-        EXPECT_COMPLEX_DOUBLE_EQ(res, ref);
-    else if constexpr(std::is_same_v<T, std::complex<float>>)
-        EXPECT_COMPLEX_FLOAT_EQ(res, ref);
-    else
-    {
-        std::string err = "expect_eq does not support type: " + std::string(typeid(T).name());
-        FAIL() << err;
-    }
-}
-
 // Utilities to compare real scalars and vectors =============================================
-
 #define EXPECT_EQ_VEC(n, x, y)                                                              \
     for(size_t i = 0; i < (size_t)n; i++)                                                   \
     {                                                                                       \
         EXPECT_EQ((x)[i], (y)[i]) << " vectors " #x " and " #y " differ at index i = " << i \
                                   << " values are: " << (x)[i] << " and " << (y)[i]         \
                                   << " respectively.";                                      \
+    }
+
+#define EXPECT_HALF_EQ_VEC(n, x, y)                                                       \
+    for(size_t i = 0; i < (size_t)n; i++)                                                 \
+    {                                                                                     \
+        float xi = static_cast<float>((x)[i]);                                            \
+        float yi = static_cast<float>((y)[i]);                                            \
+        EXPECT_FLOAT_EQ(xi, yi) << " vectors " #x " and " #y " differ at index i = " << i \
+                                << " by abs err: " << abs(xi - yi)                        \
+                                << " rel err: " << abs((xi - yi) / xi) << ".";            \
     }
 
 #define EXPECT_FLOAT_EQ_VEC(n, x, y)                                                               \
@@ -167,32 +167,14 @@ void expect_eq(T res, T ref)
             << " rel err: " << abs(((x)[i] - (y)[i]) / (x)[i]) << "."; \
     }
 
-// Template function to compare a vector irrespective of type =================================
-template <typename T>
-inline void expect_eq_vec(aoclsparse_int n, T *res, T *ref)
-{
-    if constexpr(std::is_same_v<T, double>)
-    {
-        EXPECT_DOUBLE_EQ_VEC(n, res, ref);
+#define EXPECT_ARR_NEAR_FLOAT(n, x, y, abs_error)                             \
+    for(size_t j = 0; j < (size_t)(n); j++)                                   \
+    {                                                                         \
+        float xj = static_cast<float>((x)[j]);                                \
+        float yj = static_cast<float>((y)[j]);                                \
+        EXPECT_NEAR(xj, yj, abs_error)                                        \
+            << "Vectors " #x " and " #y " different at index j=" << j << "."; \
     }
-    else if constexpr(std::is_same_v<T, float>)
-    {
-        EXPECT_FLOAT_EQ_VEC(n, res, ref);
-    }
-    else if constexpr(std::is_same_v<T, std::complex<double>>)
-    {
-        EXPECT_COMPLEX_DOUBLE_EQ_VEC(n, res, ref);
-    }
-    else if constexpr(std::is_same_v<T, std::complex<float>>)
-    {
-        EXPECT_COMPLEX_FLOAT_EQ_VEC(n, res, ref);
-    }
-    else
-    {
-        std::string err = "expect_eq_vec does not support type: " + std::string(typeid(T).name());
-        FAIL() << err;
-    }
-}
 
 #define EXPECT_ARR_NEAR(n, x, y, abs_error)    \
     for(size_t j = 0; j < (size_t)(n); j++)    \
@@ -212,23 +194,60 @@ inline void expect_eq_vec(aoclsparse_int n, T *res, T *ref)
             << " by abs err: " << abs(std::real(x[i]) - std::real(y[i]));        \
     }
 
-// Template function to compare a matrix irrespective of type =================================
-template <typename T>
-void expect_arr_near(aoclsparse_int n, T *x, T *y, tolerance_t<T> abs_error)
+template <typename T, typename U>
+void expect_eq_ULP(T x, T y, U maxULP)
 {
-    if constexpr(std::is_same_v<T, double> || std::is_same_v<T, float>)
+    if constexpr(sizeof(T) != sizeof(U))
     {
-        EXPECT_ARR_NEAR(n, x, y, abs_error);
+        FAIL() << "Size of T and U must be the same for conversion float to int representation!";
     }
-    else if constexpr(std::is_same_v<T, std::complex<double>>
-                      || std::is_same_v<T, std::complex<float>>)
+    union fu
     {
-        EXPECT_COMPLEX_ARR_NEAR(n, x, y, abs_error);
+        fu(T num)
+            : f(num){};
+        T f;
+        U i;
+    };
+
+    fu fux(x);
+    fu fuy(y);
+
+    U diff = abs(fux.i - fuy.i);
+
+    if(diff > maxULP)
+    {
+        FAIL() << "Elements differ: x = " << x << ", y = " << y << ", ULP difference = " << diff;
     }
-    else
+}
+
+// Template function to compare arrays using ULP ================================
+template <typename T, typename U>
+void expect_arr_ULP(aoclsparse_int n, T *x, T *y, U maxULP)
+{
+    if constexpr(sizeof(T) != sizeof(U))
     {
-        std::string err = "expect_arr_near does not support type: " + std::string(typeid(T).name());
-        FAIL() << err;
+        FAIL() << "Size of T and U must be the same for conversion float to int representation!";
+    }
+    union fu
+    {
+        fu(T num)
+            : f(num){};
+        T f;
+        U i;
+    };
+
+    for(size_t i = 0; i < size_t(n); ++i)
+    {
+        fu xu(x[i]);
+        fu yu(y[i]);
+
+        U diff = abs(xu.i - yu.i);
+
+        if(diff > maxULP)
+        {
+            FAIL() << "Arrays differ at index " << i << ": x = " << x[i] << ", y = " << y[i]
+                   << ", ULP difference = " << diff;
+        }
     }
 }
 
@@ -4591,3 +4610,107 @@ void init_tcsr_matrix(aoclsparse_int              &m,
  * i.e. the build is AVX512-enabled running on AVX512 hardware.
  */
 bool can_exec_avx512_tests();
+
+/* Returns 'true' if the CPU supports AVX512-FP16.
+ * Checks CPUID.(EAX=7, ECX=0):EDX[bit 14].
+ */
+bool can_exec_avx512fp16_tests();
+
+#ifdef __AVX512F__
+namespace common_data_utils_avx512
+{
+#endif
+    // Template function to compare a single value irrespective of type =================================
+    template <typename T>
+    void expect_eq(T res, T ref)
+    {
+        if constexpr(std::is_same_v<T, double>)
+            EXPECT_DOUBLE_EQ(res, ref);
+        else if constexpr(std::is_same_v<T, float>)
+            EXPECT_FLOAT_EQ(res, ref);
+#ifdef __AVX512FP16__
+        else if constexpr(std::is_same_v<T, _Float16>)
+            EXPECT_FLOAT_EQ(static_cast<float>(res), static_cast<float>(ref));
+#endif
+        else if constexpr(std::is_same_v<T, std::complex<double>>)
+            EXPECT_COMPLEX_DOUBLE_EQ(res, ref);
+        else if constexpr(std::is_same_v<T, std::complex<float>>)
+            EXPECT_COMPLEX_FLOAT_EQ(res, ref);
+        else
+        {
+            std::string err = "expect_eq does not support type: " + std::string(typeid(T).name());
+            FAIL() << err;
+        }
+    }
+
+    // Template function to compare a vector irrespective of type =================================
+    template <typename T>
+    inline void expect_eq_vec(aoclsparse_int n, T *res, T *ref)
+    {
+        if constexpr(std::is_same_v<T, double>)
+        {
+            EXPECT_DOUBLE_EQ_VEC(n, res, ref);
+        }
+        else if constexpr(std::is_same_v<T, float>)
+        {
+            EXPECT_FLOAT_EQ_VEC(n, res, ref);
+        }
+#ifdef __AVX512FP16__
+        else if constexpr(std::is_same_v<T, _Float16>)
+        {
+            EXPECT_HALF_EQ_VEC(n, res, ref);
+        }
+#endif
+        else if constexpr(std::is_same_v<T, std::complex<double>>)
+        {
+            EXPECT_COMPLEX_DOUBLE_EQ_VEC(n, res, ref);
+        }
+        else if constexpr(std::is_same_v<T, std::complex<float>>)
+        {
+            EXPECT_COMPLEX_FLOAT_EQ_VEC(n, res, ref);
+        }
+        else
+        {
+            std::string err
+                = "expect_eq_vec does not support type: " + std::string(typeid(T).name());
+            FAIL() << err;
+        }
+    }
+
+    // Template function to compare a matrix irrespective of type =================================
+    template <typename T, typename U>
+    void expect_arr_near(aoclsparse_int n, T *x, T *y, U abs_error)
+    {
+        if constexpr(std::is_same_v<T, double> || std::is_same_v<T, float>)
+        {
+            static_assert(std::is_same_v<T, U>,
+                          "Abs error type must be a scalar of the same type as the array elements");
+            EXPECT_ARR_NEAR(n, x, y, abs_error);
+        }
+#ifdef __AVX512FP16__
+        else if constexpr(std::is_same_v<T, _Float16>)
+        {
+            static_assert(std::is_same_v<float, U>,
+                          "Abs error type must be a scalar of type float");
+            EXPECT_ARR_NEAR_FLOAT(n, x, y, abs_error);
+        }
+#endif
+        else if constexpr(std::is_same_v<T, std::complex<double>>
+                          || std::is_same_v<T, std::complex<float>>)
+        {
+            static_assert(
+                std::is_same_v<typename T::value_type, U>,
+                "Abs error type must be a scalar of the same base type of the complex elements");
+            EXPECT_COMPLEX_ARR_NEAR(n, x, y, abs_error);
+        }
+        else
+        {
+            std::string err
+                = "expect_arr_near does not support type: " + std::string(typeid(T).name());
+            err += " with abs_error type: " + std::string(typeid(U).name());
+            FAIL() << err;
+        }
+    }
+#ifdef __AVX512F__
+} // namespace common_data_utils_avx512
+#endif

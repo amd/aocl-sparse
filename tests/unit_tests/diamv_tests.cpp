@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -301,6 +301,7 @@ namespace
         aoclsparse_int dia_offset[] = {0};
         T              dia_val[]    = {0.1, 0.22, 3.1, 1.0, -1.1};
 
+        // m==0 or n==0: quick return; y is not updated.
         EXPECT_EQ(
             aoclsparse_diamv<T>(
                 trans, &alpha, 0, N, NNZ, dia_val, dia_offset, dia_num_diag, descr, x, &beta, y),
@@ -311,10 +312,17 @@ namespace
                 trans, &alpha, M, 0, NNZ, dia_val, dia_offset, dia_num_diag, descr, x, &beta, y),
             aoclsparse_status_success);
         EXPECT_DOUBLE_EQ_VEC(5, y, exp_y);
+
+        // dia_num_diag==0: still compute y = beta*y (no alpha*A*x term); beta==0 => y is zeroed.
+        T exp_y_zero_diag[5] = {static_cast<T>(0),
+                                static_cast<T>(0),
+                                static_cast<T>(0),
+                                static_cast<T>(0),
+                                static_cast<T>(0)};
         EXPECT_EQ(aoclsparse_diamv<T>(
                       trans, &alpha, M, N, NNZ, dia_val, dia_offset, 0, descr, x, &beta, y),
                   aoclsparse_status_success);
-        EXPECT_DOUBLE_EQ_VEC(5, y, exp_y);
+        EXPECT_DOUBLE_EQ_VEC(5, y, exp_y_zero_diag);
         aoclsparse_destroy_mat_descr(descr);
     }
 
