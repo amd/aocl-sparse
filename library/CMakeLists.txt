@@ -79,13 +79,19 @@ function(aoclsparse_add_dependency OBJ_NAME)
 
  # Sets -fPIC flag, symbol visibility to hidden
  set_target_properties(${OBJ_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+ # Propagate OpenMP usage requirements to the target. This is essential for
+ # the AVX2/AVX512 OBJECT libraries whose kernels (kt / avx512) have openmp pragmas.
+ if(SUPPORT_OMP)
+   target_link_libraries(${OBJ_NAME} PRIVATE ${OpenMP_Library})
+ endif()
 endfunction()
 
 # ----------------- Double compilation files with AVX2 flags -------------------------------
 add_library(DOUBLE_COMPILATION_AVX2 OBJECT ${DOUBLE_COMPILATION})
 target_compile_definitions(DOUBLE_COMPILATION_AVX2 PRIVATE -DAOCLSPARSE_AVX2_INSTANT)
 target_compile_options(DOUBLE_COMPILATION_AVX2 PRIVATE "-mno-avx512f;" ${AOCLSPARSE_GENERIC_FLAGS})
-aoclsparse_add_dependency(DOUBLE_COMPILATION_AVX2)
+aoclsparse_add_dependency(DOUBLE_COMPILATION_AVX2)  # also propagates OpenMP (see helper)
 # ==========================================================================================
 
 # List of all targets in the library
@@ -95,13 +101,13 @@ if(USE_AVX512)
  # ---------------- Double compilation files with AVX 512 flags -----------------------------
  add_library(DOUBLE_COMPILATION_AVX512 OBJECT ${DOUBLE_COMPILATION})
  target_compile_options(DOUBLE_COMPILATION_AVX512 PRIVATE ${AOCLSPARSE_AVX512_FLAGS}${AOCLSPARSE_GENERIC_FLAGS})
- aoclsparse_add_dependency(DOUBLE_COMPILATION_AVX512)
+ aoclsparse_add_dependency(DOUBLE_COMPILATION_AVX512)  # also propagates OpenMP (see helper)
  # ==========================================================================================
 
  # ---------------- Compile files with AVX512 intrinsics ------------------------------------
  add_library(AVX512_FILES OBJECT ${AVX512_SOURCES})
  target_compile_options(AVX512_FILES PRIVATE ${AOCLSPARSE_AVX512_FLAGS}${AOCLSPARSE_GENERIC_FLAGS})
- aoclsparse_add_dependency(AVX512_FILES)
+ aoclsparse_add_dependency(AVX512_FILES)  # also propagates OpenMP (see helper)
  # ==========================================================================================
 
  # If the target is AVX512, append all the AVX512 objects
