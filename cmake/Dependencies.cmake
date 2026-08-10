@@ -29,7 +29,6 @@ function(aocl_libs)
     set(CMAKE_FIND_LIBRARY_SUFFIXES ".lib")
     set(_blas_library "AOCL-LibBlis-Win")
     set(_flame_library "AOCL-LibFlame-Win")
-    set(_utils_library "libaoclutils")
     set(_static_tag "static")
     set(_mt_tag "MT")
 
@@ -44,9 +43,6 @@ function(aocl_libs)
       set(_flame_static_library "${_flame_library}")
       set(_flame_dyn_library "${_flame_static_library}-dll")
     endif(SUPPORT_OMP)
-
-    set(_utils_static_library "${_utils_library}_${_static_tag}")
-    set(_utils_dyn_library "${_utils_library}")
   else(WIN32)
     set(CMAKE_FIND_LIBRARY_PREFIXES "lib")
     # No strict static-to-static and shared-to-shared library linking enforced for dependent libraries
@@ -54,8 +50,6 @@ function(aocl_libs)
     set(_blas_library "blis")
     set(_flame_library "flame")
     set(_mt_tag "mt")
-    set(_utils_static_library "aoclutils")
-    set(_utils_dyn_library "aoclutils")
 
     if(SUPPORT_OMP)
       set(_blas_static_library "${_blas_library}-${_mt_tag}")
@@ -73,16 +67,12 @@ function(aocl_libs)
   # Determine library names based on BUILD_SHARED_LIBS for all three libraries
   if(BUILD_SHARED_LIBS)
     # Prefer dynamic libraries, fallback to static
-    set(_utils_preferred_library ${_utils_dyn_library})
-    set(_utils_fallback_library ${_utils_static_library})
     set(_blas_preferred_library ${_blas_dyn_library})
     set(_blas_fallback_library ${_blas_static_library})
     set(_flame_preferred_library ${_flame_dyn_library})
     set(_flame_fallback_library ${_flame_static_library})
   else()
     # Prefer static libraries, fallback to dynamic
-    set(_utils_preferred_library ${_utils_static_library})
-    set(_utils_fallback_library ${_utils_dyn_library})
     set(_blas_preferred_library ${_blas_static_library})
     set(_blas_fallback_library ${_blas_dyn_library})
     set(_flame_preferred_library ${_flame_static_library})
@@ -90,13 +80,6 @@ function(aocl_libs)
   endif()
 
   # Find libraries with BUILD_SHARED_LIBS preference
-  find_library(
-    AOCL_UTILS_LIB
-    NAMES ${_utils_preferred_library} ${_utils_fallback_library} NAMES_PER_DIR
-    HINTS ${CMAKE_AOCL_ROOT}/utils ${CMAKE_AOCL_ROOT}/amd-utils ${CMAKE_AOCL_ROOT}
-    PATH_SUFFIXES "lib/${ILP_DIR}" "lib_${ILP_DIR}" "lib"
-    DOC "AOCL Utils library")
-
   find_library(
     AOCL_BLIS_LIB
     NAMES ${_blas_preferred_library} ${_blas_fallback_library} NAMES_PER_DIR
@@ -113,14 +96,6 @@ function(aocl_libs)
 
   # ====Headers
   find_path(
-    AOCL_UTILS_INCLUDE_DIR
-    NAMES alci_c.h alci.h arch.h cache.h enum.h macros.h
-    HINTS ${CMAKE_AOCL_ROOT}/amd-utils ${CMAKE_AOCL_ROOT}/utils ${CMAKE_AOCL_ROOT}
-    PATH_SUFFIXES "include/${ILP_DIR}/alci" "include_${ILP_DIR}/alci"
-                  "include/alci"
-    DOC "AOCL Utils headers")
-
-  find_path(
     AOCL_BLIS_INCLUDE_DIR
     NAMES blis.h cblas.h blis.hh cblas.hh
     HINTS ${CMAKE_AOCL_ROOT}/amd-blis ${CMAKE_AOCL_ROOT}/blis ${CMAKE_AOCL_ROOT}
@@ -135,33 +110,41 @@ function(aocl_libs)
     PATH_SUFFIXES "include/${ILP_DIR}" "include_${ILP_DIR}" "include"
     DOC "AOCL Libflame headers")
 
-  # ===========
-  if(AOCL_BLIS_LIB
-     AND AOCL_LIBFLAME
-     AND AOCL_BLIS_INCLUDE_DIR
-     AND AOCL_LIBFLAME_INCLUDE_DIR
-     AND AOCL_UTILS_LIB
-     AND AOCL_UTILS_INCLUDE_DIR)
-    set(LAPACK_AOCL_FOUND
-        true
-        PARENT_SCOPE)
-    set(LAPACK_LIBRARY ${AOCL_LIBFLAME} ${AOCL_BLIS_LIB} ${AOCL_UTILS_LIB})
-  else()
+  # AOCL-Utils header-only CPUID header, shipped in the AOCL package (AOCL_ROOT).
+  find_path(
+    AOCL_UTILS_INCLUDE_DIR
+    NAMES Capi/au/cpuid/au_cpuid_header_only.h
+    HINTS ${CMAKE_AOCL_ROOT}/amd-utils ${CMAKE_AOCL_ROOT}/utils ${CMAKE_AOCL_ROOT}
+    PATH_SUFFIXES "include/${ILP_DIR}" "include_${ILP_DIR}" "include"
+    DOC "AOCL-Utils header-only CPUID include root (contains Capi/au/cpuid/au_cpuid_header_only.h)")
+
+  if(DEFINED AOCL_UTILS_LIB)
+    message(WARNING "AOCL_UTILS_LIB is set but ignored: AOCL-Utils is consumed header-only (CPUID); no utils library is linked.")
+  endif()
+
+  if(NOT AOCL_UTILS_INCLUDE_DIR)
     message(
       FATAL_ERROR
-        "Error: could not find a suitable installation of Blas/Lapack/Utils Libraries in \$CMAKE_AOCL_ROOT=${CMAKE_AOCL_ROOT}"
+        "Error: could not find the AOCL-Utils CPUID header (Capi/au/cpuid/au_cpuid_header_only.h) in \$CMAKE_AOCL_ROOT=${CMAKE_AOCL_ROOT}"
     )
   endif()
 
-  get_filename_component(BLIS_LIBRARY_DIR "${AOCL_BLIS_LIB}" DIRECTORY)
-  get_filename_component(LAPACK_LIBRARY_DIR "${AOCL_LIBFLAME}" DIRECTORY)
-  get_filename_component(UTILS_LIBRARY_DIR "${AOCL_UTILS_LIB}" DIRECTORY)
+  if(AOCL_BLIS_LIB
+     AND AOCL_LIBFLAME
+     AND AOCL_BLIS_INCLUDE_DIR
+     AND AOCL_LIBFLAME_INCLUDE_DIR)
+    set(LAPACK_AOCL_FOUND
+        true
+        PARENT_SCOPE)
+    set(LAPACK_LIBRARY ${AOCL_LIBFLAME} ${AOCL_BLIS_LIB})
+  else()
+    message(
+      FATAL_ERROR
+        "Error: could not find a suitable installation of Blas/Lapack Libraries in \$CMAKE_AOCL_ROOT=${CMAKE_AOCL_ROOT}"
+    )
+  endif()
 
   set(LAPACK_LIBRARY ${LAPACK_LIBRARY} PARENT_SCOPE)
-
-  set(BLIS_LIBRARY_DIR ${BLIS_LIBRARY_DIR} PARENT_SCOPE)
-  set(LAPACK_LIBRARY_DIR ${LAPACK_LIBRARY_DIR} PARENT_SCOPE)
-  set(UTILS_LIBRARY_DIR ${UTILS_LIBRARY_DIR} PARENT_SCOPE)
 
 endfunction(aocl_libs)
 
@@ -244,9 +227,6 @@ endif()
 unset(LAPACK_LIBRARY)
 unset(BLAS_LIBRARY)
 unset(LAPACK_INCLUDE_DIR)
-unset(BLIS_LIBRARY_DIR)
-unset(LAPACK_LIBRARY_DIR)
-unset(UTILS_LIBRARY_DIR)
 
 # find AOCL dependencies such as Blis, Libflame
 # --- Target-based build support -------------------------------------------
@@ -255,9 +235,10 @@ unset(UTILS_LIBRARY_DIR)
 # at configure time, so the install-path discovery in aocl_libs() cannot find
 # them. In that case consume the targets directly: linking them propagates the
 # right usage requirements, and the parent supplies the build-tree include dirs.
-if(TARGET AOCL::BLAS AND TARGET flame AND TARGET aoclutils)
-  message(STATUS "[aocl-sparse] target-based build: using in-tree AOCL targets (flame, AOCL::BLAS, aoclutils)")
-  set(LAPACK_LIBRARIES flame AOCL::BLAS aoclutils)
+if(TARGET AOCL::BLAS AND TARGET flame)
+  # AOCL-Utils is header-only (CPUID): don't link it; parent supplies its include dir.
+  message(STATUS "[aocl-sparse] target-based build: using in-tree AOCL targets (flame, AOCL::BLAS)")
+  set(LAPACK_LIBRARIES flame AOCL::BLAS)
   set(BLIS_INCLUDE_DIRS ${AOCL_TB_BLAS_INCLUDE_DIR})
   set(LAPACK_INCLUDE_DIRS ${AOCL_TB_LAPACK_INCLUDE_DIR})
   set(UTILS_INCLUDE_DIRS ${AOCL_TB_UTILS_INCLUDE_DIRS})
@@ -266,12 +247,7 @@ else()
   set(LAPACK_LIBRARIES ${LAPACK_LIBRARY})
   set(BLIS_INCLUDE_DIRS ${AOCL_BLIS_INCLUDE_DIR})
   set(LAPACK_INCLUDE_DIRS ${AOCL_LIBFLAME_INCLUDE_DIR})
-  # Utils package is built with relative header path inclusion. Finding absolute
-  # path results in compilation errors in windows builds. So path is adjusted to a
-  # folder under "include" that contains "alci" folder. Therefore, the below path
-  # to Utils Headers is adjusted. If we can get the right path using find_path( ),
-  # then we can remove this adjustment.
-  set(UTILS_INCLUDE_DIRS ${AOCL_UTILS_INCLUDE_DIR}/..)
+  set(UTILS_INCLUDE_DIRS ${AOCL_UTILS_INCLUDE_DIR})
 endif()
 # --------------------------------------------------------------------------
 
@@ -281,10 +257,6 @@ message(STATUS "  \$LAPACK_INCLUDE_DIRS...${LAPACK_INCLUDE_DIRS}")
 message(STATUS "  \$BLIS_INCLUDE_DIRS.....${BLIS_INCLUDE_DIRS}")
 message(STATUS "  \$UTILS_INCLUDE_DIRS....${UTILS_INCLUDE_DIRS}")
 
-message(STATUS "  \$BLIS_LIBRARY_DIR...${BLIS_LIBRARY_DIR}")
-message(STATUS "  \$LAPACK_LIBRARY_DIR.....${LAPACK_LIBRARY_DIR}")
-message(STATUS "  \$UTILS_LIBRARY_DIR....${UTILS_LIBRARY_DIR}")
-
 if(SUPPORT_OMP)
   message(STATUS "  \$OpenMP_Library....${OpenMP_Library}")
   message(STATUS "  \$OpenMP_Flags....${CMAKE_C_FLAGS};${CMAKE_CXX_FLAGS};${CMAKE_EXE_LINKER_FLAGS}")
@@ -292,4 +264,4 @@ else(SUPPORT_OMP)
   message(STATUS "  \$Threads Library....${Threads_Library}")
 endif(SUPPORT_OMP)
 
-mark_as_advanced(LAPACK_LIBRARIES LAPACK_INCLUDE_DIRS BLIS_INCLUDE_DIRS BLIS_LIBRARY_DIR LAPACK_LIBRARY_DIR UTILS_LIBRARY_DIR)
+mark_as_advanced(LAPACK_LIBRARIES LAPACK_INCLUDE_DIRS BLIS_INCLUDE_DIRS)

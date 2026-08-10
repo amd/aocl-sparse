@@ -30,7 +30,10 @@
 
 #include <cmath>
 #include <cstdint>
+#include <iostream>
 #include <limits>
+#include <string>
+#include <typeinfo>
 
 aoclsparse_status aoclsparse_destroy_ilu(_aoclsparse_ilu *ilu_info);
 aoclsparse_status aoclsparse_destroy_mats(aoclsparse_matrix A);

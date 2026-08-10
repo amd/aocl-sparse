@@ -27,6 +27,8 @@
 #include "aoclsparse_l2_kt.hpp"
 #include "aoclsparse_utils.hpp"
 
+#include <vector>
+
 template <kernel_templates::bsz SZ, typename SUF>
 aoclsparse_status aoclsparse::csrmv_kt(aoclsparse_index_base base,
                                        const SUF             alpha,

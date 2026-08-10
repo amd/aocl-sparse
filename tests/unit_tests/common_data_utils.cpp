@@ -99,21 +99,18 @@ aoclsparse_status itsol_init<float>(aoclsparse_itsol_handle *handle)
 
 bool can_exec_blkcsrmv()
 {
-    Au::X86Cpu Cpu = {0};
-    return Cpu.hasFlag(Au::ECpuidFlag::avx512f) && Cpu.hasFlag(Au::ECpuidFlag::avx512vl)
+    return test_cpuid_has_flag(AU_FLAG_avx512f) && test_cpuid_has_flag(AU_FLAG_avx512vl)
            && aoclsparse_is_avx512_build();
 }
 
 // Returns 'true' if AVX512 tests can be executed in the given build
 bool can_exec_avx512_tests()
 {
-    Au::X86Cpu Cpu = {0};
-    return Cpu.hasFlag(Au::ECpuidFlag::avx512f) && aoclsparse_is_avx512_build();
+    return test_cpuid_has_flag(AU_FLAG_avx512f) && aoclsparse_is_avx512_build();
 }
 
 // Returns 'true' if the CPU supports AVX512-FP16.
 bool can_exec_avx512fp16_tests()
 {
-    Au::X86Cpu Cpu = {0};
-    return Cpu.hasFlag(Au::ECpuidFlag::avx512_fp16) && aoclsparse_is_avx512_build();
+    return test_cpuid_has_flag(AU_FLAG_avx512_fp16) && aoclsparse_is_avx512_build();
 }
