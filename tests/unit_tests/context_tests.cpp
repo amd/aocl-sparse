@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024-2025 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024-2026 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,11 +30,6 @@
 #include <stdlib.h>
 #include <thread>
 #include <type_traits>
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wignored-qualifiers"
-#include "Au/Cpuid/X86Cpu.hh"
-#pragma GCC diagnostic pop
 
 namespace contextTest
 {
@@ -151,8 +146,7 @@ namespace contextTest
     // Test if the isa hint change is thread local
     TEST(context, tl_isa_change)
     {
-        char       isa[8] = "GENERIC";
-        Au::X86Cpu Cpu    = {0};
+        char isa[8] = "GENERIC";
 
         // Enable a different instruction for the calling thread
         [[maybe_unused]] auto s = aoclsparse_enable_instructions("AVX512");
@@ -166,9 +160,9 @@ namespace contextTest
             info.global_isa, info.sparse_nt, info.tl_isa, info.is_isa_updated, info.arch);
 
         // If AVX512 is supported by the core, then the tl isa will be AVX512
-        if(Cpu.hasFlag(Au::ECpuidFlag::avx512f))
+        if(test_cpuid_has_flag(AU_FLAG_avx512f))
             EXPECT_TRUE(!strcmp("AVX512", info.tl_isa));
-        else if(Cpu.hasFlag(Au::ECpuidFlag::avx2))
+        else if(test_cpuid_has_flag(AU_FLAG_avx2))
             EXPECT_TRUE(!strcmp("AVX2", info.tl_isa));
         else
             EXPECT_TRUE(!strcmp("GENERIC", info.tl_isa));
@@ -197,7 +191,6 @@ namespace contextTest
     void cpp_thread_instance()
     {
         constexpr size_t thread_count = 3;
-        Au::X86Cpu       Cpu          = {0};
 
         char init_v_1[10] = "AVX2";
         char init_v_2[10] = "AVX512";
@@ -215,15 +208,15 @@ namespace contextTest
         for(size_t i = 0; i < 2; ++i)
             t[i].join();
 
-        if(Cpu.hasFlag(Au::ECpuidFlag::avx2))
+        if(test_cpuid_has_flag(AU_FLAG_avx2))
             EXPECT_TRUE(!strcmp(init_v_1, ledger_1));
         else
             EXPECT_TRUE(!strcmp("GENERIC", ledger_1));
 
         // If AVX512 is supported by the core, then the tl isa will be AVX512
-        if(Cpu.hasFlag(Au::ECpuidFlag::avx512f))
+        if(test_cpuid_has_flag(AU_FLAG_avx512f))
             EXPECT_TRUE(!strcmp(init_v_2, ledger_2));
-        else if(Cpu.hasFlag(Au::ECpuidFlag::avx2))
+        else if(test_cpuid_has_flag(AU_FLAG_avx2))
             EXPECT_TRUE(!strcmp("AVX2", ledger_2));
         else
             EXPECT_TRUE(!strcmp("GENERIC", ledger_2));
@@ -242,7 +235,6 @@ namespace contextTest
     void omp_thread_instance_test()
     {
 #ifdef _OPENMP
-        Au::X86Cpu Cpu = {0};
 
         char init_ledger[3][10] = {"AVX2", "AVX512", "GENERIC"};
         char res_ledger[3][10];
@@ -253,15 +245,15 @@ namespace contextTest
             modify_isa(init_ledger[i], res_ledger[i]);
         }
 
-        if(Cpu.hasFlag(Au::ECpuidFlag::avx2))
+        if(test_cpuid_has_flag(AU_FLAG_avx2))
             EXPECT_TRUE(!strcmp(init_ledger[0], res_ledger[0]));
         else
             EXPECT_TRUE(!strcmp("GENERIC", res_ledger[0]));
 
         // If AVX512 is supported by the core, then the tl isa will be AVX512
-        if(Cpu.hasFlag(Au::ECpuidFlag::avx512f))
+        if(test_cpuid_has_flag(AU_FLAG_avx512f))
             EXPECT_TRUE(!strcmp(init_ledger[1], res_ledger[1]));
-        else if(Cpu.hasFlag(Au::ECpuidFlag::avx2))
+        else if(test_cpuid_has_flag(AU_FLAG_avx2))
             EXPECT_TRUE(!strcmp("AVX2", res_ledger[1]));
         else
             EXPECT_TRUE(!strcmp("GENERIC", res_ledger[1]));
@@ -304,7 +296,6 @@ namespace contextTest
     void cpp_thread_invalid()
     {
         constexpr size_t thread_count = 3;
-        Au::X86Cpu       Cpu          = {0};
 
         char init_v_1[10]    = "AVX2";
         char init_v_2[10]    = "AVX512";
@@ -335,15 +326,15 @@ namespace contextTest
         for(size_t i = 0; i < 2; ++i)
             t[i].join();
 
-        if(Cpu.hasFlag(Au::ECpuidFlag::avx2))
+        if(test_cpuid_has_flag(AU_FLAG_avx2))
             EXPECT_TRUE(!strcmp(init_v_1, ledger_1));
         else
             EXPECT_TRUE(!strcmp("GENERIC", ledger_1));
 
         // If AVX512 is supported by the core, then the tl isa will be AVX512
-        if(Cpu.hasFlag(Au::ECpuidFlag::avx512f))
+        if(test_cpuid_has_flag(AU_FLAG_avx512f))
             EXPECT_TRUE(!strcmp(init_v_2, ledger_2));
-        else if(Cpu.hasFlag(Au::ECpuidFlag::avx2))
+        else if(test_cpuid_has_flag(AU_FLAG_avx2))
             EXPECT_TRUE(!strcmp("AVX2", ledger_2));
         else
             EXPECT_TRUE(!strcmp("GENERIC", ledger_2));
