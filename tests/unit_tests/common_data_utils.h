@@ -57,19 +57,36 @@ inline bool test_cpuid_has_flag(uint16_t flag)
     return au_cpuid_info_has_flag(&info, flag);
 }
 
-// The following code suppresses coverity warnings related ASSERT_EQ statements.
-// It creates a coverity recognizable no-return "model" for ASSERT_EQ,
-// indicating ASSERT_EQ failures will lead to program exit.
+// Suppresses Coverity false positives (resource leaks, null derefs) that stem
+// from gtest checks: Coverity does not know a failed check stops the test, so it
+// explores impossible post-failure paths. For the Coverity build only, each check
+// is modeled as no-return on failure. The comma+sink form is valid C++ and
+// absorbs the trailing "<< message" that gtest checks support.
 #ifdef __COVERITY__
 void __coverity_panic__(void); // modeled as no-return
-#define ASSERT_EQ(ret, sta)       \
-    do                            \
-    {                             \
-        if(!((ret) == (sta)))     \
-        {                         \
-            __coverity_panic__(); \
-        }                         \
-    } while(0)
+namespace coverity_model
+{
+    struct sink
+    {
+        template <typename T>
+        sink &operator<<(const T &)
+        {
+            return *this;
+        }
+    };
+}
+#define COV_ASSERT_MODEL(cond) \
+    ((cond) ? (void)0 : __coverity_panic__()), coverity_model::sink {}
+#define ASSERT_EQ(a, b) COV_ASSERT_MODEL((a) == (b))
+#define ASSERT_NE(a, b) COV_ASSERT_MODEL((a) != (b))
+#define ASSERT_LT(a, b) COV_ASSERT_MODEL((a) < (b))
+#define ASSERT_LE(a, b) COV_ASSERT_MODEL((a) <= (b))
+#define ASSERT_GT(a, b) COV_ASSERT_MODEL((a) > (b))
+#define ASSERT_GE(a, b) COV_ASSERT_MODEL((a) >= (b))
+#define ASSERT_TRUE(c) COV_ASSERT_MODEL(c)
+#define ASSERT_FALSE(c) COV_ASSERT_MODEL(!(c))
+#define ASSERT_DOUBLE_EQ(a, b) COV_ASSERT_MODEL((a) == (b))
+#define ASSERT_FLOAT_EQ(a, b) COV_ASSERT_MODEL((a) == (b))
 #endif
 
 // Utilities to update base for row pointers and column indices

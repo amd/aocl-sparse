@@ -216,6 +216,14 @@ else()
   set(COMPILER_FLAGS_RELEASE "-O3;-NDEBUG")
   set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};-mavx2;-mfma;")
 endif()
+
+# Windows/Clang only: warning-suppression flags with no GCC/AOCC (Linux) equivalent.
+# _CRT_SECURE_NO_WARNINGS silences MSVC-CRT deprecation; -Wno-vla-cxx-extension
+# silences Clang's VLA warning from tests/examples (library sources are VLA-free).
+if(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};-D_CRT_SECURE_NO_WARNINGS;-Wno-vla-cxx-extension;")
+endif()
+
 set(AOCLSPARSE_AVX512_FLAGS "-mavx512f;-mavx512vl;-mavx512dq;")
 
 set(AOCLSPARSE_GENERIC_FLAGS_RELEASE "${COMPILER_FLAGS_RELEASE}")

@@ -27,6 +27,8 @@
 #include "aoclsparse_utils.hpp"
 
 #include <algorithm>
+#include <cstring>
+#include <vector>
 
 /*
  *===========================================================================
@@ -70,11 +72,22 @@ aoclsparse_int aoclsparse_opt_blksize(aoclsparse_int        m,
     {
         aoclsparse_int total_num_blks = 0;
 
+        // Reusable buffer hoisted out of the row loop (nBlk_factor[i] is
+        // loop-invariant here); avoids a non-standard VLA and per-row allocation.
+        std::vector<int> iVal;
+        try
+        {
+            iVal.resize(nBlk_factor[i]);
+        }
+        catch(std::bad_alloc &)
+        {
+            return 0;
+        }
+
         for(int iRow = 0; iRow < m; iRow += nBlk_factor[i])
         {
             int num_cur_blks = 0;
-            int iVal[nBlk_factor[i]];
-            memset(iVal, 0, nBlk_factor[i] * sizeof(int));
+            memset(iVal.data(), 0, nBlk_factor[i] * sizeof(int));
 
             //Store the indexes from the value array for each row of the block
             for(int iSubRow = 0; (iSubRow < nBlk_factor[i]) && (iRow + iSubRow < m); iSubRow++)
@@ -213,11 +226,24 @@ aoclsparse_status aoclsparse_csr2blkcsr(aoclsparse_int        m,
       given the fact that nRowsblk is not constant, many local arrays will trigger memory
       allocation (which is probably unnecessary).
     */
+    // Reusable buffers hoisted out of the row loop (nRowsblk is loop-invariant);
+    // avoids non-standard VLAs and repeated per-row allocation.
+    std::vector<int>     iVal;
+    std::vector<uint8_t> mask, newmask;
+    try
+    {
+        iVal.resize(nRowsblk);
+        mask.resize(nRowsblk);
+        newmask.resize(nRowsblk);
+    }
+    catch(std::bad_alloc &)
+    {
+        return aoclsparse_status_memory_error;
+    }
     for(int iRow = 0; iRow < m; iRow += nRowsblk)
     {
         int num_cur_blks = 0;
-        int iVal[nRowsblk];
-        memset(iVal, 0, nRowsblk * sizeof(int));
+        memset(iVal.data(), 0, nRowsblk * sizeof(int));
 
         //Store the indexes from the value array for each row of the block
         for(int iSubRow = 0; (iSubRow < nRowsblk) && (iRow + iSubRow < m); iSubRow++)
@@ -240,10 +266,8 @@ aoclsparse_status aoclsparse_csr2blkcsr(aoclsparse_int        m,
             if(blockComplete)
                 break;
 
-            uint8_t mask[nRowsblk];
-            memset(mask, 0u, nRowsblk * sizeof(uint8_t));
-            uint8_t newmask[nRowsblk];
-            memset(newmask, 0u, nRowsblk * sizeof(uint8_t));
+            memset(mask.data(), 0u, nRowsblk * sizeof(uint8_t));
+            memset(newmask.data(), 0u, nRowsblk * sizeof(uint8_t));
 
             for(int iSubRow = 0; (iSubRow < nRowsblk) && (iRow + iSubRow < m); iSubRow++)
             {
@@ -268,12 +292,12 @@ aoclsparse_status aoclsparse_csr2blkcsr(aoclsparse_int        m,
             if(iCol + blk_width > n)
             {
                 blk_col_ind_local.insert(blk_col_ind_local.end(), (n - blk_width));
-                masks_local.insert(masks_local.end(), &newmask[0], &newmask[nRowsblk]);
+                masks_local.insert(masks_local.end(), newmask.data(), newmask.data() + nRowsblk);
             }
             else
             {
                 blk_col_ind_local.insert(blk_col_ind_local.end(), iCol);
-                masks_local.insert(masks_local.end(), &mask[0], &mask[nRowsblk]);
+                masks_local.insert(masks_local.end(), mask.data(), mask.data() + nRowsblk);
             }
 
             //Count the number of blocks in the current row block
