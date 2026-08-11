@@ -39,7 +39,7 @@
 
 namespace
 {
-    typedef struct
+    struct AddCSRParam
     {
         const char           *testname;
         aoclsparse_operation  op;
@@ -51,7 +51,7 @@ namespace
         aoclsparse_int        nnzB;
         bool                  is_csr_a = true; // true=CSR, false=CSC
         bool                  is_csr_b = true; // true=CSR, false=CSC
-    } AddCSRParam;
+    };
 
     template <typename T>
     void test_csr_add(aoclsparse_operation  op,

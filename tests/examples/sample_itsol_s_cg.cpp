@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2022-2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2022-2026 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,9 +34,9 @@ aoclsparse_int monit(aoclsparse_int n,
                      float         *rinfo,
                      void          *udata __attribute__((unused)))
 {
-    int                     it  = (int)rinfo[30];
-    std::ios_base::fmtflags fmt = std::cout.flags();
-    fmt |= std::ios_base::scientific | std::ios_base::right | std::ios_base::showpos;
+    int                           it   = (int)rinfo[30];
+    const std::ios_base::fmtflags fmt  = std::cout.flags();
+    const std::streamsize         prec = std::cout.precision();
     if(!(it % 10))
     {
         std::cout << std::setw(5) << std::right << " iter"
@@ -51,7 +51,8 @@ aoclsparse_int monit(aoclsparse_int n,
     for(int i = 0; i < n; i++)
         std::cout << " " << x[i];
     std::cout << std::endl;
-    std::cout << std::resetiosflags(fmt);
+    std::cout.flags(fmt);
+    std::cout.precision(prec);
     if(rinfo[0] < 1.0e-12) // check for premature stop
         return 1; // request to interrupt
     return 0;

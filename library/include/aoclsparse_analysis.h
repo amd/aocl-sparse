@@ -77,6 +77,8 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix mat);
 *  descr       Descriptor of the sparse matrix used during the calls.
 *  @param[in]
 *  expected_no_of_calls   A rough estimate of the number of the calls.
+*  @param[in]
+*  kid         Kernel ID selecting a specific compute path; used only by \ref aoclsparse_set_mv_hint_kid.
 *
 *  \retval  aoclsparse_status_success           the operation completed successfully.
 *  \retval  aoclsparse_status_invalid_value     \p mat, \p trans, \p descr or \c expected_no_of_calls is invalid.

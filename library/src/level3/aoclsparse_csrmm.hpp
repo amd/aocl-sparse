@@ -506,8 +506,6 @@ aoclsparse_status aoclsparse_csrmm_t(aoclsparse_operation       op,
     const aoclsparse_int *csr_row_ptr = csr_mat->ptr;
     const T              *csr_val     = static_cast<T *>(csr_mat->val);
 
-    // Variables to identify the type of the matrix
-    const aoclsparse_matrix_type mat_type = descr->type;
     // Check sizes
     if(m < 0 || n < 0 || k < 0)
     {
