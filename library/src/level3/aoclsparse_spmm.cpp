@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,21 +33,22 @@ aoclsparse_status aoclsparse_spmm(aoclsparse_operation    opA,
     {
         return aoclsparse_status_invalid_pointer;
     }
-    if(A->mats.empty() || !A->mats[0] || B->mats.empty() || !B->mats[0])
-    {
+
+    auto *first_A = A->get_first_mtx_if_valid<aoclsparse::base_mtx>();
+    auto *first_B = B->get_first_mtx_if_valid<aoclsparse::base_mtx>();
+    if(!first_A || !first_B)
         return aoclsparse_status_invalid_pointer;
-    }
+
+    _aoclsparse_mat_descr descrA;
+    descrA.type = aoclsparse_matrix_type_general;
+    descrA.base = first_A->base;
+    _aoclsparse_mat_descr descrB;
+    descrB.type = aoclsparse_matrix_type_general;
+    descrB.base = first_B->base;
+
     aoclsparse_status    status  = aoclsparse_status_success;
     aoclsparse_operation opB     = aoclsparse_operation_none;
     aoclsparse_request   request = aoclsparse_stage_full_computation;
-
-    _aoclsparse_mat_descr descrA;
-    descrA.base = A->mats[0]->base;
-    descrA.type = aoclsparse_matrix_type_general;
-
-    _aoclsparse_mat_descr descrB;
-    descrB.base = B->mats[0]->base;
-    descrB.type = aoclsparse_matrix_type_general;
 
     if((A->val_type == aoclsparse_smat) && (B->val_type == aoclsparse_smat))
         status = aoclsparse::sp2m<float>(opA, &descrA, A, opB, &descrB, B, request, C);

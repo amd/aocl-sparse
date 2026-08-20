@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -57,6 +57,11 @@
 #ifdef __AVX512F__
 // AVX512 specific L0 micro kernels
 #include "kt_l0_avx512.hpp"
+#endif
+
+#ifdef __AVX512FP16__
+// AVX-512 FP16 specific L0 micro kernels (all vector widths)
+#include "kt_l0_avx512fp16.hpp"
 #endif
 
 // L1 micro kernels: these only depend on L0 micro kernels.

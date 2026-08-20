@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -39,6 +39,7 @@
 #include "blis.hh"
 #include "cblas.hh"
 #pragma GCC diagnostic pop
+#include "level3_test_common.hpp"
 namespace
 {
     aoclsparse_order      col  = aoclsparse_order_column;
@@ -184,8 +185,8 @@ namespace
 
         op_a             = op_n;
         op_b             = op_n;
-        A->mats[0]->doid = aoclsparse::doid::gt;
-        B->mats[0]->doid = aoclsparse::doid::gt;
+        A->mats[0]->doid = aoclsparse::doid::sl;
+        B->mats[0]->doid = aoclsparse::doid::sl;
         EXPECT_EQ(aoclsparse_sp2md(
                       op_a, descrA, A, op_b, descrB, B, alpha, beta, dense_c.data(), row, B->m, -1),
                   aoclsparse_status_not_implemented);
@@ -242,60 +243,15 @@ namespace
     void test_failures(aoclsparse_int id)
     {
         aoclsparse_seedrand();
-        aoclsparse_int              m_a = 5, n_a = 3, m_b = 4, n_b = 6;
-        aoclsparse_int              nnz_a = 10, nnz_b = 8;
-        aoclsparse_index_base       b_a = zero, b_b = zero;
-        std::vector<T>              dense_c;
-        std::vector<T>              val_a;
-        std::vector<aoclsparse_int> col_ind_a;
-        std::vector<aoclsparse_int> row_ptr_a;
-        bool                        issymm = true;
-        ASSERT_EQ(aoclsparse_init_csr_matrix(
-                      row_ptr_a,
-                      col_ind_a,
-                      val_a,
-                      m_a,
-                      n_a,
-                      nnz_a,
-                      b_a,
-                      aoclsparse_matrix_random, /*random matrix, diagonal dominance not guaranteed*/
-                      nullptr, /*no file to be read*/
-                      issymm, /*unused for random matrix generation*/
-                      true, /*unused for random matrix generation*/
-                      aoclsparse_fully_sorted), /*fully sorted value and col index buffers*/
-                  aoclsparse_status_success);
-        aoclsparse_matrix A;
-        ASSERT_EQ(aoclsparse_create_csr(
-                      &A, b_a, m_a, n_a, nnz_a, row_ptr_a.data(), col_ind_a.data(), val_a.data()),
-                  aoclsparse_status_success);
-        aoclsparse_mat_descr descrA;
-        ASSERT_EQ(aoclsparse_create_mat_descr(&descrA), aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_set_mat_index_base(descrA, b_a), aoclsparse_status_success);
+        aoclsparse_int        m_a = 5, n_a = 3, m_b = 4, n_b = 6;
+        aoclsparse_int        nnz_a = 10, nnz_b = 8;
+        aoclsparse_index_base b_a = zero, b_b = zero;
+        std::vector<T>        dense_c;
 
-        std::vector<T>              val_b;
-        std::vector<aoclsparse_int> col_ind_b;
-        std::vector<aoclsparse_int> row_ptr_b;
-        ASSERT_EQ(aoclsparse_init_csr_matrix(
-                      row_ptr_b,
-                      col_ind_b,
-                      val_b,
-                      m_b,
-                      n_b,
-                      nnz_b,
-                      b_b,
-                      aoclsparse_matrix_random, /*random matrix, diagonal dominance not guaranteed*/
-                      nullptr, /*no file to be read*/
-                      issymm, /*unused for random matrix generation*/
-                      true, /*unused for random matrix generation*/
-                      aoclsparse_fully_sorted), /*fully sorted value and col index buffers*/
-                  aoclsparse_status_success);
-        aoclsparse_matrix B;
-        ASSERT_EQ(aoclsparse_create_csr(
-                      &B, b_b, m_b, n_b, nnz_b, row_ptr_b.data(), col_ind_b.data(), val_b.data()),
-                  aoclsparse_status_success);
-        aoclsparse_mat_descr descrB;
-        ASSERT_EQ(aoclsparse_create_mat_descr(&descrB), aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_set_mat_index_base(descrB, b_b), aoclsparse_status_success);
+        spmm_mats<T>         src;
+        aoclsparse_matrix    A = nullptr, B = nullptr;
+        aoclsparse_mat_descr descrA = nullptr, descrB = nullptr;
+        gen_AB(m_a, n_a, m_b, n_b, nnz_a, nnz_b, b_a, b_b, src, A, B, &descrA, &descrB);
         dense_c.resize(m_a * n_b);
         if(id == 0)
             test_wrong_size(A, B, descrA, descrB, dense_c);
@@ -325,9 +281,12 @@ namespace
                             aoclsparse_operation  op_a,
                             aoclsparse_operation  op_b,
                             aoclsparse_order      layout,
-                            aoclsparse_int        ldc    = -1,
-                            aoclsparse_int        offset = 0,
-                            aoclsparse_int        scalar = 0)
+                            aoclsparse_int        ldc           = -1,
+                            aoclsparse_int        offset        = 0,
+                            aoclsparse_int        scalar        = 0,
+                            bool                  use_csr_a     = true,
+                            bool                  use_csr_b     = true,
+                            bool                  prefill_C_nan = false)
     {
         aoclsparse_int m_c = 0, n_c = 0, lda, ldb, dense_c_sz;
         CBLAS_ORDER    blis_layout;
@@ -345,71 +304,24 @@ namespace
         std::vector<T> dense_a(m_a * n_a), dense_b(m_b * n_b), dense_c, dense_c_exp;
         tolerance_t<T> abserr = sqrt(std::numeric_limits<tolerance_t<T>>::epsilon());
 
-        std::vector<T>              val_a;
-        std::vector<aoclsparse_int> col_ind_a;
-        std::vector<aoclsparse_int> row_ptr_a;
-        bool                        issymm = true;
-        ASSERT_EQ(aoclsparse_init_csr_matrix(
-                      row_ptr_a,
-                      col_ind_a,
-                      val_a,
-                      m_a,
-                      n_a,
-                      nnz_a,
-                      b_a,
-                      aoclsparse_matrix_random, /*random matrix, diagonal dominance not guaranteed*/
-                      nullptr, /*no file to be read*/
-                      issymm, /*unused for random matrix generation*/
-                      true, /*unused for random matrix generation*/
-                      aoclsparse_fully_sorted), /*fully sorted value and col index buffers*/
-                  aoclsparse_status_success);
-
-        if(val_a.size() == 0)
-            val_a.reserve(1);
-        if(col_ind_a.size() == 0)
-            col_ind_a.reserve(1);
-        if(row_ptr_a.size() == 0)
-            row_ptr_a.reserve(1);
-        aoclsparse_matrix A;
-        ASSERT_EQ(aoclsparse_create_csr(
-                      &A, b_a, m_a, n_a, nnz_a, row_ptr_a.data(), col_ind_a.data(), val_a.data()),
-                  aoclsparse_status_success);
-        aoclsparse_mat_descr descrA;
-        ASSERT_EQ(aoclsparse_create_mat_descr(&descrA), aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_set_mat_index_base(descrA, b_a), aoclsparse_status_success);
-
-        std::vector<T>              val_b;
-        std::vector<aoclsparse_int> col_ind_b;
-        std::vector<aoclsparse_int> row_ptr_b;
-        ASSERT_EQ(aoclsparse_init_csr_matrix(
-                      row_ptr_b,
-                      col_ind_b,
-                      val_b,
-                      m_b,
-                      n_b,
-                      nnz_b,
-                      b_b,
-                      aoclsparse_matrix_random, /*random matrix, diagonal dominance not guaranteed*/
-                      nullptr, /*no file to be read*/
-                      issymm, /*unused for random matrix generation*/
-                      true, /*unused for random matrix generation*/
-                      aoclsparse_fully_sorted), /*fully sorted value and col index buffers*/
-                  aoclsparse_status_success);
-        aoclsparse_matrix B;
-
-        if(val_b.size() == 0)
-            val_b.reserve(1);
-        if(col_ind_b.size() == 0)
-            col_ind_b.reserve(1);
-        if(row_ptr_b.size() == 0)
-            row_ptr_b.reserve(1);
-
-        ASSERT_EQ(aoclsparse_create_csr(
-                      &B, b_b, m_b, n_b, nnz_b, row_ptr_b.data(), col_ind_b.data(), val_b.data()),
-                  aoclsparse_status_success);
-        aoclsparse_mat_descr descrB;
-        ASSERT_EQ(aoclsparse_create_mat_descr(&descrB), aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_set_mat_index_base(descrB, b_b), aoclsparse_status_success);
+        spmm_mats<T>         src;
+        aoclsparse_matrix    A = nullptr, B = nullptr;
+        aoclsparse_mat_descr descrA = nullptr, descrB = nullptr;
+        gen_AB(m_a,
+               n_a,
+               m_b,
+               n_b,
+               nnz_a,
+               nnz_b,
+               b_a,
+               b_b,
+               src,
+               A,
+               B,
+               &descrA,
+               &descrB,
+               use_csr_a,
+               use_csr_b);
         aoclsparse_int m, n, k = 0;
         if((op_a == aoclsparse_operation_none) && (op_b == aoclsparse_operation_none))
         {
@@ -464,6 +376,22 @@ namespace
         {
             dense_c.reserve(1);
             dense_c_exp.reserve(1);
+        }
+
+        // Overwrite dense_c with NaN to verify beta==0 semantics (BLAS convention:
+        // beta==0 must ignore prior C contents regardless of NaN).
+        if(prefill_C_nan)
+        {
+            using base_t         = tolerance_t<T>;
+            const base_t nan_val = std::numeric_limits<base_t>::quiet_NaN();
+            for(auto &v : dense_c)
+            {
+                if constexpr(std::is_same_v<T, aoclsparse_float_complex>
+                             || std::is_same_v<T, aoclsparse_double_complex>)
+                    v = {nan_val, nan_val};
+                else
+                    v = nan_val;
+            }
         }
 
         T alpha, beta;
@@ -538,18 +466,18 @@ namespace
         aoclsparse_csr2dense(m_a,
                              n_a,
                              descrA,
-                             val_a.data(),
-                             row_ptr_a.data(),
-                             col_ind_a.data(),
+                             src.val_a.data(),
+                             src.row_ptr_a.data(),
+                             src.col_ind_a.data(),
                              dense_a.data(),
                              lda,
                              layout);
         aoclsparse_csr2dense(m_b,
                              n_b,
                              descrB,
-                             val_b.data(),
-                             row_ptr_b.data(),
-                             col_ind_b.data(),
+                             src.val_b.data(),
+                             src.row_ptr_b.data(),
+                             src.col_ind_b.data(),
                              dense_b.data(),
                              ldb,
                              layout);
@@ -620,6 +548,15 @@ namespace
         aoclsparse_destroy(&B);
         aoclsparse_destroy_mat_descr(descrA);
         aoclsparse_destroy(&A);
+    }
+    TEST(sp2md, CooToCsrMatTypeInitDouble)
+    {
+        test_coo2csr_mat_type_init<double>();
+    }
+
+    TEST(sp2md, CooToCsrMatTypeInitFloat)
+    {
+        test_coo2csr_mat_type_init<float>();
     }
 
     TEST(sp2md, wrongSize)
@@ -767,6 +704,109 @@ namespace
                                                      row,
                                                      17,
                                                      7); // Changing the C starting window
+    }
+
+    TEST(sp2md, CSCInputSuccess)
+    {
+        // CSC A, CSR B — op_none
+        test_sp2md_success<double>(
+            6, 4, 4, 5, 10, 8, zero, zero, op_n, op_n, col, -1, 0, 0, false, true);
+        test_sp2md_success<float>(
+            6, 4, 4, 5, 10, 8, zero, zero, op_n, op_n, col, -1, 0, 0, false, true);
+        // CSC A, CSR B — op_trans (m_a == m_b required)
+        test_sp2md_success<double>(
+            5, 4, 5, 6, 11, 17, zero, zero, op_t, op_n, row, -1, 0, 0, false, true);
+        test_sp2md_success<double>(
+            5, 4, 5, 6, 11, 17, one, one, op_t, op_n, row, -1, 0, 0, false, true);
+        // CSC A, CSR B — op_trans + op_trans (m_a == n_b required)
+        test_sp2md_success<double>(
+            6, 4, 5, 6, 12, 11, zero, zero, op_t, op_t, col, -1, 0, 0, false, true);
+        // CSC A, CSR B — complex op_h
+        test_sp2md_success<aoclsparse_float_complex>(
+            5, 4, 5, 6, 11, 17, zero, zero, op_h, op_n, col, -1, 0, 0, false, true);
+        test_sp2md_success<aoclsparse_double_complex>(
+            6, 4, 5, 6, 12, 11, zero, zero, op_h, op_h, row, -1, 0, 0, false, false);
+        // CSR A, CSC B — op_none + op_trans (n_a == n_b required)
+        test_sp2md_success<double>(
+            6, 4, 8, 4, 10, 8, one, zero, op_n, op_t, col, -1, 0, 0, true, false);
+        test_sp2md_success<aoclsparse_float_complex>(
+            6, 4, 8, 4, 10, 8, zero, zero, op_n, op_h, col, -1, 0, 0, true, false);
+        // Both CSC
+        test_sp2md_success<double>(
+            6, 4, 4, 5, 10, 8, zero, zero, op_n, op_n, col, -1, 0, 0, false, false);
+        test_sp2md_success<double>(
+            6, 4, 5, 6, 12, 11, zero, zero, op_t, op_t, row, -1, 0, 0, false, false);
+        test_sp2md_success<aoclsparse_double_complex>(
+            6, 4, 5, 6, 12, 11, zero, zero, op_h, op_h, col, -1, 0, 0, false, false);
+        // Scalar variants (alpha=0, beta=0)
+        test_sp2md_success<double>(
+            6, 4, 4, 5, 10, 8, zero, zero, op_n, op_n, col, -1, 0, 1, false, true);
+        test_sp2md_success<double>(
+            5, 4, 5, 6, 11, 17, zero, zero, op_t, op_n, col, -1, 0, 4, false, true);
+    }
+
+    TEST(sp2md, BetaZeroResetsNaN)
+    {
+        // BLAS convention: beta==0 must reset C to zero regardless of prior contents.
+        // scalar=4 selects alpha=1, beta=0 (real) / {1,0},{0,0} (complex).
+        using cd = aoclsparse_double_complex;
+
+        // CSR A, CSR B, row-major
+        test_sp2md_success<double>(6,
+                                   4,
+                                   4,
+                                   5,
+                                   10,
+                                   8,
+                                   zero,
+                                   zero,
+                                   op_n,
+                                   op_n,
+                                   row,
+                                   -1,
+                                   0,
+                                   4,
+                                   true,
+                                   true,
+                                   /*prefill_C_nan=*/true);
+
+        // CSC A, CSC B, col-major (A-side eff_opA=transpose path)
+        test_sp2md_success<double>(6,
+                                   4,
+                                   4,
+                                   5,
+                                   10,
+                                   8,
+                                   zero,
+                                   zero,
+                                   op_n,
+                                   op_n,
+                                   col,
+                                   -1,
+                                   0,
+                                   4,
+                                   false,
+                                   false,
+                                   /*prefill_C_nan=*/true);
+
+        // Complex, op_h + CSC A (CONJ_A=true template branch)
+        test_sp2md_success<cd>(6,
+                               4,
+                               5,
+                               6,
+                               12,
+                               11,
+                               zero,
+                               zero,
+                               op_h,
+                               op_h,
+                               col,
+                               -1,
+                               0,
+                               4,
+                               false,
+                               false,
+                               /*prefill_C_nan=*/true);
     }
 
 } // namespace

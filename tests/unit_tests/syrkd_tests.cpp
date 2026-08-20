@@ -39,6 +39,7 @@
 #include "blis.hh"
 #include "cblas.hh"
 #pragma GCC diagnostic pop
+#include "level3_test_common.hpp"
 
 namespace
 {
@@ -50,19 +51,6 @@ namespace
     aoclsparse_index_base zero = aoclsparse_index_base_zero;
     aoclsparse_index_base one  = aoclsparse_index_base_one;
 
-    // Structure holding the source arrays for matrix A (CSR and optional CSC)
-    template <typename T>
-    struct syrkd_mats
-    {
-        // CSR arrays
-        std::vector<T>              val_a;
-        std::vector<aoclsparse_int> col_ind_a;
-        std::vector<aoclsparse_int> row_ptr_a;
-        // CSC arrays (populated by test_syrkd_csc_success only)
-        std::vector<aoclsparse_int> csc_col_ptr;
-        std::vector<aoclsparse_int> csc_row_ind;
-        std::vector<T>              csc_val;
-    };
     // Set alpha and beta scalars based on selector index
     template <typename T>
     void syrkd_init_scalars(aoclsparse_int scalar, T &alpha, T &beta)
@@ -131,32 +119,6 @@ namespace
             }
         }
     }
-    // Generate a random sparse CSR matrix and populate src arrays
-    template <typename T>
-    void syrkd_gen_A(aoclsparse_int        m_a,
-                     aoclsparse_int        n_a,
-                     aoclsparse_int        nnz_a,
-                     aoclsparse_index_base b_a,
-                     syrkd_mats<T>        &src,
-                     aoclsparse_matrix    &A,
-                     aoclsparse_mat_descr &descrA)
-    {
-        std::vector<aoclsparse_int> coo_row;
-        ASSERT_EQ(aoclsparse_init_matrix_random(b_a,
-                                                m_a,
-                                                n_a,
-                                                nnz_a,
-                                                aoclsparse_csr_mat,
-                                                coo_row,
-                                                src.col_ind_a,
-                                                src.val_a,
-                                                src.row_ptr_a,
-                                                A),
-                  aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_create_mat_descr(&descrA), aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_set_mat_index_base(descrA, b_a), aoclsparse_status_success);
-    }
-
     // Compute dense reference result using BLIS syrk/herk.
     // Converts CSR A to dense, then calls the appropriate BLIS routine.
     // Does NOT contain any EXPECT_* assertions — comparison stays in the test body.
@@ -164,7 +126,7 @@ namespace
     void syrkd_compute_dense_ref(aoclsparse_int        m_a,
                                  aoclsparse_int        n_a,
                                  aoclsparse_index_base b_a,
-                                 syrkd_mats<T>        &src,
+                                 sparse_mat_data<T>   &src,
                                  aoclsparse_operation  op_a,
                                  aoclsparse_order      layout,
                                  aoclsparse_int        m_c,
@@ -193,9 +155,9 @@ namespace
         aoclsparse_csr2dense(m_a,
                              n_a,
                              descrRef,
-                             src.val_a.data(),
-                             src.row_ptr_a.data(),
-                             src.col_ind_a.data(),
+                             src.csr_val.data(),
+                             src.csr_row_ptr.data(),
+                             src.csr_col_ind.data(),
                              dense_a.data(),
                              lda,
                              layout);
@@ -477,10 +439,10 @@ namespace
         std::vector<T> dense_c, C, dense_c_exp;
         tolerance_t<T> abserr = sqrt(std::numeric_limits<tolerance_t<T>>::epsilon());
 
-        syrkd_mats<T>        src;
+        sparse_mat_data<T>   src;
         aoclsparse_matrix    A;
         aoclsparse_mat_descr descrA;
-        syrkd_gen_A<T>(m_a, n_a, nnz_a, b_a, src, A, descrA);
+        gen_mat(m_a, n_a, nnz_a, b_a, src, A, &descrA);
         if(op_a == op_n)
         {
             m_c    = m_a;
@@ -573,51 +535,10 @@ namespace
         std::vector<T> dense_c, C, dense_c_exp;
         tolerance_t<T> abserr = sqrt(std::numeric_limits<tolerance_t<T>>::epsilon());
 
-        // Step 1: Generate random CSR matrix
-        syrkd_mats<T>        src;
-        aoclsparse_matrix    A_csr;
+        sparse_mat_data<T>   src;
+        aoclsparse_matrix    A_csc = nullptr;
         aoclsparse_mat_descr descrA;
-        syrkd_gen_A<T>(m_a, n_a, nnz_a, b_a, src, A_csr, descrA);
-
-        // Step 2: Convert CSR → CSC arrays
-        src.csc_col_ptr.resize(n_a + 1);
-        // Ensure at least 1 element so .data() is non-null (create_csc checks pointers even when nnz=0)
-        src.csc_row_ind.resize((std::max)(nnz_a, (aoclsparse_int)1));
-        src.csc_val.resize((std::max)(nnz_a, (aoclsparse_int)1));
-
-        if(nnz_a > 0)
-        {
-            ASSERT_EQ(aoclsparse_csr2csc(m_a,
-                                         n_a,
-                                         nnz_a,
-                                         descrA,
-                                         b_a,
-                                         src.row_ptr_a.data(),
-                                         src.col_ind_a.data(),
-                                         src.val_a.data(),
-                                         src.csc_row_ind.data(),
-                                         src.csc_col_ptr.data(),
-                                         src.csc_val.data()),
-                      aoclsparse_status_success);
-        }
-        else
-        {
-            // Empty matrix: csc_col_ptr is all base-index values
-            aoclsparse_int base = (b_a == aoclsparse_index_base_one) ? 1 : 0;
-            std::fill(src.csc_col_ptr.begin(), src.csc_col_ptr.end(), base);
-        }
-
-        // Step 3: Create CSC matrix handle
-        aoclsparse_matrix A_csc;
-        ASSERT_EQ(aoclsparse_create_csc<T>(&A_csc,
-                                           b_a,
-                                           m_a,
-                                           n_a,
-                                           nnz_a,
-                                           src.csc_col_ptr.data(),
-                                           src.csc_row_ind.data(),
-                                           src.csc_val.data()),
-                  aoclsparse_status_success);
+        gen_mat(m_a, n_a, nnz_a, b_a, src, A_csc, &descrA, false);
 
         if(op_a == op_n)
         {
@@ -683,7 +604,6 @@ namespace
         }
 
         aoclsparse_destroy(&A_csc);
-        aoclsparse_destroy(&A_csr);
         aoclsparse_destroy_mat_descr(descrA);
     }
 

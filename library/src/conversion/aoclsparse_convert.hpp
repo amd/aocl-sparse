@@ -23,15 +23,8 @@
 #ifndef AOCLSPARSE_CONVERT_HPP
 #define AOCLSPARSE_CONVERT_HPP
 
-#include "aoclsparse.h"
-#include "aoclsparse_descr.h"
-#include "aoclsparse_types.h"
 #include "aoclsparse_mat_structures.hpp"
 #include "aoclsparse_utils.hpp"
-
-// Forward declaration to avoid circular include:
-// aoclsparse_auxiliary.hpp -> aoclsparse_csr_util.hpp -> aoclsparse_convert.hpp
-bool aoclsparse_lp64_product_overflow(aoclsparse_int a, aoclsparse_int b);
 
 #include <algorithm>
 #include <cmath>
@@ -743,7 +736,7 @@ aoclsparse_status aoclsparse_csr2dense_template(aoclsparse_int             m,
     // Row major: A[row * ld + col], overflow risk in row * ld where row ∈ [0, m-1]
     aoclsparse_int a_dim = (order == aoclsparse_order_column) ? n : m;
     // Validate the full dense range: maximum index is strictly less than a_dim * ld
-    if(aoclsparse_lp64_product_overflow(a_dim, ld))
+    if(aoclsparse_numeric::aoclsparse_int_product_overflow(a_dim, ld))
     {
         return aoclsparse_status_invalid_size;
     }

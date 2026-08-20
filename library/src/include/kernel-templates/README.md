@@ -3,8 +3,8 @@
 <p align="justify"> Reusable kernel templates is a stand alone library implemented in modern C++ as a header only templated framework. The framework is designed for rapid development of high-performant AVX-vectorized kernels
 specialized on basic mathematical operations. The main purpose of the framework is to allow for a single abstract implementation of a kernel to be instantiated for any datatype and ISA combination. It leverages
 ISA and datatype combination to fully exploit the hardware
-resources. KT support 4 different datatypes
-(<code>float</code>, <code>double</code>, <code>std::complex&lt;float&gt;</code> and <code>std::complex&lt;double&gt;</code>) for
+resources. KT supports 5 different datatypes
+(<code>float</code>, <code>double</code>, <code>std::complex&lt;float&gt;</code>, <code>std::complex&lt;double&gt;</code> and <code>fp16</code>) for
 3 different ISAs (SSE, AVX2 and AVX512)</p>
 
 ## Purpose
@@ -66,9 +66,6 @@ Table Reusable Kernel Templates μkernels list.
 ```cpp
 //FILENAME: kt_example_axpyi.cpp
 #include <cstdint>
-
-// Set the kt_int
-using kt_int_t = int64_t; // or int32_t
 
 #include "kernel-templates/kernel_templates.hpp"
 
@@ -249,6 +246,10 @@ The above example can be compiled as follows:
 g++ -o compare_kernels compare_kernels.cpp kt_axpyi_avx2.o kt_axpyi_avx512.o  # Generate the executable for the application
 ```
 
+## Contributing
+
+For guidance on extending the Kernel Templates library -- adding new datatypes, L0/L1 micro kernels, and writing tests -- see [CONTRIBUTE.md](CONTRIBUTE.md).
+
 ## Documentation
 
 ### Generating Documentation
@@ -314,6 +315,51 @@ All operations documented with examples and intrinsic equivalents:
 - `float`, `double` - Real types
 - `std::complex<float>`, `std::complex<double>` - Complex types
 - `int32_t`, `int64_t` - Integer types (limited operations)
+- `fp16` - Half-precision floating-point (see [FP16 Support](#fp16-support) below)
+
+## FP16 Support
+
+KT provides half-precision floating-point (`fp16`) support through the AVX-512 FP16
+instruction set extension. The `fp16` type is a lightweight `uint16_t` wrapper that
+represents IEEE 754 binary16 values and can be used with all Level-0 kernel operations.
+
+### Compiler Requirements
+
+The native AVX-512 FP16 intrinsics rely on the `_Float16` type, which is **not available
+on all compilers**. The following table summarises compiler support:
+
+| Compiler | `_Float16` / AVX-512 FP16 | Notes |
+|---|---|---|
+| GCC ≥ 12 | Supported | Requires `-mavx512fp16` |
+| Clang ≥ 15 | Supported | Requires `-mavx512fp16` |
+| Intel ICX / oneAPI | Supported | Clang-based, requires `-mavx512fp16` |
+| **MSVC** | **Not supported** | No `_Float16` type; AVX-512 FP16 intrinsics unavailable |
+
+> **Windows users:** To use `fp16` SIMD operations on Windows you must use a compiler
+> that supports `_Float16`, such as Clang/LLVM (via clang-cl) or Intel ICX. MSVC cannot
+> compile the AVX-512 FP16 code paths.
+
+In the current implementation, `fp16` is an alias for the native `_Float16` type when
+`__AVX512FP16__` is enabled at compile time. When AVX-512 FP16 is not enabled or the
+compiler does not provide `_Float16`, `fp16` is only a tag type and cannot be used for
+scalar arithmetic or conversions. As a result, both scalar and SIMD `fp16` code paths
+(including the `kt_*_p<SZ, fp16>` family) are only available on compilers and targets
+that support `_Float16` and AVX-512 FP16.
+
+### Compiling with FP16
+
+To generate kernels that use fp16 SIMD operations, add `-mavx512fp16` to the
+compilation flags. This implicitly enables `__AVX512FP16__`, which gates all
+fp16-specific intrinsic code.
+
+```bash
+# AVX-512 FP16 build (also implies AVX-512F, AVX-512VL, etc.)
+g++ -mavx512fp16 -c kt_example.cpp -o kt_example_fp16.o
+```
+
+### Hardware Requirements
+
+AVX-512 FP16 instructions require processor support. Use `cpuid` or equivalent to check for AVX-512 FP16 support at runtime before dispatching to fp16 SIMD kernels.
 
 ### Clean Documentation
 

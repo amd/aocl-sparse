@@ -106,7 +106,6 @@ aoclsparse_status estimate_nnz(const aoclsparse_operation op,
                 nnz_row = m - 1;
             total_nnz += (nnz_row + 1) / 2 + 1; // only 1 triangle and add the diagonal
         }
-        nnz = static_cast<aoclsparse_int>(total_nnz);
     }
     else // A'A
     {
@@ -140,14 +139,14 @@ aoclsparse_status estimate_nnz(const aoclsparse_operation op,
                 nnz_row[j] = n - 1;
             total_nnz += (nnz_row[j] + 1) / 2 + 1; // only 1 triangle and add the diagonal
         }
-        nnz = static_cast<aoclsparse_int>(total_nnz);
     }
 
     // Check for overflow AFTER loop (no UB occurred since all arithmetic was 64-bit)
-    if(total_nnz > aoclsparse_numeric::int_max)
+    if(aoclsparse_numeric::aoclsparse_int_sum_overflow(total_nnz))
     {
         return aoclsparse_status_invalid_size;
     }
+    nnz = static_cast<aoclsparse_int>(total_nnz);
 
     return aoclsparse_status_success;
 }

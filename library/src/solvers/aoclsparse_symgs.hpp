@@ -24,14 +24,11 @@
 #ifndef AOCLSPARSE_SYMGS_HPP
 #define AOCLSPARSE_SYMGS_HPP
 
-#include "aoclsparse_descr.h"
 #include "aoclsparse.hpp"
-#include "aoclsparse_analysis.hpp"
 #include "aoclsparse_auxiliary.hpp"
-#include "aoclsparse_csr_util.hpp"
-#include "aoclsparse_utils.hpp"
 
 #include <immintrin.h>
+#include <shared_mutex>
 #include <type_traits>
 
 #define KT_ADDRESS_TYPE aoclsparse_int
@@ -291,8 +288,12 @@ aoclsparse_status aoclsparse_symgs(
     {
         return aoclsparse_status_invalid_pointer;
     }
-    if(A->mats.empty() || !A->mats[0])
+
+    if(!A->get_first_mtx_if_valid<aoclsparse::base_mtx>())
         return aoclsparse_status_invalid_pointer;
+
+    if(!A->is_descr_matching(descr))
+        return aoclsparse_status_invalid_value;
 
     //Only CSR format is supported for SYMGS
     if(A->input_format != aoclsparse_csr_mat)
@@ -303,12 +304,6 @@ aoclsparse_status aoclsparse_symgs(
     // Check for base index incompatibility
     // Check if descriptor's index-base is valid (and A's index-base must be the same)
     if(descr->base != aoclsparse_index_base_zero && descr->base != aoclsparse_index_base_one)
-    {
-        return aoclsparse_status_invalid_value;
-    }
-    // There is an issue that zero-based indexing is defined in two separate places and
-    // can lead to ambiguity, we check that both are consistent.
-    if(A->mats[0]->base != descr->base)
     {
         return aoclsparse_status_invalid_value;
     }

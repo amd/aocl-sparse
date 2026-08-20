@@ -24,13 +24,8 @@
 #ifndef AOCLSPARSE_SYRKD_HPP
 #define AOCLSPARSE_SYRKD_HPP
 
-#include "aoclsparse.h"
-#include "aoclsparse_descr.h"
 #include "aoclsparse_auxiliary.hpp"
-#include "aoclsparse_convert.hpp"
-#include "aoclsparse_mat_structures.hpp"
 #include "aoclsparse_sypr.hpp"
-#include "aoclsparse_utils.hpp"
 
 #include <complex>
 #include <vector>
@@ -205,7 +200,7 @@ inline aoclsparse_status aoclsparse_syrkd_t(const aoclsparse_operation      op,
 
     aoclsparse_status status;
 
-    aoclsparse::csr *csr_mat = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
+    aoclsparse::csr *csr_mat = A->get_first_mtx_if_valid<aoclsparse::csr>();
     if(!csr_mat)
         return aoclsparse_status_not_implemented;
 
@@ -262,7 +257,7 @@ inline aoclsparse_status aoclsparse_syrkd_t(const aoclsparse_operation      op,
     // SYRKD computes a symmetric m_C x m_C output matrix (upper triangle)
     // Kernels compute: C[i * ldc + j] (row-major) or C[i + j * ldc] (col-major)
     // With ldc >= m_C, the maximum dense index is bounded by m_C * ldc.
-    if(aoclsparse_lp64_product_overflow(m_C, ldc))
+    if(aoclsparse_numeric::aoclsparse_int_product_overflow(m_C, ldc))
     {
         return aoclsparse_status_invalid_size;
     }

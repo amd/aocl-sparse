@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023-2025 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023-2026 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,155 +24,167 @@
 #include "common_data_utils.h"
 #include "gtest/gtest.h"
 
-using kt_int_t = size_t;
+#include <string>
 
-#include "kernel-templates/kernel_templates.hpp"
+// -----------------------------------------------------------------------------
+// Redefine the Declaration / Instantiation macros of the drivers to:
+// * Forward declare the drivers, and
+// * Define the GTESTs
+#define KT_TEST_DO3(FUNC, SZ, SUF)                                                       \
+    void FUNC##_##SZ##_##SUF();                                                          \
+    TEST(KT_TEST, FUNC##_##SZ##_##SUF)                                                   \
+    {                                                                                    \
+        bool ok{true};                                                                   \
+        if(#SUF##s == "_Float16"s || #SUF##s == "fp16"s)                                 \
+        {                                                                                \
+            ok = can_exec_avx512fp16_tests();                                            \
+        }                                                                                \
+        else if(#SZ##s == "b512"s)                                                       \
+        {                                                                                \
+            ok = can_exec_avx512_tests();                                                \
+        }                                                                                \
+        if(ok)                                                                           \
+        {                                                                                \
+            FUNC##_##SZ##_##SUF();                                                       \
+        }                                                                                \
+        else                                                                             \
+        {                                                                                \
+            GTEST_SKIP() << "No runtime support for " << #SUF << " with " << #SZ << "."; \
+        }                                                                                \
+    }
 
-using namespace kernel_templates;
-
-// Macro to invoke test functions for real types
-#define CALL_FOR_REAL_TYPES(func, SZ) \
-    func<SZ, float>();                \
-    func<SZ, double>();
-
-// Macro to invoke test functions for complex types
-#define CALL_FOR_COMPLEX_TYPES(func, SZ) \
-    func<SZ, cfloat>();                  \
-    func<SZ, cdouble>();
-
-// Macro to invoke test functions for int types
-#define CALL_FOR_INT_TYPES(func, SZ) \
-    func<SZ, int64_t>();             \
-    func<SZ, int32_t>();
-
-// Macro to invoke test functions for all supported types
-#define CALL_FOR_ALL_TYPES(func, SZ) \
-    CALL_FOR_REAL_TYPES(func, SZ)    \
-    CALL_FOR_COMPLEX_TYPES(func, SZ);
+#define KT_TEST_DO4(FUNC, SZ, SUF, IDX)                                                     \
+    void FUNC##_##SZ##_##SUF##_##IDX();                                                     \
+    TEST(KT_TEST, FUNC##_##SZ##_##SUF##_##IDX)                                              \
+    {                                                                                       \
+        bool ok{true};                                                                      \
+        if(#SUF##s == "_Float16"s || #SUF##s == "fp16"s)                                    \
+        {                                                                                   \
+            ok = can_exec_avx512fp16_tests();                                               \
+        }                                                                                   \
+        else if(#SZ##s == "b512"s)                                                          \
+        {                                                                                   \
+            ok = can_exec_avx512_tests();                                                   \
+        }                                                                                   \
+        if(ok)                                                                              \
+        {                                                                                   \
+            FUNC##_##SZ##_##SUF##_##IDX();                                                  \
+        }                                                                                   \
+        else                                                                                \
+        {                                                                                   \
+            GTEST_SKIP() << "No runtime support for " << #SUF << " with " << #SZ << " and " \
+                         << #IDX << ".";                                                    \
+        }                                                                                   \
+    }
+// -----------------------------------------------------------------------------
 
 namespace TestsKT
 {
-    // Test function declaration
-    // -------------------------
+    using namespace std::literals::string_literals;
+
+    // Drivers for type tests forward declarations
+    // -------------------------------------------
     void kt_base_t_check();
+    void kt_base_t_check_fp16();
 
     void kt_is_same_test();
+    void kt_is_same_test_fp16();
 
     void kt_types_128();
+    void kt_types_128_fp16();
 
     void kt_ctypes_128();
+    void kt_ctypes_128_fp16();
 
     void kt_types_256();
+    void kt_types_256_fp16();
 
     void kt_ctypes_256();
+    void kt_ctypes_256_fp16();
 
     void kt_types_512();
 
     void kt_ctypes_512();
 
-    template <bsz SZ, typename SUF>
-    void kt_loadu_p_test();
-
-    template <bsz SZ, typename SUF>
-    void kt_load_p_test();
-
-    template <bsz SZ, typename SUF>
-    void kt_setzero_p_test();
-
-    template <bsz SZ, typename SUF>
-    void kt_set1_p_test();
-
-    template <bsz SZ, typename SUF>
-    void kt_add_p_test();
-
-    template <bsz SZ, typename SUF>
-    void kt_sub_p_test();
-
-    template <bsz SZ, typename SUF>
-    void kt_mul_p_test();
-
-    template <bsz SZ, typename SUF>
-    void kt_fmadd_p_test();
-
-    template <bsz SZ, typename SUF>
-    void kt_fmsub_p_test();
-
-    template <bsz SZ, typename SUF>
-    void kt_set_p_test();
-
-    void kt_maskz_set_p_128_avx();
-
-    void kt_maskz_set_p_256_avx();
-
-    void kt_maskz_set_p_256_AVX512vl();
-
-    void kt_maskz_set_p_512_AVX512f();
-
-    template <bsz SZ, typename SUF>
-    void kt_hsum_p_test();
-
-    template <bsz SZ, typename SUF>
-    void kt_conj_p_test();
-
-    template <bsz SZ, typename SUF>
-    void kt_dot_p_test();
-
-    template <bsz SZ, typename SUF>
-    void kt_cdot_p_test();
-
-    template <bsz SZ, typename SUF>
-    void kt_storeu_p_test();
-
-    template <bsz SZ, typename SUF>
-    void kt_fmadd_B_test();
-
-    template <bsz SZ, typename SUF>
-    void kt_hsum_B_test();
-
-    template <bsz SZ, typename SUF>
-    void kt_max_p_test();
-
-    template <bsz SZ, typename SUF>
-    void kt_div_p_test();
-
-    template <bsz SZ, typename SUF>
-    void kt_pow2_p_test();
-
-    template <bsz SZ, typename SUF>
-    void kt_scatter_p_test();
-    // -------------------------
-
-    TEST(KT_L0, KT_BASE_T_CHECK)
+    TEST(KT_TYPE, KT_BASE_T_CHECK)
     {
         kt_base_t_check();
     }
 
-    TEST(KT_L0, KT_IS_SAME)
+    TEST(KT_TYPE, KT_BASE_T_CHECK_FP16)
+    {
+        if(can_exec_avx512fp16_tests())
+            kt_base_t_check_fp16();
+        else
+            GTEST_SKIP() << "No runtime support for AVX512FP16.";
+    }
+
+    TEST(KT_TYPE, KT_IS_SAME)
     {
         kt_is_same_test();
     }
 
-    TEST(KT_L0, KT_TYPES_128)
+    TEST(KT_TYPE, KT_IS_SAME_FP16)
+    {
+        if(can_exec_avx512fp16_tests())
+            kt_is_same_test_fp16();
+        else
+            GTEST_SKIP() << "No runtime support for AVX512FP16.";
+    }
+
+    TEST(KT_TYPE, KT_TYPES_128)
     {
         kt_types_128();
     }
 
-    TEST(KT_L0, KT_CTYPES_128)
+    TEST(KT_TYPE, KT_TYPES_128_FP16)
+    {
+        if(can_exec_avx512fp16_tests())
+            kt_types_128_fp16();
+        else
+            GTEST_SKIP() << "No runtime support for AVX512FP16.";
+    }
+
+    TEST(KT_TYPE, KT_CTYPES_128)
     {
         kt_ctypes_128();
     }
 
-    TEST(KT_L0, KT_TYPES_256)
+    TEST(KT_TYPE, KT_CTYPES_128_FP16)
+    {
+        if(can_exec_avx512fp16_tests())
+            kt_ctypes_128_fp16();
+        else
+            GTEST_SKIP() << "No runtime support for AVX512FP16.";
+    }
+
+    TEST(KT_TYPE, KT_TYPES_256)
     {
         kt_types_256();
     }
 
-    TEST(KT_L0, KT_CTYPES_256)
+    TEST(KT_TYPE, KT_TYPES_256_FP16)
+    {
+        if(can_exec_avx512fp16_tests())
+            kt_types_256_fp16();
+        else
+            GTEST_SKIP() << "No runtime support for AVX512FP16.";
+    }
+
+    TEST(KT_TYPE, KT_CTYPES_256)
     {
         kt_ctypes_256();
     }
 
-    TEST(KT_L0, KT_TYPES_512)
+    TEST(KT_TYPE, KT_CTYPES_256_FP16)
+    {
+        if(can_exec_avx512fp16_tests())
+            kt_ctypes_256_fp16();
+        else
+            GTEST_SKIP() << "No runtime support for AVX512FP16.";
+    }
+
+    TEST(KT_TYPE, KT_TYPES_512)
     {
         if(can_exec_avx512_tests())
         {
@@ -180,7 +192,7 @@ namespace TestsKT
         }
     }
 
-    TEST(KT_L0, KT_CTYPES_512)
+    TEST(KT_TYPE, KT_CTYPES_512)
     {
         if(can_exec_avx512_tests())
         {
@@ -188,483 +200,12 @@ namespace TestsKT
         }
     }
 
-    /*
-     * Test loadu intrinsic to load 2 (cdouble), 4 (cfloat), 4 (double), 8 (floats) length vectors
-     */
-    TEST(KT_L0, kt_loadu_p_128)
-    {
-        CALL_FOR_ALL_TYPES(kt_loadu_p_test, bsz::b128);
-        CALL_FOR_INT_TYPES(kt_loadu_p_test, bsz::b128);
-    }
+// Add the KT_TEST tests
+#define KT_TEST_ADD_ONLY_AVX2
+// Add the AVX2 tests
+#include "kt_kernels.hpp"
+#undef KT_TEST_ADD_ONLY_AVX2
+// Add the AVX512 tests
+#include "kt_kernels.hpp"
 
-    TEST(KT_L0, kt_loadu_p_256)
-    {
-        CALL_FOR_ALL_TYPES(kt_loadu_p_test, bsz::b256);
-        CALL_FOR_INT_TYPES(kt_loadu_p_test, bsz::b256);
-    }
-
-    TEST(KT_L0, kt_loadu_p_512)
-    {
-        if(can_exec_avx512_tests())
-        {
-            CALL_FOR_ALL_TYPES(kt_loadu_p_test, bsz::b512);
-            CALL_FOR_INT_TYPES(kt_loadu_p_test, bsz::b512);
-        }
-    }
-
-    /*
-     * Test load intrinsic to load 2 (cdouble), 4 (cfloat), 4 (double), 8 (floats) length vectors
-     */
-    TEST(KT_L0, kt_load_p_128)
-    {
-        CALL_FOR_ALL_TYPES(kt_load_p_test, bsz::b128);
-        CALL_FOR_INT_TYPES(kt_load_p_test, bsz::b128);
-    }
-
-    TEST(KT_L0, kt_load_p_256)
-    {
-        CALL_FOR_ALL_TYPES(kt_load_p_test, bsz::b256);
-        CALL_FOR_INT_TYPES(kt_load_p_test, bsz::b256);
-    }
-
-    TEST(KT_L0, kt_load_p_512)
-    {
-        if(can_exec_avx512_tests())
-        {
-            CALL_FOR_ALL_TYPES(kt_load_p_test, bsz::b512);
-            CALL_FOR_INT_TYPES(kt_load_p_test, bsz::b512);
-        }
-    }
-
-    /*
-     * Test setzero intrinsic to zero-out 2 (cdouble), 4 (cfloat), 4 (double), 8 (floats) length vectors
-     */
-    TEST(KT_L0, kt_setzero_p_128)
-    {
-        CALL_FOR_ALL_TYPES(kt_setzero_p_test, bsz::b128);
-        CALL_FOR_INT_TYPES(kt_setzero_p_test, bsz::b128);
-    }
-
-    TEST(KT_L0, kt_setzero_p_256)
-    {
-        CALL_FOR_ALL_TYPES(kt_setzero_p_test, bsz::b256);
-        CALL_FOR_INT_TYPES(kt_setzero_p_test, bsz::b256);
-    }
-
-    TEST(KT_L0, kt_setzero_p_512)
-    {
-        if(can_exec_avx512_tests())
-        {
-            CALL_FOR_ALL_TYPES(kt_setzero_p_test, bsz::b512);
-            CALL_FOR_INT_TYPES(kt_setzero_p_test, bsz::b512);
-        }
-    }
-
-    /*
-     * Test set1 intrinsic to load a scalat into 2 (cdouble), 4 (cfloat), 4 (double), 8 (floats) length vectors
-     */
-    TEST(KT_L0, kt_set1_p_128)
-    {
-        CALL_FOR_ALL_TYPES(kt_set1_p_test, bsz::b128);
-        CALL_FOR_INT_TYPES(kt_set1_p_test, bsz::b128);
-    }
-
-    TEST(KT_L0, kt_set1_p_256)
-    {
-        CALL_FOR_ALL_TYPES(kt_set1_p_test, bsz::b256);
-        CALL_FOR_INT_TYPES(kt_set1_p_test, bsz::b256);
-    }
-
-    TEST(KT_L0, kt_set1_p_512)
-    {
-        if(can_exec_avx512_tests())
-        {
-            CALL_FOR_ALL_TYPES(kt_set1_p_test, bsz::b512);
-            CALL_FOR_INT_TYPES(kt_set1_p_test, bsz::b512);
-        }
-    }
-
-    /*
-     * Test add intrinsic to sum two: 2 (cdouble), 4 (cfloat), 4 (double), 8 (floats) length vectors
-     */
-    TEST(KT_L0, kt_add_p_128)
-    {
-        CALL_FOR_ALL_TYPES(kt_add_p_test, bsz::b128);
-    }
-
-    TEST(KT_L0, kt_add_p_256)
-    {
-        CALL_FOR_ALL_TYPES(kt_add_p_test, bsz::b256);
-    }
-
-    TEST(KT_L0, kt_add_p_512)
-    {
-        if(can_exec_avx512_tests())
-        {
-            CALL_FOR_ALL_TYPES(kt_add_p_test, bsz::b512);
-        }
-    }
-
-    /*
-     * Test intrinsic to subtract two: 2 (cdouble), 4 (cfloat), 4 (double), 8 (floats) length vectors
-     */
-    TEST(KT_L0, kt_sub_p_128)
-    {
-        CALL_FOR_ALL_TYPES(kt_sub_p_test, bsz::b128);
-    }
-
-    TEST(KT_L0, kt_sub_p_256)
-    {
-        CALL_FOR_ALL_TYPES(kt_sub_p_test, bsz::b256);
-    }
-
-    TEST(KT_L0, kt_sub_p_512)
-    {
-        if(can_exec_avx512_tests())
-        {
-            CALL_FOR_ALL_TYPES(kt_sub_p_test, bsz::b512);
-        }
-    }
-
-    /*
-     * Test mul intrinsic to multiply two 2 (cdouble), 4 (cfloat), 4 (double), 8 (floats) length vectors
-     */
-    TEST(KT_L0, kt_mul_p_128)
-    {
-        CALL_FOR_ALL_TYPES(kt_mul_p_test, bsz::b128);
-    }
-
-    TEST(KT_L0, kt_mul_p_256)
-    {
-        CALL_FOR_ALL_TYPES(kt_mul_p_test, bsz::b256);
-    }
-
-    TEST(KT_L0, kt_mul_p_512)
-    {
-        if(can_exec_avx512_tests())
-        {
-            CALL_FOR_ALL_TYPES(kt_mul_p_test, bsz::b512);
-        }
-    }
-
-    /*
-     * Test fmadd intrinsic to fuse-multiply-add three
-     * 2 (cdouble), 4 (cfloat), 4 (double), 8 (floats) length vectors
-     */
-    TEST(KT_L0, kt_fmadd_p_128)
-    {
-        CALL_FOR_ALL_TYPES(kt_fmadd_p_test, bsz::b128);
-    }
-
-    TEST(KT_L0, kt_fmadd_p_256)
-    {
-        CALL_FOR_ALL_TYPES(kt_fmadd_p_test, bsz::b256);
-    }
-
-    TEST(KT_L0, kt_fmadd_p_512)
-    {
-        if(can_exec_avx512_tests())
-        {
-            CALL_FOR_ALL_TYPES(kt_fmadd_p_test, bsz::b512);
-        }
-    }
-
-    /*
-     * Test fmsub intrinsic to fused-multiply-subtract three
-     * 2 (cdouble), 4 (cfloat), 4 (double), 8 (floats) length vectors
-     */
-    TEST(KT_L0, kt_fmsub_p_128)
-    {
-        CALL_FOR_ALL_TYPES(kt_fmsub_p_test, bsz::b128);
-    }
-
-    TEST(KT_L0, kt_fmsub_p_256)
-    {
-        CALL_FOR_ALL_TYPES(kt_fmsub_p_test, bsz::b256);
-    }
-
-    TEST(KT_L0, kt_fmsub_p_512)
-    {
-        if(can_exec_avx512_tests())
-        {
-            CALL_FOR_ALL_TYPES(kt_fmsub_p_test, bsz::b512);
-        }
-    }
-
-    /*
-     * Test "set" intrinsic to indirectly load using a "map"
-     * 2 (cdouble), 4 (cfloat), 4 (double), 8 (floats) length vectors
-     */
-    TEST(KT_L0, kt_set_p_128)
-    {
-        CALL_FOR_ALL_TYPES(kt_set_p_test, bsz::b128);
-    }
-
-    TEST(KT_L0, kt_set_p_256)
-    {
-        CALL_FOR_ALL_TYPES(kt_set_p_test, bsz::b256);
-    }
-
-    TEST(KT_L0, kt_set_p_512)
-    {
-        if(can_exec_avx512_tests())
-        {
-            CALL_FOR_ALL_TYPES(kt_set_p_test, bsz::b512);
-        }
-    }
-
-    TEST(KT_L0, kt_maskz_set_p_128_AVX)
-    {
-        kt_maskz_set_p_128_avx();
-    }
-
-    TEST(KT_L0, kt_maskz_set_p_256_AVX)
-    {
-        kt_maskz_set_p_256_avx();
-    }
-
-    TEST(KT_L0, kt_maskz_set_p_256_AVX512VL)
-    {
-        if(can_exec_avx512_tests())
-        {
-            kt_maskz_set_p_256_AVX512vl();
-        }
-    }
-
-    TEST(KT_L0, kt_maskz_set_p_512_AVX512F)
-    {
-        if(can_exec_avx512_tests())
-        {
-            kt_maskz_set_p_512_AVX512f();
-        }
-    }
-
-    /*
-     * Test "hsum" intrinsic to horizontally-reduce via summation
-     * 2 (cdouble), 4 (cfloat), 4 (double), 8 (floats) length vectors
-     */
-    TEST(KT_L0, kt_hsum_p_128)
-    {
-        CALL_FOR_ALL_TYPES(kt_hsum_p_test, bsz::b128);
-    }
-
-    TEST(KT_L0, kt_hsum_p_256)
-    {
-        CALL_FOR_ALL_TYPES(kt_hsum_p_test, bsz::b256);
-    }
-
-    TEST(KT_L0, kt_hsum_p_512)
-    {
-        if(can_exec_avx512_tests())
-        {
-            CALL_FOR_ALL_TYPES(kt_hsum_p_test, bsz::b512);
-        }
-    }
-
-    /*
-     * Test "dot-product" intrinsic on
-     * 2 (cdouble), 4 (cfloat), 4 (double), 8 (floats) length vectors
-     */
-    TEST(KT_L0, kt_conj_p_128)
-    {
-        CALL_FOR_ALL_TYPES(kt_conj_p_test, bsz::b128);
-    }
-
-    TEST(KT_L0, kt_conj_p_256)
-    {
-        CALL_FOR_ALL_TYPES(kt_conj_p_test, bsz::b256);
-    }
-
-    TEST(KT_L0, kt_conj_p_512)
-    {
-        if(can_exec_avx512_tests())
-        {
-            CALL_FOR_ALL_TYPES(kt_conj_p_test, bsz::b512);
-        }
-    }
-
-    /*
-     * Test "dot-product" intrinsic on two
-     * 2 (cdouble), 4 (cfloat), 4 (double), 8 (floats) length vectors
-     */
-    TEST(KT_L1, kt_dot_p_128)
-    {
-        CALL_FOR_ALL_TYPES(kt_dot_p_test, bsz::b128);
-    }
-
-    TEST(KT_L1, kt_dot_p_256)
-    {
-        CALL_FOR_ALL_TYPES(kt_dot_p_test, bsz::b256);
-    }
-
-    TEST(KT_L1, kt_dot_p_512)
-    {
-        if(can_exec_avx512_tests())
-        {
-            CALL_FOR_ALL_TYPES(kt_dot_p_test, bsz::b512);
-        }
-    }
-
-    /*
-     * Test "complex dot-product" intrinsic on two
-     * 2 (cdouble), 4 (cfloat), 4 (double), 8 (floats) length vectors
-     */
-    TEST(KT_L1, kt_cdot_p_128)
-    {
-        CALL_FOR_ALL_TYPES(kt_cdot_p_test, bsz::b128);
-    }
-
-    TEST(KT_L1, kt_cdot_p_256)
-    {
-        CALL_FOR_ALL_TYPES(kt_cdot_p_test, bsz::b256);
-    }
-
-    TEST(KT_L1, kt_cdot_p_512)
-    {
-        if(can_exec_avx512_tests())
-        {
-            CALL_FOR_ALL_TYPES(kt_cdot_p_test, bsz::b512);
-        }
-    }
-
-    /*
-        Test "store" KT to store elements to memory
-    */
-    TEST(KT_L0, kt_storeu_p_128)
-    {
-        CALL_FOR_ALL_TYPES(kt_storeu_p_test, bsz::b128);
-    }
-
-    TEST(KT_L0, kt_storeu_p_256)
-    {
-        CALL_FOR_ALL_TYPES(kt_storeu_p_test, bsz::b256);
-    }
-
-    TEST(KT_L0, kt_storeu_p_512)
-    {
-        if(can_exec_avx512_tests())
-        {
-            CALL_FOR_ALL_TYPES(kt_storeu_p_test, bsz::b512);
-        }
-    }
-
-    /*
-     * Test fmadd BLOCK VARIANT for fuse-multiply-add three
-     * 2 (cdouble), 4 (cfloat), 4 (double), 8 (floats) length vectors
-     */
-    TEST(KT_Block_L0, kt_fmadd_B_128)
-    {
-        CALL_FOR_ALL_TYPES(kt_fmadd_B_test, bsz::b128);
-    }
-
-    TEST(KT_Block_L0, kt_fmadd_B_256)
-    {
-        CALL_FOR_ALL_TYPES(kt_fmadd_B_test, bsz::b256);
-    }
-
-    TEST(KT_Block_L0, kt_fmadd_B_512)
-    {
-        if(can_exec_avx512_tests())
-        {
-            CALL_FOR_ALL_TYPES(kt_fmadd_B_test, bsz::b512);
-        }
-    }
-
-    /*
-        Test "hsum_B"
-    */
-    TEST(KT_Block_L0, kt_hsum_B_128)
-    {
-        CALL_FOR_ALL_TYPES(kt_hsum_B_test, bsz::b128);
-    }
-
-    TEST(KT_Block_L0, kt_hsum_B_256)
-    {
-        CALL_FOR_ALL_TYPES(kt_hsum_B_test, bsz::b256);
-    }
-
-    TEST(KT_Block_L0, kt_hsum_B_512)
-    {
-        if(can_exec_avx512_tests())
-        {
-            CALL_FOR_ALL_TYPES(kt_hsum_B_test, bsz::b512);
-        }
-    }
-
-    /*
-        Test "max operations"
-        Instantiated only for real types
-    */
-    TEST(KT_L0, kt_max_p_128)
-    {
-        CALL_FOR_REAL_TYPES(kt_max_p_test, bsz::b128);
-    }
-
-    TEST(KT_L0, kt_max_p_256)
-    {
-        CALL_FOR_REAL_TYPES(kt_max_p_test, bsz::b256);
-    }
-
-    TEST(KT_L0, kt_max_p_512)
-    {
-        if(can_exec_avx512_tests())
-        {
-            CALL_FOR_REAL_TYPES(kt_max_p_test, bsz::b512);
-        }
-    }
-
-    /*
-    * Test div intrinsic for all types
-    */
-    TEST(KT_L0, kt_div_p_128)
-    {
-        CALL_FOR_ALL_TYPES(kt_div_p_test, bsz::b128);
-    }
-
-    TEST(KT_L0, kt_div_p_256)
-    {
-        CALL_FOR_ALL_TYPES(kt_div_p_test, bsz::b256);
-    }
-
-    TEST(KT_L0, kt_div_p_512)
-    {
-        if(can_exec_avx512_tests())
-        {
-            CALL_FOR_ALL_TYPES(kt_div_p_test, bsz::b512);
-        }
-    }
-
-    /*
-    * Test pow2 intrinsic for all types
-    */
-    TEST(KT_L0, kt_pow2_p_128)
-    {
-        CALL_FOR_ALL_TYPES(kt_pow2_p_test, bsz::b128);
-    }
-
-    TEST(KT_L0, kt_pow2_p_256)
-    {
-        CALL_FOR_ALL_TYPES(kt_pow2_p_test, bsz::b256);
-    }
-
-    TEST(KT_L0, kt_pow2_p_512)
-    {
-        if(can_exec_avx512_tests())
-        {
-            CALL_FOR_ALL_TYPES(kt_pow2_p_test, bsz::b512);
-        }
-    }
-
-    TEST(KT_L0, kt_scatter_p_256)
-    {
-        CALL_FOR_ALL_TYPES(kt_scatter_p_test, bsz::b256);
-    }
-
-    TEST(KT_L0, kt_scatter_p_512)
-    {
-        if(can_exec_avx512_tests())
-        {
-            CALL_FOR_ALL_TYPES(kt_scatter_p_test, bsz::b512);
-        }
-    }
 }

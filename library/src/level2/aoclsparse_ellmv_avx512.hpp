@@ -22,7 +22,6 @@
  * ************************************************************************ */
 #ifndef AOCLSPARESE_ELLMV_K_HPP
 #define AOCLSPARESE_ELLMV_K_HPP
-#include "aoclsparse.h"
 #include "aoclsparse_descr.h"
 
 #include <immintrin.h>

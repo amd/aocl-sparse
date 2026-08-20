@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,11 +31,21 @@
 #define _KT_L0_AVX512_
 #include "kt_common_x86.hpp"
 
+// Intrinsic aliases for pre-GCC 10.
+#if defined(__GNUC__) && !defined(__clang__) && (__GNUC__ < 10)
+#define _mm512_loadu_epi32(p) _mm512_loadu_si512(p)
+#define _mm512_loadu_epi64(p) _mm512_loadu_si512(p)
+#define _mm512_load_epi32(p)  _mm512_load_si512(p)
+#define _mm512_load_epi64(p)  _mm512_load_si512(p)
+#endif
+
+
+
 namespace kernel_templates
 {
     // Zero out an AVX register
     template <bsz SZ, typename SUF>
-    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, avxvector_t<SZ, SUF>>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512 && !std::is_same_v<SUF, fp16>, avxvector_t<SZ, SUF>>
                     kt_setzero_p(void) noexcept
     {
         if constexpr(kt_is_base_t_float<SUF>())
@@ -48,7 +58,7 @@ namespace kernel_templates
 
     // Fill vector with a scalar value
     template <bsz SZ, typename SUF>
-    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, avxvector_t<SZ, SUF>>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512 && !std::is_same_v<SUF, fp16>, avxvector_t<SZ, SUF>>
                     kt_set1_p(const SUF x) noexcept
     {
         if constexpr(std::is_same_v<SUF, double>)
@@ -78,9 +88,9 @@ namespace kernel_templates
     };
 
     // Unaligned set (load) to AVX register with indirect memory access
-    template <bsz SZ, typename SUF>
-    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, avxvector_t<SZ, SUF>>
-                    kt_set_p(const SUF *v, const kt_int_t *b) noexcept
+    template <bsz SZ, typename SUF, typename IS, valid_kt_int<IS>>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512 && !std::is_same_v<SUF, fp16>, avxvector_t<SZ, SUF>>
+                    kt_set_p(const SUF *v, const IS *b) noexcept
     {
 
         if constexpr(std::is_same<SUF, double>::value)
@@ -128,11 +138,11 @@ namespace kernel_templates
     };
 
     // Unaligned load to AVX register with zero mask direct memory model.
-    template <bsz SZ, typename SUF, kt_avxext EXT, int L>
+    template <bsz SZ, typename SUF, kt_avxext EXT, int L, typename IS, valid_kt_int<IS>>
     KT_FORCE_INLINE
-        std::enable_if_t<EXT == kt_avxext::AVX512VL || SZ == bsz::b512,
+        std::enable_if_t<(EXT == kt_avxext::AVX512VL || SZ == bsz::b512) && !std::is_same_v<SUF, fp16>,
                          avxvector_t<SZ, SUF>>
-        kt_maskz_set_p(const SUF *v, const kt_int_t b) noexcept
+        kt_maskz_set_p(const SUF *v, const IS b) noexcept
     {
         if constexpr(SZ == bsz::b256)
         {
@@ -167,52 +177,52 @@ namespace kernel_templates
     };
 
     // Unaligned load to AVX register with zero mask indirect memory model.
-    template <bsz SZ, typename SUF, kt_avxext, int L>
-    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, avxvector_t<SZ, SUF>>
-                    kt_maskz_set_p(const SUF *v, const kt_int_t *b) noexcept
+    template <bsz SZ, typename SUF, kt_avxext, int L, typename IS, valid_kt_int<IS>>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512 && !std::is_same_v<SUF, fp16>, avxvector_t<SZ, SUF>>
+                    kt_maskz_set_p(const SUF *v, const IS *b) noexcept
     {
 
         if constexpr(kt_is_same<bsz::b512, SZ, double, SUF>())
         {
-            return _mm512_set_pd(pz<SUF, L - 8>(v, b, 7), pz<SUF, L - 7>(v, b, 6U),
-                                 pz<SUF, L - 6>(v, b, 5), pz<SUF, L - 5>(v, b, 4U),
-                                 pz<SUF, L - 4>(v, b, 3), pz<SUF, L - 3>(v, b, 2U),
-                                 pz<SUF, L - 2>(v, b, 1), pz<SUF, L - 1>(v, b, 0U));
+            return _mm512_set_pd(pz<SUF, L - 8, IS>(v, b, 7), pz<SUF, L - 7, IS>(v, b, 6U),
+                                 pz<SUF, L - 6, IS>(v, b, 5), pz<SUF, L - 5, IS>(v, b, 4U),
+                                 pz<SUF, L - 4, IS>(v, b, 3), pz<SUF, L - 3, IS>(v, b, 2U),
+                                 pz<SUF, L - 2, IS>(v, b, 1), pz<SUF, L - 1, IS>(v, b, 0U));
         }
         else if constexpr(kt_is_same<bsz::b512, SZ, float, SUF>())
         {
-            return _mm512_set_ps(pz<SUF, L - 16>(v, b, 15), pz<SUF, L - 15>(v, b, 14),
-                                 pz<SUF, L - 14>(v, b, 13), pz<SUF, L - 13>(v, b, 12),
-                                 pz<SUF, L - 12>(v, b, 11), pz<SUF, L - 11>(v, b, 10),
-                                 pz<SUF, L - 10>(v, b, 9),  pz<SUF, L - 9> (v, b, 8),
-                                 pz<SUF, L - 8> (v, b, 7),  pz<SUF, L - 7> (v, b, 6),
-                                 pz<SUF, L - 6> (v, b, 5),  pz<SUF, L - 5> (v, b, 4),
-                                 pz<SUF, L - 4> (v, b, 3),  pz<SUF, L - 3> (v, b, 2),
-                                 pz<SUF, L - 2> (v, b, 1),  pz<SUF, L - 1> (v, b, 0));
+            return _mm512_set_ps(pz<SUF, L - 16, IS>(v, b, 15), pz<SUF, L - 15, IS>(v, b, 14),
+                                 pz<SUF, L - 14, IS>(v, b, 13), pz<SUF, L - 13, IS>(v, b, 12),
+                                 pz<SUF, L - 12, IS>(v, b, 11), pz<SUF, L - 11, IS>(v, b, 10),
+                                 pz<SUF, L - 10, IS>(v, b, 9),  pz<SUF, L - 9, IS> (v, b, 8),
+                                 pz<SUF, L - 8, IS> (v, b, 7),  pz<SUF, L - 7, IS> (v, b, 6),
+                                 pz<SUF, L - 6, IS> (v, b, 5),  pz<SUF, L - 5, IS> (v, b, 4),
+                                 pz<SUF, L - 4, IS> (v, b, 3),  pz<SUF, L - 3, IS> (v, b, 2),
+                                 pz<SUF, L - 2, IS> (v, b, 1),  pz<SUF, L - 1, IS> (v, b, 0));
         }
         else if constexpr(kt_is_same<bsz::b512, SZ, cdouble, SUF>())
         {
-            return _mm512_set_pd(pz<SUF, L - 4, false>(v, b, 3), pz<SUF, L - 4, true> (v, b, 3),
-                                 pz<SUF, L - 3, false>(v, b, 2), pz<SUF, L - 3, true> (v, b, 2),
-                                 pz<SUF, L - 2, false>(v, b, 1), pz<SUF, L - 2, true> (v, b, 1),
-                                 pz<SUF, L - 1, false>(v, b, 0), pz<SUF, L - 1, true> (v, b, 0));
+            return _mm512_set_pd(pz<SUF, L - 4, IS, false>(v, b, 3), pz<SUF, L - 4, IS, true> (v, b, 3),
+                                 pz<SUF, L - 3, IS, false>(v, b, 2), pz<SUF, L - 3, IS, true> (v, b, 2),
+                                 pz<SUF, L - 2, IS, false>(v, b, 1), pz<SUF, L - 2, IS, true> (v, b, 1),
+                                 pz<SUF, L - 1, IS, false>(v, b, 0), pz<SUF, L - 1, IS, true> (v, b, 0));
         }
         else if constexpr(kt_is_same<bsz::b512, SZ, cfloat, SUF>())
         {
-            return _mm512_set_ps(pz<SUF, L - 8, false>(v, b, 7), pz<SUF, L - 8, true> (v, b, 7),
-                                 pz<SUF, L - 7, false>(v, b, 6), pz<SUF, L - 7, true> (v, b, 6),
-                                 pz<SUF, L - 6, false>(v, b, 5), pz<SUF, L - 6, true> (v, b, 5),
-                                 pz<SUF, L - 5, false>(v, b, 4), pz<SUF, L - 5, true> (v, b, 4),
-                                 pz<SUF, L - 4, false>(v, b, 3), pz<SUF, L - 4, true> (v, b, 3),
-                                 pz<SUF, L - 3, false>(v, b, 2), pz<SUF, L - 3, true> (v, b, 2),
-                                 pz<SUF, L - 2, false>(v, b, 1), pz<SUF, L - 2, true> (v, b, 1),
-                                 pz<SUF, L - 1, false>(v, b, 0), pz<SUF, L - 1, true> (v, b, 0));
+            return _mm512_set_ps(pz<SUF, L - 8, IS, false>(v, b, 7), pz<SUF, L - 8, IS, true> (v, b, 7),
+                                 pz<SUF, L - 7, IS, false>(v, b, 6), pz<SUF, L - 7, IS, true> (v, b, 6),
+                                 pz<SUF, L - 6, IS, false>(v, b, 5), pz<SUF, L - 6, IS, true> (v, b, 5),
+                                 pz<SUF, L - 5, IS, false>(v, b, 4), pz<SUF, L - 5, IS, true> (v, b, 4),
+                                 pz<SUF, L - 4, IS, false>(v, b, 3), pz<SUF, L - 4, IS, true> (v, b, 3),
+                                 pz<SUF, L - 3, IS, false>(v, b, 2), pz<SUF, L - 3, IS, true> (v, b, 2),
+                                 pz<SUF, L - 2, IS, false>(v, b, 1), pz<SUF, L - 2, IS, true> (v, b, 1),
+                                 pz<SUF, L - 1, IS, false>(v, b, 0), pz<SUF, L - 1, IS, true> (v, b, 0));
         }
     };
 
     // Dense direct aligned load to AVX register
     template <bsz SZ, typename SUF>
-    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, avxvector_t<SZ, SUF>>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512 && !std::is_same_v<SUF, fp16>, avxvector_t<SZ, SUF>>
                     kt_load_p(const SUF *a) noexcept
     {
         if constexpr(kt_is_base_t_float<SUF>())
@@ -227,7 +237,7 @@ namespace kernel_templates
 
     // Dense direct (un)aligned load to AVX register
     template <bsz SZ, typename SUF>
-    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, avxvector_t<SZ, SUF>>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512 && !std::is_same_v<SUF, fp16>, avxvector_t<SZ, SUF>>
                     kt_loadu_p(const SUF *a) noexcept
     {
         if constexpr(kt_is_base_t_float<SUF>())
@@ -242,7 +252,7 @@ namespace kernel_templates
 
     // Stores the values in an AVX register to a memory location (Memory does not have to be aligned)
     template <bsz SZ, typename SUF>
-    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, void>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512 && !std::is_same_v<SUF, fp16>, void>
                     kt_storeu_p(SUF *a, const avxvector_t<SZ, SUF> v) noexcept
     {
         if constexpr(kt_is_base_t_double<SUF>())
@@ -253,30 +263,30 @@ namespace kernel_templates
 
     // Vector addition of two AVX registers.
     template <bsz SZ, typename SUF>
-    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, avxvector_t<SZ, SUF>>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512 && !std::is_same_v<SUF, fp16>, avxvector_t<SZ, SUF>>
                     kt_add_p(const avxvector_t<SZ, SUF> a, const avxvector_t<SZ, SUF> b) noexcept
     {
         if constexpr(kt_is_base_t_float<SUF>())
             return _mm512_add_ps(a, b);
-        else
+        else if constexpr(kt_is_base_t_double<SUF>())
             return _mm512_add_pd(a, b);
     }
 
     // Vector subtraction of two AVX registers.
     // Note that sub_ps takes care of types float and complex float, same for double variant.
     template <bsz SZ, typename SUF>
-    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, avxvector_t<SZ, SUF>>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512 && !std::is_same_v<SUF, fp16>, avxvector_t<SZ, SUF>>
                     kt_sub_p(const avxvector_t<SZ, SUF> a, const avxvector_t<SZ, SUF> b) noexcept
     {
         if constexpr(kt_is_base_t_float<SUF>())
             return _mm512_sub_ps(a, b);
-        else
+        else if constexpr(kt_is_base_t_double<SUF>())
             return _mm512_sub_pd(a, b);
     }
 
     // Vector product of two AVX registers.
     template <bsz SZ, typename SUF>
-    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, avxvector_t<SZ, SUF>>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512 && !std::is_same_v<SUF, fp16>, avxvector_t<SZ, SUF>>
                     kt_mul_p(const avxvector_t<SZ, SUF> a, const avxvector_t<SZ, SUF> b) noexcept
     {
         if constexpr(std::is_same_v<SUF, double>)
@@ -319,14 +329,14 @@ namespace kernel_templates
 
     // Vector fused multiply-add of three AVX registers.
     template <bsz SZ, typename SUF>
-    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, avxvector_t<SZ, SUF>>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512 && !std::is_same_v<SUF, fp16>, avxvector_t<SZ, SUF>>
                     kt_fmadd_p(const avxvector_t<SZ, SUF> a,
                                const avxvector_t<SZ, SUF> b,
                                const avxvector_t<SZ, SUF> c) noexcept
     {
         if constexpr(std::is_same_v<SUF, double>)
             return _mm512_fmadd_pd(a, b, c);
-        if constexpr(std::is_same_v<SUF, float>)
+        else if constexpr(std::is_same_v<SUF, float>)
             return _mm512_fmadd_ps(a, b, c);
         else if constexpr(std::is_same_v<SUF, cdouble>)
             return kt_add_p<bsz::b512, cdouble>(kt_mul_p<bsz::b512, cdouble>(a, b), c);
@@ -336,14 +346,14 @@ namespace kernel_templates
 
     // Vector fused multiply-subtract of three AVX registers.
     template <bsz SZ, typename SUF>
-    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, avxvector_t<SZ, SUF>>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512 && !std::is_same_v<SUF, fp16>, avxvector_t<SZ, SUF>>
                     kt_fmsub_p(const avxvector_t<SZ, SUF> a,
                                const avxvector_t<SZ, SUF> b,
                                const avxvector_t<SZ, SUF> c) noexcept
     {
         if constexpr(std::is_same_v<SUF, double>)
             return _mm512_fmsub_pd(a, b, c);
-        if constexpr(std::is_same_v<SUF, float>)
+        else if constexpr(std::is_same_v<SUF, float>)
             return _mm512_fmsub_ps(a, b, c);
         else if constexpr(std::is_same_v<SUF, cdouble>)
             return kt_sub_p<bsz::b512, cdouble>(kt_mul_p<bsz::b512, cdouble>(a, b), c);
@@ -353,7 +363,7 @@ namespace kernel_templates
 
     // Horizontal sum (reduction) of an AVX register
     template <bsz SZ, typename SUF>
-    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, SUF>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512 && !std::is_same_v<SUF, fp16>, SUF>
                     kt_hsum_p(avxvector_t<SZ, SUF> const v) noexcept
     {
         if constexpr(std::is_same_v<SUF, double>)
@@ -410,7 +420,7 @@ namespace kernel_templates
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, avxvector_t<SZ, SUF>>
                     kt_conj_p(const avxvector_t<SZ, SUF> a) noexcept
     {
-        if constexpr(std::is_floating_point<SUF>::value)
+        if constexpr(std::is_floating_point<SUF>::value || kt_is_base_t_fp16<SUF>())
         {
             return a;
         }
@@ -431,7 +441,7 @@ namespace kernel_templates
 
     // Vector fused multiply-add of three AVX registers - blocked variant
     template <bsz SZ, typename SUF>
-    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, void>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512 && !std::is_same_v<SUF, fp16>, void>
                     kt_fmadd_B(const avxvector_t<SZ, SUF> a,
                                const avxvector_t<SZ, SUF> b,
                                avxvector_t<SZ, SUF> &c,
@@ -457,7 +467,8 @@ namespace kernel_templates
     KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, SUF>
                     kt_hsum_B(const avxvector_t<SZ, SUF> a, const avxvector_t<SZ, SUF> b) noexcept
     {
-        if constexpr(std::is_same_v<SUF, double> || std::is_same_v<SUF, float>)
+        if constexpr(std::is_same_v<SUF, double> || std::is_same_v<SUF, float>
+                     || std::is_same_v<SUF, fp16>)
             return kt_hsum_p<SZ, SUF>(a);
         else if constexpr(std::is_same_v<SUF, cdouble>)
         {
@@ -482,7 +493,7 @@ namespace kernel_templates
     // Compare packed SUF elements in a and b, and returns packed maximum values.
     template <bsz SZ, typename SUF>
     KT_FORCE_INLINE
-        std::enable_if_t<SZ == bsz::b512 && kt_type_is_real<SUF>(), avxvector_t<SZ, SUF>>
+        std::enable_if_t<SZ == bsz::b512 && kt_type_is_real<SUF>() && !std::is_same_v<SUF, fp16>, avxvector_t<SZ, SUF>>
         kt_max_p(const avxvector_t<SZ, SUF> a, const avxvector_t<SZ, SUF> b) noexcept
     {
         if constexpr(std::is_same_v<SUF, double>)
@@ -497,7 +508,7 @@ namespace kernel_templates
 
     // Vector element-wise pow2 of an AVX registers.
     template <bsz SZ, typename SUF>
-    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, avxvector_t<SZ, SUF>>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512 && !std::is_same_v<SUF, fp16>, avxvector_t<SZ, SUF>>
                     kt_pow2_p(const avxvector_t<SZ, SUF> a) noexcept
     {
         if constexpr(std::is_same_v<SUF, double>)
@@ -530,7 +541,7 @@ namespace kernel_templates
 
     // Vector element-wise division of two AVX registers.
     template <bsz SZ, typename SUF>
-    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512, avxvector_t<SZ, SUF>>
+    KT_FORCE_INLINE std::enable_if_t<SZ == bsz::b512 && !std::is_same_v<SUF, fp16>, avxvector_t<SZ, SUF>>
                     kt_div_p(const avxvector_t<SZ, SUF> a, const avxvector_t<SZ, SUF> b) noexcept
     {
         if constexpr(std::is_same_v<SUF, double>)
@@ -559,4 +570,12 @@ namespace kernel_templates
         }
     }
 }
+
+#if defined(__GNUC__) && !defined(__clang__) && (__GNUC__ < 10)
+#undef _mm512_loadu_epi32
+#undef _mm512_loadu_epi64
+#undef _mm512_load_epi32
+#undef _mm512_load_epi64
+#endif
+
 #endif

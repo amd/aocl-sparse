@@ -24,10 +24,10 @@
 #ifndef AOCLSPARSE_SM_HPP
 #define AOCLSPARSE_SM_HPP
 
-#include "aoclsparse_descr.h"
 #include "aoclsparse.hpp"
 #include "aoclsparse_auxiliary.hpp"
-#include "aoclsparse_csr_util.hpp"
+
+#include <shared_mutex>
 
 /*
  * TRSM dispatcher
@@ -52,8 +52,12 @@ aoclsparse_status
     // Quick initial checks
     if(!A || !X || !B || !descr)
         return aoclsparse_status_invalid_pointer;
-    if(A->mats.empty() || !A->mats[0])
+
+    if(!A->get_first_mtx_if_valid<aoclsparse::base_mtx>())
         return aoclsparse_status_invalid_pointer;
+
+    if(!A->is_descr_matching(descr))
+        return aoclsparse_status_invalid_value;
 
     // Only CSR, CSC, TCSR input format supported
     // Internally, CSC is stored as CSR with rows and columns swapped.
@@ -80,14 +84,6 @@ aoclsparse_status
     {
         return aoclsparse_status_invalid_size;
     }
-
-    // Check for base index incompatibility
-    // There is an issue that zero-based indexing is defined in two separate places and
-    // can lead to ambiguity, we check that both are consistent.
-    if(A->mats[0]->base != descr->base)
-    {
-        return aoclsparse_status_invalid_value;
-    }
     // Check if descriptor's index-base is valid (and A's index-base must be the same)
     if(descr->base != aoclsparse_index_base_zero && descr->base != aoclsparse_index_base_one)
     {
@@ -106,19 +102,18 @@ aoclsparse_status
        && descr->fill_mode != aoclsparse_fill_mode_upper)
         return aoclsparse_status_not_implemented;
 
-    // call optimize
     aoclsparse::csr  *A_opt_csr  = nullptr;
     aoclsparse::tcsr *A_opt_tcsr = nullptr;
     if(A->input_format == aoclsparse_csr_mat)
     {
         status = aoclsparse_csr_csc_optimize<T>(A, A_opt_csr);
+        if(status != aoclsparse_status_success)
+            return status;
     }
     else if(A->input_format == aoclsparse_tcsr_mat)
     {
-        status = aoclsparse_tcsr_optimize<T>(A, A_opt_tcsr);
+        A_opt_tcsr = A->get_mtx<aoclsparse::tcsr>();
     }
-    if(status != aoclsparse_status_success)
-        return status;
     if(!A_opt_csr && !A_opt_tcsr)
         return aoclsparse_status_internal_error;
 
@@ -143,8 +138,8 @@ aoclsparse_status
         return aoclsparse_status_invalid_value;
     }
     // Check for LP64 integer overflow in dense matrix offset computations
-    if(aoclsparse_lp64_product_overflow(n, b_offset)
-       || aoclsparse_lp64_product_overflow(n, x_offset))
+    if(aoclsparse_numeric::aoclsparse_int_product_overflow(n, b_offset)
+       || aoclsparse_numeric::aoclsparse_int_product_overflow(n, x_offset))
     {
         return aoclsparse_status_invalid_size;
     }

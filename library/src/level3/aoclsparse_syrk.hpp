@@ -24,10 +24,7 @@
 #ifndef AOCLSPARSE_SYRK_HPP
 #define AOCLSPARSE_SYRK_HPP
 
-#include "aoclsparse.h"
 #include "aoclsparse_auxiliary.hpp"
-#include "aoclsparse_convert.hpp"
-#include "aoclsparse_mat_structures.hpp"
 #include "aoclsparse_sypr.hpp"
 
 #include <complex>
@@ -59,10 +56,10 @@ aoclsparse_status aoclsparse_aat_dense_row(aoclsparse_int        m,
     if(csr_row_ptr_A == nullptr || csr_col_ind_A == nullptr || csr_val_A == nullptr)
         return aoclsparse_status_invalid_pointer;
 
-    if(!C || C->mats.empty())
+    if(!C)
         return aoclsparse_status_internal_error;
 
-    aoclsparse::csr *C_csr = dynamic_cast<aoclsparse::csr *>(C->mats[0]);
+    aoclsparse::csr *C_csr = C->get_first_mtx_if_valid<aoclsparse::csr>();
     if(!C_csr)
         return aoclsparse_status_not_implemented;
 
@@ -124,7 +121,7 @@ aoclsparse_status aoclsparse_syrk_t(const aoclsparse_operation      op,
                                     aoclsparse_matrix              *C,
                                     [[maybe_unused]] aoclsparse_int kid)
 {
-    if((A == nullptr) || A->mats.empty() || (C == nullptr))
+    if((A == nullptr) || (C == nullptr))
         return aoclsparse_status_invalid_pointer;
 
     *C = NULL;
@@ -146,7 +143,7 @@ aoclsparse_status aoclsparse_syrk_t(const aoclsparse_operation      op,
 
     aoclsparse_status status;
 
-    aoclsparse::csr *A_csr = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
+    aoclsparse::csr *A_csr = A->get_first_mtx_if_valid<aoclsparse::csr>();
     if(!A_csr)
         return aoclsparse_status_not_implemented;
     // Read correct matrix dimensions irrespective of CSR (doid::gn) and CSC(doid::gt)

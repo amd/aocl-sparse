@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2025-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,11 +22,8 @@
  * ************************************************************************ */
 #ifndef AOCLSPARSE_TCSR_HPP
 #define AOCLSPARSE_TCSR_HPP
-#include "aoclsparse.h"
-#include "aoclsparse_descr.h"
 #include "aoclsparse_l2_kt.hpp"
 #include "aoclsparse_mat_structures.hpp"
-#include "aoclsparse_mtx_dispatcher.hpp"
 
 // Kernels
 // ----------------------------------------------------------------------------
@@ -59,8 +56,7 @@ namespace aoclsparse
         aoclsparse_int *col = nullptr, *crow = nullptr, *diag = nullptr, *urow = nullptr,
                        *rstart = nullptr, *rend = nullptr;
 
-        // The user creates the tcsr matrix, which should be located at mtx->mats[0]
-        aoclsparse::tcsr *tcsr_mat = dynamic_cast<aoclsparse::tcsr *>(mtx->mats[0]);
+        aoclsparse::tcsr *tcsr_mat = mtx->get_first_mtx_if_valid<aoclsparse::tcsr>();
         if(!tcsr_mat)
         {
             return aoclsparse_status_not_implemented;

@@ -33,6 +33,7 @@
 #include "aoclsparse_utils.hpp"
 
 #include <complex>
+#include <shared_mutex>
 #include <type_traits>
 
 /* Triangular Solver (TRSV) dispatcher
@@ -55,7 +56,7 @@ aoclsparse_status
                      aoclsparse_int             kid /* user request of Kernel ID (kid) to use */)
 {
     // Quick initial checks
-    if(!A || A->mats.empty() || !A->mats[0] || !x || !b || !descr)
+    if(!A || !x || !b || !descr)
         return aoclsparse_status_invalid_pointer;
 
     // Only CSR, CSC and TCSR input format supported
@@ -76,13 +77,12 @@ aoclsparse_status
         return aoclsparse_status_invalid_value;
     }
 
-    // Check for base index incompatibility
-    // There is an issue that zero-based indexing is defined in two separate places and
-    // can lead to ambiguity, we check that both are consistent.
-    if(A->mats[0]->base != descr->base)
-    {
+    if(!A->get_first_mtx_if_valid<aoclsparse::base_mtx>())
+        return aoclsparse_status_invalid_pointer;
+
+    if(!A->is_descr_matching(descr))
         return aoclsparse_status_invalid_value;
-    }
+
     // Check if descriptor's index-base is valid (and A's index-base must be the same)
     if(descr->base != aoclsparse_index_base_zero && descr->base != aoclsparse_index_base_one)
     {
@@ -115,18 +115,20 @@ aoclsparse_status
     // Unpack A and check
     aoclsparse::tcsr *tcsr_mat = nullptr;
     aoclsparse::csr  *opt_mat  = nullptr;
-    // user did not check the matrix, call optimize
-    aoclsparse_status status;
-    // Optimize TCSR matrix
+    aoclsparse_status status   = aoclsparse_status_success;
+
     if(A->input_format == aoclsparse_tcsr_mat)
-        status = aoclsparse_tcsr_optimize<T>(A, tcsr_mat);
+    {
+        tcsr_mat = A->get_mtx<aoclsparse::tcsr>();
+        if(!tcsr_mat)
+            return aoclsparse_status_internal_error;
+    }
     else
     {
-        // Optimize CSR/CSC matrix
         status = aoclsparse_csr_csc_optimize<T>(A, opt_mat);
+        if(status != aoclsparse_status_success)
+            return status; // LCOV_EXCL_LINE
     }
-    if(status != aoclsparse_status_success)
-        return status; // LCOV_EXCL_LINE
 
     const bool unit = descr->diag_type == aoclsparse_diag_type_unit;
     if(!A->opt_csr_full_diag && !unit) // not of full rank, linear system cannot be solved
@@ -402,8 +404,8 @@ aoclsparse_status
     // Note: Regular aoclsparse_[sdcz]trsv() APIs hardcode incb=incx=1, so overflow
     // cannot occur for those. This check protects the _strided API variants where
     // users can provide large stride values that may cause (m-1)*inc to overflow.
-    if(aoclsparse_lp64_product_overflow(m - 1, incx)
-       || aoclsparse_lp64_product_overflow(m - 1, incb))
+    if(aoclsparse_numeric::aoclsparse_int_product_overflow(m - 1, incx)
+       || aoclsparse_numeric::aoclsparse_int_product_overflow(m - 1, incb))
     {
         return aoclsparse_status_invalid_size;
     }

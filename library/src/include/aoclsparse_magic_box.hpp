@@ -239,15 +239,18 @@ namespace aoclsparse
             current hardware. A score of 0 means no kernel is available, and the
             matrix is skipped. The effective DOID is derived by get_effective_doid().
        The matrix with the highest total score wins.
-       Returns the index of the best matrix in A->mats, or -1 if none is compatible.
+       Returns the best matrix in A->mats, or nullptr if none is compatible.
+       Acquires a shared lock on A->mats_guard internally.
        Outputs mtx_t = format type of the best matrix (e.g. aoclsparse_csr_mat). */
     template <typename T>
-    aoclsparse_int get_best_matrix(aoclsparse_matrix              A,
-                                   aoclsparse::doid               d_id,
-                                   aoclsparse_matrix_format_type &mtx_t)
+    base_mtx *get_best_matrix(aoclsparse_matrix              A,
+                              aoclsparse::doid               d_id,
+                              aoclsparse_matrix_format_type &mtx_t)
     {
+        std::shared_lock<std::shared_mutex> rlock(A->mats_guard);
+
         aoclsparse_int max_score = 0;
-        aoclsparse_int best_mtx  = -1;
+        base_mtx      *best      = nullptr;
 
         for(size_t itr = 0; itr < A->mats.size(); ++itr)
         {
@@ -274,12 +277,12 @@ namespace aoclsparse
             if(score > max_score)
             {
                 max_score = score;
-                best_mtx  = itr;
+                best      = A->mats[itr];
                 mtx_t     = A->mats[itr]->mat_type;
             }
         }
 
-        return best_mtx;
+        return best;
     }
 
 }

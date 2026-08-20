@@ -37,133 +37,24 @@
 #pragma GCC diagnostic ignored "-Wtype-limits"
 #include "blis.hh"
 #pragma GCC diagnostic pop
+#include "level3_test_common.hpp"
 
 namespace
 {
-    // structure holding the source arrays for 2 matrices
+    // Make B Hermitian for complex or symmetric for real: zero imaginary diagonal and set descriptor type.
     template <typename T>
-    struct mats
+    void make_b_hermitian(aoclsparse_int        m_b,
+                          aoclsparse_index_base b_b,
+                          sparse_mat_data<T>   &src_b,
+                          aoclsparse_mat_descr &descrB)
     {
-        // CSR arrays for matrix A
-        std::vector<T>              val_a;
-        std::vector<aoclsparse_int> col_ind_a;
-        std::vector<aoclsparse_int> row_ptr_a;
-        // CSC arrays for matrix A (populated when format is csc_mat)
-        std::vector<T>              csc_val_a;
-        std::vector<aoclsparse_int> csc_row_ind_a;
-        std::vector<aoclsparse_int> csc_col_ptr_a;
-        // CSR arrays for matrix B
-        std::vector<T>              val_b;
-        std::vector<aoclsparse_int> col_ind_b;
-        std::vector<aoclsparse_int> row_ptr_b;
-    };
-
-    // generate two random matrices of given dimensions
-    // and descriptor for B to be symmetric/hermitian (if complex)
-    // and return all the source arrays as std::vectors in 'src'
-    // use_csc_a: false (default CSR) or true (CSC format for matrix A)
-    template <typename T>
-    void gen_AB(aoclsparse_int        m_a,
-                aoclsparse_int        n_a,
-                aoclsparse_int        m_b,
-                aoclsparse_int        n_b,
-                aoclsparse_int        nnz_a,
-                aoclsparse_int        nnz_b,
-                aoclsparse_index_base b_a,
-                aoclsparse_index_base b_b,
-                mats<T>              &src,
-                aoclsparse_matrix    &A,
-                aoclsparse_matrix    &B,
-                aoclsparse_mat_descr &descrB,
-                bool                  use_csc_a = false)
-    {
-        std::vector<aoclsparse_int> coo_row; // don't need to be preserved, we want only CSR
-        // Randomly generate A matrix as CSR first
-        aoclsparse_matrix A_csr = NULL;
-        ASSERT_EQ(aoclsparse_init_matrix_random(b_a,
-                                                m_a,
-                                                n_a,
-                                                nnz_a,
-                                                aoclsparse_csr_mat,
-                                                coo_row,
-                                                src.col_ind_a,
-                                                src.val_a,
-                                                src.row_ptr_a,
-                                                A_csr),
-                  aoclsparse_status_success);
-
-        if(use_csc_a)
-        {
-            // Convert CSR A to CSC format
-            aoclsparse_mat_descr descr_conv;
-            ASSERT_EQ(aoclsparse_create_mat_descr(&descr_conv), aoclsparse_status_success);
-            ASSERT_EQ(aoclsparse_set_mat_index_base(descr_conv, b_a), aoclsparse_status_success);
-
-            src.csc_col_ptr_a.resize(n_a + 1);
-            src.csc_row_ind_a.resize(nnz_a);
-            src.csc_val_a.resize(nnz_a);
-
-            ASSERT_EQ(aoclsparse_csr2csc(m_a,
-                                         n_a,
-                                         nnz_a,
-                                         descr_conv,
-                                         b_a,
-                                         src.row_ptr_a.data(),
-                                         src.col_ind_a.data(),
-                                         src.val_a.data(),
-                                         src.csc_row_ind_a.data(),
-                                         src.csc_col_ptr_a.data(),
-                                         src.csc_val_a.data()),
-                      aoclsparse_status_success);
-            aoclsparse_destroy_mat_descr(descr_conv);
-
-            // Create CSC matrix A
-            ASSERT_EQ(aoclsparse_create_csc(&A,
-                                            b_a,
-                                            m_a,
-                                            n_a,
-                                            nnz_a,
-                                            src.csc_col_ptr_a.data(),
-                                            src.csc_row_ind_a.data(),
-                                            src.csc_val_a.data()),
-                      aoclsparse_status_success);
-            // Destroy the temporary CSR matrix
-            aoclsparse_destroy(&A_csr);
-        }
-        else
-        {
-            // Use CSR format as-is
-            A = A_csr;
-        }
-
-        // Randomly generate B matrix
-        ASSERT_EQ(aoclsparse_init_matrix_random(b_b,
-                                                m_b,
-                                                n_b,
-                                                nnz_b,
-                                                aoclsparse_csr_mat,
-                                                coo_row,
-                                                src.col_ind_b,
-                                                src.val_b,
-                                                src.row_ptr_b,
-                                                B),
-                  aoclsparse_status_success);
-        // Remove imaginary part from diagonal element in B matrix to make it hermitian
         if constexpr(!(std::is_same_v<T, double> || std::is_same_v<T, float>))
-        {
             for(aoclsparse_int i = 0; i < m_b; i++)
-                for(aoclsparse_int j = src.row_ptr_b[i] - b_b; j < src.row_ptr_b[i + 1] - b_b; j++)
-                {
-                    if(src.col_ind_b[j] - b_b == i)
-                        src.val_b[j].imag = 0.0;
-                }
-        }
-
-        // descriptor B matching the base nad symmetric/hermitian
-        // the fill triangle doesn't matter because the matrix is random
-        // so both have something in
-        ASSERT_EQ(aoclsparse_create_mat_descr(&descrB), aoclsparse_status_success);
-        ASSERT_EQ(aoclsparse_set_mat_index_base(descrB, b_b), aoclsparse_status_success);
+                for(aoclsparse_int j = src_b.csr_row_ptr[i] - b_b;
+                    j < src_b.csr_row_ptr[i + 1] - b_b;
+                    j++)
+                    if(src_b.csr_col_ind[j] - b_b == i)
+                        src_b.csr_val[j].imag = 0.0;
         if constexpr(std::is_same_v<T, double> || std::is_same_v<T, float>)
             ASSERT_EQ(aoclsparse_set_mat_type(descrB, aoclsparse_matrix_type_symmetric),
                       aoclsparse_status_success);
@@ -202,11 +93,13 @@ namespace
         aoclsparse_request request = aoclsparse_stage_full_computation;
         aoclsparse_seedrand();
 
-        mats<T>              src;
+        sparse_mat_data<T>   src_a, src_b;
         aoclsparse_matrix    A      = NULL;
         aoclsparse_matrix    B      = NULL;
         aoclsparse_mat_descr descrB = NULL;
-        gen_AB(m_a, n_a, m_b, n_b, nnz_a, nnz_b, b_a, b_b, src, A, B, descrB);
+        gen_mat(m_a, n_a, nnz_a, b_a, src_a, A);
+        gen_mat(m_b, n_b, nnz_b, b_b, src_b, B, &descrB);
+        make_b_hermitian<T>(m_b, b_b, src_b, descrB);
 
         aoclsparse_matrix C = NULL;
         // In turns pass nullptr in every single pointer argument
@@ -241,11 +134,13 @@ namespace
         aoclsparse_request request = aoclsparse_stage_full_computation;
         aoclsparse_seedrand();
 
-        mats<T>              src;
+        sparse_mat_data<T>   src_a, src_b;
         aoclsparse_matrix    A      = NULL;
         aoclsparse_matrix    B      = NULL;
         aoclsparse_mat_descr descrB = NULL;
-        gen_AB(m_a, n_a, m_b, n_b, nnz_a, nnz_b, b_a, b_b, src, A, B, descrB);
+        gen_mat(m_a, n_a, nnz_a, b_a, src_a, A);
+        gen_mat(m_b, n_b, nnz_b, b_b, src_b, B, &descrB);
+        make_b_hermitian<T>(m_b, b_b, src_b, descrB);
 
         aoclsparse_matrix C = NULL;
 
@@ -301,11 +196,13 @@ namespace
         aoclsparse_request request = aoclsparse_stage_full_computation;
         aoclsparse_seedrand();
 
-        mats<T>              src;
+        sparse_mat_data<T>   src_a, src_b;
         aoclsparse_matrix    A      = NULL;
         aoclsparse_matrix    B      = NULL;
         aoclsparse_mat_descr descrB = NULL;
-        gen_AB(m_a, n_a, m_b, n_b, nnz_a, nnz_b, b_a, b_b, src, A, B, descrB);
+        gen_mat(m_a, n_a, nnz_a, b_a, src_a, A);
+        gen_mat(m_b, n_b, nnz_b, b_b, src_b, B, &descrB);
+        make_b_hermitian<T>(m_b, b_b, src_b, descrB);
 
         aoclsparse_matrix C = NULL;
         EXPECT_EQ(aoclsparse_sypr(op_a, A, B, descrB, &C, request), aoclsparse_status_invalid_size);
@@ -332,11 +229,13 @@ namespace
         aoclsparse_request request = aoclsparse_stage_full_computation;
         aoclsparse_seedrand();
 
-        mats<T>              src;
+        sparse_mat_data<T>   src_a, src_b;
         aoclsparse_matrix    A      = NULL;
         aoclsparse_matrix    B      = NULL;
         aoclsparse_mat_descr descrB = NULL;
-        gen_AB(m_a, n_a, m_b, n_b, nnz_a, nnz_b, b_a, b_b, src, A, B, descrB);
+        gen_mat(m_a, n_a, nnz_a, b_a, src_a, A);
+        gen_mat(m_b, n_b, nnz_b, b_b, src_b, B, &descrB);
+        make_b_hermitian<T>(m_b, b_b, src_b, descrB);
 
         aoclsparse_matrix C = NULL;
 
@@ -436,22 +335,24 @@ namespace
         aoclsparse_request request = aoclsparse_stage_full_computation;
         aoclsparse_seedrand();
 
-        mats<T>              src;
+        sparse_mat_data<T>   src_a, src_b;
         aoclsparse_matrix    A      = NULL;
         aoclsparse_matrix    B      = NULL;
         aoclsparse_mat_descr descrB = NULL;
-        gen_AB(m_a, n_a, m_b, n_b, nnz_a, nnz_b, b_a, b_b, src, A, B, descrB);
+        gen_mat(m_a, n_a, nnz_a, b_a, src_a, A);
+        gen_mat(m_b, n_b, nnz_b, b_b, src_b, B, &descrB);
+        make_b_hermitian<T>(m_b, b_b, src_b, descrB);
 
-        // B must be CSC; B is always square here so row_ptr_b (m_b+1) doubles as col_ptr (n_b+1)
+        // B must be CSC; B is always square here so csr_row_ptr (m_b+1) doubles as col_ptr
         aoclsparse_destroy(&B);
         ASSERT_EQ(aoclsparse_create_csc(&B,
                                         b_b,
                                         m_b,
                                         n_b,
                                         nnz_b,
-                                        src.row_ptr_b.data(),
-                                        src.col_ind_b.data(),
-                                        src.val_b.data()),
+                                        src_b.csr_row_ptr.data(),
+                                        src_b.csr_col_ind.data(),
+                                        src_b.csr_val.data()),
                   aoclsparse_status_success);
 
         // CSC B is not supported -> not_implemented
@@ -635,10 +536,12 @@ namespace
 
         aoclsparse_seedrand();
         // B is m_a×m_a: for op_transpose the left operand is A^T (n_a×m_a), so B must be m_a×m_a
-        mats<T>              src;
+        sparse_mat_data<T>   src_a, src_b;
         aoclsparse_matrix    A = NULL, B = NULL, C = NULL;
         aoclsparse_mat_descr descrB = NULL;
-        gen_AB(m_a, n_a, m_a, m_a, nnz_a, nnz_b, b_a, b_b, src, A, B, descrB, use_csc_a);
+        gen_mat(m_a, n_a, nnz_a, b_a, src_a, A, nullptr, !use_csc_a);
+        gen_mat(m_a, m_a, nnz_b, b_b, src_b, B, &descrB);
+        make_b_hermitian<T>(m_a, b_b, src_b, descrB);
         ASSERT_EQ(aoclsparse_set_mat_fill_mode(descrB, aoclsparse_fill_mode_lower),
                   aoclsparse_status_success);
 
@@ -930,18 +833,19 @@ namespace
     // Exports C matrix, converts A, B, C to dense, and calls ref_sypr
     // Returns dense_c and dense_c_exp for comparison by caller
     template <typename T>
-    void compute_dense_reference(aoclsparse_matrix    C,
-                                 const mats<T>       &src,
-                                 aoclsparse_mat_descr descrA,
-                                 aoclsparse_mat_descr descrB,
-                                 aoclsparse_int       m_a,
-                                 aoclsparse_int       n_a,
-                                 aoclsparse_int       m_b,
-                                 aoclsparse_int       n_b,
-                                 aoclsparse_operation op_a,
-                                 aoclsparse_fill_mode fill_b,
-                                 std::vector<T>      &dense_c,
-                                 std::vector<T>      &dense_c_exp)
+    void compute_dense_reference(aoclsparse_matrix         C,
+                                 const sparse_mat_data<T> &src_a,
+                                 const sparse_mat_data<T> &src_b,
+                                 aoclsparse_mat_descr      descrA,
+                                 aoclsparse_mat_descr      descrB,
+                                 aoclsparse_int            m_a,
+                                 aoclsparse_int            n_a,
+                                 aoclsparse_int            m_b,
+                                 aoclsparse_int            n_b,
+                                 aoclsparse_operation      op_a,
+                                 aoclsparse_fill_mode      fill_b,
+                                 std::vector<T>           &dense_c,
+                                 std::vector<T>           &dense_c_exp)
     {
         aoclsparse_int        m_c, n_c, nnz_c;
         aoclsparse_int       *row_ptr_c = NULL;
@@ -988,18 +892,18 @@ namespace
         aoclsparse_csr2dense(m_a,
                              n_a,
                              descrA,
-                             src.val_a.data(),
-                             src.row_ptr_a.data(),
-                             src.col_ind_a.data(),
+                             src_a.csr_val.data(),
+                             src_a.csr_row_ptr.data(),
+                             src_a.csr_col_ind.data(),
                              dense_a.data(),
                              n_a,
                              aoclsparse_order_row);
         aoclsparse_csr2dense(m_b,
                              n_b,
                              descrB,
-                             src.val_b.data(),
-                             src.row_ptr_b.data(),
-                             src.col_ind_b.data(),
+                             src_b.csr_val.data(),
+                             src_b.csr_row_ptr.data(),
+                             src_b.csr_col_ind.data(),
                              dense_b.data(),
                              n_b,
                              aoclsparse_order_row);
@@ -1034,11 +938,13 @@ namespace
         std::vector<T> dense_c, dense_c_exp;
         tolerance_t<T> abserr = sqrt(std::numeric_limits<tolerance_t<T>>::epsilon());
 
-        mats<T>              src;
+        sparse_mat_data<T>   src_a, src_b;
         aoclsparse_matrix    A      = NULL;
         aoclsparse_matrix    B      = NULL;
         aoclsparse_mat_descr descrB = NULL;
-        gen_AB(m_a, n_a, m_b, n_b, nnz_a, nnz_b, b_a, b_b, src, A, B, descrB, use_csc_a);
+        gen_mat(m_a, n_a, nnz_a, b_a, src_a, A, nullptr, !use_csc_a);
+        gen_mat(m_b, n_b, nnz_b, b_b, src_b, B, &descrB);
+        make_b_hermitian<T>(m_b, b_b, src_b, descrB);
 
         aoclsparse_mat_descr descrA;
         ASSERT_EQ(aoclsparse_create_mat_descr(&descrA), aoclsparse_status_success);
@@ -1067,8 +973,19 @@ namespace
             }
 
             // Compute dense reference and get dense_c, dense_c_exp for comparison
-            compute_dense_reference(
-                C, src, descrA, descrB, m_a, n_a, m_b, n_b, op_a, fill_b, dense_c, dense_c_exp);
+            compute_dense_reference(C,
+                                    src_a,
+                                    src_b,
+                                    descrA,
+                                    descrB,
+                                    m_a,
+                                    n_a,
+                                    m_b,
+                                    n_b,
+                                    op_a,
+                                    fill_b,
+                                    dense_c,
+                                    dense_c_exp);
 
             aoclsparse_int m_c
                 = static_cast<aoclsparse_int>(op_a == aoclsparse_operation_none ? m_a : n_a);
@@ -1127,11 +1044,13 @@ namespace
         std::vector<T> dense_c, dense_c_exp;
         tolerance_t<T> abserr = sqrt(std::numeric_limits<tolerance_t<T>>::epsilon());
 
-        mats<T>              src;
+        sparse_mat_data<T>   src_a, src_b;
         aoclsparse_matrix    A      = NULL;
         aoclsparse_matrix    B      = NULL;
         aoclsparse_mat_descr descrB = NULL;
-        gen_AB(m_a, n_a, m_b, n_b, nnz_a, nnz_b, b_a, b_b, src, A, B, descrB, use_csc_a);
+        gen_mat(m_a, n_a, nnz_a, b_a, src_a, A, nullptr, !use_csc_a);
+        gen_mat(m_b, n_b, nnz_b, b_b, src_b, B, &descrB);
+        make_b_hermitian<T>(m_b, b_b, src_b, descrB);
 
         aoclsparse_mat_descr descrA;
         ASSERT_EQ(aoclsparse_create_mat_descr(&descrA), aoclsparse_status_success);
@@ -1148,9 +1067,8 @@ namespace
             request = aoclsparse_stage_finalize;
             EXPECT_EQ(aoclsparse_sypr(op_a, A, B, descrB, &C, request), aoclsparse_status_success);
 
-            // Modify A values then run finalize again to verify value-update path.
             // For CSC A, internal storage is A^T; skip value modification to avoid
-            // mismatched src.val_a sync (the two-stage path itself is exercised above).
+            // mismatched src_a.csr_val sync (the two-stage path itself is exercised above).
             if(!use_csc_a)
             {
                 // Modify the values of A matrix value arrays.
@@ -1160,7 +1078,7 @@ namespace
                 {
                     T new_val              = random_generator_normal<T>();
                     ((T *)csr_mat->val)[i] = new_val;
-                    src.val_a[i]           = new_val; // Keep src in sync for dense reference
+                    src_a.csr_val[i]       = new_val; // Keep src_a in sync for dense reference
                 }
 
                 // Invoke sypr with finalize stage alone.
@@ -1172,8 +1090,19 @@ namespace
             }
 
             // Compute dense reference and get dense_c, dense_c_exp for comparison
-            compute_dense_reference(
-                C, src, descrA, descrB, m_a, n_a, m_b, n_b, op_a, fill_b, dense_c, dense_c_exp);
+            compute_dense_reference(C,
+                                    src_a,
+                                    src_b,
+                                    descrA,
+                                    descrB,
+                                    m_a,
+                                    n_a,
+                                    m_b,
+                                    n_b,
+                                    op_a,
+                                    fill_b,
+                                    dense_c,
+                                    dense_c_exp);
 
             aoclsparse_int m_c
                 = static_cast<aoclsparse_int>(op_a == aoclsparse_operation_none ? m_a : n_a);

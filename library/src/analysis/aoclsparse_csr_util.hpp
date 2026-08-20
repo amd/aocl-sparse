@@ -23,15 +23,12 @@
 #ifndef AOCLSPARSE_INPUT_CHECK_HPP
 #define AOCLSPARSE_INPUT_CHECK_HPP
 
-#include "aoclsparse.h"
-#include "aoclsparse_descr.h"
-#include "aoclsparse_types.h"
 #include "aoclsparse_convert.hpp"
-#include "aoclsparse_mat_structures.hpp"
-#include "aoclsparse_utils.hpp"
 
 #include <algorithm>
 #include <cstring>
+#include <mutex>
+#include <shared_mutex>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -515,7 +512,7 @@ aoclsparse_status aoclsparse_set_mat_diag(const aoclsparse_int        m,
 template <typename T>
 aoclsparse_status aoclsparse_matrix_transform(aoclsparse_matrix A)
 {
-    if(!A || A->mats.empty())
+    if(!A)
         return aoclsparse_status_invalid_pointer;
 
     aoclsparse_status status = aoclsparse_status_success;
@@ -524,7 +521,7 @@ aoclsparse_status aoclsparse_matrix_transform(aoclsparse_matrix A)
     if(A->input_format == aoclsparse_csr_mat)
     {
         aoclsparse_optimize_data *optd    = A->optim_data;
-        aoclsparse::csr          *csr_mat = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
+        aoclsparse::csr          *csr_mat = A->get_first_mtx_if_valid<aoclsparse::csr>();
         if(!csr_mat)
             return aoclsparse_status_not_implemented;
         if(csr_mat->mat_type != A->input_format || !csr_mat->ptr || !csr_mat->ind || !csr_mat->val)
@@ -551,7 +548,7 @@ aoclsparse_status aoclsparse_matrix_transform(aoclsparse_matrix A)
                 if(!found_mat)
                 {
                     // CSC matrix as input --> transpose DOID and fill_mode
-                    if(A->mats[0]->doid == aoclsparse::doid::gt)
+                    if(csr_mat->doid == aoclsparse::doid::gt)
                     {
                         doid      = trans_doid(doid);
                         fill_mode = fill_mode == aoclsparse_fill_mode_lower
@@ -759,40 +756,49 @@ aoclsparse_status aoclsparse_matrix_transform(aoclsparse_matrix A)
 }
 
 /* Given input matrix in CSR/CSC format, check it and create the matching
- * clean version opt_csr_mat/opt_csc_mat, respectively */
+ * clean version opt_csr_mat/opt_csc_mat, respectively.
+ *
+ * Thread-safety: uses double-checked locking on A->mats_guard so that
+ * concurrent callers (e.g. multiple SpMV threads hitting an un-optimized
+ * matrix) serialize the creation but share the result.  The first thread
+ * to arrive performs the work; latecomers pick up the finished copy. */
 template <typename T>
 aoclsparse_status aoclsparse_csr_csc_optimize(aoclsparse_matrix A, aoclsparse::csr *&opt_csr_mat)
 {
     aoclsparse_status status;
 
-    if(!A || A->mats.empty())
+    if(!A)
         return aoclsparse_status_invalid_pointer;
 
     // Make sure we have the right type before proceeding
     if(A->val_type != get_data_type<T>())
         return aoclsparse_status_wrong_type;
 
-    // Stores optimized csr ptr
+    // ---- Fast path: read lock, check if an optimized copy already exists ----
     opt_csr_mat              = nullptr;
     aoclsparse::csr *src_mat = nullptr;
 
-    // Check if the optimized matrix is already in A->mats
-    for(size_t i = 0; i < A->mats.size(); i++)
-    {
-        aoclsparse::csr *temp_opt_mat = dynamic_cast<aoclsparse::csr *>(A->mats[i]);
+    if(!A->get_first_mtx_if_valid<aoclsparse::base_mtx>())
+        return aoclsparse_status_invalid_pointer;
 
-        if(temp_opt_mat && temp_opt_mat->is_optimized)
+    {
+        std::shared_lock<std::shared_mutex> rlock(A->mats_guard);
+
+        for(size_t i = 0; i < A->mats.size(); i++)
         {
-            // If the optimized matrix is found, return it
-            opt_csr_mat = temp_opt_mat;
-            return aoclsparse_status_success;
+            aoclsparse::csr *temp_opt_mat = dynamic_cast<aoclsparse::csr *>(A->mats[i]);
+
+            if(temp_opt_mat && temp_opt_mat->is_optimized)
+            {
+                opt_csr_mat = temp_opt_mat;
+                return aoclsparse_status_success;
+            }
+            else if(temp_opt_mat && !temp_opt_mat->is_optimized && src_mat == nullptr)
+            {
+                src_mat = temp_opt_mat;
+            }
         }
-        else if(temp_opt_mat && !temp_opt_mat->is_optimized && src_mat == nullptr)
-        {
-            // Use the first non-optimized matrix as source
-            src_mat = temp_opt_mat;
-        }
-    }
+    } // rlock released
 
     // Validate the source matrix
     if(!src_mat)
@@ -802,6 +808,21 @@ aoclsparse_status aoclsparse_csr_csc_optimize(aoclsparse_matrix A, aoclsparse::c
     //Make sure base-index is the correct value
     if(src_mat->base != aoclsparse_index_base_zero && src_mat->base != aoclsparse_index_base_one)
         return aoclsparse_status_invalid_value;
+
+    // ---- Slow path: acquire write lock, re-check, then create the copy ----
+    std::unique_lock<std::shared_mutex> wlock(A->mats_guard);
+
+    // Re-check: another thread may have created the optimized copy while we
+    // were waiting for the write lock.
+    for(size_t i = 0; i < A->mats.size(); i++)
+    {
+        aoclsparse::csr *temp_opt_mat = dynamic_cast<aoclsparse::csr *>(A->mats[i]);
+        if(temp_opt_mat && temp_opt_mat->is_optimized)
+        {
+            opt_csr_mat = temp_opt_mat;
+            return aoclsparse_status_success;
+        }
+    }
 
     T             *src_val = static_cast<T *>(src_mat->val);
     aoclsparse_int m_mat   = src_mat->m;
@@ -942,80 +963,6 @@ aoclsparse_status aoclsparse_csr_csc_optimize(aoclsparse_matrix A, aoclsparse::c
     A->opt_csr_full_diag = fulldiag;
     A->optimized         = true;
 
-    return aoclsparse_status_success;
-}
-
-// Check TCSR matrix inputs and create idiag for the lower and iurow for
-// the upper triangular matrix
-template <typename T>
-aoclsparse_status aoclsparse_tcsr_optimize(aoclsparse_matrix A, aoclsparse::tcsr *&opt_tcsr_mat)
-{
-    if(!A || A->mats.empty())
-        return aoclsparse_status_invalid_pointer;
-
-    // Make sure we have the right type before proceeding
-    if(A->val_type != get_data_type<T>())
-        return aoclsparse_status_wrong_type;
-
-    aoclsparse::tcsr *src_mat = nullptr;
-
-    // Check if the optimized matrix is already in A->mats
-    for(size_t i = 0; i < A->mats.size(); i++)
-    {
-        aoclsparse::tcsr *temp_opt_mat = dynamic_cast<aoclsparse::tcsr *>(A->mats[i]);
-
-        // TCSR optimization is done in-place. So if the matrix were optimized earlier, this would be the same.
-        if(temp_opt_mat)
-        {
-            // Use the first non-optimized matrix as source
-            src_mat = temp_opt_mat;
-            break;
-        }
-    }
-
-    // When the user has passed a matrix without any TCSR copies
-    if(!src_mat)
-        return aoclsparse_status_invalid_pointer;
-
-    if(!src_mat->row_ptr_L || !src_mat->row_ptr_U)
-        return aoclsparse_status_invalid_pointer;
-
-    // Check if the first TCSR matrix is already optimized
-    if(src_mat && src_mat->is_optimized)
-    {
-        opt_tcsr_mat = src_mat;
-        return aoclsparse_status_success;
-    }
-
-    // Stores optimized csr ptr
-    opt_tcsr_mat = nullptr;
-
-    // Create idiag and iurow
-    try
-    {
-        src_mat->idiag = new aoclsparse_int[A->m];
-        src_mat->iurow = new aoclsparse_int[A->m];
-    }
-    catch(std::bad_alloc &)
-    {
-        delete[] src_mat->idiag;
-        src_mat->idiag = nullptr;
-        delete[] src_mat->iurow;
-        src_mat->iurow = nullptr;
-        return aoclsparse_status_memory_error;
-    }
-
-    for(aoclsparse_int i = 0; i < A->m; i++)
-    {
-        // Diagonal is at the end of the each row in the lower triangular part
-        src_mat->idiag[i] = src_mat->row_ptr_L[i + 1] - 1;
-        // Diagonal is at the beginning of each row in the upper triangular part
-        // Increment row_ptr_U to get the position of upper triangle element
-        src_mat->iurow[i] = src_mat->row_ptr_U[i] + 1;
-    }
-    opt_tcsr_mat          = src_mat;
-    src_mat->is_optimized = true;
-    A->opt_csr_full_diag  = A->fulldiag;
     return aoclsparse_status_success;
 }
 

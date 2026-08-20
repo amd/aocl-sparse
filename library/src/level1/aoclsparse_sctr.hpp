@@ -23,14 +23,9 @@
  */
 #ifndef AOCLSPARSE_SCTR_HPP
 #define AOCLSPARSE_SCTR_HPP
-#endif
 
-#include "aoclsparse.h"
 #include "aoclsparse_cntx_dispatcher.hpp"
-#include "aoclsparse_context.hpp"
-#include "aoclsparse_kernel_templates.hpp"
 #include "aoclsparse_l1_kt.hpp"
-#include "aoclsparse_utils.hpp"
 
 /*
  * Scatter reference implementation with stride or indexing
@@ -129,3 +124,5 @@ ORL<K>({sctr_kt<bsz::b512, T, I>, context_isa_t::AVX512F, 0U | archs::ALL})
     // Invoke the kernel
     return kernel(nnz, x, xi, y);
 }
+
+#endif // AOCLSPARSE_SCTR_HPP

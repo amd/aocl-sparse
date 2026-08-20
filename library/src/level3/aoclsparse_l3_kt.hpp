@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +28,7 @@
 
 namespace aoclsparse
 {
-    template <kernel_templates::bsz SZ, typename SUF>
+    template <kernel_templates::bsz SZ, typename SUF, bool CONJ_VAL = false>
     aoclsparse_status csrmm_col_kt(const SUF                  alpha,
                                    const aoclsparse_mat_descr descr,
                                    const SUF *__restrict__ csr_val,
@@ -42,7 +42,7 @@ namespace aoclsparse
                                    SUF           *C,
                                    aoclsparse_int ldc);
 
-    template <kernel_templates::bsz SZ, typename SUF>
+    template <kernel_templates::bsz SZ, typename SUF, bool CONJ_VAL = false>
     aoclsparse_status csrmm_row_kt(const SUF                  alpha,
                                    const aoclsparse_mat_descr descr,
                                    const SUF *__restrict__ csr_val,

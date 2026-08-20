@@ -717,7 +717,7 @@ extern "C" aoclsparse_status aoclsparse_csr2bsr_nnz(aoclsparse_int             m
     }
 
     // Check for overflow AFTER loop (no UB occurred since all arithmetic was 64-bit)
-    if(running_sum > aoclsparse_numeric::int_max)
+    if(aoclsparse_numeric::aoclsparse_int_sum_overflow(running_sum))
     {
         return aoclsparse_status_invalid_size;
     }
@@ -1025,7 +1025,9 @@ aoclsparse_status aoclsparse_convert_csr_t(const aoclsparse_matrix    src_mat,
         return aoclsparse_status_invalid_pointer;
     }
     *dest_mat = nullptr;
-    if(src_mat->mats.empty() || !src_mat->mats[0])
+
+    aoclsparse::base_mtx *src_first = src_mat->get_first_mtx_if_valid<aoclsparse::base_mtx>();
+    if(!src_first)
         return aoclsparse_status_invalid_pointer;
 
     aoclsparse_status status = aoclsparse_status_success;
@@ -1047,12 +1049,8 @@ aoclsparse_status aoclsparse_convert_csr_t(const aoclsparse_matrix    src_mat,
     try
     {
         *dest_mat = new _aoclsparse_matrix;
-        dest_csr  = new aoclsparse::csr(m_dest,
-                                       n_dest,
-                                       src_mat->nnz,
-                                       aoclsparse_csr_mat,
-                                       src_mat->mats[0]->base,
-                                       get_data_type<T>());
+        dest_csr  = new aoclsparse::csr(
+            m_dest, n_dest, src_mat->nnz, aoclsparse_csr_mat, src_first->base, get_data_type<T>());
         (*dest_mat)->mats.push_back(dest_csr);
     }
     catch(std::bad_alloc &)
@@ -1067,7 +1065,7 @@ aoclsparse_status aoclsparse_convert_csr_t(const aoclsparse_matrix    src_mat,
     {
     case aoclsparse_coo_mat:
     {
-        aoclsparse::coo *coo_mat = dynamic_cast<aoclsparse::coo *>(src_mat->mats[0]);
+        aoclsparse::coo *coo_mat = dynamic_cast<aoclsparse::coo *>(src_first);
         if(!coo_mat)
         {
             status = aoclsparse_status_not_implemented;
@@ -1105,7 +1103,7 @@ aoclsparse_status aoclsparse_convert_csr_t(const aoclsparse_matrix    src_mat,
     }
     case aoclsparse_csr_mat:
     {
-        aoclsparse::csr *csr_mat = dynamic_cast<aoclsparse::csr *>(src_mat->mats[0]);
+        aoclsparse::csr *csr_mat = dynamic_cast<aoclsparse::csr *>(src_first);
         if(!csr_mat)
         {
             status = aoclsparse_status_not_implemented;
@@ -1162,6 +1160,7 @@ aoclsparse_status aoclsparse_convert_csr_t(const aoclsparse_matrix    src_mat,
     // creation of destination matrix depending on type of operation
     aoclsparse_init_mat(*dest_mat, m_dest, n_dest, src_mat->nnz, aoclsparse_csr_mat);
     (*dest_mat)->val_type = get_data_type<T>();
+    (*dest_mat)->mat_type = aoclsparse_csr_mat;
     return status;
 }
 
@@ -1228,10 +1227,7 @@ namespace aoclsparse
         if(src_mat == nullptr || dest_mat == nullptr)
             return aoclsparse_status_invalid_pointer;
 
-        if(src_mat->mats.empty() || !src_mat->mats[0])
-            return aoclsparse_status_invalid_pointer;
-
-        aoclsparse::csr *csr_mat = dynamic_cast<aoclsparse::csr *>(src_mat->mats[0]);
+        aoclsparse::csr *csr_mat = src_mat->get_first_mtx_if_valid<aoclsparse::csr>();
         if(!csr_mat)
             return aoclsparse_status_invalid_pointer;
 
@@ -1280,13 +1276,8 @@ namespace aoclsparse
                 }
 
                 // Get the transposed CSR matrix
-                if(transposed_mat->mats.empty() || !transposed_mat->mats[0])
-                {
-                    aoclsparse_destroy_mat_descr(descr);
-                    return aoclsparse_status_invalid_pointer;
-                }
                 aoclsparse::csr *transposed_csr
-                    = dynamic_cast<aoclsparse::csr *>(transposed_mat->mats[0]);
+                    = transposed_mat->get_first_mtx_if_valid<aoclsparse::csr>();
                 if(!transposed_csr)
                 {
                     aoclsparse_destroy(&transposed_mat);

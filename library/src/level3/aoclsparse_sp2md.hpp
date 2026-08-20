@@ -23,15 +23,11 @@
  */
 #ifndef AOCLSPARSE_SP2MD_HPP
 #define AOCLSPARSE_SP2MD_HPP
-#endif
 
-#include "aoclsparse_descr.h"
 #include "aoclsparse.hpp"
 #include "aoclsparse_auxiliary.hpp"
-#include "aoclsparse_convert.hpp"
-#include "aoclsparse_mat_structures.hpp"
-#include "aoclsparse_utils.hpp"
 
+#include <algorithm>
 #include <complex>
 #include <vector>
 
@@ -41,7 +37,7 @@
 // Incorporating this logic into *ref_row will have performance implications due to
 // conditionals within the innermost loop.
 // Assumption: all inputs are valid.
-template <typename T>
+template <typename T, bool CONJ_A = false>
 inline aoclsparse_status
     aoclsparse_sp2md_ref_col(const aoclsparse_operation                  opA,
                              [[maybe_unused]] const aoclsparse_mat_descr descrA,
@@ -82,7 +78,10 @@ inline aoclsparse_status
             // compute the values of ith row of C (Ci)
             for(j = rowp_a[i]; j < rowp_a[i + 1]; j++)
             {
-                val = alpha * val_a[j];
+                if constexpr(CONJ_A)
+                    val = alpha * aoclsparse::conj(val_a[j]);
+                else
+                    val = alpha * val_a[j];
                 // updates all relevant values of Ci
                 for(k = rowp_b[colidx_a[j]]; k < rowp_b[colidx_a[j] + 1]; k++)
                 {
@@ -91,33 +90,20 @@ inline aoclsparse_status
             }
         }
     }
-    else if(opA == aoclsparse_operation_transpose)
+    else // opA == aoclsparse_operation_transpose (conjugate_transpose handled via CONJ_A=true)
     {
         for(i = 0; i < m_a; i++)
         {
             for(j = rowp_a[i]; j < rowp_a[i + 1]; j++)
             {
-                ci  = (colidx_a[j] - base_a);
-                val = alpha * val_a[j];
+                ci = (colidx_a[j] - base_a);
+                if constexpr(CONJ_A)
+                    val = alpha * aoclsparse::conj(val_a[j]);
+                else
+                    val = alpha * val_a[j];
                 for(k = rowp_b[i]; k < rowp_b[i + 1]; k++)
                 {
                     C[ci + (colidx_b[k] - base_b) * ldc] += val * val_b[k];
-                }
-            }
-        }
-    }
-    else if(opA == aoclsparse_operation_conjugate_transpose)
-    {
-        T cnj_val;
-        for(i = 0; i < m_a; i++)
-        {
-            for(j = rowp_a[i]; j < rowp_a[i + 1]; j++)
-            {
-                ci      = (colidx_a[j] - base_a);
-                cnj_val = alpha * aoclsparse::conj(val_a[j]);
-                for(k = rowp_b[i]; k < rowp_b[i + 1]; k++)
-                {
-                    C[ci + (colidx_b[k] - base_b) * ldc] += cnj_val * val_b[k];
                 }
             }
         }
@@ -126,7 +112,7 @@ inline aoclsparse_status
 }
 
 //ToDo: Handle opB != aoclsparse_operation_none cases
-template <typename T>
+template <typename T, bool CONJ_A = false>
 inline aoclsparse_status
     aoclsparse_sp2md_ref_row(const aoclsparse_operation                  opA,
                              [[maybe_unused]] const aoclsparse_mat_descr descrA,
@@ -167,7 +153,10 @@ inline aoclsparse_status
             ci = i * ldc;
             for(j = rowp_a[i]; j < rowp_a[i + 1]; j++)
             {
-                val = alpha * val_a[j];
+                if constexpr(CONJ_A)
+                    val = alpha * aoclsparse::conj(val_a[j]);
+                else
+                    val = alpha * val_a[j];
                 for(k = rowp_b[colidx_a[j]]; k < rowp_b[colidx_a[j] + 1]; k++)
                 {
                     C[ci + colidx_b[k] - base_b] += val * val_b[k];
@@ -175,33 +164,20 @@ inline aoclsparse_status
             }
         }
     }
-    else if(opA == aoclsparse_operation_transpose)
+    else // opA == aoclsparse_operation_transpose (conjugate_transpose handled via CONJ_A=true)
     {
         for(i = 0; i < m_a; i++)
         {
             for(j = rowp_a[i]; j < rowp_a[i + 1]; j++)
             {
-                ci  = (colidx_a[j] - base_a) * ldc;
-                val = alpha * val_a[j];
+                ci = (colidx_a[j] - base_a) * ldc;
+                if constexpr(CONJ_A)
+                    val = alpha * aoclsparse::conj(val_a[j]);
+                else
+                    val = alpha * val_a[j];
                 for(k = rowp_b[i]; k < rowp_b[i + 1]; k++)
                 {
                     C[ci + colidx_b[k] - base_b] += val * val_b[k];
-                }
-            }
-        }
-    }
-    else if(opA == aoclsparse_operation_conjugate_transpose)
-    {
-        T cnj_val;
-        for(i = 0; i < m_a; i++)
-        {
-            for(j = rowp_a[i]; j < rowp_a[i + 1]; j++)
-            {
-                ci      = (colidx_a[j] - base_a) * ldc;
-                cnj_val = alpha * aoclsparse::conj(val_a[j]);
-                for(k = rowp_b[i]; k < rowp_b[i + 1]; k++)
-                {
-                    C[(colidx_a[j] - base_a) * ldc + colidx_b[k] - base_b] += cnj_val * val_b[k];
                 }
             }
         }
@@ -253,38 +229,23 @@ inline aoclsparse_status aoclsparse_sp2md_t(const aoclsparse_operation      opA,
 
     // All validations
     // Input validations
-    if(!A || A->mats.empty() || !B || B->mats.empty() || !C)
+    if(!A || !B || !C)
     {
         return aoclsparse_status_invalid_pointer;
     }
-    if((A->mat_type != aoclsparse_csr_mat) || (B->mat_type != aoclsparse_csr_mat))
-    {
+    // Find the raw CSR/CSC object for A and B (stable post-optimize).
+    aoclsparse::csr *raw_A = A->get_first_mtx_if_valid<aoclsparse::csr>();
+    aoclsparse::csr *raw_B = B->get_first_mtx_if_valid<aoclsparse::csr>();
+    if(!raw_A || !raw_B)
         return aoclsparse_status_not_implemented;
-    }
+    if((raw_A->doid != aoclsparse::doid::gn && raw_A->doid != aoclsparse::doid::gt)
+       || (raw_B->doid != aoclsparse::doid::gn && raw_B->doid != aoclsparse::doid::gt))
+        return aoclsparse_status_not_implemented;
 
-    aoclsparse::csr *A_csr = dynamic_cast<aoclsparse::csr *>(A->mats[0]);
-    aoclsparse::csr *B_csr = dynamic_cast<aoclsparse::csr *>(B->mats[0]);
-    // Holds data related to opB(B)
-    aoclsparse::csr *B_op = nullptr;
-    // Check if A_csr and B_csr are valid and not of type CSC ("gt" transposed)
-    if(!A_csr || !B_csr)
-    {
-        return aoclsparse_status_not_implemented;
-    }
-    if(A_csr->doid != aoclsparse::doid::gn || B_csr->doid != aoclsparse::doid::gn)
-    {
-        return aoclsparse_status_not_implemented;
-    }
+    bool             owns_mat_B = false;
+    aoclsparse::csr *B_op       = nullptr;
     // Verify the matrix types and T are consistent
-    if(!((A->val_type == aoclsparse_smat && std::is_same_v<T, float>)
-         || (A->val_type == aoclsparse_dmat && std::is_same_v<T, double>)
-         || (A->val_type == aoclsparse_cmat && std::is_same_v<T, std::complex<float>>)
-         || (A->val_type == aoclsparse_zmat && std::is_same_v<T, std::complex<double>>)))
-        return aoclsparse_status_wrong_type;
-    if(!((B->val_type == aoclsparse_smat && std::is_same_v<T, float>)
-         || (B->val_type == aoclsparse_dmat && std::is_same_v<T, double>)
-         || (B->val_type == aoclsparse_cmat && std::is_same_v<T, std::complex<float>>)
-         || (B->val_type == aoclsparse_zmat && std::is_same_v<T, std::complex<double>>)))
+    if(A->val_type != get_data_type<T>() || B->val_type != get_data_type<T>())
         return aoclsparse_status_wrong_type;
 
     aoclsparse_int combined_op_type = get_combined_op_type(opA, opB);
@@ -331,110 +292,144 @@ inline aoclsparse_status aoclsparse_sp2md_t(const aoclsparse_operation      opA,
     {
         aoclsparse_int c_dim = (layout == aoclsparse_order_row) ? m_c : n_c;
         // Validate full dense address range by checking c_dim * ldc
-        if(aoclsparse_lp64_product_overflow(c_dim, ldc))
+        if(aoclsparse_numeric::aoclsparse_int_product_overflow(c_dim, ldc))
         {
             return aoclsparse_status_invalid_size;
         }
     }
 
-    // Check if base index is consistent
-    if((A_csr->base != descrA->base) || (B_csr->base != descrB->base))
-    {
+    if((raw_A->base != descrA->base) || (raw_B->base != descrB->base))
         return aoclsparse_status_invalid_value;
-    }
 
     aoclsparse_status status;
 
-    // When opB is either transpose or conjugate transpose,
-    // create a new matrix in CSC format and treat it as a
-    // transposed (conjugate transpose) CSR matrix
-    // ToDo: an efficient algorithm without explicit transpose
-    if(opB != aoclsparse_operation_none)
+    // A-side: zero allocations; bit-decode eff_A (bit1=transpose, bit0=conjugate).
+    aoclsparse::csr       *mat_A_eff = raw_A;
+    const aoclsparse::doid eff_A
+        = aoclsparse::get_effective_doid(raw_A->doid, aoclsparse::get_doid<T>(descrA, opA));
+    const bool           eff_trans_A = (static_cast<int>(eff_A) & 2) != 0;
+    const bool           eff_conj_A  = (static_cast<int>(eff_A) & 1) != 0;
+    aoclsparse_operation opA_eff
+        = eff_trans_A ? aoclsparse_operation_transpose : aoclsparse_operation_none;
+
+    // B-side: effective DOID bit-decode; bit 1 = transpose, bit 0 = conjugate.
+    const aoclsparse::doid eff_B
+        = aoclsparse::get_effective_doid(raw_B->doid, aoclsparse::get_doid<T>(descrB, opB));
+    const bool need_trans_B = (static_cast<int>(eff_B) & 2) != 0;
+    const bool need_conj_B  = (static_cast<int>(eff_B) & 1) != 0;
+
+    if(!need_trans_B && !need_conj_B)
     {
+        B_op = raw_B;
+    }
+    else if(need_trans_B)
+    {
+        // csr2csc input is (raw_B->m × raw_B->n); output rows/cols are swapped.
         try
         {
-            // B_op stores B^T: rows = B->n (cols of B), cols = B->m (rows of B)
-            const aoclsparse_int B_op_m = B->n; // rows of B^T = cols of B
-            const aoclsparse_int B_op_n = B->m; // cols of B^T = rows of B
-            B_op                        = new aoclsparse::csr(
-                B_op_m, B_op_n, B->nnz, aoclsparse_csr_mat, descrB->base, B_csr->val_type);
+            B_op = new aoclsparse::csr(
+                raw_B->n, raw_B->m, B->nnz, aoclsparse_csr_mat, raw_B->base, raw_B->val_type);
         }
         catch(std::bad_alloc &)
         {
             return aoclsparse_status_memory_error;
         }
-        status = aoclsparse_csr2csc_template(B->m,
-                                             B->n,
-                                             B->nnz,
-                                             descrB->base,
-                                             descrB->base,
-                                             B_csr->ptr,
-                                             B_csr->ind,
-                                             static_cast<T *>(B_csr->val),
-                                             B_op->ind,
-                                             B_op->ptr,
-                                             static_cast<T *>(B_op->val));
-        if(status != aoclsparse_status_success)
+        aoclsparse_status st_b = aoclsparse_csr2csc_template(raw_B->m,
+                                                             raw_B->n,
+                                                             B->nnz,
+                                                             raw_B->base,
+                                                             raw_B->base,
+                                                             raw_B->ptr,
+                                                             raw_B->ind,
+                                                             static_cast<const T *>(raw_B->val),
+                                                             B_op->ind,
+                                                             B_op->ptr,
+                                                             static_cast<T *>(B_op->val));
+        if(st_b != aoclsparse_status_success)
         {
-            // Clean up allocated memory before returning
             delete B_op;
-            return status;
+            return st_b;
         }
-
-        // ToDo: This operation can be done during csr2csc, for now performing it separately
-        if(opB == aoclsparse_operation_conjugate_transpose)
+        if(need_conj_B)
         {
-            T *val_array = static_cast<T *>(B_op->val);
+            T *v = static_cast<T *>(B_op->val);
             for(aoclsparse_int i = 0; i < B->nnz; i++)
-            {
-                val_array[i] = aoclsparse::conj(val_array[i]);
-            }
+                v[i] = aoclsparse::conj(v[i]);
         }
+        owns_mat_B = true;
     }
     else
     {
-        B_op = B_csr;
+        // Conjugate-only: same physical shape as raw storage; values conjugated.
+        try
+        {
+            B_op = new aoclsparse::csr(
+                raw_B->m, raw_B->n, B->nnz, aoclsparse_csr_mat, raw_B->base, raw_B->val_type);
+        }
+        catch(std::bad_alloc &)
+        {
+            return aoclsparse_status_memory_error;
+        }
+        std::copy(raw_B->ptr, raw_B->ptr + raw_B->m + 1, B_op->ptr);
+        std::copy(raw_B->ind, raw_B->ind + B->nnz, B_op->ind);
+        const T *src_v = static_cast<const T *>(raw_B->val);
+        T       *dst_v = static_cast<T *>(B_op->val);
+        for(aoclsparse_int i = 0; i < B->nnz; i++)
+            dst_v[i] = aoclsparse::conj(src_v[i]);
+        owns_mat_B = true;
     }
 
     // Update the elements of the output matrix with beta
     // beta is zero for calls from spmmd
     if(layout == aoclsparse_order_row)
     {
-        if(beta != one)
+        if(beta == zero)
         {
             for(aoclsparse_int i = 0; i < m_c; i++)
-            {
                 for(aoclsparse_int j = 0; j < n_c; j++)
-                {
+                    C[i * ldc + j] = zero;
+        }
+        else if(beta != one)
+        {
+            for(aoclsparse_int i = 0; i < m_c; i++)
+                for(aoclsparse_int j = 0; j < n_c; j++)
                     C[i * ldc + j] = beta * C[i * ldc + j];
-                }
-            }
         }
         if(alpha == zero)
             status = aoclsparse_status_success;
+        else if(eff_conj_A)
+            status = aoclsparse_sp2md_ref_row<T, true>(
+                opA_eff, descrA, mat_A_eff, descrB, B_op, alpha, C, ldc, kid);
         else
-            status = aoclsparse_sp2md_ref_row(opA, descrA, A_csr, descrB, B_op, alpha, C, ldc, kid);
+            status = aoclsparse_sp2md_ref_row<T, false>(
+                opA_eff, descrA, mat_A_eff, descrB, B_op, alpha, C, ldc, kid);
     }
     else
     {
-        if(beta != one)
+        if(beta == zero)
         {
-            for(aoclsparse_int i = 0; i < m_c; i++)
-            {
-                for(aoclsparse_int j = 0; j < n_c; j++)
-                {
+            for(aoclsparse_int j = 0; j < n_c; j++)
+                for(aoclsparse_int i = 0; i < m_c; i++)
+                    C[i + j * ldc] = zero;
+        }
+        else if(beta != one)
+        {
+            for(aoclsparse_int j = 0; j < n_c; j++)
+                for(aoclsparse_int i = 0; i < m_c; i++)
                     C[i + j * ldc] = beta * C[i + j * ldc];
-                }
-            }
         }
         if(alpha == zero)
             status = aoclsparse_status_success;
+        else if(eff_conj_A)
+            status = aoclsparse_sp2md_ref_col<T, true>(
+                opA_eff, descrA, mat_A_eff, descrB, B_op, alpha, C, ldc, kid);
         else
-            status = aoclsparse_sp2md_ref_col(opA, descrA, A_csr, descrB, B_op, alpha, C, ldc, kid);
+            status = aoclsparse_sp2md_ref_col<T, false>(
+                opA_eff, descrA, mat_A_eff, descrB, B_op, alpha, C, ldc, kid);
     }
-    if(opB != aoclsparse_operation_none)
-    {
+    if(owns_mat_B)
         delete B_op;
-    }
     return status;
 }
+
+#endif // AOCLSPARSE_SP2MD_HPP

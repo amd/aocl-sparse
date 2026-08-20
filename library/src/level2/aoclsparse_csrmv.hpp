@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2020-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2020-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +28,6 @@
 #include "aoclsparse_csrmv_kr.hpp"
 #include "aoclsparse_error_check.hpp"
 #include "aoclsparse_l2_kt.hpp"
-#include "aoclsparse_mtx_dispatcher.hpp"
 
 template <typename T, bool do_check = true>
 aoclsparse_status aoclsparse_csrmv_t(aoclsparse_operation       trans,

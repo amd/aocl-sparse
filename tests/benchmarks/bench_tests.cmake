@@ -1,5 +1,5 @@
 # ########################################################################
-# Copyright (c) 2024-2025 Advanced Micro Devices, Inc.
+# Copyright (c) 2024-2026 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -416,3 +416,23 @@ foreach(FUNCTION "add")
     endforeach(BASEA)
   endforeach(PREC)
 endforeach(FUNCTION)
+
+# DIAMV: sweep --diamv-mode=-1/0/1/2 (kernel-family selector) x --kid=-1/0/1/2
+# (Oracle kernel index within the family). kid=3 (AVX-512) is intentionally
+# omitted: it is implicitly exercised via --kid=-1 on AVX-512-capable hosts
+# (Oracle auto-picks it as the top-scoring kernel). Restricting the bench list
+# to kids that are valid until AVX2-only will avoid aoclsparse_status_invalid_kid failures.
+foreach(DIAMV_KERNEL_MODE "-1" "0" "1" "2")
+  foreach(DIAMV_KID "-1" "0" "1" "2")
+    foreach(PREC "d" "s")
+      foreach(BASE "0" "1")      #test for base-0 and base-1
+        set(DIAMV_MODE_TEST "FuncTest.diamv-kernel-mode-${DIAMV_KERNEL_MODE}-kid-${DIAMV_KID}-${PREC}-100x100x500-Base-${BASE}")
+        add_test(${DIAMV_MODE_TEST} ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench --function=diamv --precision=${PREC} --sizem=100 --sizen=100 --sizennz=500 --indexbaseA=${BASE} --transposeA=N --matrix=D --diamv-mode=${DIAMV_KERNEL_MODE} --kid=${DIAMV_KID} --verify=1 --iters=1)
+        # Exercise non-default alpha/beta scalars
+        set(DIAMV_MODE_TEST_MLT "FuncTest.diamv-kernel-mode-${DIAMV_KERNEL_MODE}-kid-${DIAMV_KID}-${PREC}-100x100x500-mlt-Base-${BASE}")
+        add_test(${DIAMV_MODE_TEST_MLT} ${AOCLSPARSE_BENCH_PATH}/aoclsparse-bench --function=diamv --precision=${PREC} --sizem=100 --sizen=100 --sizennz=500 --indexbaseA=${BASE} --transposeA=N --matrix=D --diamv-mode=${DIAMV_KERNEL_MODE} --kid=${DIAMV_KID} --alpha=3 --beta=-1.5 --verify=1 --iters=1)
+      endforeach(BASE)
+    endforeach(PREC)
+  endforeach(DIAMV_KID)
+endforeach(DIAMV_KERNEL_MODE)
+

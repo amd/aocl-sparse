@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -50,6 +50,32 @@ namespace aoclsparse
                                 const SUF *__restrict__ x,
                                 const SUF beta,
                                 SUF *__restrict__ y);
+
+    template <kernel_templates::bsz SZ, typename SUF>
+    aoclsparse_status diamv_rowmaj_kt(const SUF      alpha,
+                                      aoclsparse_int m,
+                                      aoclsparse_int n,
+                                      const SUF *__restrict__ dia_val,
+                                      const aoclsparse_int *__restrict__ dia_offset,
+                                      aoclsparse_int dia_num_diag,
+                                      aoclsparse_int row_begin,
+                                      aoclsparse_int row_end,
+                                      const SUF *__restrict__ x,
+                                      const SUF beta,
+                                      SUF *__restrict__ y);
+
+    template <kernel_templates::bsz SZ, typename SUF>
+    aoclsparse_status diamv_diagmaj_kt(const SUF      alpha,
+                                       aoclsparse_int m,
+                                       aoclsparse_int n,
+                                       const SUF *__restrict__ dia_val,
+                                       const aoclsparse_int *__restrict__ dia_offset,
+                                       aoclsparse_int dia_num_diag,
+                                       aoclsparse_int row_begin,
+                                       aoclsparse_int row_end,
+                                       const SUF *__restrict__ x,
+                                       const SUF beta,
+                                       SUF *__restrict__ y);
 
     template <kernel_templates::bsz SZ, typename SUF, bool HERM>
     aoclsparse_status csrmv_symm_kt(aoclsparse_index_base base,

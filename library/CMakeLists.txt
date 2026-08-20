@@ -58,11 +58,16 @@ function(aoclsparse_add_dependency OBJ_NAME)
                                    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/level1>
                                    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/extra>
                                    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/conversion>
-                           PUBLIC  $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/library/include>
+                           PUBLIC  $<BUILD_INTERFACE:${AOCLSPARSE_ROOT}/library/include>
                                    $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
-                                   $<BUILD_INTERFACE:${LAPACK_INCLUDE_DIRS}>
-                                   $<BUILD_INTERFACE:${BLIS_INCLUDE_DIRS}>
-                                   $<BUILD_INTERFACE:${UTILS_INCLUDE_DIRS}>
+                                   # NOTE: the dependency include dirs are listed
+                                   # Dependency include dirs are listed WITHOUT a wrapping $<BUILD_INTERFACE:...>:
+                                   # each may be a ';'-separated list (e.g. AOCL-Utils splits headers across folders
+                                   # in a target-based build), and a list inside a single genex collapses into one
+                                   # malformed path. The target isn't exported, so plain build-tree dirs are correct.
+                                   ${LAPACK_INCLUDE_DIRS}
+                                   ${BLIS_INCLUDE_DIRS}
+                                   ${UTILS_INCLUDE_DIRS}
                                    $<INSTALL_INTERFACE:include>
   )
 
@@ -74,13 +79,19 @@ function(aoclsparse_add_dependency OBJ_NAME)
 
  # Sets -fPIC flag, symbol visibility to hidden
  set_target_properties(${OBJ_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+ # Propagate OpenMP usage requirements to the target. This is essential for
+ # the AVX2/AVX512 OBJECT libraries whose kernels (kt / avx512) have openmp pragmas.
+ if(SUPPORT_OMP)
+   target_link_libraries(${OBJ_NAME} PRIVATE ${OpenMP_Library})
+ endif()
 endfunction()
 
 # ----------------- Double compilation files with AVX2 flags -------------------------------
 add_library(DOUBLE_COMPILATION_AVX2 OBJECT ${DOUBLE_COMPILATION})
 target_compile_definitions(DOUBLE_COMPILATION_AVX2 PRIVATE -DAOCLSPARSE_AVX2_INSTANT)
 target_compile_options(DOUBLE_COMPILATION_AVX2 PRIVATE "-mno-avx512f;" ${AOCLSPARSE_GENERIC_FLAGS})
-aoclsparse_add_dependency(DOUBLE_COMPILATION_AVX2)
+aoclsparse_add_dependency(DOUBLE_COMPILATION_AVX2)  # also propagates OpenMP (see helper)
 # ==========================================================================================
 
 # List of all targets in the library
@@ -90,13 +101,13 @@ if(USE_AVX512)
  # ---------------- Double compilation files with AVX 512 flags -----------------------------
  add_library(DOUBLE_COMPILATION_AVX512 OBJECT ${DOUBLE_COMPILATION})
  target_compile_options(DOUBLE_COMPILATION_AVX512 PRIVATE ${AOCLSPARSE_AVX512_FLAGS}${AOCLSPARSE_GENERIC_FLAGS})
- aoclsparse_add_dependency(DOUBLE_COMPILATION_AVX512)
+ aoclsparse_add_dependency(DOUBLE_COMPILATION_AVX512)  # also propagates OpenMP (see helper)
  # ==========================================================================================
 
  # ---------------- Compile files with AVX512 intrinsics ------------------------------------
  add_library(AVX512_FILES OBJECT ${AVX512_SOURCES})
  target_compile_options(AVX512_FILES PRIVATE ${AOCLSPARSE_AVX512_FLAGS}${AOCLSPARSE_GENERIC_FLAGS})
- aoclsparse_add_dependency(AVX512_FILES)
+ aoclsparse_add_dependency(AVX512_FILES)  # also propagates OpenMP (see helper)
  # ==========================================================================================
 
  # If the target is AVX512, append all the AVX512 objects
@@ -110,6 +121,16 @@ target_compile_options(aoclsparse PRIVATE "-mno-avx512f;" ${AOCLSPARSE_GENERIC_F
 
 add_library(aocl::aoclsparse ALIAS aoclsparse)
 aoclsparse_add_dependency(aoclsparse)
+
+# AOCL Build-It-Yourself unified build: contribute sparse's objects to libaocl.
+# The direct sources become a sibling OBJECT library (via objectify, which copies
+# the "-mno-avx512f" / generic flags and the LAPACK/OpenMP include usage); the
+# AVX2/AVX512 OBJECT libraries already referenced in AOCLSPARSE_TARGETS are
+# registered directly as their $<TARGET_OBJECTS:...> genexes.
+if(AOCL_TB_UNIFIED_BUILD)
+    aocl_tb_objectify(aoclsparse)
+    aocl_tb_add_objects(${AOCLSPARSE_TARGETS})
+endif()
 
 # Target link libraries and compile options
 if(SUPPORT_OMP)

@@ -88,7 +88,7 @@
 #ifndef AOCLSPARSE_SOLVERS_H_
 #define AOCLSPARSE_SOLVERS_H_
 
-#include "aoclsparse.h"
+#include "aoclsparse_types.h"
 
 /**
  * @brief Optimization handle

@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2024-2025 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2024-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -100,9 +100,9 @@
  *   ------
  *   Add oracle to get vector type:
  *   template <bsz SZ, typename SUF, v_type VT>
- *    using get_vec_t = type_switch<indx<SZ, SUF, VT>(),  __m64, __m64, __m64, __m64, __m128, __m128d, __m128i, __m128bh, __m256, __m256d, __m256i, __m256bh
+ *    using get_vec_t = type_switch<indx<SZ, SUF, VT>(),  __m64, __m64, __m64, __m64, __m128, __m128d, __m128i, __m128h, __m256, __m256d, __m256i, __m256h
  * #ifdef __AVX512F__
- *                            ,__m512i, __m512, __m512d, __m512bh
+ *                            ,__m512i, __m512, __m512d, __m512h
  * #endif
  *
  *   Step 5
@@ -125,15 +125,32 @@ namespace kernel_templates
     using cfloat  = std::complex<float>;
     using cdouble = std::complex<double>;
 
+    /**
+     * @brief Half-precision floating-point type (fp16)
+     *
+     * When __AVX512FP16__ is available, fp16 is an alias for the compiler-native
+     * _Float16 type, which provides IEEE 754 half-precision arithmetic, conversions,
+     * and comparisons as a built-in type. On non-AVX512FP16 builds, fp16 is a
+     * minimal tag type used only for SFINAE guards (it is not usable for computation).
+     */
+#ifdef __AVX512FP16__
+    using fp16 = _Float16;
+#else
+    struct fp16
+    {
+    };
+#endif
+
     /*
-     *   Number of supported "base" types: 2
+     *   Number of supported "base" types: 4
      *
      * 1. float (and cfloat) maps to float intrinsics
      * 2. double (and cdouble) maps to double intrinsics
-     * Add new types here
-     * 3. ...
+     * 3. int (int32_t and int64_t) maps to integer intrinsics
+     * 4. fp16 maps to half-precision intrinsics
+     * Add new type here and update the supported_base_t accordingly.
      */
-    constexpr int supported_base_t = 3;
+    constexpr int supported_base_t = 4;
 
     // Enum class that represents the vector lengths
     enum class bsz
@@ -219,9 +236,30 @@ namespace kernel_templates
     };
 
     /**
+     * @brief Type trait to check if base type is half-precision (fp16)
+     *
+     * Returns true for fp16 type.
+     * Used for compile-time type dispatching in kernel templates.
+     *
+     * @tparam T Type to check
+     */
+    template <typename T>
+    struct kt_is_base_t_fp16
+    {
+        /**
+         * @brief Conversion operator for boolean evaluation
+         * @return true if T is fp16, false otherwise
+         */
+        constexpr operator bool() const noexcept
+        {
+            return std::is_same<T, fp16>::value;
+        }
+    };
+
+    /**
      * @brief Type trait to check if type is real (non-complex)
      *
-     * Returns true only for real float and double types, excluding complex variants.
+     * Returns true only for fp16, real float and double types, excluding complex variants.
      * Used to constrain template functions to real-only operations (e.g., kt_max_p).
      *
      * @tparam T Type to check
@@ -231,11 +269,12 @@ namespace kernel_templates
     {
         /**
          * @brief Conversion operator for boolean evaluation
-         * @return true if T is float or double (excluding complex types), false otherwise
+         * @return true if T is float, double, or fp16 (excluding complex types), false otherwise
          */
         constexpr operator bool() const noexcept
         {
-            return std::is_same<T, double>::value || std::is_same<T, float>::value;
+            return std::is_same<T, double>::value || std::is_same<T, float>::value
+                   || std::is_same<T, fp16>::value;
         }
     };
 
@@ -263,14 +302,62 @@ namespace kernel_templates
         }
     };
 
-    /*
-     *   Ensure that the custom int type used is of size 4 or 8
+    /**
+     * @brief Type trait to validate integer types for kernel template index parameters
+     *
+     * Checks if a type is a valid integer type for use as array indices in kernel templates.
+     * Valid types must be integral and have a size of either 4 or 8 bytes.
+     * This includes, for example, 32-bit and 64-bit signed and unsigned integer types.
+     *
+     * @tparam T Type to validate
+     *
+     * @par Example:
+     * @code
+     * static_assert(kt_is_valid_int<int32_t>());   // true  - 4-byte signed integer
+     * static_assert(kt_is_valid_int<uint32_t>());  // true  - 4-byte unsigned integer
+     * static_assert(kt_is_valid_int<int64_t>());   // true  - 8-byte signed integer
+     * static_assert(kt_is_valid_int<uint64_t>());  // true  - 8-byte unsigned integer
+     * static_assert(!kt_is_valid_int<int16_t>());  // false - wrong size
+     * static_assert(!kt_is_valid_int<float>());    // false - not integral
+     * @endcode
      */
     template <typename T>
-    using set_kt_int_type
-        = std::enable_if_t<std::is_integral_v<T> && (sizeof(T) == 4 || sizeof(T) == 8), T>;
+    struct kt_is_valid_int
+    {
+        /**
+         * @brief Conversion operator for boolean evaluation
+         * @return true if T is a valid kernel template integer type, false otherwise
+         */
+        constexpr operator bool() const noexcept
+        {
+            return std::is_integral_v<T> && (sizeof(T) == 4 || sizeof(T) == 8);
+        }
+    };
 
-    using kt_int_t = set_kt_int_type<kt_int_t>;
+    /**
+     * @brief SFINAE helper type alias for valid kernel template integer types
+     *
+     * Used as a non-type template parameter (defaulted to 0) to enable function
+     * templates only when the integer type IS is valid (int32_t or int64_t).
+     * This provides a cleaner alternative to verbose std::enable_if_t constraints.
+     *
+     * @tparam T Integer type to validate (must satisfy kt_is_valid_int)
+     *
+     * @par Usage:
+     * @code
+     * // Instead of:
+     * template <typename IS, typename = std::enable_if_t<kt_is_valid_int<IS>()>>
+     * void foo(IS* indices);
+     *
+     * // Use:
+     * template <typename IS, valid_kt_int<IS> = 0>
+     * void foo(IS* indices);
+     * @endcode
+     *
+     * @see kt_is_valid_int
+     */
+    template <typename T>
+    using valid_kt_int = std::enable_if_t<kt_is_valid_int<T>{}, int>;
 
     // AVX CPU instrinsic extensions to implement
     // * ANY      All targets
@@ -281,13 +368,14 @@ namespace kernel_templates
     // Each extension needs to be a superset of the previous
     enum kt_avxext : size_t
     {
-        ANY      = ~0U,
-        NONE     = 1,
-        AVX      = 2,
-        AVX2     = 2,
-        AVX512F  = 2 + 4,
-        AVX512DQ = 2 + 4 + 8,
-        AVX512VL = 2 + 4 + 8 + 16
+        ANY        = ~0U,
+        NONE       = 1,
+        AVX        = 2,
+        AVX2       = 2,
+        AVX512F    = 2 + 4,
+        AVX512DQ   = 2 + 4 + 8,
+        AVX512VL   = 2 + 4 + 8 + 16,
+        AVX512FP16 = 2 + 4 + 8 + 16 + 32
     };
 
     // Based on compilation returns the kt extension to

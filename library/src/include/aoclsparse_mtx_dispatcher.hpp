@@ -23,7 +23,6 @@
  */
 #ifndef AOCLSPARSE_MTX_DISPATCH_HPP
 #define AOCLSPARSE_MTX_DISPATCH_HPP
-#include "aoclsparse.h"
 #include "aoclsparse_descr.h"
 
 #include <complex>
