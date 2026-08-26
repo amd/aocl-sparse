@@ -80,14 +80,10 @@
 #include "testing_complex_mtx_load.hpp"
 
 //aocl utils
-#include <Capi/au/cpuid/au_cpuid_header_only.h>
-
-// Test-local CPUID query (tests avoid depending on aoclsparse internals).
-inline bool test_cpuid_has_flag(uint16_t flag)
-{
-    const au_cpu_info_t info = au_capi_resolve(AU_CURRENT_CPU_NUM);
-    return au_cpuid_info_has_flag(&info, flag);
-}
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wignored-qualifiers"
+#include "Au/Cpuid/X86Cpu.hh"
+#pragma GCC diagnostic pop
 
 int main(int argc, char *argv[])
 {
@@ -508,7 +504,8 @@ int main(int argc, char *argv[])
     }
     else if(strcmp(arg.function, "blkcsrmv") == 0)
     {
-        bool okblk = test_cpuid_has_flag(AU_FLAG_avx512f) && test_cpuid_has_flag(AU_FLAG_avx512vl)
+        Au::X86Cpu Cpu = {0};
+        bool okblk = Cpu.hasFlag(Au::ECpuidFlag::avx512f) && Cpu.hasFlag(Au::ECpuidFlag::avx512vl)
                      && aoclsparse_is_avx512_build();
         //float and complex are not supported. avx512 code on non-avx512 machine not supported.
         //build has to be AVX512

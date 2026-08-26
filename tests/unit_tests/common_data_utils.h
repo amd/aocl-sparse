@@ -48,14 +48,10 @@ inline std::ostream &operator<<(std::ostream &os, const _Float16 &h)
 #include <vector>
 
 //aocl utils
-#include <Capi/au/cpuid/au_cpuid_header_only.h>
-
-// Test-local CPUID query (tests avoid depending on aoclsparse internals).
-inline bool test_cpuid_has_flag(uint16_t flag)
-{
-    const au_cpu_info_t info = au_capi_resolve(AU_CURRENT_CPU_NUM);
-    return au_cpuid_info_has_flag(&info, flag);
-}
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wignored-qualifiers"
+#include "Au/Cpuid/X86Cpu.hh"
+#pragma GCC diagnostic pop
 
 // Suppresses Coverity false positives (resource leaks, null derefs) that stem
 // from gtest checks: Coverity does not know a failed check stops the test, so it
