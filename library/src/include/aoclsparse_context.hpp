@@ -28,16 +28,15 @@
 #include "aoclsparse.h"
 
 #include <algorithm>
-#include <cctype>
-#include <cstdlib>
-#include <string>
-#include <type_traits>
 
 #ifdef _OPENMP
 #include <omp.h>
 #endif
 
-#include <Capi/au/cpuid/au_cpuid_header_only.h>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wignored-qualifiers"
+#include "Au/Cpuid/X86Cpu.hh"
+#pragma GCC diagnostic pop
 
 namespace aoclsparse
 {
@@ -142,44 +141,43 @@ namespace aoclsparse
         // Ensure direct calls to constructor is not possible
         context()
         {
-            const au_cpu_num_t  cpu_num  = AU_CURRENT_CPU_NUM;
-            const au_cpu_info_t cpu_info = au_capi_resolve(cpu_num);
-            const au_uarch_t    uarch    = au_cpuid_info_get_uarch(&cpu_info);
+            Au::X86Cpu Cpu   = {0};
+            Au::EUarch uarch = Cpu.getUarch();
 
             for(int f = 0; f < static_cast<int>(context_isa_t::LENGTH); ++f)
                 cpuflags[f] = false;
 
-            // Query each supported flag by enum id on the resolved core.
+            // Check for the list of flags supported
             // Note: Utils does not support BF16 flag lookup
             this->cpuflags[static_cast<int>(context_isa_t::AVX2)]
-                = au_cpuid_info_has_flag(&cpu_info, AU_FLAG_avx2);
+                = Cpu.hasFlag(Au::ECpuidFlag::avx2);
 
             this->cpuflags[static_cast<int>(context_isa_t::AVX512F)]
-                = au_cpuid_info_has_flag(&cpu_info, AU_FLAG_avx512f);
+                = Cpu.hasFlag(Au::ECpuidFlag::avx512f);
 
             this->cpuflags[static_cast<int>(context_isa_t::AVX512DQ)]
-                = au_cpuid_info_has_flag(&cpu_info, AU_FLAG_avx512dq);
+                = Cpu.hasFlag(Au::ECpuidFlag::avx512dq);
 
             this->cpuflags[static_cast<int>(context_isa_t::AVX512VL)]
-                = au_cpuid_info_has_flag(&cpu_info, AU_FLAG_avx512vl);
+                = Cpu.hasFlag(Au::ECpuidFlag::avx512vl);
 
             this->cpuflags[static_cast<int>(context_isa_t::AVX512IFMA)]
-                = au_cpuid_info_has_flag(&cpu_info, AU_FLAG_avx512ifma);
+                = Cpu.hasFlag(Au::ECpuidFlag::avx512ifma);
 
             this->cpuflags[static_cast<int>(context_isa_t::AVX512CD)]
-                = au_cpuid_info_has_flag(&cpu_info, AU_FLAG_avx512cd);
+                = Cpu.hasFlag(Au::ECpuidFlag::avx512cd);
 
             this->cpuflags[static_cast<int>(context_isa_t::AVX512BW)]
-                = au_cpuid_info_has_flag(&cpu_info, AU_FLAG_avx512bw);
+                = Cpu.hasFlag(Au::ECpuidFlag::avx512bw);
 
             this->cpuflags[static_cast<int>(context_isa_t::AVX512_VBMI)]
-                = au_cpuid_info_has_flag(&cpu_info, AU_FLAG_avx512vbmi);
+                = Cpu.hasFlag(Au::ECpuidFlag::avx512vbmi);
 
             this->cpuflags[static_cast<int>(context_isa_t::AVX512_VNNI)]
-                = au_cpuid_info_has_flag(&cpu_info, AU_FLAG_avx512_4vnniw);
+                = Cpu.hasFlag(Au::ECpuidFlag::avx512_4vnniw);
 
             this->cpuflags[static_cast<int>(context_isa_t::AVX512_VPOPCNTDQ)]
-                = au_cpuid_info_has_flag(&cpu_info, AU_FLAG_avx512_vpopcntdq);
+                = Cpu.hasFlag(Au::ECpuidFlag::avx512_vpopcntdq);
 
             // Check for the enviromental variable "AOCL_ENABLE_INSTRUCTIONS"
             // global_context.isa is already initialized to UNSET (default)
@@ -216,20 +214,20 @@ namespace aoclsparse
 
             switch(uarch)
             {
-            case AU_UARCH_ZEN:
-            case AU_UARCH_ZENPLUS:
+            case Au::EUarch::Zen:
+            case Au::EUarch::ZenPlus:
                 lib_local_arch = archs::ZEN;
                 break;
-            case AU_UARCH_ZEN2:
+            case Au::EUarch::Zen2:
                 lib_local_arch = archs::ZEN2;
                 break;
-            case AU_UARCH_ZEN3:
+            case Au::EUarch::Zen3:
                 lib_local_arch = archs::ZEN3;
                 break;
-            case AU_UARCH_ZEN4:
+            case Au::EUarch::Zen4:
                 lib_local_arch = archs::ZEN4;
                 break;
-            case AU_UARCH_ZEN5:
+            case Au::EUarch::Zen5:
                 lib_local_arch = archs::ZEN5;
                 break;
             default:
