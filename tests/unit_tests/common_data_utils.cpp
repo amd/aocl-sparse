@@ -115,5 +115,5 @@ bool can_exec_avx512_tests()
 bool can_exec_avx512fp16_tests()
 {
     Au::X86Cpu Cpu = {0};
-    return Cpu.hasFlag(Au::ECpuidFlag::avx512_fp16) && aoclsparse_is_avx512_build();
+    return can_exec_avx512_tests() && Cpu.hasFlag(Au::ECpuidFlag::avx512_fp16);
 }
