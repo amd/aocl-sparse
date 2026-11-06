@@ -50,7 +50,7 @@ const char *aoclsparse_get_version();
  *  \par AOCL_ENABLE_INSTRUCTIONS
  *  Environment variable that sets the ISA code-path preference for kernels
  *  that have more than one implementation. Read at library initialization;
- *  can be re-applied at run time by calling \ref aoclsparse_enable_instructions(ENV).
+ *  can be re-applied at run time by calling \ref aoclsparse_enable_instructions with the \c "ENV" preference.
  *
  *  Valid values (case-insensitive):
  *  - \b GENERIC — Use the generic (scalar) code path; runs on any supported x86 CPU.

@@ -325,7 +325,7 @@ inline aoclsparse_status aoclsparse_csr2m_finalize(aoclsparse_int        m_a,
     aoclsparse_int status = aoclsparse_status_success;
 
     // Check for valid pointers
-    if((*C == nullptr))
+    if(*C == nullptr)
     {
         return aoclsparse_status_invalid_pointer;
     }

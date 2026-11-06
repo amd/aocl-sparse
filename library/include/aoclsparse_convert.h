@@ -666,7 +666,7 @@ aoclsparse_status aoclsparse_convert_csr(const aoclsparse_matrix    src_mat,
 *  <tt>aoclsparse_convert_bsr</tt> converts the supported matrix format into a BSR format and returns it as a new \ref aoclsparse_matrix.
 *  The input matrix can also be transposed, or conjugated and transposed before the conversion. The newly created matrix should be freed by calling aoclsparse_destroy().
 *  Currently, the API supports a source matrix stored in CSR storage format with the matrix type \ref aoclsparse_matrix_type_general.
-*  The source matrix needs to be initialized using \ref aoclsparse_create_csr().
+*  The source matrix needs to be initialized using \ref aoclsparse_create_scsr() or its type variants.
 *
 *  @param[in] src_mat           source matrix used for conversion.
 *  @param[in] block_dim         size of the non-zero blocks of the BSR matrix.

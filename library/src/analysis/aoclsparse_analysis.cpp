@@ -481,7 +481,7 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
     // Go through the linked list of hinted actions to decide which action to take
     optimized               = true;
     optd                    = A->optim_data;
-    aoclsparse_int mv_count = 0, ilu_count = 0, sgs_count = 0;
+    aoclsparse_int mv_count = 0, ilu_count = 0;
     aoclsparse_int other_count = 0, sum = 0;
     while(optd)
     {
@@ -499,7 +499,9 @@ aoclsparse_status aoclsparse_optimize(aoclsparse_matrix A)
             else if(optd->act == aoclsparse_action_ilu0 && optd->nop > 0)
                 ilu_count++;
             else if(optd->act == aoclsparse_action_symgs && optd->nop > 0)
-                sgs_count++;
+            {
+                // symgs handled at compute; must not count as 'other'
+            }
             else
                 other_count++;
             sum++;

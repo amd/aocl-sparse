@@ -37,13 +37,13 @@ set(AOCLSPARSE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}" CACHE INTERNAL "AOCL-Sparse so
 # --------------------------------------------------------------------------
 # Define a version for the aocl-sparse code.
 if(NOT DEFINED AOCLSPARSE_VERSION_MAJOR)
-  set(AOCLSPARSE_VERSION_MAJOR 5)
+  set(AOCLSPARSE_VERSION_MAJOR 6)
 endif()
 if(NOT DEFINED AOCLSPARSE_VERSION_MINOR)
-  set(AOCLSPARSE_VERSION_MINOR 3)
+  set(AOCLSPARSE_VERSION_MINOR 0)
 endif()
 if(NOT DEFINED AOCLSPARSE_VERSION_PATCH)
-  set(AOCLSPARSE_VERSION_PATCH 2)
+  set(AOCLSPARSE_VERSION_PATCH 0)
 endif()
 
 set(AOCLSPARSE_VERSION "${AOCLSPARSE_VERSION_MAJOR}.${AOCLSPARSE_VERSION_MINOR}.${AOCLSPARSE_VERSION_PATCH}")
@@ -216,6 +216,14 @@ else()
   set(COMPILER_FLAGS_RELEASE "-O3;-NDEBUG")
   set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};-mavx2;-mfma;")
 endif()
+
+# Windows/Clang only: warning-suppression flags with no GCC/AOCC (Linux) equivalent.
+# _CRT_SECURE_NO_WARNINGS silences MSVC-CRT deprecation; -Wno-vla-cxx-extension
+# silences Clang's VLA warning from tests/examples (library sources are VLA-free).
+if(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  set(COMPILER_FLAGS_COMMON "${COMPILER_FLAGS_COMMON};-D_CRT_SECURE_NO_WARNINGS;-Wno-vla-cxx-extension;")
+endif()
+
 set(AOCLSPARSE_AVX512_FLAGS "-mavx512f;-mavx512vl;-mavx512dq;")
 
 set(AOCLSPARSE_GENERIC_FLAGS_RELEASE "${COMPILER_FLAGS_RELEASE}")

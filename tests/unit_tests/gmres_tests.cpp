@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (c) 2023-2024 Advanced Micro Devices, Inc. All rights reserved.
+ * Copyright (c) 2023-2026 Advanced Micro Devices, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +28,7 @@ namespace
 
     // GMRES Data Driven Test
     // Structure to store all parameters needed for one test
-    typedef struct
+    struct GmresDDParamType
     {
         const char *
             testname; // unique identifier of the test, use only 0-9a-zA-Z (particularly no undescores!)
@@ -40,7 +40,7 @@ namespace
         MonitType<float>        monitf; // monitoring function for float
         MonitType<double>       monitd; // monitoring function for double
         std::vector<itsol_opts> opts; // pairs of option & value if any, for none use {}
-    } GmresDDParamType;
+    };
     // List of all desired tests
     const GmresDDParamType GMRESTestValues[] = {
         {"GmresNoPrecondNullptr",
